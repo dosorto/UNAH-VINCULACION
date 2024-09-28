@@ -22,5 +22,5 @@ Route::get('listarPais', ListPaises::class)
 Route::get('crearDepartamento', CreateDepartamento::class)
     ->name('crearDepartamento');
 
-    Route::get('ListarDepartamentos', ListDepartamentos::class)
+Route::get('ListarDepartamentos', ListDepartamentos::class)
     ->name('ListarDepartamentos');
