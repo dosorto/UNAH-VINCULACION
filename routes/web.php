@@ -5,15 +5,17 @@ use App\Livewire\Demografia\Pais\CreatePais;
 use App\Livewire\Demografia\Pais\ListPaises;
 use App\Livewire\Demografia\Departamento\CreateDepartamento;
 use App\Livewire\Demografia\Departamento\ListDepartamentos;
+use App\Livewire\Login\Login;
 
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', Login::class)
+->name('login');
 
 
 Route::get('crearPais', CreatePais::class)
     ->name('crearPais');
+Route::middleware(['auth'])->group(function () {
+});
 
 Route::get('listarPais', ListPaises::class)
     ->name('listarPaises');
