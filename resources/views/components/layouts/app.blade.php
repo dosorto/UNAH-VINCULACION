@@ -30,7 +30,7 @@
 
     <title>Admin Panel</title>
     <style>
-        .active{
+        .active {
             width: 100% !important;
             margin-left: 0px !important;
         }
@@ -38,7 +38,7 @@
 </head>
 
 <body class="text-gray-800 font-inter">
-    <x-panel.navbar.navbar/>
+    <x-panel.navbar.navbar />
 
     <main class="w-full md:w-[calc(100%-256px)] md:ml-64 bg-gray-200 min-h-screen transition-all main">
         <!-- navbar -->
@@ -78,7 +78,7 @@
                         <div class="flex-shrink-0 w-10 h-10 relative">
                             <div class="p-1 bg-white rounded-full focus:outline-none focus:ring">
                                 <img class="w-8 h-8 rounded-full"
-                                    src="https://laravelui.spruko.com/tailwind/ynex/build/assets/images/faces/9.jpg"
+                                    src="https://laravelui.spruko.com/tailwind/ynex/build/assets/images/faces/5.jpg"
                                     alt="" />
                                 <div
                                     class="top-0 left-7 absolute w-3 h-3 bg-lime-400 border-2 border-white rounded-full animate-ping">
@@ -89,7 +89,9 @@
                             </div>
                         </div>
                         <div class="p-2 md:block text-left">
-                            <h2 class="text-sm font-semibold text-gray-800">John Doe</h2>
+                            <h2 class="text-sm font-semibold text-gray-800">
+                                {{ Auth::user()->name }}
+                            </h2>
                             <p class="text-xs text-gray-500">Administrator</p>
                         </div>
                     </button>
@@ -121,136 +123,22 @@
 
         <!-- Content -->
         <div class="p-6 w-full flex justify-center">
-            <main class="p-6  w-3/4">
+            <main class="w-full w-3/4">
                 {{ $slot }}
             </main>
-            
+
         </div>
         <!-- End Content -->
     </main>
 
+    <script src="{{asset('js/app/panelScripts.js')}}">
+
+    </script>
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     @livewire('notifications')
-            @filamentScripts
-            @vite('resources/js/app.js')
-    <script>
-        // start: Sidebar
-        const sidebarToggle = document.querySelector('.sidebar-toggle')
-        const sidebarOverlay = document.querySelector('.sidebar-overlay')
-        const sidebarMenu = document.querySelector('.sidebar-menu')
-        const main = document.querySelector('.main')
+    @filamentScripts
+    @vite('resources/js/app.js')
 
-        sidebarToggle.addEventListener('click', function(e) {
-            e.preventDefault()
-            main.classList.toggle('active')
-            sidebarOverlay.classList.toggle('hidden')
-            sidebarMenu.classList.toggle('-translate-x-full')
-        })
-        sidebarOverlay.addEventListener('click', function(e) {
-            e.preventDefault()
-            main.classList.add('active')
-            sidebarOverlay.classList.add('hidden')
-            sidebarMenu.classList.add('-translate-x-full')
-        })
-        document.querySelectorAll('.sidebar-dropdown-toggle').forEach(function(item) {
-            item.addEventListener('click', function(e) {
-                e.preventDefault()
-                const parent = item.closest('.group')
-                if (parent.classList.contains('selected')) {
-                    parent.classList.remove('selected')
-                } else {
-                    document.querySelectorAll('.sidebar-dropdown-toggle').forEach(function(i) {
-                        i.closest('.group').classList.remove('selected')
-                    })
-                    parent.classList.add('selected')
-                }
-            })
-        })
-        // end: Sidebar
-
-
-
-        // start: Popper
-        const popperInstance = {}
-        document.querySelectorAll('.dropdown').forEach(function(item, index) {
-            const popperId = 'popper-' + index
-            const toggle = item.querySelector('.dropdown-toggle')
-            const menu = item.querySelector('.dropdown-menu')
-            menu.dataset.popperId = popperId
-            popperInstance[popperId] = Popper.createPopper(toggle, menu, {
-                modifiers: [{
-                        name: 'offset',
-                        options: {
-                            offset: [0, 8],
-                        },
-                    },
-                    {
-                        name: 'preventOverflow',
-                        options: {
-                            padding: 24,
-                        },
-                    },
-                ],
-                placement: 'bottom-end'
-            });
-        })
-        document.addEventListener('click', function(e) {
-            const toggle = e.target.closest('.dropdown-toggle')
-            const menu = e.target.closest('.dropdown-menu')
-            if (toggle) {
-                const menuEl = toggle.closest('.dropdown').querySelector('.dropdown-menu')
-                const popperId = menuEl.dataset.popperId
-                if (menuEl.classList.contains('hidden')) {
-                    hideDropdown()
-                    menuEl.classList.remove('hidden')
-                    showPopper(popperId)
-                } else {
-                    menuEl.classList.add('hidden')
-                    hidePopper(popperId)
-                }
-            } else if (!menu) {
-                hideDropdown()
-            }
-        })
-
-        function hideDropdown() {
-            document.querySelectorAll('.dropdown-menu').forEach(function(item) {
-                item.classList.add('hidden')
-            })
-        }
-
-        function showPopper(popperId) {
-            popperInstance[popperId].setOptions(function(options) {
-                return {
-                    ...options,
-                    modifiers: [
-                        ...options.modifiers,
-                        {
-                            name: 'eventListeners',
-                            enabled: true
-                        },
-                    ],
-                }
-            });
-            popperInstance[popperId].update();
-        }
-
-        function hidePopper(popperId) {
-            popperInstance[popperId].setOptions(function(options) {
-                return {
-                    ...options,
-                    modifiers: [
-                        ...options.modifiers,
-                        {
-                            name: 'eventListeners',
-                            enabled: false
-                        },
-                    ],
-                }
-            });
-        }
-        // end: Popper
-    </script>
 
 </body>
 

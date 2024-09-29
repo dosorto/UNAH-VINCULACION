@@ -41,10 +41,13 @@ class CreateDepartamento extends Component implements HasForms
                                 Pais::All()
                                     ->pluck('nombre', 'id')
                             )
+                            ->required()
                             ->searchable()
                             ->columnSpanFull(),
-                        TextInput::make('nombre'),
+                        TextInput::make('nombre')
+                            ->required(),
                         TextInput::make('codigo_departamento')
+                            ->required()
 
                     ])
 
