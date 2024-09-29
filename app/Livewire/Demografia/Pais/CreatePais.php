@@ -67,7 +67,7 @@ class CreatePais extends Component implements HasForms
 
         Notification::make()
             ->title('Exito!')
-            ->body('Docente creado correctamente.')
+            ->body('Pais creado correctamente.')
             ->success()
             ->send();
         $this->js('location.reload();');

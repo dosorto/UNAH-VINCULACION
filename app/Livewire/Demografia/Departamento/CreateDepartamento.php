@@ -41,10 +41,11 @@ class CreateDepartamento extends Component implements HasForms
                                 Pais::All()
                                     ->pluck('nombre', 'id')
                             )
+                            ->searchable()
                             ->columnSpanFull(),
                         TextInput::make('nombre'),
                         TextInput::make('codigo_departamento')
-                           
+
                     ])
 
                     ->columns(2)
@@ -58,7 +59,12 @@ class CreateDepartamento extends Component implements HasForms
         $data = $this->form->getState();
 
         $record = Departamento::create($data);
-
+        Notification::make()
+            ->title('Exito!')
+            ->body('Departamento creado correctamente.')
+            ->success()
+            ->send();
+        $this->js('location.reload();');
         $this->form->model($record)->saveRelationships();
     }
 

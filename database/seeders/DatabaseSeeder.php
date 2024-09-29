@@ -2,11 +2,14 @@
 
 namespace Database\Seeders;
 
+use App\Models\Demografia\Departamento;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Database\Seeders\Demografia\PaisesSeeder;
+use Database\Seeders\Demografia\DepartamentoSeeder; 
 class DatabaseSeeder extends Seeder
 {
     /**
@@ -14,6 +17,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+
+        $this->call(PaisesSeeder::class);
+        $this->call(DepartamentoSeeder::class);
+
         // User::factory(10)->create();
 
         // User::factory()->create([
