@@ -27,7 +27,6 @@
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-
     <title>Admin Panel</title>
     <style>
         .active {
@@ -122,18 +121,44 @@
         <!-- end navbar -->
 
         <!-- Content -->
-        <div class="p-6 w-full flex justify-center">
-            <main class="w-full w-3/4">
+        <div class="p-6 w-full flex justify-center ">
+            <main class="w-full w-3/4 flex flex-col">
                 {{ $slot }}
             </main>
 
         </div>
         <!-- End Content -->
     </main>
-
-    <script src="{{asset('js/app/panelScripts.js')}}">
-
+    <script>
+        window.onload = function() {
+            Livewire.hook('message.sent', () => {
+                window.dispatchEvent(
+                    new CustomEvent('loading', {
+                        detail: {
+                            loading: true
+                        }
+                    })
+                );
+            })
+            Livewire.hook('message.processed', (message, component) => {
+                window.dispatchEvent(
+                    new CustomEvent('loading', {
+                        detail: {
+                            loading: false
+                        }
+                    })
+                );
+            })
+        }
     </script>
+
+    <div x-data="{ loading: false }" x-show="loading" @loading.window="loading = $event.detail.loading"
+        class="fixed inset-0 bg-blue-200 flex items-center justify-center z-50">
+        <span class="text-4xl font-semibold text-gray-700">Cargando</span>
+    </div>
+
+
+    <script src="{{ asset('js/app/panelScripts.js') }}"></script>
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     @livewire('notifications')
     @filamentScripts

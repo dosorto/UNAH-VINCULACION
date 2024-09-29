@@ -67,7 +67,7 @@ class CreateDepartamento extends Component implements HasForms
             ->body('Departamento creado correctamente.')
             ->success()
             ->send();
-        $this->js('location.reload();');
+        //$this->js('location.reload();');
         $this->form->model($record)->saveRelationships();
     }
 
