@@ -16,6 +16,7 @@ use Filament\Notifications\Notification;
 use Filament\Forms\Components\Select;
 use App\Models\Demografia\Pais;
 
+use Filament\Forms\Components\Section;
 
 class CreateDepartamento extends Component implements HasForms
 {
@@ -32,17 +33,22 @@ class CreateDepartamento extends Component implements HasForms
     {
         return $form
             ->schema([
+                Section::make('Crear un nuevo Departamento')
+                    ->description('Crea un nuevo departamento asociado a un pais.')
+                    ->schema([
+                        Select::make('pais_id')
+                            ->options(
+                                Pais::All()
+                                    ->pluck('nombre', 'id')
+                            )
+                            ->columnSpanFull(),
+                        TextInput::make('nombre'),
+                        TextInput::make('codigo_departamento')
+                           
+                    ])
 
-                Select::make('pais_id')
-                    ->options(
-                        Pais::All()
-                        ->pluck('nombre', 'id')
-                    ),
-                TextInput::make('nombre'),
-                TextInput::make('codigo_departamento')
-                    ->columnSpanFull()
+                    ->columns(2)
             ])
-            ->columns(2)
             ->statePath('data')
             ->model(Departamento::class);
     }
