@@ -15,38 +15,41 @@ use App\Livewire\Login\Login;
 
 
 Route::get('/', Login::class)
-->name('login');
+    ->name('login');
 
 
 Route::middleware(['auth'])->group(function () {
 
-Route::get('crearPais', CreatePais::class)
-->name('crearPais');
+    Route::get('crearPais', CreatePais::class)
+        ->name('crearPais');
+
     Route::get('listarPais', ListPaises::class)
-    ->name('listarPaises');
+        ->name('listarPaises');
 
 
-Route::get('crearDepartamento', CreateDepartamento::class)
-    ->name('crearDepartamento');
+    Route::get('crearDepartamento', CreateDepartamento::class)
+        ->name('crearDepartamento');
 
-    ->name('ListarCiudades');
-Route::get('ListarCiudades', ListaCiudad::class)
+    Route::get('ListarDepartamentos', ListDepartamentos::class)
+        ->name('listarDepartamentos');
 
-    ->name('crearCiudad');
-Route::get('crearCiudad', CreateCiudad::class)
-    ->name('ListarAldeas');
+    Route::get('ListarCiudades', ListaCiudad::class)
+
+        ->name('ListarCiudades');
+
+    Route::get('crearCiudad', CreateCiudad::class)
+        ->name('crearCiudad');
 
 
-Route::get('ListarAldeas', ListAldeas::class)
-    ->name('crearAldea');
-Route::get('crearAldea', CreateAldea::class)
+    Route::get('ListarAldeas', ListAldeas::class)
 
-Route::get('ListarMunicipios', ListaMunicipios::class)
-    ->name('ListarMunicipios');
-    ->name('crearMunicipio');
+        ->name('ListarAldeas');
+    Route::get('crearAldea', CreateAldea::class)
 
-Route::get('crearMunicipio', CreateMunicipio::class)
+        ->name('crearAldea');
+    Route::get('ListarMunicipios', ListaMunicipios::class)
+        ->name('ListarMunicipios');
 
-    ->name('ListarDepartamentos');
-Route::get('ListarDepartamentos', ListDepartamentos::class)
+    Route::get('crearMunicipio', CreateMunicipio::class)
+        ->name('crearMunicipio');
 });
