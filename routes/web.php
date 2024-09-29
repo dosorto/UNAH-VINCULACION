@@ -12,12 +12,11 @@ Route::get('/', Login::class)
 ->name('login');
 
 
-Route::get('crearPais', CreatePais::class)
-    ->name('crearPais');
 Route::middleware(['auth'])->group(function () {
-});
 
-Route::get('listarPais', ListPaises::class)
+Route::get('crearPais', CreatePais::class)
+->name('crearPais');
+    Route::get('listarPais', ListPaises::class)
     ->name('listarPaises');
 
 
@@ -26,3 +25,5 @@ Route::get('crearDepartamento', CreateDepartamento::class)
 
 Route::get('ListarDepartamentos', ListDepartamentos::class)
     ->name('listarDepartamentos');
+});
+
