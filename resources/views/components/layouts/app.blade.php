@@ -46,6 +46,30 @@
                             class="text-gray-600 hover:bg-gray-200 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                             ListarDepartamento
                         </a>
+                        <a href="{{route('crearMunicipio')}}"
+                            class="text-gray-600 hover:bg-gray-200 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                           crearMunicipio
+                        </a>
+                        <a href="{{route('ListarMunicipios')}}"
+                            class="text-gray-600 hover:bg-gray-200 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                           ListarMunicipios
+                        </a>
+                        <a href="{{route('crearAldea')}}"
+                            class="text-gray-600 hover:bg-gray-200 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                           CrearAldea
+                        </a>
+                        <a href="{{route('ListarAldeas')}}"
+                            class="text-gray-600 hover:bg-gray-200 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                           ListarAldea
+                        </a>
+                        <a href="{{route('crearCiudad')}}"
+                            class="text-gray-600 hover:bg-gray-200 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                           CrearCiudad
+                        </a>
+                        <a href="{{route('ListarCiudades')}}"
+                            class="text-gray-600 hover:bg-gray-200 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                           ListarCiudad
+                        </a>
                     </div>
                 </div>
                 <div class="hidden sm:ml-6 sm:flex sm:items-center">
