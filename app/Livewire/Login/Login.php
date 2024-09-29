@@ -41,7 +41,7 @@ class Login extends Component implements HasForms
         $data = $this->form->getState();
 
         if (Auth::attempt(['email' => $data['email'], 'password' => $data['Contraseña']])) {
-            return redirect('crearDepartamento');
+            return redirect(route('Usuarios'));
         }
 
         Notification::make()
@@ -53,6 +53,9 @@ class Login extends Component implements HasForms
 
     public function render(): View
     {
+        if (Auth::check()) {
+            Auth::logout(); 
+        }
         return view('livewire.login.login')->layout('components.layouts.login');
     }
 }
