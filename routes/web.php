@@ -12,6 +12,8 @@ use App\Livewire\Demografia\Aldea\ListAldeas;
 use App\Livewire\Demografia\Ciudad\CreateCiudad;
 use App\Livewire\Demografia\Ciudad\ListaCiudad;
 use App\Livewire\Login\Login;
+use App\Livewire\User\Users;
+use App\Livewire\User\Roles;
 
 
 Route::get('/', Login::class)
@@ -31,8 +33,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('crearDepartamento');
 
     Route::get('ListarDepartamentos', ListDepartamentos::class)
-        ->name('listarDepartamentos');
 
+        ->name('listarDepartamentos');
     Route::get('ListarCiudades', ListaCiudad::class)
 
         ->name('ListarCiudades');
@@ -52,4 +54,17 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('crearMunicipio', CreateMunicipio::class)
         ->name('crearMunicipio');
+
+    Route::get('/users', Users::class)
+        ->name('Usuarios');
+
+    Route::get('/roles', Roles::class)
+        ->name('roles');
+
+    Route::get('/logout', function () {
+        Auth::logout(); 
+        return redirect('/'); 
+    })
+        ->name('logout');
+
 });
