@@ -11,6 +11,18 @@
 
     <title>{{ config('app.name') }}</title>
 
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+              content-visibility: auto;
+            }
+
+
+
+        }
+        </style>
+
     <style>
         [x-cloak] {
             display: none !important;
@@ -75,8 +87,8 @@
                 <!-- logo -->
                 <h1 class="w-3/12">
                     <a href>
-                        <h2 class="text-2xl font-bold text-white">Arti140
-
+                        <h2 class="text-2xl font-bold text-white">
+                            Vinculacion
                         </h2>
                     </a>
                 </h1>
@@ -84,10 +96,6 @@
                 <!-- navigation -->
                 <nav class="nav font-semibold text-lg">
                     <ul class="flex items-center">
-                        <li
-                            class="p-4 text-yellow-400 border-b-2 border-green-500 border-opacity-0 hover:border-opacity-100 hover:text-white duration-200 cursor-pointer ">
-                            <a href>Admin</a>
-                        </li>
                         <li
                             class="p-4 text-yellow-400 border-b-2 border-green-500 border-opacity-0 hover:border-opacity-100 hover:text-white duration-200 cursor-pointer active">
                             <a href>Registrarme</a>
@@ -100,73 +108,27 @@
 
             </header>
         </div>
-        <div class="w-full  min-h-[80vh] flex items-center justify-center ">
-            <div
-                class="w-full xl:w-3/4 rounded-full flex flex-col-reverse md:flex-row  items-center justify-center md:space-y-0">
-                <div class=" p-4 w-full xl:w-1/2 flex items-center justify-center">
-                    <div class=" md:max-w-sm w-full lg:max-w-full lg:flex">
-
-                        <div class=" triangulo mt-1 lg:mt-[100px] p-8
-                                   w-4/3 
-                                   rounded-lgl border-gray-400  bg-white r p-4 flex flex-col justify-between leading-normal
-                                        rounded-xl
-                                    ">
-                            <div>
-                                <p class="text-sm text-gray-600 flex items-center">
-
-                                    Serie: publicaciones de la Reforma
-                                    universitaria n°. 6 Mayo, 2015
-                                </p>
-                                <div class="text-gray-900 font-bold text-xl mb-2">
-                                    Normas Academicas UNAH
-                                </div>
-                                <p class="text-gray-600 text-base">
-                                    <b>Articulo 140</b><br>
-                                    Para los diferentes grados
-                                    académicos los requisitos generales
-                                    de graduación son los que se
-                                    describen a continuación:
-                                    <br>
-                                    <b>a)</b> Haber completado los
-                                    créditos académicos de la carrera,
-                                    con un índice de graduación no
-                                    inferior a setenta por ciento (70%).
-                                    <br>
-                                    <b>b)</b> Haber participado, de
-                                    manera obligatoria, en su proceso
-                                    educativo en una iniciativa de
-                                    índole social, cultural, artística,
-                                    deportiva, las cuales deberán ser
-                                    certificadas por la VOAE o sus
-                                    referentes en los centros regionales
-                                    o instituto tecnológico
-                                    superior.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-4 w-full xl:w-1/2 flex items-center justify-center ">
-                    <div
-                        class="w-full bg-white rounded-lg  dark:border md:mt-0 md:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
-                        <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
-                            <h1
-                                class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
-                                Arti140
-                            </h1>
-                            {{ $slot }}
-                        </div>
-                    </div>
+        <div class="w-full min-h-[80vh] flex items-center justify-center">
+    <div class="w-full max-w-md rounded-lg flex flex-col-reverse md:flex-row items-center justify-center md:space-y-0">
+        <div class="p-4 w-full flex items-center justify-center">
+            <div class="w-full bg-white rounded-lg dark:border md:mt-0 xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+                <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
+                    <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
+                        Login
+                    </h1>
+                    {{ $slot }}
                 </div>
             </div>
-
         </div>
+    </div>
+</div>
+
         <div class="w-full h-[10vh] flex items-center justify-center">
             <div class="md:col-span-1">
                 <div class="px-4 sm:px-0">
                     <h3 class="text-lg font-medium leading-6 text-gray-900
                             flex items-center justify-center text-white
-                          ">Arti140</h3>
+                          "></h3>
                     <p class="mt-1 text-sm text-gray-600 text-white">
                         Desarrollado por IS UNAH-CHOLUTECA 2021
                     </p>
