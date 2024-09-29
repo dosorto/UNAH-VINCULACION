@@ -6,6 +6,8 @@ use App\Livewire\Demografia\Pais\ListPaises;
 use App\Livewire\Demografia\Departamento\CreateDepartamento;
 use App\Livewire\Demografia\Departamento\ListDepartamentos;
 use App\Livewire\Login\Login;
+use App\Livewire\User\Users;
+use App\Livewire\User\Roles;
 
 
 Route::get('/', Login::class)
@@ -23,7 +25,19 @@ Route::middleware(['auth'])->group(function () {
     Route::get('crearDepartamento', CreateDepartamento::class)
         ->name('crearDepartamento');
     
-        Route::get('ListarDepartamentos', ListDepartamentos::class)
+    Route::get('ListarDepartamentos', ListDepartamentos::class)
         ->name('ListarDepartamentos');
-        
+
+    Route::get('/users', Users::class)
+        ->name('Usuarios');
+
+    Route::get('/roles', Roles::class)
+        ->name('roles');
+
+    Route::get('/logout', function () {
+        Auth::logout(); 
+        return redirect('/'); 
+    })
+        ->name('logout');
+
 });

@@ -57,6 +57,10 @@
                         class="text-gray-600 hover:bg-gray-200 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                         Register
                     </a>
+                    <a href="{{ route('logout') }}"
+                        class="text-gray-600 hover:bg-gray-200 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                        Logout
+                    </a>
                 </div>
             </div>
         </div>
