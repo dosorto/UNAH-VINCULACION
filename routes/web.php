@@ -46,11 +46,11 @@ Route::middleware(['auth'])->group(function () {
 
 
     Route::get('ListarAldeas', ListAldeas::class)
-
         ->name('ListarAldeas');
-    Route::get('crearAldea', CreateAldea::class)
 
+    Route::get('crearAldea', CreateAldea::class)
         ->name('crearAldea');
+        
     Route::get('ListarMunicipios', ListaMunicipios::class)
         ->name('ListarMunicipios');
 
