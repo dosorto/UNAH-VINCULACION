@@ -7,6 +7,11 @@
     <meta name="application-name" content="{{ config('app.name') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <title>{{ config('app.name') }}</title>
 
@@ -34,6 +39,8 @@
             margin-left: 0px !important;
         }
     </style>
+
+    
 </head>
 
 <body class="text-gray-800 font-inter">
@@ -72,50 +79,37 @@
                     }
                 </script>
 
-                <li class="dropdown ml-3">
-                    <button type="button" class="dropdown-toggle flex items-center">
-                        <div class="flex-shrink-0 w-10 h-10 relative">
-                            <div class="p-1 bg-white rounded-full focus:outline-none focus:ring">
-                                <img class="w-8 h-8 rounded-full"
-                                    src="https://laravelui.spruko.com/tailwind/ynex/build/assets/images/faces/5.jpg"
-                                    alt="" />
-                                <div
-                                    class="top-0 left-7 absolute w-3 h-3 bg-lime-400 border-2 border-white rounded-full animate-ping">
-                                </div>
-                                <div
-                                    class="top-0 left-7 absolute w-3 h-3 bg-lime-500 border-2 border-white rounded-full">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="p-2 md:block text-left">
-                            <h2 class="text-sm font-semibold text-gray-800">
-                                {{ Auth::user()->name }}
-                            </h2>
-                            <p class="text-xs text-gray-500">Administrator</p>
-                        </div>
-                    </button>
-                    <ul
-                        class="dropdown-menu shadow-md shadow-black/5 z-30 hidden py-1.5 rounded-md bg-white border border-gray-100 w-full max-w-[140px]">
-                        <li>
-                            <a href="#"
-                                class="flex items-center text-[13px] py-1.5 px-4 text-gray-600 hover:text-[#f84525] hover:bg-gray-50">Profile</a>
-                        </li>
-                        <li>
-                            <a href="#"
-                                class="flex items-center text-[13px] py-1.5 px-4 text-gray-600 hover:text-[#f84525] hover:bg-gray-50">Settings</a>
-                        </li>
-                        <li>
-                            <form method="POST" action="">
-                                <a role="menuitem"
-                                    class="flex items-center text-[13px] py-1.5 px-4 text-gray-600 hover:text-[#f84525] hover:bg-gray-50 cursor-pointer"
-                                    onclick="event.preventDefault();
-                                    this.closest('form').submit();">
-                                    Log Out
-                                </a>
-                            </form>
-                        </li>
-                    </ul>
-                </li>
+<li class="dropdown ml-3">
+    <button type="button" class="dropdown-toggle flex items-center">
+        <div class="flex-shrink-0 w-10 h-10 relative">
+            <div class="p-1 bg-white rounded-full focus:outline-none focus:ring">
+                <img class="w-8 h-8 rounded-full" src="https://laravelui.spruko.com/tailwind/ynex/build/assets/images/faces/9.jpg" alt="">
+                <div class="top-0 left-7 absolute w-3 h-3 bg-lime-400 border-2 border-white rounded-full animate-ping"></div>
+                <div class="top-0 left-7 absolute w-3 h-3 bg-lime-500 border-2 border-white rounded-full"></div>
+            </div>
+        </div>
+        <div class="p-2 md:block text-left">
+            <h2 class="text-sm font-semibold text-gray-800">John Doe</h2>
+            <p class="text-xs text-gray-500">Administrator</p>
+        </div>                
+    </button>
+    <ul class="dropdown-menu shadow-md shadow-black/5 z-30 py-1.5 rounded-md bg-white border border-gray-100 w-full max-w-[140px] hidden" data-popper-id="popper-2" style="position: absolute; inset: 0px 0px auto auto; margin: 0px; transform: translate(-24px, 68px);" data-popper-placement="bottom-end">
+        <li>
+            <a href="#" class="flex items-center text-[13px] py-1.5 px-4 text-gray-600 hover:text-[#f84525] hover:bg-gray-50">Profile</a>
+        </li>
+        <li>
+            <a href="#" class="flex items-center text-[13px] py-1.5 px-4 text-gray-600 hover:text-[#f84525] hover:bg-gray-50">Settings</a>
+        </li>
+        <li>
+            <form method="POST" action="">
+                <a role="menuitem" class="flex items-center text-[13px] py-1.5 px-4 text-gray-600 hover:text-[#f84525] hover:bg-gray-50 cursor-pointer" onclick="event.preventDefault();
+                    this.closest('form').submit();">
+                    Log Out
+                </a>
+            </form>
+        </li>
+    </ul>
+</li>
             </ul>
         </div>
         <!-- end navbar -->
@@ -157,13 +151,12 @@
         <span class="text-4xl font-semibold text-gray-700">Cargando</span>
     </div>
 
-
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
     <script src="{{ asset('js/app/panelScripts.js') }}"></script>
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     @livewire('notifications')
     @filamentScripts
     @vite('resources/js/app.js')
-
 
 </body>
 

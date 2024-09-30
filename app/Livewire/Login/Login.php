@@ -31,6 +31,8 @@ class Login extends Component implements HasForms
             ->schema([
                 TextInput::make('email'),
                 TextInput::make('Contraseña')
+                ->password()
+                ->revealable()
             ])
             ->statePath('data')
             ->model(User::class);
