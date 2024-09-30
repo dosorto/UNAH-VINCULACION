@@ -26,9 +26,11 @@
 
         <x-panel.navbar.group-item titulo="Ciudad" >
             <x-panel.navbar.one-group-item titulo="Crear Ciudad" route="crearCiudad"/>
-            <x-panel.navbar.one-group-item titulo="Lista Departamentos" route="ListarCiudades"/>
+            <x-panel.navbar.one-group-item titulo="Lista Ciudades" route="ListarCiudades"/>
         </x-panel.navbar.group-item>
         <x-panel.navbar.title-item titulo="Usuario"/>
+
+        <x-panel.navbar.one-item titulo="Usuarios" notificaciones=0 route="Usuarios"/>
 
         <x-panel.navbar.group-item titulo="Empleados" >
             <x-panel.navbar.one-group-item titulo="Crear Empleado" route="crearEmpleado"/>
