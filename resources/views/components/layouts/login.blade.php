@@ -131,7 +131,7 @@
                             flex items-center justify-center text-white
                           "></h3>
                     <p class="mt-1 text-sm text-gray-600 text-white">
-                        Desarrollado por IS UNAH-CHOLUTECA 2021
+                        Desarrollado por balim's devs 2024
                     </p>
                 </div>
             </div>
