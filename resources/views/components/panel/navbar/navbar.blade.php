@@ -1,6 +1,6 @@
 <div>
     <x-panel.navbar.navbar-container>
-        <x-panel.navbar.one-item icono="bx-bell" titulo="Dashboard" notificaciones=0 />
+        <x-panel.navbar.one-item icono="bx-bell" titulo="Dashboard" notificaciones=0 route="crearPais" />
         <x-panel.navbar.title-item titulo="Demografia"/>
 
         <x-panel.navbar.group-item titulo="Pais" >
@@ -36,6 +36,9 @@
             <x-panel.navbar.one-group-item titulo="Crear Empleado" route="crearEmpleado"/>
             <x-panel.navbar.one-group-item titulo="Lista Empleado" route="ListarEmpleados"/>
         </x-panel.navbar.group-item>
+        <x-panel.navbar.title-item titulo="Administracion"/>
+
+        <x-panel.navbar.one-item titulo="Permisos" notificaciones=1 route="listPermisos"/>
 
     </x-panel.navbar.navbar-container>
 </div>

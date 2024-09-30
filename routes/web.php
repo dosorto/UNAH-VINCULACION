@@ -13,6 +13,7 @@ use App\Livewire\Demografia\Ciudad\CreateCiudad;
 use App\Livewire\Personal\Empleado\CreateEmpleado;
 use App\Livewire\Personal\Empleado\ListEmpleado;
 use App\Livewire\Demografia\Ciudad\ListaCiudad;
+use App\Livewire\Personal\Permiso\ListPermisos;
 use App\Livewire\Login\Login;
 use App\Livewire\User\Users;
 use App\Livewire\User\Roles;
@@ -46,11 +47,11 @@ Route::middleware(['auth'])->group(function () {
 
 
     Route::get('ListarAldeas', ListAldeas::class)
-
         ->name('ListarAldeas');
-    Route::get('crearAldea', CreateAldea::class)
 
+    Route::get('crearAldea', CreateAldea::class)
         ->name('crearAldea');
+
     Route::get('ListarMunicipios', ListaMunicipios::class)
         ->name('ListarMunicipios');
 
@@ -64,8 +65,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('roles');
 
     Route::get('/logout', function () {
-        Auth::logout(); 
-        return redirect('/'); 
+        Auth::logout();
+        return redirect('/');
     })
         ->name('logout');
 
@@ -75,4 +76,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('listarEmpleados', ListEmpleado::class)
         ->name('ListarEmpleados');
 
+    Route::get('listarPermisos', ListPermisos::class)
+        ->name('listPermisos');
 });
