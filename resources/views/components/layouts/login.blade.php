@@ -117,6 +117,7 @@
                         Login
                     </h1>
                     {{ $slot }}
+                    <a href="{{ route('password.request') }}">Olvidé mi contraseña</a>
                 </div>
             </div>
         </div>
