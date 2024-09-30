@@ -10,6 +10,8 @@ use App\Livewire\Demografia\Municipio\ListaMunicipios;
 use App\Livewire\Demografia\Aldea\CreateAldea;
 use App\Livewire\Demografia\Aldea\ListAldeas;
 use App\Livewire\Demografia\Ciudad\CreateCiudad;
+use App\Livewire\Personal\Empleado\CreateEmpleado;
+use App\Livewire\Personal\Empleado\ListEmpleado;
 use App\Livewire\Demografia\Ciudad\ListaCiudad;
 use App\Livewire\Login\Login;
 use App\Livewire\User\Users;
@@ -66,5 +68,11 @@ Route::middleware(['auth'])->group(function () {
         return redirect('/'); 
     })
         ->name('logout');
+
+    Route::get('crearEmpleado', CreateEmpleado::class)
+        ->name('crearEmpleado');
+
+    Route::get('listarEmpleados', ListEmpleado::class)
+        ->name('ListarEmpleados');
 
 });
