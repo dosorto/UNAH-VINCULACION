@@ -30,6 +30,8 @@
         </x-panel.navbar.group-item>
         <x-panel.navbar.title-item titulo="Usuario"/>
 
+        <x-panel.navbar.one-item titulo="Usuarios" notificaciones=0 route="Usuarios"/>
+
         <x-panel.navbar.group-item titulo="Empleados" >
             <x-panel.navbar.one-group-item titulo="Crear Empleado" route="crearEmpleado"/>
             <x-panel.navbar.one-group-item titulo="Lista Empleado" route="ListarEmpleados"/>
