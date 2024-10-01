@@ -18,15 +18,12 @@ use App\Livewire\Login\Login;
 use App\Livewire\User\Users;
 use App\Livewire\User\Roles;
 
-use Illuminate\Support\Facades\Password;
-use App\Http\Controllers\Auth\ForgotPasswordController;
-use Illuminate\Auth\Events\PasswordReset;
+use App\Livewire\Auth\ForgotPasswordController;
+use App\Livewire\Auth\ResetPasswordController;
 
 // Rutas para restablecimiento de contraseña
-Route::get('password/reset', [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
-Route::post('password/email', [\App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
-Route::get('password/reset/{token}', [\App\Http\Controllers\Auth\ResetPasswordController::class, 'showResetForm'])->name('password.reset');
-Route::post('password/reset', [\App\Http\Controllers\Auth\ResetPasswordController::class, 'reset'])->name('password.update');
+Route::get('password/reset', ForgotPasswordController::class)->name('password.request');
+Route::get('password/reset/{token}', ResetPasswordController::class)->name('password.reset');
 
 
 
