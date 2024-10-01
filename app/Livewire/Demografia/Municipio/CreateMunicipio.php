@@ -12,7 +12,7 @@ use Illuminate\Contracts\View\View;
 
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
-
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use App\Models\Demografia\Departamento;
 
@@ -31,16 +31,21 @@ class CreateMunicipio extends Component implements HasForms
     {
         return $form
             ->schema([
-                select::make('departamento_id')
+                Section::make('Crear un nuevo municipio')
+                ->description('Crea un nuevo municipio con sus datos asociados.')
+                ->schema([
+                    select::make('departamento_id')
                     ->options(
                         Departamento::All()
                         ->pluck('nombre', 'id')
                     ),
                 textInput::make('nombre'),
                 textInput::make('codigo_municipio'),
+                ])
+                ->columns(2)
                 //
             ])
-            ->columns(2)
+            
             ->statePath('data')
             ->model(Municipio::class);
     }
