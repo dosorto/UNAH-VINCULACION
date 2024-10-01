@@ -50,7 +50,7 @@ class ResetPasswordController extends Component implements HasForms
                     ->label('Confirmar Contraseña')
                     ->minLength(8),
             ])
-            ->statePath('data');
+            ->statePath('data'); 
     }
 
     public function submit()
