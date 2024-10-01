@@ -1,6 +1,6 @@
 <div>
     <!--sidenav -->
-    <div class="fixed left-0 top-0 w-64 h-full bg-[#f8f4f3] p-4 z-40 sidebar-menu transition-transform">
+    <div class="fixed left-0 top-0 w-64 h-full bg-[#f8f4f3] p-4 z-40 sidebar-menu transition-transform dark:bg-gray-900">
         <a href="" class="flex items-center pb-4 border-b border-b-gray-800">
             <h2 class="font-bold text-2xl">DVUS<span class="bg-[#1e90ff]   text-white px-1 rounded-md">UNAH</span></h2>
         </a>
