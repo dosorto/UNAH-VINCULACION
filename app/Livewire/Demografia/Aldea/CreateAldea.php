@@ -14,6 +14,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Forms\Components\Select;
 use App\Models\Demografia\Municipio;
+use Filament\Forms\Components\Section;
 
 class CreateAldea extends Component implements HasForms
 {
@@ -30,13 +31,17 @@ class CreateAldea extends Component implements HasForms
     {
         return $form
             ->schema([
-                //
-                Select::make('municipio_id')
+                Section::make('Crear una nueva aldea')
+                ->description('Crea una nueva aldea con sus datos asociados.')
+                ->schema([
+                    Select::make('municipio_id')
                     ->options(
                         Municipio::All()
                         ->pluck('nombre', 'id')
                     ),
                 TextInput::make('nombre')
+                ])
+                
                     
             ])
             ->columns(2)
