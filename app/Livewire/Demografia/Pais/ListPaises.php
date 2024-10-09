@@ -26,13 +26,16 @@ class ListPaises extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
+            ->heading('Países')
             ->query(Pais::query())
             ->columns([
 
                 TextColumn::make('nombre')
+                    ->label('País')
                     ->searchable(),
 
                 TextColumn::make('gentilicio')
+                    ->label('Gentilicio')
             ])
             ->filters([
                 //
@@ -42,12 +45,18 @@ class ListPaises extends Component implements HasForms, HasTable
 
                 EditAction::make()
                 ->form([
-                    TextInput::make('codigo_area'),
-                    TextInput::make('codigo_iso'),
-                    TextInput::make('codigo_iso_numerico'),
-                    TextInput::make('codigo_iso_alpha_2'),
-                    TextInput::make('nombre'),
-                    TextInput::make('gentilicio'),
+                    TextInput::make('codigo_area')
+                        ->label('Código de área'),
+                    TextInput::make('codigo_iso')
+                        ->label('Código ISO'),
+                    TextInput::make('codigo_iso_numerico')
+                        ->label('Código ISO numérico'),
+                    TextInput::make('codigo_iso_alpha_2')
+                        ->label('Código ISO alpha 2'),
+                    TextInput::make('nombre')
+                        ->label('Nombre'),
+                    TextInput::make('gentilicio')
+                        ->label('Gentilicio')
                     // ...
                 ]),
             ])
