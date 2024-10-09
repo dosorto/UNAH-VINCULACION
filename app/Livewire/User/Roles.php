@@ -53,7 +53,7 @@ class Roles extends Component implements HasForms, HasTable
                             Select::make('permissions')
                                 ->label('Permisos')
                                 ->multiple()
-                                ->relationship(name: 'permissions', titleAttribute: 'name')
+                                ->relationship(name: 'permissions', titleAttribute: 'name') 
                                 ->preload(),
                         ];
                     }),
