@@ -1,11 +1,11 @@
 <div>
     <x-panel.navbar.navbar-container>
         <x-panel.navbar.one-item icono="bx-bell" titulo="Dashboard" notificaciones=0 route="crearPais" />
-        <x-panel.navbar.title-item titulo="Demografia"/>
+        <x-panel.navbar.title-item titulo="Demografía"/>
 
-        <x-panel.navbar.group-item titulo="Pais" >
-            <x-panel.navbar.one-group-item titulo="Crear Pais" route="crearPais"/>
-            <x-panel.navbar.one-group-item titulo="Lista Paises" route="listarPaises"/>
+        <x-panel.navbar.group-item titulo="País" >
+            <x-panel.navbar.one-group-item titulo="Crear País" route="crearPais"/>
+            <x-panel.navbar.one-group-item titulo="Lista Países" route="listarPaises"/>
         </x-panel.navbar.group-item>
 
         <x-panel.navbar.group-item titulo="Departamento" >
@@ -36,7 +36,7 @@
             <x-panel.navbar.one-group-item titulo="Crear Empleado" route="crearEmpleado"/>
             <x-panel.navbar.one-group-item titulo="Lista Empleado" route="ListarEmpleados"/>
         </x-panel.navbar.group-item>
-        <x-panel.navbar.title-item titulo="Administracion"/>
+        <x-panel.navbar.title-item titulo="Administración"/>
 
         <x-panel.navbar.one-item titulo="Roles" route="roles"/>
         <x-panel.navbar.one-item titulo="Permisos" route="listPermisos"/>
