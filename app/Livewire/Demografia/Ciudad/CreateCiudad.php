@@ -14,6 +14,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Forms\Components\Select;
 use App\Models\Demografia\Municipio;
+use Filament\Forms\Components\Section;
 
 class CreateCiudad extends Component implements HasForms
 {
@@ -30,16 +31,21 @@ class CreateCiudad extends Component implements HasForms
     {
         return $form
             ->schema([
-                Select::make('municipio_id')
-                ->options(
-                    Municipio::All()
-                    ->pluck('nombre', 'id')
-                ),
-            TextInput::make('nombre'),
-            TextInput::make('codigo_postal')
+                Section::make('Crear una nueva ciudad')
+                ->description('Crea una nueva ciudad con sus datos asociados.')
+                ->schema([
+                    Select::make('municipio_id')
+                    ->options(
+                        Municipio::All()
+                        ->pluck('nombre', 'id')
+                    ),
+                TextInput::make('nombre'),
+                TextInput::make('codigo_postal')
+                ])
+                ->columns(2)
 
             ])
-            ->columns(2)
+            
             ->statePath('data')
             ->model(Ciudad::class);
     }
