@@ -38,7 +38,8 @@
         </x-panel.navbar.group-item>
         <x-panel.navbar.title-item titulo="Administracion"/>
 
-        <x-panel.navbar.one-item titulo="Permisos" notificaciones=1 route="listPermisos"/>
+        <x-panel.navbar.one-item titulo="Roles" route="roles"/>
+        <x-panel.navbar.one-item titulo="Permisos" route="listPermisos"/>
 
     </x-panel.navbar.navbar-container>
 </div>
