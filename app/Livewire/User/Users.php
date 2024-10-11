@@ -18,6 +18,7 @@ use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\DatePicker;
 
 class Users extends Component implements HasForms, HasTable
 {
@@ -82,18 +83,18 @@ class Users extends Component implements HasForms, HasTable
                             ->maxLength(255),
                         TextInput::make('password')
                             ->required(),
-                        Forms\Components\TextInput::make('nombre')
+                        TextInput::make('nombre')
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\DatePicker::make('fecha_contratacion')
+                        DatePicker::make('fecha_contratacion')
                             ->required(),
-                        Forms\Components\TextInput::make('salario')
+                        TextInput::make('salario')
                             ->required()
                             ->numeric(),
-                        Forms\Components\TextInput::make('supervisor')
+                        TextInput::make('supervisor')
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('jornada')
+                        TextInput::make('jornada')
                             ->required(),
                     ])
                     ->action(function ($data) {
