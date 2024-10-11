@@ -3,6 +3,7 @@
 namespace App\Livewire\User;
 
 use App\Models\User;
+use App\Models\Personal\Empleado;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Tables;
@@ -81,7 +82,26 @@ class Users extends Component implements HasForms, HasTable
                             ->maxLength(255),
                         TextInput::make('password')
                             ->required(),
-                    ]),
+                        Forms\Components\TextInput::make('nombre')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\DatePicker::make('fecha_contratacion')
+                            ->required(),
+                        Forms\Components\TextInput::make('salario')
+                            ->required()
+                            ->numeric(),
+                        Forms\Components\TextInput::make('supervisor')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('jornada')
+                            ->required(),
+                    ])
+                    ->action(function ($data) {
+                        $user = User::create(['name' => $data['name'], 'email' => $data['email'], 'password' => $data['password']]);
+
+                         $empleado = Empleado::create(['nombre' => $data['nombre'], 'fecha_contratacion' => $data['fecha_contratacion'], 'salario' => $data['salario'], 'supervisor' => $data['supervisor'], 'jornada' => $data['jornada']]);
+
+                    }),
             ]);
     }
 
