@@ -32,17 +32,19 @@ class CreateAldea extends Component implements HasForms
         return $form
             ->schema([
                 Section::make('Crear una nueva aldea')
-                ->description('Crea una nueva aldea con sus datos asociados.')
-                ->schema([
-                    Select::make('municipio_id')
-                    ->options(
-                        Municipio::All()
-                        ->pluck('nombre', 'id')
-                    ),
-                TextInput::make('nombre')
-                ])
-                
-                    
+                    ->description('Crea una nueva aldea con sus datos asociados.')
+                    ->schema([
+                        Select::make('municipio_id')
+                            ->label('Municipio')
+                            ->options(
+                                Municipio::all()
+                                    ->pluck('nombre', 'id')
+                            )
+                            ->required(), 
+                        TextInput::make('nombre')
+                            ->label('Nombre') 
+                            ->required(), 
+                    ])           
             ])
             ->columns(2)
             ->statePath('data')
@@ -56,6 +58,15 @@ class CreateAldea extends Component implements HasForms
         $record = Aldea::create($data);
 
         $this->form->model($record)->saveRelationships();
+
+        Notification::make()
+            ->title('¡Éxito!')
+            ->body('Aldea creada correctamente.')
+            ->success()
+            ->send();
+
+        //$this->js('location.reload();');
+        $this->data = [];
     }
 
     public function render(): View

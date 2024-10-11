@@ -8,7 +8,10 @@
         </button>
         <br>
         <br>
-        <a href="{{ route('password.request') }}">Olvidé mi contraseña?</a>
+        <p class="text-sm font-light text-gray-500 dark:text-gray-400">
+            ¿Olvidaste tu contraseña? <a href="{{ route('password.request') }}"
+                class="font-medium text-primary-600 hover:underline dark:text-primary-500">Recuperar</a>
+        </p>
     </form>
 
     <x-filament-actions::modals />
