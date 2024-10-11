@@ -7,11 +7,6 @@
     <meta name="application-name" content="{{ config('app.name') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
 
     <title>{{ config('app.name') }}</title>
 
@@ -26,242 +21,375 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
-    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <title>Admin Panel</title>
-    <style>
-        .active {
-            width: 100% !important;
-            margin-left: 0px !important;
-        }
-    </style>
-
-    <script>
-        // recupera el modo desde localStorage cuando la pagina carga la primera vez
-        if (localStorage.theme === 'dark' || (!'theme' in localStorage && window.matchMedia('(prefers-color-scheme: dark)')
-                .matches)) {
-            document.querySelector('html').classList.add('dark')
-        } else if (localStorage.theme === 'dark') {
-            document.querySelector('html').classList.add('dark')
-        }
-
-        // Evento click de los botones.
-        // Agreag la clase 'dark' al elemento html
-        // guarda o elimina el modo del localstorage 
-        document.querySelectorAll(".setMode").forEach(item =>
-            item.addEventListener("click", () => {
-                let htmlClasses = document.querySelector('html').classList;
-                if (localStorage.theme == 'dark') {
-                    htmlClasses.remove('dark');
-                    localStorage.theme = ''
-                } else {
-                    htmlClasses.add('dark');
-                    localStorage.theme = 'dark';
-                }
-            })
-        )
-    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
+<body class="sm:bg-gray-100 flex bg-white">
 
-<body class="text-gray-800 font-inter fi-body fi-panel-admin min-h-screen bg-gray-50 font-normal text-gray-950 antialiased dark:bg-gray-950 dark:text-white">
-    <x-panel.navbar.navbar />
-
-    <main class="dark:bg-gray-800 w-full md:w-[calc(100%-256px)] md:ml-64 bg-gray-200 min-h-screen transition-all main ">
-        <!-- navbar -->
-        <div class="py-2 px-6 bg-[#f8f4f3] h-[7vh] flex items-center shadow-md shadow-black/5 sticky top-0 left-0 z-30 dark:bg-gray-900"
-        >
-            <button type="button" class="text-lg text-gray-900 font-semibold sidebar-toggle">
-                <i class="ri-menu-line"></i>
-            </button>
-
-            <ul class="ml-auto flex items-center">
-                
-                <div x-data="{
-                    theme: 'system',
-                    isDarkMode: window.matchMedia('(prefers-color-scheme: dark)'),
-                    selected: 'system',
-                    init() {
-                        document.documentElement.setAttribute(
-                            'data-theme',
-                            this.updateTheme(),
-                        )
-                
-                        new MutationObserver(([{ oldValue }]) => {
-                            let newValue =
-                                document.documentElement.getAttribute('data-theme')
-                            if (newValue !== oldValue) {
-                                try {
-                                    window.localStorage.setItem('theme', newValue)
-                                } catch {}
-                                this.updateThemeWithoutTransitions(newValue)
-                            }
-                        }).observe(document.documentElement, {
-                            attributeFilter: ['data-theme'],
-                            attributeOldValue: true,
-                        })
-                
-                        this.isDarkMode.addEventListener('change', () =>
-                            this.updateThemeWithoutTransitions(),
-                        )
-                    },
-                    updateTheme(theme) {
-                        this.theme = theme ?? window.localStorage.theme ?? 'system'
-                
-                        if (
-                            this.theme === 'dark' ||
-                            (this.theme === 'system' &amp;&amp; this.isDarkMode.matches)
-                        ) {
-                            document.documentElement.classList.add('dark')
-                        } else if (
-                            this.theme === 'light' ||
-                            (this.theme === 'system' &amp;&amp; !this.isDarkMode.matches)
-                        ) {
-                            document.documentElement.classList.remove('dark')
-                        }
-                
-                        this.selected = this.theme
-                        window.localStorage.theme = this.theme
-                        document.documentElement.setAttribute('data-theme', this.theme)
-                        return this.theme
-                    },
-                    updateThemeWithoutTransitions(theme) {
-                        this.updateTheme(theme)
-                        document.documentElement.classList.add('[&amp;_*]:!transition-none')
-                        window.setTimeout(() => {
-                            document.documentElement.classList.remove(
-                                '[&amp;_*]:!transition-none',
-                            )
-                        }, 0)
-                    },
-                }">
-                  <p class="sr-only">Theme</p>
-                  <button type="button" class="flex h-9 w-9 items-center justify-center rounded-full ring-1 ring-black/5 dark:bg-dolphin/10 dark:ring-inset dark:ring-white/5" aria-label="Open navigation" x-on:click="$refs.panel.toggle" aria-expanded="false" aria-controls="panel-WQLRr6P7">
-                    <svg fill="currentColor" aria-hidden="true" data-slot="icon" viewBox="0 0 20 20" class="hidden h-6 w-6 fill-butter [[data-theme=light]_&amp;]:block" astro-icon="heroicons:sun"><path d="M10 2a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 10 2Zm0 13a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 10 15Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm5.657-1.596a.75.75 0 1 0-1.06-1.06l-1.061 1.06a.75.75 0 0 0 1.06 1.06l1.06-1.06Zm-9.193 9.192a.75.75 0 1 0-1.06-1.06l-1.06 1.06a.75.75 0 0 0 1.06 1.06l1.06-1.06ZM18 10a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 18 10ZM5 10a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 5 10Zm9.596 5.657a.75.75 0 0 0 1.06-1.06l-1.06-1.061a.75.75 0 1 0-1.06 1.06l1.06 1.06ZM5.404 6.464a.75.75 0 0 0 1.06-1.06l-1.06-1.06a.75.75 0 1 0-1.061 1.06l1.06 1.06Z"></path></svg>
-                    <svg fill="currentColor" aria-hidden="true" data-slot="icon" viewBox="0 0 20 20" class="hidden h-6 w-6 fill-butter [[data-theme=dark]_&amp;]:block" astro-icon="heroicons:moon"><path fill-rule="evenodd" d="M7.455 2.004a.75.75 0 0 1 .26.77 7 7 0 0 0 9.958 7.967.75.75 0 0 1 1.067.853A8.5 8.5 0 1 1 6.647 1.921a.75.75 0 0 1 .808.083Z" clip-rule="evenodd"></path></svg>
-                    <svg fill="currentColor" aria-hidden="true" data-slot="icon" viewBox="0 0 20 20" class="hidden h-6 w-6 fill-hurricane [:not(.dark)[data-theme=system]_&amp;]:block" astro-icon="heroicons:sun"><path d="M10 2a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 10 2Zm0 13a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 10 15Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm5.657-1.596a.75.75 0 1 0-1.06-1.06l-1.061 1.06a.75.75 0 0 0 1.06 1.06l1.06-1.06Zm-9.193 9.192a.75.75 0 1 0-1.06-1.06l-1.06 1.06a.75.75 0 0 0 1.06 1.06l1.06-1.06ZM18 10a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 18 10ZM5 10a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 5 10Zm9.596 5.657a.75.75 0 0 0 1.06-1.06l-1.06-1.061a.75.75 0 1 0-1.06 1.06l1.06 1.06ZM5.404 6.464a.75.75 0 0 0 1.06-1.06l-1.06-1.06a.75.75 0 1 0-1.061 1.06l1.06 1.06Z"></path></svg>
-                    <svg fill="currentColor" aria-hidden="true" data-slot="icon" viewBox="0 0 20 20" class="hidden h-6 w-6 fill-hurricane [.dark[data-theme=system]_&amp;]:block" astro-icon="heroicons:moon"><path fill-rule="evenodd" d="M7.455 2.004a.75.75 0 0 1 .26.77 7 7 0 0 0 9.958 7.967.75.75 0 0 1 1.067.853A8.5 8.5 0 1 1 6.647 1.921a.75.75 0 0 1 .808.083Z" clip-rule="evenodd"></path></svg>
-                  </button>
-                  <div x-ref="panel" class="hidden absolute w-36 space-y-1 rounded-lg bg-white p-3 text-sm shadow-md shadow-black/5 ring-1 ring-black/5 dark:bg-[#1f1c36] dark:ring-white/5" x-float.shift.offset.trap="{shift: {padding: 12}}" aria-label="Theme options" id="panel-WQLRr6P7" aria-modal="true" role="dialog" style="display: none;">
-                      <button x-bind:key="light" x-on:click="updateTheme('light'); $refs.panel.close();" class="w-full flex cursor-pointer select-none items-center rounded-[0.5rem] p-1 hover:bg-gray-100 hover:dark:bg-gray-900/40 transition duration-200 text-gray-700 dark:text-gray-300 hover:dark:text-white" x-bind:class="{
-                              'text-butter hover:text-butter hover:dark:text-butter': selected === 'light',
-                              'text-gray-700 dark:text-gray-300 hover:dark:text-white': selected !== 'light',
-                            }">
-                          <div class="rounded-md bg-white p-1.5 ring-1 ring-gray-900/5 dark:bg-dolphin/20 dark:ring-inset dark:ring-white/5 transition duration-200">
-                            <svg fill="currentColor" aria-hidden="true" data-slot="icon" viewBox="0 0 20 20" x-bind:class="selected == 'light' ? 'fill-butter dark:fill-butter' : 'fill-hurricane'" class="h-4 w-4 fill-hurricane" astro-icon="heroicons:sun"><path d="M10 2a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 10 2Zm0 13a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 10 15Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm5.657-1.596a.75.75 0 1 0-1.06-1.06l-1.061 1.06a.75.75 0 0 0 1.06 1.06l1.06-1.06Zm-9.193 9.192a.75.75 0 1 0-1.06-1.06l-1.06 1.06a.75.75 0 0 0 1.06 1.06l1.06-1.06ZM18 10a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 18 10ZM5 10a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 5 10Zm9.596 5.657a.75.75 0 0 0 1.06-1.06l-1.06-1.061a.75.75 0 1 0-1.06 1.06l1.06 1.06ZM5.404 6.464a.75.75 0 0 0 1.06-1.06l-1.06-1.06a.75.75 0 1 0-1.061 1.06l1.06 1.06Z"></path></svg>
-                          </div>
-                          <div class="ml-3">Claro</div>
-                        </button><button x-bind:key="dark" x-on:click="updateTheme('dark'); $refs.panel.close();" class="w-full flex cursor-pointer select-none items-center rounded-[0.5rem] p-1 hover:bg-gray-100 hover:dark:bg-gray-900/40 transition duration-200 text-butter hover:text-butter hover:dark:text-butter" x-bind:class="{
-                              'text-butter hover:text-butter hover:dark:text-butter': selected === 'dark',
-                              'text-gray-700 dark:text-gray-300 hover:dark:text-white': selected !== 'dark',
-                            }">
-                          <div class="rounded-md bg-white p-1.5 ring-1 ring-gray-900/5 dark:bg-dolphin/20 dark:ring-inset dark:ring-white/5 transition duration-200">
-                            <svg fill="currentColor" aria-hidden="true" data-slot="icon" viewBox="0 0 20 20" x-bind:class="selected == 'dark' ? 'fill-butter dark:fill-butter' : 'fill-hurricane'" class="h-4 w-4 fill-butter dark:fill-butter" astro-icon="heroicons:moon"><path fill-rule="evenodd" d="M7.455 2.004a.75.75 0 0 1 .26.77 7 7 0 0 0 9.958 7.967.75.75 0 0 1 1.067.853A8.5 8.5 0 1 1 6.647 1.921a.75.75 0 0 1 .808.083Z" clip-rule="evenodd"></path></svg>
-                          </div>
-                          <div class="ml-3">Oscuro</div>
-                        </button><button x-bind:key="system" x-on:click="updateTheme('system'); $refs.panel.close();" class="w-full flex cursor-pointer select-none items-center rounded-[0.5rem] p-1 hover:bg-gray-100 hover:dark:bg-gray-900/40 transition duration-200 text-gray-700 dark:text-gray-300 hover:dark:text-white" x-bind:class="{
-                              'text-butter hover:text-butter hover:dark:text-butter': selected === 'system',
-                              'text-gray-700 dark:text-gray-300 hover:dark:text-white': selected !== 'system',
-                            }">
-                          <div class="rounded-md bg-white p-1.5 ring-1 ring-gray-900/5 dark:bg-dolphin/20 dark:ring-inset dark:ring-white/5 transition duration-200">
-                            <svg fill="currentColor" aria-hidden="true" data-slot="icon" viewBox="0 0 20 20" x-bind:class="selected == 'system' ? 'fill-butter dark:fill-butter' : 'fill-hurricane'" class="h-4 w-4 fill-hurricane" astro-icon="heroicons:computer-desktop"><path fill-rule="evenodd" d="M2 4.25A2.25 2.25 0 0 1 4.25 2h11.5A2.25 2.25 0 0 1 18 4.25v8.5A2.25 2.25 0 0 1 15.75 15h-3.105a3.501 3.501 0 0 0 1.1 1.677A.75.75 0 0 1 13.26 18H6.74a.75.75 0 0 1-.484-1.323A3.501 3.501 0 0 0 7.355 15H4.25A2.25 2.25 0 0 1 2 12.75v-8.5Zm1.5 0a.75.75 0 0 1 .75-.75h11.5a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-.75.75H4.25a.75.75 0 0 1-.75-.75v-7.5Z" clip-rule="evenodd"></path></svg>
-                          </div>
-                          <div class="ml-3">Sistema</div>
-                        </button>
-                  </div>
+    <div class="sm:flex w-full flex-col sm:flex-row">
+        <div id="mobile-menu"
+            class="fixed inset-0 z-50 bg-white shadow-lg transition-transform transform -translate-x-full sm:translate-x-0 sm:shadow-none  sm:flex h-screen flex-col justify-between py-4 pr-2 pl-4 w-3/4 sm:w-1/4 h-[100vh] sm:sticky top-0 sm:bg-gray-100">
+            <div class="flex items-center  justify-between ">
+                <div class="flex items-center ">
+                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <div class="w-4 h-4 border-2 border-white rounded-full"></div>
+                    </div>
+                    <span class="ml-2 text-xl font-semibold text-gray-800">NEXO</span>
                 </div>
+                <div class="relative inline-block text-left">
+                    <button id="toggleButton"
+                        class="toggle-button inline-flex justify-center items-center px-2 py-2 border border-gray-300  text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <svg id="chevronIcon" xmlns="http://www.w3.org/2000/svg" class="chevron-icon h-5 w-5"
+                            viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </button>
 
-                <button id="fullscreen-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                        class="hover:bg-gray-100 rounded-full" viewBox="0 0 24 24"
-                        style="fill: gray;transform: ;msFilter:;">
-                        <path d="M5 5h5V3H3v7h2zm5 14H5v-5H3v7h7zm11-5h-2v5h-5v2h7zm-2-4h2V3h-7v2h5z"></path>
-                    </svg>
-                </button>
-                <script>
-                    const fullscreenButton = document.getElementById('fullscreen-button');
-
-                    fullscreenButton.addEventListener('click', toggleFullscreen);
-
-                    function toggleFullscreen() {
-                        if (document.fullscreenElement) {
-                            // If already in fullscreen, exit fullscreen
-                            document.exitFullscreen();
-                        } else {
-                            // If not in fullscreen, request fullscreen
-                            document.documentElement.requestFullscreen();
-                        }
-                    }
-                </script>
-
-                <li class="dropdown ml-3">
-                    <button type="button" class="dropdown-toggle flex items-center">
-                        <div class="flex-shrink-0 w-10 h-10 relative">
-                            <div class="p-1 bg-white rounded-full focus:outline-none focus:ring">
-                                <img class="w-8 h-8 rounded-full"
-                                    src="https://laravelui.spruko.com/tailwind/ynex/build/assets/images/faces/9.jpg"
-                                    alt="">
-                                <div
-                                    class="top-0 left-7 absolute w-3 h-3 bg-lime-400 border-2 border-white rounded-full animate-ping">
+                    <div id="popup"
+                        class="hidden popup origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 divide-y divide-gray-100 focus:outline-none">
+                        <div class="py-1">
+                            <a href="#"
+                                class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                <div class="flex-shrink-0 h-6 w-6 mr-3">
+                                    <div class="w-full h-full bg-blue-600 rounded-md flex items-center justify-center">
+                                        <div class="w-3 h-3 border-2 border-white rounded-full"></div>
+                                    </div>
                                 </div>
-                                <div
-                                    class="top-0 left-7 absolute w-3 h-3 bg-lime-500 border-2 border-white rounded-full">
+                                Untitled UI
+                                <svg xmlns="http://www.w3.org/2000/svg" class="ml-auto h-5 w-5 text-gray-400"
+                                    viewBox="0 0 20 20" fill="currentColor">
+                                    <path
+                                        d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                    <path
+                                        d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                                </svg>
+                            </a>
+                        </div>
+                        <div class="py-1">
+                            <a href="#"
+                                class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                <div class="flex-shrink-0 h-6 w-6 mr-3">
+                                    <div
+                                        class="w-full h-full bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500 rounded-md">
+                                    </div>
+                                </div>
+                                Sisyphus Ventures
+                                <svg xmlns="http://www.w3.org/2000/svg" class="ml-auto h-5 w-5 text-gray-400"
+                                    viewBox="0 0 20 20" fill="currentColor">
+                                    <path
+                                        d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                    <path
+                                        d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                                </svg>
+                            </a>
+                        </div>
+                        <div class="py-1">
+                            <a href="#"
+                                class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                    class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" viewBox="0 0 20 20"
+                                    fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                New dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="h-[70vh]">
+                <div class="p-2 mt-4">
+                    <h2 class="text-sm font-medium text-gray-500">Untitled UI</h2>
+                </div>
+                <nav class="px-4">
+                    <a href="#"
+                        class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-500" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        <span>Overview</span>
+                    </a>
+                    <a href="#"
+                        class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-500" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        <span>Dashboards</span>
+                    </a>
+                    <a href="#"
+                        class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-500" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                        <span>All projects</span>
+                    </a>
+                    <a href="#"
+                        class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-500" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span>Analyze</span>
+                    </a>
+                    <a href="#"
+                        class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-500" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <span>Manage access</span>
+                    </a>
+                </nav>
+
+            </div>
+            <div>
+                <div class=" ">
+
+                    <a href="#"
+                        class="mb-4 flex items-center py-2 px-2 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out">
+                        <div class="flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <span class="text-gray-700">Configuracion</span>
+                        </div>
+                    </a>
+                    <div class="bg-white rounded-lg p-2 border border-gray-300 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <img class="h-10 w-10 rounded-full" src="https://i.pravatar.cc/40?img=1"
+                                    alt="Caitlyn Kling">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-700">Francisco Paz</p>
+                                    <p class="text-xs text-gray-500">fjpazf@unah.hn</p>
                                 </div>
                             </div>
+                            <div class="relative inline-block text-left">
+                                <div id="popup"
+                                    class="hidden popup origin-bottom-right absolute bottom-full right-0 mb-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 divide-y divide-gray-100 focus:outline-none">
+                                    <div class="py-1">
+                                        <a href="#"
+                                            class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"
+                                                viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                            Ver perfil
+                                        </a>
+                                    </div>
+                                    <div class="py-1">
+                                        <a href="#"
+                                            class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"
+                                                viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                    d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                            Configuración de cuenta
+                                        </a>
+                                    </div>
+                                    <div class="py-1">
+                                        <a href="#"
+                                            class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"
+                                                viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                    d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                            Cambiar contraseña
+                                        </a>
+                                    </div>
+                                    <div class="py-1">
+                                        <a href="#"
+                                            class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"
+                                                viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd"
+                                                    d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"
+                                                    clip-rule="evenodd" />
+                                            </svg>
+                                            Cerrar sesión
+                                        </a>
+                                    </div>
+                                </div>
+                                <button id="toggleButton"
+                                    class="toggle-button inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                    <svg id="chevronIcon" xmlns="http://www.w3.org/2000/svg"
+                                        class=" chevron-icon h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
-                        <div class="p-2 md:block text-left">
-                            <h2 class="text-sm font-semibold text-gray-800">John Doe</h2>
-                            <p class="text-xs text-gray-500">Administrator</p>
-                        </div>
-                    </button>
-                    <ul class="dropdown-menu shadow-md shadow-black/5 z-30 py-1.5 rounded-md bg-white border border-gray-100 w-full max-w-[140px] hidden"
-                        data-popper-id="popper-2"
-                        style="position: absolute; inset: 0px 0px auto auto; margin: 0px; transform: translate(-24px, 68px);"
-                        data-popper-placement="bottom-end">
-                        <li>
-                            <a href="#"
-                                class="flex items-center text-[13px] py-1.5 px-4 text-gray-600 hover:text-[#f84525] hover:bg-gray-50">Profile</a>
-                        </li>
-                        <li>
-                            <a href="#"
-                                class="flex items-center text-[13px] py-1.5 px-4 text-gray-600 hover:text-[#f84525] hover:bg-gray-50">Settings</a>
-                        </li>
-                        <li>
-                            <form method="POST" action="">
-                                <a role="menuitem"
-                                    class="flex items-center text-[13px] py-1.5 px-4 text-gray-600 hover:text-[#f84525] hover:bg-gray-50 cursor-pointer"
-                                    onclick="event.preventDefault();
-                    this.closest('form').submit();">
-                                    Log Out
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Barra superior en dispositivos móviles -->
+        <div class="flex justify-between items-center p-4 bg-white  sm:hidden sticky top-0">
+            <div class="flex items-center ">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <div class="w-4 h-4 border-2 border-white rounded-full"></div>
+                </div>
+                <span class="ml-2 text-xl font-semibold text-gray-800">NEXO</span>
+            </div>
+            <button id="menu-button" class="focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7">
+                    </path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Etiqueta principal-->
+
+        <main class="w-full flex flex-col p-2 sm:py-4 sm:pl-2 sm:pr-4">
+            <!-- Contenido del main -->
+            <div class="bg-white p-6 border border-gray-300 rounded-lg min-h-screen">
+                <div>
+                    <h1 class="text-2xl font-bold">Demografia</h1>
+                </div>
+                <div class="mt-0 sm:mt-2 overflow-x-auto">
+                    <div class="flex">
+                        <ul class="flex  gap-2 mt-2 lg:mb-0 lg:mt-0 lg:flex-row lg:items-center ">
+                            <li class="flex items-center p-1 text-sm gap-x-2 text-slate-600">
+                                <a href="#"
+                                    class="flex items-center font-semibold p-2 border border-transparent rounded hover:bg-gray-200 hover:border-gray-300 focus:bg-gray-200 focus:border-gray-300"
+                                    aria-current="true">
+                                    Pais
                                 </a>
-                            </form>
-                        </li>
-                    </ul>
-                </li>
-            </ul>
-        </div>
-        <!-- end navbar -->
+                            </li>
+                            <li class="flex items-center p-1 text-sm gap-x-2 text-slate-600">
+                                <a href="#"
+                                    class="flex items-center font-semibold p-2 border border-transparent rounded hover:bg-gray-200 hover:border-gray-300">
+                                    Departamento
+                                </a>
+                            </li>
+                            <li class="flex items-center p-1 text-sm gap-x-2 text-slate-600">
+                                <a href="#"
+                                    class="flex items-center font-semibold p-2 border border-transparent rounded hover:bg-gray-200 hover:border-gray-300">
+                                    Aldea
+                                </a>
+                            </li>
+                            <li class="flex items-center p-1 text-sm gap-x-2 text-slate-600">
+                                <a href="#"
+                                    class="flex items-center font-semibold p-2 border border-transparent rounded hover:bg-gray-200 hover:border-gray-300">
+                                    Municipio
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
 
-        <!-- Content -->
-        <div class="p-6 w-full flex justify-center ">
-            <main class="w-full w-3/4 flex flex-col ">
-                {{ $slot }}
-            </main>
+                <div class="sm:mt-2 mt-0">
+                    <div>
+                        <p class="text-zinc-950 dark:text-white font-bold mb-1">
+                            Listado de paises
+                        </p>
+                        <p class="text-zinc-500 dark:text-zinc-400 font-medium text-sm mt-0">
+                            A continuacion se muestra el listado de paises
+                        </p>
+                    </div>
+                    
+                </div>
+                <div class="mt-6">
+                    {{$slot}}
 
-        </div>
-        <!-- End Content -->
-    </main>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggleButtons = document.querySelectorAll('.toggle-button');
+            const popups = document.querySelectorAll('.popup');
 
-    <script src="https://unpkg.com/@popperjs/core@2"></script>
-    <script src="{{ asset('js/app/panelScripts.js') }}"></script>
+            toggleButtons.forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const popup = button.parentElement.querySelector('.popup');
+                    const chevronIcon = button.querySelector('.chevron-icon');
+
+                    const isHidden = popup.classList.contains('hidden');
+                    popup.classList.toggle('hidden');
+
+                    chevronIcon.innerHTML = isHidden ?
+                        '<path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />' :
+                        '<path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />';
+
+                    // Cerrar otros popups
+                    popups.forEach(otherPopup => {
+                        if (otherPopup !== popup && !otherPopup.classList.contains(
+                            'hidden')) {
+                            otherPopup.classList.add('hidden');
+                            const otherChevronIcon = otherPopup.previousElementSibling
+                                .querySelector('.chevron-icon');
+                            otherChevronIcon.innerHTML =
+                                '<path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />';
+                        }
+                    });
+
+                    event.stopPropagation(); // Prevenir el clic del botón de propagarse
+                });
+            });
+
+            // Cerrar el popup al hacer clic fuera
+            document.addEventListener('click', (event) => {
+                popups.forEach(popup => {
+                    if (!popup.classList.contains('hidden')) {
+                        const button = popup.previousElementSibling; // El botón relacionado
+                        if (!popup.contains(event.target) && !button.contains(event.target)) {
+                            popup.classList.add('hidden');
+                            const chevronIcon = button.querySelector('.chevron-icon');
+                            chevronIcon.innerHTML =
+                                '<path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />';
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+    <script>
+        const menuButton = document.getElementById('menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const closeButton = document.getElementById('close-button');
+
+        menuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('-translate-x-full');
+        });
+
+        closeButton.addEventListener('click', () => {
+            mobileMenu.classList.add('-translate-x-full');
+        });
+    </script>
     @livewire('notifications')
     @filamentScripts
     @vite('resources/js/app.js')
-
 </body>
-
 
 </html>
