@@ -32,15 +32,20 @@ class CreateMunicipio extends Component implements HasForms
         return $form
             ->schema([
                 Section::make('Crear un nuevo municipio')
-                ->description('Crea un nuevo municipio con sus datos asociados.')
-                ->schema([
-                    select::make('departamento_id')
-                    ->options(
-                        Departamento::All()
-                        ->pluck('nombre', 'id')
-                    ),
-                textInput::make('nombre'),
-                textInput::make('codigo_municipio'),
+                    ->description('Crea un nuevo municipio con sus datos asociados.')
+                    ->schema([
+                        Select::make('departamento_id')
+                            ->label('Departamento')
+                            ->options(
+                                Departamento::all()
+                                    ->pluck('nombre', 'id')
+                            ),
+                        TextInput::make('nombre')
+                            ->label('Nombre')
+                            ->required(), 
+                        TextInput::make('codigo_municipio')
+                            ->label('Código del Municipio')
+                            ->required(), 
                 ])
                 ->columns(2)
                 //
@@ -57,6 +62,15 @@ class CreateMunicipio extends Component implements HasForms
         $record = Municipio::create($data);
 
         $this->form->model($record)->saveRelationships();
+
+        Notification::make()
+            ->title('¡Éxito!')
+            ->body('Municipio creado correctamente.')
+            ->success()
+            ->send();
+        //$this->js('location.reload();');
+        // limpiar formulario
+        $this->data = [];
     }
 
     public function render(): View
