@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('nombre');
             $table->integer('codigo_municipio')
                 ->nullable();
+                $table->softDeletes();
             $table->timestamps();
         });
     }

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->decimal('salario', 8, 2); // Salario con 8 dígitos, 2 decimales
             $table->string('supervisor'); // Nombre del supervisor
             $table->enum('jornada', ['completa', 'parcial']); // Tipo de jornada laboral
+            $table->softDeletes(); // Soft delete
             $table->timestamps(); // Created at y updated at
         });
     }
