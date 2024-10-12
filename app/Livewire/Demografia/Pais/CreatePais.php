@@ -14,11 +14,14 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Forms\Components\Section;
 
+
 class CreatePais extends Component implements HasForms
 {
     use InteractsWithForms;
-
+    
     public ?array $data = [];
+
+    
 
     public function mount(): void
     {

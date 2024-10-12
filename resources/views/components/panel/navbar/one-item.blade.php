@@ -4,12 +4,13 @@
     'routes' => [],
     'notificaciones' => 0,
     'route' => 'home',
+    'class' => ''
 ])
 
 
 <a href="{{ route($route) }}"
     class="mt-1 flex items-center py-2 px-4  hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out 
-     dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:text-gray-200 
+     dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:text-gray-200  {{ $class }}
      @if (in_array(request()->route()->getName(), $routes)) text-primary-600 dark:text-primary-400 text-primary-600 text-primary-400 bg-gray-200 dark:bg-white/5 @endif
     " wire:navigate>
 

@@ -17,6 +17,7 @@ use App\Livewire\Personal\Permiso\ListPermisos;
 use App\Livewire\Login\Login;
 use App\Livewire\User\Users;
 use App\Livewire\User\Roles;
+use App\Livewire\Configuracion\Logs\ListLogs;
 
 use App\Livewire\Auth\ForgotPasswordController;
 use App\Livewire\Auth\ResetPasswordController;
@@ -86,4 +87,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('listarPermisos', ListPermisos::class)
         ->name('listPermisos');
+
+    Route::get('listarLogs', ListLogs::class)
+        ->name('listarLogs');
 });

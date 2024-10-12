@@ -38,10 +38,12 @@ class ListPaises extends Component implements HasForms, HasTable
                     ->label('Gentilicio')
             ])
             ->filters([
-                //
+                Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
                 DeleteAction::make(),
+                Tables\Actions\ForceDeleteAction::make(),
+                Tables\Actions\RestoreAction::make(),
 
                 EditAction::make()
                 ->form([
@@ -62,7 +64,10 @@ class ListPaises extends Component implements HasForms, HasTable
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    //
+                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\ForceDeleteBulkAction::make(),
+                    Tables\Actions\RestoreBulkAction::make(),
+                    // ...
                 ]),
             ]);
     }
