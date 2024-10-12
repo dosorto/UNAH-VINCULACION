@@ -29,14 +29,18 @@ class ListaMunicipios extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
+            ->heading('Municipios')
             ->query(Municipio::query())
             ->columns([
                 Tables\Columns\TextColumn::make('departamento.nombre')
+                    ->label('Departamento')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('nombre')
+                    ->label('Municipio')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('codigo_municipio')
+                    ->label('Código del Municipio')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
@@ -60,9 +64,12 @@ class ListaMunicipios extends Component implements HasForms, HasTable
                         ->options(
                             Departamento::All()
                                 ->pluck('nombre', 'id')
-                        ),
-                    TextInput::make('nombre'),
+                        )
+                        ->label('Departamento'),
+                    TextInput::make('nombre')
+                        ->label('Nombre'),
                     TextInput::make('codigo_municipio')
+                        ->label('Código del Municipio')
                         ->columnSpanFull()
                     // ...
                 ]),

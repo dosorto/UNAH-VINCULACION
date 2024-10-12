@@ -96,10 +96,10 @@
                 <!-- navigation -->
                 <nav class="nav font-semibold text-lg">
                     <ul class="flex items-center">
-                        <li
+                        <!-- <li
                             class="p-4 text-yellow-400 border-b-2 border-green-500 border-opacity-0 hover:border-opacity-100 hover:text-white duration-200 cursor-pointer active">
                             <a href>Registrarme</a>
-                        </li>
+                        </li> -->
 
                     </ul>
                 </nav>
@@ -109,20 +109,36 @@
             </header>
         </div>
         <div class="w-full min-h-[80vh] flex items-center justify-center">
-    <div class="w-full max-w-md rounded-lg flex flex-col-reverse md:flex-row items-center justify-center md:space-y-0">
-        <div class="p-4 w-full flex items-center justify-center">
-            <div class="w-full bg-white rounded-lg dark:border md:mt-0 xl:p-0 dark:bg-gray-800 dark:border-gray-700">
-                <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
-                    <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
-                        Login
-                    </h1>
-                    {{ $slot }}
-                    <a href="{{ route('password.request') }}">Olvidé mi contraseña</a>
+            <div class="w-full xl:w-3/4 flex flex-col-reverse md:flex-row items-center justify-center">
+                <div class="p-4 w-full xl:w-1/2 flex items-center justify-center">
+                    <div class="md:max-w-sm w-full lg:max-w-full lg:flex">
+                        <div class="triangulo mt-1 lg:mt-4 p-4 w-full rounded-lg bg-white border-gray-400 flex flex-col justify-between leading-normal">
+                            <div>
+                                <div class="text-gray-900 font-bold text-xl mb-2">
+                                    UNAH
+                                </div>
+                                <!-- Aquí va el contenido de la imagen -->
+                                <div class="mb-4">
+                                    <img src="{{ asset('images/UNAH-version-horizontal.png') }}" alt="Logo" class="mx-auto" style="width: 500px; height: auto;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 w-full xl:w-1/2 flex items-center justify-center">
+                    <div class="w-full bg-white rounded-lg dark:border md:mt-0 md:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+                        <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
+                            <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
+                                Login
+                            </h1>
+                            {{ $slot }}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
+
 
         <div class="w-full h-[10vh] flex items-center justify-center">
             <div class="md:col-span-1">
@@ -130,8 +146,11 @@
                     <h3 class="text-lg font-medium leading-6 text-gray-900
                             flex items-center justify-center text-white
                           "></h3>
+                        <!-- <div class="mb-4">
+                            <img src="{{ asset('images/DVUS3.jpg') }}" alt="Logo" class="mx-auto w-32 h-auto">
+                        </div> -->
                     <p class="mt-1 text-sm text-gray-600 text-white">
-                        Desarrollado por balim's devs 2024
+                        Desarrollado por UNAH Campus Choluteca 2024
                     </p>
                 </div>
             </div>

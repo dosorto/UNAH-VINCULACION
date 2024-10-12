@@ -34,21 +34,23 @@ class CreateDepartamento extends Component implements HasForms
         return $form
             ->schema([
                 Section::make('Crear un nuevo Departamento')
-                    ->description('Crea un nuevo departamento asociado a un pais.')
+                    ->description('Crea un nuevo departamento asociado a un país.')
                     ->schema([
                         Select::make('pais_id')
+                            ->label('País')
                             ->options(
-                                Pais::All()
+                                Pais::all()
                                     ->pluck('nombre', 'id')
                             )
                             ->required()
                             ->searchable()
                             ->columnSpanFull(),
                         TextInput::make('nombre')
+                            ->label('Nombre')
                             ->required(),
                         TextInput::make('codigo_departamento')
-                            ->required()
-
+                            ->label('Código del Departamento')
+                            ->required(),
                     ])
 
                     ->columns(2)
@@ -62,13 +64,17 @@ class CreateDepartamento extends Component implements HasForms
         $data = $this->form->getState();
 
         $record = Departamento::create($data);
+        
+        $this->form->model($record)->saveRelationships();
+
         Notification::make()
-            ->title('Exito!')
+            ->title('¡Éxito!')
             ->body('Departamento creado correctamente.')
             ->success()
             ->send();
+
         //$this->js('location.reload();');
-        $this->form->model($record)->saveRelationships();
+        $this->data = [];
     }
 
     public function render(): View

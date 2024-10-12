@@ -14,6 +14,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Forms\Components\Select;
 use App\Models\Demografia\Municipio;
+use Filament\Forms\Components\Section;
 
 class CreateAldea extends Component implements HasForms
 {
@@ -30,14 +31,20 @@ class CreateAldea extends Component implements HasForms
     {
         return $form
             ->schema([
-                //
-                Select::make('municipio_id')
-                    ->options(
-                        Municipio::All()
-                        ->pluck('nombre', 'id')
-                    ),
-                TextInput::make('nombre')
-                    
+                Section::make('Crear una nueva aldea')
+                    ->description('Crea una nueva aldea con sus datos asociados.')
+                    ->schema([
+                        Select::make('municipio_id')
+                            ->label('Municipio')
+                            ->options(
+                                Municipio::all()
+                                    ->pluck('nombre', 'id')
+                            )
+                            ->required(), 
+                        TextInput::make('nombre')
+                            ->label('Nombre') 
+                            ->required(), 
+                    ])           
             ])
             ->columns(2)
             ->statePath('data')
@@ -51,6 +58,15 @@ class CreateAldea extends Component implements HasForms
         $record = Aldea::create($data);
 
         $this->form->model($record)->saveRelationships();
+
+        Notification::make()
+            ->title('¡Éxito!')
+            ->body('Aldea creada correctamente.')
+            ->success()
+            ->send();
+
+        //$this->js('location.reload();');
+        $this->data = [];
     }
 
     public function render(): View

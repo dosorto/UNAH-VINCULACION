@@ -31,14 +31,18 @@ class ListaCiudad extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
+            ->heading('Ciudades')
             ->query(Ciudad::query())
             ->columns([
                 Tables\Columns\TextColumn::make('municipio.nombre')
+                    ->label('Municipio')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('nombre')
+                    ->label('Nombre')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('codigo_postal')
+                    ->label('Código Postal') 
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -59,12 +63,15 @@ class ListaCiudad extends Component implements HasForms, HasTable
                 EditAction::make()
                 ->form([
                     Select::make('municipio_id')
+                        ->label('Municipio')
                         ->options(
                             Municipio::All()
                                 ->pluck('nombre', 'id')
                         ),
-                    TextInput::make('nombre'),
+                    TextInput::make('nombre')
+                        ->label('Nombre'),
                     TextInput::make('codigo_postal')
+                        ->label('Código Postal') 
                         ->columnSpanFull()
                     // ...
                 ]),

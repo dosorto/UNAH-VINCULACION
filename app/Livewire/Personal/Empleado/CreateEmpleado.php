@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Livewire\Component;
 use Illuminate\Contracts\View\View;
 use Filament\Notifications\Notification;
+use Filament\Forms\Components\Section;
 
 
 class CreateEmpleado extends Component implements HasForms
@@ -27,7 +28,10 @@ class CreateEmpleado extends Component implements HasForms
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('nombre')
+                Section::make('Crear un nuevo empleado')
+                ->description('Crea un nuevo empleado con sus datos asociados.')
+                ->schema([
+                    Forms\Components\TextInput::make('nombre')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\DatePicker::make('fecha_contratacion')
@@ -40,8 +44,10 @@ class CreateEmpleado extends Component implements HasForms
                     ->maxLength(255),
                 Forms\Components\TextInput::make('jornada')
                     ->required(),
+                ])
+                ->columns(2)
             ])
-            ->columns(2)
+
             ->statePath('data')
             ->model(Empleado::class);
 

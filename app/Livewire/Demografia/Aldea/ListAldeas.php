@@ -27,12 +27,15 @@ class ListAldeas extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
+            ->heading('Aldeas')
             ->query(Aldea::query())
             ->columns([
                 Tables\Columns\TextColumn::make('municipio.nombre')
+                    ->label('Municipio')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('nombre')
+                    ->label('Aldea')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -52,11 +55,13 @@ class ListAldeas extends Component implements HasForms, HasTable
                 EditAction::make()
                 ->form([
                     Select::make('municipio_id')
+                        ->label('Municipio')
                         ->options(
                             Municipio::All()
                                 ->pluck('nombre', 'id')
                         ),
                     TextInput::make('nombre')
+                        ->label('Nombre Aldea')
                         ->columnSpanFull()
                     // ...
                 ]),

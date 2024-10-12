@@ -29,26 +29,28 @@ class CreatePais extends Component implements HasForms
     {
         return $form
             ->schema([
-
-
-                Section::make('Crear un nuevo Pais')
-                    ->description('Crea un nuevo pais con sus datos asociados.')
+                Section::make('Crear un nuevo País')
+                    ->description('Crea un nuevo país con sus datos asociados.')
                     ->schema([
                         TextInput::make('codigo_area')
+                            ->label('Código de área')
                             ->numeric()
                             ->required(),
                         TextInput::make('codigo_iso')
+                            ->label('Código ISO')
                             ->required(),
                         TextInput::make('codigo_iso_numerico')
+                            ->label('Código ISO numérico')
                             ->numeric()
                             ->required(),
                         TextInput::make('codigo_iso_alpha_2')
+                            ->label('Código ISO alpha 2')
                             ->required(),
                         TextInput::make('nombre')
-
+                            ->label('Nombre')
                             ->required(),
                         TextInput::make('gentilicio')
-
+                            ->label('Gentilicio')
                             ->required(),
                     ])
                     ->columns(2)
@@ -66,11 +68,11 @@ class CreatePais extends Component implements HasForms
         $this->form->model($record)->saveRelationships();
 
         Notification::make()
-            ->title('Exito!')
+            ->title('¡Éxito!')
             ->body('Pais creado correctamente.')
             ->success()
             ->send();
-        $this->js('location.reload();');
+        //$this->js('location.reload();');
         // limpiar formulario
         $this->data = [];
     }

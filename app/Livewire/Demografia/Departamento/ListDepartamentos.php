@@ -31,14 +31,18 @@ class ListDepartamentos extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
+            ->heading('Departamentos')
             ->query(Departamento::query())
             ->columns([
                 Tables\Columns\TextColumn::make('pais.nombre')
+                    ->label('País')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('nombre')
+                    ->label('Nombre')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('codigo_departamento')
+                    ->label('Código del Departamento')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
@@ -59,12 +63,15 @@ class ListDepartamentos extends Component implements HasForms, HasTable
                 EditAction::make()
                     ->form([
                         Select::make('pais_id')
+                            ->label('País')
                             ->options(
                                 Pais::All()
                                     ->pluck('nombre', 'id')
                             ),
-                        TextInput::make('nombre'),
+                        TextInput::make('nombre')
+                            ->label('Nombre'),
                         TextInput::make('codigo_departamento')
+                            ->label('Código del Departamento')
                             ->columnSpanFull()
                         // ...
                     ]),

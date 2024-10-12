@@ -14,6 +14,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Forms\Components\Select;
 use App\Models\Demografia\Municipio;
+use Filament\Forms\Components\Section;
 
 class CreateCiudad extends Component implements HasForms
 {
@@ -30,16 +31,27 @@ class CreateCiudad extends Component implements HasForms
     {
         return $form
             ->schema([
-                Select::make('municipio_id')
-                ->options(
-                    Municipio::All()
-                    ->pluck('nombre', 'id')
-                ),
-            TextInput::make('nombre'),
-            TextInput::make('codigo_postal')
+                Section::make('Crear una nueva ciudad')
+                    ->description('Crea una nueva ciudad con sus datos asociados.')
+                    ->schema([
+                        Select::make('municipio_id')
+                            ->label('Municipio') 
+                            ->options(
+                                Municipio::all()
+                                    ->pluck('nombre', 'id')
+                            )
+                            ->required(),
+                        TextInput::make('nombre')
+                            ->label('Nombre')
+                            ->required(), 
+                        TextInput::make('codigo_postal')
+                            ->label('Código Postal') 
+                            ->required(), 
+                ])
+                ->columns(2)
 
             ])
-            ->columns(2)
+            
             ->statePath('data')
             ->model(Ciudad::class);
     }
@@ -51,6 +63,15 @@ class CreateCiudad extends Component implements HasForms
         $record = Ciudad::create($data);
 
         $this->form->model($record)->saveRelationships();
+
+        Notification::make()
+            ->title('¡Éxito!')
+            ->body('Ciudad creada correctamente.')
+            ->success()
+            ->send();
+
+        //$this->js('location.reload();');
+        $this->data = [];
     }
 
     public function render(): View
