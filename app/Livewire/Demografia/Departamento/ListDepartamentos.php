@@ -78,6 +78,7 @@ class ListDepartamentos extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.demografia.departamento.list-departamentos');
+        return view('livewire.demografia.departamento.list-departamentos')
+        ->layout('components.panel.modulos.modulo-demografia');
     }
 }

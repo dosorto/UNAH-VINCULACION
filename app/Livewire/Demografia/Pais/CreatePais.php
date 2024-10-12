@@ -77,6 +77,7 @@ class CreatePais extends Component implements HasForms
 
     public function render(): View
     {
-        return view('livewire.demografia.create-pais');
+        return view('livewire.demografia.create-pais')
+        ->layout('components.panel.modulos.modulo-demografia');
     }
 }

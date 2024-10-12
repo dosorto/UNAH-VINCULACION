@@ -73,6 +73,7 @@ class CreateDepartamento extends Component implements HasForms
 
     public function render(): View
     {
-        return view('livewire.demografia.departamento.create-departamento');
+        return view('livewire.demografia.departamento.create-departamento')
+        ->layout('components.panel.modulos.modulo-demografia');
     }
 }

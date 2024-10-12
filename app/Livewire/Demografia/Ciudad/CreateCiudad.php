@@ -55,6 +55,7 @@ class CreateCiudad extends Component implements HasForms
 
     public function render(): View
     {
-        return view('livewire.demografia.ciudad.create-ciudad');
+        return view('livewire.demografia.ciudad.create-ciudad')
+        ->layout('components.panel.modulos.modulo-demografia');
     }
 }

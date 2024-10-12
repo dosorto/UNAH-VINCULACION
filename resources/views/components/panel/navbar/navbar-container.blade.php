@@ -101,7 +101,7 @@
             </div>
         </div>
     </div>
- 
+    {{$slot}}
     <div>
         <div class=" ">
 
@@ -126,8 +126,12 @@
                             <p
                                 class="text-sm font-medium text-gray-700 dark:text-gray-200
                                     ">
-                                Francisco Paz</p>
-                            <p class="text-xs text-gray-500">fjpazf@unah.hn</p>
+                                    {{ Auth::user()->name }}
+                                </p>
+                            <p class="text-xs text-gray-500">
+
+                                {{ Auth::user()->email }}
+                            </p>
                         </div>
                     </div>
                     <div class="relative inline-block text-left">
@@ -186,7 +190,7 @@
                                 </a>
                             </div>
                             <div class="py-1">
-                                <a href="#"
+                                <a href="{{ route('logout') }}"
                                     class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
                                     <svg xmlns="http://www.w3.org/2000/svg"
                                         class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"
