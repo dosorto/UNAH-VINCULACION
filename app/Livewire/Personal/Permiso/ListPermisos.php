@@ -43,6 +43,7 @@ class ListPermisos extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.personal.permiso.list-permisos');
+        return view('livewire.personal.permiso.list-permisos')
+        ->layout('components.panel.modulos.modulo-usuarios');
     }
 }

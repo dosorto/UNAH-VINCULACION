@@ -1,15 +1,24 @@
-@props(['titulo' => 'titulo', 'icono' => 'icono', 'route' => 'ruta', 'notificaciones' => 0])
+@props([
+    'titulo' => 'titulo',
+    'icono' => 'heroicon-o-home',
+    'routes' => [],
+    'notificaciones' => 0,
+    'route' => 'home',
+])
 
-<li class="mb-1 group">
-    <a href="{{ route($route) }}"
-        class="flex font-semibold items-center py-2 px-4 text-gray-900 hover:bg-gray-950 hover:text-gray-100 rounded-md group-[.active]:bg-gray-800 group-[.active]:text-white group-[.selected]:bg-gray-950 group-[.selected]:text-gray-100">
-        <i class='bx {{$icono}} mr-3 text-lg'></i>
-        <span class="text-sm">{{$titulo}}</span>
-        @if ($notificaciones > 0)
-            <span
-                class=" md:block px-2 py-0.5 ml-auto text-xs font-medium tracking-wide text-red-600 bg-red-200 rounded-full">
-                {{ $notificaciones }}
-            </span>
-        @endif
-    </a>
-</li>
+
+<a href="{{ route($route) }}"
+    class="mt-1 flex items-center py-2 px-4  hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out 
+     dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:text-gray-200 
+     @if (in_array(request()->route()->getName(), $routes)) text-primary-600 dark:text-primary-400 text-primary-600 text-primary-400 bg-gray-200 dark:bg-white/5 @endif
+    " wire:navigate>
+
+    @if (in_array(request()->route()->getName(), $routes))
+        @svg($icono, ['class' => 'fi-sidebar-item-icon h-6 w-6  dark:text-gray-400 text-primary-600 dark:text-primary-400 text-primary-600 '])
+    @else
+        @svg($icono, ['class' => 'fi-sidebar-item-icon h-6 w-6 text-gray-400 dark:text-gray-400'])
+    @endif
+    <span class="ml-4">
+        {{ $titulo }}
+    </span>
+</a>

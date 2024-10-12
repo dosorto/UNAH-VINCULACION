@@ -84,6 +84,7 @@ class ListEmpleado extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.personal.empleado.list-empleado');
+        return view('livewire.personal.empleado.list-empleado')
+        ->layout('components.panel.modulos.modulo-empleado');
     }
 }
