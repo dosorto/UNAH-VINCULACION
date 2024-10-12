@@ -24,91 +24,124 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="sm:bg-gray-100 flex bg-white">
-
+<body class="sm:bg-gray-100 flex bg-white dark:bg-gray-950">
     <div class="sm:flex w-full flex-col sm:flex-row">
         <div id="mobile-menu"
-            class="fixed inset-0 z-50 bg-white shadow-lg transition-transform transform -translate-x-full sm:translate-x-0 sm:shadow-none  sm:flex h-screen flex-col justify-between py-4 pr-2 pl-4 w-3/4 sm:w-1/4 h-[100vh] sm:sticky top-0 sm:bg-gray-100">
+            class="fixed inset-0 z-50 bg-white shadow-lg transition-transform transform -translate-x-full sm:translate-x-0 sm:shadow-none  sm:flex h-screen flex-col justify-between py-4 pr-2 pl-4 w-3/4 sm:w-1/4 h-[100vh] sm:sticky top-0 sm:bg-gray-100 dark:bg-gray-950">
             <div class="flex items-center  justify-between ">
                 <div class="flex items-center ">
                     <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                         <div class="w-4 h-4 border-2 border-white rounded-full"></div>
                     </div>
-                    <span class="ml-2 text-xl font-semibold text-gray-800">NEXO</span>
+                    <span
+                        class="ml-2 text-xl font-semibold text-gray-800 dark:text-gray-200
+                    ">NEXO</span>
                 </div>
-                <div class="relative inline-block text-left">
-                    <button id="toggleButton"
-                        class="toggle-button inline-flex justify-center items-center px-2 py-2 border border-gray-300  text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        <svg id="chevronIcon" xmlns="http://www.w3.org/2000/svg" class="chevron-icon h-5 w-5"
-                            viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd"
-                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                clip-rule="evenodd" />
+                <div>
+                    <button id="theme-toggle"
+                        class="mr-2 p-2 rounded-full bg-gray-200 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                        <svg id="theme-toggle-dark-icon" class="w-5 h-5 text-gray-800 dark:text-gray-200 hidden"
+                            fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+                        </svg>
+                        <svg id="theme-toggle-light-icon" class="w-5 h-5 text-gray-800 dark:text-gray-200 hidden"
+                            fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                                fill-rule="evenodd" clip-rule="evenodd"></path>
                         </svg>
                     </button>
-
-                    <div id="popup"
-                        class="hidden popup origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 divide-y divide-gray-100 focus:outline-none">
-                        <div class="py-1">
-                            <a href="#"
-                                class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
-                                <div class="flex-shrink-0 h-6 w-6 mr-3">
-                                    <div class="w-full h-full bg-blue-600 rounded-md flex items-center justify-center">
-                                        <div class="w-3 h-3 border-2 border-white rounded-full"></div>
+                    <div class="relative inline-block text-left">
+                        <button id="toggleButton"
+                            class="toggle-button inline-flex justify-center items-center px-2 py-2 border border-gray-300  text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
+                                dark:bg-gray-800 
+                                    dark:text-gray-200 
+                                    dark:border-gray-700 
+                                    dark:hover:bg-white/5 
+                                    dark:focus:ring-indigo-500 
+                                    dark:focus-visible:bg-white/10
+                                    dark:focus-visible:text-gray-200 
+                                    dark:focus-visible:border-gray-700
+                            
+                            ">
+                            <svg id="chevronIcon" xmlns="http://www.w3.org/2000/svg" class="chevron-icon h-5 w-5"
+                                viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div id="popup"
+                            class="hidden popup origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black 
+                            ring-opacity-5  focus:outline-none
+                                  dark:border-gray-700
+                                        dark:bg-gray-900 dark:ring-gray-700 dark:divide-gray-700
+                            ">
+                            <div class="py-1">
+                                <a href="#"
+                                    class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
+                                    <div class="flex-shrink-0 h-6 w-6 mr-3">
+                                        <div
+                                            class="w-full h-full bg-blue-600 rounded-md flex items-center justify-center">
+                                            <div class="w-3 h-3 border-2 border-white rounded-full"></div>
+                                        </div>
                                     </div>
-                                </div>
-                                Untitled UI
-                                <svg xmlns="http://www.w3.org/2000/svg" class="ml-auto h-5 w-5 text-gray-400"
-                                    viewBox="0 0 20 20" fill="currentColor">
-                                    <path
-                                        d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                                    <path
-                                        d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                                </svg>
-                            </a>
-                        </div>
-                        <div class="py-1">
-                            <a href="#"
-                                class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
-                                <div class="flex-shrink-0 h-6 w-6 mr-3">
-                                    <div
-                                        class="w-full h-full bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500 rounded-md">
+                                    Untitled UI
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="ml-auto h-5 w-5 text-gray-400"
+                                        viewBox="0 0 20 20" fill="currentColor">
+                                        <path
+                                            d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                        <path
+                                            d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                                    </svg>
+                                </a>
+                            </div>
+                            <div class="py-1">
+                                <a href="#"
+                                    class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
+                                    <div class="flex-shrink-0 h-6 w-6 mr-3">
+                                        <div
+                                            class="w-full h-full bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500 rounded-md">
+                                        </div>
                                     </div>
-                                </div>
-                                Sisyphus Ventures
-                                <svg xmlns="http://www.w3.org/2000/svg" class="ml-auto h-5 w-5 text-gray-400"
-                                    viewBox="0 0 20 20" fill="currentColor">
-                                    <path
-                                        d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                                    <path
-                                        d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                                </svg>
-                            </a>
-                        </div>
-                        <div class="py-1">
-                            <a href="#"
-                                class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
-                                <svg xmlns="http://www.w3.org/2000/svg"
-                                    class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" viewBox="0 0 20 20"
-                                    fill="currentColor">
-                                    <path fill-rule="evenodd"
-                                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                                        clip-rule="evenodd" />
-                                </svg>
-                                New dashboard
-                            </a>
+                                    Sisyphus Ventures
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="ml-auto h-5 w-5 text-gray-400"
+                                        viewBox="0 0 20 20" fill="currentColor">
+                                        <path
+                                            d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                        <path
+                                            d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                                    </svg>
+                                </a>
+                            </div>
+                            <div class="py-1">
+                                <a href="#"
+                                class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                        class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" viewBox="0 0 20 20"
+                                        fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                    New dashboard
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="h-[70vh]">
                 <div class="p-2 mt-4">
-                    <h2 class="text-sm font-medium text-gray-500">Untitled UI</h2>
+                    <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400 
+                    ">Untitled UI
+                    </h2>
                 </div>
                 <nav class="px-4">
                     <a href="#"
-                        class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-500" fill="none"
+                        class="flex items-center py-2 px-4  hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out dark:bg-white/5 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:text-gray-200
+                        text-primary-600 dark:text-primary-400 text-primary-600 text-primary-400 bg-gray-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-primary-600 dark:text-primary-400" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -116,7 +149,7 @@
                         <span>Overview</span>
                     </a>
                     <a href="#"
-                        class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out">
+                        class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:text-gray-200">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-500" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -125,7 +158,7 @@
                         <span>Dashboards</span>
                     </a>
                     <a href="#"
-                        class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out">
+                        class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:text-gray-200">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-500" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -134,7 +167,7 @@
                         <span>All projects</span>
                     </a>
                     <a href="#"
-                        class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out">
+                        class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:text-gray-200">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-500" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -143,7 +176,7 @@
                         <span>Analyze</span>
                     </a>
                     <a href="#"
-                        class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out">
+                        class="flex items-center py-2 px-4 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:text-gray-200">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-500" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -158,7 +191,7 @@
                 <div class=" ">
 
                     <a href="#"
-                        class="mb-4 flex items-center py-2 px-2 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out">
+                        class="mb-4 flex items-center py-2 px-2 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:text-gray-200">
                         <div class="flex items-center space-x-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20"
                                 fill="currentColor">
@@ -166,27 +199,44 @@
                                     d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
                                     clip-rule="evenodd" />
                             </svg>
-                            <span class="text-gray-700">Configuracion</span>
+                            <span class="text-gray-700 dark:text-gray-200">Configuracion</span>
                         </div>
                     </a>
-                    <div class="bg-white rounded-lg p-2 border border-gray-300 rounded-lg">
+                    <div
+                        class="bg-white rounded-lg p-2 border border-gray-300 rounded-lg  dark:bg-white/5 dark:border-gray-700">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-3">
                                 <img class="h-10 w-10 rounded-full" src="https://i.pravatar.cc/40?img=1"
                                     alt="Caitlyn Kling">
                                 <div>
-                                    <p class="text-sm font-medium text-gray-700">Francisco Paz</p>
+                                    <p
+                                        class="text-sm font-medium text-gray-700 dark:text-gray-200
+                                    ">
+                                        Francisco Paz</p>
                                     <p class="text-xs text-gray-500">fjpazf@unah.hn</p>
                                 </div>
                             </div>
                             <div class="relative inline-block text-left">
                                 <div id="popup"
-                                    class="hidden popup origin-bottom-right absolute bottom-full right-0 mb-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 divide-y divide-gray-100 focus:outline-none">
-                                    <div class="py-1">
+                                    class="hidden popup 
+                                    origin-bottom-right absolute 
+                                    bottom-full 
+                                    right-0 
+                                    mb-2 
+                                    w-56 
+                                    rounded-md s
+                                    hadow-lg 
+                                    bg-white 
+                                    border border-gray-300
+                                
+                                         focus:outline-none
+                                         dark:border-gray-700
+                                        dark:bg-gray-900 dark:ring-gray-700 dark:divide-gray-700">
+                                    <div class="">
                                         <a href="#"
-                                            class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                            class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
                                             <svg xmlns="http://www.w3.org/2000/svg"
-                                                class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"
+                                                class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500 dark:bg-white/5"
                                                 viewBox="0 0 20 20" fill="currentColor">
                                                 <path fill-rule="evenodd"
                                                     d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z"
@@ -197,7 +247,7 @@
                                     </div>
                                     <div class="py-1">
                                         <a href="#"
-                                            class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                            class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
                                             <svg xmlns="http://www.w3.org/2000/svg"
                                                 class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"
                                                 viewBox="0 0 20 20" fill="currentColor">
@@ -210,7 +260,7 @@
                                     </div>
                                     <div class="py-1">
                                         <a href="#"
-                                            class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                            class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
                                             <svg xmlns="http://www.w3.org/2000/svg"
                                                 class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"
                                                 viewBox="0 0 20 20" fill="currentColor">
@@ -223,7 +273,7 @@
                                     </div>
                                     <div class="py-1">
                                         <a href="#"
-                                            class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                                            class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
                                             <svg xmlns="http://www.w3.org/2000/svg"
                                                 class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500"
                                                 viewBox="0 0 20 20" fill="currentColor">
@@ -236,7 +286,19 @@
                                     </div>
                                 </div>
                                 <button id="toggleButton"
-                                    class="toggle-button inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                    class="toggle-button inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 
+                                    bg-white 
+                                    hover:bg-gray-50 focus:outline-none focus:ring-2 
+                                    focus:ring-offset-2 
+                                    focus:ring-indigo-500 
+                                    dark:bg-gray-800 
+                                    dark:text-gray-200 
+                                    dark:border-gray-700 
+                                    dark:hover:bg-white/5 
+                                    dark:focus:ring-indigo-500 
+                                    dark:focus-visible:bg-white/10
+                                    dark:focus-visible:text-gray-200 
+                                    dark:focus-visible:border-gray-700">
                                     <svg id="chevronIcon" xmlns="http://www.w3.org/2000/svg"
                                         class=" chevron-icon h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                         <path fill-rule="evenodd"
@@ -271,35 +333,52 @@
 
         <main class="w-full flex flex-col p-2 sm:py-4 sm:pl-2 sm:pr-4">
             <!-- Contenido del main -->
-            <div class="bg-white p-6 border border-gray-300 rounded-lg min-h-screen">
+            <div
+                class="bg-white p-6 border border-gray-300 rounded-lg min-h-screen dark:bg-white/5 dark:border-gray-700">
                 <div>
-                    <h1 class="text-2xl font-bold">Demografia</h1>
+                    <h1 class="text-2xl font-bold dark:text-white text-gray-800
+                    
+                    ">Demografia</h1>
                 </div>
                 <div class="mt-0 sm:mt-2 overflow-x-auto">
                     <div class="flex">
                         <ul class="flex  gap-2 mt-2 lg:mb-0 lg:mt-0 lg:flex-row lg:items-center ">
                             <li class="flex items-center p-1 text-sm gap-x-2 text-slate-600">
                                 <a href="#"
-                                    class="flex items-center font-semibold p-2 border border-transparent rounded hover:bg-gray-200 hover:border-gray-300 focus:bg-gray-200 focus:border-gray-300"
+                                    class="flex items-center font-semibold p-2  rounded hover:bg-gray-100 hover:border-gray-300 focus:bg-gray-200 focus:border-gray-300
+                                          
+                                    dark:hover:bg-white/5 dark:focus-visible:bg-white/5 dark:text-gray-200
+                                        dark:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700
+                                         bg-gray-100 text-primary-600 dark:text-primary-400
+                                    "
                                     aria-current="true">
                                     Pais
                                 </a>
                             </li>
                             <li class="flex items-center p-1 text-sm gap-x-2 text-slate-600">
                                 <a href="#"
-                                    class="flex items-center font-semibold p-2 border border-transparent rounded hover:bg-gray-200 hover:border-gray-300">
+                                    class="flex items-center font-semibold p-2  rounded hover:bg-gray-100 hover:border-gray-300 focus:bg-gray-200 focus:border-gray-300
+                                          
+                                    dark:hover:bg-white/5 dark:focus-visible:bg-white/5 dark:text-gray-200
+                                        dark:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700">
                                     Departamento
                                 </a>
                             </li>
                             <li class="flex items-center p-1 text-sm gap-x-2 text-slate-600">
                                 <a href="#"
-                                    class="flex items-center font-semibold p-2 border border-transparent rounded hover:bg-gray-200 hover:border-gray-300">
+                                    class="flex items-center font-semibold p-2  rounded hover:bg-gray-100 hover:border-gray-300 focus:bg-gray-200 focus:border-gray-300
+                                          
+                                    dark:hover:bg-white/5 dark:focus-visible:bg-white/5 dark:text-gray-200
+                                        dark:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700">
                                     Aldea
                                 </a>
                             </li>
                             <li class="flex items-center p-1 text-sm gap-x-2 text-slate-600">
                                 <a href="#"
-                                    class="flex items-center font-semibold p-2 border border-transparent rounded hover:bg-gray-200 hover:border-gray-300">
+                                    class="flex items-center font-semibold p-2  rounded hover:bg-gray-100 hover:border-gray-300 focus:bg-gray-200 focus:border-gray-300
+                                          
+                                    dark:hover:bg-white/5 dark:focus-visible:bg-white/5 dark:text-gray-200
+                                        dark:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700">
                                     Municipio
                                 </a>
                             </li>
@@ -312,19 +391,58 @@
                         <p class="text-zinc-950 dark:text-white font-bold mb-1">
                             Listado de paises
                         </p>
-                        <p class="text-zinc-500 dark:text-zinc-400 font-medium text-sm mt-0">
+                        <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm mt-0">
                             A continuacion se muestra el listado de paises
                         </p>
                     </div>
-                    
+
                 </div>
                 <div class="mt-6">
-                    {{$slot}}
+                    {{ $slot }}
 
                 </div>
             </div>
         </main>
     </div>
+    <script>
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+        const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+
+        // Change the icons inside the button based on previous settings
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia(
+                '(prefers-color-scheme: dark)').matches)) {
+            themeToggleLightIcon.classList.remove('hidden');
+            document.documentElement.classList.add('dark');
+        } else {
+            themeToggleDarkIcon.classList.remove('hidden');
+        }
+
+        themeToggleBtn.addEventListener('click', function() {
+            // Toggle icons inside button
+            themeToggleDarkIcon.classList.toggle('hidden');
+            themeToggleLightIcon.classList.toggle('hidden');
+
+            // If set via local storage previously
+            if (localStorage.getItem('color-theme')) {
+                if (localStorage.getItem('color-theme') === 'light') {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('color-theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('color-theme', 'light');
+                }
+            } else {
+                if (document.documentElement.classList.contains('dark')) {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('color-theme', 'light');
+                } else {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('color-theme', 'dark');
+                }
+            }
+        });
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const toggleButtons = document.querySelectorAll('.toggle-button');
@@ -345,7 +463,7 @@
                     // Cerrar otros popups
                     popups.forEach(otherPopup => {
                         if (otherPopup !== popup && !otherPopup.classList.contains(
-                            'hidden')) {
+                                'hidden')) {
                             otherPopup.classList.add('hidden');
                             const otherChevronIcon = otherPopup.previousElementSibling
                                 .querySelector('.chevron-icon');
