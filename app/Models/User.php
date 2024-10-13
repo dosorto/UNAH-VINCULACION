@@ -7,10 +7,26 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
+
+
 
 class User extends Authenticatable
 {
     use HasFactory, Notifiable, HasRoles;
+    use SoftDeletes;
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+        ->logOnly(['name', 'email', 'password'])
+        ->setDescriptionForEvent(fn (string $eventName) => "El usuario {$this->name} ha sido {$eventName}");
+    }
+
+
 
     /**
      * The attributes that are mass assignable.
@@ -44,5 +60,20 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Get Inicials of User
+     * 
+     * @return string
+     */
+    public function getInitials(): string
+    {
+        $name = explode(' ', $this->name);
+        $initials = '';
+        foreach ($name as $n) {
+            $initials .= $n[0];
+        }
+        return $initials;
     }
 }

@@ -29,8 +29,13 @@ class Login extends Component implements HasForms
     {
         return $form
             ->schema([
-                TextInput::make('email'),
+                TextInput::make('email')
+                    ->label('Correo institucional')
+                    ->required(),
                 TextInput::make('Contraseña')
+                ->revealable()
+                ->password()
+                    ->required()
             ])
             ->statePath('data')
             ->model(User::class);

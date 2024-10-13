@@ -77,6 +77,7 @@ class Roles extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.user.roles');
+        return view('livewire.user.roles')
+        ->layout('components.panel.modulos.modulo-usuarios');
     }
 }
