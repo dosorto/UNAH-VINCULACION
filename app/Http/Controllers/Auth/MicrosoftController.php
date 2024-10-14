@@ -19,6 +19,9 @@ class MicrosoftController extends Controller
      public function handleMicrosoftCallback()
      {
          $user = Socialite::driver('microsoft')->user();
+
+        // 
+
  
          // Lógica para manejar el usuario autenticado
          // Por ejemplo, guardar el usuario en la base de datos o iniciar sesión
@@ -27,7 +30,7 @@ class MicrosoftController extends Controller
          } else {
              // Manejar cuentas laborales o escolares
          }
- 
+         
          // Redirigir o iniciar sesión según sea necesario
      }
 }

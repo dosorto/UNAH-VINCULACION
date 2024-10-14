@@ -1,0 +1,74 @@
+#version: '3.1'
+services:
+  
+  #PHP
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    init: true
+    container_name: app
+    restart: unless-stopped
+    tty: true
+    environment:
+      SERVICE_NAME: app
+      SERVICE_TAGS: production
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - app-network
+
+  #Nginx
+  webserver:
+    image: nginx:alpine
+    container_name: webserver
+    restart: unless-stopped
+    init: true
+    tty: true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./:/var/www
+      - ./nginx/:/etc/nginx/conf.d/
+      - ./configuracion/certbot/www:/var/www/certbot/:ro
+      - ./configuracion/certbot/conf/:/etc/nginx/ssl/:ro
+    networks:
+      - app-network
+
+
+  #MySQL
+  db:
+    container_name: db
+    image: mysql:latest
+    init: true
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=db
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+    volumes:
+      - ./db_data:/var/lib/mysql
+    restart: always
+    networks:
+      - app-network
+  
+  
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - ./configuracion/certbot/www:/var/www/certbot
+      - ./configuracion/certbot/conf:/etc/letsencrypt
+
+ 
+
+#Networks
+networks:
+  app-network:
+    driver: bridge
+#Volumes
+volumes:
+  dbdata:
+    driver: local
