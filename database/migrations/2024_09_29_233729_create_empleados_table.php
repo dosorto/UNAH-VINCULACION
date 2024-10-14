@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('empleados', function (Blueprint $table) {
+        Schema::create('empleado', function (Blueprint $table) {
             $table->id(); // Identificador único del empleado
             $table->string('nombre'); // Nombre completo del empleado
             $table->date('fecha_contratacion'); // Fecha de contratación
