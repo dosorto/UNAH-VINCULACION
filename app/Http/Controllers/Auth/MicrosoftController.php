@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Laravel\Socialite\Facades\Socialite;
 use Filament\Notifications\Notification;
+use App\Models\User;
 
 class MicrosoftController extends Controller
 {

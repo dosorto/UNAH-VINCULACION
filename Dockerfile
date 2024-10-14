@@ -1,6 +1,5 @@
 FROM php:8.3-fpm
 
-
 # Copiar los archivos de configuración de composer
 COPY ./composer.lock ./composer.json /var/www/
 
@@ -38,8 +37,6 @@ RUN docker-php-ext-configure intl \
 
 RUN docker-php-ext-enable intl mbstring
 
-
-
 # Instalar composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
@@ -47,11 +44,13 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 RUN groupadd -g 1000 www
 RUN useradd -u 1000 -ms /bin/bash -g www www
 
-# Copiar los archivos de la aplicación
-COPY . /var/www
-
-# Cambiar el propietario de los archivos
+# Copiar los archivos de la aplicación y cambiar el propietario
 COPY --chown=www:www . /var/www
+
+# Establecer permisos en el directorio de almacenamiento
+RUN mkdir -p /var/www/storage && \
+    chown -R www:www /var/www/storage && \
+    chmod -R 775 /var/www/storage
 
 # Configurar opcache para mejorar el rendimiento
 RUN echo "opcache.memory_consumption=128" >> /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini \
