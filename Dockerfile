@@ -1,10 +1,16 @@
 FROM php:8.3-fpm
 
+# Definir el usuario como argumento
+ARG user=www
+
 # Copiar los archivos de configuración de composer
 COPY ./composer.lock ./composer.json /var/www/
 
 # Cambiar el directorio de trabajo
 WORKDIR /var/www
+
+# Cambiar la propiedad del directorio de trabajo
+RUN chown -R $user:$user /var/www
 
 # Instalar dependencias
 RUN apt-get update && apt-get install -y \
@@ -45,11 +51,11 @@ RUN groupadd -g 1000 www
 RUN useradd -u 1000 -ms /bin/bash -g www www
 
 # Copiar los archivos de la aplicación y cambiar el propietario
-COPY --chown=www:www . /var/www
+COPY --chown=$user:$user . /var/www
 
 # Establecer permisos en el directorio de almacenamiento
 RUN mkdir -p /var/www/storage && \
-    chown -R www:www /var/www/storage && \
+    chown -R $user:$user /var/www/storage && \
     chmod -R 775 /var/www/storage
 
 # Configurar opcache para mejorar el rendimiento
@@ -61,7 +67,7 @@ RUN echo "opcache.memory_consumption=128" >> /usr/local/etc/php/conf.d/docker-ph
     && echo "opcache.enable_cli=0" >> /usr/local/etc/php/conf.d/docker-php-ext-opcache.ini
 
 # Cambiar el usuario
-USER www
+USER $user
 
 # Exponer el puerto 9000 y ejecutar php-fpm
 EXPOSE 9000
