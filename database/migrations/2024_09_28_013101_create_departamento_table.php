@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string("nombre");
             $table->integer("codigo_departamento")
                 ->nullable();
+            $table->softDeletes();
             $table->timestamps();
         });
     }

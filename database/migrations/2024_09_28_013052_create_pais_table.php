@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string("codigo_iso_alpha_2");
             $table->string("nombre");
             $table->string("gentilicio");
+            $table->softDeletes();
             $table->timestamps();
         });
     }

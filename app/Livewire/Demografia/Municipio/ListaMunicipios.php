@@ -84,6 +84,7 @@ class ListaMunicipios extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.demografia.municipio.lista-municipios');
+        return view('livewire.demografia.municipio.lista-municipios')
+        ->layout('components.panel.modulos.modulo-demografia');
     }
 }
