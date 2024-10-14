@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Laravel\Socialite\Facades\Socialite;
+use Filament\Notifications\Notification;
 
 class MicrosoftController extends Controller
 {
@@ -18,19 +19,33 @@ class MicrosoftController extends Controller
      // Manejar el callback de Microsoft
      public function handleMicrosoftCallback()
      {
-         $user = Socialite::driver('microsoft')->user();
-
-        // 
-
- 
-         // Lógica para manejar el usuario autenticado
-         // Por ejemplo, guardar el usuario en la base de datos o iniciar sesión
-         if ($user->tenant === null) {
-             // Manejar cuentas de consumidor
-         } else {
-             // Manejar cuentas laborales o escolares
-         }
-         
-         // Redirigir o iniciar sesión según sea necesario
+        
+        try {
+            $user = Socialite::driver('microsoft')->user();
+    
+            // Crear o buscar el usuario en la base de datos
+            $user = User::firstOrCreate(
+                ['email' => $user->email],
+                [
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'password' => bcrypt('123456dummy') // Cambié encrypt() por bcrypt()
+                ]
+            );
+    
+            Auth::login($user, true);
+    
+            return redirect()->route('crearPais');
+            
+        } catch (\Exception $e) {
+            Notification::make()
+            ->title('Algo salió mal al iniciar sesión con Microsoft! :(')
+            ->body($e->getMessage())
+            ->danger()
+            ->send();
+            
+            // Redirigir a la ruta de login
+            return redirect()->route('login');
+        }
      }
 }
