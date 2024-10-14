@@ -75,6 +75,7 @@ class CreateMunicipio extends Component implements HasForms
 
     public function render(): View
     {
-        return view('livewire.demografia.municipio.create-municipio');
+        return view('livewire.demografia.municipio.create-municipio')
+        ->layout('components.panel.modulos.modulo-demografia');
     }
 }

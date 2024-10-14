@@ -87,6 +87,7 @@ class Users extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.user.users');
+        return view('livewire.user.users')
+        ->layout('components.panel.modulos.modulo-usuarios');
     }
 }
