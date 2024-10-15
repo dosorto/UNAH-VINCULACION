@@ -27,6 +27,8 @@ class Empleado extends Model
     }
 
     protected $fillable = [
+        'numero_empleado',
+        'user_id',
         'nombre',
         'fecha_contratacion',
         'salario',
@@ -34,7 +36,7 @@ class Empleado extends Model
         'jornada',
     ];
 
-    protected $table = 'empleados';
+    protected $table = 'empleado';
 }
 
 
