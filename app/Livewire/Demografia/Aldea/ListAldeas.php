@@ -76,6 +76,7 @@ class ListAldeas extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.demografia.aldea.list-aldeas');
+        return view('livewire.demografia.aldea.list-aldeas')
+        ->layout('components.panel.modulos.modulo-demografia');
     }
 }

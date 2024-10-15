@@ -1,0 +1,31 @@
+# Ignorar archivos y directorios que no son necesarios en el contenedor
+node_modules
+npm-debug.log
+package-lock.json
+yarn-error.log
+yarn.lock
+.DS_Store
+.env
+.env.local
+.env.*.local
+.git
+.gitignore
+vendor
+/public/storage
+/public/hot
+/public/mix-manifest.json
+
+# Ignorar archivos de sistema y temporales
+*.log
+*.tmp
+*.cache
+*.swp
+*.swo
+
+# Ignorar los directorios de test
+tests/
+phpunit.xml
+phpunit.xml.dist
+
+# Ignorar directorios de documentación
+docs/

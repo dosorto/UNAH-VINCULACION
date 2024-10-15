@@ -17,9 +17,12 @@ use App\Livewire\Personal\Permiso\ListPermisos;
 use App\Livewire\Login\Login;
 use App\Livewire\User\Users;
 use App\Livewire\User\Roles;
+use App\Livewire\Configuracion\Logs\ListLogs;
 
 use App\Livewire\Auth\ForgotPasswordController;
 use App\Livewire\Auth\ResetPasswordController;
+
+use App\Http\Controllers\Auth\MicrosoftController;
 
 // Rutas para restablecimiento de contraseña
 Route::get('password/reset', ForgotPasswordController::class)->name('password.request');
@@ -86,4 +89,16 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('listarPermisos', ListPermisos::class)
         ->name('listPermisos');
+
+    Route::get('listarLogs', ListLogs::class)
+        ->name('listarLogs');
 });
+
+// rutas para autenticación con Microsoft
+Route::get('auth/microsoft', [MicrosoftController::class, 'redirectToMicrosoft'])
+    ->name('auth.microsoft');
+
+Route::get('auth/microsoft/callback', [MicrosoftController::class, 'handleMicrosoftCallback'])
+    ->name('auth.microsoft.callback');
+
+

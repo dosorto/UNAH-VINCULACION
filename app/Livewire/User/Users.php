@@ -3,6 +3,7 @@
 namespace App\Livewire\User;
 
 use App\Models\User;
+use App\Models\Personal\Empleado;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Tables;
@@ -17,6 +18,7 @@ use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\DatePicker;
 
 class Users extends Component implements HasForms, HasTable
 {
@@ -81,12 +83,34 @@ class Users extends Component implements HasForms, HasTable
                             ->maxLength(255),
                         TextInput::make('password')
                             ->required(),
-                    ]),
+                        TextInput::make('nombre')
+                            ->required()
+                            ->maxLength(255),
+                        DatePicker::make('fecha_contratacion')
+                            ->required(),
+                        TextInput::make('salario')
+                            ->required()
+                            ->numeric(),
+                        TextInput::make('supervisor')
+                            ->required()
+                            ->maxLength(255),
+                        TextInput::make('jornada')
+                            ->required(),
+                    ])
+                    ->action(function ($data) {
+                        $user = User::create(['name' => $data['name'], 'email' => $data['email'], 'password' => $data['password']]);
+
+                         $empleado = Empleado::create(['nombre' => $data['nombre'], 'fecha_contratacion' => $data['fecha_contratacion'], 'salario' => $data['salario'], 'supervisor' => $data['supervisor'], 'jornada' => $data['jornada']]);
+
+                    }),
             ]);
     }
 
     public function render(): View
     {
-        return view('livewire.user.users');
+        return view('livewire.user.users')
+        ->layout('components.panel.modulos.modulo-usuarios');
     }
 }
+
+// Comentario de prueba
