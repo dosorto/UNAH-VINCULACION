@@ -11,13 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('empleados', function (Blueprint $table) {
+        Schema::create('empleado', function (Blueprint $table) {
             $table->id(); // Identificador único del empleado
             $table->string('nombre'); // Nombre completo del empleado
             $table->date('fecha_contratacion'); // Fecha de contratación
             $table->decimal('salario', 8, 2); // Salario con 8 dígitos, 2 decimales
             $table->string('supervisor'); // Nombre del supervisor
             $table->enum('jornada', ['completa', 'parcial']); // Tipo de jornada laboral
+            $table->softDeletes(); // Soft delete
             $table->timestamps(); // Created at y updated at
         });
     }

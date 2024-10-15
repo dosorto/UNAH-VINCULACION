@@ -20,3 +20,14 @@ yarn-error.log
 /.vscode
 /.zed
 .env
+/db_data
+
+# Ignorar el contenido de las carpetas ./configuracion/certbot/www y ./configuracion/certbot/conf, pero mantener las carpetas
+/configuracion/certbot/www/*
+!/configuracion/certbot/www
+
+/configuracion/certbot/conf/*
+!/configuracion/certbot/conf
+# Ignorar todo el contenido de ./nginx, pero mantener la carpeta
+/nginx/*
+!/nginx/.gitignore

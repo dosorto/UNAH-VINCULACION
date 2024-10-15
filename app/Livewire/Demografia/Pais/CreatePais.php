@@ -14,11 +14,14 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Forms\Components\Section;
 
+
 class CreatePais extends Component implements HasForms
 {
     use InteractsWithForms;
-
+    
     public ?array $data = [];
+
+    
 
     public function mount(): void
     {
@@ -79,6 +82,7 @@ class CreatePais extends Component implements HasForms
 
     public function render(): View
     {
-        return view('livewire.demografia.create-pais');
+        return view('livewire.demografia.create-pais')
+        ->layout('components.panel.modulos.modulo-demografia');
     }
 }

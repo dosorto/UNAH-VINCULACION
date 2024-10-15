@@ -33,7 +33,8 @@ class Login extends Component implements HasForms
                     ->label('Correo institucional')
                     ->required(),
                 TextInput::make('Contraseña')
-                    ->password()
+                ->revealable()
+                ->password()
                     ->required()
             ])
             ->statePath('data')
