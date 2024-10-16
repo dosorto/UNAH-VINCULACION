@@ -41,8 +41,6 @@ return new class extends Migration
         Schema::create('proyecto', function (Blueprint $table) {
             $table->id();
             $table->string('nombre_proyecto');
-            $table->foreignId('carrera_facultad_centro_id')->contrained('carrera_facultad_centro')->nullable();
-            $table->foreignId('entidad_academica_id')->contrained('entidad_academica')->nullable();
             $table->foreignId('coordinador_id')->constrained('empleado');
             $table->foreignId('ods_id')->constrained('ods');
             $table->foreignId('modalidad_id')->constrained('modalidad');
@@ -100,6 +98,34 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
         });
+
+        // tabla de realcion con entidad_academica
+        Schema::create('proyecto_entidad_academica', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->foreignId('entidad_academica_id')->constrained('entidad_academica');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+        // tabla de realcion con entidad_facultad_centro
+        Schema::create('proyecto_facultad_centro', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->foreignId('facultad_centro_id')->constrained('facultad_centro');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+        // tabla de realcion con entidad_carrera
+        Schema::create('proyecto_carrera', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->foreignId('carrera_id')->constrained('carrera');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
 
     }
 
