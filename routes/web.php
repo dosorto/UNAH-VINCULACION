@@ -22,6 +22,8 @@ use App\Livewire\Configuracion\Logs\ListLogs;
 use App\Livewire\Auth\ForgotPasswordController;
 use App\Livewire\Auth\ResetPasswordController;
 
+use App\Http\Controllers\Auth\MicrosoftController;
+
 // Rutas para restablecimiento de contraseña
 Route::get('password/reset', ForgotPasswordController::class)->name('password.request');
 Route::get('password/reset/{token}', ResetPasswordController::class)->name('password.reset');
@@ -29,43 +31,51 @@ Route::get('password/reset/{token}', ResetPasswordController::class)->name('pass
 
 
 Route::get('/', Login::class)
-    ->name('login');
+    ->name('login')
+    ->middleware('guest');
 
 
 Route::middleware(['auth'])->group(function () {
 
-    Route::get('crearPais', CreatePais::class)
-        ->name('crearPais');
+    // rutas agrupadas para el modulo de demografia :)
+    Route::middleware(['auth'])->group(function () {
 
-    Route::get('listarPais', ListPaises::class)
-        ->name('listarPaises');
+        Route::get('crearPais', CreatePais::class)
+            ->name('crearPais');
 
-
-    Route::get('crearDepartamento', CreateDepartamento::class)
-        ->name('crearDepartamento');
-
-    Route::get('ListarDepartamentos', ListDepartamentos::class)
-
-        ->name('listarDepartamentos');
-    Route::get('ListarCiudades', ListaCiudad::class)
-
-        ->name('ListarCiudades');
-
-    Route::get('crearCiudad', CreateCiudad::class)
-        ->name('crearCiudad');
+        Route::get('listarPais', ListPaises::class)
+            ->name('listarPaises');
 
 
-    Route::get('ListarAldeas', ListAldeas::class)
-        ->name('ListarAldeas');
+        Route::get('crearDepartamento', CreateDepartamento::class)
+            ->name('crearDepartamento');
 
-    Route::get('crearAldea', CreateAldea::class)
-        ->name('crearAldea');
+        Route::get('ListarDepartamentos', ListDepartamentos::class)
 
-    Route::get('ListarMunicipios', ListaMunicipios::class)
-        ->name('ListarMunicipios');
+            ->name('listarDepartamentos');
+        Route::get('ListarCiudades', ListaCiudad::class)
 
-    Route::get('crearMunicipio', CreateMunicipio::class)
-        ->name('crearMunicipio');
+            ->name('ListarCiudades');
+
+        Route::get('crearCiudad', CreateCiudad::class)
+            ->name('crearCiudad');
+
+
+        Route::get('ListarAldeas', ListAldeas::class)
+            ->name('ListarAldeas');
+
+        Route::get('crearAldea', CreateAldea::class)
+            ->name('crearAldea');
+
+        Route::get('ListarMunicipios', ListaMunicipios::class)
+            ->name('ListarMunicipios');
+
+        Route::get('crearMunicipio', CreateMunicipio::class)
+            ->name('crearMunicipio');
+    });
+
+
+    // rutas agrupadas para el modulo de personal :)
 
     Route::get('/users', Users::class)
         ->name('Usuarios');
@@ -91,3 +101,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('listarLogs', ListLogs::class)
         ->name('listarLogs');
 });
+
+// rutas para autenticación con Microsoft
+Route::get('auth/microsoft', [MicrosoftController::class, 'redirectToMicrosoft'])
+    ->name('auth.microsoft');
+
+Route::get('auth/microsoft/callback', [MicrosoftController::class, 'handleMicrosoftCallback'])
+    ->name('auth.microsoft.callback');
