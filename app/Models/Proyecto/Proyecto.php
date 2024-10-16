@@ -5,8 +5,15 @@ namespace App\Models\Proyecto;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Unidad_Academica\Entidad_academica;
+use App\Models\Unidad_Academica\Carrera;
+use App\Models\Unidad_Academica\Carrera_facultad_centro;
+use App\Models\Unidad_Academica\FaFacultad_centro;
+
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
+
+
 
 class Proyecto extends Model
 {
@@ -102,6 +109,28 @@ class Proyecto extends Model
     {
         return $this->belongsTo(Aldea::class, 'aldea_id',);
     }
+
+
+    // relacion muchos a muchos con el modelo Carrera
+    public function carreras()
+    {
+        return $this->belongsToMany(Carrera::class, 'proyecto_carrera', 'proyecto_id', 'carrera_id');
+    }
+
+    // relacion muchos a muchos con el modelo facultad_centro
+    public function facultades_centros()
+    {
+        return $this->belongsToMany(FaFacultad_centro::class, 'proyecto_facultad_centro', 'proyecto_id', 'facultad_centro_id');
+    }
+
+
+    // relacion muchos a muchos con el modelo empleado Entidad_academica
+    public function entidades_academicas()
+    {
+        return $this->belongsToMany(Entidad_academica::class, 'proyecto_entidad_academica', 'proyecto_id', 'entidad_academica_id');
+    }
+
+    
 
     protected $table = 'proyecto';
 

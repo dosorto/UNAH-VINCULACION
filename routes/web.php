@@ -18,23 +18,37 @@ use App\Livewire\Login\Login;
 use App\Livewire\User\Users;
 use App\Livewire\User\Roles;
 use App\Livewire\Configuracion\Logs\ListLogs;
-
 use App\Livewire\Auth\ForgotPasswordController;
 use App\Livewire\Auth\ResetPasswordController;
-
 use App\Http\Controllers\Auth\MicrosoftController;
 
-// Rutas para restablecimiento de contraseña
-Route::get('password/reset', ForgotPasswordController::class)->name('password.request');
-Route::get('password/reset/{token}', ResetPasswordController::class)->name('password.reset');
+use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
 
 
 
-Route::get('/', Login::class)
-    ->name('login')
-    ->middleware('guest');
+// Rutas para redireccionar a los usuario autenticados
+Route::middleware(['guest'])->group(function () {
+    // rutas para autenticación con Microsoft
+    Route::get('auth/microsoft', [MicrosoftController::class, 'redirectToMicrosoft'])
+        ->name('auth.microsoft');
+
+    Route::get('auth/microsoft/callback', [MicrosoftController::class, 'handleMicrosoftCallback'])
+        ->name('auth.microsoft.callback');
+
+    Route::get('/', Login::class)
+        ->name('login')
+        ->middleware('guest');
+
+    // Rutas para restablecimiento de contraseña olvidada
+    Route::get('password/reset', ForgotPasswordController::class)
+        ->name('password.request');
+    Route::get('password/reset/{token}', ResetPasswordController::class)
+        ->name('password.reset');
+});
 
 
+
+// Rutas para redireccionar a los usuario  no autenticados
 Route::middleware(['auth'])->group(function () {
 
     // rutas agrupadas para el modulo de demografia :)
@@ -75,36 +89,49 @@ Route::middleware(['auth'])->group(function () {
     });
 
 
-    // rutas agrupadas para el modulo de personal :)
+    // rutas agrupadas para el modulo de Usuarios
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/users', Users::class)
+            ->name('Usuarios');
 
-    Route::get('/users', Users::class)
-        ->name('Usuarios');
+        Route::get('/roles', Roles::class)
+            ->name('roles');
 
-    Route::get('/roles', Roles::class)
-        ->name('roles');
+        Route::get('listarPermisos', ListPermisos::class)
+            ->name('listPermisos');
 
-    Route::get('/logout', function () {
-        Auth::logout();
-        return redirect('/');
-    })
-        ->name('logout');
 
-    Route::get('crearEmpleado', CreateEmpleado::class)
-        ->name('crearEmpleado');
+        Route::get('/logout', function () {
+            Auth::logout();
+            return redirect('/');
+        })
+            ->name('logout');
+    });
 
-    Route::get('listarEmpleados', ListEmpleado::class)
-        ->name('ListarEmpleados');
 
-    Route::get('listarPermisos', ListPermisos::class)
-        ->name('listPermisos');
+    // rutas agrupadas para el modulo de Personal
+    Route::middleware(['auth'])->group(function () {
 
-    Route::get('listarLogs', ListLogs::class)
-        ->name('listarLogs');
+        Route::get('crearEmpleado', CreateEmpleado::class)
+            ->name('crearEmpleado');
+
+        Route::get('listarEmpleados', ListEmpleado::class)
+            ->name('ListarEmpleados');
+    });
+
+    // rutas agrupadas para el modulo de Proyectos
+    Route::middleware(['auth'])->group(function () {
+
+        Route::get('crearProyectoVinculacion', CreateProyectoVinculacion::class)
+            ->name('crearProyectoVinculacion');
+    });
+
+
+    // rutas agrupadas para el modulo de Configuración
+    Route::middleware(['auth'])->group(function () {
+
+        Route::get('listarLogs', ListLogs::class)
+            ->name('listarLogs');
+
+    });
 });
-
-// rutas para autenticación con Microsoft
-Route::get('auth/microsoft', [MicrosoftController::class, 'redirectToMicrosoft'])
-    ->name('auth.microsoft');
-
-Route::get('auth/microsoft/callback', [MicrosoftController::class, 'handleMicrosoftCallback'])
-    ->name('auth.microsoft.callback');
