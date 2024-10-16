@@ -10,6 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title>{{ config('app.name') }}</title>
+    <link rel="icon" href="{{ asset('images/LOGO_NX.png') }}" type="image/png">
     <link rel="stylesheet" href="{{ asset('css/styles-app.css') }}">
     <link rel="stylesheet" href="{{ asset('css/filament/filament/app.css') }}">
 

@@ -1,13 +1,11 @@
 <div id="mobile-menu"
     class="fixed inset-0 z-50 bg-white shadow-lg transition-transform transform -translate-x-full sm:translate-x-0 sm:shadow-none  sm:flex h-screen flex-col justify-between py-4 pr-2 pl-4 w-3/4 sm:w-1/4 h-[100vh] sm:sticky top-0 sm:bg-gray-100 dark:bg-gray-950">
     <div class="flex items-center  justify-between ">
-        <div class="flex items-center ">
-            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <div class="w-4 h-4 border-2 border-white rounded-full"></div>
+    <div class="flex items-center ">
+            <div class="w-36 h-8 rounded-lg flex items-center justify-center">
+                <img src="{{ asset('images/LOGO.png') }}" alt="Logo" class="mx-auto" style="width: auto; height: auto;">
             </div>
-            <span class="ml-2 text-xl font-semibold text-gray-800 dark:text-gray-200
-                    ">NEXO</span>
-        </div>
+        </div>
         <div>
             <button id="theme-toggle"
                 class="mr-2 p-2 rounded-full bg-gray-200 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400">

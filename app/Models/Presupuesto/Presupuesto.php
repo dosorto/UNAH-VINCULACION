@@ -14,6 +14,10 @@ class Presupuesto extends Model
     use SoftDeletes;
     use LogsActivity;
 
+    protected static $logAttributes = ['id', 'tipo_presupuesto_id', 'administrador_id', 'proyecto_id'];
+
+    protected static $logName = 'Presupuesto';
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
@@ -28,9 +32,9 @@ class Presupuesto extends Model
         'proyecto_id',
     ];
 
-    public function tipo_presupuesto()
+    public function tipopresupuesto()
     {
-        return $this->belongsTo(Tipo_presupuesto::class, 'tipo_presupuesto_id',);
+        return $this->belongsTo(TipoPresupuesto::class, 'tipo_presupuesto_id',);
     }
 
     public function empleado()

@@ -21,10 +21,18 @@ class Proyecto extends Model
     use SoftDeletes;
     use LogsActivity;
 
+    protected static $logAttributes = ['id', 'nombre', 'carrera_facultad_centro_id', 'entidad_academica_id', 'coordinador_id', 'od_id',
+            'modalidad_id', 'categoria_id', 'municipio_id', 'departamento_id', 'ciudad_id', 'aldea_id', 'resumen',
+            'objetivo_general', 'objetivos_especificos', 'fecha_inicio', 'fecha_finalizacion', 'evaluacion_intermedia',
+            'evaluacion_final', 'poblacion_participante', 'modalidad_ejecucion', 'resultados_esperados', 
+            'indicadores_medicion_resultados'];
+
+    protected static $logName = 'Proyecto';
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-        ->logOnly(['id', 'nombre', 'carrera_facultad_centro_id', 'entidad_academica_id', 'coordinador_id', 'ods_id',
+        ->logOnly(['id', 'nombre', 'carrera_facultad_centro_id', 'entidad_academica_id', 'coordinador_id', 'od_id',
             'modalidad_id', 'categoria_id', 'municipio_id', 'departamento_id', 'ciudad_id', 'aldea_id', 'resumen',
             'objetivo_general', 'objetivos_especificos', 'fecha_inicio', 'fecha_finalizacion', 'evaluacion_intermedia',
             'evaluacion_final', 'poblacion_participante', 'modalidad_ejecucion', 'resultados_esperados', 
@@ -38,7 +46,7 @@ class Proyecto extends Model
         'carrera_facultad_centro_id', 
         'entidad_academica_id', 
         'coordinador_id',
-        'ods_id',
+        'od_id',
         'modalidad_id', 
         'categoria_id', 
         'municipio_id',
@@ -58,15 +66,15 @@ class Proyecto extends Model
         'indicadores_medicion_resultados',
     ];
 
-    public function carrera_facultad_centro()
+    public function carrerafacultadcentro()
     {
-        return $this->belongsTo(Carrera_facultad_centro::class, 'carrera_facultad_centro_id',);
+        return $this->belongsTo(CarreraFacultadCentro::class, 'carrera_facultad_centro_id',);
     }
 
 
-    public function entidad_academica()
+    public function entidadacademica()
     {
-        return $this->belongsTo(Entidad_academica::class, 'entidad_academica_id',);
+        return $this->belongsTo(EntidadAcademica::class, 'entidad_academica_id',);
     }
 
 
@@ -75,9 +83,9 @@ class Proyecto extends Model
         return $this->belongsTo(Empleado::class, 'coordinador_id',);
     }
 
-    public function ods()
+    public function od()
     {
-        return $this->belongsTo(Ods::class, 'ods_id',);
+        return $this->belongsTo(Od::class, 'od_id',);
     }
 
     public function modalidad()
@@ -87,7 +95,7 @@ class Proyecto extends Model
 
     public function categoria()
     {
-        return $this->belongsTo(Categorias::class, 'categoria_id',);
+        return $this->belongsTo(Categoria::class, 'categoria_id',);
     }
 
     public function municipio()
