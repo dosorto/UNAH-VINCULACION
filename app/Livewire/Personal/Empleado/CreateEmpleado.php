@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Personal\Empleado;
 
+use App\Livewire\User\Users;
 use App\Models\Personal\Empleado;
 use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -11,7 +12,8 @@ use Livewire\Component;
 use Illuminate\Contracts\View\View;
 use Filament\Notifications\Notification;
 use Filament\Forms\Components\Section;
-
+use Filament\Forms\Components\Select;
+use app\Models\User;
 
 class CreateEmpleado extends Component implements HasForms
 {
@@ -34,6 +36,18 @@ class CreateEmpleado extends Component implements HasForms
                     Forms\Components\TextInput::make('nombre')
                     ->required()
                     ->maxLength(255),
+                    Forms\Components\TextInput::make('numero_empleado')
+                    ->required()
+                    ->maxLength(255),
+                    Select::make('user_id')
+                    ->label('Usuario')
+                    ->options(
+                        User::all()
+                            ->pluck('email', 'id')
+                    )
+                    ->required()
+                    ->searchable()
+                    ->columnSpanFull(),
                 Forms\Components\DatePicker::make('fecha_contratacion')
                     ->required(),
                 Forms\Components\TextInput::make('salario')
