@@ -8,11 +8,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class Actividades extends Model
+class Actividad extends Model
 {
     use HasFactory;
     use SoftDeletes;
     use LogsActivity;
+
+    protected static $logAttributes = ['id', 'proyecto_id', 'responsable_id', 'descripcion', 'fecha_ejecucion'];
+
+    protected static $logName = 'Actividad';
 
     public function getActivitylogOptions(): LogOptions
     {

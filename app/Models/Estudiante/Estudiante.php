@@ -14,6 +14,10 @@ class Estudiante extends Model
     use SoftDeletes;
     use LogsActivity;
 
+    protected static $logAttributes = ['id', 'user_id', 'nombre', 'apellido', 'cuenta'];
+
+    protected static $logName = 'Estudiante';
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

@@ -8,11 +8,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class Empleado_proyecto extends Model
+class EmpleadoProyecto extends Model
 {
     use HasFactory;
     use SoftDeletes;
     use LogsActivity;
+
+    protected static $logAttributes = ['id', 'empleado_id', 'proyecto_id'];
+
+    protected static $logName = 'EmpleadoProyecto';
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -34,9 +38,9 @@ class Empleado_proyecto extends Model
 
     public function proyecto()
     {
-        return $this->belongsTo(proyecto::class, 'proyecto_id',);
+        return $this->belongsTo(Proyecto::class, 'proyecto_id',);
     }
 
 
-    protected $table = 'Empleado_proyecto';
+    protected $table = 'empleado_proyecto';
 }
