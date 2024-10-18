@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Unidad_Academica;
+namespace App\Models\UnidadAcademica;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -8,11 +8,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class FaFacultad_centro extends Model
+
+class TipoEntidadAcademica extends Model
 {
     use HasFactory;
     use SoftDeletes;
     use LogsActivity;
+
+    protected static $logAttributes = ['id', 'nombre'];
+
+    protected static $logName = 'TipoEntidadAcademica';
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -26,6 +31,5 @@ class FaFacultad_centro extends Model
         'nombre',
     ];
 
-    protected $table = 'facultad_centro';
-
+    protected $table = 'tipo_entidad_academica';
 }

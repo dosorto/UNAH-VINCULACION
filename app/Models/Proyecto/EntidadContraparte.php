@@ -8,11 +8,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class Entidad_contraparte extends Model
+class EntidadContraparte extends Model
 {
     use HasFactory;
     use SoftDeletes;
     use LogsActivity;
+
+    protected static $logAttributes = ['id', 'proyecto_id', 'nombre', 'telefono', 'correo', 'nombre_contacto', 'es_internacional',
+            'aporte', 'instrumento_formalizacion'];
+
+    protected static $logName = 'EntidadContraparte';
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -39,5 +44,5 @@ class Entidad_contraparte extends Model
         return $this->belongsTo(Proyecto::class, 'proyecto_id',);
     }
 
-    protected $table = 'categorias';
+    protected $table = 'entidad_contraparte';
 }

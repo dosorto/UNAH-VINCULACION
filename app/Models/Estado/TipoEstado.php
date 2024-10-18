@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Presupuesto;
+namespace App\Models\Estado;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -8,11 +8,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class Tipo_presupuesto extends Model
+class TipoEstado extends Model
 {
     use HasFactory;
     use SoftDeletes;
     use LogsActivity;
+
+    protected static $logAttributes = ['id', 'nombre'];
+
+    protected static $logName = 'TipoEstado';
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -27,5 +31,5 @@ class Tipo_presupuesto extends Model
     ];
 
 
-    protected $table = 'presupuesto';
+    protected $table = 'tipo_estado';
 }

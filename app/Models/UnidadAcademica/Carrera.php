@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Unidad_Academica;
+namespace App\Models\UnidadAcademica;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -8,34 +8,36 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class Carrera_facultad_centro extends Model
+
+class Carrera extends Model
 {
     use HasFactory;
     use SoftDeletes;
     use LogsActivity;
 
+    protected static $logAttributes = ['id', 'nombre', 'facultad_centro_id'];
+
+    protected static $logName = 'Carrera';
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-        ->logOnly(['id', 'carrera_id', 'facultad_centro_id'])
+        ->logOnly(['id', 'nombre', 'facultad_centro_id'])
         ->setDescriptionForEvent(fn (string $eventName) => "El registro {$this->nombre} ha sido {$eventName}");
     }
     
     protected $fillable = [
         'id',
-        'carrera_id',
+        'nombre',
         'facultad_centro_id',
     ];
 
-    public function carrera()
+    public function facultadcentro()
     {
-        return $this->belongsTo(Carrera::class, 'carrera_id');
+        return $this->belongsTo(FacultadCentro::class, 'facultad_centro_id',);
     }
 
-    public function facultad_centro()
-    {
-        return $this->belongsTo(Facultad_centro::class, 'facultad_centro_id',);
-    }
 
-    protected $table = 'carrera_facultad_centro';
+    protected $table = 'carrera';
+
 }

@@ -14,23 +14,36 @@ class Presupuesto extends Model
     use SoftDeletes;
     use LogsActivity;
 
+    protected static $logAttributes = [
+        'id',
+        'proyecto_id',
+        'aporte_estudiantes',
+        'aporte_profesores',
+        'aporte_academico_unah',
+        'aporte_transporte_unah',
+        'aporte_contraparte',
+        'aporte_comunidad',
+    ];
+
+    protected static $logName = 'Presupuesto';
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-        ->logOnly(['id', 'tipo_presupuesto_id', 'administrador_id', 'proyecto_id'])
-        ->setDescriptionForEvent(fn (string $eventName) => "El registro {$this->nombre} ha sido {$eventName}");
+            ->logOnly(['id', 'tipo_presupuesto_id', 'administrador_id', 'proyecto_id'])
+            ->setDescriptionForEvent(fn(string $eventName) => "El registro {$this->nombre} ha sido {$eventName}");
     }
-    
+
     protected $fillable = [
         'id',
-        'tipo_presupuesto_id', 
-        'administrador_id', 
+        'tipo_presupuesto_id',
+        'administrador_id',
         'proyecto_id',
     ];
 
-    public function tipo_presupuesto()
+    public function tipopresupuesto()
     {
-        return $this->belongsTo(Tipo_presupuesto::class, 'tipo_presupuesto_id',);
+        return $this->belongsTo(TipoPresupuesto::class, 'tipo_presupuesto_id',);
     }
 
     public function empleado()
