@@ -27,10 +27,9 @@ class Actividad extends Model
     
     protected $fillable = [
         'id',
-        'proyecto_id', 
-        'responsable_id', 
-        'descripcion', 
-        'fecha_ejecucion'
+        'empleado_proyecto_id',
+        'descripcion',
+        'fecha_ejecucion',
     ];
 
     public function proyecto()

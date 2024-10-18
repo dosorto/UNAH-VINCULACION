@@ -48,7 +48,7 @@ return new class extends Migration
             $table->foreignId('municipio_id')->constrained('municipio');
             $table->foreignId('departamento_id')->constrained('departamento');
             $table->foreignId('ciudad_id')->constrained('ciudad');
-            $table->foreignId('aldea_id')->constrained('aldea');
+            $table->string('aldea');
             $table->string('resumen');
             $table->string('objetivo_general');
             $table->string('objetivos_especificos');
@@ -60,6 +60,13 @@ return new class extends Migration
             $table->enum('modalidad_ejecucion', ['Distancia', 'Presencial', 'Bimodal']);
             $table->string('resultados_esperados');
             $table->string('indicadores_medicion_resultados');
+            $table->date('fecha_registro');
+            $table->foreignId('responsable_revision_id')->constrained('empleado');
+            $table->date('fecha_aprobacion');
+            $table->string('numero_libro');
+            $table->string('numero_tomo');
+            $table->string('numero_folio');
+            $table->string('numero_dictamen');
             $table->softDeletes();
             $table->timestamps();
         });
@@ -79,16 +86,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // tabla actividades
-        Schema::create('actividades', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('proyecto_id')->constrained('proyecto');
-            $table->foreignId('responsable_id')->constrained('empleado');
-            $table->string('descripcion');
-            $table->date('fecha_ejecucion');
-            $table->softDeletes();
-            $table->timestamps();
-        });
+       
 
         // tabla empleado_proyecto
         Schema::create('empleado_proyecto', function (Blueprint $table) {
@@ -99,29 +97,43 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // tabla de realcion con entidad_academica
-        Schema::create('proyecto_entidad_academica', function (Blueprint $table) {
+         // tabla actividades
+         Schema::create('actividades', function (Blueprint $table) {
             $table->id();
+            $table->string('descripcion');
+            $table->date('fecha_ejecucion');
+
             $table->foreignId('proyecto_id')->constrained('proyecto');
-            $table->foreignId('entidad_academica_id')->constrained('entidad_academica');
+            $table->foreignId('empleado_proyecto_id')->constrained('empleado_proyecto');
             $table->softDeletes();
             $table->timestamps();
         });
 
+
         // tabla de realcion con entidad_facultad_centro
-        Schema::create('proyecto_facultad_centro', function (Blueprint $table) {
+        Schema::create('proyecto_centro_facultad', function (Blueprint $table) {
             $table->id();
             $table->foreignId('proyecto_id')->constrained('proyecto');
-            $table->foreignId('facultad_centro_id')->constrained('facultad_centro');
+            $table->foreignId('centro_facultad_id')->constrained('centro_facultad');
             $table->softDeletes();
             $table->timestamps();
         });
 
         // tabla de realcion con entidad_carrera
-        Schema::create('proyecto_carrera', function (Blueprint $table) {
+        Schema::create('proyecto_depto_ac', function (Blueprint $table) {
             $table->id();
             $table->foreignId('proyecto_id')->constrained('proyecto');
-            $table->foreignId('carrera_id')->constrained('carrera');
+            $table->foreignId('departamento_academico_id')->constrained('departamento_academico');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+        // tabla de superavit_proyecto
+        Schema::create('superavit_proyecto', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->string('inversion');
+            $table->string('monto');
             $table->softDeletes();
             $table->timestamps();
         });
