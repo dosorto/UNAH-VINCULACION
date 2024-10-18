@@ -27,6 +27,8 @@ use App\Models\Demografia\Departamento;
 use App\Models\Demografia\Ciudad;
 use App\Models\Demografia\Aldea;
 
+use App\Models\Presupuesto\Presupuesto;
+
 
 
 class Proyecto extends Model
@@ -219,6 +221,12 @@ class Proyecto extends Model
     public function entidad_contraparte()
     {
         return $this->hasMany(EntidadContraparte::class, 'proyecto_id');
+    }
+
+    // relacion uno a uno con el modelo presupuesto
+    public function presupuesto()
+    {
+        return $this->hasOne(Presupuesto::class, 'proyecto_id');
     }
 
 

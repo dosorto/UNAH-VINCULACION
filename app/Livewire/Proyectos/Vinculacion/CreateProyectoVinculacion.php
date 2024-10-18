@@ -33,6 +33,7 @@ use App\Models\Demografia\Ciudad;
 use App\Models\Demografia\Aldea;
 use Filament\Forms\Get;
 
+use function PHPSTORM_META\map;
 
 class CreateProyectoVinculacion extends Component implements HasForms
 {
@@ -259,7 +260,39 @@ class CreateProyectoVinculacion extends Component implements HasForms
 
                             TextInput::make('aldea')
                                 ->visible(fn(Get $get): bool
-                                => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial')
+                                => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial'),
+
+                            TextInput::make('resultados_esperados')
+                                ->label('Resultados esperados'),
+                            TextInput::make('indicadores_medicion_resultados')
+                                ->label('Indicadores de medición de resultados'),
+                                Fieldset::make('Presupuesto')
+                                ->schema([
+                                    TextInput::make('presupuesto.aporte_estudiantes')
+                                        ->label('Aporte de estudiantes')
+                                        ->columnSpan(1),
+                                    TextInput::make('presupuesto.aporte_profesores')
+                                        ->label('Aporte de profesores')
+                                        ->columnSpan(1),
+                                    TextInput::make('presupuesto.aporte_academico_unah')
+                                        ->label('Aporte académico UNAH')
+                                        ->columnSpan(1),
+                                    TextInput::make('presupuesto.aporte_transporte_unah')
+                                        ->label('Aporte de transporte UNAH')
+                                        ->columnSpan(1),
+                                    TextInput::make('presupuesto.aporte_contraparte')
+                                        ->label('Aporte de contraparte')
+                                        ->columnSpan(1),
+                                    TextInput::make('presupuesto.aporte_comunidad')
+                                        ->label('Aporte de comunidad')
+                                        ->columnSpan(1),
+
+                                        TextInput::make('total_unah')
+                                        ->label('Total UNAH')
+                                        ->disabled()
+                                        ->columnSpan(1),
+                                ])
+                                ->columns(2 ),
 
                         ])
                         ->columns(2),
