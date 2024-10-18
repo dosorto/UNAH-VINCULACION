@@ -14,7 +14,7 @@ class FacultadCentro extends Model
     use SoftDeletes;
     use LogsActivity;
 
-    protected static $logAttributes = ['id', 'nombre'];
+    protected static $logAttributes = ['id', 'nombre','es_facultad','siglas','campus_id'];
 
     protected static $logName = 'FacultadCentro';
 
@@ -30,8 +30,15 @@ class FacultadCentro extends Model
         'nombre',
     ];
 
-    // Relacion muchos a muchos con el modelo 
+    // relacion muchos a muchos con la carreras
 
-    protected $table = 'facultad_centro';
+    public function carreras()
+    {
+        return $this->belongsToMany(Carrera::class, 'facultad_centro_carrera', 'facultad_centro_id', 'carrera_id');
+    }
+
+    
+
+    protected $table = 'centro_facultad';
 
 }
