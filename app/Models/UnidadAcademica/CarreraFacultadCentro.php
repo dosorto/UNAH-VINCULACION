@@ -38,7 +38,7 @@ class CarreraFacultadCentro extends Model
 
     public function facultadcentro()
     {
-        return $this->belongsTo(FacultadCentro::class, 'facultad_centro_id',);
+        return $this->belongsTo(FacultadCentro::class, 'facultad_centro_id');
     }
 
     protected $table = 'carrera_facultad_centro';
