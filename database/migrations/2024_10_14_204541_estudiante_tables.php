@@ -16,9 +16,9 @@ return new class extends Migration
         Schema::create('estudiante', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->nullable();
-            $table->string('nombre');
-            $table->string('apellido');
-            $table->string('cuenta');
+            $table->string('nombre')->nullable();
+            $table->string('apellido')->nullable();
+            $table->string('cuenta')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });
