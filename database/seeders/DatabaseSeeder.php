@@ -10,6 +10,11 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Database\Seeders\Demografia\PaisesSeeder;
 use Database\Seeders\Demografia\DepartamentoSeeder; 
+use Database\Seeders\UnidadAcademica\UnidadAcademicaSeeder;
+use Database\Seeders\Proyecto\ProyectoSeeder;
+use Database\Seeders\Personal\PersonalSeeder;
+
+
 class DatabaseSeeder extends Seeder
 {
     /**
@@ -20,6 +25,9 @@ class DatabaseSeeder extends Seeder
 
         $this->call(PaisesSeeder::class);
         $this->call(DepartamentoSeeder::class);
+        $this->call(UnidadAcademicaSeeder::class);
+        $this->call(ProyectoSeeder::class);
+        $this->call(PersonalSeeder::class);
 
         // User::factory(10)->create();
 
