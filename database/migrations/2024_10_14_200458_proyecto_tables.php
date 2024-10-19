@@ -11,6 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
+
         // tablas catalogo del modulo de proyecto
         // tabla ods
         Schema::create('ods', function (Blueprint $table) {
@@ -42,13 +43,11 @@ return new class extends Migration
             $table->id();
             $table->string('nombre_proyecto');
             $table->foreignId('coordinador_id')->constrained('empleado');
-            $table->foreignId('ods_id')->constrained('ods');
             $table->foreignId('modalidad_id')->constrained('modalidad');
-            $table->foreignId('categoria_id')->constrained('categorias');
-            $table->foreignId('municipio_id')->constrained('municipio');
-            $table->foreignId('departamento_id')->constrained('departamento');
-            $table->foreignId('ciudad_id')->constrained('ciudad');
-            $table->string('aldea');
+            $table->foreignId('municipio_id')->nullable()->constrained('municipio');
+            $table->foreignId('departamento_id')->nullable()->constrained('departamento');
+            $table->foreignId('ciudad_id')->nullable()->constrained('ciudad');
+            $table->string('aldea')->nullable();
             $table->string('resumen');
             $table->string('objetivo_general');
             $table->string('objetivos_especificos');
@@ -61,12 +60,13 @@ return new class extends Migration
             $table->string('resultados_esperados');
             $table->string('indicadores_medicion_resultados');
             $table->date('fecha_registro');
-            $table->foreignId('responsable_revision_id')->constrained('empleado');
-            $table->date('fecha_aprobacion');
-            $table->string('numero_libro');
-            $table->string('numero_tomo');
-            $table->string('numero_folio');
-            $table->string('numero_dictamen');
+
+            $table->foreignId('responsable_revision_id')->nullable()->constrained('empleado');
+            $table->date('fecha_aprobacion')->nullable();
+            $table->string('numero_libro')->nullable();
+            $table->string('numero_tomo')->nullable();
+            $table->string('numero_folio')->nullable();
+            $table->string('numero_dictamen')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });
@@ -102,8 +102,6 @@ return new class extends Migration
             $table->id();
             $table->string('descripcion');
             $table->date('fecha_ejecucion');
-
-            $table->foreignId('proyecto_id')->constrained('proyecto');
             $table->foreignId('empleado_proyecto_id')->constrained('empleado_proyecto');
             $table->softDeletes();
             $table->timestamps();
@@ -134,6 +132,24 @@ return new class extends Migration
             $table->foreignId('proyecto_id')->constrained('proyecto');
             $table->string('inversion');
             $table->string('monto');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+        // tabla de relacion de muchos a muchos con categoria
+        Schema::create('proyecto_categoria', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->foreignId('categoria_id')->constrained('categorias');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+        // tabla de relacion de muchos a muchos con ods
+        Schema::create('proyecto_ods', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->foreignId('ods_id')->constrained('ods');
             $table->softDeletes();
             $table->timestamps();
         });

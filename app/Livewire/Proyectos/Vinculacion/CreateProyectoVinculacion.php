@@ -33,7 +33,15 @@ use App\Models\Demografia\Ciudad;
 use App\Models\Demografia\Aldea;
 use Filament\Forms\Get;
 
-use function PHPSTORM_META\map;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
+
+use App\Models\User;
+use App\Models\Personal\Empleado;
+use App\Models\Estudiante\Estudiante;
+use App\Models\Proyecto\Modalidad;
+
+use Filament\Notifications\Notification;
 
 class CreateProyectoVinculacion extends Component implements HasForms
 {
@@ -55,53 +63,91 @@ class CreateProyectoVinculacion extends Component implements HasForms
                         ->description('Información general del proyecto')
                         ->schema([
                             Forms\Components\TextInput::make('nombre_proyecto')
-                                //->required
+                                ->required()
                                 ->columnSpanFull()
                                 ->maxLength(255),
                             Select::make('facultades_centros')
                                 ->label('Facultades o Centros')
                                 ->searchable()
                                 ->multiple()
+                                ->live()
                                 ->relationship(name: 'facultades_centros', titleAttribute: 'nombre')
-                                ->preload(),
-                            //->required,
+                                ->preload()
+                                ->required(),
                             Select::make('departamentos_academicos')
                                 ->label('Departamentos Académicos')
                                 ->searchable()
                                 ->multiple()
-                                ->relationship(name: 'departamentos_academicos', titleAttribute: 'nombre')
-                                ->preload(),
-                            //->required,
-                            Select::make('modalidad')
+                                ->relationship(
+                                    name: 'departamentos_academicos',
+                                    titleAttribute: 'nombre',
+                                    modifyQueryUsing: fn($query, Get $get) => $query->whereIn('centro_facultad_id', $get('facultades_centros'))
+                                )
+                                ->preload()
+                                ->required(),
+                            Select::make('modalidad_id')
                                 ->label('Modalidad')
+                                ->required()
                                 ->searchable()
                                 ->relationship(name: 'modalidad', titleAttribute: 'nombre')
                                 ->preload(),
                             //->required,
-                            Select::make('coordinador')
+                            Select::make('coordinador_id')
                                 ->label('Coordinador')
+                                ->required()
                                 ->searchable()
-                                ->relationship(name: 'coordinador', titleAttribute: 'nombre_completo')
-                                ->preload(),
+                                // ->relationship(name: 'coordinador', titleAttribute: 'user.nombre_completo')
+                                ->getSearchResultsUsing(fn(string $search): array =>
+                                Empleado::join('users', 'empleado.user_id', '=', 'users.id')
+                                    ->where('users.email', 'like', "%{$search}%")
+                                    ->limit(50)
+                                    ->pluck('users.email', 'empleado.id')
+                                    ->toArray())
+                                ->createOptionForm([
+                                    Forms\Components\TextInput::make('email')
+                                        ->label('Correo electrónico Académico del coordinador')
+                                        ->email()
+                                        ->required(),
+                                ])
+                                ->createOptionUsing(function (array $data) {
+                                    $user = User::create(['email' => $data['email']]);
+                                    $user->empleado()->create(['user_id' => $user->id]);
+                                }),
                             //->required,
 
                             Repeater::make('empleado_proyecto')
                                 ->label('Integrantes ')
                                 ->schema([
                                     Select::make('empleado_id')
-                                        ->label('Empleado')
+                                        ->label('Integrante')
                                         ->searchable()
-                                        ->relationship(name: 'empleado', titleAttribute: 'nombre_completo')
-                                        ->preload(),
+                                        ->getSearchResultsUsing(fn(string $search): array =>
+                                        Empleado::join('users', 'empleado.user_id', '=', 'users.id')
+                                            ->where('users.email', 'like', "%{$search}%")
+                                            ->limit(50)
+                                            ->pluck('users.email', 'empleado.id')
+                                            ->toArray())
+                                        ->createOptionForm([
+                                            Forms\Components\TextInput::make('email')
+                                                ->label('Correo electrónico Académico del coordinador')
+                                                ->email()
+                                                ->required(),
+                                        ])
+                                        ->required()
+                                        ->createOptionUsing(function (array $data) {
+                                            $user = User::create(['email' => $data['email']]);
+                                            $user->empleado()->create(['user_id' => $user->id]);
+                                        }),
                                     //->required,
                                     Repeater::make('actividades')
                                         ->relationship()
                                         ->schema([
                                             Forms\Components\TextInput::make('descripcion')
+                                                ->required()
                                                 //->required
                                                 ->columnSpanFull(),
                                             Datepicker::make('fecha_ejecucion')
-                                                //->required
+                                                ->required()
                                                 ->columnSpan(1)
                                         ])
                                         ->label('Actividades')
@@ -120,11 +166,30 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->schema([
                                     Select::make('estudiante_id')
                                         ->label('Estudiante')
+                                        ->required()
                                         ->searchable()
-                                        ->relationship(name: 'estudiante', titleAttribute: 'nombre')
-                                        ->preload(),
+                                        ->searchable()
+                                        ->getSearchResultsUsing(fn(string $search): array =>
+                                        Estudiante::join('users', 'estudiante.user_id', '=', 'users.id')
+                                            ->where('users.email', 'like', "%{$search}%")
+                                            ->limit(50)
+                                            ->pluck('users.email', 'estudiante.id')
+                                            ->toArray())
+                                        ->createOptionForm([
+                                            Forms\Components\TextInput::make('email')
+                                                ->label('Correo electrónico Académico del Estudiante')
+                                                ->email()
+                                                ->required(),
+                                        ])
+                                        ->required()
+                                        ->createOptionUsing(function (array $data) {
+                                            $user = User::create(['email' => $data['email']]);
+                                            $user->estudiante()->create(['user_id' => $user->id]);
+                                        }),
                                     //->required,
-                                    Select::make('tipo_participacion')
+                                    Select::make('tipo_participacion_estudiante')
+                                        ->label('Tipo de participación')
+                                        ->required()
                                         ->label('Tipo de participación')
                                         ->options([
                                             'voluntario' => 'Voluntario',
@@ -151,10 +216,10 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                     //->required
 
 
-                                    Toggle::make('nacional')
+                                    Toggle::make('es_internacional')
                                         ->inline(false)
-                                        ->label('Nacional')
-                                        ->default(true)
+                                        ->label('Internacional')
+                                        ->default(false)
                                         ->columnSpan(1),
                                     Forms\Components\TextInput::make('nombre_contacto'),
                                     //->required,
@@ -164,7 +229,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                         ->label('Aporte')
                                         ->columnSpan(1),
                                     //->required,
-                                    Forms\Components\TextInput::make('intrumento_formalizacion')
+                                    Forms\Components\TextInput::make('instrumento_formalizacion')
                                         ->label('Instrumento de formalización')
                                         ->columnSpan(1),
 
@@ -226,11 +291,8 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                     'Presencial' => 'Presencial',
                                     'Bimodal' => 'Bimodal',
                                 ])
-                                ->in(
-                                    'Distancia',
-                                    'Presencial',
-                                    'Bimodal'
-                                )
+                                ->in(['Distancia', 'Presencial', 'Bimodal'])
+                                ->required()
                                 ->live()
                                 ->columnSpan(1),
 
@@ -240,6 +302,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->visible(fn(Get $get): bool
                                 => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial')
                                 ->relationship(name: 'departamento', titleAttribute: 'nombre')
+                                ->live()
                                 ->preload(),
 
                             Select::make('municipio_id')
@@ -247,7 +310,11 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->searchable()
                                 ->visible(fn(Get $get): bool
                                 => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial')
-                                ->relationship(name: 'municipio', titleAttribute: 'nombre')
+                                ->relationship(
+                                    name: 'municipio',
+                                    titleAttribute: 'nombre',
+                                    modifyQueryUsing: fn($query, Get $get) => $query->where('departamento_id', $get('departamento_id'))
+                                )
                                 ->preload(),
 
                             Select::make('ciudad_id')
@@ -256,6 +323,30 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->visible(fn(Get $get): bool
                                 => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial')
                                 ->relationship(name: 'ciudad', titleAttribute: 'nombre')
+                                ->createOptionForm([
+                                    Select::make('departamento_id')
+                                        ->label('Departamento')
+                                        ->searchable()
+                                        ->options(
+                                            Departamento::pluck('nombre', 'id')
+
+                                        )
+                                        ->live()
+                                        ->preload(),
+                                    Select::make('municipio_id')
+                                        ->label('Municipio')
+                                        ->searchable()
+                                        ->relationship(
+                                            name: 'municipio',
+                                            titleAttribute: 'nombre',
+                                            modifyQueryUsing: fn($query, Get $get) => $query->where('departamento_id', $get('departamento_id'))
+                                        )
+                                        ->preload(),
+                                    Forms\Components\TextInput::make('nombre')
+                                        ->required(),
+                                    Forms\Components\TextInput::make('codigo_postal')
+                                        ->required()
+                                ])
                                 ->preload(),
 
                             TextInput::make('aldea')
@@ -266,7 +357,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->label('Resultados esperados'),
                             TextInput::make('indicadores_medicion_resultados')
                                 ->label('Indicadores de medición de resultados'),
-                                Fieldset::make('Presupuesto')
+                            Fieldset::make('Presupuesto')
                                 ->schema([
                                     TextInput::make('presupuesto.aporte_estudiantes')
                                         ->label('Aporte de estudiantes')
@@ -287,21 +378,59 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                         ->label('Aporte de comunidad')
                                         ->columnSpan(1),
 
-                                        TextInput::make('total_unah')
+                                    TextInput::make('total_unah')
                                         ->label('Total UNAH')
                                         ->disabled()
                                         ->columnSpan(1),
+
+                                    Repeater::make('superavit')
+                                        ->schema([
+                                            Forms\Components\TextInput::make('inversion')
+                                                ->label('Inversión')
+                                                ->numeric()
+                                                ->columnSpan(1),
+                                            //->required
+                                            Forms\Components\TextInput::make('monto'),
+                                            //->required
+                                        ])
+                                        ->label('Superávit')
+                                        ->columnSpanFull()
+                                        ->defaultItems(0)
+                                        ->relationship()
                                 ])
-                                ->columns(2 ),
+                                ->columns(2),
 
                         ])
                         ->columns(2),
                     Wizard\Step::make('IV.')
                         ->description('DATOS DEL PROYECTO')
-                        ->schema([]),
+                        ->schema([
+
+                            Select::make('categoria')
+                                ->label('Categoría')
+                                ->multiple()
+                                ->searchable()
+                                ->relationship(name: 'categoria', titleAttribute: 'nombre')
+                                ->preload(),
+
+                            Select::make('ods')
+                                ->label('ODS')
+                                ->multiple()
+                                ->searchable()
+                                ->relationship(name: 'ods', titleAttribute: 'nombre')
+                                ->preload(),
+                        ]),
 
 
-                ]),
+                ])->submitAction(new HtmlString(Blade::render(<<<BLADE
+                <x-filament::button
+                    type="submit"
+                    size="sm"
+                    color="info"
+                >
+                 Guardar
+                </x-filament::button>
+            BLADE))),
 
 
             ])
@@ -312,10 +441,17 @@ class CreateProyectoVinculacion extends Component implements HasForms
     public function create(): void
     {
         $data = $this->form->getState();
-
+        $data['fecha_registro'] = now();
         $record = Proyecto::create($data);
-
         $this->form->model($record)->saveRelationships();
+
+        Notification::make()
+        ->title('¡Éxito!')
+        ->body('Pais creado correctamente.')
+        ->success()
+        ->send();
+    $this->js('location.reload();');
+    
     }
 
     public function render(): View
