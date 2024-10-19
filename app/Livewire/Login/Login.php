@@ -33,8 +33,8 @@ class Login extends Component implements HasForms
                     ->label('Correo institucional')
                     ->required(),
                 TextInput::make('Contraseña')
-                ->revealable()
-                ->password()
+                    ->revealable()
+                    ->password()
                     ->required()
             ])
             ->statePath('data')
@@ -50,17 +50,14 @@ class Login extends Component implements HasForms
         }
 
         Notification::make()
-        ->title('Correo o contraseña incorrectas!')
-        ->danger()
-        ->send();
-        
+            ->title('Correo o contraseña incorrectas!')
+            ->danger()
+            ->send();
     }
 
-    public function render(): View
+    public function render()
     {
-        if (Auth::check()) {
-            Auth::logout(); 
-        }
+     
         return view('livewire.login.login')->layout('components.layouts.login');
     }
 }

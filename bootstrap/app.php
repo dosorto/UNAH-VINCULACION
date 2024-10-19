@@ -11,6 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->redirectGuestsTo('/login');
+
+        // redirect users to the 'listarPais' route after login
+        $middleware->redirectUsersTo('listarPais');
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {
