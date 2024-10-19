@@ -13,46 +13,41 @@ return new class extends Migration
     {
         // tablas del modulo de unidad academica
 
-        Schema::create('facultad_centro', function (Blueprint $table) {
+
+        // tablas de campus
+        Schema::create('campus', function (Blueprint $table) {
+            $table->id();
+            $table->string('nombre_campus');
+            $table->string('direccion');
+            $table->string('telefono');
+            $table->string('url');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+        // tablas de centro / facultad
+        Schema::create('centro_facultad', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
+            $table->boolean('es_facultad');
+            $table->string('siglas');
+            $table->foreignId('campus_id')->constrained('campus');
             $table->softDeletes();
             $table->timestamps();
         });
 
-        Schema::create('carrera', function (Blueprint $table) {
+        // tablas de departamento
+        Schema::create('departamento_academico', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->foreignId('facultad_centro_id')->constrained('facultad_centro');
+            $table->foreignId('centro_facultad_id')->constrained('centro_facultad');
             $table->softDeletes();
             $table->timestamps();
         });
 
-        Schema::create('carrera_facultad_centro', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('carrera_id')->constrained('carrera');
-            $table->foreignId('facultad_centro_id')->constrained('facultad_centro');
-            $table->softDeletes();
-            $table->timestamps();
-        });
 
-        // tabla tipo_entidad_academica
-        Schema::create('tipo_entidad_academica', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre')->unique();
-            $table->softDeletes();
-            $table->timestamps();
-        });
+        
 
-        // relacion polimorfica entre el tipo de entidad academica y los posibles carreras o facultad_centro
-        Schema::create('entidad_academica', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('tipo_entidad_academica_id')->constrained('tipo_entidad_academica');
-            // debe ser capaz de relacionarse con una carrera o facultad_centro
-            $table->nullableMorphs('entidad_academica', 'entidad_academica_index');
-            $table->softDeletes();
-            $table->timestamps();
-        });
 
     }
 
