@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
+use App\Models\User;
 
 class Empleado extends Model
 {
@@ -15,7 +16,15 @@ class Empleado extends Model
     use SoftDeletes;
     use LogsActivity;
 
-    protected static $logAttributes = ['nombre', 'fecha_contratacion', 'salario', 'supervisor', 'jornada'];
+    protected static $logAttributes = [
+        'nombre_completo',
+        'numero_empleado',
+        'celular',
+        'categoria',
+        'user_id',
+        'campus_id',
+        'departamento_academico_id'
+    ];
 
     protected static $logName = 'Empleado';
 
@@ -23,18 +32,24 @@ class Empleado extends Model
     {
         return LogOptions::defaults()
             ->logOnly(['nombre', 'fecha_contratacion', 'salario', 'supervisor', 'jornada'])
-            ->setDescriptionForEvent(fn (string $eventName) => "El registro {$this->nombre} ha sido {$eventName}");
+            ->setDescriptionForEvent(fn(string $eventName) => "El registro {$this->nombre} ha sido {$eventName}");
     }
 
     protected $fillable = [
-        'nombre',
-        'fecha_contratacion',
-        'salario',
-        'supervisor',
-        'jornada',
+        'nombre_completo',
+        'numero_empleado',
+        'celular',
+        'categoria',
+        'user_id',
+        'campus_id',
+        'departamento_academico_id'
     ];
 
-    protected $table = 'empleados';
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    protected $table = 'empleado';
 }
-
-

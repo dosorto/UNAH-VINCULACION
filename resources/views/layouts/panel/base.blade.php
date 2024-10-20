@@ -9,6 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title>{{ config('app.name') }}</title>
+    <link rel="icon" href="{{ asset('images/LOGO_NX.png') }}" type="image/png">
 
     <style>
         [x-cloak] {
@@ -29,16 +30,12 @@
     <div class="sm:flex w-full flex-col sm:flex-row">
         <x-panel.navbar.navbar />
         <!-- Barra superior en dispositivos móviles -->
-        <div class="flex justify-between items-center p-4 bg-white  sm:hidden sticky top-0 bg-white dark:bg-gray-950">
-            <div class="flex items-center ">
-                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <div class="w-4 h-4 border-2 border-white rounded-full"></div>
-                </div>
-                <span
-                    class="ml-2 text-xl font-semibold text-gray-800
-                dark:text-gray-200   
-                ">NEXO</span>
+        <div class="flex justify-between items-center p-4 bg-white  sm:hidden sticky top-0 bg-white dark:bg-gray-950 z-41">
+        <div class="flex items-center ">
+            <div class="w-36 h-8 rounded-lg flex items-center justify-center">
+                <img src="{{ asset('images/LOGO.png') }}" alt="Logo" class="mx-auto" style="width: auto; height: auto;">
             </div>
+        </div>
             <button id="menu-button" class="focus:outline-none">
                 <svg class="w-6 h-6
                     dark:text-gray-200
