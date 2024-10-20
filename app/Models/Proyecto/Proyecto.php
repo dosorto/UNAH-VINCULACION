@@ -14,7 +14,6 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 use App\Models\Personal\Empleado;
 
-use App\Models\OD\Od;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 
 use App\Models\Proyecto\Modalidad;
@@ -28,6 +27,9 @@ use App\Models\Demografia\Ciudad;
 use App\Models\Demografia\Aldea;
 
 use App\Models\Presupuesto\Presupuesto;
+use App\Models\Proyecto\Superavit;
+use App\Models\Proyecto\Categoria;
+use App\Models\Proyecto\Od;
 
 
 
@@ -37,74 +39,12 @@ class Proyecto extends Model
     use SoftDeletes;
     use LogsActivity;
 
+
+
     protected static $logAttributes = [
-        'id',
-        'nombre',
-        'carrera_facultad_centro_id',
-        'entidad_academica_id',
+        'nombre_proyecto',
         'coordinador_id',
-        'od_id',
         'modalidad_id',
-        'categoria_id',
-        'municipio_id',
-        'departamento_id',
-        'ciudad_id',
-        'aldea_id',
-        'resumen',
-        'objetivo_general',
-        'objetivos_especificos',
-        'fecha_inicio',
-        'fecha_finalizacion',
-        'evaluacion_intermedia',
-        'evaluacion_final',
-        'poblacion_participante',
-        'modalidad_ejecucion',
-        'resultados_esperados',
-        'indicadores_medicion_resultados'
-    ];
-
-    protected static $logName = 'Proyecto';
-
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logOnly([
-                'id',
-                'nombre',
-                'carrera_facultad_centro_id',
-                'entidad_academica_id',
-                'coordinador_id',
-                'od_id',
-                'modalidad_id',
-                'categoria_id',
-                'municipio_id',
-                'departamento_id',
-                'ciudad_id',
-                'aldea_id',
-                'resumen',
-                'objetivo_general',
-                'objetivos_especificos',
-                'fecha_inicio',
-                'fecha_finalizacion',
-                'evaluacion_intermedia',
-                'evaluacion_final',
-                'poblacion_participante',
-                'modalidad_ejecucion',
-                'resultados_esperados',
-                'indicadores_medicion_resultados'
-            ])
-            ->setDescriptionForEvent(fn(string $eventName) => "El registro {$this->nombre} ha sido {$eventName}");
-    }
-
-    protected $fillable = [
-        'id',
-        'nombre',
-        'carrera_facultad_centro_id',
-        'entidad_academica_id',
-        'coordinador_id',
-        'od_id',
-        'modalidad_id',
-        'categoria_id',
         'municipio_id',
         'departamento_id',
         'ciudad_id',
@@ -120,6 +60,80 @@ class Proyecto extends Model
         'modalidad_ejecucion',
         'resultados_esperados',
         'indicadores_medicion_resultados',
+        'fecha_registro',
+        'responsable_revision_id',
+        'fecha_aprobacion',
+        'numero_libro',
+        'numero_tomo',
+        'numero_folio',
+        'numero_dictamen'
+    ];
+
+    protected static $logName = 'Proyecto';
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'nombre_proyecto',
+                'coordinador_id',
+                'modalidad_id',
+                'municipio_id',
+                'departamento_id',
+                'ciudad_id',
+                'aldea',
+                'resumen',
+                'objetivo_general',
+                'objetivos_especificos',
+                'fecha_inicio',
+                'fecha_finalizacion',
+                'evaluacion_intermedia',
+                'evaluacion_final',
+                'poblacion_participante',
+                'modalidad_ejecucion',
+                'resultados_esperados',
+                'indicadores_medicion_resultados',
+                'fecha_registro',
+                'responsable_revision_id',
+                'fecha_aprobacion',
+                'numero_libro',
+                'numero_tomo',
+                'numero_folio',
+                'numero_dictamen'
+            ])
+            ->setDescriptionForEvent(fn(string $eventName) => "El registro {$this->nombre} ha sido {$eventName}");
+    }
+
+
+
+
+    protected $fillable = [
+        'nombre_proyecto',
+        'coordinador_id',
+        'modalidad_id',
+        'municipio_id',
+        'departamento_id',
+        'ciudad_id',
+        'aldea',
+        'resumen',
+        'objetivo_general',
+        'objetivos_especificos',
+        'fecha_inicio',
+        'fecha_finalizacion',
+        'evaluacion_intermedia',
+        'evaluacion_final',
+        'poblacion_participante',
+        'modalidad_ejecucion',
+        'resultados_esperados',
+        'indicadores_medicion_resultados',
+        'fecha_registro',
+        'responsable_revision_id',
+        'fecha_aprobacion',
+        'numero_libro',
+        'numero_tomo',
+        'numero_folio',
+        'numero_dictamen'
+
     ];
 
     public function carrerafacultadcentro()
@@ -147,11 +161,6 @@ class Proyecto extends Model
     public function modalidad()
     {
         return $this->belongsTo(Modalidad::class, 'modalidad_id',);
-    }
-
-    public function categoria()
-    {
-        return $this->belongsTo(Categoria::class, 'categoria_id',);
     }
 
     public function municipio()
@@ -229,7 +238,24 @@ class Proyecto extends Model
         return $this->hasOne(Presupuesto::class, 'proyecto_id');
     }
 
+    // relacion uno a uno con el modelo superavit
+    public function superavit()
+    {
+        return $this->hasOne(Superavit::class, 'proyecto_id');
+    }
 
+    // relacion muchos a muchos con el modelo categoria
+    public function ods()
+    {
+        return $this->belongsToMany(Od::class, 'proyecto_ods', 'proyecto_id', 'ods_id');
+    }
+
+
+    // relacion muchos a muchos con el modelo categoria
+    public function categoria()
+    {
+        return $this->belongsToMany(Categoria::class, 'proyecto_categoria', 'proyecto_id', 'categoria_id');
+    }
 
 
 
