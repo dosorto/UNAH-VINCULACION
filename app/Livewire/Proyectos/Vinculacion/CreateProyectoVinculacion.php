@@ -447,7 +447,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
 
         Notification::make()
         ->title('¡Éxito!')
-        ->body('Pais creado correctamente.')
+        ->body('Proyecto creado correctamente')
         ->success()
         ->send();
     $this->js('location.reload();');

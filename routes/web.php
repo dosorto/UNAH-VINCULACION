@@ -23,6 +23,7 @@ use App\Livewire\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\MicrosoftController;
 
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
+use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
 
 
 
@@ -124,6 +125,9 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('crearProyectoVinculacion', CreateProyectoVinculacion::class)
             ->name('crearProyectoVinculacion');
+
+        Route::get('listarProyectosVinculacion', ListProyectosVinculacion::class)
+            ->name('listarProyectosVinculacion');
     });
 
 
