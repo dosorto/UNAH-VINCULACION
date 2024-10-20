@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('empleado', function (Blueprint $table) {
             $table->id(); // Identificador único del empleado
-            $table->string('nombre_completo'); // Nombre completo del empleado
-            $table->string('numero_empleado');
-            $table->string('celular');
-            $table->string('categoria'); // Categoría del empleado
+            $table->string('nombre_completo')->nullable(); // Nombre completo del empleado
+            $table->string('numero_empleado')->unique()->nullable(); // Número de empleado
+            $table->string('celular')->nullable(); // Número de celular
+            $table->string('categoria')->nullable(); // Categoría del empleado
             $table->unsignedBigInteger('user_id'); // Llave foránea para la tabla users
-            $table->integer('campus_id'); // Identificador del campus
-            $table->integer('departamento_academico_id'); // Identificador del departamento académico
+            $table->integer('campus_id')->nullable(); // Identificador del campus
+            $table->integer('departamento_academico_id')->nullable(); // Identificador del departamento académico
             $table->softDeletes(); // Soft delete
             $table->timestamps(); // Created at y updated at
         
