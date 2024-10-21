@@ -139,11 +139,13 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                 Action::make('Proyecto de Vinculación')
                     ->label('Ver')
                     ->modalContent(
-                        fn(Proyecto $proyecto) =>
-                        view('components.fichas.ficha-proyecto-vinculacion', ['proyecto' => $proyecto
-                        ])
+                        fn(Proyecto $proyecto): View =>
+                        view(
+                            'components.fichas.ficha-proyecto-vinculacion',
+                            ['proyecto' => $proyecto]
+                        )
                     )
-                    ->stickyModalHeader()
+                   // ->stickyModalHeader()
                     ->modalWidth(MaxWidth::SevenExtraLarge)
                     ->modalSubmitAction(false)
 
