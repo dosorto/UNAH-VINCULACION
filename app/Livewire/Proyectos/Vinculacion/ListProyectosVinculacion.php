@@ -22,6 +22,8 @@ use App\Models\UnidadAcademica\DepartamentoAcademico;
 
 use Filament\Tables\Filters\Filter;
 use Filament\Forms\Get;
+use Filament\Tables\Actions\Action;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Columns\Layout\Split;
 
 
@@ -134,7 +136,17 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
 
             ],  layout: FiltersLayout::AboveContent)
             ->actions([
-                //
+                Action::make('Proyecto de Vinculación')
+                    ->label('Ver')
+                    ->modalContent(
+                        fn(Proyecto $proyecto) =>
+                        view('components.fichas.ficha-proyecto-vinculacion', ['proyecto' => $proyecto
+                        ])
+                    )
+                    ->stickyModalHeader()
+                    ->modalWidth(MaxWidth::SevenExtraLarge)
+                    ->modalSubmitAction(false)
+
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
