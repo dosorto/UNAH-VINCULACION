@@ -136,16 +136,6 @@ class Proyecto extends Model
 
     ];
 
-    public function carrerafacultadcentro()
-    {
-        return $this->belongsTo(CarreraFacultadCentro::class, 'carrera_facultad_centro_id',);
-    }
-
-
-    public function entidadacademica()
-    {
-        return $this->belongsTo(EntidadAcademica::class, 'entidad_academica_id',);
-    }
 
 
     public function coordinador()
@@ -196,12 +186,7 @@ class Proyecto extends Model
         return $this->belongsToMany(FacultadCentro::class, 'proyecto_centro_facultad', 'proyecto_id', 'centro_facultad_id');
     }
 
-    // relacion muchos a muchos con el modelo empleado Entidad_academica
-    public function entidades_academicas()
-    {
-        return $this->belongsToMany(Entidad_academica::class, 'proyecto_entidad_academica', 'proyecto_id', 'entidad_academica_id');
-    }
-
+   
     // relacion muchos a muchos con el modelo departamento academico
     public function departamentos_academicos()
     {
@@ -225,6 +210,8 @@ class Proyecto extends Model
     {
         return $this->hasMany(EstudianteProyecto::class, 'proyecto_id');
     }
+
+
 
     // relacion uno a muchos con el modelo entidad contraparte
     public function entidad_contraparte()
@@ -255,6 +242,12 @@ class Proyecto extends Model
     public function categoria()
     {
         return $this->belongsToMany(Categoria::class, 'proyecto_categoria', 'proyecto_id', 'categoria_id');
+    }
+
+    // contar la cantidad de estudiantes que tiene el proyecto
+    public function cantidad_estudiantes()
+    {
+        return $this->estudiante_proyecto()->count();
     }
 
 
