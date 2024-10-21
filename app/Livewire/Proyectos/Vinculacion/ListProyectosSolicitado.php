@@ -60,51 +60,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                     ->sortable(),
 
             ])
-            ->filters([
-                SelectFilter::make('categoria_id')
-                    ->label('Categoría')
-                    ->multiple()
-                    ->relationship('categoria', 'nombre')
-                    ->preload(),
-                SelectFilter::make('modalidad_id')
-                    ->label('Modalidad')
-                    ->multiple()
-                    ->relationship('modalidad', 'nombre')
-                    ->preload(),
 
-                // filter name can be anything you want
-                Filter::make('created_at')
-                    ->form([
-                        Select::make('centro_facultad_id')
-                            ->label('Centro/Facultad')
-                            ->options(FacultadCentro::all()->pluck('nombre', 'id'))
-                            ->live()
-                            ->multiple(),
-                        Select::make('departamento_id')
-                            ->label('Departamento')
-                            ->visible(fn(Get $get) => !empty($get('centro_facultad_id')))
-                            ->options(fn(Get $get) => DepartamentoAcademico::query()
-                                ->whereIn('centro_facultad_id', $get('centro_facultad_id') ?: [])
-                                ->get()
-                                ->pluck('nombre', 'id'))
-                            ->live()
-                            ->multiple(),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        if (!empty($data['centro_facultad_id'])) {
-                            $query
-
-                                ->whereIn('centro_facultad_id', $data['centro_facultad_id']);
-                        }
-                        if (!empty($data['departamento_id'])) {
-                            $query
-                                ->whereIn('departamento_academico_id', $data['departamento_id']);
-                        }
-                        return $query;
-                    })
-
-
-            ],  layout: FiltersLayout::AboveContent)
             ->actions([
                 //Aca debe ir la opcion de ver en vista completa
             ])
@@ -117,7 +73,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.proyectos.vinculacion.list-proyectos-vinculacion')
+        return view('livewire.proyectos.vinculacion.list-proyectos-vinculacion-solicitados')
             ->layout('components.panel.modulos.modulo-proyectos');
     }
 }
