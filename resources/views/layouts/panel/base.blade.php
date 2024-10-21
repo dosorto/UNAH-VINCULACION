@@ -23,7 +23,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <script src="https://cdn.tailwindcss.com"></script>
-        
+        @stack('styles')
 </head>
 
 <body class="sm:bg-gray-100 flex bg-white dark:bg-gray-950">

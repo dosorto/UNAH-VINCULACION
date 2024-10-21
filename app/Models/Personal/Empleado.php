@@ -9,6 +9,7 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 use App\Models\User;
+use App\Models\UnidadAcademica\DepartamentoAcademico;
 
 class Empleado extends Model
 {
@@ -49,6 +50,11 @@ class Empleado extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function departamento_academico()
+    {
+        return $this->belongsTo(DepartamentoAcademico::class, 'departamento_academico_id');
     }
 
     protected $table = 'empleado';
