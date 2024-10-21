@@ -5155,6 +5155,22 @@
 											"top": 1545,
 											"width": 287.7822265625,
 											"height": 13
+										},
+										{
+											"_type": "ERDColumnView",
+											"_id": "AAAAAAGSrSApAHMIk88=",
+											"_parent": {
+												"$ref": "AAAAAAGSdGX03rv+xD4="
+											},
+											"model": {
+												"$ref": "AAAAAAGSrSAo7nMFIU4="
+											},
+											"fillColor": "#a3ffa3",
+											"font": "Arial;13;0",
+											"left": 5645,
+											"top": 1560,
+											"width": 287.7822265625,
+											"height": 13
 										}
 									],
 									"fillColor": "#a3ffa3",
@@ -5162,7 +5178,7 @@
 									"left": 5640,
 									"top": 1495,
 									"width": 297.7822265625,
-									"height": 68
+									"height": 83
 								}
 							],
 							"fillColor": "#a3ffa3",
@@ -11636,7 +11652,18 @@
 							"_parent": {
 								"$ref": "AAAAAAGSdGX03rv6PvI="
 							},
-							"name": "firma_sello_empleado_id",
+							"name": "firma_empleado_id",
+							"type": "INTEGER",
+							"length": "9",
+							"foreignKey": true
+						},
+						{
+							"_type": "ERDColumn",
+							"_id": "AAAAAAGSrSAo7nMFIU4=",
+							"_parent": {
+								"$ref": "AAAAAAGSdGX03rv6PvI="
+							},
+							"name": "sello_empleado_id",
 							"type": "INTEGER",
 							"length": "9",
 							"foreignKey": true
@@ -14057,7 +14084,7 @@
 							"_parent": {
 								"$ref": "AAAAAAGSrFC913KGqr4="
 							},
-							"name": "sello",
+							"name": "tipo",
 							"type": "BOOLEAN",
 							"length": "1"
 						},
