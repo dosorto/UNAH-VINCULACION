@@ -30,7 +30,7 @@
     <div class="sm:flex w-full flex-col sm:flex-row">
         <x-panel.navbar.navbar />
         <!-- Barra superior en dispositivos móviles -->
-        <div class="flex justify-between items-center p-4 bg-white  sm:hidden sticky top-0 bg-white dark:bg-gray-950 z-41">
+        <div class="flex justify-between items-center p-4 bg-white  sm:hidden sticky top-0 bg-white dark:bg-gray-950 z-50">
         <div class="flex items-center ">
             <div class="w-36 h-8 rounded-lg flex items-center justify-center">
                 <img src="{{ asset('images/LOGO.png') }}" alt="Logo" class="mx-auto" style="width: auto; height: auto;">

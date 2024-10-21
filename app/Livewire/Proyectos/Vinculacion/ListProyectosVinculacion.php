@@ -22,6 +22,8 @@ use App\Models\UnidadAcademica\DepartamentoAcademico;
 
 use Filament\Tables\Filters\Filter;
 use Filament\Forms\Get;
+use Filament\Tables\Columns\Layout\Split;
+
 
 class ListProyectosVinculacion extends Component implements HasForms, HasTable
 {
@@ -41,14 +43,23 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->distinct('proyecto.id')
             )
             ->columns([
+
+
+
                 Tables\Columns\TextColumn::make('nombre_proyecto')
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('departamentos_academicos.nombre')
+                    ->badge()
+                    ->color('info')
+                    ->separator(',')
+                    ->wrap()
                     ->label('Departamento')
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('facultades_centros.nombre')
+                    ->badge()
+                    ->wrap()
                     ->label('Centro/Facultad'),
 
                 Tables\Columns\TextColumn::make('modalidad.nombre')
@@ -75,6 +86,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
             ])
             ->filters([
                 SelectFilter::make('categoria_id')
