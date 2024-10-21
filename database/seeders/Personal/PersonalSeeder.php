@@ -8,6 +8,8 @@ use App\Models\User;
 use App\Models\Personal\Empleado;
 use App\Models\Estudiante\Estudiante;
 
+use App\Models\Personal\CategoriaEmpleado;
+
 
 class PersonalSeeder extends Seeder
 {
@@ -16,10 +18,28 @@ class PersonalSeeder extends Seeder
      */
     public function run(): void
     {
-        //
-       
+        // crear los seeders de las categorias de empleados
+        CategoriaEmpleado::create([
+            'nombre' => 'Docente',
+            'descripcion' => 'Docente de la universidad'
+        ]);
 
+        CategoriaEmpleado::create([
+            'nombre' => 'Administrativo',
+            'descripcion' => 'Administrativo de la universidad'
+        ]);
 
+        CategoriaEmpleado::create([
+            'nombre' => 'Obrero',
+            'descripcion' => 'Obrero de la universidad'
+        ]);
+
+        CategoriaEmpleado::create([
+            'nombre' => 'Otro',
+            'descripcion' => 'Otro tipo de empleado'
+        ]);
+
+        // Datos de empleados
         $userDorian = User::create([
             'name' => 'Dorian',
             'email' => 'dorianadolfo@unah.edu.hn',
@@ -54,40 +74,40 @@ class PersonalSeeder extends Seeder
             'nombre_completo' => 'JESSICA NOHELY AVILA CRUZ',
             'numero_empleado' => '12310',
             'celular' => '99999999',
-            'categoria' => 'Docente',
             'user_id' => $userJessica->id,
-            'campus_id' => 1,
-            'departamento_academico_id' => 1
+            'centro_facultad_id' => 1,
+            'departamento_academico_id' => 1,
+            'categoria_id' => 1
         ]);
 
         Empleado::create([
             'nombre_completo' => 'OSCAR OMAR PINEDA',
             'numero_empleado' => '12311',
             'celular' => '99999999',
-            'categoria' => 'Docente',
             'user_id' => $userOscar->id,
-            'campus_id' => 1,
-            'departamento_academico_id' => 1
+            'centro_facultad_id' => 1,
+            'departamento_academico_id' => 1,
+            'categoria_id' => 1
         ]);
 
         Empleado::create([
             'nombre_completo' => 'WILSON OCTAVIO VILLANUEVA CASTILLO',
             'numero_empleado' => '12316',
             'celular' => '99999999',
-            'categoria' => 'Docente',
             'user_id' => $userWilson->id,
-            'campus_id' => 1,
-            'departamento_academico_id' => 1
+            'centro_facultad_id' => 1,
+            'departamento_academico_id' => 1,
+            'categoria_id' => 1
         ]);
 
         Empleado::create([
             'nombre_completo' => 'VICTOR NAHUN REYES NAVAS',
             'numero_empleado' => '12317',
             'celular' => '99999999',
-            'categoria' => 'Docente',
             'user_id' => $userVictor->id,
-            'campus_id' => 1,
-            'departamento_academico_id' => 1
+            'centro_facultad_id' => 1,
+            'departamento_academico_id' => 1,
+            'categoria_id' => 1
         ]);
 
 
@@ -98,10 +118,10 @@ class PersonalSeeder extends Seeder
             'nombre_completo' => 'DORIAN ADOLFO ORDONEZ OSORTO',
             'numero_empleado' => '12312',
             'celular' => '99999999',
-            'categoria' => 'Docente',
             'user_id' => $userDorian->id,
-            'campus_id' => 1,
-            'departamento_academico_id' => 1
+            'centro_facultad_id' => 1,
+            'departamento_academico_id' => 1,
+            'categoria_id' => 1
         ]);
 
         

@@ -11,6 +11,9 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use App\Models\User;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 
+use App\Models\Personal\CategoriaEmpleado;
+use App\Models\UnidadAcademica\FacultadCentro;
+
 class Empleado extends Model
 {
     use HasFactory;
@@ -40,9 +43,9 @@ class Empleado extends Model
         'nombre_completo',
         'numero_empleado',
         'celular',
-        'categoria',
+        'categoria_id',
         'user_id',
-        'campus_id',
+        'centro_facultad_id',
         'departamento_academico_id'
     ];
 
@@ -56,6 +59,24 @@ class Empleado extends Model
     {
         return $this->belongsTo(DepartamentoAcademico::class, 'departamento_academico_id');
     }
+
+    //  relacion uno a muchos inversa con el modelo CategoriaEmpleado
+
+    public function categoria()
+    {
+        return $this->belongsTo(CategoriaEmpleado::class, 'categoria_id');
+    }
+
+    //  relacion uno a muchos inversa con el modelo FacultadCentro
+
+    public function centro_facultad()
+    {
+        return $this->belongsTo(FacultadCentro::class, 'centro_facultad_id');
+    }
+
+   
+
+
 
     protected $table = 'empleado';
 }

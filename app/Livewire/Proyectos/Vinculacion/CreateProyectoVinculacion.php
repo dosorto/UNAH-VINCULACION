@@ -95,19 +95,58 @@ class CreateProyectoVinculacion extends Component implements HasForms
                             Select::make('coordinador_id')
                                 ->label('Coordinador')
                                 ->required()
-                                ->searchable()
-                                // ->relationship(name: 'coordinador', titleAttribute: 'user.nombre_completo')
-                                ->getSearchResultsUsing(fn(string $search): array =>
-                                Empleado::join('users', 'empleado.user_id', '=', 'users.id')
-                                    ->where('users.email', 'like', "%{$search}%")
-                                    ->limit(50)
-                                    ->pluck('users.email', 'empleado.id')
-                                    ->toArray())
+                                ->searchable(['nombre_completo', 'numero_empleado'])
+                                ->relationship(name: 'coordinador', titleAttribute: 'nombre_completo')
+                                //     ->getSearchResultsUsing(fn(string $search): array =>
+                                //     Empleado::join('users', 'empleado.user_id', '=', 'users.id')
+                                //         ->where('users.email', 'like', "%{$search}%")
+                                //           ->limit(50)
+                                //        ->pluck('users.email', 'empleado.id')
+                                //          ->toArray())
                                 ->createOptionForm([
+                                    Forms\Components\TextInput::make('nombre_completo')
+                                        ->label('Nombre completo')
+                                        ->required(),
+
+                                    Forms\Components\TextInput::make('numero_empleado')
+                                        ->label('Número de empleado')
+                                        ->required(),
+
+                                    Select::make('categoria_id')
+                                        ->label('Categoría')
+                                        ->searchable()
+                                        ->relationship(name: 'categoria', titleAttribute: 'nombre')
+                                        ->preload(),
+
                                     Forms\Components\TextInput::make('email')
                                         ->label('Correo electrónico Académico del coordinador')
                                         ->email()
                                         ->required(),
+
+                                    // campus o facultad del empleado
+
+                                    Select::make('centro_facultad_id')
+                                        ->label('Facultad o Centro')
+                                        ->searchable()
+                                        ->relationship(name: 'centro_facultad', titleAttribute: 'nombre')
+                                        ->live()
+                                        ->preload(),
+
+                                    // departamento academico del empleado
+
+                                    Select::make('departamento_academico_id')
+                                        ->label('Departamento Académico')
+                                        ->searchable()
+                                        ->visible(fn(Get $get): bool => $get('centro_facultad_id') !== null)
+                                        ->relationship(
+                                            name: 'departamento_academico',
+                                            titleAttribute: 'nombre',
+                                            modifyQueryUsing: fn($query, Get $get) => $query->whereIn('centro_facultad_id', $get('facultades_centros'))
+                                        )
+                                        ->live()
+                                        ->preload(),
+
+
                                 ])
                                 ->createOptionUsing(function (array $data) {
                                     $user = User::create(['email' => $data['email']]);
@@ -446,12 +485,11 @@ class CreateProyectoVinculacion extends Component implements HasForms
         $this->form->model($record)->saveRelationships();
 
         Notification::make()
-        ->title('¡Éxito!')
-        ->body('Proyecto creado correctamente')
-        ->success()
-        ->send();
-    $this->js('location.reload();');
-    
+            ->title('¡Éxito!')
+            ->body('Proyecto creado correctamente')
+            ->success()
+            ->send();
+        $this->js('location.reload();');
     }
 
     public function render(): View
