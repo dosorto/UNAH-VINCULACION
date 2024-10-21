@@ -24,7 +24,7 @@ use App\Http\Controllers\Auth\MicrosoftController;
 
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
-
+use App\Livewire\Proyectos\Vinculacion\ListProyectosSolicitado;
 
 
 // Rutas para redireccionar a los usuario autenticados
@@ -128,6 +128,9 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('listarProyectosVinculacion', ListProyectosVinculacion::class)
             ->name('listarProyectosVinculacion');
+
+        Route::get('listarProyectosSolicitado', ListProyectosSolicitado::class)
+            ->name('listarProyectosSolicitado');
     });
 
 
