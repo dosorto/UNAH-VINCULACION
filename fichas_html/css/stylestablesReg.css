@@ -1,0 +1,299 @@
+.table_datos1 {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+.table_datos1 th, .table_datos1 td {
+    border: 1px solid #000;
+    padding: 8px;
+    text-align: left;
+}
+
+.table_datos1 .full-width1 {
+    background-color: #acd2ff;
+    font-weight: bold;
+    text-align: center;
+    width: 20%;
+}
+.table_datos1 th, .table_datos1 .header  {
+    width: 60%;
+}
+.table_datos1 .sub-header {
+    background-color: #d7e9fe;
+    font-style: italic;
+}
+.table_datos1 td, .table_datos1 .sub-header {
+    width: 80px;
+}
+
+.table_datos1 .full-width {
+    width: 20%;
+}
+.table_datos1 .input-field {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 5px;
+    border: none;
+    font-family: Arial, sans-serif;
+}
+
+.table_datos1 .input-field1 {
+    width: 40%;
+    box-sizing: border-box;
+    padding: 5px;
+    font-family: Arial, sans-serif;
+}
+
+
+/*Tabla de Datos 2*/
+
+.table_datos2 {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+.table_datos2 th, .table_datos2 td {
+    border: 1px solid #000;
+    padding: 8px;
+    text-align: left;
+}
+.table_datos2 .header {
+    background-color: #acd2ff;
+    font-weight: bold;
+    text-align: center;
+}
+.table_datos2 .sub-header {
+    background-color: #d7e9fe;
+    font-style: italic;
+}
+.table_datos2 .full-width {
+    width: auto;
+}
+
+.table_datos2 .input-field {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 5px;
+    border: none;
+    font-family: Arial, sans-serif;
+}
+
+.table_datos2 p {
+    font-size: 16px;
+    font-family: Aptos Narrow;
+    text-align: center;
+    margin-top: 0px;
+    font-style: italic; /* Estilo cursivo */
+}
+/*Tabla de Datos 3*/
+
+.table_datos3 {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+.table_datos3 th, .table_datos3 td {
+    border: 1px solid #000;
+    padding: 8px;
+    text-align: left;
+}
+.table_datos3 .header {
+    background-color: #acd2ff;
+    font-weight: bold;
+    text-align: left;
+}
+.table_datos3 .sub-header {
+    background-color: #d7e9fe;
+    font-style: italic;
+}
+
+.table_datos3 .sub-header3 {
+    background-color: #d7e9fe;
+    font-style: italic;
+    text-align: center;
+}
+
+.table_datos3 .sub-header4 {
+    background-color: #d7e9fe;
+    font-style: italic;
+    text-align: right;
+}
+
+
+.table_datos3 .full-width {
+    width: auto;
+}
+
+.table_datos3 .input-field {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 5px;
+    border: none;
+    font-family: Arial, sans-serif;
+}
+
+.table_datos3 p {
+    font-size: 16px;
+    font-family: Aptos Narrow;
+    text-align: center;
+    margin-top: 0px;
+    font-style: italic; /* Estilo cursivo */
+}
+
+.table_datos3 h1 {
+    font-size: 18px;
+    font-family: Aptos Narrow;
+    text-align: center;
+    margin-top: 0px;
+}
+
+
+
+/*Tabla de Datos 4*/
+
+.table_datos4 {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+.table_datos4 th, .table_datos4 td {
+    border: 1px solid #000;
+    padding: 8px;
+    text-align: left;
+}
+.table_datos4 .header {
+    background-color: #acd2ff;
+    font-weight: bold;
+    text-align: center;
+}
+.table_datos4 .sub-header {
+    background-color: #d7e9fe;
+    font-style: italic;
+    text-align: center;
+}
+.table_datos4 .full-width {
+    width: auto;
+}
+
+.table_datos4 .input-field {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 5px;
+    border: none;
+    font-family: Arial, sans-serif;
+}
+
+.table_datos4 p {
+    font-size: 16px;
+    font-family: Aptos Narrow;
+    text-align: center;
+    margin-top: 0px;
+    font-style: italic; /* Estilo cursivo */
+}
+
+.table_datos4 h1 {
+    font-size: 18px;
+    font-family: Aptos Narrow;
+    text-align: center;
+    margin-top: 0px;
+}
+
+
+/*Tabla de Datos 5*/
+
+.table_datos5 {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+.table_datos5 th, .table_datos5 td {
+    border: 1px solid #000;
+    padding: 8px;
+    text-align: left;
+}
+.table_datos5 .header {
+    background-color: #acd2ff;
+    font-weight: bold;
+    text-align: center;
+}
+.table_datos5 .sub-header {
+    background-color: #d7e9fe;
+    font-style: italic;
+    text-align: center;
+}
+.table_datos5 .full-width {
+    width: auto;
+    vertical-align: top;
+}
+
+.table_datos5 .input-field {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 5px;
+    border: none;
+    font-family: Arial, sans-serif;
+}
+
+.table_datos5 p {
+    font-size: 16px;
+    font-family: Aptos Narrow;
+    text-align: center;
+    margin-top: 0px;
+    font-style: italic; /* Estilo cursivo */
+}
+
+.table_datos5 h1 {
+    font-size: 18px;
+    font-family: Aptos Narrow;
+    text-align: center;
+    margin-top: 0px;
+}
+/*Tabla de Datos 5*/
+
+.table_datos7 {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+.table_datos7 th, .table_datos7 td {
+    border: 1px solid #000;
+    padding: 8px;
+    text-align: left;
+}
+.table_datos7 .header {
+    background-color: #acd2ff;
+    font-weight: bold;
+    text-align: center;
+}
+.table_datos7 .sub-header {
+    background-color: #d7e9fe;
+    font-style: italic;
+    text-align: center;
+}
+.table_datos7 .full-width {
+    width: auto;
+    vertical-align: top;
+}
+
+.table_datos7 .input-field {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 5px;
+    border: none;
+    font-family: Arial, sans-serif;
+}
+
+.table_datos7 p {
+    font-size: 16px;
+    font-family: Aptos Narrow;
+    text-align: center;
+    margin-top: 0px;
+    font-style: italic; /* Estilo cursivo */
+}
+
+.table_datos7 h1 {
+    font-size: 18px;
+    font-family: Aptos Narrow;
+    text-align: center;
+    margin-top: 0px;
+}
