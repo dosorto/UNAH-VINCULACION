@@ -5,7 +5,7 @@
     </div>
     <x-panel.navbar-horizontal.navbar-horizontal>
         <x-panel.navbar-horizontal.item titulo="Proyectos" ruta="listarProyectosVinculacion" />
-        <x-panel.navbar-horizontal.item titulo="Roles" ruta="roles" />
-        <x-panel.navbar-horizontal.item titulo="Permisos" ruta="listPermisos" />
+        <x-panel.navbar-horizontal.item titulo="Solicitados" ruta="listarProyectosSolicitado" />
+        <x-panel.navbar-horizontal.item titulo="Aprobados" />
     </x-panel.navbar-horizontal.navbar-horizontal>
 @endsection

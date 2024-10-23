@@ -1,5 +1,7 @@
 <div id="mobile-menu"
-    class="fixed inset-0 z-40 bg-white shadow-lg transition-transform transform -translate-x-full sm:translate-x-0 sm:shadow-none  sm:flex h-screen flex-col justify-between py-4 pr-2 pl-4 w-3/4 sm:w-1/4 h-[100vh] sm:sticky top-0 sm:bg-gray-100 dark:bg-gray-950">
+    class="fixed inset-0 z-50 bg-white shadow-lg transition-transform transform -translate-x-full sm:translate-x-0 sm:shadow-none  sm:flex h-screen flex-col justify-between py-4 pr-2 pl-4 w-3/4 sm:w-1/4 h-[100vh] sm:sticky top-0 sm:bg-gray-100 dark:bg-gray-950"
+    style="z-index: 40"
+    >
     <div class="flex items-center  justify-between ">
     <div class="flex items-center ">
             <div class="w-36 h-8 rounded-lg flex items-center justify-center">
@@ -139,7 +141,7 @@
                                          dark:border-gray-700
                                         dark:bg-gray-900 dark:ring-gray-700 dark:divide-gray-700">
                             <div class="">
-                                <a href="#"
+                                <a href="{{ route('mi_perfil') }}"
                                     class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
                                     <svg xmlns="http://www.w3.org/2000/svg"
                                         class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500 dark:bg-white/5"

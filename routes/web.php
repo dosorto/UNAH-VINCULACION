@@ -12,6 +12,7 @@ use App\Livewire\Demografia\Aldea\ListAldeas;
 use App\Livewire\Demografia\Ciudad\CreateCiudad;
 use App\Livewire\Personal\Empleado\CreateEmpleado;
 use App\Livewire\Personal\Empleado\ListEmpleado;
+use App\Livewire\Personal\Empleado\EditPerfil;
 use App\Livewire\Demografia\Ciudad\ListaCiudad;
 use App\Livewire\Personal\Permiso\ListPermisos;
 use App\Livewire\Login\Login;
@@ -24,7 +25,7 @@ use App\Http\Controllers\Auth\MicrosoftController;
 
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
-
+use App\Livewire\Proyectos\Vinculacion\ListProyectosSolicitado;
 
 
 // Rutas para redireccionar a los usuario autenticados
@@ -118,6 +119,9 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('listarEmpleados', ListEmpleado::class)
             ->name('ListarEmpleados');
+
+        Route::get('mi_perfil', EditPerfil::class)
+            ->name('mi_perfil');
     });
 
     // rutas agrupadas para el modulo de Proyectos
@@ -128,6 +132,9 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('listarProyectosVinculacion', ListProyectosVinculacion::class)
             ->name('listarProyectosVinculacion');
+
+        Route::get('listarProyectosSolicitado', ListProyectosSolicitado::class)
+            ->name('listarProyectosSolicitado');
     });
 
 
