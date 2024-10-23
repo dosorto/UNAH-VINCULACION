@@ -14,17 +14,23 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
+// use Filament\Pages\Actions\CreateAction;
+// use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
+use Filament\Actions\Contracts\HasActions;
+use App\Models\Personal\FirmaSelloEmpleado;
 use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Pages\Actions\CreateAction;
+use Filament\Forms\Components\Actions\Action;
+use Filament\Actions\Concerns\InteractsWithActions;
 
-class EditPerfil extends Component implements HasForms
+class EditPerfil extends Component implements HasForms, HasActions
 {
     use InteractsWithForms;
+    use InteractsWithActions;
 
     public ?array $data = [];
+    public ?array $data_firma = [];
     public Empleado $record;
-    public bool $modalVisible = false;
 
     public function mount(): void
     {
@@ -36,44 +42,100 @@ class EditPerfil extends Component implements HasForms
     {
         return $form
             ->schema([
-                Section::make('Crear un nuevo empleado')
-                    ->description('Crea un nuevo empleado con sus datos asociados.')
+                Section::make('Editar Oerfil de Empleado')
+                    ->description('Editar los datos de empleado Asociado.')
                     ->schema([
-                        // Repeater para la firma
-                        Repeater::make('firma')
-                            ->relationship()
-                            ->deletable(false)
-                            ->schema([
-                                FileUpload::make('ruta_storage')
-                                    ->label('Firma')
-                                    ->disk('public')
-                                    ->directory('firmas_sellos')
-                                    ->image()
-                                    ->nullable(),
-                                Hidden::make('tipo')
-                                    ->default('firma'),
+                        // Section para la firma
+                        Section::make('Firma')
+                            ->description('Visualizar o agregar una nueva Firma.')
+                            ->headerActions([
+                                Action::make('create')
+                                    ->label('Crear Nueva Firma')
+                                    ->form([
+                                        // ...
+                                        Hidden::make('empleado_id')
+                                            ->default($this->record->id),
+                                        FileUpload::make('ruta_storage')
+                                            ->label('Firma')
+                                            ->disk('public')
+                                            ->directory('firmas_sellos')
+                                            ->image()
+                                            ->required(),
+                                        Hidden::make('tipo')
+                                            ->default('firma'),
+                                    ])
+                                    ->action(function (array $data) {
+                                        // dd($data);
+                                        FirmaSelloEmpleado::create($data);
+                                        $this->js('window.location.reload()');
+                                    })
                             ])
-                            ->minItems(0)
-                            ->maxItems(1)
-                            ->defaultItems(1)
-                            ->columns(1),
+                            ->schema([
+                                // ...
+                                Repeater::make('firma')
+                                    ->relationship()
+                                    ->deletable(false)
+                                    ->schema([
+                                        FileUpload::make('ruta_storage')
+                                            ->label('Firma')
+                                            ->disk('public')
+                                            ->directory('firmas_sellos')
+                                            ->image()
+                                            ->nullable(),
+                                        Hidden::make('tipo')
+                                            ->default('firma'),
+                                    ])
+                                    ->minItems(0)
+                                    ->maxItems(1)
+                                    ->defaultItems(1)
+                                    ->columns(1),
+                            ]),
 
-                        // Repeater para el sello
-                        Repeater::make('sello')
-                            ->relationship()
-                            ->deletable(false)
-                            ->schema([
-                                FileUpload::make('ruta_storage')
-                                    ->label('Sello')
-                                    ->image()
-                                    ->nullable(),
-                                Hidden::make('tipo')
-                                    ->default('sello'),
+                        // Section para el sello
+                        Section::make('Sello')
+                            ->description('Visualizar o agregar una nueva Firma.')
+                            ->headerActions([
+                                Action::make('create')
+                                    ->label('Crear Nuevo Sello')
+                                    ->form([
+                                        // ...
+                                        Hidden::make('empleado_id')
+                                            ->default($this->record->id),
+                                        FileUpload::make('ruta_storage')
+                                            ->label('Firma')
+                                            ->disk('public')
+                                            ->directory('firmas_sellos')
+                                            ->image()
+                                            ->required(),
+                                        Hidden::make('tipo')
+                                            ->default('sello'),
+                                    ])
+                                    ->action(function (array $data) {
+                                        // dd($data);
+                                        FirmaSelloEmpleado::create($data);
+                                        $this->js('window.location.reload()');
+                                    })
                             ])
-                            ->minItems(0)
-                            ->maxItems(1)
-                            ->defaultItems(1)
-                            ->columns(1),
+                            ->schema([
+                                // ...
+                                Repeater::make('sello')
+                                    ->relationship()
+                                    ->deletable(false)
+                                    ->schema([
+                                        FileUpload::make('ruta_storage')
+                                            ->label('Sello')
+                                            ->disk('public')
+                                            ->directory('firmas_sellos')
+                                            ->image()
+                                            ->nullable(),
+                                        Hidden::make('tipo')
+                                            ->default('sello'),
+                                    ])
+                                    ->minItems(0)
+                                    ->maxItems(1)
+                                    ->defaultItems(1)
+                                    ->columns(1),
+                            ]),
 
                         // Otros campos del formulario
                         TextInput::make('nombre_completo')
@@ -101,6 +163,48 @@ class EditPerfil extends Component implements HasForms
             ])
             ->statePath('data')
             ->model($this->record);
+    }
+
+    public function createAction(): Action
+    {
+        return Action::make('create')
+            ->label('Crear Nueva Firma')
+            ->form([
+                // ...
+                FileUpload::make('ruta_storage')
+                    ->label('Firma')
+                    ->disk('public')
+                    ->directory('firmas_sellos')
+                    ->image()
+                    ->nullable(),
+                Hidden::make('tipo')
+                    ->default('firma'),
+            ])
+            // ...
+            ->action(function (array $arguments) {
+                
+            });
+    }
+
+    public function Action(): Action
+    {
+        return Action::make('create')
+            ->label('Crear Nuevo Sello')
+            ->form([
+                // ...
+                FileUpload::make('ruta_storage')
+                    ->label('Sello')
+                    ->disk('public')
+                    ->directory('firmas_sellos')
+                    ->image()
+                    ->nullable(),
+                Hidden::make('tipo')
+                    ->default('sello'),
+            ])
+            // ...
+            ->action(function (array $arguments) {
+                
+            });
     }
 
     public function save(): void
