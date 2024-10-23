@@ -26,6 +26,17 @@ return new class extends Migration
             // Definir la clave foránea hacia la tabla users
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
+
+        Schema::create('firma_sello_empleado', function (Blueprint $table) {
+            $table->id(); // ID autoincremental
+            $table->foreignId('empleado_id') // Relación con empleado
+                ->constrained('empleado'); // Indica que está relacionado con la tabla 'empleados'
+            $table->enum('tipo', ['firma', 'sello']); // Tipo de documento: firma o sello
+            $table->string('ruta_storage'); // Ruta donde se guardará el archivo en el almacenamiento
+            $table->boolean('estado')->default(true); // Estado del documento (activo o no)
+            $table->softDeletes(); // Soft delete
+            $table->timestamps(); // Campos 'created_at' y 'updated_at'
+        });
         
     }
 

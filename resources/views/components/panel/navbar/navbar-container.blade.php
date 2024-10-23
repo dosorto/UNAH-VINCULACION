@@ -139,7 +139,7 @@
                                          dark:border-gray-700
                                         dark:bg-gray-900 dark:ring-gray-700 dark:divide-gray-700">
                             <div class="">
-                                <a href="#"
+                                <a href="{{ route('mi_perfil') }}"
                                     class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
                                     <svg xmlns="http://www.w3.org/2000/svg"
                                         class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500 dark:bg-white/5"

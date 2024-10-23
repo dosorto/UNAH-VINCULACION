@@ -9,6 +9,8 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 use App\Models\User;
+use App\Models\UnidadAcademica\Campus;
+use App\Models\UnidadAcademica\DepartamentoAcademico;
 
 class Empleado extends Model
 {
@@ -49,6 +51,33 @@ class Empleado extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function campus()
+    {
+        return $this->belongsTo(Campus::class);
+    }
+
+    public function DepartamentoAcademico()
+    {
+        return $this->belongsTo(DepartamentoAcademico::class);
+    }
+
+    public function firmaSellos()
+    {
+        return $this->hasMany(FirmaSelloEmpleado::class);
+    }
+
+    // Obtener solo la firma del empleado
+    public function firma()
+    {
+        return $this->hasOne(FirmaSelloEmpleado::class)->where('tipo', 'firma')->where('estado', true);
+    }
+
+    // Obtener solo el sello del empleado
+    public function sello()
+    {
+        return $this->hasOne(FirmaSelloEmpleado::class)->where('tipo', 'sello')->where('estado', true);
     }
 
     protected $table = 'empleado';
