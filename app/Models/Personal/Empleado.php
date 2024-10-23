@@ -71,13 +71,17 @@ class Empleado extends Model
     // Obtener solo la firma del empleado
     public function firma()
     {
-        return $this->hasOne(FirmaSelloEmpleado::class)->where('tipo', 'firma')->where('estado', true);
+        return $this->hasOne(FirmaSelloEmpleado::class)
+            ->where('tipo', 'firma')
+            ->where('estado', true);
     }
 
     // Obtener solo el sello del empleado
     public function sello()
     {
-        return $this->hasOne(FirmaSelloEmpleado::class)->where('tipo', 'sello')->where('estado', true);
+        return $this->hasOne(FirmaSelloEmpleado::class)
+            ->where('tipo', 'sello')
+            ->where('estado', true);
     }
 
     protected $table = 'empleado';

@@ -13,7 +13,10 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Components\FileUpload;
 use App\Models\Personal\FirmaSelloEmpleado;
+use Faker\Provider\ar_EG\Text;
 use Filament\Forms\Concerns\InteractsWithForms;
+
+use Filament\Forms\Components\Repeater;
 
 class EditPerfil extends Component implements HasForms
 {
@@ -35,34 +38,76 @@ class EditPerfil extends Component implements HasForms
         return $form
             ->schema([
                 Section::make('Crear un nuevo empleado')
-                ->description('Crea un nuevo empleado con sus datos asociados.')
-                ->schema([
-                    FileUpload::make('firma.firma')
-                    ->label('Firma')
-                    ->image() // Para asegurarse de que es una imagen
-                    ->nullable(), // Permitir que no sea obligatorio
-                    Forms\Components\TextInput::make('nombre_completo')
-                    ->required()
-                    ->maxLength(255),
-                    Forms\Components\TextInput::make('numero_empleado')
-                    ->required()
-                    ->maxLength(255),
-                    Forms\Components\TextInput::make('celular')
-                    ->required()
-                    ->numeric()
-                    ->maxLength(255),
-                    Forms\Components\TextInput::make('categoria')
-                    ->required()
-                    ->maxLength(255),
-                    Select::make('campus_id')
-                    ->label('Campus')
-                    ->relationship('campus', 'nombre_campus') // Define la relación y el campo que quieres mostrar
-                    ->required(),
-                    Select::make('departamento_academico_id')
-                    ->label('Departamento Academico')
-                    ->relationship('DepartamentoAcademico', 'nombre') // Define la relación y el campo que quieres mostrar
-                    ->required(),
-                ])
+                    ->description('Crea un nuevo empleado con sus datos asociados.')
+                    ->schema([
+                        Repeater::make('firma')
+                            ->relationship()
+                            ->deletable(false)
+                            ->schema([
+                                FileUpload::make('ruta_storage')
+                                    ->label('Firma')
+                                    ->image() // Para asegurarse de que es una imagen
+                                    ->nullable(), // Permitir que no sea obligatorio
+
+                                Forms\Components\TextInput::make('tipo')
+                                    ->default('firma')
+                                    //->disabled()
+                                    ->required()
+                                    ->maxLength(255),
+                            ])
+                            ->minItems(1)
+                            ->maxItems(1)
+                            ->defaultItems(1)
+                            ->columns(2),
+
+                        Repeater::make('sello')
+                            ->relationship()
+                            ->deletable(false)
+                            ->schema([
+                                FileUpload::make('ruta_storage')
+                                    ->label('Firma')
+                                    ->image() // Para asegurarse de que es una imagen
+                                    ->nullable(), // Permitir que no sea obligatorio
+
+                                Forms\Components\TextInput::make('tipo')
+                                    ->default('sello')
+                                    //->disabled()
+                                    ->required()
+                                    ->maxLength(255),
+                            ])
+                            ->minItems(1)
+                            ->maxItems(1)
+                            ->defaultItems(1)
+                            ->columns(2),
+
+
+
+
+                        Forms\Components\TextInput::make('nombre_completo')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('numero_empleado')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('celular')
+                            ->required()
+                            ->numeric()
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('categoria')
+                            ->required()
+                            ->maxLength(255),
+                        Select::make('campus_id')
+                            ->label('Campus')
+                            ->relationship('campus', 'nombre_campus') // Define la relación y el campo que quieres mostrar
+                            ->required(),
+                        Select::make('departamento_academico_id')
+                            ->label('Departamento Academico')
+                            ->relationship('DepartamentoAcademico', 'nombre') // Define la relación y el campo que quieres mostrar
+                            ->required(),
+
+
+
+                    ])
             ])
             ->statePath('data')
             ->model($this->record);
@@ -71,22 +116,9 @@ class EditPerfil extends Component implements HasForms
 
     public function save(): void
     {
-        FirmaSelloEmpleado::where('empleado_id', $this->record->id)
-            ->where('tipo', 'firma')
-            ->update(['estado' => false]);
         $data = $this->form->getState();
-        
+
         $this->record->update($data);
-        FirmaSelloEmpleado::updateOrCreate(
-            [
-                'empleado_id' => $this->record->id,
-                'tipo' => 'firma',
-            ],
-            [
-                'ruta_storage' => $data['firma'],
-                'estado' => true, // Nuevo estado activo
-            ]
-        );
     }
 
     public function render(): View
