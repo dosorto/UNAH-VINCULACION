@@ -33,7 +33,7 @@ class ListEmpleado extends Component implements HasForms, HasTable
                     ->searchable(),
                 Tables\Columns\TextColumn::make('numero_empleado')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('categoria')
+                Tables\Columns\TextColumn::make('categoria.nombre')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
