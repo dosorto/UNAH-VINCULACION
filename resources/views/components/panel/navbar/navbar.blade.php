@@ -1,5 +1,7 @@
 <x-panel.navbar.navbar-container>
     <x-panel.navbar.group-item titulo="Dashboard" icono="ri-dashboard-line">
+        <x-panel.navbar.one-item titulo="Inicio" route="inicio" :routes="['inicio']" :permisos="['inicio-admin-inicio']"
+            icono="heroicon-o-home" />
         <x-panel.navbar.one-item titulo="Demografia" route="listarPaises" :routes="[
             'listarPaises',
             'crearPais',
@@ -18,7 +20,7 @@
             'demografia-admin-aldea',
             'demografia-admin-ciudad',
         ]"
-            icono="heroicon-o-home" />
+            icono="heroicon-o-map-pin" />
         <x-panel.navbar.one-item titulo="Usuarios" route="Usuarios" :routes="['Usuarios', 'roles', 'listPermisos']" icono="heroicon-o-user-group"
             :permisos="['usuarios-admin-usuarios', 'usuarios-admin-rol', 'usuarios-admin-permiso']" />
         <x-panel.navbar.one-item titulo="Empleado" route="ListarEmpleados" :routes="['ListarEmpleados', 'crearEmpleado']" icono="heroicon-c-cube"

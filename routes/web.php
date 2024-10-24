@@ -26,6 +26,7 @@ use App\Http\Controllers\Auth\MicrosoftController;
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosSolicitado;
+use App\Livewire\Inicio\InicioAdmin;
 
 
 // Rutas para redireccionar a los usuario autenticados
@@ -50,6 +51,11 @@ Route::middleware(['guest'])->group(function () {
 
 // Rutas para redireccionar a los usuario  no autenticados
 Route::middleware(['auth'])->group(function () {
+
+    // rutas agrupadas para el modulo de inicio
+    Route::get('inicio', InicioAdmin::class)
+        ->name('inicio')
+        ->middleware('can:inicio-admin-inicio');
 
     // rutas agrupadas para el modulo de demografia :)
     Route::middleware(['auth'])->group(function () {
@@ -160,6 +166,5 @@ Route::middleware(['auth'])->group(function () {
         Route::get('listarLogs', ListLogs::class)
             ->name('listarLogs')
             ->middleware('can:configuracion-admin-logs');
-
     });
 });
