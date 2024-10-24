@@ -14,6 +14,7 @@ use App\Models\UnidadAcademica\DepartamentoAcademico;
 
 use App\Models\Personal\CategoriaEmpleado;
 use App\Models\UnidadAcademica\FacultadCentro;
+use App\Models\Proyecto\Proyecto;
 
 class Empleado extends Model
 {
@@ -101,6 +102,13 @@ class Empleado extends Model
         return $this->belongsTo(FacultadCentro::class, 'centro_facultad_id');
     }
 
+    // relacion muchos a muchos con el modelo Proyecto mediante la tabla intermedia empleado_proyecto
+    public function proyectos()
+    {
+        return $this->belongsToMany(Proyecto::class, 'empleado_proyecto', 'empleado_id', 'proyecto_id');
+          //  ->withPivot('id', 'fecha_inicio', 'fecha_fin', 'estado', 'horas_semanales', 'horas_totales', 'created_at', 'updated_at')
+            //->withTimestamps();
+    }
    
 
 

@@ -1,6 +1,6 @@
 <x-panel.navbar.navbar-container>
     <x-panel.navbar.group-item titulo="Dashboard" icono="ri-dashboard-line">
-        <x-panel.navbar.one-item titulo="Inicio" route="inicio" :routes="['inicio']" :permisos="['inicio-admin-inicio']"
+        <x-panel.navbar.one-item titulo="Inicio" route="inicio" :routes="['inicio']" :permisos="['inicio-admin-inicio', 'inicio-docente-inicio']"
             icono="heroicon-o-home" />
         <x-panel.navbar.one-item titulo="Demografia" route="listarPaises" :routes="[
             'listarPaises',
@@ -27,5 +27,10 @@
             :permisos="['empleados-admin-empleados']" />
         <x-panel.navbar.one-item titulo="Proyecto" route="listarProyectosVinculacion" :routes="['crearProyectoVinculacion', 'listarProyectosVinculacion']"
             icono="heroicon-m-puzzle-piece" :permisos="['proyectos-admin-proyectos', 'proyectos-admin-solicitados', 'proyectos-admin-aprobados']" />
+
+        <!-- modulo de docentes -->
+        <x-panel.navbar.one-item titulo="Proyectos" route="proyectosDocente" :routes="['proyectosDocente']" icono="heroicon-o-academic-cap"
+            :permisos="['docente-admin-proyectos']"    icono="heroicon-m-puzzle-piece" />
+
     </x-panel.navbar.group-item>
 </x-panel.navbar.navbar-container>

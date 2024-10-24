@@ -42,6 +42,11 @@ class PermisosSeeder extends Seeder
 
         // modulo de inicio
         $permission14 = Permission::create(['name' => 'inicio-admin-inicio']);
+        $permission15 = Permission::create(['name' => 'inicio-docente-inicio']);
+
+        // modulo para el usuario docente
+        $permission16 = Permission::create(['name' => 'docente-admin-proyectos']);
+        $permission17 = Permission::create(['name' => 'docente-crear-proyecto']);
 
         // crear un rol de administrador con todos los permisos anteriores
         $role = Role::create(['name' => 'admin']);
@@ -62,11 +67,14 @@ class PermisosSeeder extends Seeder
             'proyectos-admin-aprobados',
             'configuracion-admin-logs',
             'inicio-admin-inicio',
+            
         ])->save();
 
         $roleDocente->givePermissionTo([
             'configuracion-admin-mi-perfil',
+            'inicio-docente-inicio',
+            'docente-admin-proyectos',
+            'docente-crear-proyecto',
         ])->save();
-
     }
 }

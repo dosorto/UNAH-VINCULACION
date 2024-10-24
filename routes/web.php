@@ -28,6 +28,9 @@ use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosSolicitado;
 use App\Livewire\Inicio\InicioAdmin;
 
+use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
+use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController;
+
 
 // Rutas para redireccionar a los usuario autenticados
 Route::middleware(['guest'])->group(function () {
@@ -55,7 +58,7 @@ Route::middleware(['auth'])->group(function () {
     // rutas agrupadas para el modulo de inicio
     Route::get('inicio', InicioAdmin::class)
         ->name('inicio')
-        ->middleware('can:inicio-admin-inicio');
+        ->middleware('permission:inicio-admin-inicio|inicio-docente-inicio');
 
     // rutas agrupadas para el modulo de demografia :)
     Route::middleware(['auth'])->group(function () {
@@ -148,7 +151,7 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('crearProyectoVinculacion', CreateProyectoVinculacion::class)
             ->name('crearProyectoVinculacion')
-            ->middleware('can:proyectos-admin-proyectos');
+            ->middleware('permission:docente-crear-proyecto|proyectos-admin-proyectos');
 
         Route::get('listarProyectosVinculacion', ListProyectosVinculacion::class)
             ->name('listarProyectosVinculacion')
@@ -166,5 +169,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('listarLogs', ListLogs::class)
             ->name('listarLogs')
             ->middleware('can:configuracion-admin-logs');
+    });
+
+
+    // agregar rutas para el modulo de docente
+    Route::middleware(['auth'])->group(function () {
+        Route::get('proyectosDocente', [DocenteProyectoController::class, 'listaDeProyectos'])
+            ->name('proyectosDocente')
+            ->middleware('can:docente-admin-proyectos');
     });
 });
