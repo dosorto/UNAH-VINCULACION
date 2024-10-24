@@ -169,7 +169,7 @@ return new class extends Migration
             $table->foreignId('empleado_id')->constrained('empleado');
             $table->foreignId('cargo_firma_id')->constrained('cargo_firma');
             $table->foreignId('firma_id')->nullable();//->constrained('firma');
-            $table->string('estado_revision');
+            $table->boolean('estado_revision')->default(false);
             $table->string('hash')->nullable();
             $table->softDeletes();
             $table->timestamps();

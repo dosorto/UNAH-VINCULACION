@@ -257,6 +257,11 @@ class Proyecto extends Model
         return $this->hasMany(FirmaProyecto::class, 'proyecto_id');
     }
 
+    public function firma_proyecto_jefe()
+    {
+        return $this->hasMany(FirmaProyecto::class, 'proyecto_id');
+    }
+
     // relacion uno a  uno con el modelo firma_proyecto
     public function firma_proyecto_uno()
     {

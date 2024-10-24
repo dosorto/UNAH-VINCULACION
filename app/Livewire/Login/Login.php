@@ -46,7 +46,7 @@ class Login extends Component implements HasForms
         $data = $this->form->getState();
 
         if (Auth::attempt(['email' => $data['email'], 'password' => $data['Contraseña']])) {
-            return redirect(route('Usuarios'));
+            return redirect(route('mi_perfil'));
         }
 
         Notification::make()

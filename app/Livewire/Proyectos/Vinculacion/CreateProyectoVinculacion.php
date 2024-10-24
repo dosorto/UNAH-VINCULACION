@@ -47,6 +47,8 @@ use Filament\Forms\Components\Section;
 
 use Filament\Forms\Components\Builder;
 use App\Models\Proyecto\CargoFirma;
+use Filament\Forms\Components\Hidden;
+
 
 
 class CreateProyectoVinculacion extends Component implements HasForms
@@ -107,6 +109,9 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 // ->required()
                                 ->searchable(['nombre_completo', 'numero_empleado'])
                                 ->relationship(name: 'coordinador', titleAttribute: 'nombre_completo')
+                                ->default(
+                                    fn () => optional(Empleado::where('user_id', auth()->id())->first())->id
+                                )
                                 //     ->getSearchResultsUsing(fn(string $search): array =>
                                 //     Empleado::join('users', 'empleado.user_id', '=', 'users.id')
                                 //         ->where('users.email', 'like', "%{$search}%")
@@ -358,13 +363,13 @@ class CreateProyectoVinculacion extends Component implements HasForms
                     Wizard\Step::make('III.')
                         ->description('DATOS DEL PROYECTO')
                         ->schema([
-                            TextInput::make('resumen')
+                            Forms\Components\Textarea::make('resumen')
                                 ->label('Resumen')
                                 ->columnSpanFull(),
-                            TextInput::make('objetivo_general')
+                            Forms\Components\Textarea::make('objetivo_general')
                                 ->label('Objetivo general')
                                 ->columnSpanFull(),
-                            TextInput::make('objetivos_especificos')
+                            Forms\Components\Textarea::make('objetivos_especificos')
                                 ->label('Objetivos específicos')
                                 ->columnSpanFull(),
 
@@ -517,7 +522,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                         ->schema([
 
                             Repeater::make('firma_proyecto')
-                            ->id('firma_proyecto_1')
+                                ->id('firma_proyecto_1')
                                 ->label('Jefe de departamento')
                                 ->schema([
                                     Select::make('empleado_id')
@@ -533,12 +538,17 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                         )
                                         ->disabled()
                                         ->preload(),
+                                    Hidden::make('cargo_firma_id')
+                                        ->default(
+                                            CargoFirma::where('nombre', 'Jefe departamento')->first()->id
+                                        ),
+
                                 ])
                                 ->addable(false)
                                 ->deletable(false)
                                 ->relationship()
                                 ->columns(2),
-                            Repeater::make('firma_proyecto')
+                            Repeater::make('firma_proyecto_jefe')
                                 ->id('firma_proyecto_1')
                                 ->label('Decano de facultad o director de centro')
                                 ->schema([
@@ -555,6 +565,12 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                         )
                                         ->disabled()
                                         ->preload(),
+                                    Hidden::make('cargo_firma_id')
+                                        ->default(
+                                            CargoFirma::where('nombre', 'Director centro')->first()->id
+                                        ),
+
+
                                 ])
                                 ->deletable(false)
                                 ->addable(false)
@@ -609,6 +625,26 @@ class CreateProyectoVinculacion extends Component implements HasForms
         $data['fecha_registro'] = now();
         $record = Proyecto::create($data);
         $this->form->model($record)->saveRelationships();
+
+        // crear una firma para el coordinador del proyecto, en caso de ser el mismo que el usuario autenticado se debe firmar aca
+        // en caso contrario se debe hacer firmar al coordinador
+        if ($record->coordinador_id == auth()->user()->empleado->id) {
+            $record->firma_proyecto()->create([
+                'empleado_id' => $record->coordinador_id,
+                'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
+                'estado_revision' => true,
+                'hash' => 'hash'
+            ]);
+        } else {
+            $record->firma_proyecto()->create([
+                'empleado_id' => $record->coordinador_id,
+                'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
+                'estado_revision' => false,
+                'hash' => 'hash'
+            ]);
+        }
+
+
 
         Notification::make()
             ->title('¡Éxito!')

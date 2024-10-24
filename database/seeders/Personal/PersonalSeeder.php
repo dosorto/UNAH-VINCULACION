@@ -44,31 +44,31 @@ class PersonalSeeder extends Seeder
             'name' => 'Dorian',
             'email' => 'dorianadolfo@unah.edu.hn',
             'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
-        ]);
+        ])->assignRole('docente');
 
         $userVictor = User::create([
             'name' => 'Victor',
             'email' => 'victor@unah.edu.hn',
             'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
-        ]);
+        ])->assignRole('docente');
 
         $userWilson = User::create([
             'name' => 'wilson',
             'email' => 'wilson@unah.edu.hn',
             'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
-        ]);
+        ])->assignRole('docente');
 
         $userOscar = User::create([
             'name' => 'Oscar',
             'email' => 'oscar@unah.edu.hn',
             'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
-        ]);
+        ])->assignRole('docente');
 
         $userJessica = User::create([
             'name' => 'Jessica',
             'email' => 'jessica@unah.edu.hn',
             'password' => bcrypt('123'),
-        ]);
+        ])->assignRole('docente');
 
         Empleado::create([
             'nombre_completo' => 'JESSICA NOHELY AVILA CRUZ',
