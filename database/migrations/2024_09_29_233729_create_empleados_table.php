@@ -11,16 +11,43 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('empleados', function (Blueprint $table) {
-            $table->id(); // Identificador único del empleado
-            $table->string('nombre'); // Nombre completo del empleado
-            $table->date('fecha_contratacion'); // Fecha de contratación
-            $table->decimal('salario', 8, 2); // Salario con 8 dígitos, 2 decimales
-            $table->string('supervisor'); // Nombre del supervisor
-            $table->enum('jornada', ['completa', 'parcial']); // Tipo de jornada laboral
+
+        Schema::create('categoria', function (Blueprint $table) {
+            $table->id(); // Identificador único de la categoría
+            $table->string('nombre')->nullable(); // Nombre de la categoría
+            $table->string('descripcion')->nullable(); // Descripción de la categoría
             $table->softDeletes(); // Soft delete
             $table->timestamps(); // Created at y updated at
         });
+
+
+        Schema::create('empleado', function (Blueprint $table) {
+            $table->id(); // Identificador único del empleado
+            $table->string('nombre_completo')->nullable(); // Nombre completo del empleado
+            $table->string('numero_empleado')->unique()->nullable(); // Número de empleado
+            $table->string('celular')->nullable(); // Número de celular
+            $table->integer('categoria_id')->nullable(); // Identificador de la categoría
+            $table->unsignedBigInteger('user_id'); // Llave foránea para la tabla users
+            $table->integer('centro_facultad_id')->nullable(); // Identificador del campus
+            $table->integer('departamento_academico_id')->nullable(); // Identificador del departamento académico
+            $table->softDeletes(); // Soft delete
+            $table->timestamps(); // Created at y updated at
+        
+            // Definir la clave foránea hacia la tabla users
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+        });
+
+        Schema::create('firma_sello_empleado', function (Blueprint $table) {
+            $table->id(); // ID autoincremental
+            $table->foreignId('empleado_id') // Relación con empleado
+                ->constrained('empleado'); // Indica que está relacionado con la tabla 'empleados'
+            $table->string('tipo'); // Tipo de documento: firma o sello
+            $table->string('ruta_storage'); // Ruta donde se guardará el archivo en el almacenamiento
+            $table->boolean('estado')->default(true); // Estado del documento (activo o no)
+            $table->softDeletes(); // Soft delete
+            $table->timestamps(); // Campos 'created_at' y 'updated_at'
+        });
+        
     }
 
     /**

@@ -11,6 +11,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
+use App\Models\Personal\Empleado;
+use App\Models\Estudiante\Estudiante;
+
 
 
 class User extends Authenticatable
@@ -72,8 +75,23 @@ class User extends Authenticatable
         $name = explode(' ', $this->name);
         $initials = '';
         foreach ($name as $n) {
+            if (empty($n)) {
+                continue;
+            }
             $initials .= $n[0];
         }
         return $initials;
+    }
+
+    // relacion uno a uno con el empleado
+    public function empleado()
+    {
+        return $this->hasOne(Empleado::class);
+    }
+
+    // relacion uno a uno con el estudiante
+    public function estudiante()
+    {
+        return $this->hasOne(Estudiante::class);
     }
 }
