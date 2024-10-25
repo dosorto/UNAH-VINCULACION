@@ -12,6 +12,8 @@ use Database\Seeders\Demografia\PaisesSeeder;
 use Database\Seeders\Demografia\DepartamentoSeeder; 
 use Database\Seeders\UnidadAcademica\UnidadAcademicaSeeder;
 use Database\Seeders\Proyecto\ProyectoSeeder;
+use Database\Seeders\Proyecto\DataProyectoSeeder;
+use Database\Seeders\Proyecto\EmpleadoProyectoSeeder;
 use Database\Seeders\Personal\PersonalSeeder;
 use Database\Seeders\Demografia\MunicipioSeeder;
 
@@ -30,6 +32,8 @@ class DatabaseSeeder extends Seeder
         $this->call(UnidadAcademicaSeeder::class);
         $this->call(ProyectoSeeder::class);
         $this->call(PersonalSeeder::class);
+        $this->call(DataProyectoSeeder::class);
+        $this->call(EmpleadoProyectoSeeder::class);
 
         // User::factory(10)->create();
 
@@ -53,5 +57,7 @@ class DatabaseSeeder extends Seeder
  
          // Asignar permisos a roles
          $role->givePermissionTo('edit articles')->save();
+
+         
     }
 }

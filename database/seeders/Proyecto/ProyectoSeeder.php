@@ -73,10 +73,6 @@ class ProyectoSeeder extends Seeder
             ['nombre' => 'Alianzas para lograr los objetivos'],
         ]);
 
-    
-
-
-
 
     }
 }

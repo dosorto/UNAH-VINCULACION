@@ -67,10 +67,9 @@ Route::middleware(['auth'])->group(function () {
             ->name('crearDepartamento');
 
         Route::get('ListarDepartamentos', ListDepartamentos::class)
-
             ->name('listarDepartamentos');
-        Route::get('ListarCiudades', ListaCiudad::class)
 
+        Route::get('ListarCiudades', ListaCiudad::class)
             ->name('ListarCiudades');
 
         Route::get('crearCiudad', CreateCiudad::class)
