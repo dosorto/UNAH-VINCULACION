@@ -105,7 +105,9 @@
     <div>
         <div class=" ">
 
-            <x-panel.navbar.one-item titulo="Configuracion" route="listarLogs" :routes="['listarLogs', 'crearEmpleado']" icono="heroicon-c-cog-6-tooth" class="mb-4"/>
+            <x-panel.navbar.one-item titulo="Configuracion" route="listarLogs" :routes="['listarLogs', 'crearEmpleado']" icono="heroicon-c-cog-6-tooth" class="mb-4"
+                :permisos="['configuracion-admin-logs']" />
+            
       
             <div
                 class="bg-white rounded-lg p-2 border border-gray-300 rounded-lg  dark:bg-white/5 dark:border-gray-700">

@@ -154,6 +154,27 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // tabla de cargos de firma 
+        Schema::create('cargo_firma', function (Blueprint $table) {
+            $table->id();
+            $table->string('nombre');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+        // tabla de firmas de proyecto
+        Schema::create('firma_proyecto', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->foreignId('empleado_id')->constrained('empleado');
+            $table->foreignId('cargo_firma_id')->constrained('cargo_firma');
+            $table->foreignId('firma_id')->nullable();//->constrained('firma');
+            $table->boolean('estado_revision')->default(false);
+            $table->string('hash')->nullable();
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
 
     }
 

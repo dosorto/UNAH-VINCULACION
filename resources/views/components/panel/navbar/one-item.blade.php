@@ -4,10 +4,11 @@
     'routes' => [],
     'notificaciones' => 0,
     'route' => 'home',
-    'class' => ''
+    'class' => '',
+    'permisos' => []
 ])
 
-
+@if(auth()->user()->hasAnyPermission($permisos))
 <a href="{{ route($route) }}"
     class="mt-1 flex items-center py-2 px-4  hover:bg-gray-200 rounded-md transition-colors duration-150 ease-in-out 
      dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:text-gray-200  {{ $class }}
@@ -23,3 +24,4 @@
         {{ $titulo }}
     </span>
 </a>
+@endif

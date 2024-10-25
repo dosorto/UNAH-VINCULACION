@@ -38,7 +38,7 @@ class MicrosoftController extends Controller
     
             Auth::login($user, true);
     
-            return redirect()->route('crearPais');
+            return redirect()->route('inicio');
             
         } catch (\Exception $e) {
             Notification::make()
