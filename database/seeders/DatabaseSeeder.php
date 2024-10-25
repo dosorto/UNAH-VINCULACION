@@ -16,6 +16,7 @@ use Database\Seeders\Proyecto\DataProyectoSeeder;
 use Database\Seeders\Proyecto\EmpleadoProyectoSeeder;
 use Database\Seeders\Personal\PersonalSeeder;
 use Database\Seeders\Demografia\MunicipioSeeder;
+use Database\Seeders\Personal\PermisosSeeder;
 
 
 class DatabaseSeeder extends Seeder
@@ -31,6 +32,7 @@ class DatabaseSeeder extends Seeder
         $this->call(MunicipioSeeder::class);
         $this->call(UnidadAcademicaSeeder::class);
         $this->call(ProyectoSeeder::class);
+        $this->call(PermisosSeeder::class);
         $this->call(PersonalSeeder::class);
         $this->call(DataProyectoSeeder::class);
         $this->call(EmpleadoProyectoSeeder::class);
@@ -42,10 +44,10 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
          // Crear un rol
-         $role = Role::create(['name' => 'admin']);
+         //$role = Role::create(['name' => 'admin']);
 
          // Crear un permiso
-         $permission = Permission::create(['name' => 'edit articles']);
+         //$permission = Permission::create(['name' => 'edit articles']);
  
          // Asignar un rol a un usuario (con contraseña encriptada)
          $user = User::create([
@@ -56,8 +58,6 @@ class DatabaseSeeder extends Seeder
          $user->assignRole('admin')->save();
  
          // Asignar permisos a roles
-         $role->givePermissionTo('edit articles')->save();
-
-         
+        // $role->givePermissionTo('edit articles')->save();
     }
 }

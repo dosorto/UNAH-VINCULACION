@@ -29,17 +29,12 @@ class ListEmpleado extends Component implements HasForms, HasTable
         return $table
             ->query(Empleado::query())
             ->columns([
-                Tables\Columns\TextColumn::make('nombre')
+                Tables\Columns\TextColumn::make('nombre_completo')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('fecha_contratacion')
-                    ->date()
+                Tables\Columns\TextColumn::make('numero_empleado')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('salario')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('categoria.nombre')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('supervisor')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('jornada'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

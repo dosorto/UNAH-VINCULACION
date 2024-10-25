@@ -12,6 +12,10 @@ use App\Models\User;
 use App\Models\UnidadAcademica\Campus;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 
+use App\Models\Personal\CategoriaEmpleado;
+use App\Models\UnidadAcademica\FacultadCentro;
+use App\Models\Proyecto\Proyecto;
+
 class Empleado extends Model
 {
     use HasFactory;
@@ -41,9 +45,9 @@ class Empleado extends Model
         'nombre_completo',
         'numero_empleado',
         'celular',
-        'categoria',
+        'categoria_id',
         'user_id',
-        'campus_id',
+        'centro_facultad_id',
         'departamento_academico_id'
     ];
 
@@ -83,6 +87,31 @@ class Empleado extends Model
             ->where('tipo', 'sello')
             ->where('estado', true);
     }
+
+    //  relacion uno a muchos inversa con el modelo CategoriaEmpleado
+
+    public function categoria()
+    {
+        return $this->belongsTo(CategoriaEmpleado::class, 'categoria_id');
+    }
+
+    //  relacion uno a muchos inversa con el modelo FacultadCentro
+
+    public function centro_facultad()
+    {
+        return $this->belongsTo(FacultadCentro::class, 'centro_facultad_id');
+    }
+
+    // relacion muchos a muchos con el modelo Proyecto mediante la tabla intermedia empleado_proyecto
+    public function proyectos()
+    {
+        return $this->belongsToMany(Proyecto::class, 'empleado_proyecto', 'empleado_id', 'proyecto_id');
+          //  ->withPivot('id', 'fecha_inicio', 'fecha_fin', 'estado', 'horas_semanales', 'horas_totales', 'created_at', 'updated_at')
+            //->withTimestamps();
+    }
+   
+
+
 
     protected $table = 'empleado';
 }

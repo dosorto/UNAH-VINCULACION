@@ -26,6 +26,10 @@ use App\Http\Controllers\Auth\MicrosoftController;
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosSolicitado;
+use App\Livewire\Inicio\InicioAdmin;
+
+use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
+use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController;
 
 
 // Rutas para redireccionar a los usuario autenticados
@@ -48,58 +52,74 @@ Route::middleware(['guest'])->group(function () {
         ->name('password.reset');
 });
 
-
-
 // Rutas para redireccionar a los usuario  no autenticados
 Route::middleware(['auth'])->group(function () {
+
+    // rutas agrupadas para el modulo de inicio
+    Route::get('inicio', InicioAdmin::class)
+        ->name('inicio')
+        ->middleware('permission:inicio-admin-inicio|inicio-docente-inicio');
 
     // rutas agrupadas para el modulo de demografia :)
     Route::middleware(['auth'])->group(function () {
 
         Route::get('crearPais', CreatePais::class)
-            ->name('crearPais');
+            ->name('crearPais')
+            ->middleware('can:demografia-admin-pais');
 
         Route::get('listarPais', ListPaises::class)
-            ->name('listarPaises');
+            ->name('listarPaises')
+            ->middleware('can:demografia-admin-pais');
 
 
         Route::get('crearDepartamento', CreateDepartamento::class)
-            ->name('crearDepartamento');
+            ->name('crearDepartamento')
+            ->middleware('can:demografia-admin-departamento');
 
         Route::get('ListarDepartamentos', ListDepartamentos::class)
-            ->name('listarDepartamentos');
+            ->name('listarDepartamentos')
+            ->middleware('can:demografia-admin-departamento');
 
         Route::get('ListarCiudades', ListaCiudad::class)
-            ->name('ListarCiudades');
+            ->name('ListarCiudades')
+            ->middleware('can:demografia-admin-ciudad');
 
         Route::get('crearCiudad', CreateCiudad::class)
-            ->name('crearCiudad');
+            ->name('crearCiudad')
+            ->middleware('can:demografia-admin-ciudad');
 
 
         Route::get('ListarAldeas', ListAldeas::class)
-            ->name('ListarAldeas');
+            ->name('ListarAldeas')
+            ->middleware('can:demografia-admin-aldea');
 
         Route::get('crearAldea', CreateAldea::class)
-            ->name('crearAldea');
+            ->name('crearAldea')
+            ->middleware('can:demografia-admin-aldea');
 
         Route::get('ListarMunicipios', ListaMunicipios::class)
-            ->name('ListarMunicipios');
+            ->name('ListarMunicipios')
+            ->middleware('can:demografia-admin-municipio');
 
         Route::get('crearMunicipio', CreateMunicipio::class)
-            ->name('crearMunicipio');
+            ->name('crearMunicipio')
+            ->middleware('can:demografia-admin-municipio');
     });
 
 
     // rutas agrupadas para el modulo de Usuarios
     Route::middleware(['auth'])->group(function () {
         Route::get('/users', Users::class)
-            ->name('Usuarios');
+            ->name('Usuarios')
+            ->middleware('can:usuarios-admin-usuarios');
 
         Route::get('/roles', Roles::class)
-            ->name('roles');
+            ->name('roles')
+            ->middleware('can:usuarios-admin-rol');
 
         Route::get('listarPermisos', ListPermisos::class)
-            ->name('listPermisos');
+            ->name('listPermisos')
+            ->middleware('can:usuarios-admin-permiso');
 
 
         Route::get('/logout', function () {
@@ -114,26 +134,32 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['auth'])->group(function () {
 
         Route::get('crearEmpleado', CreateEmpleado::class)
-            ->name('crearEmpleado');
+            ->name('crearEmpleado')
+            ->middleware('can:empleados-admin-empleados');
 
         Route::get('listarEmpleados', ListEmpleado::class)
-            ->name('ListarEmpleados');
+            ->name('ListarEmpleados')
+            ->middleware('can:empleados-admin-empleados');
 
         Route::get('mi_perfil', EditPerfil::class)
-            ->name('mi_perfil');
+            ->name('mi_perfil')
+            ->middleware('can:configuracion-admin-mi-perfil');
     });
 
     // rutas agrupadas para el modulo de Proyectos
     Route::middleware(['auth'])->group(function () {
 
         Route::get('crearProyectoVinculacion', CreateProyectoVinculacion::class)
-            ->name('crearProyectoVinculacion');
+            ->name('crearProyectoVinculacion')
+            ->middleware('permission:docente-crear-proyecto|proyectos-admin-proyectos');
 
         Route::get('listarProyectosVinculacion', ListProyectosVinculacion::class)
-            ->name('listarProyectosVinculacion');
+            ->name('listarProyectosVinculacion')
+            ->middleware('can:proyectos-admin-proyectos');
 
         Route::get('listarProyectosSolicitado', ListProyectosSolicitado::class)
-            ->name('listarProyectosSolicitado');
+            ->name('listarProyectosSolicitado')
+            ->middleware('can:proyectos-admin-solicitados');
     });
 
 
@@ -141,7 +167,15 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['auth'])->group(function () {
 
         Route::get('listarLogs', ListLogs::class)
-            ->name('listarLogs');
+            ->name('listarLogs')
+            ->middleware('can:configuracion-admin-logs');
+    });
 
+
+    // agregar rutas para el modulo de docente
+    Route::middleware(['auth'])->group(function () {
+        Route::get('proyectosDocente', [DocenteProyectoController::class, 'listaDeProyectos'])
+            ->name('proyectosDocente')
+            ->middleware('can:docente-admin-proyectos');
     });
 });
