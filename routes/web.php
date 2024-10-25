@@ -37,7 +37,11 @@ Route::middleware(['guest'])->group(function () {
     Route::get('auth/microsoft/callback', [MicrosoftController::class, 'handleMicrosoftCallback'])
         ->name('auth.microsoft.callback');
 
-    Route::get('/', Login::class)
+    Route::get('/', function () {
+        return redirect(route('login'));
+    })
+    ->middleware('guest');;
+    Route::get('/login', Login::class)
         ->name('login')
         ->middleware('guest');
 
