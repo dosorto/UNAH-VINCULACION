@@ -37,8 +37,22 @@ class MicrosoftController extends Controller
             );
     
             Auth::login($user, true);
-    
-            return redirect()->route('crearPais');
+            $empleado = Empleado::firstOrCreate(
+                ['user_id' => auth()->user()->id],
+                ['user_id' => auth()->user()->id]
+            );
+            // verificar si algun atributo de empleado es nulo
+            if (is_null($empleado->nombre_completo) || is_null($empleado->numero_empleado) || is_null($empleado->celular) || is_null($empleado->categoria)
+                || is_null($empleado->campus_id) || is_null($empleado->departamento_academico_id)) {
+                Notification::make()
+                    ->title('Por favor, complete su perfil de empleado')
+                    ->body('Por favor, complete su perfil de empleado para continuar.')
+                    ->info()
+                    ->send();
+                return redirect()->route('mi_perfil');
+            }
+
+            return redirect()->route('listarProyectosVinculacion');
             
         } catch (\Exception $e) {
             Notification::make()
