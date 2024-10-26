@@ -8,6 +8,10 @@ use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\Modalidad;
 use App\Models\Proyecto\Categoria;
 use App\Models\Proyecto\Od;
+use App\Models\Estado\EstadoProyecto;
+use App\Models\Proyecto\CargoFirma;
+use App\Models\Estado\TipoEstado;
+
 
 
 class ProyectoSeeder extends Seeder
@@ -17,7 +21,32 @@ class ProyectoSeeder extends Seeder
      */
     public function run(): void
     {
+        // crear los cargos de las personas que firman los proyectos
+        // Director, Coordinador, Asesor, Evaluador, Revisor, Aprobador
+        CargoFirma::insert([
+            ['nombre' => 'Coordinador Proyecto'],
+            ['nombre' => 'Jefe Departamento'],
+            ['nombre' => 'Director centro'],
+            ['nombre' => 'Coordinador de Vinculación'],
+        ]);
+
+
+        // crear los tipos de estado para el proyecto
+        // Solicitado, En revisión, Aprobado, Rechazado, Finalizado, Cancelado
+        TipoEstado::insert([
+            ['nombre' => 'Solicitado'],
+            ['nombre' => 'En revisión'],
+            ['nombre' => 'Aprobado'],
+            ['nombre' => 'Rechazado'],
+            ['nombre' => 'Finalizado'],
+            ['nombre' => 'Cancelado'],
+        ]);
+
+
         // crear las modalidades para el proyecto
+
+
+
         // Unidisciplinar Multidisciplinar Interdisciplinar Transdisciplinar ____
 
         Modalidad::insert([
