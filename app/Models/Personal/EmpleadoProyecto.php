@@ -19,6 +19,7 @@ class EmpleadoProyecto extends Model
     protected $fillable = [
         'empleado_id',
         'proyecto_id',
+        'rol',
     ];
 
     public function empleado()
