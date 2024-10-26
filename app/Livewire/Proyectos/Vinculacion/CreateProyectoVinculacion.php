@@ -71,8 +71,6 @@ class CreateProyectoVinculacion extends Component implements HasForms
                         ->description('Información general del proyecto')
                         ->schema([
 
-
-
                             Forms\Components\TextInput::make('nombre_proyecto')
                                 //->required()
                                 ->columnSpanFull()
@@ -104,86 +102,111 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->relationship(name: 'modalidad', titleAttribute: 'nombre')
                                 ->preload(),
                             //->required,
-                            Select::make('coordinador_id')
+
+                            /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                            Repeater::make('coordinador_proyecto')
                                 ->label('Coordinador')
-                                // ->required()
-                                ->searchable(['nombre_completo', 'numero_empleado'])
-                                ->relationship(name: 'coordinador', titleAttribute: 'nombre_completo')
-                                ->default(
-                                    fn () => optional(Empleado::where('user_id', auth()->id())->first())->id
-                                )
-                                //     ->getSearchResultsUsing(fn(string $search): array =>
-                                //     Empleado::join('users', 'empleado.user_id', '=', 'users.id')
-                                //         ->where('users.email', 'like', "%{$search}%")
-                                //           ->limit(50)
-                                //        ->pluck('users.email', 'empleado.id')
-                                //          ->toArray())
-                                ->createOptionForm([
-
-                                    // campus o facultad del empleado
-
-                                    Select::make('centro_facultad_id')
-                                        ->label('Facultad o Centro')
-                                        ->searchable()
-                                        ->relationship(name: 'centro_facultad', titleAttribute: 'nombre')
-                                        ->live()
-                                        ->preload(),
-
-                                    // departamento academico del empleado
-
-                                    Select::make('departamento_academico_id')
-                                        ->label('Departamento Académico')
-                                        ->searchable()
-                                        ->visible(fn(Get $get): bool => $get('centro_facultad_id') !== null)
-                                        ->relationship(
-                                            name: 'departamento_academico',
-                                            titleAttribute: 'nombre',
-                                            modifyQueryUsing: fn($query, Get $get) => $query->where('centro_facultad_id', $get('centro_facultad_id'))
+                                ->schema([
+                                    Select::make('empleado_id')
+                                        ->label('Coordinador')
+                                        // ->required()
+                                        ->searchable(['nombre_completo', 'numero_empleado'])
+                                        ->relationship(name: 'empleado', titleAttribute: 'nombre_completo')
+                                        ->default(
+                                            fn() => optional(Empleado::where('user_id', auth()->id())->first())->id
                                         )
-                                        ->live()
-                                        ->preload(),
-                                    Forms\Components\TextInput::make('nombre_completo')
-                                        ->label('Nombre completo')
-                                        ->required(),
+                                        ->createOptionForm([
 
-                                    Forms\Components\TextInput::make('numero_empleado')
-                                        ->label('Número de empleado')
-                                        ->required(),
+                                            // campus o facultad del empleado
 
-                                    Select::make('categoria_id')
-                                        ->label('Categoría')
-                                        ->searchable()
-                                        ->relationship(name: 'categoria', titleAttribute: 'nombre')
-                                        ->preload(),
+                                            Select::make('centro_facultad_id')
+                                                ->label('Facultad o Centro')
+                                                ->searchable()
+                                                ->relationship(name: 'centro_facultad', titleAttribute: 'nombre')
+                                                ->live()
+                                                ->preload(),
 
-                                    Forms\Components\TextInput::make('email')
-                                        ->label('Correo electrónico ')
-                                        ->email()
-                                        ->required(),
+                                            // departamento academico del empleado
 
-                                    Forms\Components\TextInput::make('celular')
-                                        ->label('Celular'), //->required(),
+                                            Select::make('departamento_academico_id')
+                                                ->label('Departamento Académico')
+                                                ->searchable()
+                                                ->visible(fn(Get $get): bool => $get('centro_facultad_id') !== null)
+                                                ->relationship(
+                                                    name: 'departamento_academico',
+                                                    titleAttribute: 'nombre',
+                                                    modifyQueryUsing: fn($query, Get $get) => $query->where('centro_facultad_id', $get('centro_facultad_id'))
+                                                )
+                                                ->live()
+                                                ->preload(),
+                                            Forms\Components\TextInput::make('nombre_completo')
+                                                ->label('Nombre completo')
+                                                ->required(),
 
+                                            Forms\Components\TextInput::make('numero_empleado')
+                                                ->label('Número de empleado')
+                                                ->required(),
 
+                                            Select::make('categoria_id')
+                                                ->label('Categoría')
+                                                ->searchable()
+                                                ->relationship(name: 'categoria', titleAttribute: 'nombre')
+                                                ->preload(),
 
+                                            Forms\Components\TextInput::make('email')
+                                                ->label('Correo electrónico ')
+                                                ->email()
+                                                ->required(),
 
+                                            Forms\Components\TextInput::make('celular')
+                                                ->label('Celular'), //->required(),
+
+                                        ])
+                                        ->createOptionUsing(function (array $data) {
+                                            $user = User::create([
+                                                'email' => $data['email'],
+                                                'name' => $data['nombre_completo']
+                                            ]);
+                                            $user->empleado()->create([
+                                                'user_id' => $user->id,
+                                                'nombre_completo' => $data['nombre_completo'],
+                                                'numero_empleado' => $data['numero_empleado'],
+                                                'celular' => $data['celular'],
+                                                'categoria_id' => $data['categoria_id'],
+                                                'departamento_academico_id' => $data['departamento_academico_id'],
+
+                                            ]);
+                                        })
+                                        ->disabled(),
+                                    //->required,
+                                    Hidden::make('rol')
+                                        ->default('Coordinador'),
+                                    Hidden::make('empleado_id')
+                                        ->default(fn() => optional(Empleado::where('user_id', auth()->id())->first())->id),
+                                    Repeater::make('actividades')
+                                        ->relationship()
+                                        ->schema([
+                                            Forms\Components\TextInput::make('descripcion')
+                                                ->required()
+                                                //->required
+                                                ->columnSpanFull(),
+                                            Datepicker::make('fecha_ejecucion')
+                                                ->required()
+                                                ->columnSpan(1)
+                                        ])
+                                        ->label('Actividades')
+                                        ->defaultItems(0)
+                                        ->itemLabel('Actividad')
+                                        ->addActionLabel('Agregar actividad')
+                                        ->collapsed()
                                 ])
-                                ->createOptionUsing(function (array $data) {
-                                    $user = User::create([
-                                        'email' => $data['email'],
-                                        'name' => $data['nombre_completo']
-                                    ]);
-                                    $user->empleado()->create([
-                                        'user_id' => $user->id,
-                                        'nombre_completo' => $data['nombre_completo'],
-                                        'numero_empleado' => $data['numero_empleado'],
-                                        'celular' => $data['celular'],
-                                        'categoria_id' => $data['categoria_id'],
-                                        'departamento_academico_id' => $data['departamento_academico_id'],
+                                ->columnSpanFull()
+                                ->relationship()
+                                ->minItems(1)
+                                ->maxItems(1)
+                                ->defaultItems(1),
 
-                                    ]);
-                                }),
-                            //->required,
+                            /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                             Repeater::make('empleado_proyecto')
                                 ->label('Integrantes ')
@@ -235,9 +258,6 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                             Forms\Components\TextInput::make('celular')
                                                 ->label('Celular'), //->required(),
 
-
-
-
                                         ])
                                         ->required()
                                         ->createOptionUsing(function (array $data) {
@@ -255,6 +275,15 @@ class CreateProyectoVinculacion extends Component implements HasForms
 
                                             ]);
                                         }),
+
+                                    Select::make('rol')
+                                        ->label('Rol')
+                                        ->options([
+                                            'Subcoordinador' => 'Subcoordinador',
+                                            'Integrante' => 'Integrante',
+                                        ])
+                                        ->required()
+                                        ->default('Integrante'),
                                     //->required,
                                     Repeater::make('actividades')
                                         ->relationship()
@@ -397,6 +426,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->label('Fechas'),
                             TextInput::make('poblacion_participante')
                                 ->label('Población participante')
+                                ->numeric()
                                 ->columnSpan(1),
 
 
@@ -476,26 +506,33 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->schema([
                                     TextInput::make('presupuesto.aporte_estudiantes')
                                         ->label('Aporte de estudiantes')
+                                        ->numeric()
                                         ->columnSpan(1),
                                     TextInput::make('presupuesto.aporte_profesores')
                                         ->label('Aporte de profesores')
+                                        ->numeric()
                                         ->columnSpan(1),
                                     TextInput::make('presupuesto.aporte_academico_unah')
                                         ->label('Aporte académico UNAH')
+                                        ->numeric()
                                         ->columnSpan(1),
                                     TextInput::make('presupuesto.aporte_transporte_unah')
                                         ->label('Aporte de transporte UNAH')
+                                        ->numeric()
                                         ->columnSpan(1),
                                     TextInput::make('presupuesto.aporte_contraparte')
                                         ->label('Aporte de contraparte')
+                                        ->numeric()
                                         ->columnSpan(1),
                                     TextInput::make('presupuesto.aporte_comunidad')
                                         ->label('Aporte de comunidad')
+                                        ->numeric()
                                         ->columnSpan(1),
 
                                     TextInput::make('total_unah')
                                         ->label('Total UNAH')
                                         ->disabled()
+                                        ->numeric()
                                         ->columnSpan(1),
 
                                     Repeater::make('superavit')
@@ -621,30 +658,18 @@ class CreateProyectoVinculacion extends Component implements HasForms
 
     public function create(): void
     {
+        // dd($this->form->getState());
         $data = $this->form->getState();
         $data['fecha_registro'] = now();
         $record = Proyecto::create($data);
         $this->form->model($record)->saveRelationships();
 
-        // crear una firma para el coordinador del proyecto, en caso de ser el mismo que el usuario autenticado se debe firmar aca
-        // en caso contrario se debe hacer firmar al coordinador
-        if ($record->coordinador_id == auth()->user()->empleado->id) {
-            $record->firma_proyecto()->create([
-                'empleado_id' => $record->coordinador_id,
-                'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
-                'estado_revision' => true,
-                'hash' => 'hash'
-            ]);
-        } else {
-            $record->firma_proyecto()->create([
-                'empleado_id' => $record->coordinador_id,
-                'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
-                'estado_revision' => false,
-                'hash' => 'hash'
-            ]);
-        }
-
-
+        $record->firma_proyecto()->create([
+            'empleado_id' => auth()->user()->empleado->id,
+            'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
+            'estado_revision' => true,
+            'hash' => 'hash'
+        ]);
 
         Notification::make()
             ->title('¡Éxito!')

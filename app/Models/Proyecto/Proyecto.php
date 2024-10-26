@@ -203,7 +203,15 @@ class Proyecto extends Model
     // relacion uno a muchos con el modelo empleado_proyecto
     public function empleado_proyecto()
     {
-        return $this->hasMany(EmpleadoProyecto::class, 'proyecto_id');
+        return $this->hasMany(EmpleadoProyecto::class, 'proyecto_id')
+                    ->whereNot('rol', 'Coordinador');
+    }
+
+    // relacion uno a muchos con el modelo empleado_proyecto
+    public function coordinador_proyecto()
+    {
+        return $this->hasMany(EmpleadoProyecto::class, 'proyecto_id')
+                    ->where('rol', 'Coordinador');
     }
 
     // realacion uno a muchos con el modelo estudiante_proyecto
