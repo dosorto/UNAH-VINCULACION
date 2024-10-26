@@ -44,7 +44,7 @@ class Proyecto extends Model
 
     protected static $logAttributes = [
         'nombre_proyecto',
-        'coordinador_id',
+        // 'coordinador_id',
         'modalidad_id',
         'municipio_id',
         'departamento_id',
@@ -77,7 +77,7 @@ class Proyecto extends Model
         return LogOptions::defaults()
             ->logOnly([
                 'nombre_proyecto',
-                'coordinador_id',
+                // 'coordinador_id',
                 'modalidad_id',
                 'municipio_id',
                 'departamento_id',
@@ -110,7 +110,7 @@ class Proyecto extends Model
 
     protected $fillable = [
         'nombre_proyecto',
-        'coordinador_id',
+        // 'coordinador_id',
         'modalidad_id',
         'municipio_id',
         'departamento_id',
@@ -139,10 +139,10 @@ class Proyecto extends Model
 
 
 
-    public function coordinador()
-    {
-        return $this->belongsTo(Empleado::class, 'coordinador_id',);
-    }
+    // public function coordinador()
+    // {
+    //     return $this->belongsTo(Empleado::class, 'coordinador_id',);
+    // }
 
     public function od()
     {
@@ -203,7 +203,15 @@ class Proyecto extends Model
     // relacion uno a muchos con el modelo empleado_proyecto
     public function empleado_proyecto()
     {
-        return $this->hasMany(EmpleadoProyecto::class, 'proyecto_id');
+        return $this->hasMany(EmpleadoProyecto::class, 'proyecto_id')
+                    ->whereNot('rol', 'Coordinador');
+    }
+
+    // relacion uno a muchos con el modelo empleado_proyecto
+    public function coordinador_proyecto()
+    {
+        return $this->hasMany(EmpleadoProyecto::class, 'proyecto_id')
+                    ->where('rol', 'Coordinador');
     }
 
     // realacion uno a muchos con el modelo estudiante_proyecto
