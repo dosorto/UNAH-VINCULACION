@@ -30,6 +30,7 @@ use App\Models\Presupuesto\Presupuesto;
 use App\Models\Proyecto\Superavit;
 use App\Models\Proyecto\Categoria;
 use App\Models\Proyecto\Od;
+use App\Models\Proyecto\FirmaProyecto;
 
 
 
@@ -248,6 +249,23 @@ class Proyecto extends Model
     public function cantidad_estudiantes()
     {
         return $this->estudiante_proyecto()->count();
+    }
+
+    // relacion uno a muchos con el modelo FirmaProyecto
+    public function firma_proyecto()
+    {
+        return $this->hasMany(FirmaProyecto::class, 'proyecto_id');
+    }
+
+    public function firma_proyecto_jefe()
+    {
+        return $this->hasMany(FirmaProyecto::class, 'proyecto_id');
+    }
+
+    // relacion uno a  uno con el modelo firma_proyecto
+    public function firma_proyecto_uno()
+    {
+        return $this->hasOne(FirmaProyecto::class, 'proyecto_id');
     }
 
 
