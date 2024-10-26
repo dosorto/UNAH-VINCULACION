@@ -93,7 +93,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('empleado_id')->constrained('empleado');
             $table->foreignId('proyecto_id')->constrained('proyecto');
-            $table->emun('rol', ['Coordinador', 'Subcoordinador', 'Integrante']);
+            $table->enum('rol', ['Coordinador', 'Subcoordinador', 'Integrante']);
             $table->softDeletes();
             $table->timestamps();
         });
