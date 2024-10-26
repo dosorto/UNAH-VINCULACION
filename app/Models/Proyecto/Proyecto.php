@@ -44,7 +44,7 @@ class Proyecto extends Model
 
     protected static $logAttributes = [
         'nombre_proyecto',
-        'coordinador_id',
+        // 'coordinador_id',
         'modalidad_id',
         'municipio_id',
         'departamento_id',
@@ -77,7 +77,7 @@ class Proyecto extends Model
         return LogOptions::defaults()
             ->logOnly([
                 'nombre_proyecto',
-                'coordinador_id',
+                // 'coordinador_id',
                 'modalidad_id',
                 'municipio_id',
                 'departamento_id',
@@ -110,7 +110,7 @@ class Proyecto extends Model
 
     protected $fillable = [
         'nombre_proyecto',
-        'coordinador_id',
+        // 'coordinador_id',
         'modalidad_id',
         'municipio_id',
         'departamento_id',
@@ -139,10 +139,10 @@ class Proyecto extends Model
 
 
 
-    public function coordinador()
-    {
-        return $this->belongsTo(Empleado::class, 'coordinador_id',);
-    }
+    // public function coordinador()
+    // {
+    //     return $this->belongsTo(Empleado::class, 'coordinador_id',);
+    // }
 
     public function od()
     {

@@ -42,7 +42,7 @@ return new class extends Migration
         Schema::create('proyecto', function (Blueprint $table) {
             $table->id();
             $table->string('nombre_proyecto');
-            $table->foreignId('coordinador_id')->constrained('empleado');
+            // $table->foreignId('coordinador_id')->constrained('empleado');
             $table->foreignId('modalidad_id')->constrained('modalidad');
             $table->foreignId('municipio_id')->nullable()->constrained('municipio');
             $table->foreignId('departamento_id')->nullable()->constrained('departamento');
@@ -93,6 +93,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('empleado_id')->constrained('empleado');
             $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->emun('rol', ['Coordinador', 'Subcoordinador', 'Integrante']);
             $table->softDeletes();
             $table->timestamps();
         });
