@@ -30,7 +30,7 @@ use App\Livewire\Inicio\InicioAdmin;
 
 use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
 use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController;
-
+use App\Livewire\Docente\Proyectos\SolicitudProyectosDocenteList;
 
 // Rutas para redireccionar a los usuario autenticados
 Route::middleware(['guest'])->group(function () {
@@ -180,6 +180,10 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['auth'])->group(function () {
         Route::get('proyectosDocente', [DocenteProyectoController::class, 'listaDeProyectos'])
             ->name('proyectosDocente')
+            ->middleware('can:docente-admin-proyectos');
+
+        Route::get('SolicitudProyectosDocente', [DocenteProyectoController::class, 'SolicitudProyectosDocente'])
+            ->name('SolicitudProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
     });
 });

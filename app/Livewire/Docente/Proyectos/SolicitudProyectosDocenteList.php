@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Livewire\Proyectos\Vinculacion;
+namespace App\Livewire\Docente\Proyectos;
 
+use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Proyecto;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -12,18 +13,19 @@ use Filament\Tables\Table;
 use Livewire\Component;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Enums\FiltersLayout;
-use Filament\Forms\Components\Select;
-use App\Models\UnidadAcademica\FacultadCentro;
-use App\Models\UnidadAcademica\DepartamentoAcademico;
-use Filament\Tables\Filters\Filter;
-use Filament\Forms\Get;
+use Filament\Tables\Actions\Action;
+use Filament\Support\Enums\MaxWidth;
 
-class ListProyectosSolicitado extends Component implements HasForms, HasTable
+class SolicitudProyectosDocenteList extends Component implements HasForms, HasTable
 {
     use InteractsWithForms;
     use InteractsWithTable;
+    public Empleado $docente;
+
+    public function mount(Empleado $docente): void
+    {
+        $this->docente = $docente;
+    }
 
     public function table(Table $table): Table
     {
@@ -89,8 +91,6 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.proyectos.vinculacion.list-proyectos-vinculacion-solicitados')
-            ->layout('components.panel.modulos.modulo-proyectos');
+        return view('livewire.docente.proyectos.solicitud-proyectos-docente-list');
     }
 }
-
