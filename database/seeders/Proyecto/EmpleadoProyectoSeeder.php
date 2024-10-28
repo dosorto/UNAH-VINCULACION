@@ -17,6 +17,7 @@ class EmpleadoProyectoSeeder extends Seeder
         EmpleadoProyecto::insert([
             'empleado_id' => 2,
             'proyecto_id' => 1,
+            'rol' => 'Coordinador',
         ]);
     }
 }

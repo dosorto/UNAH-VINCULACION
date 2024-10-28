@@ -14816,7 +14816,8 @@
 								"$ref": "AAAAAAGSr+AOrUDLv/I="
 							},
 							"name": "estado_revision",
-							"length": 0
+							"type": "VARCHAR",
+							"length": "15"
 						},
 						{
 							"_type": "ERDColumn",

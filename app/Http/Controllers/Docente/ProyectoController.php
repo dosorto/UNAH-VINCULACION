@@ -18,4 +18,12 @@ class ProyectoController extends Controller
         return view('app.docente.proyectos.ver-proyectos', compact('docenteLogeado'));
 
     }
+
+    public function SolicitudProyectosDocente()
+    {
+        $docenteLogeado = auth()->user()->empleado;
+
+        return view('app.docente.proyectos.ver-proyectos-solicitados-docente', compact('docenteLogeado'));
+
+    }
 }
