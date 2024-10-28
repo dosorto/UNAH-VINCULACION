@@ -29,10 +29,12 @@
             icono="heroicon-m-puzzle-piece" :permisos="['proyectos-admin-proyectos', 'proyectos-admin-solicitados', 'proyectos-admin-aprobados']" />
 
         <!-- modulo de docentes -->
-        <x-panel.navbar.one-item titulo="Proyectos" route="proyectosDocente" :routes="['proyectosDocente', 'SolicitudProyectosDocente']" icono="heroicon-o-academic-cap"
+        <x-panel.navbar.one-item titulo="Proyectos" route="proyectosDocente" :routes="['proyectosDocente']" icono="heroicon-o-academic-cap"
             :permisos="['docente-admin-proyectos', 'docente-admin-solicitados']"    icono="heroicon-m-puzzle-piece" />
 
-        <x-panel.navbar.one-item titulo="Solicitud de proyectos" route="SolicitudProyectosDocente" :routes="['SolicitudProyectosDocente']" :permisos="['docente-admin-proyectos']" />
-        
+        <x-panel.navbar.one-item titulo="Solicitudes de Firma" route="SolicitudProyectosDocente" :routes="['SolicitudProyectosDocente']" :permisos="['docente-admin-proyectos']" />
+        <x-panel.navbar.one-item titulo="Firmas Aprobadas" route="AprobadoProyectosDocente" :routes="['AprobadoProyectosDocente']" :permisos="['docente-admin-proyectos']" />
+        <x-panel.navbar.one-item titulo="Firmas rechazadas" route="RechazadoProyectosDocente" :routes="['RechazadoProyectosDocente']" :permisos="['docente-admin-proyectos']" />
+
     </x-panel.navbar.group-item>
 </x-panel.navbar.navbar-container>

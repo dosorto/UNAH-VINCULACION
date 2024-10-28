@@ -15,7 +15,7 @@ class DataProyectoSeeder extends Seeder
         Proyecto::insert([
             [
                 'nombre_proyecto' => 'Fortalecimiento del Acceso a la Justicia',
-                'coordinador_id' => 2,
+                // 'coordinador_id' => 2,
                 'modalidad_id' => 1,
                 'municipio_id' => 9,
                 'departamento_id' => 2,
