@@ -41,25 +41,25 @@ return new class extends Migration
         // tabla proyecto
         Schema::create('proyecto', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre_proyecto');
-            $table->foreignId('coordinador_id')->constrained('empleado');
-            $table->foreignId('modalidad_id')->constrained('modalidad');
+            $table->string('nombre_proyecto')->nullable();
+            // $table->foreignId('coordinador_id')->constrained('empleado');
+            $table->foreignId('modalidad_id')->nullable()->constrained('modalidad');
             $table->foreignId('municipio_id')->nullable()->constrained('municipio');
             $table->foreignId('departamento_id')->nullable()->constrained('departamento');
             $table->foreignId('ciudad_id')->nullable()->constrained('ciudad');
             $table->string('aldea')->nullable();
-            $table->string('resumen');
-            $table->string('objetivo_general');
-            $table->string('objetivos_especificos');
-            $table->date('fecha_inicio');
-            $table->date('fecha_finalizacion');
-            $table->date('evaluacion_intermedia');
-            $table->date('evaluacion_final');
-            $table->decimal('poblacion_participante', 8, 2);
-            $table->enum('modalidad_ejecucion', ['Distancia', 'Presencial', 'Bimodal']);
-            $table->string('resultados_esperados');
-            $table->string('indicadores_medicion_resultados');
-            $table->date('fecha_registro');
+            $table->string('resumen')->nullable();
+            $table->string('objetivo_general')->nullable();
+            $table->string('objetivos_especificos')->nullable();
+            $table->date('fecha_inicio')->nullable();
+            $table->date('fecha_finalizacion')->nullable();
+            $table->date('evaluacion_intermedia')->nullable();
+            $table->date('evaluacion_final')->nullable();
+            $table->decimal('poblacion_participante', 8, 2)->nullable();
+            $table->enum('modalidad_ejecucion', ['Distancia', 'Presencial', 'Bimodal'])->nullable();
+            $table->string('resultados_esperados')->nullable();
+            $table->string('indicadores_medicion_resultados')->nullable();
+            $table->date('fecha_registro')->nullable();
 
             $table->foreignId('responsable_revision_id')->nullable()->constrained('empleado');
             $table->date('fecha_aprobacion')->nullable();
@@ -93,6 +93,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('empleado_id')->constrained('empleado');
             $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->enum('rol', ['Coordinador', 'Subcoordinador', 'Integrante']);
             $table->softDeletes();
             $table->timestamps();
         });
@@ -169,7 +170,7 @@ return new class extends Migration
             $table->foreignId('empleado_id')->constrained('empleado');
             $table->foreignId('cargo_firma_id')->constrained('cargo_firma');
             $table->foreignId('firma_id')->nullable();//->constrained('firma');
-            $table->boolean('estado_revision')->default(false);
+            $table->enum('estado_revision', ['Pendiente', 'Rechazado', 'Aprobado'])->default('Pendiente');
             $table->string('hash')->nullable();
             $table->softDeletes();
             $table->timestamps();

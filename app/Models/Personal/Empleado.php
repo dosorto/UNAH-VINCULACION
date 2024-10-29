@@ -15,6 +15,7 @@ use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\Personal\CategoriaEmpleado;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\FirmaProyecto;
 
 class Empleado extends Model
 {
@@ -111,7 +112,28 @@ class Empleado extends Model
     }
    
 
+    public function firmaProyectoPendiente()
+    {
+        return $this->hasMany(FirmaProyecto::class, 'empleado_id')
+                        ->where('estado_revision', 'Pendiente');
+    }
 
+    public function firmaProyectoAprobado()
+    {
+        return $this->hasMany(FirmaProyecto::class, 'empleado_id')
+                        ->where('estado_revision', 'Aprobado');
+    }
+
+    public function firmaProyectoRechazado()
+    {
+        return $this->hasMany(FirmaProyecto::class, 'empleado_id')
+                        ->where('estado_revision', 'Rechazado');
+    }
+
+    public function firmaProyecto()
+    {
+        return $this->hasMany(FirmaProyecto::class, 'empleado_id');
+    }
 
     protected $table = 'empleado';
 }

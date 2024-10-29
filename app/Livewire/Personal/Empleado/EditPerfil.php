@@ -16,11 +16,12 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 // use Filament\Pages\Actions\CreateAction;
 // use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Forms\Components\FileUpload;
 use Filament\Actions\Contracts\HasActions;
 use App\Models\Personal\FirmaSelloEmpleado;
-use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Actions\Concerns\InteractsWithActions;
 
 class EditPerfil extends Component implements HasForms, HasActions
@@ -34,7 +35,10 @@ class EditPerfil extends Component implements HasForms, HasActions
 
     public function mount(): void
     {
-        $this->record = Empleado::where('user_id', auth()->user()->id)->first();
+        $this->record = Empleado::firstOrCreate(
+            ['user_id' => auth()->user()->id],
+            ['user_id' => auth()->user()->id]
+        );
         $this->form->fill($this->record->attributesToArray());
     }
 
@@ -42,9 +46,33 @@ class EditPerfil extends Component implements HasForms, HasActions
     {
         return $form
             ->schema([
-                Section::make('Editar Oerfil de Empleado')
+                Section::make('Editar Perfil de Empleado')
                     ->description('Editar los datos de empleado Asociado.')
                     ->schema([
+                        // Otros campos del formulario
+                        TextInput::make('nombre_completo')
+                            ->required()
+                            ->maxLength(255),
+                        TextInput::make('numero_empleado')
+                            ->required()
+                            ->numeric()
+                            ->maxLength(255),
+                        TextInput::make('celular')
+                            ->required()
+                            ->numeric()
+                            ->maxLength(255),
+                        TextInput::make('categoria')
+                            ->required()
+                            ->maxLength(255),
+                        Select::make('campus_id')
+                            ->label('Campus')
+                            ->relationship('campus', 'nombre_campus')
+                            ->required(),
+                        Select::make('departamento_academico_id')
+                            ->label('Departamento Academico')
+                            ->relationship('DepartamentoAcademico', 'nombre')
+                            ->required(),
+
                         // Section para la firma
                         Section::make('Firma')
                             ->description('Visualizar o agregar una nueva Firma.')
@@ -73,14 +101,16 @@ class EditPerfil extends Component implements HasForms, HasActions
                             ->schema([
                                 // ...
                                 Repeater::make('firma')
+                                    ->label('')
                                     ->relationship()
                                     ->deletable(false)
                                     ->schema([
                                         FileUpload::make('ruta_storage')
-                                            ->label('Firma')
+                                            ->label('')
                                             ->disk('public')
                                             ->directory('firmas_sellos')
                                             ->image()
+                                            ->disabled()
                                             ->nullable(),
                                         Hidden::make('tipo')
                                             ->default('firma'),
@@ -88,6 +118,7 @@ class EditPerfil extends Component implements HasForms, HasActions
                                     ->minItems(0)
                                     ->maxItems(1)
                                     ->defaultItems(1)
+                                    ->addable(false)
                                     ->columns(1),
                             ]),
 
@@ -119,14 +150,16 @@ class EditPerfil extends Component implements HasForms, HasActions
                             ->schema([
                                 // ...
                                 Repeater::make('sello')
+                                    ->label('')
                                     ->relationship()
                                     ->deletable(false)
                                     ->schema([
                                         FileUpload::make('ruta_storage')
-                                            ->label('Sello')
+                                            ->label('')
                                             ->disk('public')
                                             ->directory('firmas_sellos')
                                             ->image()
+                                            ->disabled()
                                             ->nullable(),
                                         Hidden::make('tipo')
                                             ->default('sello'),
@@ -134,31 +167,9 @@ class EditPerfil extends Component implements HasForms, HasActions
                                     ->minItems(0)
                                     ->maxItems(1)
                                     ->defaultItems(1)
+                                    ->addable(false)
                                     ->columns(1),
                             ]),
-
-                        // Otros campos del formulario
-                        TextInput::make('nombre_completo')
-                            ->required()
-                            ->maxLength(255),
-                        TextInput::make('numero_empleado')
-                            ->required()
-                            ->maxLength(255),
-                        TextInput::make('celular')
-                            ->required()
-                            ->numeric()
-                            ->maxLength(255),
-                        TextInput::make('categoria')
-                            ->required()
-                            ->maxLength(255),
-                        Select::make('campus_id')
-                            ->label('Campus')
-                            ->relationship('campus', 'nombre_campus')
-                            ->required(),
-                        Select::make('departamento_academico_id')
-                            ->label('Departamento Academico')
-                            ->relationship('DepartamentoAcademico', 'nombre')
-                            ->required(),
                     ])
             ])
             ->statePath('data')
@@ -211,6 +222,11 @@ class EditPerfil extends Component implements HasForms, HasActions
     {
         $data = $this->form->getState();
         $this->record->update($data);
+        Notification::make()
+            ->title('Exito!')
+            ->body('Perfil de ' . $data['nombre_completo'] . ' actualizado correctamente.')
+            ->success()
+            ->send();
     }
 
     public function render(): View
