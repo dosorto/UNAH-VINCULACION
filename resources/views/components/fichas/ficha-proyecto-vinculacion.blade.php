@@ -572,7 +572,7 @@
                 </table>
                 <table class="table_datos4" style="width: 450px; margin: 0 auto;">
                     <tr>
-                        <td class="sub-header" colspan="2">Jeje del Departamento</td>
+                        <td class="sub-header" colspan="2">Decano(a) o Director(a) del Campus Universitario</td>
                     </tr>
                     <tr>
                         <td class="full-width " colspan="1">Nombre:</td>

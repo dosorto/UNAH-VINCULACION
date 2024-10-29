@@ -2,7 +2,7 @@
     <x-panel.navbar.group-item titulo="Dashboard" icono="ri-dashboard-line">
         <x-panel.navbar.one-item titulo="Inicio" route="inicio" :routes="['inicio']" :permisos="['inicio-admin-inicio', 'inicio-docente-inicio']"
             icono="heroicon-o-home" />
-        <x-panel.navbar.one-item titulo="Demografia" route="listarPaises" :routes="[
+        <x-panel.navbar.one-item titulo="Demografía" route="listarPaises" :routes="[
             'listarPaises',
             'crearPais',
             'listarDepartamentos',
