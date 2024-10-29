@@ -12,11 +12,7 @@ class CargoFirma extends Model
     protected $table = 'cargo_firma';
 
     protected $fillable = [
-        'proyecto_id',
-        'empleado_id',
-        'firma_id',
-        'cargo_firma_id',
-        'estado_revision',
-        'hash'
+        'id',
+        'nombre',
     ];
 }
