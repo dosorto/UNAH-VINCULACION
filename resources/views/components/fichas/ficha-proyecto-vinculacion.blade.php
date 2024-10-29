@@ -62,16 +62,16 @@
                         <th class="full-width1" rowspan="1">Modalidad</th>
                         <td class="sub-header1" colspan="1">Unidisciplinar <br>
 
-                            <input type="checkbox" class="No" @if ($proyecto->modalidad->nombre == 'Unidisciplinar') checked @endif>
+                            <input type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>
                         </td>
                         <td class="sub-header1" colspan="1">Multidisciplinar<br>
-                            <input type="checkbox" class="No" @if ($proyecto->modalidad->nombre == 'Multidisciplinar') checked @endif>
+                            <input type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Multidisciplinar') checked @endif>
                         </td>
                         <td class="sub-header1" colspan="1">Interdisciplinar <br>
-                            <input type="checkbox" class="No" @if ($proyecto->modalidad->nombre == 'Interdisciplinar') checked @endif>
+                            <input type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Interdisciplinar') checked @endif>
                         </td>
                         <td class="sub-header1" colspan="1">Transdisciplinar<br>
-                            <input type="checkbox" class="No" @if ($proyecto->modalidad->nombre == 'Transdisciplinar') checked @endif>
+                            <input type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>
                         </td>
                     </tr>
                     <tr>
@@ -103,7 +103,7 @@
                         <td class="sub-header">Categoria:</td>
                         <td class="full-width" colspan="1">
                             <input type="email" class="input-field" placeholder="Ingrese el número de celular"
-                                value="{{ $proyecto->coordinador->categoria }}" disabled>
+                                value="{{ $proyecto->coordinador->categoria->nombre }}" disabled>
                         </td>
                         <td class="sub-header">Departamento:</td>
                         <td class="full-width" colspan="1">
@@ -141,7 +141,7 @@
                             </td>
                             <td class="full-width" colspan="1">
                                 <input type="text" class="input-field" placeholder="Ingrese la categoría"
-                                    value="{{ $integrante->categoria }}" disabled>
+                                    value="{{ $integrante->categoria->nombre }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
                                 <input type="text" class="input-field" placeholder="Ingrese el departamento"
