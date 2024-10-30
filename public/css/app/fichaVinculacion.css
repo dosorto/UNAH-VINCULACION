@@ -5,7 +5,7 @@ body {
     padding: 20px;
 }
 .container {
-    width: 810px; /* Ancho basado en 8.5 pulgadas */
+    /* width: 810px; /* Ancho basado en 8.5 pulgadas */
     /* height: 1056px; Alto basado en 11 pulgadas */
     margin: 0 auto;
     border: 1px solid #ccc;

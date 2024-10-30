@@ -62,8 +62,10 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->wrap()
                     ->label('Centro/Facultad'),
 
-                Tables\Columns\TextColumn::make('modalidad.nombre')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('estado.tipoestado.nombre')
+                    ->badge()
+                    ->color('info')
+                    ->label('Estado')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('fecha_inicio')
@@ -143,7 +145,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                             ['proyecto' => $proyecto]
                         )
                     )
-                   // ->stickyModalHeader()
+                    // ->stickyModalHeader()
                     ->modalWidth(MaxWidth::SevenExtraLarge)
                     ->modalSubmitAction(false)
 
