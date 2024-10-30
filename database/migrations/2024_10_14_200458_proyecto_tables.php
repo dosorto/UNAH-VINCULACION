@@ -81,11 +81,19 @@ return new class extends Migration
             $table->string('nombre_contacto');
             $table->boolean('es_internacional')->default(false);
             $table->string('aporte');
-            $table->string('instrumento_formalizacion');
+            // $table->string('instrumento_formalizacion');
             $table->softDeletes();
             $table->timestamps();
         });
 
+        // tabla instrumento_formalizacion
+        Schema::create('instrumento_formalizacion', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('entidad_contraparte_id')->constrained('entidad_contraparte');
+            $table->string('documento_url');
+            $table->softDeletes();
+            $table->timestamps();
+        });
        
 
         // tabla empleado_proyecto
