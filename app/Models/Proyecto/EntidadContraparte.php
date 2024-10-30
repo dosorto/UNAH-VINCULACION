@@ -15,7 +15,7 @@ class EntidadContraparte extends Model
     use LogsActivity;
 
     protected static $logAttributes = ['id', 'proyecto_id', 'nombre', 'telefono', 'correo', 'nombre_contacto', 'es_internacional',
-            'aporte', 'instrumento_formalizacion'];
+            'aporte'];
 
     protected static $logName = 'EntidadContraparte';
 
@@ -23,7 +23,7 @@ class EntidadContraparte extends Model
     {
         return LogOptions::defaults()
         ->logOnly(['id', 'proyecto_id', 'nombre', 'telefono', 'correo', 'nombre_contacto', 'es_internacional',
-            'aporte', 'instrumento_formalizacion'])
+            'aporte'])
         ->setDescriptionForEvent(fn (string $eventName) => "El registro {$this->nombre} ha sido {$eventName}");
     }
     
@@ -36,12 +36,18 @@ class EntidadContraparte extends Model
         'nombre_contacto', 
         'es_internacional',
         'aporte', 
-        'instrumento_formalizacion'
+        // 'instrumento_formalizacion'
     ];
 
     public function proyecto()
     {
         return $this->belongsTo(Proyecto::class, 'proyecto_id',);
+    }
+
+    // Relacion de uno a muchos con el modelo InstrumentoFormalizacion
+    public function instrumento_formalizacion()
+    {
+        return $this->hasMany(InstrumenFormalizacion::class);
     }
 
     protected $table = 'entidad_contraparte';

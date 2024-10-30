@@ -34,12 +34,14 @@ class ProyectoSeeder extends Seeder
         // crear los tipos de estado para el proyecto
         // Solicitado, En revisión, Aprobado, Rechazado, Finalizado, Cancelado
         TipoEstado::insert([
-            ['nombre' => 'Solicitado'],
-            ['nombre' => 'En revisión'],
+            ['nombre' => 'Esperando firma de Jefe de Departamento'],
+            ['nombre' => 'Esperando firma de Vinculacion'],
+            ['nombre' => 'Esperando firma de Director/Decano'],
+            ['nombre' => 'Subsanacion'],
+            ['nombre' => 'En revision'],
             ['nombre' => 'Aprobado'],
             ['nombre' => 'Rechazado'],
-            ['nombre' => 'Finalizado'],
-            ['nombre' => 'Cancelado'],
+            ['nombre' => 'Inscrito'],
         ]);
 
 
@@ -51,7 +53,7 @@ class ProyectoSeeder extends Seeder
 
         Modalidad::insert([
             ['nombre' => 'Unidisciplinar'],
-            ['nombre' => 'Multidisciplinar'],
+            ['nombre' => 'Multidisciplinar'],['nombre' => 'Esperando firma de Vinculacion'],
             ['nombre' => 'Interdisciplinar'],
             ['nombre' => 'Transdisciplinar'],
         ]);

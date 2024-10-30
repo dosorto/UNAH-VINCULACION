@@ -67,6 +67,10 @@ class Empleado extends Model
     {
         return $this->belongsTo(DepartamentoAcademico::class);
     }
+    public function departamento_academico()
+    {
+        return $this->belongsTo(DepartamentoAcademico::class);
+    }
 
     public function firmaSellos()
     {

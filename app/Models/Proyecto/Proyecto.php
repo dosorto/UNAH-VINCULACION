@@ -32,6 +32,8 @@ use App\Models\Proyecto\Categoria;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\FirmaProyecto;
 
+use App\Models\Estado\EstadoProyecto;
+
 
 
 class Proyecto extends Model
@@ -213,14 +215,18 @@ class Proyecto extends Model
         return $this->hasMany(EmpleadoProyecto::class, 'proyecto_id')
                     ->where('rol', 'Coordinador');
     }
+    // obtener el coordinador del proyecto
+    public function  getCoordinadorAttribute()
+    {
+        return $this->coordinador_proyecto->first()->empleado;
+    }
+
 
     // realacion uno a muchos con el modelo estudiante_proyecto
     public function estudiante_proyecto()
     {
         return $this->hasMany(EstudianteProyecto::class, 'proyecto_id');
     }
-
-
 
     // relacion uno a muchos con el modelo entidad contraparte
     public function entidad_contraparte()
@@ -280,6 +286,19 @@ class Proyecto extends Model
     public function firma_proyecto_uno()
     {
         return $this->hasOne(FirmaProyecto::class, 'proyecto_id');
+    }
+
+    // relacion uno a muchos con el modelo estado_proyecto
+    public function estado_proyecto()
+    {
+        return $this->hasMany(EstadoProyecto::class, 'proyecto_id');
+    }
+
+    // obtener el estado actual del proyecto
+
+    public function getEstadoAttribute()
+    {
+        return $this->estado_proyecto->last();
     }
 
 
