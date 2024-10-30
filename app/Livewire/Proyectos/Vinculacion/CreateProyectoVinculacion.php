@@ -588,6 +588,8 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                         ->default(
                                             CargoFirma::where('nombre', 'Jefe departamento')->first()->id
                                         ),
+                                    Hidden::make('estado_revision')
+                                        ->default('Pendiente'),
 
                                 ])
                                 ->addable(false)
@@ -615,7 +617,8 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                         ->default(
                                             CargoFirma::where('nombre', 'Director centro')->first()->id
                                         ),
-
+                                    Hidden::make('estado_revision')
+                                        ->default('Pendiente'),
 
                                 ])
                                 ->deletable(false)
