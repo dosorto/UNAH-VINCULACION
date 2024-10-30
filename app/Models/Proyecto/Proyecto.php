@@ -294,8 +294,9 @@ class Proyecto extends Model
         return $this->hasMany(EstadoProyecto::class, 'proyecto_id');
     }
 
-    // obtener el estado actual del proyecto
+    
 
+    // obtener el estado actual del proyecto
     public function getEstadoAttribute()
     {
         return $this->estado_proyecto->last();
