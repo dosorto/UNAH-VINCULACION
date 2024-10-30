@@ -35,22 +35,11 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
 
     public function table(Table $table): Table
     {
-        dd($this->docente->firmaProyectoPendiente->map(function ($firma) {
-            return $firma->cargo_firma->nombre;
-        }));
+        
         return $table
             ->query(
-               function () {
-                $esDirector = $this->docente->firmaProyectoPendiente->contains(function ($firma) {
-                    return $firma->cargo_firma->nombre === 'Director centro';
-                });
-
-                $firmaDelJefe = $this->docente->firmaProyectoPendiente->contains(function ($firma) {
-                    return $firma->cargo_firma->nombre === 'Jefe Departamento';
-                });
-
-
-               }
+                $this->docente->firmaProyectoPendientes()
+                    ->getQuery()
             )
             ->columns([
                 //

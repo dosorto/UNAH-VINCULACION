@@ -167,6 +167,7 @@ return new class extends Migration
         Schema::create('cargo_firma', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
+            $table->integer('cargo_firma_anterior_id')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });

@@ -39,6 +39,15 @@ class PersonalSeeder extends Seeder
             'descripcion' => 'Otro tipo de empleado'
         ]);
 
+        // user para el administrador de centro / facultad
+
+        $userAdminCentroFacultad = User::create([
+            'name' => 'Admin Centro Facultad',
+            'email' => 'admincentro@unah.edu.hn',
+            'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
+        ])->assignRole('admin_centro_facultad');
+
+
         // Datos de empleados
         $userDorian = User::create([
             'name' => 'Dorian',
@@ -69,6 +78,17 @@ class PersonalSeeder extends Seeder
             'email' => 'jessica@unah.edu.hn',
             'password' => bcrypt('123'),
         ])->assignRole('docente');
+
+        Empleado::create([
+            'nombre_completo' => 'admin centro facultad',
+            'numero_empleado' => '12345',
+            'celular' => '99999999',
+            'user_id' => $userAdminCentroFacultad->id,
+            'centro_facultad_id' => 1,
+            'departamento_academico_id' => 1,
+            'categoria_id' => 1
+        ]);
+        
 
         Empleado::create([
             'nombre_completo' => 'JESSICA NOHELY AVILA CRUZ',
