@@ -228,8 +228,6 @@ class Proyecto extends Model
         return $this->hasMany(EstudianteProyecto::class, 'proyecto_id');
     }
 
-
-
     // relacion uno a muchos con el modelo entidad contraparte
     public function entidad_contraparte()
     {
