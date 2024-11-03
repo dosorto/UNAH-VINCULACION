@@ -14,6 +14,12 @@ use Laravel\Socialite\Facades\Socialite;
 class MicrosoftController extends Controller
 {
     //
+
+    public function redirectToMicrosoft()
+     {
+         return Socialite::driver('microsoft')->redirect();
+     }
+
     // Redirigir al usuario a la página de inicio de sesión de Microsoft
     public function handleMicrosoftCallback()
     {
