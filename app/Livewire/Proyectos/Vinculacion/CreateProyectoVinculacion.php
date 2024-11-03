@@ -2,52 +2,54 @@
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
-use App\Models\Proyecto\Proyecto;
 use Filament\Forms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
-use Livewire\Component;
-use Illuminate\Contracts\View\View;
-use Filament\Forms\Components\Wizard;
-
-use App\Models\UnidadAcademica\DepartamentoAcademico;
-use App\Models\UnidadAcademica\FacultadCentro;
-use App\Models\UnidadAcademica\EntidadAcademica;
-use App\Models\UnidadAcademica\Carrera;
-
-
-use Filament\Forms\Components\Select;
-
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\DatePicker;
-
-use Filament\Forms\Components\Toggle;
-
-use Filament\Forms\Components\TextInput;
-
-use Filament\Forms\Components\Fieldset;
-use App\Models\Demografia\Departamento;
-use App\Models\Demografia\Municipio;
-use App\Models\Demografia\Ciudad;
-use App\Models\Demografia\Aldea;
+use App\Models\User;
 use Filament\Forms\Get;
+use Livewire\Component;
+use Filament\Forms\Form;
+use App\Models\Demografia\Aldea;
+use App\Models\Demografia\Ciudad;
+use App\Models\Estado\TipoEstado;
 
-use Illuminate\Support\Facades\Blade;
+use App\Models\Personal\Empleado;
+use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\Modalidad;
 use Illuminate\Support\HtmlString;
 
-use App\Models\User;
-use App\Models\Personal\Empleado;
+
+use App\Models\Proyecto\CargoFirma;
+
+use Illuminate\Contracts\View\View;
+use App\Models\Demografia\Municipio;
+
 use App\Models\Estudiante\Estudiante;
-use App\Models\Proyecto\Modalidad;
+
+use Filament\Forms\Components\Hidden;
+
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Wizard;
+use Illuminate\Support\Facades\Blade;
+use Filament\Forms\Components\Builder;
+use Filament\Forms\Components\Section;
+
+use Filament\Forms\Contracts\HasForms;
+use App\Models\Demografia\Departamento;
+
+use App\Models\UnidadAcademica\Carrera;
+use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\TextInput;
 
 use Filament\Notifications\Notification;
 
-use Filament\Forms\Components\Section;
+use Filament\Forms\Components\DatePicker;
 
-use Filament\Forms\Components\Builder;
-use App\Models\Proyecto\CargoFirma;
-use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\FileUpload;
+use App\Models\UnidadAcademica\FacultadCentro;
+use Filament\Forms\Concerns\InteractsWithForms;
+use App\Models\UnidadAcademica\EntidadAcademica;
+use App\Models\UnidadAcademica\DepartamentoAcademico;
 
 
 
@@ -374,9 +376,16 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                         ->label('Aporte')
                                         ->columnSpan(1),
                                     //->required,
-                                    Forms\Components\TextInput::make('instrumento_formalizacion')
-                                        ->label('Instrumento de formalización')
-                                        ->columnSpan(1),
+                                    Repeater::make('instrumento_formalizacion')
+                                        ->schema([
+                                            FileUpload::make('documento_url')
+                                                ->label('Documentos de Formalizacion')
+                                                ->disk('public')
+                                                ->directory('instrumento_formalizacion')
+                                                ->required()
+                                        ])
+                                        ->relationship()
+                                        ->columns(2),
 
                                     Forms\Components\TextInput::make('correo')
                                         ->label('Correo de contacto')
@@ -579,6 +588,8 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                         ->default(
                                             CargoFirma::where('nombre', 'Jefe departamento')->first()->id
                                         ),
+                                    Hidden::make('estado_revision')
+                                        ->default('Pendiente'),
 
                                 ])
                                 ->addable(false)
@@ -606,7 +617,8 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                         ->default(
                                             CargoFirma::where('nombre', 'Director centro')->first()->id
                                         ),
-
+                                    Hidden::make('estado_revision')
+                                        ->default('Pendiente'),
 
                                 ])
                                 ->deletable(false)
@@ -667,8 +679,15 @@ class CreateProyectoVinculacion extends Component implements HasForms
         $record->firma_proyecto()->create([
             'empleado_id' => auth()->user()->empleado->id,
             'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
-            'estado_revision' => true,
+            'estado_revision' => 'Aprobado',
             'hash' => 'hash'
+        ]);
+
+        $record->estado_proyecto()->create([
+            'empleado_id' => auth()->user()->empleado->id,
+            'tipo_estado_id' => TipoEstado::where('nombre', 'Esperando firma de Jefe de Departamento')->first()->id,
+            'fecha' => now(),
+            'comentario' => 'Proyecto creado',
         ]);
 
         Notification::make()

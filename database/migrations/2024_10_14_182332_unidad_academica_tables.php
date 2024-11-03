@@ -36,6 +36,17 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // administradores de centro / facultad
+        Schema::create('administrador_centro_facultad', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('centro_facultad_id')->constrained('centro_facultad');
+            $table->foreignId('user_id')->constrained('users');
+            $table->boolean('es_director');
+            $table->boolean('estado');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
         // tablas de departamento
         Schema::create('departamento_academico', function (Blueprint $table) {
             $table->id();

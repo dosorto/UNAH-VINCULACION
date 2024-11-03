@@ -17,6 +17,7 @@ use Database\Seeders\Proyecto\EmpleadoProyectoSeeder;
 use Database\Seeders\Personal\PersonalSeeder;
 use Database\Seeders\Demografia\MunicipioSeeder;
 use Database\Seeders\Personal\PermisosSeeder;
+use Database\Seeders\Proyecto\EstadoProyectoSeeder;
 
 
 class DatabaseSeeder extends Seeder
@@ -36,6 +37,7 @@ class DatabaseSeeder extends Seeder
         $this->call(PersonalSeeder::class);
         $this->call(DataProyectoSeeder::class);
         $this->call(EmpleadoProyectoSeeder::class);
+        $this->call(EstadoProyectoSeeder::class);
 
         // User::factory(10)->create();
 

@@ -1,36 +1,38 @@
 <?php
 
+use App\Livewire\User\Roles;
+use App\Livewire\User\Users;
+use App\Livewire\Login\Login;
+use App\Livewire\Inicio\InicioAdmin;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Demografia\Pais\CreatePais;
 use App\Livewire\Demografia\Pais\ListPaises;
-use App\Livewire\Demografia\Departamento\CreateDepartamento;
-use App\Livewire\Demografia\Departamento\ListDepartamentos;
-use App\Livewire\Demografia\Municipio\CreateMunicipio;
-use App\Livewire\Demografia\Municipio\ListaMunicipios;
-use App\Livewire\Demografia\Aldea\CreateAldea;
+use App\Livewire\Configuracion\Logs\ListLogs;
 use App\Livewire\Demografia\Aldea\ListAldeas;
-use App\Livewire\Demografia\Ciudad\CreateCiudad;
-use App\Livewire\Personal\Empleado\CreateEmpleado;
-use App\Livewire\Personal\Empleado\ListEmpleado;
+use App\Livewire\Auth\ResetPasswordController;
+use App\Livewire\Demografia\Aldea\CreateAldea;
 use App\Livewire\Personal\Empleado\EditPerfil;
+use App\Livewire\Auth\ForgotPasswordController;
 use App\Livewire\Demografia\Ciudad\ListaCiudad;
 use App\Livewire\Personal\Permiso\ListPermisos;
-use App\Livewire\Login\Login;
-use App\Livewire\User\Users;
-use App\Livewire\User\Roles;
-use App\Livewire\Configuracion\Logs\ListLogs;
-use App\Livewire\Auth\ForgotPasswordController;
-use App\Livewire\Auth\ResetPasswordController;
+use App\Livewire\Demografia\Ciudad\CreateCiudad;
+use App\Livewire\Personal\Empleado\ListEmpleado;
 use App\Http\Controllers\Auth\MicrosoftController;
+use App\Livewire\Personal\Empleado\CreateEmpleado;
+use App\Livewire\Demografia\Municipio\CreateMunicipio;
+use App\Livewire\Demografia\Municipio\ListaMunicipios;
+use App\Livewire\Docente\Proyectos\ProyectosAprobados;
 
-use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
-use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
-use App\Livewire\Proyectos\Vinculacion\ListProyectosSolicitado;
-use App\Livewire\Inicio\InicioAdmin;
-
+use App\Livewire\Docente\Proyectos\ProyectosRechazados;
 use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
-use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController;
+use App\Livewire\Demografia\Departamento\ListDepartamentos;
+use App\Livewire\Demografia\Departamento\CreateDepartamento;
 
+use App\Livewire\Proyectos\Vinculacion\ListProyectosSolicitado;
+use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
+use App\Livewire\Docente\Proyectos\SolicitudProyectosDocenteList;
+use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
+use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController;
 
 // Rutas para redireccionar a los usuario autenticados
 Route::middleware(['guest'])->group(function () {
@@ -180,6 +182,16 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['auth'])->group(function () {
         Route::get('proyectosDocente', [DocenteProyectoController::class, 'listaDeProyectos'])
             ->name('proyectosDocente')
+            ->middleware('can:docente-admin-proyectos');
+
+        Route::get('SolicitudProyectosDocente', [DocenteProyectoController::class, 'SolicitudProyectosDocente'])
+            ->name('SolicitudProyectosDocente')
+            ->middleware('can:docente-admin-proyectos');
+        Route::get('AprobadoProyectosDocente', ProyectosAprobados::class)
+            ->name('AprobadoProyectosDocente')
+            ->middleware('can:docente-admin-proyectos');
+        Route::get('RechazadoProyectosDocente', ProyectosRechazados::class)
+            ->name('RechazadoProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
     });
 });

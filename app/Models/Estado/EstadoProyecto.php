@@ -40,6 +40,13 @@ class EstadoProyecto extends Model
         return $this->belongsTo(Empleado::class, 'empleado_id',);
     }
 
+
+    public function proyecto()
+    {
+        return $this->belongsTo(Proyecto::class, 'proyecto_id',);
+    }
+    
+
     public function tipoestado()
     {
         return $this->belongsTo(TipoEstado::class, 'tipo_estado_id',);

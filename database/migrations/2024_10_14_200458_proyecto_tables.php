@@ -81,11 +81,19 @@ return new class extends Migration
             $table->string('nombre_contacto');
             $table->boolean('es_internacional')->default(false);
             $table->string('aporte');
-            $table->string('instrumento_formalizacion');
+            // $table->string('instrumento_formalizacion');
             $table->softDeletes();
             $table->timestamps();
         });
 
+        // tabla instrumento_formalizacion
+        Schema::create('instrumento_formalizacion', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('entidad_contraparte_id')->constrained('entidad_contraparte');
+            $table->string('documento_url');
+            $table->softDeletes();
+            $table->timestamps();
+        });
        
 
         // tabla empleado_proyecto
@@ -159,6 +167,7 @@ return new class extends Migration
         Schema::create('cargo_firma', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
+            $table->integer('cargo_firma_anterior_id')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });
@@ -170,7 +179,7 @@ return new class extends Migration
             $table->foreignId('empleado_id')->constrained('empleado');
             $table->foreignId('cargo_firma_id')->constrained('cargo_firma');
             $table->foreignId('firma_id')->nullable();//->constrained('firma');
-            $table->boolean('estado_revision')->default(false);
+            $table->enum('estado_revision', ['Pendiente', 'Rechazado', 'Aprobado'])->default('Pendiente');
             $table->string('hash')->nullable();
             $table->softDeletes();
             $table->timestamps();

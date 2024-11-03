@@ -12,11 +12,14 @@ class CargoFirma extends Model
     protected $table = 'cargo_firma';
 
     protected $fillable = [
-        'proyecto_id',
-        'empleado_id',
-        'firma_id',
-        'cargo_firma_id',
-        'estado_revision',
-        'hash'
+        'id',
+        'nombre',
+        'cargo_firma_anterior_id',
     ];
+
+    public function cargoFirmaAnterior()
+    {
+        return $this->belongsTo(CargoFirma::class, 'cargo_firma_anterior_id');
+    }
+    
 }
