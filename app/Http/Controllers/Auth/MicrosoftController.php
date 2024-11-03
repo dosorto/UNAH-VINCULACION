@@ -28,6 +28,7 @@ class MicrosoftController extends Controller
 
             // Validar que el correo termine en '@unah.hn' o '@unah.edu.hn'
             $emailDomain = substr(strrchr($user->email, "@"), 1);
+	    //dd(!in_array($emailDomain, ['unah.hn', 'unah.edu.hn']));
             if (!in_array($emailDomain, ['unah.hn', 'unah.edu.hn'])) {
                 // Si el correo no pertenece a UNAH, simplemente redirige al login
                 return redirect()->route('login')->withErrors('Solo se permiten correos institucionales UNAH.');
@@ -41,10 +42,10 @@ class MicrosoftController extends Controller
                     'email' => $user->email,
                     'password' => bcrypt('123456dummy') // Cambié encrypt() por bcrypt()
                 ]
-            );
+            )->givePermissionTo('configuracion-admin-mi-perfil');;
 
             Auth::login($user, true);
-
+		//dd(auth()->user());
             // Crear o buscar el perfil de empleado
             $empleado = Empleado::firstOrCreate(
                 ['user_id' => auth()->user()->id],
