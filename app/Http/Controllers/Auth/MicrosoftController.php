@@ -54,8 +54,8 @@ class MicrosoftController extends Controller
 
             // Verificar si algún atributo de empleado es nulo
             if (
-                is_null($empleado->nombre_completo) || is_null($empleado->numero_empleado) || is_null($empleado->celular) || is_null($empleado->categoria)
-                || is_null($empleado->campus_id) || is_null($empleado->departamento_academico_id)
+                is_null($empleado->nombre_completo) || is_null($empleado->numero_empleado) || is_null($empleado->celular) || is_null($empleado->categoria_id)
+                || is_null($empleado->centro_facultad_id) || is_null($empleado->departamento_academico_id)
             ) {
                 Notification::make()
                     ->title('Por favor, complete su perfil de empleado')
