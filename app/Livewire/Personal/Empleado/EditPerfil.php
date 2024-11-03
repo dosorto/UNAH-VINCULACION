@@ -64,8 +64,7 @@ class EditPerfil extends Component implements HasForms, HasActions
                         Select::make('categoria_id')
                             ->label('Categoria')
                             ->relationship('categoria', 'nombre')
-                            ->required()
-                            ->maxLength(255),
+                            ->required(),
                         Select::make('centro_facultad_id')
                             ->label('Campus')
                             ->relationship('centro_facultad', 'nombre')
