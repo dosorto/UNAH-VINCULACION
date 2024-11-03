@@ -31,7 +31,12 @@ class MicrosoftController extends Controller
 	    //dd(!in_array($emailDomain, ['unah.hn', 'unah.edu.hn']));
             if (!in_array($emailDomain, ['unah.hn', 'unah.edu.hn'])) {
                 // Si el correo no pertenece a UNAH, simplemente redirige al login
-                return redirect()->route('login')->withErrors('Solo se permiten correos institucionales UNAH.');
+                Notification::make()
+                    ->title('Correo no válido')
+                    ->body('Inicie sesion con un correo de la UNAH.')
+                    ->danger()
+                    ->send();
+                return redirect()->route('login');
             }
 
             // Crear o buscar el usuario en la base de datos
