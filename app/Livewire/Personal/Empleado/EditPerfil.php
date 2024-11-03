@@ -222,6 +222,7 @@ class EditPerfil extends Component implements HasForms, HasActions
     {
         $data = $this->form->getState();
         $this->record->update($data);
+        $this->record->user->assignRole('docente')->save();
         Notification::make()
             ->title('Exito!')
             ->body('Perfil de ' . $data['nombre_completo'] . ' actualizado correctamente.')
