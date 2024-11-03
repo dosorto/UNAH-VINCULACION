@@ -4723,6 +4723,38 @@
 											"top": 1953,
 											"width": 274.03955078125,
 											"height": 13
+										},
+										{
+											"_type": "ERDColumnView",
+											"_id": "AAAAAAGS7+YKN7ktyEk=",
+											"_parent": {
+												"$ref": "AAAAAAGSdEy+x7qx5G0="
+											},
+											"model": {
+												"$ref": "AAAAAAGS7+YKIbkqkuc="
+											},
+											"fillColor": "#A3FFA3",
+											"font": "Arial;13;0",
+											"left": 5397,
+											"top": 1968,
+											"width": 274.03955078125,
+											"height": 13
+										},
+										{
+											"_type": "ERDColumnView",
+											"_id": "AAAAAAGS7+amlrk0pe8=",
+											"_parent": {
+												"$ref": "AAAAAAGSdEy+x7qx5G0="
+											},
+											"model": {
+												"$ref": "AAAAAAGS7+amibkxcwE="
+											},
+											"fillColor": "#A3FFA3",
+											"font": "Arial;13;0",
+											"left": 5397,
+											"top": 1983,
+											"width": 274.03955078125,
+											"height": 13
 										}
 									],
 									"fillColor": "#A3FFA3",
@@ -4730,7 +4762,7 @@
 									"left": 5392,
 									"top": 1903,
 									"width": 284.03955078125,
-									"height": 68
+									"height": 98
 								}
 							],
 							"fillColor": "#A3FFA3",
@@ -4738,7 +4770,7 @@
 							"left": 5392,
 							"top": 1880,
 							"width": 284.03955078125,
-							"height": 91,
+							"height": 121,
 							"nameLabel": {
 								"$ref": "AAAAAAGSdEy+x7qwlYQ="
 							},
@@ -12288,6 +12320,26 @@
 							"name": "id_empleado_proyecto",
 							"type": "INTEGER",
 							"length": "9"
+						},
+						{
+							"_type": "ERDColumn",
+							"_id": "AAAAAAGS7+YKIbkqkuc=",
+							"_parent": {
+								"$ref": "AAAAAAGSdEy+x7qtx9s="
+							},
+							"name": "Objetivos",
+							"type": "VARCHAR",
+							"length": 0
+						},
+						{
+							"_type": "ERDColumn",
+							"_id": "AAAAAAGS7+amibkxcwE=",
+							"_parent": {
+								"$ref": "AAAAAAGSdEy+x7qtx9s="
+							},
+							"name": "Horas",
+							"type": "INTEGER",
+							"length": 0
 						}
 					]
 				},
