@@ -218,7 +218,7 @@ class EditPerfil extends Component implements HasForms, HasActions
             });
     }
 
-    public function save(): void
+    public function save()
     {
         $data = $this->form->getState();
         $this->record->update($data);
@@ -228,6 +228,7 @@ class EditPerfil extends Component implements HasForms, HasActions
             ->body('Perfil de ' . $data['nombre_completo'] . ' actualizado correctamente.')
             ->success()
             ->send();
+        return redirect()->route('inicio');
     }
 
     public function render(): View
