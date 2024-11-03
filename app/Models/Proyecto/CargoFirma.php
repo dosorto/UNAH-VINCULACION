@@ -14,5 +14,12 @@ class CargoFirma extends Model
     protected $fillable = [
         'id',
         'nombre',
+        'cargo_firma_anterior_id',
     ];
+
+    public function cargoFirmaAnterior()
+    {
+        return $this->belongsTo(CargoFirma::class, 'cargo_firma_anterior_id');
+    }
+    
 }

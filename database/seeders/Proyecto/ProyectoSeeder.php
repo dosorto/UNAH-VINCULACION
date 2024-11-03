@@ -24,10 +24,10 @@ class ProyectoSeeder extends Seeder
         // crear los cargos de las personas que firman los proyectos
         // Director, Coordinador, Asesor, Evaluador, Revisor, Aprobador
         CargoFirma::insert([
-            ['nombre' => 'Coordinador Proyecto'],
-            ['nombre' => 'Jefe Departamento'],
-            ['nombre' => 'Director centro'],
-            ['nombre' => 'Coordinador de Vinculación'],
+            ['nombre' => 'Coordinador Proyecto', 'cargo_firma_anterior_id' => null],
+            ['nombre' => 'Jefe Departamento', 'cargo_firma_anterior_id' => 1],
+            ['nombre' => 'Director centro', 'cargo_firma_anterior_id' => 2],
+            ['nombre' => 'Coordinador de Vinculación', 'cargo_firma_anterior_id' => 3],
         ]);
 
 
@@ -53,7 +53,8 @@ class ProyectoSeeder extends Seeder
 
         Modalidad::insert([
             ['nombre' => 'Unidisciplinar'],
-            ['nombre' => 'Multidisciplinar'],['nombre' => 'Esperando firma de Vinculacion'],
+            ['nombre' => 'Multidisciplinar'],
+            ['nombre' => 'Esperando firma de Vinculacion'],
             ['nombre' => 'Interdisciplinar'],
             ['nombre' => 'Transdisciplinar'],
         ]);
@@ -103,10 +104,6 @@ class ProyectoSeeder extends Seeder
             ['nombre' => 'Paz, justicia e instituciones sólidas'],
             ['nombre' => 'Alianzas para lograr los objetivos'],
         ]);
-
-    
-
-
 
 
     }

@@ -24,25 +24,29 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
 
     public Empleado $docente;
 
-    public function mount() {
+    public function mount()
+    {
         // dd($this->docente->firmaProyectoPendiente->pluck('id')->toArray());
         // $model = Proyecto::where('id', 2)->first();
         // dd($model->firma_proyecto_cargo);
     }
 
+
+
     public function table(Table $table): Table
     {
+        
         return $table
             ->query(
-                Proyecto::query()
-                    ->whereIn('id', $this->docente->firmaProyectoPendiente->pluck('proyecto_id')->toArray())
+                $this->docente->firmaProyectoPendientes()
+                    ->getQuery()
             )
             ->columns([
                 //
-                Tables\Columns\TextColumn::make('nombre_proyecto')
+                Tables\Columns\TextColumn::make('proyecto.nombre_proyecto')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('departamentos_academicos.nombre')
+                Tables\Columns\TextColumn::make('cargo_firma.nombre')
                     ->badge()
                     ->color('info')
                     ->separator(',')
@@ -50,17 +54,14 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                     ->label('Departamento')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('facultades_centros.nombre')
-                    ->badge()
-                    ->wrap()
-                    ->label('Centro/Facultad'),
+                Tables\Columns\TextColumn::make('estado_revision')
+                    ->label('Estado')
+                    ->searchable(),
 
-                Tables\Columns\TextColumn::make('fecha_inicio')
-                    ->date()
-                    ->sortable(),
-                    Tables\Columns\TextColumn::make('firma_proyecto_cargo.cargo_firma.nombre')
-                        ->label('cargo')
-                        ->sortable(),
+                Tables\Columns\TextColumn::make('proyecto.estado.tipoestado.nombre')
+                    ->badge()
+                    ->label('Estado Proyecto')
+                    ->searchable(),
             ])
             ->filters([
                 //
@@ -70,15 +71,13 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                 Action::make('aprobar')
                     ->label('Aprobar')
                     ->icon('heroicon-o-check-circle') // Icono para "Aprobar"
-                    ->color('success') 
+                    ->color('success')
                     ->requiresConfirmation()
                     ->modalHeading('Confirmar Aprobación') // Título del diálogo
                     ->modalSubheading('¿Estás seguro de que deseas aprobar la firma de este proyecto?')
-                    ->action(function (Proyecto $proyecto) {
+                    ->action(function (FirmaProyecto $firma_proyecto) {
                         // dd($this->docente);
-                        $firma_proyecto = FirmaProyecto::where('proyecto_id', $proyecto->id)
-                                                ->where('empleado_id', $this->docente->id)
-                                                ->first();
+
                         $firma_proyecto->update(['estado_revision' => 'Aprobado']);
                         // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                         // ->where('empleado_id', $this->docente->id)
@@ -91,18 +90,14 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                     })
                     ->button(),
 
-                    Action::make('rechazar')
+                Action::make('rechazar')
                     ->label('Rechazar')
                     ->icon('heroicon-o-x-circle') // Icono para "Rechazar"
-                    ->color('danger') 
+                    ->color('danger')
                     ->requiresConfirmation()
                     ->modalHeading('Confirmar Rechazo') // Título del diálogo
                     ->modalSubheading('¿Estás seguro de que deseas Rechazar la firma de este proyecto?')
-                    ->action(function (Proyecto $proyecto) {
-                        // dd($this->docente);
-                        $firma_proyecto = FirmaProyecto::where('proyecto_id', $proyecto->id)
-                                                ->where('empleado_id', $this->docente->id)
-                                                ->first();
+                    ->action(function (FirmaProyecto $firma_proyecto) {
                         $firma_proyecto->update(['estado_revision' => 'Rechazado']);
                         // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                         // ->where('empleado_id', $this->docente->id)
