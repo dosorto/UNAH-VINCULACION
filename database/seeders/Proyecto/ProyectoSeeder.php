@@ -32,16 +32,16 @@ class ProyectoSeeder extends Seeder
 
 
         // crear los tipos de estado para el proyecto
-        // Solicitado, En revisión, Aprobado, Rechazado, Finalizado, Cancelado
         TipoEstado::insert([
             ['nombre' => 'Esperando firma de Jefe de Departamento'],
-            ['nombre' => 'Esperando firma de Vinculacion'],
+            ['nombre' => 'Esperando firma de Enlace de Vinculacion'],
             ['nombre' => 'Esperando firma de Director/Decano'],
-            ['nombre' => 'Subsanacion'],
+            ['nombre' => 'Enviado a Vinculacion CU'],
             ['nombre' => 'En revision'],
             ['nombre' => 'Aprobado'],
             ['nombre' => 'Rechazado'],
             ['nombre' => 'Inscrito'],
+            ['nombre' => 'Subsanacion'],
         ]);
 
 
