@@ -39,8 +39,8 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
         return $table
             ->query(
                 Proyecto::query()
-                    ->leftJoin('proyecto_centro_facultad', 'proyecto_centro_facultad.proyecto_id', '=', 'proyecto.id')
-                    ->leftJoin('proyecto_depto_ac', 'proyecto_depto_ac.proyecto_id', '=', 'proyecto.id')
+                    ->join('proyecto_centro_facultad', 'proyecto_centro_facultad.proyecto_id', '=', 'proyecto.id')
+                    ->join('proyecto_depto_ac', 'proyecto_depto_ac.proyecto_id', '=', 'proyecto.id')
                     ->select('proyecto.*')
                     ->distinct('proyecto.id')
             )
