@@ -484,7 +484,6 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                         ->searchable()
                                         ->options(
                                             Departamento::pluck('nombre', 'id')
-
                                         )
                                         ->live()
                                         ->preload(),

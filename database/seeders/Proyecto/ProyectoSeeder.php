@@ -104,5 +104,7 @@ class ProyectoSeeder extends Seeder
             ['nombre' => 'Paz, justicia e instituciones sólidas'],
             ['nombre' => 'Alianzas para lograr los objetivos'],
         ]);
+
+
     }
 }

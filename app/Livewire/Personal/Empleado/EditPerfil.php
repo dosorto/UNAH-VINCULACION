@@ -61,12 +61,13 @@ class EditPerfil extends Component implements HasForms, HasActions
                             ->required()
                             ->numeric()
                             ->maxLength(255),
-                        TextInput::make('categoria')
-                            ->required()
-                            ->maxLength(255),
-                        Select::make('campus_id')
+                        Select::make('categoria_id')
+                            ->label('Categoria')
+                            ->relationship('categoria', 'nombre')
+                            ->required(),
+                        Select::make('centro_facultad_id')
                             ->label('Campus')
-                            ->relationship('campus', 'nombre_campus')
+                            ->relationship('centro_facultad', 'nombre')
                             ->required(),
                         Select::make('departamento_academico_id')
                             ->label('Departamento Academico')
@@ -218,15 +219,17 @@ class EditPerfil extends Component implements HasForms, HasActions
             });
     }
 
-    public function save(): void
+    public function save()
     {
         $data = $this->form->getState();
         $this->record->update($data);
+        $this->record->user->assignRole('docente')->save();
         Notification::make()
             ->title('Exito!')
             ->body('Perfil de ' . $data['nombre_completo'] . ' actualizado correctamente.')
             ->success()
             ->send();
+        return redirect()->route('inicio');
     }
 
     public function render(): View
