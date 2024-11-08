@@ -633,6 +633,39 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->columns(2),
 
 
+                                // repeter para el firma_proyecto_enlace
+                                Repeater::make('firma_proyecto_enlace')
+                                ->label('Enlace de Vinculación')
+                                ->schema([
+                                    Select::make('empleado_id')
+                                        ->label('')
+                                        ->searchable(['nombre_completo', 'numero_empleado'])
+                                        ->relationship(name: 'empleado', titleAttribute: 'nombre_completo'),
+                                    Select::make('cargo_firma_id')
+                                        ->label('')
+                                        ->searchable()
+                                        ->relationship(name: 'cargo_firma', titleAttribute: 'nombre')
+                                        ->default(
+                                            CargoFirma::where('nombre', 'Enlace Vinculacion')->first()->id
+                                        )
+                                        ->disabled()
+                                        ->preload(),
+                                    Hidden::make('cargo_firma_id')
+                                        ->default(
+                                            CargoFirma::where('nombre', 'Enlace Vinculacion')->first()->id
+                                        ),
+                                    Hidden::make('estado_revision')
+                                        ->default('Pendiente'),
+
+                                ])
+                                ->deletable(false)
+                                ->addable(false)
+                                ->relationship()
+                                ->columns(2),
+                                
+
+
+
 
 
                         ]),

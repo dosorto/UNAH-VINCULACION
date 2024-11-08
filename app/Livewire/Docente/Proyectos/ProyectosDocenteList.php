@@ -43,14 +43,12 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                 Tables\Columns\TextColumn::make('nombre_proyecto')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('departamentos_academicos.nombre')
+                Tables\Columns\TextColumn::make('Estado.tipoestado.nombre')
                     ->badge()
                     ->color('info')
                     ->separator(',')
                     ->wrap()
-                    ->label('Departamento')
-                    ->searchable(),
-
+                    ->label('Estado'),
                 Tables\Columns\TextColumn::make('facultades_centros.nombre')
                     ->badge()
                     ->wrap()
