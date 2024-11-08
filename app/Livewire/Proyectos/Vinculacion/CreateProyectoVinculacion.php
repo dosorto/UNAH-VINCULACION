@@ -51,6 +51,8 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use App\Models\UnidadAcademica\EntidadAcademica;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 
+use App\Models\Personal\EmpleadoProyecto;
+
 
 
 class CreateProyectoVinculacion extends Component implements HasForms
@@ -185,22 +187,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                         ->default('Coordinador'),
                                     Hidden::make('empleado_id')
                                         ->default(fn() => optional(Empleado::where('user_id', auth()->id())->first())->id),
-                                    Repeater::make('actividades')
-                                        ->relationship()
-                                        ->schema([
-                                            Forms\Components\TextInput::make('descripcion')
-                                                ->required()
-                                                //->required
-                                                ->columnSpanFull(),
-                                            Datepicker::make('fecha_ejecucion')
-                                                ->required()
-                                                ->columnSpan(1)
-                                        ])
-                                        ->label('Actividades')
-                                        ->defaultItems(0)
-                                        ->itemLabel('Actividad')
-                                        ->addActionLabel('Agregar actividad')
-                                        ->collapsed()
+
                                 ])
                                 ->columnSpanFull()
                                 ->relationship()
@@ -287,22 +274,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                         ->required()
                                         ->default('Integrante'),
                                     //->required,
-                                    Repeater::make('actividades')
-                                        ->relationship()
-                                        ->schema([
-                                            Forms\Components\TextInput::make('descripcion')
-                                                ->required()
-                                                //->required
-                                                ->columnSpanFull(),
-                                            Datepicker::make('fecha_ejecucion')
-                                                ->required()
-                                                ->columnSpan(1)
-                                        ])
-                                        ->label('Actividades')
-                                        ->defaultItems(0)
-                                        ->itemLabel('Actividad')
-                                        ->addActionLabel('Agregar actividad')
-                                        ->collapsed()
+
                                 ])
                                 ->relationship()
                                 ->columnSpanFull()
@@ -350,9 +322,44 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->defaultItems(0)
                                 ->columnSpanFull()
                                 ->grid(2)
-                                ->addActionLabel('Agregar estudiante')
+                                ->addActionLabel('Agregar estudiante'),
+                            // actividades
+                            Repeater::make('actividades')
+                                ->relationship()
+                                ->schema([
+                                    Forms\Components\TextInput::make('descripcion')
+                                        ->required()
+                                        //->required
+                                        ->columnSpanFull(),
+                                    Datepicker::make('fecha_ejecucion')
+                                        ->required()
+                                        ->columnSpan(1),
+                                    // resposable de la actividad
+                                    Select::make('empleado_id')
+                                        ->label('Responsable')
+                                        ->searchable(['nombre_completo', 'numero_empleado'])
+                                        ->options(
+
+                                            function (Get $get) {
+                                                return EmpleadoProyecto::join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+                                                    ->whereIn('empleado_proyecto.proyecto_id', $get('proyecto_id'))
+                                                    ->pluck('empleado.nombre_completo', 'empleado.id')
+                                                    ->toArray();
+                                            }
+
+                                        )
+                                        ->columnSpan(1),
+                                ])
+                                ->label('Actividades')
+                                ->defaultItems(0)
+                                ->itemLabel('Actividad')
+                                ->addActionLabel('Agregar actividad')
+                                ->collapsed()
+
                         ])
                         ->columns(2),
+
+
 
                     Wizard\Step::make('II.')
                         ->description('INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (en caso de contar con una contraparte).')

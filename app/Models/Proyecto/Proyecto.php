@@ -137,6 +137,7 @@ class Proyecto extends Model
         'numero_folio',
         'numero_dictamen'
 
+
     ];
 
 
@@ -296,6 +297,13 @@ class Proyecto extends Model
         return $this->hasMany(EstadoProyecto::class, 'proyecto_id');
     }
 
+
+    // relacion uno a muchos con actividad 
+    public function actividades()
+{
+    return $this->hasMany(Actividad::class, 'proyecto_id');
+
+}
 
 
     // obtener el estado actual del proyecto
