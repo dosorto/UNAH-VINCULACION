@@ -28,9 +28,15 @@ class MicrosoftController extends Controller
 
             // Validar que el correo termine en '@unah.hn' o '@unah.edu.hn'
             $emailDomain = substr(strrchr($user->email, "@"), 1);
+	    //dd(!in_array($emailDomain, ['unah.hn', 'unah.edu.hn']));
             if (!in_array($emailDomain, ['unah.hn', 'unah.edu.hn'])) {
                 // Si el correo no pertenece a UNAH, simplemente redirige al login
-                return redirect()->route('login')->withErrors('Solo se permiten correos institucionales UNAH.');
+                Notification::make()
+                    ->title('Correo no válido')
+                    ->body('Inicie sesion con un correo de la UNAH.')
+                    ->danger()
+                    ->send();
+                return redirect()->route('login');
             }
 
             // Crear o buscar el usuario en la base de datos
@@ -41,10 +47,10 @@ class MicrosoftController extends Controller
                     'email' => $user->email,
                     'password' => bcrypt('123456dummy') // Cambié encrypt() por bcrypt()
                 ]
-            );
+            )->givePermissionTo('configuracion-admin-mi-perfil');
 
             Auth::login($user, true);
-
+		//dd(auth()->user());
             // Crear o buscar el perfil de empleado
             $empleado = Empleado::firstOrCreate(
                 ['user_id' => auth()->user()->id],
@@ -53,8 +59,8 @@ class MicrosoftController extends Controller
 
             // Verificar si algún atributo de empleado es nulo
             if (
-                is_null($empleado->nombre_completo) || is_null($empleado->numero_empleado) || is_null($empleado->celular) || is_null($empleado->categoria)
-                || is_null($empleado->campus_id) || is_null($empleado->departamento_academico_id)
+                is_null($empleado->nombre_completo) || is_null($empleado->numero_empleado) || is_null($empleado->celular) || is_null($empleado->categoria_id)
+                || is_null($empleado->centro_facultad_id) || is_null($empleado->departamento_academico_id)
             ) {
                 Notification::make()
                     ->title('Por favor, complete su perfil de empleado')
