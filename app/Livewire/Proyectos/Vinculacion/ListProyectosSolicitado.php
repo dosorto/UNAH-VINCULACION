@@ -40,7 +40,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                         'proyecto.objetivos_especificos',
                         'tipo_estado.nombre AS nombre_estado'
                     )
-                    ->where('tipo_estado.id', 1)
+                    ->where('tipo_estado.nombre', 'En revision')
                     ->distinct()
             )
             ->columns([
