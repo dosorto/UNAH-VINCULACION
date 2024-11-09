@@ -21,7 +21,8 @@ class ProyectosRechazados extends Component implements HasForms, HasTable
 
     public Empleado $docente;
 
-    public function mount() {
+    public function mount()
+    {
         // dd(auth()->user()->empleado);
         $this->docente = auth()->user()->empleado;
         // dd($this->docente);
@@ -32,7 +33,7 @@ class ProyectosRechazados extends Component implements HasForms, HasTable
         return $table
             ->query(
                 Proyecto::query()
-                ->whereIn('id', $this->docente->firmaProyectoRechazado->pluck('proyecto_id')->toArray())
+                    ->whereIn('id', $this->docente->firmaProyectoRechazado->pluck('proyecto_id')->toArray())
             )
             ->columns([
                 //
@@ -55,9 +56,9 @@ class ProyectosRechazados extends Component implements HasForms, HasTable
                 Tables\Columns\TextColumn::make('fecha_inicio')
                     ->date()
                     ->sortable(),
-                    Tables\Columns\TextColumn::make('firma_proyecto_cargo.cargo_firma.nombre')
-                        ->label('cargo')
-                        ->sortable(),
+                Tables\Columns\TextColumn::make('firma_proyecto_cargo.cargo_firma.nombre')
+                    ->label('cargo')
+                    ->sortable(),
             ])
             ->filters([
                 //
@@ -74,6 +75,7 @@ class ProyectosRechazados extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.docente.proyectos.proyectos-rechazados');
+        return view('livewire.docente.proyectos.proyectos-rechazados')
+            ->layout('components.panel.modulos.modulo-firmas-docente');
     }
 }

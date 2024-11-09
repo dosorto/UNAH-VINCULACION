@@ -35,7 +35,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
 
     public function table(Table $table): Table
     {
-        
+
         return $table
             ->query(
                 $this->docente->firmaProyectoPendientes()
@@ -78,7 +78,11 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                     ->action(function (FirmaProyecto $firma_proyecto) {
                         // dd($this->docente);
 
+
+
                         $firma_proyecto->update(['estado_revision' => 'Aprobado']);
+                        // actualizar el estado del proyecto al siguiente estado :)
+
                         // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                         // ->where('empleado_id', $this->docente->id)
                         // ->first());
@@ -119,6 +123,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.docente.proyectos.proyectos-por-firmar');
+        return view('livewire.docente.proyectos.proyectos-por-firmar')
+            ->layout('components.panel.modulos.modulo-firmas-docente');
     }
 }

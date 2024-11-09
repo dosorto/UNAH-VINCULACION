@@ -92,6 +92,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.docente.proyectos.proyectos-docente-list');
+        return view('livewire.docente.proyectos.proyectos-docente-list')
+        ->layout('components.panel.modulos.modulo-firmas-docente');
     }
 }
