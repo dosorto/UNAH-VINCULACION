@@ -5,7 +5,7 @@
                Departamento
             </p>
             <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm mt-0">
-                A continuacion se muestra el listado de departamentos pertenecientes a los paises
+                A continuación se muestra el listado de departamentos pertenecientes a los paises
             </p>
         </div>
         <div>

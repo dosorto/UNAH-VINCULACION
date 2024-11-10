@@ -61,7 +61,6 @@
                     <tr>
                         <th class="full-width1" rowspan="1">Modalidad</th>
                         <td class="sub-header1" colspan="1">Unidisciplinar <br>
-
                             <input type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>
                         </td>
                         <td class="sub-header1" colspan="1">Multidisciplinar<br>
@@ -154,15 +153,16 @@
                         <td class="sub-header" rowspan="2">Participación de estudiantes:</td>
                         <td class="full-width" colspan="1"> Cantidad <br>
                             <input type="number" class="input-field1"
-                           
                             value="{{ $proyecto->estudiante_proyecto->count() }}" disabled>
                         </td>
                         <td class="sub-header" rowspan="2">Tipo de participación:</td>
-                        <td class="full-width" colspan="2"> Voluntariado <input type="checkbox"
-                                class="No"><br>
-                            Práctica de asignatura <input type="checkbox" class="No"><br>
-                            Práctica profesional o servicio social <input type="checkbox" class="No"><br>
-
+                        <td class="full-width" colspan="2"> 
+                            Voluntariado <input type="checkbox" class="No" 
+                                @if ($proyecto->tipo_participacion_estudiante == 'Voluntario') checked @endif> <br> 
+                            Práctica de asignatura <input type="checkbox" class="No" 
+                                @if ($proyecto->tipo_participacion_estudiante == 'Practica') checked @endif><br>
+                            Práctica profesional o servicio social <input type="checkbox" class="No" 
+                                @if ($proyecto->tipo_participacion_estudiante == 'Profesional') checked @endif><br>
                         </td>
                     </tr>
                 </table>
@@ -175,55 +175,64 @@
                         <th class="header" colspan="5">En caso de que la contraparte sea nacional (añadir una tabla
                             de información por cada una de las contrapartes)</th>
                     </tr>
-                    <tr>
-                        <td class="sub-header">Nombre de la entidad:</td>
-                        <td class="full-width" colspan="4">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="sub-header" rowspan="2">Nombre del contacto directo</td>
-                        <td class="full-width" colspan="1" rowspan="2">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad">
-                        </td>
-                        <td class="sub-header" rowspan="1">Correo electrónico:</td>
-                        <td class="full-width" colspan="1">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad">
-                        </td>
-                    <tr>
-                        <td class="sub-header" rowspan="1">Teléfono:</td>
-                        <td class="full-width" colspan="1">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad">
-                        </td>
-                    </tr>
-                    </tr>
-                    <tr>
-                        <td class="sub-header">Rol o aporte en el proyecto:</td>
-                        <td class="full-width" colspan="1">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad">
-                        </td>
-                        <td class="sub-header">Instrumento de formalización de alianza (Si hubiese):</td>
-                        <td class="full-width" colspan="1">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad">
-                        </td>
-                    </tr>
+                    @foreach ($proyecto->entidad_contraparte as $entidad)
+                        <tr>
+                            <td class="sub-header">Nombre de la entidad:</td>
+                            <td class="full-width" colspan="4">
+                                <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                                value="{{ $entidad->nombre }}" disabled>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" rowspan="2">Nombre del contacto directo</td>
+                            <td class="full-width" colspan="1" rowspan="2">
+                                <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                                value="{{ $entidad->nombre_contacto }}" disabled>
+                            </td>
+                            <td class="sub-header" rowspan="1">Correo electrónico:</td>
+                            <td class="full-width" colspan="1">
+                                <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                                value="{{ $entidad->correo }}" disabled>
+                            </td>
+                        <tr>
+                            <td class="sub-header" rowspan="1">Teléfono:</td>
+                            <td class="full-width" colspan="1">
+                                <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                                value="{{ $entidad->telefono }}" disabled>
+                            </td>
+                        </tr>
+                        </tr>
+                        <tr>
+                            <td class="sub-header">Rol o aporte en el proyecto:</td>
+                            <td class="full-width" colspan="1">
+                                <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                                value="{{ $entidad->aporte }}" disabled>
+                            </td>
+                            <td class="sub-header">Instrumento de formalización de alianza (Si hubiese):</td>
+                            <td class="full-width" colspan="1">
+                                <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad">
+                            </td>
+                        </tr>
+                    @endforeach
                 </table>
                
             </div>
             <div class="section2">
                 <div class="section-title">III. DATOS DEL PROYECTO. </div>
                 <table class="table_datos3">
-                    <tr>
-                        <th class="header" colspan="19">1. Resumen del proyecto: (Enunciar un breve resumen
-                            descriptivo con los antecedentes del problema de intervención,
-                            justificación y que se pretende cambiar con relación a dicho problema de intervención a
-                            través del proyecto) De 150 a 250 palabras</th>
-                    </tr>
-                    <tr>
-                        <td class="full-width" colspan="19">
-                            <textarea name="motivos" id="motivos" cols="30" rows="6" class="input-field"
-                                placeholder="Ingrese el resumen"></textarea>
-                        </td>
+                <tr>
+                    <th class="header" colspan="19">1. Resumen del proyecto: (Enunciar un breve resumen
+                        descriptivo con los antecedentes del problema de intervención,
+                        justificación y que se pretende cambiar con relación a dicho problema de intervención a
+                        través del proyecto) De 150 a 250 palabras</th>
+                </tr>
+                <tr>
+                    <td class="full-width" colspan="19">
+                        <textarea id="resumen" name="resumen" cols="30" rows="6" class="input-field"
+                                placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->resumen) }}</textarea>
+                    </td>
+                </tr>
+
                     </tr>
                     <tr>
                         <th class="header" colspan="19">2. Objetivo General (El objetivo debe de responder al para
@@ -231,8 +240,9 @@
                     </tr>
                     <tr>
                         <td class="full-width" colspan="19">
-                            <textarea name="motivos" id="motivos" cols="30" rows="6" class="input-field"
-                                placeholder="Ingrese el resumen"></textarea>
+                            <textarea cols="30" rows="6" class="input-field"
+                                placeholder="Ingrese el resumen"> {{ old('objetivo_general', $proyecto->objetivo_general) }}
+                            </textarea>
                         </td>
                     </tr>
                     <tr>
@@ -242,8 +252,9 @@
                     </tr>
                     <tr>
                         <td class="full-width" colspan="19">
-                            <textarea name="motivos" id="motivos" cols="30" rows="6" class="input-field"
-                                placeholder="Ingrese el resumen"></textarea>
+                            <textarea cols="30" rows="6" class="input-field"
+                                placeholder="Ingrese el resumen"> {{ old('objetivos_especificos', $proyecto->objetivos_especificos) }}
+                            </textarea>
                         </td>
                     </tr>
                     <tr>
@@ -251,18 +262,24 @@
                         </th>
                         <td class="sub-header" colspan="2" rowspan="2"> Fecha de inicio </td>
                         <td class="full-width" colspan="1"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
+                                placeholder="Ingrese el día" value="{{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->format('d') }}" disabled>
+                            </td>
                         <td class="full-width" colspan="1"><input type="text" class="input-field"
-                                placeholder="Ingrese el mes"></td>
+                                placeholder="Ingrese el mes" value="{{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->format('m') }}" disabled>
+                            </td>
                         <td class="full-width" colspan="1"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
+                                placeholder="Ingrese el día" value="{{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->format('Y') }}" disabled>
+                            </td>
                         <td class="sub-header" colspan="2" rowspan="2"> Fecha de Finalización</td>
                         <td class="full-width" colspan="1"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
+                                placeholder="Ingrese el día" value="{{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->format('d') }}" disabled>
+                            </td>
                         <td class="full-width" colspan="1"><input type="text" class="input-field"
-                                placeholder="Ingrese el mes"></td>
+                                placeholder="Ingrese el mes" value="{{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->format('m') }}" disabled>
+                            </td>
                         <td class="full-width" colspan="1"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
+                                placeholder="Ingrese el día" value="{{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->format('Y') }}" disabled>
+                            </td>
                     </tr>
                     <tr>
                         <td class="full-width" colspan="1">Día</td>
@@ -277,18 +294,24 @@
                         </th>
                         <td class="sub-header" colspan="2" rowspan="2"> Evaluación intermedia </td>
                         <td class="full-width" colspan="1"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
+                                placeholder="Ingrese el día" value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_intermedia)->format('d') }}" disabled>
+                            </td>
                         <td class="full-width" colspan="1"><input type="text" class="input-field"
-                                placeholder="Ingrese el mes"></td>
+                                placeholder="Ingrese el mes" value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_intermedia)->format('m') }}" disabled>
+                            </td>
                         <td class="full-width" colspan="1"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
+                                placeholder="Ingrese el día" value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_intermedia)->format('Y') }}" disabled>
+                            </td>
                         <td class="sub-header" colspan="2" rowspan="2"> Evaluación Final</td>
                         <td class="full-width" colspan="1"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
+                                placeholder="Ingrese el día" value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_final)->format('d') }}" disabled>
+                            </td>
                         <td class="full-width" colspan="1"><input type="text" class="input-field"
-                                placeholder="Ingrese el mes"></td>
+                                placeholder="Ingrese el mes" value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_final)->format('m') }}" disabled>
+                            </td>
                         <td class="full-width" colspan="1"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
+                                placeholder="Ingrese el día" value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_final)->format('Y') }}" disabled>
+                            </td>
                     </tr>
                     <tr>
                         <td class="full-width" colspan="1">Día</td>
@@ -301,41 +324,53 @@
                     <tr>
                         <td class="sub-header" colspan="13">7. Población beneficiada (número aproximado) </td>
                         <td class="full-width" colspan="6">
-                            <input type="text" class="input-field" placeholder="Ingrese el día">
+                            <input type="text" class="input-field" placeholder="Ingrese el día"
+                            value="{{ floor($proyecto->poblacion_participante) }}" disabled>
                         </td>
                     </tr>
                     <tr>
-                        <td class="sub-header" colspan="12">8. Modalidad de ejecución (marcar con una X) </td>
-                        <td class="full-width" colspan="3">Distancia <br>
-                            <input type="checkbox" class="no">
+                    <td class="sub-header" colspan="12">8. Modalidad de ejecución (marcar con una X)</td>
+                        <td class="full-width" colspan="3">
+                            Distancia <br>
+                            <input type="checkbox" class="no" 
+                                @if ($proyecto->modalidad_ejecucion == 'Distancia') checked @endif>
                         </td>
-                        <td class="full-width" colspan="2">Precencial <br>
-                            <input type="checkbox" class="no">
+                        <td class="full-width" colspan="2">
+                            Presencial <br>
+                            <input type="checkbox" class="no" 
+                                @if ($proyecto->modalidad_ejecucion == 'Presencial') checked @endif>
                         </td>
-                        <td class="full-width" colspan="3">Bimodal <br>
-                            <input type="checkbox" class="no">
+                        <td class="full-width" colspan="3">
+                            Bimodal <br>
+                            <input type="checkbox" class="no" 
+                                @if ($proyecto->modalidad_ejecucion == 'Bimodal') checked @endif>
                         </td>
+
                     </tr>
                     <tr>
-                        <th class="header" colspan="19">9. Modalidad de ejecución (marcar con una X) </th>
+                        <th class="header" colspan="19">9. En caso de proyectos presenciales, indicar el lugar donde se ejecuta:  </th>
                     </tr>
                     <tr>
                         <td class="sub-header" colspan="2">Departamento</td>
                         <td class="full-width" colspan="11" rowspan="1">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad">
+                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                            value="{{ $proyecto->departamento->nombre }}" disabled>
                         </td>
                         <td class="sub-header" colspan="1">Ciudad:</td>
                         <td class="full-width" colspan="5">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad">
+                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                            value="{{ $proyecto->ciudad->nombre }}" disabled>
                         </td>
                     <tr>
                         <td class="sub-header" colspan="2">Municipio:</td>
                         <td class="full-width" colspan="11">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad">
+                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                            value="{{ $proyecto->municipio->nombre }}" disabled>
                         </td>
                         <td class="sub-header" colspan="1">Aldea/caserío/<br>barrio/colonia:</td>
                         <td class="full-width" colspan="5">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad">
+                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                            value="{{ $proyecto->aldea }}" disabled>
                         </td>
                     </tr>
                     </tr>
@@ -349,68 +384,47 @@
                             fortalecimiento, el seguimiento, la evaluación, la sistematización y la divulgación). </th>
                     </tr>
                     <tr>
-                        <td class="sub-header3" colspan="19"> Cronogrmama de actividades</td>
+                        <td class="sub-header3" colspan="19"> Cronogramama de actividades</td>
                     </tr>
                     <tr>
                         <td class="sub-header3" colspan="11"> Actividades</td>
-                        <td class="sub-header3" colspan="3"> Ejecución</td>
+                        <td class="sub-header3" colspan="3"> Fecha de ejecución (tentativa)</td>
                         <td class="sub-header3" colspan="5"> Responsable</td>
                     </tr>
-                    <tr>
-                        <td class="full-width" colspan="11"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
-                        <td class="full-width" colspan="3"><input type="text" class="input-field"
-                                placeholder="Ingrese el mes"></td>
-                        <td class="full-width" colspan="5"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
-                    </tr>
-                    <tr>
-                        <td class="full-width" colspan="11"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
-                        <td class="full-width" colspan="3"><input type="text" class="input-field"
-                                placeholder="Ingrese el mes"></td>
-                        <td class="full-width" colspan="5"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
-                    </tr>
-                    <tr>
-                        <td class="full-width" colspan="11"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
-                        <td class="full-width" colspan="3"><input type="text" class="input-field"
-                                placeholder="Ingrese el mes"></td>
-                        <td class="full-width" colspan="5"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
-                    </tr>
-                    <tr>
-                        <td class="full-width" colspan="11"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
-                        <td class="full-width" colspan="3"><input type="text" class="input-field"
-                                placeholder="Ingrese el mes"></td>
-                        <td class="full-width" colspan="5"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
-                    </tr>
-                    <tr>
-                        <td class="full-width" colspan="11"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
-                        <td class="full-width" colspan="3"><input type="text" class="input-field"
-                                placeholder="Ingrese el mes"></td>
-                        <td class="full-width" colspan="5"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
-                    </tr>
-                    <tr>
-                        <td class="full-width" colspan="11"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
-                        <td class="full-width" colspan="3"><input type="text" class="input-field"
-                                placeholder="Ingrese el mes"></td>
-                        <td class="full-width" colspan="5"><input type="text" class="input-field"
-                                placeholder="Ingrese el día"></td>
-                    </tr>
+                        <tr>
+                            <td class="full-width" colspan="11"><input type="text" class="input-field"
+                                placeholder="Ingrese el día">
+                            </td>
+                            <td class="full-width" colspan="3"><input type="text" class="input-field"
+                                placeholder="Ingrese el mes" >
+                            </td>
+                            <td class="full-width" colspan="5"><input type="text" class="input-field"
+                                    placeholder="Ingrese el día">
+                                </td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="11"><input type="text" class="input-field"
+                                    placeholder="Ingrese el día"></td>
+                            <td class="full-width" colspan="3"><input type="text" class="input-field"
+                                    placeholder="Ingrese el mes"></td>
+                            <td class="full-width" colspan="5"><input type="text" class="input-field"
+                                    placeholder="Ingrese el día"></td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="11"><input type="text" class="input-field"
+                                    placeholder="Ingrese el día"></td>
+                            <td class="full-width" colspan="3"><input type="text" class="input-field"
+                                    placeholder="Ingrese el mes"></td>
+                            <td class="full-width" colspan="5"><input type="text" class="input-field"
+                                    placeholder="Ingrese el día"></td>
+                        </tr>
                     <tr>
                         <th class="header" colspan="19">11. Resultados esperados </th>
                     </tr>
                     <tr>
                         <td class="full-width" colspan="19">
                             <textarea name="motivos" id="motivos" cols="30" rows="6" class="input-field"
-                                placeholder="Ingrese el resumen"></textarea>
+                                placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->resultados_esperados) }}</textarea>
                         </td>
                     </tr>
                     <tr>
@@ -419,7 +433,7 @@
                     <tr>
                         <td class="full-width" colspan="19">
                             <textarea name="motivos" id="motivos" cols="30" rows="6" class="input-field"
-                                placeholder="Ingrese el resumen"></textarea>
+                                placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->indicadores_medicion_resultados) }}</textarea>
                         </td>
                     </tr>
                     <tr>
@@ -492,24 +506,28 @@
                         <td class="sub-header3" colspan="14">Inversión:</td>
                         <td class="sub-header3" colspan="5">Monto:</td>
                     </tr>
-                    <tr>
-                        <td class="full-width" colspan="14"><input type="text" class="input-field"
-                                placeholder="Ingrese el nombre de la entidad"></td>
-                        <td class="full-width " colspan="5"><input type="text" class="input-field"
-                                placeholder="Ingrese el nombre de la entidad"></td>
-                    </tr>
-                    <tr>
-                        <td class="full-width" colspan="14"><input type="text" class="input-field"
-                                placeholder="Ingrese el nombre de la entidad"></td>
-                        <td class="full-width " colspan="5"><input type="text" class="input-field"
-                                placeholder="Ingrese el nombre de la entidad"></td>
-                    </tr>
-                    <tr>
-                        <td class="full-width" colspan="14"><input type="text" class="input-field"
-                                placeholder="Ingrese el nombre de la entidad"></td>
-                        <td class="full-width " colspan="5"><input type="text" class="input-field"
-                                placeholder="Ingrese el nombre de la entidad"></td>
-                    </tr>
+                        <tr>
+                            <td class="full-width" colspan="14"><input type="text" class="input-field"
+                                placeholder="Ingrese el nombre de la entidad" 
+                                value="{{ $proyecto->superavit->inversion }}" disabled>
+                            </td>
+                            <td class="full-width " colspan="5"><input type="text" class="input-field"
+                                placeholder="Ingrese el nombre de la entidad" 
+                                value="{{ $proyecto->superavit->monto }}" disabled>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="14"><input type="text" class="input-field"
+                                    placeholder="Ingrese el nombre de la entidad"></td>
+                            <td class="full-width " colspan="5"><input type="text" class="input-field"
+                                    placeholder="Ingrese el nombre de la entidad"></td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="14"><input type="text" class="input-field"
+                                    placeholder="Ingrese el nombre de la entidad"></td>
+                            <td class="full-width " colspan="5"><input type="text" class="input-field"
+                                    placeholder="Ingrese el nombre de la entidad"></td>
+                        </tr>
                 </table>
             </div>
             <div class="section3">
@@ -572,7 +590,7 @@
                 </table>
                 <table class="table_datos4" style="width: 450px; margin: 0 auto;">
                     <tr>
-                        <td class="sub-header" colspan="2">Jeje del Departamento</td>
+                        <td class="sub-header" colspan="2">Decano(a) o Director(a) del Campus Universitario</td>
                     </tr>
                     <tr>
                         <td class="full-width " colspan="1">Nombre:</td>

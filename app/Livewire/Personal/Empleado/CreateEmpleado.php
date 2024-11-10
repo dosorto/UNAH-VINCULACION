@@ -76,7 +76,7 @@ class CreateEmpleado extends Component implements HasForms
 
         Notification::make()
             ->title('Exito!')
-            ->body('Pais creado correctamente.')
+            ->body('Empleado creado correctamente.')
             ->success()
             ->send();
         $this->js('location.reload();');
