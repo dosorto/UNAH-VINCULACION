@@ -27,7 +27,7 @@ class ProyectoSeeder extends Seeder
             ['nombre' => 'Coordinador Proyecto', 'cargo_firma_anterior_id' => null],
             ['nombre' => 'Jefe Departamento', 'cargo_firma_anterior_id' => 1],
             ['nombre' => 'Director centro', 'cargo_firma_anterior_id' => 2],
-            ['nombre' => 'Coordinador de Vinculación', 'cargo_firma_anterior_id' => 3],
+            ['nombre' => 'Enlace Vinculacion', 'cargo_firma_anterior_id' => 3],
         ]);
 
 
