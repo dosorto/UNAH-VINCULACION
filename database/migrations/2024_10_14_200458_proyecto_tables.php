@@ -170,6 +170,7 @@ return new class extends Migration
             $table->id();
             $table->string('nombre');
             $table->integer('cargo_firma_anterior_id')->nullable();
+            $table->foreignId('estado_proyecto_id')->nullable();//->constrained('estado_proyecto');
             $table->softDeletes();
             $table->timestamps();
         });
