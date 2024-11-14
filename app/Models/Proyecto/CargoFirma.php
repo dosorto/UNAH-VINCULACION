@@ -21,9 +21,10 @@ class CargoFirma extends Model
     ];
 
     // recuperar el estado del proyecto asociado con este cargo de firma :)
-    public function estadoProyecto()
+    public function estadoProyectoSiguiente()
     {
-        return $this->belongsTo(TipoEstado::class, 'estado_proyecto_id');
+        // clase, llave foranea, llave primaria
+        return $this->hasOne(TipoEstado::class, 'id', 'estado_proyecto_id');
     }
 
     public function cargoFirmaAnterior()
