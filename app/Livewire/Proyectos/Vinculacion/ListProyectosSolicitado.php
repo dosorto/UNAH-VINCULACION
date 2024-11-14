@@ -40,7 +40,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                         'proyecto.objetivos_especificos',
                         'tipo_estado.nombre AS nombre_estado'
                     )
-                    ->where('tipo_estado.nombre', 'En revision')
+                  //  ->where('tipo_estado.nombre', 'En revision')
                     ->distinct()
             )
             ->columns([
@@ -75,6 +75,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                         view('components.fichas.ficha-proyecto', ['proyecto' => $proyecto])
                     )
                     ->modalWidth('800px')
+                
                     ->modalSubmitAction(false),
             ])
             ->bulkActions([

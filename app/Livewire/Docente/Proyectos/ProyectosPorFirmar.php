@@ -83,11 +83,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                         $firma_proyecto->update(['estado_revision' => 'Aprobado']);
                         // actualizar el estado del proyecto al siguiente estado :)
 
-                        $firma_proyecto->proyecto->estado->create([
-                            'tipo_estado_id' => $firma_proyecto->cargo_firma->cargoFirmaSiguiente->estadoProyecto->id,
-                            'empleado_id' => $this->docente->id,
-                            'proyecto_id' => $firma_proyecto->proyecto->id,
-                        ]);
+                      
                         // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                         // ->where('empleado_id', $this->docente->id)
                         // ->first());
