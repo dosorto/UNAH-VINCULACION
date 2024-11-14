@@ -31,7 +31,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
     {
         return $table
             ->query(
-               
+
                 Proyecto::query()
                     ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
                     ->select('proyecto.*')
@@ -71,17 +71,21 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
             ])
             ->actions([
                 Action::make('Proyecto de Vinculación')
-                ->label('Ver')
-                ->modalContent(
-                    fn(Proyecto $proyecto): View =>
-                    view(
-                        'components.fichas.ficha-proyecto-vinculacion',
-                        ['proyecto' => $proyecto]
+                    ->label('Ver')
+                    ->modalContent(
+                        fn(Proyecto $proyecto): View =>
+                        view(
+                            'components.fichas.ficha-proyecto-vinculacion',
+                            ['proyecto' => $proyecto]
+                        )
                     )
-                )
-               // ->stickyModalHeader()
-                ->modalWidth(MaxWidth::SevenExtraLarge)
-                ->modalSubmitAction(false)
+                    // ->stickyModalHeader()
+                    ->modalWidth(MaxWidth::SevenExtraLarge)
+                    ->modalSubmitAction(false),
+                Action::make('edit')
+                    ->label('Editar/Subsanar')
+                    ->url(fn(Proyecto $proyecto) => route('editarProyectoVinculacion', $proyecto))
+                // ->openUrlInNewTab()
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

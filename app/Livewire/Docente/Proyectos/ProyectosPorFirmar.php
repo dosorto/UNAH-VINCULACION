@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Docente\Proyectos;
 
+use App\Models\Estado\TipoEstado;
 use Filament\Tables;
 use Livewire\Component;
 use Filament\Tables\Table;
@@ -17,6 +18,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Support\Enums\MaxWidth;
+
+use Filament\Forms\Components\Textarea;
 
 class ProyectosPorFirmar extends Component implements HasForms, HasTable
 {
@@ -85,13 +88,30 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                     ->extraModalFooterActions([
                         Action::make('second')
                             ->label('Rechazar')
+                            ->form([
+                                Textarea::make('comentario')
+                                    ->label('Comentario')
+                                    ->columnSpanFull(),
+                            ])
                             ->icon('heroicon-o-x-circle') // Icono para "Rechazar"
                             ->color('danger')
                             ->requiresConfirmation()
                             ->modalHeading('Confirmar Rechazo') // Título del diálogo
+
                             ->modalSubheading('¿Estás seguro de que deseas Rechazar la firma de este proyecto?')
-                            ->action(function (FirmaProyecto $firma_proyecto) {
-                                $firma_proyecto->update(['estado_revision' => 'Rechazado']);
+                            ->action(function (FirmaProyecto $firma_proyecto,  array $data) {
+
+                                //  cambiar todos los estados de la revision a Pendiente
+                                $firma_proyecto->proyecto->firma_proyecto()->update(['estado_revision' => 'Pendiente']);
+
+
+                                $firma_proyecto->proyecto->estado_proyecto()->create([
+                                    'empleado_id' => $this->docente->id,
+                                    'tipo_estado_id' => TipoEstado::where('nombre', 'Subsanacion')->first()->id,
+                                    'fecha' => now(),
+                                    'comentario' => $data['comentario'],
+                                ]);
+
                                 // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                                 // ->where('empleado_id', $this->docente->id)
                                 // ->first());

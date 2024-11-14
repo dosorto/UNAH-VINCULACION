@@ -42,10 +42,10 @@ class ProyectoSeeder extends Seeder
         ]);
 
         CargoFirma::insert([
-            ['nombre' => 'Coordinador Proyecto', 'cargo_firma_anterior_id' => null, 'estado_proyecto_id' => 2],
-            ['nombre' => 'Jefe Departamento', 'cargo_firma_anterior_id' => 1, 'estado_proyecto_id' =>  3],
-            ['nombre' => 'Director centro', 'cargo_firma_anterior_id' => 2, 'estado_proyecto_id' => 4],
-            ['nombre' => 'Enlace Vinculacion', 'cargo_firma_anterior_id' => 3, 'estado_proyecto_id' => 5],
+            ['nombre' => 'Coordinador Proyecto', 'cargo_firma_anterior_id' => null, 'estado_proyecto_id' => 2, 'estado_actual_id' => 1],
+            ['nombre' => 'Jefe Departamento', 'cargo_firma_anterior_id' => 1, 'estado_proyecto_id' =>  3, 'estado_actual)id' => 2],
+            ['nombre' => 'Director centro', 'cargo_firma_anterior_id' => 2, 'estado_proyecto_id' => 4, 'estado_actual_id' => 3],
+            ['nombre' => 'Enlace Vinculacion', 'cargo_firma_anterior_id' => 3, 'estado_proyecto_id' => 5,'estado_actual_id'=> 4],
         ]);
 
 

@@ -18,7 +18,15 @@ class CargoFirma extends Model
         'nombre',
         'cargo_firma_anterior_id',
         'estado_proyecto_id',
+        'estado_actual_id',
     ];
+
+    // recuperar el estado del proyecto asociado con este cargo de firma :)
+    public function estadoProyectoActual()
+    {
+        // clase, llave foranea, llave primaria
+        return $this->hasOne(TipoEstado::class, 'id', 'estado_actual_id');
+    }
 
     // recuperar el estado del proyecto asociado con este cargo de firma :)
     public function estadoProyectoSiguiente()
