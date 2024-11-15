@@ -100,6 +100,22 @@ class PersonalSeeder extends Seeder
             'password' => bcrypt('123'),
         ])->assignRole('docente');
 
+        $user = User::create([
+            'name' => 'neto',
+            'email' => 'neto@unah.hn',
+            'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
+        ])->assignRole('admin');
+        
+       Empleado::create([
+        'nombre_completo' => 'Administrador',
+        'numero_empleado' => '123412125',
+        'celular' => '99999999',
+        'user_id' => $user->id,
+        'centro_facultad_id' => 1,
+        'departamento_academico_id' => 1,
+        'categoria_id' => 1
+       ]);
+
         Empleado::create([
             'nombre_completo' => 'validador proyectos',
             'numero_empleado' => '12345',

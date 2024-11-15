@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Docente\Proyectos;
 
+use App\Models\Estado\EstadoProyecto;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Proyecto;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -38,7 +39,8 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                     ->where('empleado_proyecto.empleado_id', $this->docente->id)
             )
             ->columns([
-
+                Tables\Columns\TextColumn::make('id')
+                ->searchable(),
 
                 Tables\Columns\TextColumn::make('nombre_proyecto')
                     ->searchable(),
@@ -54,17 +56,9 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                     ->wrap()
                     ->label('Centro/Facultad'),
 
-                Tables\Columns\TextColumn::make('modalidad.nombre')
-                    ->numeric()
-                    ->sortable(),
 
-                Tables\Columns\TextColumn::make('fecha_inicio')
-                    ->date()
-                    ->sortable(),
 
-                Tables\Columns\TextColumn::make('poblacion_participante')
-                    ->numeric()
-                    ->sortable(),
+
             ])
             ->filters([
                 //
@@ -85,6 +79,10 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                 Action::make('edit')
                     ->label('Editar/Subsanar')
                     ->url(fn(Proyecto $proyecto) => route('editarProyectoVinculacion', $proyecto))
+                    ->visible(function (Proyecto $proyecto) {
+                        return $proyecto->estado->tipoestado->nombre == 'Subsanacion'
+                            || $proyecto->estado->tipoestado->nombre == 'Borrador';
+                    }),
                 // ->openUrlInNewTab()
             ])
             ->bulkActions([

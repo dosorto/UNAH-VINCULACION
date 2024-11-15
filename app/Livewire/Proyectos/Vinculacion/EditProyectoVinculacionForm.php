@@ -695,14 +695,22 @@ class EditProyectoVinculacionForm extends Component implements HasForms
 
 
                 ])->submitAction(new HtmlString(Blade::render(<<<BLADE
-            <x-filament::button
-                type="submit"
-                size="sm"
-                color="info"
-            >
-             Guardar
-            </x-filament::button>
-        BLADE))),
+             <x-filament::button
+                    type="submit"
+                    size="sm"
+                    color="info"
+                >
+                 Enviar a Firmar
+                </x-filament::button>
+
+                <x-filament::button
+                   wire:click="borrador"
+                    size="sm"
+                    color="success"
+                >
+                 Guardar Borrador
+                </x-filament::button>
+            BLADE))),
 
 
             ])
@@ -715,6 +723,41 @@ class EditProyectoVinculacionForm extends Component implements HasForms
         $data = $this->form->getState();
 
         $this->record->update($data);
+
+        $this->record->firma_proyecto()->create([
+            'empleado_id' => auth()->user()->empleado->id,
+            'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
+            'estado_revision' => 'Aprobado',
+            'hash' => 'hash'
+        ]);
+
+        $this->record->estado_proyecto()->create([
+            'empleado_id' => auth()->user()->empleado->id,
+            'tipo_estado_id' => TipoEstado::where('nombre', 'Esperando firma de Jefe de Departamento')->first()->id,
+            'fecha' => now(),
+            'comentario' => 'Proyecto creado',
+        ]);
+
+        Notification::make()
+            ->title('¡Éxito!')
+            ->body('El proyecto ha sido enviado a firmar exitosamente')
+            ->success()
+            ->send();
+        $this->js('location.reload();');
+    }
+
+    public function borrador(): void
+    {
+        $data = $this->form->getState();
+
+        $this->record->update($data);
+        $this->record->save();
+        Notification::make()
+            ->title('¡Éxito!')
+            ->body('Cambios guardados')
+            ->success()
+            ->send();
+        $this->js('location.reload();');
     }
 
     public function render(): View

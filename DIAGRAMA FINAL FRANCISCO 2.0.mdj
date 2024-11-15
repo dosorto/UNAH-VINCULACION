@@ -5259,6 +5259,22 @@
 											"top": 2039,
 											"width": 245.11962890625,
 											"height": 13
+										},
+										{
+											"_type": "ERDColumnView",
+											"_id": "AAAAAAGTLR+5ZWL+o/c=",
+											"_parent": {
+												"$ref": "AAAAAAGSiOZbXjSqBNU="
+											},
+											"model": {
+												"$ref": "AAAAAAGTLR+5M2L7QIw="
+											},
+											"fillColor": "#ffbf00",
+											"font": "Arial;13;0",
+											"left": 4773,
+											"top": 2054,
+											"width": 245.11962890625,
+											"height": 13
 										}
 									],
 									"fillColor": "#ffbf00",
@@ -5266,7 +5282,7 @@
 									"left": 4768,
 									"top": 1959,
 									"width": 255.11962890625,
-									"height": 98
+									"height": 113
 								}
 							],
 							"fillColor": "#ffbf00",
@@ -5274,7 +5290,7 @@
 							"left": 4768,
 							"top": 1936,
 							"width": 255.11962890625,
-							"height": 121,
+							"height": 136,
 							"nameLabel": {
 								"$ref": "AAAAAAGSiOZbXjSpBvQ="
 							},
@@ -5556,7 +5572,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 4903,
-									"top": 2277,
+									"top": 2285,
 									"height": 13,
 									"alpha": 1.5707963267948966,
 									"distance": 15,
@@ -5573,7 +5589,7 @@
 									},
 									"font": "Arial;13;0",
 									"left": 4903,
-									"top": 2076,
+									"top": 2091,
 									"height": 13,
 									"alpha": 0.5235987755982988,
 									"distance": 30,
@@ -5607,7 +5623,7 @@
 								"$ref": "AAAAAAGSiOZbXjSoYQU="
 							},
 							"lineStyle": 2,
-							"points": "4888:2057;4888:2512",
+							"points": "4888:2072;4888:2512",
 							"nameLabel": {
 								"$ref": "AAAAAAGSiPArpTVXlRQ="
 							},
@@ -13165,6 +13181,15 @@
 							"type": "INTEGER",
 							"length": "9",
 							"foreignKey": true
+						},
+						{
+							"_type": "ERDColumn",
+							"_id": "AAAAAAGTLR+5M2L7QIw=",
+							"_parent": {
+								"$ref": "AAAAAAGSiOZbXDSm978="
+							},
+							"name": "es_actual",
+							"length": 0
 						}
 					]
 				},

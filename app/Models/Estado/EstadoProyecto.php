@@ -14,25 +14,52 @@ class EstadoProyecto extends Model
     use SoftDeletes;
     use LogsActivity;
 
-    protected static $logAttributes = ['id', 'proyecto_id', 'empleado_id', 'tipo_estado_id', 'fecha', 'comentario'];
+    protected static $logAttributes = [
+        'id',
+        'proyecto_id',
+        'empleado_id',
+        'tipo_estado_id',
+        'fecha',
+        'comentario',
+        'es_actual'
+    ];
 
     protected static $logName = 'EstadoProyecto';
 
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-        ->logOnly(['id', 'proyecto_id', 'empleado_id', 'tipo_estado_id', 'fecha', 'comentario'])
-        ->setDescriptionForEvent(fn (string $eventName) => "El registro {$this->nombre} ha sido {$eventName}");
+            ->logOnly(['id', 'proyecto_id', 'empleado_id', 'tipo_estado_id', 'fecha', 'comentario'])
+            ->setDescriptionForEvent(fn(string $eventName) => "El registro {$this->nombre} ha sido {$eventName}");
     }
-    
+
     protected $fillable = [
         'id',
         'proyecto_id',
-        'empleado_id', 
-        'tipo_estado_id', 
+        'empleado_id',
+        'tipo_estado_id',
         'fecha',
         'comentario',
+        'es_actual'
     ];
+
+
+    /**
+     * Cuando se está creando o actualizando un EstadoProyecto, aseguramos
+     * que el nuevo estado se marque como 'es_actual' y el resto no.
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $estadoProyecto
+     * @return void
+     */
+    public static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($estadoProyecto) {
+            self::where('proyecto_id', $estadoProyecto->proyecto_id)
+                ->update(['es_actual' => false]);
+        });
+    }
 
 
     public function empleado()
@@ -45,7 +72,7 @@ class EstadoProyecto extends Model
     {
         return $this->belongsTo(Proyecto::class, 'proyecto_id',);
     }
-    
+
 
     public function tipoestado()
     {

@@ -633,8 +633,8 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->columns(2),
 
 
-                                // repeter para el firma_proyecto_enlace
-                                Repeater::make('firma_proyecto_enlace')
+                            // repeter para el firma_proyecto_enlace
+                            Repeater::make('firma_proyecto_enlace')
                                 ->label('Enlace de Vinculación')
                                 ->schema([
                                     Select::make('empleado_id')
@@ -662,7 +662,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->addable(false)
                                 ->relationship()
                                 ->columns(2),
-                                
+
 
 
 
@@ -697,7 +697,15 @@ class CreateProyectoVinculacion extends Component implements HasForms
                     size="sm"
                     color="info"
                 >
-                 Guardar
+                 Enviar a Firmar
+                </x-filament::button>
+
+                <x-filament::button
+                   wire:click="borrador"
+                    size="sm"
+                    color="success"
+                >
+                 Guardar Borrador
                 </x-filament::button>
             BLADE))),
 
@@ -725,6 +733,37 @@ class CreateProyectoVinculacion extends Component implements HasForms
         $record->estado_proyecto()->create([
             'empleado_id' => auth()->user()->empleado->id,
             'tipo_estado_id' => TipoEstado::where('nombre', 'Esperando firma de Jefe de Departamento')->first()->id,
+            'fecha' => now(),
+            'comentario' => 'Proyecto creado',
+        ]);
+
+        Notification::make()
+            ->title('¡Éxito!')
+            ->body('Proyecto creado correctamente')
+            ->success()
+            ->send();
+        $this->js('location.reload();');
+    }
+
+
+    // optimizar esta funcion para despues, es demasiado redundante y lo unico que cambia es el nombre del estado :)
+    public function borrador(): void
+    {
+        $data = $this->form->getState();
+        $data['fecha_registro'] = now();
+        $record = Proyecto::create($data);
+        $this->form->model($record)->saveRelationships();
+
+        $record->firma_proyecto()->create([
+            'empleado_id' => auth()->user()->empleado->id,
+            'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
+            'estado_revision' => 'Pendiente',
+            'hash' => 'hash'
+        ]);
+
+        $record->estado_proyecto()->create([
+            'empleado_id' => auth()->user()->empleado->id,
+            'tipo_estado_id' => TipoEstado::where('nombre', 'Borrador')->first()->id,
             'fecha' => now(),
             'comentario' => 'Proyecto creado',
         ]);

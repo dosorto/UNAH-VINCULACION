@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Docente\Proyectos;
 
+use App\Models\Estado\EstadoProyecto;
 use App\Models\Estado\TipoEstado;
 use Filament\Tables;
 use Livewire\Component;
@@ -62,7 +63,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                     ->label('Estado Firma')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('proyecto.estado.tipoestado.nombre')
+                    Tables\Columns\TextColumn::make('proyecto.estado.tipoestado.nombre')
                     ->badge()
                     ->label('Estado Proyecto')
                     ->searchable(),
@@ -101,16 +102,21 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                             ->modalSubheading('¿Estás seguro de que deseas Rechazar la firma de este proyecto?')
                             ->action(function (FirmaProyecto $firma_proyecto,  array $data) {
 
-                                //  cambiar todos los estados de la revision a Pendiente
-                                $firma_proyecto->proyecto->firma_proyecto()->update(['estado_revision' => 'Pendiente']);
+                                // cambiar el estado de la firma a rechazado y agregar el comentario
+                                $firma_proyecto->proyecto->firma_proyecto()->update([
+                                    'estado_revision' => 'Pendiente',
+                                ]);
 
-
+                                // actualizar el estado del proyecto al siguiente estado :)
                                 $firma_proyecto->proyecto->estado_proyecto()->create([
                                     'empleado_id' => $this->docente->id,
                                     'tipo_estado_id' => TipoEstado::where('nombre', 'Subsanacion')->first()->id,
                                     'fecha' => now(),
                                     'comentario' => $data['comentario'],
                                 ]);
+
+
+                                
 
                                 // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                                 // ->where('empleado_id', $this->docente->id)
@@ -121,6 +127,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                                     ->info()
                                     ->send();
                             })
+                            ->cancelParentActions()
                             ->button(),
 
                         Action::make('aprobar')
