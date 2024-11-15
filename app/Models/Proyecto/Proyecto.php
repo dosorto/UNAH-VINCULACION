@@ -326,7 +326,9 @@ class Proyecto extends Model
     // obtener el estado actual del proyecto
     public function getEstadoAttribute()
     {
-        return $this->estado_proyecto->last();
+        return $this->estado_proyecto()
+            ->where('es_actual', true)
+            ->first();
     }
 
 

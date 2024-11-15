@@ -39,7 +39,14 @@ class ProyectoSeeder extends Seeder
             ['nombre' => 'Aprobado'],
             ['nombre' => 'Rechazado'],
             ['nombre' => 'Inscrito'],
+
+            ['nombre' => 'Finalizado'],
+            ['nombre' => 'Cancelado'],
+
+
+            ['nombre' => 'Borrador'],
         ]);
+
 
         CargoFirma::insert([
             ['nombre' => 'Coordinador Proyecto', 'cargo_firma_anterior_id' => null, 'estado_proyecto_id' => 2, 'estado_actual_id' => 1],

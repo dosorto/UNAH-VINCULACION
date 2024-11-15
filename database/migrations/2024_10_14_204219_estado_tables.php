@@ -27,6 +27,7 @@ return new class extends Migration
             $table->foreignId('tipo_estado_id')->constrained('tipo_estado');
             $table->date('fecha');
             $table->string('comentario');
+            $table->boolean('es_actual')->default(true);
             $table->softDeletes();
             $table->timestamps();
         });
