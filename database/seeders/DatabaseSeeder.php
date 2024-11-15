@@ -53,12 +53,7 @@ class DatabaseSeeder extends Seeder
          //$permission = Permission::create(['name' => 'edit articles']);
  
          // Asignar un rol a un usuario (con contraseña encriptada)
-         $user = User::create([
-             'name' => 'neto',
-             'email' => 'neto@unah.hn',
-             'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
-         ]);
-         $user->assignRole('admin')->save();
+        
  
          // Asignar permisos a roles
         // $role->givePermissionTo('edit articles')->save();

@@ -281,6 +281,14 @@ class Proyecto extends Model
             ->where('cargo_firma.nombre', 'Enlace Vinculacion');
     }
 
+    // firma del decano
+    public function firma_proyecto_decano()
+    {
+        return $this->hasMany(FirmaProyecto::class, 'proyecto_id')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->where('cargo_firma.nombre', 'Director centro');
+    }
+
     public function firma_proyecto_jefe()
     {
         return $this->hasMany(FirmaProyecto::class, 'proyecto_id')
@@ -318,7 +326,9 @@ class Proyecto extends Model
     // obtener el estado actual del proyecto
     public function getEstadoAttribute()
     {
-        return $this->estado_proyecto->last();
+        return $this->estado_proyecto()
+            ->where('es_actual', true)
+            ->first();
     }
 
 

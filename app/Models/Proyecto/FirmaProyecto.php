@@ -38,4 +38,7 @@ class FirmaProyecto extends Model
     {
         return $this->belongsTo(CargoFirma::class, 'cargo_firma_id');
     }
+
+
+    // recuperar la firma del 
 }

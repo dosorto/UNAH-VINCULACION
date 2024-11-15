@@ -5,7 +5,9 @@
     </div>
 
     <x-panel.navbar-horizontal.navbar-horizontal>
-        <x-panel.navbar-horizontal.item titulo="Proyectos" ruta="SolicitudProyectosDocente" permiso="docente-admin-proyectos" />
+        <x-panel.navbar-horizontal.item titulo="Solicitudes de Firma" ruta="SolicitudProyectosDocente" permiso="docente-admin-proyectos" />
+        <x-panel.navbar-horizontal.item titulo="Firmas Aprobadas" ruta="AprobadoProyectosDocente" permiso="docente-admin-proyectos" />
+        <x-panel.navbar-horizontal.item titulo="Firmas Rechazadas" ruta="RechazadoProyectosDocente" permiso="docente-admin-proyectos" />
     </x-panel.navbar-horizontal.navbar-horizontal>
 
     @livewire('docente.proyectos.proyectos-por-firmar', ['docente' => $docenteLogeado])

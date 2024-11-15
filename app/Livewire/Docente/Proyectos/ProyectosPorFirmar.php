@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Docente\Proyectos;
 
+use App\Models\Estado\EstadoProyecto;
+use App\Models\Estado\TipoEstado;
 use Filament\Tables;
 use Livewire\Component;
 use Filament\Tables\Table;
@@ -16,6 +18,9 @@ use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Support\Enums\MaxWidth;
+
+use Filament\Forms\Components\Textarea;
 
 class ProyectosPorFirmar extends Component implements HasForms, HasTable
 {
@@ -51,14 +56,14 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                     ->color('info')
                     ->separator(',')
                     ->wrap()
-                    ->label('Departamento')
+                    ->label('Cargo de firma')
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('estado_revision')
-                    ->label('Estado')
+                    ->label('Estado Firma')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('proyecto.estado.tipoestado.nombre')
+                    Tables\Columns\TextColumn::make('proyecto.estado.tipoestado.nombre')
                     ->badge()
                     ->label('Estado Proyecto')
                     ->searchable(),
@@ -67,52 +72,95 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                 //
             ])
             ->actions([
-                //
-                Action::make('aprobar')
-                    ->label('Aprobar')
-                    ->icon('heroicon-o-check-circle') // Icono para "Aprobar"
-                    ->color('success')
-                    ->requiresConfirmation()
-                    ->modalHeading('Confirmar Aprobación') // Título del diálogo
-                    ->modalSubheading('¿Estás seguro de que deseas aprobar la firma de este proyecto?')
-                    ->action(function (FirmaProyecto $firma_proyecto) {
-                        // dd($this->docente);
+
+                Action::make('first')
+                    ->label('Ver')
+                    ->modalContent(
+                        fn(FirmaProyecto $firmaProyecto): View =>
+                        view(
+                            'components.fichas.ficha-proyecto-vinculacion',
+                            ['proyecto' => $firmaProyecto->proyecto]
+                        )
+                    )
+                    ->stickyModalFooter()
+                    ->stickyModalHeader()
+                    ->modalWidth(MaxWidth::SevenExtraLarge)
+                    ->modalSubmitAction(false)
+                    ->extraModalFooterActions([
+                        Action::make('second')
+                            ->label('Rechazar')
+                            ->form([
+                                Textarea::make('comentario')
+                                    ->label('Comentario')
+                                    ->columnSpanFull(),
+                            ])
+                            ->icon('heroicon-o-x-circle') // Icono para "Rechazar"
+                            ->color('danger')
+                            ->requiresConfirmation()
+                            ->modalHeading('Confirmar Rechazo') // Título del diálogo
+
+                            ->modalSubheading('¿Estás seguro de que deseas Rechazar la firma de este proyecto?')
+                            ->action(function (FirmaProyecto $firma_proyecto,  array $data) {
+
+                                // cambiar el estado de la firma a rechazado y agregar el comentario
+                                $firma_proyecto->proyecto->firma_proyecto()->update([
+                                    'estado_revision' => 'Pendiente',
+                                ]);
+
+                                // actualizar el estado del proyecto al siguiente estado :)
+                                $firma_proyecto->proyecto->estado_proyecto()->create([
+                                    'empleado_id' => $this->docente->id,
+                                    'tipo_estado_id' => TipoEstado::where('nombre', 'Subsanacion')->first()->id,
+                                    'fecha' => now(),
+                                    'comentario' => $data['comentario'],
+                                ]);
 
 
+                                
 
-                        $firma_proyecto->update(['estado_revision' => 'Aprobado']);
-                        // actualizar el estado del proyecto al siguiente estado :)
+                                // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
+                                // ->where('empleado_id', $this->docente->id)
+                                // ->first());
+                                Notification::make()
+                                    ->title('¡Realizado!')
+                                    ->body('Proyecto Rechazado')
+                                    ->info()
+                                    ->send();
+                            })
+                            ->cancelParentActions()
+                            ->button(),
 
-                        // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
-                        // ->where('empleado_id', $this->docente->id)
-                        // ->first());
-                        Notification::make()
-                            ->title('¡Realizado!')
-                            ->body('Proyecto Aprobado correctamente')
-                            ->info()
-                            ->send();
-                    })
-                    ->button(),
+                        Action::make('aprobar')
+                            ->label('Aprobar')
+                            ->cancelParentActions()
+                            ->icon('heroicon-o-check-circle') // Icono para "Aprobar"
+                            ->color('success')
+                            ->requiresConfirmation()
+                            ->modalHeading('Confirmar Aprobación') // Título del diálogo
+                            ->modalSubheading('¿Estás seguro de que deseas aprobar la firma de este proyecto?')
+                            ->action(function (FirmaProyecto $firma_proyecto) {
+                                // dd($this->docente);
+                                $firma_proyecto->update(['estado_revision' => 'Aprobado']);
 
-                Action::make('rechazar')
-                    ->label('Rechazar')
-                    ->icon('heroicon-o-x-circle') // Icono para "Rechazar"
-                    ->color('danger')
-                    ->requiresConfirmation()
-                    ->modalHeading('Confirmar Rechazo') // Título del diálogo
-                    ->modalSubheading('¿Estás seguro de que deseas Rechazar la firma de este proyecto?')
-                    ->action(function (FirmaProyecto $firma_proyecto) {
-                        $firma_proyecto->update(['estado_revision' => 'Rechazado']);
-                        // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
-                        // ->where('empleado_id', $this->docente->id)
-                        // ->first());
-                        Notification::make()
-                            ->title('¡Realizado!')
-                            ->body('Proyecto Rechazado')
-                            ->info()
-                            ->send();
-                    })
-                    ->button(),
+                                // actualizar el estado del proyecto al siguiente estado :)
+                                $firma_proyecto->proyecto->estado_proyecto()->create([
+                                    'empleado_id' => $this->docente->id,
+                                    'tipo_estado_id' => $firma_proyecto->cargo_firma->estadoProyectoSiguiente->id,
+                                    'fecha' => now(),
+                                    'comentario' => 'Se ha aprobado la firma del proyecto',
+                                ]);
+
+                                // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
+                                // ->where('empleado_id', $this->docente->id)
+                                // ->first());
+                                Notification::make()
+                                    ->title('¡Realizado!')
+                                    ->body('Proyecto Aprobado correctamente')
+                                    ->info()
+                                    ->send();
+                            })
+                            ->button(),
+                    ])
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
