@@ -125,12 +125,11 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                             ->modalSubheading('¿Estás seguro de que deseas aprobar la firma de este proyecto?')
                             ->action(function (Proyecto $proyecto) {
                                 // dd($this->docente);
-                                dd($proyecto->id);
 
                                 // actualizar el estado del proyecto al siguiente estado :)
                                 $proyecto->estado_proyecto()->create([
                                     'empleado_id' => Auth::user()->empleado->id,
-                                    'tipo_estado_id' => TipoEstado::where('nombre', 'Aprobado')->first()->id,
+                                    'tipo_estado_id' => TipoEstado::where('nombre', 'En curso')->first()->id,
                                     'fecha' => now(),
                                     'comentario' => 'El proyecto ha sido aprobado correctamente',
                                 ]);
