@@ -324,6 +324,17 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->grid(2)
                                 ->addActionLabel('Agregar estudiante'),
                             // actividades
+                            
+
+                        ])
+                        ->columns(2),
+
+
+
+                    Wizard\Step::make('II.')
+                        ->description('INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (en caso de contar con una contraparte).')
+                        ->schema([
+                            // actividades en proyecto
                             Repeater::make('actividades')
                                 ->relationship()
                                 ->schema([
@@ -341,10 +352,9 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                         ->options(
 
                                             function (Get $get) {
-                                                return EmpleadoProyecto::join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
-                                                    ->whereIn('empleado_proyecto.proyecto_id', $get('proyecto_id'))
-                                                    ->pluck('empleado.nombre_completo', 'empleado.id')
-                                                    ->toArray();
+                                                dd(
+                                                    $get('../../empleado_proyecto')
+                                                );
                                             }
 
                                         )
@@ -354,16 +364,8 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->defaultItems(0)
                                 ->itemLabel('Actividad')
                                 ->addActionLabel('Agregar actividad')
-                                ->collapsed()
+                                ->collapsed(),
 
-                        ])
-                        ->columns(2),
-
-
-
-                    Wizard\Step::make('II.')
-                        ->description('INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (en caso de contar con una contraparte).')
-                        ->schema([
                             Repeater::make('entidad_contraparte')
                                 ->schema([
                                     Forms\Components\TextInput::make('nombre'),
