@@ -144,33 +144,12 @@ class Empleado extends Model
 
     public function getIdValidos()
     {
-        $array = [];
         // Mapear las firmas de los proyectos
-        $proyectos = $this->firmaProyecto->map(function ($firma) use (&$array) {
-            // Obtener el cargo de la firma
-            $cargoActual = $firma->cargo_firma;
-
-            // Si el cargo actual es el primero (sin cargo anterior)
-            if (is_null($cargoActual->cargo_firma_anterior_id) && $firma->estado_revision !== 'Aprobado') {
-                return $firma->id; // Retornar el ID del cargo actual
+        $proyectos = $this->firmaProyecto->map(function ($firma) {
+            // validar que el proyecto se encuentre solamente en el estado en el cual se encuentra la firma
+            if ($firma->cargo_firma->estadoProyectoActual->id == $firma->proyecto->estado->tipo_estado_id) {
+                return $firma->id;
             }
-
-            // Obtener el ID del cargo anterior
-            $cargoAnteriorId = $cargoActual->cargo_firma_anterior_id;
-
-            // Obtener la firma del cargo anterior en el proyecto
-            $firmaCargoAnterior = $firma->proyecto->firma_proyecto()
-                ->where('estado_revision', 'Aprobado')
-                ->where('cargo_firma_id', $cargoAnteriorId)
-                ->first();
-
-            // Si no existe la firma del cargo anterior, no se puede validar el cargo actual
-            if (is_null($firmaCargoAnterior)) {
-                return null;
-            }
-
-            // Retornar el ID del cargo actual
-            return $firma->id;
         });
 
         return $proyectos;

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Docente\Proyectos;
 
+use App\Models\Estado\EstadoProyecto;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Proyecto;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -31,59 +32,58 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
     {
         return $table
             ->query(
-               
+
                 Proyecto::query()
                     ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
                     ->select('proyecto.*')
                     ->where('empleado_proyecto.empleado_id', $this->docente->id)
             )
             ->columns([
-
+                Tables\Columns\TextColumn::make('id')
+                ->searchable(),
 
                 Tables\Columns\TextColumn::make('nombre_proyecto')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('departamentos_academicos.nombre')
+                Tables\Columns\TextColumn::make('Estado.tipoestado.nombre')
                     ->badge()
                     ->color('info')
                     ->separator(',')
                     ->wrap()
-                    ->label('Departamento')
-                    ->searchable(),
-
+                    ->label('Estado'),
                 Tables\Columns\TextColumn::make('facultades_centros.nombre')
                     ->badge()
                     ->wrap()
                     ->label('Centro/Facultad'),
 
-                Tables\Columns\TextColumn::make('modalidad.nombre')
-                    ->numeric()
-                    ->sortable(),
 
-                Tables\Columns\TextColumn::make('fecha_inicio')
-                    ->date()
-                    ->sortable(),
 
-                Tables\Columns\TextColumn::make('poblacion_participante')
-                    ->numeric()
-                    ->sortable(),
+
             ])
             ->filters([
                 //
             ])
             ->actions([
                 Action::make('Proyecto de Vinculación')
-                ->label('Ver')
-                ->modalContent(
-                    fn(Proyecto $proyecto): View =>
-                    view(
-                        'components.fichas.ficha-proyecto-vinculacion',
-                        ['proyecto' => $proyecto]
+                    ->label('Ver')
+                    ->modalContent(
+                        fn(Proyecto $proyecto): View =>
+                        view(
+                            'components.fichas.ficha-proyecto-vinculacion',
+                            ['proyecto' => $proyecto]
+                        )
                     )
-                )
-               // ->stickyModalHeader()
-                ->modalWidth(MaxWidth::SevenExtraLarge)
-                ->modalSubmitAction(false)
+                    // ->stickyModalHeader()
+                    ->modalWidth(MaxWidth::SevenExtraLarge)
+                    ->modalSubmitAction(false),
+                Action::make('edit')
+                    ->label('Editar/Subsanar')
+                    ->url(fn(Proyecto $proyecto) => route('editarProyectoVinculacion', $proyecto))
+                    ->visible(function (Proyecto $proyecto) {
+                        return $proyecto->estado->tipoestado->nombre == 'Subsanacion'
+                            || $proyecto->estado->tipoestado->nombre == 'Borrador';
+                    }),
+                // ->openUrlInNewTab()
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

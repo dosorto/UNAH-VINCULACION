@@ -350,38 +350,50 @@
                     <tr>
                         <th class="header" colspan="19">9. En caso de proyectos presenciales, indicar el lugar donde se ejecuta:  </th>
                     </tr>
-                    <tr>
-                        <td class="sub-header" colspan="2">Departamento</td>
-                        <td class="full-width" colspan="11" rowspan="1">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
-                            value="{{ $proyecto->departamento->nombre }}" disabled>
-                        </td>
-                        <td class="sub-header" colspan="1">Ciudad:</td>
-                        <td class="full-width" colspan="5">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
-                            value="{{ $proyecto->ciudad->nombre }}" disabled>
-                        </td>
-                    <tr>
-                        <td class="sub-header" colspan="2">Municipio:</td>
-                        <td class="full-width" colspan="11">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
-                            value="{{ $proyecto->municipio->nombre }}" disabled>
-                        </td>
-                        <td class="sub-header" colspan="1">Aldea/caserío/<br>barrio/colonia:</td>
-                        <td class="full-width" colspan="5">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
-                            value="{{ $proyecto->aldea }}" disabled>
-                        </td>
-                    </tr>
+                    @if (!empty($proyecto->departamento->nombre)) || !empty($proyecto->ciudad->nombre)
+                        <tr>
+                            @if (!empty($proyecto->departamento->nombre))
+                                <td class="sub-header" colspan="2">Departamento</td>
+                                <td class="full-width" colspan="11" rowspan="1">
+                                    <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                                        value="{{$proyecto->departamento->nombre}}" disabled>
+                                </td>
+                            @endif
+                            @if (!empty($proyecto->ciudad->nombre))
+                                <td class="sub-header" colspan="1">Ciudad:</td>
+                                <td class="full-width" colspan="5">
+                                    <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                                        value="{{$proyecto->ciudad->nombre}}" disabled>
+                                </td>
+                            @endif
+                        </tr>
+                    @endif
+
+                    @if (!empty($proyecto->municipio->nombre) || !empty($proyecto->aldea))
+                        <tr>
+                            @if (!empty($proyecto->municipio->nombre))
+                                <td class="sub-header" colspan="2">Municipio:</td>
+                                <td class="full-width" colspan="11">
+                                    <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                                        value="{{$proyecto->municipio->nombre}}" disabled>
+                                </td>
+                            @endif
+
+                            @if (!empty($proyecto->aldea))
+                                <td class="sub-header" colspan="1">Aldea/caserío/<br>barrio/colonia:</td>
+                                <td class="full-width" colspan="5">
+                                    <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                                        value="{{$proyecto->aldea}}" disabled>
+                                </td>
+                            @endif
+                        </tr>
+                    @endif
                     </tr>
                     <tr>
                         <th class="header" colspan="19">10. Descripción de actividades del proyecto (Descripción de
-                            todas
-                            las actividades enmarcadas en el proyecto, las cuales pueden ser, entre otras, la
-                            negociación inicial,
-                            la organización de los equipos de trabajo, la planificación, el desarrollo de actividades de
-                            capacitación y
-                            fortalecimiento, el seguimiento, la evaluación, la sistematización y la divulgación). </th>
+                            todas las actividades enmarcadas en el proyecto, las cuales pueden ser, entre otras, la
+                            negociación inicial,la organización de los equipos de trabajo, la planificación, el desarrollo de actividades de
+                            capacitación y fortalecimiento, el seguimiento, la evaluación, la sistematización y la divulgación). </th>
                     </tr>
                     <tr>
                         <td class="sub-header3" colspan="19"> Cronogramama de actividades</td>
@@ -508,12 +520,10 @@
                     </tr>
                         <tr>
                             <td class="full-width" colspan="14"><input type="text" class="input-field"
-                                placeholder="Ingrese el nombre de la entidad" 
-                                value="{{ $proyecto->superavit->inversion }}" disabled>
+                                placeholder="Ingrese el nombre de la entidad">
                             </td>
                             <td class="full-width " colspan="5"><input type="text" class="input-field"
-                                placeholder="Ingrese el nombre de la entidad" 
-                                value="{{ $proyecto->superavit->monto }}" disabled>
+                                placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
                         <tr>

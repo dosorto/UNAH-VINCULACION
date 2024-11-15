@@ -58,6 +58,7 @@ class PermisosSeeder extends Seeder
         $role = Role::create(['name' => 'admin']);
         $roleDocente = Role::create(['name' => 'docente']);
         $roleAdminCentroFacultad = Role::create(['name' => 'admin_centro_facultad']);
+        $rolValidador = Role::create(['name' => 'Validador']);
 
 
         $role->givePermissionTo([

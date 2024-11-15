@@ -20,24 +20,37 @@ class PersonalSeeder extends Seeder
     {
         // crear los seeders de las categorias de empleados
         CategoriaEmpleado::create([
-            'nombre' => 'Docente',
-            'descripcion' => 'Docente de la universidad'
+            'nombre' => 'Auxiliar',
+            'descripcion' => 'Auxiliar de la universidad'
         ]);
 
         CategoriaEmpleado::create([
-            'nombre' => 'Administrativo',
-            'descripcion' => 'Administrativo de la universidad'
+            'nombre' => 'Titular 1',
+            'descripcion' => 'Titular 1 de la universidad'
         ]);
 
         CategoriaEmpleado::create([
-            'nombre' => 'Obrero',
-            'descripcion' => 'Obrero de la universidad'
+            'nombre' => 'Titular 2',
+            'descripcion' => 'Titular 2 de la universidad'
         ]);
 
         CategoriaEmpleado::create([
-            'nombre' => 'Otro',
-            'descripcion' => 'Otro tipo de empleado'
+            'nombre' => 'Titular 3',
+            'descripcion' => 'Titular 3 de la universidad'
         ]);
+
+        CategoriaEmpleado::create([
+            'nombre' => 'Titular 4',
+            'descripcion' => 'Titular 4 de la universidad'
+        ]);
+
+        CategoriaEmpleado::create([
+            'nombre' => 'Titular 5',
+            'descripcion' => 'Titular 5 de la universidad'
+        ]);
+
+        
+
 
         // user para el administrador de centro / facultad
 
@@ -46,6 +59,14 @@ class PersonalSeeder extends Seeder
             'email' => 'admincentro@unah.edu.hn',
             'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
         ])->assignRole('admin_centro_facultad');
+
+        // user validador de proyectos en CU    
+        $userValidadorProyectosCU = User::create([
+            'name' => 'Validador Proyectos',
+            'email' => 'validador@unah.hn',
+            'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
+        ])->assignRole('Validador');
+
 
 
         // Datos de empleados
@@ -79,16 +100,33 @@ class PersonalSeeder extends Seeder
             'password' => bcrypt('123'),
         ])->assignRole('docente');
 
+        $user = User::create([
+            'name' => 'neto',
+            'email' => 'neto@unah.hn',
+            'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
+        ])->assignRole('admin');
+        
+       Empleado::create([
+        'nombre_completo' => 'Administrador',
+        'numero_empleado' => '123412125',
+        'celular' => '99999999',
+        'user_id' => $user->id,
+        'centro_facultad_id' => 1,
+        'departamento_academico_id' => 1,
+        'categoria_id' => 1
+       ]);
+
         Empleado::create([
-            'nombre_completo' => 'admin centro facultad',
+            'nombre_completo' => 'validador proyectos',
             'numero_empleado' => '12345',
             'celular' => '99999999',
-            'user_id' => $userAdminCentroFacultad->id,
+            'user_id' => $userValidadorProyectosCU->id,
             'centro_facultad_id' => 1,
             'departamento_academico_id' => 1,
             'categoria_id' => 1
         ]);
-        
+
+
 
         Empleado::create([
             'nombre_completo' => 'JESSICA NOHELY AVILA CRUZ',
