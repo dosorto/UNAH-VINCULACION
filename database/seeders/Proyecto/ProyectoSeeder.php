@@ -23,26 +23,38 @@ class ProyectoSeeder extends Seeder
     {
         // crear los cargos de las personas que firman los proyectos
         // Director, Coordinador, Asesor, Evaluador, Revisor, Aprobador
-        CargoFirma::insert([
-            ['nombre' => 'Coordinador Proyecto', 'cargo_firma_anterior_id' => null],
-            ['nombre' => 'Jefe Departamento', 'cargo_firma_anterior_id' => 1],
-            ['nombre' => 'Director centro', 'cargo_firma_anterior_id' => 2],
-            ['nombre' => 'Coordinador de Vinculación', 'cargo_firma_anterior_id' => 3],
-        ]);
 
 
         // crear los tipos de estado para el proyecto
-        // Solicitado, En revisión, Aprobado, Rechazado, Finalizado, Cancelado
         TipoEstado::insert([
+            // no se puede dambiar  el orden de esto indicriminadamente 
+            ['nombre' => 'Esperando Firma Coorinador Proyecto'],
             ['nombre' => 'Esperando firma de Jefe de Departamento'],
-            ['nombre' => 'Esperando firma de Vinculacion'],
             ['nombre' => 'Esperando firma de Director/Decano'],
-            ['nombre' => 'Subsanacion'],
+            ['nombre' => 'Esperando firma de Vinculacion'],
             ['nombre' => 'En revision'],
-            ['nombre' => 'Aprobado'],
+
+            // hasta aca.
+
+            ['nombre' => 'Subsanacion'],
+            ['nombre' => 'En curso'],
             ['nombre' => 'Rechazado'],
             ['nombre' => 'Inscrito'],
+
+            ['nombre' => 'Finalizado'],
+            ['nombre' => 'Cancelado'],
+
+            ['nombre' => 'Borrador'],
         ]);
+
+
+        CargoFirma::insert([
+            ['nombre' => 'Coordinador Proyecto', 'cargo_firma_anterior_id' => null, 'estado_proyecto_id' => 2, 'estado_actual_id' => 1],
+            ['nombre' => 'Jefe Departamento', 'cargo_firma_anterior_id' => 1, 'estado_proyecto_id' =>  3, 'estado_actual)id' => 2],
+            ['nombre' => 'Director centro', 'cargo_firma_anterior_id' => 2, 'estado_proyecto_id' => 4, 'estado_actual_id' => 3],
+            ['nombre' => 'Enlace Vinculacion', 'cargo_firma_anterior_id' => 3, 'estado_proyecto_id' => 5,'estado_actual_id'=> 4],
+        ]);
+
 
 
         // crear las modalidades para el proyecto
@@ -104,7 +116,5 @@ class ProyectoSeeder extends Seeder
             ['nombre' => 'Paz, justicia e instituciones sólidas'],
             ['nombre' => 'Alianzas para lograr los objetivos'],
         ]);
-
-
     }
 }

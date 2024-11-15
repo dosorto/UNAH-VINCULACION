@@ -137,6 +137,7 @@ class Proyecto extends Model
         'numero_folio',
         'numero_dictamen'
 
+
     ];
 
 
@@ -271,6 +272,23 @@ class Proyecto extends Model
         return $this->hasMany(FirmaProyecto::class, 'proyecto_id');
     }
 
+
+    // firma_enlace_vinculacion
+    public function firma_proyecto_enlace()
+    {
+        return $this->hasMany(FirmaProyecto::class, 'proyecto_id')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->where('cargo_firma.nombre', 'Enlace Vinculacion');
+    }
+
+    // firma del decano
+    public function firma_proyecto_decano()
+    {
+        return $this->hasMany(FirmaProyecto::class, 'proyecto_id')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->where('cargo_firma.nombre', 'Director centro');
+    }
+
     public function firma_proyecto_jefe()
     {
         return $this->hasMany(FirmaProyecto::class, 'proyecto_id')
@@ -297,11 +315,20 @@ class Proyecto extends Model
     }
 
 
+    // relacion uno a muchos con actividad 
+    public function actividades()
+{
+    return $this->hasMany(Actividad::class, 'proyecto_id');
+
+}
+
 
     // obtener el estado actual del proyecto
     public function getEstadoAttribute()
     {
-        return $this->estado_proyecto->last();
+        return $this->estado_proyecto()
+            ->where('es_actual', true)
+            ->first();
     }
 
 

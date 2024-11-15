@@ -112,6 +112,8 @@ return new class extends Migration
             $table->string('descripcion');
             $table->date('fecha_ejecucion');
             $table->foreignId('empleado_proyecto_id')->constrained('empleado_proyecto');
+            // incluir el id del proyecto para recuperarlo mmas rapido
+            $table->foreignId('proyecto_id')->constrained('proyecto');
             $table->softDeletes();
             $table->timestamps();
         });
@@ -168,6 +170,8 @@ return new class extends Migration
             $table->id();
             $table->string('nombre');
             $table->integer('cargo_firma_anterior_id')->nullable();
+            $table->foreignId('estado_proyecto_id')->nullable();//->constrained('estado_proyecto');
+            $table->foreignId('estado_actual_id')->nullable();//->constrained('estado_proyecto');
             $table->softDeletes();
             $table->timestamps();
         });

@@ -2,24 +2,28 @@
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
+use App\Models\Proyecto\Proyecto;
 use Filament\Forms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Form;
+use Livewire\Component;
+use Illuminate\Contracts\View\View;
+
+
 use App\Models\User;
 use Filament\Forms\Get;
-use Livewire\Component;
-use Filament\Forms\Form;
 use App\Models\Demografia\Aldea;
 use App\Models\Demografia\Ciudad;
 use App\Models\Estado\TipoEstado;
 
 use App\Models\Personal\Empleado;
-use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\Modalidad;
 use Illuminate\Support\HtmlString;
 
 
 use App\Models\Proyecto\CargoFirma;
 
-use Illuminate\Contracts\View\View;
 use App\Models\Demografia\Municipio;
 
 use App\Models\Estudiante\Estudiante;
@@ -33,7 +37,6 @@ use Illuminate\Support\Facades\Blade;
 use Filament\Forms\Components\Builder;
 use Filament\Forms\Components\Section;
 
-use Filament\Forms\Contracts\HasForms;
 use App\Models\Demografia\Departamento;
 
 use App\Models\UnidadAcademica\Carrera;
@@ -47,23 +50,23 @@ use Filament\Forms\Components\DatePicker;
 
 use Filament\Forms\Components\FileUpload;
 use App\Models\UnidadAcademica\FacultadCentro;
-use Filament\Forms\Concerns\InteractsWithForms;
 use App\Models\UnidadAcademica\EntidadAcademica;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 
 use App\Models\Personal\EmpleadoProyecto;
 
-
-
-class CreateProyectoVinculacion extends Component implements HasForms
+class EditProyectoVinculacionForm extends Component implements HasForms
 {
     use InteractsWithForms;
 
     public ?array $data = [];
 
-    public function mount(): void
+    public Proyecto $record;
+
+    public function mount(Proyecto $proyecto): void
     {
-        $this->form->fill();
+        $this->record = $proyecto;
+        $this->form->fill($this->record->attributesToArray());
     }
 
     public function form(Form $form): Form
@@ -324,17 +327,6 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->grid(2)
                                 ->addActionLabel('Agregar estudiante'),
                             // actividades
-                            
-
-                        ])
-                        ->columns(2),
-
-
-
-                    Wizard\Step::make('II.')
-                        ->description('INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (en caso de contar con una contraparte).')
-                        ->schema([
-                            // actividades en proyecto
                             Repeater::make('actividades')
                                 ->relationship()
                                 ->schema([
@@ -352,9 +344,10 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                         ->options(
 
                                             function (Get $get) {
-                                                dd(
-                                                    $get('../../empleado_proyecto')
-                                                );
+                                                return EmpleadoProyecto::join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+                                                    ->whereIn('empleado_proyecto.proyecto_id', $get('proyecto_id'))
+                                                    ->pluck('empleado.nombre_completo', 'empleado.id')
+                                                    ->toArray();
                                             }
 
                                         )
@@ -364,8 +357,16 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->defaultItems(0)
                                 ->itemLabel('Actividad')
                                 ->addActionLabel('Agregar actividad')
-                                ->collapsed(),
+                                ->collapsed()
 
+                        ])
+                        ->columns(2),
+
+
+
+                    Wizard\Step::make('II.')
+                        ->description('INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (en caso de contar con una contraparte).')
+                        ->schema([
                             Repeater::make('entidad_contraparte')
                                 ->schema([
                                     Forms\Components\TextInput::make('nombre'),
@@ -694,7 +695,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
 
 
                 ])->submitAction(new HtmlString(Blade::render(<<<BLADE
-                <x-filament::button
+             <x-filament::button
                     type="submit"
                     size="sm"
                     color="info"
@@ -714,25 +715,23 @@ class CreateProyectoVinculacion extends Component implements HasForms
 
             ])
             ->statePath('data')
-            ->model(Proyecto::class);
+            ->model($this->record);
     }
 
-    public function create(): void
+    public function save(): void
     {
-        // dd($this->form->getState());
         $data = $this->form->getState();
-        $data['fecha_registro'] = now();
-        $record = Proyecto::create($data);
-        $this->form->model($record)->saveRelationships();
 
-        $record->firma_proyecto()->create([
+        $this->record->update($data);
+
+        $this->record->firma_proyecto()->create([
             'empleado_id' => auth()->user()->empleado->id,
             'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
             'estado_revision' => 'Aprobado',
             'hash' => 'hash'
         ]);
 
-        $record->estado_proyecto()->create([
+        $this->record->estado_proyecto()->create([
             'empleado_id' => auth()->user()->empleado->id,
             'tipo_estado_id' => TipoEstado::where('nombre', 'Esperando firma de Jefe de Departamento')->first()->id,
             'fecha' => now(),
@@ -741,38 +740,21 @@ class CreateProyectoVinculacion extends Component implements HasForms
 
         Notification::make()
             ->title('¡Éxito!')
-            ->body('Proyecto creado correctamente')
+            ->body('El proyecto ha sido enviado a firmar exitosamente')
             ->success()
             ->send();
         $this->js('location.reload();');
     }
 
-
-    // optimizar esta funcion para despues, es demasiado redundante y lo unico que cambia es el nombre del estado :)
     public function borrador(): void
     {
         $data = $this->form->getState();
-        $data['fecha_registro'] = now();
-        $record = Proyecto::create($data);
-        $this->form->model($record)->saveRelationships();
 
-        $record->firma_proyecto()->create([
-            'empleado_id' => auth()->user()->empleado->id,
-            'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
-            'estado_revision' => 'Pendiente',
-            'hash' => 'hash'
-        ]);
-
-        $record->estado_proyecto()->create([
-            'empleado_id' => auth()->user()->empleado->id,
-            'tipo_estado_id' => TipoEstado::where('nombre', 'Borrador')->first()->id,
-            'fecha' => now(),
-            'comentario' => 'Proyecto creado',
-        ]);
-
+        $this->record->update($data);
+        $this->record->save();
         Notification::make()
             ->title('¡Éxito!')
-            ->body('Proyecto creado correctamente')
+            ->body('Cambios guardados')
             ->success()
             ->send();
         $this->js('location.reload();');
@@ -780,7 +762,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
 
     public function render(): View
     {
-        return view('livewire.proyectos.vinculacion.create-proyecto-vinculacion')
+        return view('livewire.proyectos.vinculacion.edit-proyecto-vinculacion-form')
             ->layout('components.panel.modulos.modulo-proyectos');
     }
 }
