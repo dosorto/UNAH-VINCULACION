@@ -67,6 +67,11 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                     ->badge()
                     ->label('Estado Proyecto')
                     ->searchable(),
+
+                    Tables\Columns\TextColumn::make('created_at')
+                    ->badge()
+                    ->label('Time staps')
+                    ->searchable(),
             ])
             ->filters([
                 //
