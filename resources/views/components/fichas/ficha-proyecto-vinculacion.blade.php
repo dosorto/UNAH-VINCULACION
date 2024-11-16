@@ -579,7 +579,8 @@
                         <td class="full-width " colspan="1">Nombre:</td>
                         <td class="full-width " colspan="1">
                             <input type="text" class="input-field"
-                                placeholder="Ingrese el nombre del responsable">
+                            value="{{$proyecto->firma_proyecto_jefe()->first()->empleado->nombre_completo}}" disabled>    
+                                
                         </td>
                         <td class="full-width" colspan="1"> Nombre:</td>
                         <td class="full-width" colspan="1">
@@ -588,8 +589,13 @@
                         </td>
                     </tr>
                     <tr>
-                        <td class="full-width" colspan="2" style="height: 200px; width: 200px;"></td>
-                        <td class="full-width" colspan="2" style="height: 200px; width: 200px;"></td>
+                        <td class="full-width " colspan="2" style="height: 200px; width: 200px;">
+
+                            <img src="{{  $proyecto->firma_proyecto_jefe()->first()->sello->ruta_storage }}" alt="" width="200px">
+                            <img src="{{  $proyecto->firma_proyecto_jefe()->first()->firma->ruta_storage }}" alt="" width="200px">
+                        </td>
+                        <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
+                        </td>
                     </tr>
 
                     <tr>
