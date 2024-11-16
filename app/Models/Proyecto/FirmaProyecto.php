@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\CargoFirma;
+use App\Models\Personal\FirmaSelloEmpleado;
 
 class FirmaProyecto extends Model
 {
@@ -20,6 +21,7 @@ class FirmaProyecto extends Model
         'empleado_id',
         'cargo_firma_id',
         'firma_id',
+        'sello_id',
         'estado_revision',
         'hash',
     ];
@@ -40,5 +42,15 @@ class FirmaProyecto extends Model
     }
 
 
-    // recuperar la firma del 
+    // recuperar la firma del empleado
+    public function firma()
+    {
+        return $this->belongsTo(FirmaSelloEmpleado::class, 'firma_id');
+    }
+
+    // recuperar el sello del empleado
+    public function sello()
+    {
+        return $this->belongsTo(FirmaSelloEmpleado::class, 'sello_id');
+    }
 }
