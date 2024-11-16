@@ -128,7 +128,7 @@ class PersonalSeeder extends Seeder
 
 
 
-        Empleado::create([
+        $ingeJessica = Empleado::create([
             'nombre_completo' => 'JESSICA NOHELY AVILA CRUZ',
             'numero_empleado' => '12310',
             'celular' => '99999999',
@@ -137,8 +137,20 @@ class PersonalSeeder extends Seeder
             'departamento_academico_id' => 1,
             'categoria_id' => 1
         ]);
+        
+        $ingeJessica->firma()->create([
+            'tipo' => 'firma',
+            'ruta_storage' => 'images/firmas/Firma_Jessica.png',
+            'estado' => true
+        ]);
 
-        Empleado::create([
+        $ingeJessica->firma()->create([
+            'tipo' => 'sello',
+            'ruta_storage' => 'images/firmas/Sello_Jessica.png',
+            'estado' => true
+        ]);
+
+       $ingeOscar = Empleado::create([
             'nombre_completo' => 'OSCAR OMAR PINEDA',
             'numero_empleado' => '12311',
             'celular' => '99999999',
@@ -146,9 +158,21 @@ class PersonalSeeder extends Seeder
             'centro_facultad_id' => 1,
             'departamento_academico_id' => 1,
             'categoria_id' => 1
+       ]);
+       
+       $ingeOscar->firma()->create([
+            'tipo' => 'firma',
+            'ruta_storage' => 'images/firmas/Firma_Oscar.png',
+            'estado' => true
         ]);
 
-        Empleado::create([
+        $ingeOscar->firma()->create([
+            'tipo' => 'sello',
+            'ruta_storage' => 'images/firmas/Sello_Victor.png',
+            'estado' => true
+        ]);
+
+       $ingeWilson = Empleado::create([
             'nombre_completo' => 'WILSON OCTAVIO VILLANUEVA CASTILLO',
             'numero_empleado' => '12316',
             'celular' => '99999999',
@@ -156,9 +180,21 @@ class PersonalSeeder extends Seeder
             'centro_facultad_id' => 1,
             'departamento_academico_id' => 1,
             'categoria_id' => 1
+       ]); 
+       
+       $ingeWilson->firma()->create([
+            'tipo' => 'firma',
+            'ruta_storage' => 'images/firmas/Firma_Wilson.png',
+            'estado' => true
         ]);
 
-        Empleado::create([
+        $ingeWilson->firma()->create([
+            'tipo' => 'sello',
+            'ruta_storage' => 'images/firmas/Sello_Wilson.png',
+            'estado' => true
+        ]);
+
+       $licVictor = Empleado::create([
             'nombre_completo' => 'VICTOR NAHUN REYES NAVAS',
             'numero_empleado' => '12317',
             'celular' => '99999999',
@@ -166,13 +202,21 @@ class PersonalSeeder extends Seeder
             'centro_facultad_id' => 1,
             'departamento_academico_id' => 1,
             'categoria_id' => 1
+       ]);
+
+       $licVictor->firma()->create([
+            'tipo' => 'firma',
+            'ruta_storage' => 'images/firmas/Firma_Oscar.png',
+            'estado' => true
         ]);
 
+        $licVictor->firma()->create([
+            'tipo' => 'sello',
+            'ruta_storage' => 'images/firmas/Sello_Victor.png',
+            'estado' => true
+        ]);
 
-
-
-
-        Empleado::create([
+        $ingeDorian = Empleado::create([
             'nombre_completo' => 'DORIAN ADOLFO ORDONEZ OSORTO',
             'numero_empleado' => '12312',
             'celular' => '99999999',
@@ -181,6 +225,20 @@ class PersonalSeeder extends Seeder
             'departamento_academico_id' => 1,
             'categoria_id' => 1
         ]);
+        
+        $ingeDorian->firma()->create([
+            'tipo' => 'firma',
+            'ruta_storage' => 'images/firmas/Firma_Dorian.png',
+            'estado' => true,
+        ]);
+
+        $ingeDorian->firma()->create([
+            'tipo' => 'sello',
+            'ruta_storage' => 'images/firmas/Sello_Dorian.png',
+            'estado' => true
+        ]);
+
+
 
         
 

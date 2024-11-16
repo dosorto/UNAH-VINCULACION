@@ -1,13 +1,18 @@
 <div id="mobile-menu"
     class="fixed inset-0 z-50 bg-white shadow-lg transition-transform transform -translate-x-full sm:translate-x-0 sm:shadow-none  sm:flex h-screen flex-col justify-between py-4 pr-2 pl-4 w-3/4 sm:w-1/4 h-[100vh] sm:sticky top-0 sm:bg-gray-100 dark:bg-gray-950"
     style="z-index: 40">
+   <div class="flex justify-between  flex-col h-full"
+   style="
+   background-image:url('{{ asset('images/Sol.svg') }}'); background-size: cover; background-position: center;">
     <div>
+        
         <div class="flex items-center  justify-between ">
             <div class="flex items-center ">
                 <div class="w-36 h-8 rounded-lg flex items-center justify-center">
-                    <img src="{{ asset('images/LOGO.png') }}" alt="Logo" class="mx-auto" style="width: auto; height: auto;">
+                    <img src="{{ asset('images/LOGO.png') }}" alt="Logo" class="mx-auto"
+                        style="width: auto; height: auto;">
                 </div>
-                
+
             </div>
             <div>
                 <button id="theme-toggle"
@@ -102,7 +107,7 @@
                 </div>
             </div>
         </div>
-        {{$slot}}
+        {{ $slot }}
     </div>
 
     <div>
@@ -226,4 +231,6 @@
             </div>
         </div>
     </div>
+
+   </div>
 </div>
