@@ -58,6 +58,6 @@ class Login extends Component implements HasForms
     public function render()
     {
      
-        return view('livewire.login.login')->layout('components.layouts.login');
+        return view('livewire.login.login')->layout('components.layouts.login2');
     }
 }
