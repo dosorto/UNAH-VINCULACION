@@ -193,6 +193,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->relationship()
                                 ->minItems(1)
                                 ->maxItems(1)
+                                ->deletable(false)
                                 ->defaultItems(1),
 
                             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -423,6 +424,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->defaultItems(0)
                                 ->itemLabel('Actividad')
                                 ->addActionLabel('Agregar actividad')
+                                ->grid(2)
                                 ->collapsed(),
                         ]),
                     Wizard\Step::make('IV.')
