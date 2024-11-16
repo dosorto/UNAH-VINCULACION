@@ -729,6 +729,8 @@ class CreateProyectoVinculacion extends Component implements HasForms
             'empleado_id' => auth()->user()->empleado->id,
             'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
             'estado_revision' => 'Aprobado',
+            'firma_id' => auth()->user()->empleado->firma->id,
+            'sello_id' => auth()->user()->empleado->sello->id,
             'hash' => 'hash'
         ]);
 
