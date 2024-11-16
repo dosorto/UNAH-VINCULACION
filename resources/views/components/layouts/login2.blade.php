@@ -82,11 +82,14 @@
     </head>
     
 <body>
+    @livewire('notifications')
+    @filamentScripts
+    @vite('resources/js/app.js')
     <body class="min-h-screen  dark:bg-gray-900 flex flex-col bg-gray-200">
         <!-- Header -->
-        <div class="bg-amber-500  h-2 p-2 w-full">
+        <div class="bg-amber-500  h-2 p-2 w-full dark:bg-gray-900">
         </div>
-        <header class="shadow-lg p-2 bg-white">
+        <header class="shadow-lg p-2 bg-white dark:bg-gray-800">
 
             <div class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-5 ">
                 <div class="flex items-center flex-wrap justify-center">
@@ -102,49 +105,41 @@
         </header>
     
         <!-- Main Content -->
-        <main class=" mx-auto p-4  items-center h-[calc(50vh)] p-2">
+        <main class="  p-4  h-[calc(50vh)] p-2">
             <!-- Login Form -->
-          <div class="w-full  mx-auto flex flex-col md:flex-row h-full ">
+          <div class="w-full  md:w-3/4  mx-auto flex flex-col md:flex-row h-full ">
             <div class="bg-white dark:bg-gray-800  rounded-lg shadow-lg max-w-md w-full mx-auto h-full shadow-lg">
-               <div class="px-4 py-2 bg-gray-100" >
+               <div class="px-4 py-2 bg-gray-100 dark:bg-gray-700">
                 <h3 class="text-xl font-bold text-gray-900 dark:text-white ">Iniciar sesión</h3>
                </div>
-                <form class="space-y-4 p-4">
-                    <div>
-                        <input type="email" placeholder="eduardo.solorzano@unah.edu.hn" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
-                    <div>
-                        <input type="password" placeholder="••••••" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
-                    <button type="submit" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded">
-                        Iniciar sesión
-                    </button>
-                </form>
+              <div class="p-2 md:p-4">
+                {{ $slot }}
+              </div>
             </div>
     
             <!-- Banner Image -->
-            <div id="gallery" class="relative w-full h-full" data-carousel="slide">
+            <div id="gallery" class="pl-3 w-full h-full hidden md:block md:relative" data-carousel="slide">
                 <!-- Carousel wrapper -->
-                <div class="relative h-56 overflow-hidden rounded-lg md:h-96">
+                <div class="relative  overflow-hidden rounded-lg h-full">
                     <!-- Item 1 -->
                     <div class="hidden duration-700 ease-in-out" data-carousel-item>
-                    <img src="{{ asset('images/Slide/1.jpeg') }}" class="absolute block max-w-full h-auto -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="">
+                    <img src="{{ asset('images/Slide/1.jpeg') }}" class="absolute block w-full h-full  -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="">
                     </div>
                     <!-- Item 2 -->
                     <div class="hidden duration-700 ease-in-out" data-carousel-item="active">
-                    <img src="{{ asset('images/Slide/2.jpg') }}" class="absolute block max-w-full h-auto -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="">
+                    <img src="{{ asset('images/Slide/2.jpg') }}" class="absolute block w-full h-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="">
                     </div>
                     <!-- Item 3 -->
                     <div class="hidden duration-700 ease-in-out" data-carousel-item>
-                    <img src="{{ asset('images/Slide/3.jpg') }}" class="absolute block max-w-full h-auto -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="">
+                    <img src="{{ asset('images/Slide/3.jpg') }}" class="absolute block w-full h-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="">
                     </div>
                     <!-- Item 4 -->
                     <div class="hidden duration-700 ease-in-out" data-carousel-item>
-                    <img src="{{ asset('images/Slide/4.jpg') }}" class="absolute block max-w-full h-auto -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="">
+                    <img src="{{ asset('images/Slide/4.jpg') }}" class="absolute block w-full h-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="">
                     </div>
                     <!-- Item 5 -->
                     <div class="hidden duration-700 ease-in-out" data-carousel-item>
-                    <img src="{{ asset('images/Slide/Yosoy.jpeg') }}" class="absolute block max-w-full h-auto -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="">
+                    <img src="{{ asset('images/Slide/Yosoy.jpeg') }}" class="absolute block w-full h-full     -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="">
                     </div>
                 </div>
                 <!-- Slider controls -->
@@ -171,7 +166,7 @@
         </main>
     
         <!-- Help Section -->
-        <div class="bg-blue-900 dark:bg-blue-900 text-white p-2 mb-2">
+        <div class="bg-blue-900  text-white p-2 mb-2 dark:bg-gray-800">
             <div class="container mx-auto">
                 <h4 class="font-bold mb-2">En caso de no poder ingresar:</h4>
                 <ol class="list-decimal list-inside ">
@@ -183,7 +178,7 @@
         </div>
     
         <!-- Footer -->
-        <footer class="bg-amber-400 dark:bg-amber-600 p-6 w-full h-full">
+        <footer class="bg-amber-400  p-6 w-full h-full dark:bg-gray-900">
             <div class="container mx-auto grid md:grid-cols-2 gap-8">
                 <div class="space-y-2">
                     <p class="flex items-center gap-2">
