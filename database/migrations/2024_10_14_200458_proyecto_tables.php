@@ -111,13 +111,21 @@ return new class extends Migration
             $table->id();
             $table->string('descripcion');
             $table->date('fecha_ejecucion');
-            $table->foreignId('empleado_proyecto_id')->constrained('empleado_proyecto');
+            // $table->foreignId('empleado_proyecto_id')->constrained('empleado_proyecto');
             // incluir el id del proyecto para recuperarlo mmas rapido
             $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->text('objetivos')->nullable();
+            $table->integer('horas')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });
 
+        Schema::create('actividad_empleado', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('actividad_id')->constrained('actividades')->onDelete('cascade');
+            $table->foreignId('empleado_id')->constrained('empleado')->onDelete('cascade');
+            $table->timestamps();
+        });
 
         // tabla de realcion con entidad_facultad_centro
         Schema::create('proyecto_centro_facultad', function (Blueprint $table) {
