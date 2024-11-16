@@ -63,7 +63,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                     ->label('Estado Firma')
                     ->searchable(),
 
-                    Tables\Columns\TextColumn::make('proyecto.estado.tipoestado.nombre')
+                Tables\Columns\TextColumn::make('proyecto.estado.tipoestado.nombre')
                     ->badge()
                     ->label('Estado Proyecto')
                     ->searchable(),
@@ -116,7 +116,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                                 ]);
 
 
-                                
+
 
                                 // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                                 // ->where('empleado_id', $this->docente->id)
@@ -140,7 +140,11 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                             ->modalSubheading('¿Estás seguro de que deseas aprobar la firma de este proyecto?')
                             ->action(function (FirmaProyecto $firma_proyecto) {
                                 // dd($this->docente);
-                                $firma_proyecto->update(['estado_revision' => 'Aprobado']);
+                                $firma_proyecto->update([
+                                    'estado_revision' => 'Aprobado',
+                                    'firma_id' => $this->docente->firma->id,
+                                    'sello_id' => $this->docente->sello->id,
+                                ]);
 
                                 // actualizar el estado del proyecto al siguiente estado :)
                                 $firma_proyecto->proyecto->estado_proyecto()->create([

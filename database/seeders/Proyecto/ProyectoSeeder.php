@@ -26,7 +26,6 @@ class ProyectoSeeder extends Seeder
 
 
         // crear los tipos de estado para el proyecto
-        // Solicitado, En revisión, Aprobado, Rechazado, Finalizado, Cancelado
         TipoEstado::insert([
             // no se puede dambiar  el orden de esto indicriminadamente 
             ['nombre' => 'Esperando Firma Coorinador Proyecto'],
