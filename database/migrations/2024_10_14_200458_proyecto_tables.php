@@ -71,6 +71,14 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        Schema::create('anexo', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->string('documento_url');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
         // tabla entidad_contraparte
         Schema::create('entidad_contraparte', function (Blueprint $table) {
             $table->id();

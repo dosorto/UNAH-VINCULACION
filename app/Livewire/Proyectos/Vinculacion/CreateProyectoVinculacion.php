@@ -592,6 +592,23 @@ class CreateProyectoVinculacion extends Component implements HasForms
                         ])
                         ->columns(2),
                     Wizard\Step::make('V.')
+                        ->description('Anexos')
+                        ->schema([
+                            Repeater::make('anexos')
+                                ->label('Anexos')
+                                ->schema([
+                                    FileUpload::make('documento_url')
+                                        ->label('')
+                                        ->disk('public')
+                                        ->directory('anexos')
+                                        ->required()
+                                ])
+                                ->relationship()
+                                ->defaultItems(0)
+                                ->grid(2)
+                                ->columns(1),
+                        ]),
+                    Wizard\Step::make('VI.')
                         ->description('Firmas')
                         ->schema([
 

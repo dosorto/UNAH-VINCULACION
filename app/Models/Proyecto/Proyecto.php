@@ -322,6 +322,10 @@ class Proyecto extends Model
 
     }
 
+    public function anexos()
+    {
+        return $this->hasMany(Anexo::class, 'proyecto_id');
+    }
 
     // obtener el estado actual del proyecto
     public function getEstadoAttribute()

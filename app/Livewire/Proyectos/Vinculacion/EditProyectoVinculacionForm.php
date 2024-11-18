@@ -595,6 +595,11 @@ class EditProyectoVinculacionForm extends Component implements HasForms
                             ])
                             ->columns(2),
                         Wizard\Step::make('V.')
+                            ->description('Anexos')
+                            ->schema([
+                                Repeater::make()
+                            ]),
+                        Wizard\Step::make('VI.')
                             ->description('Firmas')
                             ->schema([
     
