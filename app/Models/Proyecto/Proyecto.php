@@ -272,6 +272,13 @@ class Proyecto extends Model
         return $this->hasMany(FirmaProyecto::class, 'proyecto_id');
     }
 
+    public function firma_coodinador_proyecto()
+    {
+        return $this->hasMany(FirmaProyecto::class, 'proyecto_id')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->where('cargo_firma.nombre', 'Coordinador Proyecto');
+    }
+
 
     // firma_enlace_vinculacion
     public function firma_proyecto_enlace()
