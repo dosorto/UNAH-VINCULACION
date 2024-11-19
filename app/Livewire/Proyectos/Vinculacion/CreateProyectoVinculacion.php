@@ -193,6 +193,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->relationship()
                                 ->minItems(1)
                                 ->maxItems(1)
+                                ->deletable(false)
                                 ->defaultItems(1),
 
                             /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -334,38 +335,6 @@ class CreateProyectoVinculacion extends Component implements HasForms
                     Wizard\Step::make('II.')
                         ->description('INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (en caso de contar con una contraparte).')
                         ->schema([
-                            // actividades en proyecto
-                            Repeater::make('actividades')
-                                ->relationship()
-                                ->schema([
-                                    Forms\Components\TextInput::make('descripcion')
-                                        ->required()
-                                        //->required
-                                        ->columnSpanFull(),
-                                    Datepicker::make('fecha_ejecucion')
-                                        ->required()
-                                        ->columnSpan(1),
-                                    // resposable de la actividad
-                                    Select::make('empleado_id')
-                                        ->label('Responsable')
-                                        ->searchable(['nombre_completo', 'numero_empleado'])
-                                        ->options(
-
-                                            function (Get $get) {
-                                                dd(
-                                                    $get('../../empleado_proyecto')
-                                                );
-                                            }
-
-                                        )
-                                        ->columnSpan(1),
-                                ])
-                                ->label('Actividades')
-                                ->defaultItems(0)
-                                ->itemLabel('Actividad')
-                                ->addActionLabel('Agregar actividad')
-                                ->collapsed(),
-
                             Repeater::make('entidad_contraparte')
                                 ->schema([
                                     Forms\Components\TextInput::make('nombre'),
@@ -407,7 +376,58 @@ class CreateProyectoVinculacion extends Component implements HasForms
                                 ->defaultItems(0)
                                 ->addActionLabel('Agregar entidad contraparte')
                         ]),
-                    Wizard\Step::make('III.')
+                        Wizard\Step::make('III.')
+                        ->description('Cronograma de actividades.')
+                        ->schema([
+                            // actividades en proyecto
+                            Repeater::make('actividades')
+                            ->relationship()
+                            ->schema([
+                                    Forms\Components\TextInput::make('descripcion')
+                                        ->label('Descripción')
+                                        // ->required()
+                                        //->required
+                                        ->columnSpanFull(),
+                                    Select::make('empleados')
+                                        ->label('Responsables')
+                                        ->relationship(
+                                            name: 'empleados', 
+                                            titleAttribute: 'nombre_completo', 
+                                            modifyQueryUsing: function (\Illuminate\Database\Eloquent\Builder $query, Get $get) {
+                                                $data = $get('../../empleado_proyecto');
+                                                $ids = array_map(function ($item) {
+                                                    return $item['empleado_id'];
+                                                }, $data);
+                                                
+                                                $query->whereIn('empleado.id', $ids)
+                                                        ->with(['actividades']);
+                                            }
+                                        )
+                                        ->preload()
+                                        ->multiple()
+                                        ->searchable()
+                                        ->columnSpanFull(),
+                                    Datepicker::make('fecha_ejecucion')
+                                        ->label('Fecha de ejecución')
+                                        // ->required()
+                                        ->columnSpan(1),
+                                    Forms\Components\TextInput::make('objetivos')
+                                        ->label('Objetivos')
+                                        // ->required()
+                                        ->columnSpanFull(),
+                                    Forms\Components\TextInput::make('horas')
+                                        ->label('Horas')
+                                        // ->required()
+                                        ->numeric(),
+                                ])
+                                ->label('Actividades')
+                                ->defaultItems(0)
+                                ->itemLabel('Actividad')
+                                ->addActionLabel('Agregar actividad')
+                                ->grid(2)
+                                ->collapsed(),
+                        ]),
+                    Wizard\Step::make('IV.')
                         ->description('DATOS DEL PROYECTO')
                         ->schema([
                             Forms\Components\Textarea::make('resumen')
@@ -571,7 +591,24 @@ class CreateProyectoVinculacion extends Component implements HasForms
 
                         ])
                         ->columns(2),
-                    Wizard\Step::make('IV.')
+                    Wizard\Step::make('V.')
+                        ->description('Anexos')
+                        ->schema([
+                            Repeater::make('anexos')
+                                ->label('Anexos')
+                                ->schema([
+                                    FileUpload::make('documento_url')
+                                        ->label('')
+                                        ->disk('public')
+                                        ->directory('anexos')
+                                        ->required()
+                                ])
+                                ->relationship()
+                                ->defaultItems(0)
+                                ->grid(2)
+                                ->columns(1),
+                        ]),
+                    Wizard\Step::make('VI.')
                         ->description('Firmas')
                         ->schema([
 

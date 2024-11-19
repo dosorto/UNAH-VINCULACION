@@ -2,20 +2,22 @@
 
 namespace App\Models\Personal;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
-
 use App\Models\User;
-use App\Models\UnidadAcademica\Campus;
-use App\Models\UnidadAcademica\DepartamentoAcademico;
-
-use App\Models\Personal\CategoriaEmpleado;
-use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\Actividad;
+use Spatie\Activitylog\LogOptions;
 use App\Models\Proyecto\FirmaProyecto;
+
+use App\Models\UnidadAcademica\Campus;
+use Illuminate\Database\Eloquent\Model;
+use App\Models\Personal\CategoriaEmpleado;
+
+use App\Models\Proyecto\EmpleadoActividad;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\UnidadAcademica\FacultadCentro;
+use App\Models\UnidadAcademica\DepartamentoAcademico;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Empleado extends Model
 {
@@ -140,6 +142,12 @@ class Empleado extends Model
         return $this->hasMany(FirmaProyecto::class, 'empleado_id');
     }
 
+
+    // relacion uno a muchos con EmpleadoActividad
+    public function actividades()
+    {
+        return $this->belongsToMany(Actividad::class, 'actividad_empleado');
+    }
 
 
     public function getIdValidos()

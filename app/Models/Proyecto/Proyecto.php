@@ -317,11 +317,15 @@ class Proyecto extends Model
 
     // relacion uno a muchos con actividad 
     public function actividades()
-{
-    return $this->hasMany(Actividad::class, 'proyecto_id');
+    {
+        return $this->hasMany(Actividad::class, 'proyecto_id');
 
-}
+    }
 
+    public function anexos()
+    {
+        return $this->hasMany(Anexo::class, 'proyecto_id');
+    }
 
     // obtener el estado actual del proyecto
     public function getEstadoAttribute()
