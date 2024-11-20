@@ -272,6 +272,13 @@ class Proyecto extends Model
         return $this->hasMany(FirmaProyecto::class, 'proyecto_id');
     }
 
+    public function firma_coodinador_proyecto()
+    {
+        return $this->hasMany(FirmaProyecto::class, 'proyecto_id')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->where('cargo_firma.nombre', 'Coordinador Proyecto');
+    }
+
 
     // firma_enlace_vinculacion
     public function firma_proyecto_enlace()
@@ -317,11 +324,15 @@ class Proyecto extends Model
 
     // relacion uno a muchos con actividad 
     public function actividades()
-{
-    return $this->hasMany(Actividad::class, 'proyecto_id');
+    {
+        return $this->hasMany(Actividad::class, 'proyecto_id');
 
-}
+    }
 
+    public function anexos()
+    {
+        return $this->hasMany(Anexo::class, 'proyecto_id');
+    }
 
     // obtener el estado actual del proyecto
     public function getEstadoAttribute()
