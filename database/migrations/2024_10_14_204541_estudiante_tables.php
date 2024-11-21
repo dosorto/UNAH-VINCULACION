@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('nombre')->nullable();
             $table->string('apellido')->nullable();
             $table->string('cuenta')->nullable();
+            $table->foreignId('centro_facultdad_id')->nullable()->constrained('centro_facultad');
             $table->softDeletes();
             $table->timestamps();
         });
