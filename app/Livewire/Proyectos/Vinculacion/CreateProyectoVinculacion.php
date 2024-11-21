@@ -102,7 +102,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
         $record = Proyecto::create($data);
         $this->form->model($record)->saveRelationships();
 
-        $record->firma_proyecto()->create([
+        $firmaP = $record->firma_proyecto()->create([
             'empleado_id' => auth()->user()->empleado->id,
             'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
             'estado_revision' => 'Aprobado',
@@ -113,7 +113,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
 
         $record->estado_proyecto()->create([
             'empleado_id' => auth()->user()->empleado->id,
-            'tipo_estado_id' => TipoEstado::where('nombre', 'Esperando firma de Jefe de Departamento')->first()->id,
+            'tipo_estado_id' => $firmaP->cargo_firma->estadoProyectoSiguiente->id,
             'fecha' => now(),
             'comentario' => 'Proyecto creado',
         ]);
