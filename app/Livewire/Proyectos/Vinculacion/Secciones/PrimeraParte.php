@@ -53,7 +53,7 @@ class PrimeraParte
             Repeater::make('coordinador_proyecto')
                 ->label('Coordinador')
                 ->schema([
-                    TextInput::make('empleado_id')
+                    TextInput::make('nombre_empleado')
                         ->label('')
                         ->default(
                             fn() => optional(Empleado::where('user_id', auth()->id())->first())
