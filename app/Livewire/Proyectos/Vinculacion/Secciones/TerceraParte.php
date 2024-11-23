@@ -44,12 +44,20 @@ class TerceraParte
                         ->multiple()
                         ->searchable()
                         ->columnSpanFull(),
-                    Datepicker::make('fecha_ejecucion')
-                        ->label('Fecha de ejecución')
+                    Datepicker::make('fecha_inicio')
+                        ->label('Fecha de Inicio')
+                        // ->required()
+                        ->columnSpan(1),
+                    Datepicker::make('fecha_finalizacion')
+                        ->label('Fecha de Finalizacion')
                         // ->required()
                         ->columnSpan(1),
                     Forms\Components\TextInput::make('objetivos')
                         ->label('Objetivos')
+                        // ->required()
+                        ->columnSpanFull(),
+                    Forms\Components\TextInput::make('resultados')
+                        ->label('Resultados')
                         // ->required()
                         ->columnSpanFull(),
                     Forms\Components\TextInput::make('horas')

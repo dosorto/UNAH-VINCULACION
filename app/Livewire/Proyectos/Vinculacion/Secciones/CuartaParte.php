@@ -71,32 +71,34 @@ class CuartaParte
                 ->live()
                 ->columnSpan(1),
 
-            Select::make('departamento_id')
+            Select::make('departamento')
                 ->label('Departamento')
+                ->multiple()
                 ->searchable()
-                ->visible(fn(Get $get): bool
-                => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial')
+                // ->visible(fn(Get $get): bool
+                // => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial')
                 ->relationship(name: 'departamento', titleAttribute: 'nombre')
                 ->live()
                 ->preload(),
 
-            Select::make('municipio_id')
+            Select::make('municipio')
                 ->label('Municipio')
                 ->searchable()
-                ->visible(fn(Get $get): bool
-                => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial')
+                ->multiple()
+                // ->visible(fn(Get $get): bool
+                // => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial')
                 ->relationship(
                     name: 'municipio',
                     titleAttribute: 'nombre',
-                    modifyQueryUsing: fn($query, Get $get) => $query->where('departamento_id', $get('departamento_id'))
+                    modifyQueryUsing: fn($query, Get $get) => $query->whereIn('departamento_id', $get('departamento'))
                 )
                 ->preload(),
 
             Select::make('ciudad_id')
                 ->label('Ciudad')
                 ->searchable()
-                ->visible(fn(Get $get): bool
-                => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial')
+                // ->visible(fn(Get $get): bool
+                // => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial')
                 ->relationship(name: 'ciudad', titleAttribute: 'nombre')
                 ->createOptionForm([
                     Select::make('departamento_id')
@@ -113,7 +115,7 @@ class CuartaParte
                         ->relationship(
                             name: 'municipio',
                             titleAttribute: 'nombre',
-                            modifyQueryUsing: fn($query, Get $get) => $query->where('departamento_id', $get('departamento_id'))
+                            modifyQueryUsing: fn($query, Get $get) => $query->where('departamento_id', $get('departamento'))
                         )
                         ->preload(),
                     Forms\Components\TextInput::make('nombre'), //->required(),
@@ -122,9 +124,9 @@ class CuartaParte
                 ])
                 ->preload(),
 
-            TextInput::make('aldea')
-                ->visible(fn(Get $get): bool
-                => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial'),
+            TextInput::make('aldea'),
+                // ->visible(fn(Get $get): bool
+                // => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial'),
 
             TextInput::make('resultados_esperados')
                 ->label('Resultados esperados'),

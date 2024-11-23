@@ -114,8 +114,8 @@ class Proyecto extends Model
         'nombre_proyecto',
         // 'coordinador_id',
         'modalidad_id',
-        'municipio_id',
-        'departamento_id',
+        // 'municipio_id',
+        // 'departamento_id',
         'ciudad_id',
         'aldea',
         'resumen',
@@ -159,12 +159,12 @@ class Proyecto extends Model
 
     public function municipio()
     {
-        return $this->belongsTo(Municipio::class, 'municipio_id',);
+        return $this->belongsToMany(Municipio::class, 'proyecto_municipio', 'proyecto_id', 'municipio_id');
     }
 
     public function departamento()
     {
-        return $this->belongsTo(Departamento::class, 'departamento_id',);
+        return $this->belongsToMany(Departamento::class, 'proyecto_departamento', 'proyecto_id', 'departamento_id');
     }
 
     public function ciudad()
