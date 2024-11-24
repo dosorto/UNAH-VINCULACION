@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Personal\FirmaSelloEmpleado;
+use App\Models\Estado\TipoEstado;
 
 class FirmaProyecto extends Model
 {
@@ -24,7 +25,22 @@ class FirmaProyecto extends Model
         'sello_id',
         'estado_revision',
         'hash',
+        'firmable_type',
+        'firmable_id',
+        'estado_actual_id',
+        'tipo_firma', // proyecto, contrato, acta, etc
     ];
+
+    public function firmable()
+    {
+        return $this->morphTo();
+    }
+
+    // relacion con estado
+    public function estado_actual()
+    {
+        return $this->belongsTo(TipoEstado::class, 'estado_actual_id');
+    }
 
     public function proyecto()
     {

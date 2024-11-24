@@ -195,13 +195,25 @@ return new class extends Migration
         // tabla de firmas de proyecto
         Schema::create('firma_proyecto', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('proyecto_id')->constrained('proyecto');
             $table->foreignId('empleado_id')->constrained('empleado');
-            $table->foreignId('cargo_firma_id')->constrained('cargo_firma');
             $table->foreignId('firma_id')->nullable();//->constrained('firma');
-            $table->string('sello_id')->nullable();
+            $table->foreignId('sello_id')->nullable();
+            $table->foreignId('estado_actual_id')->nullable();//->constrained('estado_proyecto');
+            $table->foreignId('cargo_firma_id')->constrained('cargo_firma');
             $table->enum('estado_revision', ['Pendiente', 'Rechazado', 'Aprobado'])->default('Pendiente');
             $table->string('hash')->nullable();
+
+            $table->morphs('firmable');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+        // proyecto_documento 
+        Schema::create('proyecto_documento', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->string('tipo_documento'); // inicial, final, intermedia
+            $table->string('documento_url');
             $table->softDeletes();
             $table->timestamps();
         });

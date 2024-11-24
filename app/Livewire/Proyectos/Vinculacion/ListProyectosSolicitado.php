@@ -41,14 +41,14 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
         return $table
             ->query(
                 Proyecto::query()
-                ->whereIn('id', function ($query) {
-                    $query->select('proyecto_id')
-                        ->from('estado_proyecto')
-                        ->where('estado_proyecto.tipo_estado_id', TipoEstado::where('nombre', 'En revision')->first()->id)
-                        ->where('estado_proyecto.es_actual', true)
-                        ->whereColumn('estado_proyecto.proyecto_id', 'proyecto.id');
-                })
-            
+                    ->whereIn('id', function ($query) {
+                        $query->select('estadoable_id')
+                            ->from('estado_proyecto')
+                            ->where('estadoable_type', Proyecto::class) // Asegúrate de filtrar por el modelo `Proyecto`
+                            ->where('tipo_estado_id', TipoEstado::where('nombre', 'En revision')->first()->id)
+                            ->where('es_actual', true);
+                    })
+
             )
             ->columns([
 
@@ -73,7 +73,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                             'components.fichas.ficha-proyecto-vinculacion',
                             ['proyecto' => $proyecto]
                         )
-                    
+
                     )
                     ->stickyModalFooter()
                     ->stickyModalHeader()

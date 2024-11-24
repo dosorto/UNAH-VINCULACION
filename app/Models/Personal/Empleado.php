@@ -151,11 +151,13 @@ class Empleado extends Model
 
 
     public function getIdValidos()
-    {
+    {  
         // Mapear las firmas de los proyectos
+        
         $proyectos = $this->firmaProyecto->map(function ($firma) {
             // validar que el proyecto se encuentre solamente en el estado en el cual se encuentra la firma
-            if ($firma->cargo_firma->estadoProyectoActual->id == $firma->proyecto->estado->tipo_estado_id) {
+            return $firma->id;
+            if ($firma->estado_actual->estado_siguiente_id == $firma->proyecto->estado->tipo_estado_id) {
                 return $firma->id;
             }
         });

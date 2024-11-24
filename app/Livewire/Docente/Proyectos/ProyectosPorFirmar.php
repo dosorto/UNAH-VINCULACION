@@ -110,6 +110,8 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                                 // cambiar el estado de la firma a rechazado y agregar el comentario
                                 $firma_proyecto->proyecto->firma_proyecto()->update([
                                     'estado_revision' => 'Pendiente',
+                                    'firma_id' => null,
+                                    'sello_id' => null,
                                 ]);
 
                                 // actualizar el estado del proyecto al siguiente estado :)
