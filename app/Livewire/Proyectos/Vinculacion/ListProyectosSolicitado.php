@@ -32,6 +32,8 @@ use App\Models\UnidadAcademica\FacultadCentro;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Concerns\InteractsWithTable;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
+use Filament\Forms\Components\Section;
+
 
 class ListProyectosSolicitado extends Component implements HasForms, HasTable
 {
@@ -45,14 +47,14 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
         return $table
             ->query(
                 Proyecto::query()
-                ->whereIn('id', function ($query) {
-                    $query->select('proyecto_id')
-                        ->from('estado_proyecto')
-                        ->where('estado_proyecto.tipo_estado_id', TipoEstado::where('nombre', 'En revision')->first()->id)
-                        ->where('estado_proyecto.es_actual', true)
-                        ->whereColumn('estado_proyecto.proyecto_id', 'proyecto.id');
-                })
-            
+                    ->whereIn('id', function ($query) {
+                        $query->select('proyecto_id')
+                            ->from('estado_proyecto')
+                            ->where('estado_proyecto.tipo_estado_id', TipoEstado::where('nombre', 'En revision')->first()->id)
+                            ->where('estado_proyecto.es_actual', true)
+                            ->whereColumn('estado_proyecto.proyecto_id', 'proyecto.id');
+                    })
+
             )
             ->columns([
 
@@ -77,7 +79,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                             'components.fichas.ficha-proyecto-vinculacion',
                             ['proyecto' => $proyecto]
                         )
-                    
+
                     )
                     ->stickyModalFooter()
                     ->stickyModalHeader()
@@ -122,52 +124,59 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                         Action::make('aprobar')
                             ->label('Aprobar')
                             ->form([
-                                Hidden::make('responsable_revision_id')
-                                    ->default(auth()->user()->empleado->id),
-                                Select::make('ods')
-                                    ->label('ODS')
-                                    ->multiple()
-                                    ->relationship('ods', 'nombre')
-                                    ->visible(fn(Proyecto $record): bool
-                                        => $record->estado->tipoestado->nombre === 'En revision')
-                                    ->columnSpanFull()
-                                    ->preload()
-                                    ->required(),
-                                DatePicker::make('fecha_aprobacion')
-                                    ->label('Fecha de aprobacion')
-                                    ->columnSpan(1)
-                                    ->required(),
-                                DatePicker::make('fecha_registro')
-                                    ->label('Fecha de registro')
-                                    ->columnSpan(1)
-                                    ->required(),
-                                TextInput::make('numero_libro')
-                                    ->label('Numero de libro')
-                                    ->numeric(),
-                                TextInput::make('numero_tomo')
-                                    ->label('Numero de tomo')
-                                    ->numeric(),
-                                TextInput::make('numero_folio')
-                                    ->label('Numero de folio')
-                                    ->numeric(),
-                                TextInput::make('numero_dictamen')
-                                    ->label('Numero de dictamen')
-                                    ->default(function (Proyecto $proyecto) {
-                                        $prefix = 'VRA';
-                                        $year = date('Y'); // Obtiene el año actual
-                                        $nextId = $proyecto ? $proyecto->id + 1 : 1; // Incrementa el ID o lo inicia en 1
-                                        $formattedId = str_pad($nextId, 3, '0', STR_PAD_LEFT); // Formatea el ID a 3 dígitos
-                                
-                                        return "{$prefix}-{$year}-{$formattedId}";
-                                    }),
-                                
+                                Section::make('formulario_final')
+                                ->label(' ')
+                                    ->description('')
+                                    ->schema([
+                                        Hidden::make('responsable_revision_id')
+                                            ->default(auth()->user()->empleado->id),
+                                        Select::make('ods')
+                                            ->label('ODS')
+                                            ->multiple()
+                                            ->relationship('ods', 'nombre')
+                                            ->visible(fn(Proyecto $record): bool
+                                            => $record->estado->tipoestado->nombre === 'En revision')
+                                            ->columnSpanFull()
+                                            ->preload()
+                                            ->required(),
+                                        DatePicker::make('fecha_aprobacion')
+                                            ->label('Fecha de aprobacion')
+                                            ->columnSpan(1)
+                                            ->required(),
+                                        DatePicker::make('fecha_registro')
+                                            ->label('Fecha de registro')
+                                            ->columnSpan(1)
+                                            ->required(),
+                                        TextInput::make('numero_libro')
+                                            ->label('Numero de libro')
+                                            ->numeric(),
+                                        TextInput::make('numero_tomo')
+                                            ->label('Numero de tomo')
+                                            ->numeric(),
+                                        TextInput::make('numero_folio')
+                                            ->label('Numero de folio')
+                                            ->numeric(),
+                                        TextInput::make('numero_dictamen')
+                                            ->label('Numero de dictamen')
+                                            ->default(function (Proyecto $proyecto) {
+                                                $prefix = 'VRA';
+                                                $year = date('Y'); // Obtiene el año actual
+                                                $nextId = $proyecto ? $proyecto->id + 1 : 1; // Incrementa el ID o lo inicia en 1
+                                                $formattedId = str_pad($nextId, 3, '0', STR_PAD_LEFT); // Formatea el ID a 3 dígitos
+
+                                                return "{$prefix}-{$year}-{$formattedId}";
+                                            }),
+                                    ])
+                                    ->columns(2),
+
+
                             ])
                             ->cancelParentActions()
                             ->icon('heroicon-o-check-circle') // Icono para "Aprobar"
                             ->color('success')
                             ->requiresConfirmation()
-                            ->modalHeading('Confirmar Aprobación') // Título del diálogo
-                            ->modalSubheading('¿Estás seguro de que deseas aprobar la firma de este proyecto?')
+                            ->modalHeading('Terminar Registro') // Título del diálogo
+                            ->modalSubheading('Para aprobar el proyecto, por favor llene los siguientes campos')
                             ->action(function (Proyecto $proyecto, array $data) {
                                 // dd($this->docente);
 
@@ -190,6 +199,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                     ->info()
                                     ->send();
                             })
+                            ->modalWidth(MaxWidth::SevenExtraLarge)
                             ->button(),
 
                     ])
