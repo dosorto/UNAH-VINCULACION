@@ -20,6 +20,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Support\Enums\MaxWidth;
 
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 
 class ProyectosPorFirmar extends Component implements HasForms, HasTable
@@ -110,6 +111,8 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                                 // cambiar el estado de la firma a rechazado y agregar el comentario
                                 $firma_proyecto->proyecto->firma_proyecto()->update([
                                     'estado_revision' => 'Pendiente',
+                                    'firma_id' => null,
+                                    'sello_id' => null,
                                 ]);
 
                                 // actualizar el estado del proyecto al siguiente estado :)
@@ -150,11 +153,11 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                                     'firma_id' => $this->docente->firma->id,
                                     'sello_id' => $this->docente->sello->id,
                                 ]);
-
                                 // actualizar el estado del proyecto al siguiente estado :)
                                 $firma_proyecto->proyecto->estado_proyecto()->create([
+                                   
                                     'empleado_id' => $this->docente->id,
-                                    'tipo_estado_id' => $firma_proyecto->cargo_firma->estadoProyectoSiguiente->id,
+                                    'tipo_estado_id' => $firma_proyecto->estado_actual->estado_siguiente_id,
                                     'fecha' => now(),
                                     'comentario' => 'Se ha aprobado la firma del proyecto',
                                 ]);

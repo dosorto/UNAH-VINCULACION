@@ -28,31 +28,31 @@ class ProyectoSeeder extends Seeder
         // crear los tipos de estado para el proyecto
         TipoEstado::insert([
             // no se puede dambiar  el orden de esto indicriminadamente 
-            ['nombre' => 'Esperando Firma Coorinador Proyecto'],
-            ['nombre' => 'Esperando firma de Jefe de Departamento'],
-            ['nombre' => 'Esperando firma de Director/Decano'],
-            ['nombre' => 'Esperando firma de Vinculacion'],
-            ['nombre' => 'En revision'],
+            ['nombre' => 'Esperando Firma Coorinador Proyecto', 'estado_siguiente_id' => 2],
+            ['nombre' => 'Esperando Firma de Vinculacion', 'estado_siguiente_id' => 3],
+            ['nombre' => 'Esperando Firma de Jefe de Departamento', 'estado_siguiente_id' => 4],
+            ['nombre' => 'Esperando firma de Director/Decano', 'estado_siguiente_id' => 5],
+            ['nombre' => 'En revision', 'estado_siguiente_id' => null],
 
             // hasta aca.
+            ['nombre' => 'Subsanacion','estado_siguiente_id' => null],
+            ['nombre' => 'En curso', 'estado_siguiente_id' => null],
+            ['nombre' => 'En cuurso: esperando firma', 'estado_siguiente_id' => null],
+            ['nombre' => 'Rechazado', 'estado_siguiente_id' => null],
+            ['nombre' => 'Inscrito','estado_siguiente_id' => null],
 
-            ['nombre' => 'Subsanacion'],
-            ['nombre' => 'En curso'],
-            ['nombre' => 'Rechazado'],
-            ['nombre' => 'Inscrito'],
+            ['nombre' => 'Finalizado', 'estado_siguiente_id' => null],
+            ['nombre' => 'Cancelado', 'estado_siguiente_id' => null],
 
-            ['nombre' => 'Finalizado'],
-            ['nombre' => 'Cancelado'],
-
-            ['nombre' => 'Borrador'],
+            ['nombre' => 'Borrador', 'estado_siguiente_id' => null],
         ]);
 
 
         CargoFirma::insert([
-            ['nombre' => 'Coordinador Proyecto', 'cargo_firma_anterior_id' => null, 'estado_proyecto_id' => 2, 'estado_actual_id' => 1],
-            ['nombre' => 'Jefe Departamento', 'cargo_firma_anterior_id' => 1, 'estado_proyecto_id' =>  3, 'estado_actual)id' => 2],
-            ['nombre' => 'Director centro', 'cargo_firma_anterior_id' => 2, 'estado_proyecto_id' => 4, 'estado_actual_id' => 3],
-            ['nombre' => 'Enlace Vinculacion', 'cargo_firma_anterior_id' => 3, 'estado_proyecto_id' => 5,'estado_actual_id'=> 4],
+            ['nombre' => 'Coordinador Proyecto'],
+            ['nombre' => 'Enlace Vinculacion'],
+            ['nombre' => 'Jefe Departamento'],
+            ['nombre' => 'Director centro'],
         ]);
 
 
@@ -66,7 +66,6 @@ class ProyectoSeeder extends Seeder
         Modalidad::insert([
             ['nombre' => 'Unidisciplinar'],
             ['nombre' => 'Multidisciplinar'],
-            ['nombre' => 'Esperando firma de Vinculacion'],
             ['nombre' => 'Interdisciplinar'],
             ['nombre' => 'Transdisciplinar'],
         ]);

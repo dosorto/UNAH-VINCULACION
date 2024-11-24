@@ -2,32 +2,38 @@
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
-use App\Models\Estado\TipoEstado;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
 use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
-use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Enums\FiltersLayout;
-use Filament\Forms\Components\Select;
-use App\Models\UnidadAcademica\FacultadCentro;
-use App\Models\UnidadAcademica\DepartamentoAcademico;
-use Filament\Tables\Filters\Filter;
 use Filament\Forms\Get;
-
+use Livewire\Component;
+use Filament\Tables\Table;
+use App\Models\Estado\TipoEstado;
+use App\Models\Proyecto\Proyecto;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Filters\Filter;
+use Illuminate\Contracts\View\View;
 use Filament\Support\Enums\MaxWidth;
-
+use Illuminate\Support\Facades\Auth;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
+use App\Models\Proyecto\FirmaProyecto;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Components\Textarea;
+use Filament\Tables\Contracts\HasTable;
+
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 
-use Illuminate\Support\Facades\Auth;
-use App\Models\Proyecto\Proyecto;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Forms\Components\DatePicker;
+
+use Filament\Tables\Filters\SelectFilter;
+use Illuminate\Database\Eloquent\Builder;
+use App\Models\UnidadAcademica\FacultadCentro;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Tables\Concerns\InteractsWithTable;
+use App\Models\UnidadAcademica\DepartamentoAcademico;
+use Filament\Forms\Components\Section;
+
 
 class ListProyectosSolicitado extends Component implements HasForms, HasTable
 {
@@ -41,14 +47,14 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
         return $table
             ->query(
                 Proyecto::query()
-                ->whereIn('id', function ($query) {
-                    $query->select('proyecto_id')
-                        ->from('estado_proyecto')
-                        ->where('estado_proyecto.tipo_estado_id', TipoEstado::where('nombre', 'En revision')->first()->id)
-                        ->where('estado_proyecto.es_actual', true)
-                        ->whereColumn('estado_proyecto.proyecto_id', 'proyecto.id');
-                })
-            
+                    ->whereIn('id', function ($query) {
+                        $query->select('estadoable_id')
+                            ->from('estado_proyecto')
+                            ->where('estadoable_type', Proyecto::class) // Asegúrate de filtrar por el modelo `Proyecto`
+                            ->where('tipo_estado_id', TipoEstado::where('nombre', 'En revision')->first()->id)
+                            ->where('es_actual', true);
+                    })
+
             )
             ->columns([
 
@@ -73,7 +79,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                             'components.fichas.ficha-proyecto-vinculacion',
                             ['proyecto' => $proyecto]
                         )
-                    
+
                     )
                     ->stickyModalFooter()
                     ->stickyModalHeader()
@@ -117,13 +123,61 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
 
                         Action::make('aprobar')
                             ->label('Aprobar')
+                            ->form([
+                                Section::make('formulario_final')
+                                ->label(' ')
+                                    ->description('')
+                                    ->schema([
+                                        Hidden::make('responsable_revision_id')
+                                            ->default(auth()->user()->empleado->id),
+                                        Select::make('ods')
+                                            ->label('ODS')
+                                            ->multiple()
+                                            ->relationship('ods', 'nombre')
+                                            ->visible(fn(Proyecto $record): bool
+                                            => $record->estado->tipoestado->nombre === 'En revision')
+                                            ->columnSpanFull()
+                                            ->preload()
+                                            ->required(),
+                                        DatePicker::make('fecha_aprobacion')
+                                            ->label('Fecha de aprobacion')
+                                            ->columnSpan(1)
+                                            ->required(),
+                                        DatePicker::make('fecha_registro')
+                                            ->label('Fecha de registro')
+                                            ->columnSpan(1)
+                                            ->required(),
+                                        TextInput::make('numero_libro')
+                                            ->label('Numero de libro')
+                                            ->numeric(),
+                                        TextInput::make('numero_tomo')
+                                            ->label('Numero de tomo')
+                                            ->numeric(),
+                                        TextInput::make('numero_folio')
+                                            ->label('Numero de folio')
+                                            ->numeric(),
+                                        TextInput::make('numero_dictamen')
+                                            ->label('Numero de dictamen')
+                                            ->default(function (Proyecto $proyecto) {
+                                                $prefix = 'VRA';
+                                                $year = date('Y'); // Obtiene el año actual
+                                                $nextId = $proyecto ? $proyecto->id + 1 : 1; // Incrementa el ID o lo inicia en 1
+                                                $formattedId = str_pad($nextId, 3, '0', STR_PAD_LEFT); // Formatea el ID a 3 dígitos
+
+                                                return "{$prefix}-{$year}-{$formattedId}";
+                                            }),
+                                    ])
+                                    ->columns(2),
+
+
+                            ])
                             ->cancelParentActions()
                             ->icon('heroicon-o-check-circle') // Icono para "Aprobar"
                             ->color('success')
                             ->requiresConfirmation()
-                            ->modalHeading('Confirmar Aprobación') // Título del diálogo
-                            ->modalSubheading('¿Estás seguro de que deseas aprobar la firma de este proyecto?')
-                            ->action(function (Proyecto $proyecto) {
+                            ->modalHeading('Terminar Registro') // Título del diálogo
+                            ->modalSubheading('Para aprobar el proyecto, por favor llene los siguientes campos')
+                            ->action(function (Proyecto $proyecto, array $data) {
                                 // dd($this->docente);
 
                                 // actualizar el estado del proyecto al siguiente estado :)
@@ -134,6 +188,8 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                     'comentario' => 'El proyecto ha sido aprobado correctamente',
                                 ]);
 
+                                $proyecto->update($data);
+
                                 // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                                 // ->where('empleado_id', $this->docente->id)
                                 // ->first());
@@ -143,6 +199,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                     ->info()
                                     ->send();
                             })
+                            ->modalWidth(MaxWidth::SevenExtraLarge)
                             ->button(),
 
                     ])

@@ -44,8 +44,8 @@ return new class extends Migration
             $table->string('nombre_proyecto')->nullable();
             // $table->foreignId('coordinador_id')->constrained('empleado');
             $table->foreignId('modalidad_id')->nullable()->constrained('modalidad');
-            $table->foreignId('municipio_id')->nullable()->constrained('municipio');
-            $table->foreignId('departamento_id')->nullable()->constrained('departamento');
+            // $table->foreignId('municipio_id')->nullable()->constrained('municipio');
+            // $table->foreignId('departamento_id')->nullable()->constrained('departamento');
             $table->foreignId('ciudad_id')->nullable()->constrained('ciudad');
             $table->string('aldea')->nullable();
             $table->string('resumen')->nullable();
@@ -67,6 +67,14 @@ return new class extends Migration
             $table->string('numero_tomo')->nullable();
             $table->string('numero_folio')->nullable();
             $table->string('numero_dictamen')->nullable();
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+        Schema::create('anexo', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->string('documento_url');
             $table->softDeletes();
             $table->timestamps();
         });
@@ -110,14 +118,24 @@ return new class extends Migration
          Schema::create('actividades', function (Blueprint $table) {
             $table->id();
             $table->string('descripcion');
-            $table->date('fecha_ejecucion');
-            $table->foreignId('empleado_proyecto_id')->constrained('empleado_proyecto');
+            $table->date('fecha_inicio');
+            $table->date('fecha_finalizacion');
+            // $table->foreignId('empleado_proyecto_id')->constrained('empleado_proyecto');
             // incluir el id del proyecto para recuperarlo mmas rapido
             $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->text('objetivos')->nullable();
+            $table->text('resultados')->nullable();
+            $table->integer('horas')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });
 
+        Schema::create('actividad_empleado', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('actividad_id')->constrained('actividades')->onDelete('cascade');
+            $table->foreignId('empleado_id')->constrained('empleado')->onDelete('cascade');
+            $table->timestamps();
+        });
 
         // tabla de realcion con entidad_facultad_centro
         Schema::create('proyecto_centro_facultad', function (Blueprint $table) {
@@ -133,6 +151,22 @@ return new class extends Migration
             $table->id();
             $table->foreignId('proyecto_id')->constrained('proyecto');
             $table->foreignId('departamento_academico_id')->constrained('departamento_academico');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+        Schema::create('proyecto_departamento', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->foreignId('departamento_id')->constrained('departamento');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+        Schema::create('proyecto_municipio', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->foreignId('municipio_id')->constrained('municipio');
             $table->softDeletes();
             $table->timestamps();
         });
@@ -179,13 +213,25 @@ return new class extends Migration
         // tabla de firmas de proyecto
         Schema::create('firma_proyecto', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('proyecto_id')->constrained('proyecto');
             $table->foreignId('empleado_id')->constrained('empleado');
-            $table->foreignId('cargo_firma_id')->constrained('cargo_firma');
             $table->foreignId('firma_id')->nullable();//->constrained('firma');
-            $table->string('sello_id')->nullable();
+            $table->foreignId('sello_id')->nullable();
+            $table->foreignId('estado_actual_id')->nullable();//->constrained('estado_proyecto');
+            $table->foreignId('cargo_firma_id')->constrained('cargo_firma');
             $table->enum('estado_revision', ['Pendiente', 'Rechazado', 'Aprobado'])->default('Pendiente');
             $table->string('hash')->nullable();
+
+            $table->morphs('firmable');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+        // proyecto_documento 
+        Schema::create('proyecto_documento', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('proyecto_id')->constrained('proyecto');
+            $table->string('tipo_documento'); // inicial, final, intermedia
+            $table->string('documento_url');
             $table->softDeletes();
             $table->timestamps();
         });
