@@ -36,6 +36,8 @@ class FirmaProyecto extends Model
         return $this->morphTo();
     }
 
+    
+
     // relacion con estado
     public function estado_actual()
     {

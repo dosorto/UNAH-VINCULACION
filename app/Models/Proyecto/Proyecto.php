@@ -33,6 +33,7 @@ use App\Models\Proyecto\Od;
 use App\Models\Proyecto\FirmaProyecto;
 
 use App\Models\Estado\EstadoProyecto;
+use App\Models\Proyecto\DocumentoProyecto;
 
 
 
@@ -140,6 +141,25 @@ class Proyecto extends Model
 
     ];
 
+    public function getDocumentoIntermedioAttribute()
+    {
+        return $this->documentos()
+            ->where('tipo_documento', 'Intermedio')
+            ->first(); // Obtiene el primer documento con tipo "Intermedio"
+    }
+
+    public function getDocumentoFinalAttribute()
+    {
+        return $this->documentos()
+            ->where('tipo_documento', 'Final')
+            ->first(); // Obtiene el primer documento con tipo "Final"
+    }
+
+    // relacion uno a muchos con el DocuemntoProyecto
+    public function documentos()
+    {
+        return $this->hasMany(DocumentoProyecto::class, 'proyecto_id');
+    }
 
 
     // public function coordinador()
@@ -273,14 +293,15 @@ class Proyecto extends Model
     // relacion uno a muchos con el modelo FirmaProyecto
     public function firma_proyecto()
     {
-         return $this->morphMany(FirmaProyecto::class, 'firmable');
+        return $this->morphMany(FirmaProyecto::class, 'firmable');
     }
 
     public function firma_coodinador_proyecto()
     {
         return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
-            ->where('cargo_firma.nombre', 'Coordinador Proyecto');
+            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+            ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto');
     }
 
 
@@ -289,21 +310,24 @@ class Proyecto extends Model
     {
         return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
-            ->where('cargo_firma.nombre', 'Enlace Vinculacion');
+            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+            ->where('tipo_cargo_firma.nombre', 'Enlace Vinculacion');
     }
     // firma del decano
     public function firma_proyecto_decano()
     {
         return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
-            ->where('cargo_firma.nombre', 'Director centro');
+            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+            ->where('tipo_cargo_firma.nombre', 'Director centro');
     }
 
     public function firma_proyecto_jefe()
     {
         return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
-            ->where('cargo_firma.nombre', 'Jefe Departamento');
+            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+            ->where('tipo_cargo_firma.nombre', 'Jefe Departamento');
     }
 
     public function firma_proyecto_cargo()
@@ -329,7 +353,6 @@ class Proyecto extends Model
     public function actividades()
     {
         return $this->hasMany(Actividad::class, 'proyecto_id');
-
     }
 
     public function anexos()

@@ -122,7 +122,7 @@ class Empleado extends Model
     {
         return $this->hasMany(FirmaProyecto::class, 'empleado_id')
           //  ->where('estado_revision', '!=', 'Aprobado')
-            ->whereIn('id', $this->getIdValidos());
+           ->whereIn('id', $this->getIdValidos());
     }
 
     public function firmaProyectoAprobado()
@@ -155,7 +155,7 @@ class Empleado extends Model
         // Mapear las firmas de los proyectos
         
         $proyectos = $this->firmaProyecto->map(function ($firma) {
-            if ($firma->estado_actual->id == $firma->proyecto->estado->tipo_estado_id) {
+            if ($firma->cargo_firma->tipo_estado_id == $firma->proyecto->estado->tipo_estado_id) {
                 return $firma->id;
             }
         });

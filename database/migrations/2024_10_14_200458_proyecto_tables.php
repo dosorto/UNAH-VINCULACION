@@ -199,13 +199,20 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        Schema::create('tipo_cargo_firma', function (Blueprint $table) {
+            $table->id();
+            $table->string('nombre');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
         // tabla de cargos de firma 
         Schema::create('cargo_firma', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
-            $table->integer('cargo_firma_anterior_id')->nullable();
-            $table->foreignId('estado_proyecto_id')->nullable();//->constrained('estado_proyecto');
-            $table->foreignId('estado_actual_id')->nullable();//->constrained('estado_proyecto');
+            $table->string('descripcion')->nullable();
+            $table->foreignId('tipo_cargo_firma_id')->nullable()->constrained('tipo_cargo_firma');
+            $table->integer('tipo_estado_id')->nullable();
+            $table->integer('estado_siguiente_id')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });
@@ -216,7 +223,6 @@ return new class extends Migration
             $table->foreignId('empleado_id')->constrained('empleado');
             $table->foreignId('firma_id')->nullable();//->constrained('firma');
             $table->foreignId('sello_id')->nullable();
-            $table->foreignId('estado_actual_id')->nullable();//->constrained('estado_proyecto');
             $table->foreignId('cargo_firma_id')->constrained('cargo_firma');
             $table->enum('estado_revision', ['Pendiente', 'Rechazado', 'Aprobado'])->default('Pendiente');
             $table->string('hash')->nullable();

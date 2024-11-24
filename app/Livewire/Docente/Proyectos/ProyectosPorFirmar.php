@@ -52,7 +52,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                 Tables\Columns\TextColumn::make('proyecto.nombre_proyecto')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('cargo_firma.nombre')
+                Tables\Columns\TextColumn::make('cargo_firma.tipoCargoFirma.nombre')
                     ->badge()
                     ->color('info')
                     ->separator(',')
@@ -68,11 +68,14 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                     ->badge()
                     ->label('Estado Proyecto')
                     ->searchable(),
-
-                    Tables\Columns\TextColumn::make('created_at')
+                Tables\Columns\TextColumn::make('cargo_firma.descripcion')
                     ->badge()
-                    ->label('Time staps')
+                    ->color('info')
+                    ->separator(',')
+                    ->wrap()
+                    ->label('Tipo Firma')
                     ->searchable(),
+
             ])
             ->filters([
                 //
@@ -118,7 +121,8 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                                 // actualizar el estado del proyecto al siguiente estado :)
                                 $firma_proyecto->proyecto->estado_proyecto()->create([
                                     'empleado_id' => $this->docente->id,
-                                    'tipo_estado_id' => TipoEstado::where('nombre', 'Subsanacion')->first()->id,
+                                    'tipo_estado_id' => TipoEstado::where('nombre', 'Subsanacion')
+                                        ->first()->id,
                                     'fecha' => now(),
                                     'comentario' => $data['comentario'],
                                 ]);
@@ -154,12 +158,15 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                                     'sello_id' => $this->docente->sello->id,
                                 ]);
                                 // actualizar el estado del proyecto al siguiente estado :)
+
+
+
                                 $firma_proyecto->proyecto->estado_proyecto()->create([
-                                   
-                                    'empleado_id' => $this->docente->id,
-                                    'tipo_estado_id' => $firma_proyecto->estado_actual->estado_siguiente_id,
+
+                                    'empleado_id' => auth()->user()->empleado->id,
+                                    'tipo_estado_id' => $firma_proyecto->cargo_firma->estado_siguiente_id,
                                     'fecha' => now(),
-                                    'comentario' => 'Se ha aprobado la firma del proyecto',
+                                    'comentario' => 'Proyecto creado',
                                 ]);
 
                                 // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
