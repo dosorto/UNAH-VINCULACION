@@ -65,9 +65,8 @@ class EstadoProyecto extends Model
         parent::boot();
 
         static::saving(function ($estadoProyecto) {
-            dd($estadoProyecto->estadable_id, $estadoProyecto->estadable_type);
-            self::where('estadoable_id', $estadoProyecto->estadable_id)
-                ->where('estadoable_type', $estadoProyecto->estadable_type)
+            self::where('estadoable_id', $estadoProyecto->estadoable_id)
+                ->where('estadoable_type', $estadoProyecto->estadoable_type)
                 ->update(['es_actual' => false]);
         });
     }
