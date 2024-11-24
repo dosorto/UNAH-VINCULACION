@@ -147,7 +147,12 @@ class Proyecto extends Model
     //     return $this->belongsTo(Empleado::class, 'coordinador_id',);
     // }
 
-    public function od()
+    public function responsable_revision()
+    {
+        return $this->belongsTo(Empleado::class, 'responsable_revision_id',);
+    }
+
+    public function odss()
     {
         return $this->belongsTo(Od::class, 'od_id',);
     }
@@ -252,7 +257,6 @@ class Proyecto extends Model
     {
         return $this->belongsToMany(Od::class, 'proyecto_ods', 'proyecto_id', 'ods_id');
     }
-
 
     // relacion muchos a muchos con el modelo categoria
     public function categoria()
