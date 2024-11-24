@@ -17,22 +17,24 @@ class Actividad extends Model
     use SoftDeletes;
     use LogsActivity;
 
-    protected static $logAttributes = ['id', 'proyecto_id', 'descripcion', 'objetivos', 'horas', 'fecha_ejecucion'];
+    protected static $logAttributes = ['id', 'proyecto_id', 'descripcion', 'objetivos', 'horas', 'fecha_inicio', 'fecha_finalizacion', 'resultados'];
 
     protected static $logName = 'Actividad';
 
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-        ->logOnly(['id', 'proyecto_id', 'responsable_id', 'descripcion', 'fecha_ejecucion'])
+        ->logOnly(['id', 'proyecto_id', 'responsable_id', 'descripcion', 'fecha_inicio', 'fecha_finalizacion', 'objetivos', 'resultados', 'horas'])
         ->setDescriptionForEvent(fn (string $eventName) => "El registro {$this->descripcion} ha sido {$eventName}");
     }
     
     protected $fillable = [
         'id',
         'descripcion',
-        'fecha_ejecucion',
+        'fecha_inicio',
+        'fecha_finalizacion',
         'objetivos',
+        'resultados',
         'horas',
         'proyecto_id',
     ];

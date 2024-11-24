@@ -114,8 +114,8 @@ class Proyecto extends Model
         'nombre_proyecto',
         // 'coordinador_id',
         'modalidad_id',
-        'municipio_id',
-        'departamento_id',
+        // 'municipio_id',
+        // 'departamento_id',
         'ciudad_id',
         'aldea',
         'resumen',
@@ -147,7 +147,12 @@ class Proyecto extends Model
     //     return $this->belongsTo(Empleado::class, 'coordinador_id',);
     // }
 
-    public function od()
+    public function responsable_revision()
+    {
+        return $this->belongsTo(Empleado::class, 'responsable_revision_id',);
+    }
+
+    public function odss()
     {
         return $this->belongsTo(Od::class, 'od_id',);
     }
@@ -159,12 +164,12 @@ class Proyecto extends Model
 
     public function municipio()
     {
-        return $this->belongsTo(Municipio::class, 'municipio_id',);
+        return $this->belongsToMany(Municipio::class, 'proyecto_municipio', 'proyecto_id', 'municipio_id');
     }
 
     public function departamento()
     {
-        return $this->belongsTo(Departamento::class, 'departamento_id',);
+        return $this->belongsToMany(Departamento::class, 'proyecto_departamento', 'proyecto_id', 'departamento_id');
     }
 
     public function ciudad()
@@ -252,7 +257,6 @@ class Proyecto extends Model
     {
         return $this->belongsToMany(Od::class, 'proyecto_ods', 'proyecto_id', 'ods_id');
     }
-
 
     // relacion muchos a muchos con el modelo categoria
     public function categoria()
