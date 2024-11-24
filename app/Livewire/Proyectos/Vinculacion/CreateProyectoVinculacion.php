@@ -108,12 +108,13 @@ class CreateProyectoVinculacion extends Component implements HasForms
             'estado_revision' => 'Aprobado',
             'firma_id' => auth()->user()->empleado->firma->id,
             'sello_id' => auth()->user()->empleado->sello->id,
+            'estado_actual_id' => TipoEstado::where('nombre', 'Esperando Firma Coorinador Proyecto')->first()->id,
             'hash' => 'hash'
         ]);
 
         $record->estado_proyecto()->create([
             'empleado_id' => auth()->user()->empleado->id,
-            'tipo_estado_id' => $firmaP->cargo_firma->estadoProyectoSiguiente->id,
+            'tipo_estado_id' => $firmaP->estado_actual->estado_siguiente_id,
             'fecha' => now(),
             'comentario' => 'Proyecto creado',
         ]);
