@@ -314,7 +314,7 @@ class Proyecto extends Model
         return $this->hasOne(FirmaProyecto::class, 'proyecto_id');
     }
 
-    // relacion uno a muchos con el modelo estado_proyecto
+    // relacion uno a muchos con el modelo do_proyecto
     public function estado_proyecto()
     {
         return $this->morphMany(EstadoProyecto::class, 'estadoable');

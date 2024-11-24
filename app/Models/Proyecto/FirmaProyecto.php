@@ -44,7 +44,7 @@ class FirmaProyecto extends Model
 
     public function proyecto()
     {
-        return $this->belongsTo(Proyecto::class, 'proyecto_id');
+        return $this->belongsTo(Proyecto::class, 'firmable_id');
     }
 
     public function empleado()
