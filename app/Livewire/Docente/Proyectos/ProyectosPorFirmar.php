@@ -20,6 +20,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Support\Enums\MaxWidth;
 
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 
 class ProyectosPorFirmar extends Component implements HasForms, HasTable

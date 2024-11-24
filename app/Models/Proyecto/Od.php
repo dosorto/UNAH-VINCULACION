@@ -16,7 +16,7 @@ class Od extends Model
 
     protected static $logAttributes = ['id', 'nombre'];
 
-    protected static $logName = 'Od';
+    protected static $logName = 'Ods';
 
     public function getActivitylogOptions(): LogOptions
     {
