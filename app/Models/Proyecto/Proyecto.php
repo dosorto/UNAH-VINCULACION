@@ -290,6 +290,16 @@ class Proyecto extends Model
         return $this->estudiante_proyecto()->count();
     }
 
+    // 
+    public function getFirmabyCargo($cargo)
+    {
+        return $this->firma_proyecto()
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+            ->where('tipo_cargo_firma.nombre', $cargo)
+            ->first();
+    }
+
     // relacion uno a muchos con el modelo FirmaProyecto
     public function firma_proyecto()
     {

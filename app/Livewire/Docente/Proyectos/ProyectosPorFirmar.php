@@ -49,8 +49,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
             )
             ->columns([
                 //
-                Tables\Columns\TextColumn::make('proyecto.nombre_proyecto')
-                    ->searchable(),
+
 
                 Tables\Columns\TextColumn::make('cargo_firma.tipoCargoFirma.nombre')
                     ->badge()
@@ -64,10 +63,6 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                     ->label('Estado Firma')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('proyecto.estado.tipoestado.nombre')
-                    ->badge()
-                    ->label('Estado Proyecto')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('cargo_firma.descripcion')
                     ->badge()
                     ->color('info')
@@ -85,11 +80,17 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                 Action::make('first')
                     ->label('Ver')
                     ->modalContent(
-                        fn(FirmaProyecto $firmaProyecto): View =>
-                        view(
-                            'components.fichas.ficha-proyecto-vinculacion',
-                            ['proyecto' => $firmaProyecto->proyecto]
-                        )
+                        function (FirmaProyecto $firmaProyecto): View {
+
+                            $firmaProyecto->firmable_type == Proyecto::class ?
+                                $proyecto =  $firmaProyecto->proyecto :
+                                $proyecto =  $firmaProyecto->documento_proyecto->proyecto;
+
+                            return view(
+                                'components.fichas.ficha-proyecto-vinculacion',
+                                ['proyecto' => $proyecto]
+                            );
+                        }
                     )
                     ->stickyModalFooter()
                     ->stickyModalHeader()
@@ -110,29 +111,39 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
 
                             ->modalSubheading('¿Estás seguro de que deseas Rechazar la firma de este proyecto?')
                             ->action(function (FirmaProyecto $firma_proyecto,  array $data) {
+                                if ($firma_proyecto->firmable_type == Proyecto::class) {
+                                    $firma_proyecto->proyecto->firma_proyecto()->update([
+                                        'estado_revision' => 'Pendiente',
+                                        'firma_id' => null,
+                                        'sello_id' => null,
+                                    ]);
 
-                                // cambiar el estado de la firma a rechazado y agregar el comentario
-                                $firma_proyecto->proyecto->firma_proyecto()->update([
-                                    'estado_revision' => 'Pendiente',
-                                    'firma_id' => null,
-                                    'sello_id' => null,
-                                ]);
+                                    // actualizar el estado del proyecto al siguiente estado :)
+                                    $firma_proyecto->proyecto->estado_proyecto()->create([
+                                        'empleado_id' => $this->docente->id,
+                                        'tipo_estado_id' => TipoEstado::where('nombre', 'Subsanacion')
+                                            ->first()->id,
+                                        'fecha' => now(),
+                                        'comentario' => $data['comentario'],
+                                    ]);
+                                } else {
+                                    $firma_proyecto->documento_proyecto->firma_documento()->update([
+                                        'estado_revision' => 'Pendiente',
+                                        'firma_id' => null,
+                                        'sello_id' => null,
+                                    ]);
 
-                                // actualizar el estado del proyecto al siguiente estado :)
-                                $firma_proyecto->proyecto->estado_proyecto()->create([
-                                    'empleado_id' => $this->docente->id,
-                                    'tipo_estado_id' => TipoEstado::where('nombre', 'Subsanacion')
-                                        ->first()->id,
-                                    'fecha' => now(),
-                                    'comentario' => $data['comentario'],
-                                ]);
+                                    // actualizar el estado del proyecto al siguiente estado :)
+                                    $firma_proyecto->documento_proyecto->estado_documento()->create([
+                                        'empleado_id' => $this->docente->id,
+                                        'tipo_estado_id' => TipoEstado::where('nombre', 'Subsanacion')
+                                            ->first()->id,
+                                        'fecha' => now(),
+                                        'comentario' => $data['comentario'],
+                                    ]);
+                                }
 
 
-
-
-                                // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
-                                // ->where('empleado_id', $this->docente->id)
-                                // ->first());
                                 Notification::make()
                                     ->title('¡Realizado!')
                                     ->body('Proyecto Rechazado')
@@ -152,22 +163,39 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                             ->modalSubheading('¿Estás seguro de que deseas aprobar la firma de este proyecto?')
                             ->action(function (FirmaProyecto $firma_proyecto) {
                                 // dd($this->docente);
-                                $firma_proyecto->update([
-                                    'estado_revision' => 'Aprobado',
-                                    'firma_id' => $this->docente->firma->id,
-                                    'sello_id' => $this->docente->sello->id,
-                                ]);
-                                // actualizar el estado del proyecto al siguiente estado :)
+
+                                if ($firma_proyecto->firmable_type == Proyecto::class) {
+                                    $firma_proyecto->update([
+                                        'estado_revision' => 'Aprobado',
+                                        'firma_id' => $this->docente->firma->id,
+                                        'sello_id' => $this->docente->sello->id,
+                                    ]);
+                                    // actualizar el estado del proyecto al siguiente estado :)
 
 
 
-                                $firma_proyecto->proyecto->estado_proyecto()->create([
+                                    $firma_proyecto->proyecto->estado_proyecto()->create([
 
-                                    'empleado_id' => auth()->user()->empleado->id,
-                                    'tipo_estado_id' => $firma_proyecto->cargo_firma->estado_siguiente_id,
-                                    'fecha' => now(),
-                                    'comentario' => 'Proyecto creado',
-                                ]);
+                                        'empleado_id' => auth()->user()->empleado->id,
+                                        'tipo_estado_id' => $firma_proyecto->cargo_firma->estado_siguiente_id,
+                                        'fecha' => now(),
+                                        'comentario' => 'Proyecto creado',
+                                    ]);
+                                } else {
+                                    $firma_proyecto->update([
+                                        'estado_revision' => 'Aprobado',
+                                        'firma_id' => $this->docente->firma->id,
+                                        'sello_id' => $this->docente->sello->id,
+                                    ]);
+
+                                    // actualizar el estado del proyecto al siguiente estado :)
+                                    $firma_proyecto->documento_proyecto->estado_documento()->create([
+                                        'empleado_id' => $this->docente->id,
+                                        'tipo_estado_id' => $firma_proyecto->cargo_firma->estado_siguiente_id,
+                                        'fecha' => now(),
+                                        'comentario' => 'Proyecto creado',
+                                    ]);
+                                }
 
                                 // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                                 // ->where('empleado_id', $this->docente->id)

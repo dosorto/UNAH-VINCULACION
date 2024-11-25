@@ -93,24 +93,6 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         // ->stickyModalHeader()
                         ->modalWidth(MaxWidth::SevenExtraLarge)
                         ->extraModalFooterActions([
-                            Action::make('second')
-                                ->label('Ver documentos')
-                                ->modalContent(
-                                    fn(Proyecto $proyecto): View =>
-                                    view(
-                                        'app.docente.proyectos.ver-documentos',
-                                        ['proyecto' => $proyecto]
-                                    )
-                                )
-                                ->icon('heroicon-o-document-arrow-up') // Icono para "Rechazar"
-                                ->color('success')
-                                ->modalHeading('Documentos del Proyecto')
-                                ->modalSubheading('A continuación se muestran los documentos del proyecto y su estado')
-                                ->visible(function (Proyecto $proyecto) {
-                                    return $proyecto->estado->tipoestado->nombre == 'En curso';
-                                })
-                                ->modalSubmitAction(false)
-                                ->modalWidth(MaxWidth::SevenExtraLarge),
                             Action::make('third')
                                 ->label('Agregar Documento Intermedio')
                                 ->form([
@@ -131,74 +113,59 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                         ->deletable(false)
                                 ])
                                 ->action(function (Proyecto $proyecto, array $data) {
-                                    $revisoresIntermedio = collect(config('nexo.revisores_documento_intermedio'));
-                                    // convertir el arreglo a colec
-                                    // crear el documento
-                                    $documento = $proyecto->documentos()->create(
-                                        [
-                                            'tipo_documento' => $data['documentos'][0]['tipo_documento'],
-                                            'documento_url' => $data['documentos'][0]['documento_url'],
-                                        ]
-                                    );
-                                    $revisoresIntermedio->each(function ($revisor) use ($documento, $proyecto) {
-                                        $firmaProyecto = $proyecto->firma_proyecto()
-                                            ->where('cargo_firma_id', CargoFirma::where('nombre', $revisor)
-                                                ->first()
-                                                ->id)
-                                            ->first();
-                                        $documento->firma_documento()->create([
-                                            'empleado_id' => $firmaProyecto->empleado_id,
-                                            'cargo_firma_id' => CargoFirma::where('nombre', $revisor)->first()->id,
+                                    // eliminar las firmas de los documentos intermedios anteriores
+                                    $proyecto->documentos()
+                                        ->where('tipo_documento', 'Intermedio')
+                                        ->each(function ($documento) {
+                                            $documento->firma_documento()->delete();
+                                        });
+
+                                    // eliminar los estados de los documentos intermedios anteriores
+                                    $proyecto->documentos()
+                                        ->where('tipo_documento', 'Intermedio')
+                                        ->each(function ($documento) {
+                                            $documento->estado_documento()->delete();
+                                        });
+                                    // eliminar todos los documentos intermedios anteriores
+                                    $proyecto->documentos()
+                                        ->where('tipo_documento', 'Intermedio')
+                                        ->delete();
+
+                                    // crear el documento intermedio 
+                                    $documentoIntermedio = $proyecto->documentos()->create([
+                                        'tipo_documento' => $data['documentos'][0]['tipo_documento'],
+                                        'documento_url' => $data['documentos'][0]['documento_url'],
+                                    ]);
+                                    $cargosFirmas = CargoFirma::where('descripcion', 'Documento_intermedio')
+                                        ->get();
+                                    $cargosFirmas->each(function ($cargo) use ($proyecto, $documentoIntermedio) {
+                                        $documentoIntermedio->firma_documento()->create([
+                                            'empleado_id' => $proyecto->getFirmabyCargo($cargo->tipoCargoFirma->nombre)->empleado->id,
+                                            'cargo_firma_id' => $cargo->id,
                                             'estado_revision' => 'Pendiente',
-                                            'estado_actual_id' => TipoEstado::where('nombre', 'Esperando Firma ' . $revisor)->first()->id,
                                             'hash' => 'hash'
                                         ]);
                                     });
-
-                                    /*
-                                    $cocumento = $proyecto->documentos()->create(
-                                        [
-                                            'tipo_documento' => $data['documentos'][0]['tipo_documento'],
-                                            'documento_url' => $data['documentos'][0]['documento_url'],
-                                        ]
-                                    );
-                                    $firmaDocumento  = $cocumento->firma_documento()->create([
+                                    $documentoIntermedio->estado_documento()->create([
                                         'empleado_id' => auth()->user()->empleado->id,
-                                        'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Vinculacion')->first()->id,
-                                        'estado_revision' => 'Aprobado',
-                                        'firma_id' => auth()->user()->empleado->firma->id,
-                                        'sello_id' => auth()->user()->empleado->sello->id,
-                                        'estado_actual_id' => TipoEstado::where('nombre', 'Esperando Firma Coordinador Vinculacion')->first()->id,
-                                        'hash' => 'hash'
-                                    ]);
-
-                                    $cocumento->estado_documento()->create([
-                                        'empleado_id' => auth()->user()->empleado->id,
-                                        'tipo_estado_id' => $firmaDocumento->estado_actual->estado_siguiente_id,
+                                        'tipo_estado_id' => TipoEstado::where('nombre', 'Enlace Vinculacion')->first()->id,
                                         'fecha' => now(),
                                         'comentario' => 'Documento creado',
                                     ]);
-                                    */
                                 })
                                 ->icon('heroicon-o-document-arrow-up') // Icono para "Rechazar"
                                 ->color('success')
                                 ->modalHeading('Documentos del Proyecto')
                                 ->modalSubheading('A continuación se muestran los documentos del proyecto y su estado')
                                 ->visible(function (Proyecto $proyecto) {
-                                    return $proyecto->estado->tipoestado->nombre == 'En curso';
+                                    return ($proyecto->estado->tipoestado->nombre == 'En curso' &&
+                                        is_null($proyecto->documento_intermedio)) ||
+                                        $proyecto->documento_intermedio?->estado?->tipoestado?->nombre == 'Subsanacion'; 
                                 })
                                 ->modalWidth(MaxWidth::SevenExtraLarge),
 
                         ])
                         ->modalSubmitAction(false),
-                    Action::make('edit')
-                        ->label('Editar/Subsanar')
-                        ->url(fn(Proyecto $proyecto) => route('editarProyectoVinculacion', $proyecto))
-                        ->visible(function (Proyecto $proyecto) {
-                            return $proyecto->estado->tipoestado->nombre == 'Subsanacion'
-                                || $proyecto->estado->tipoestado->nombre == 'Borrador';
-                        }),
-
                 ])
                     ->button()
                     ->color('primary')

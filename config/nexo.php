@@ -16,6 +16,8 @@ return [
         'Director centro',
         'En revision',
 
+        
+
         'Subsanacion',
         'En curso',
 
@@ -24,6 +26,8 @@ return [
         'Inscrito',
         'Finalizado',
         'Cancelado',
+
+        'Borrador',
     ],
 
 

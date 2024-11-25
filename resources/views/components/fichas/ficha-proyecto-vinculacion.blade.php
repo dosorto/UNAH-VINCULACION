@@ -13,10 +13,11 @@
     @if ($proyecto->documento_intermedio && $proyecto->documento_intermedio->documento_url != null)
         <x-filament::section collapsible collapsed persist-collapsed id="user-details">
             <x-slot name="heading">
-                Documento Intermedio
+                Documento Intermedio, Estado: {{$proyecto->documento_intermedio->estado->tipoestado->nombre}}
             </x-slot>
-
-            <h1>Visualizador de PDF</h1>
+            <x-slot name="description">
+                {{$proyecto->documento_intermedio->estado->comentario}}
+            </x-slot>
             <embed src="{{ asset('storage/' . $proyecto->documento_intermedio->documento_url) 
                 
                 }}" type="application/pdf" width="100%"

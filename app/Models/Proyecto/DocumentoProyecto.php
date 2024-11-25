@@ -38,4 +38,11 @@ class DocumentoProyecto extends Model
     {
         return $this->belongsTo(Proyecto::class, 'proyecto_id', 'id');
     }
+
+    public function getEstadoAttribute()
+    {
+        return $this->estado_documento()
+            ->where('es_actual', true)
+            ->first();
+    }
 }
