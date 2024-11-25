@@ -15,6 +15,7 @@ return new class extends Migration
         Schema::create('tipo_estado', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
+            $table->bigInteger('estado_siguiente_id')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });
@@ -22,12 +23,14 @@ return new class extends Migration
         // estado del proyecto por empleado usando fecha
         Schema::create('estado_proyecto', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('proyecto_id')->constrained('proyecto');
+            
             $table->foreignId('empleado_id')->constrained('empleado');
             $table->foreignId('tipo_estado_id')->constrained('tipo_estado');
             $table->date('fecha');
             $table->text('comentario')->nullable();
             $table->boolean('es_actual')->default(true);
+
+            $table->morphs('estadoable');
             $table->softDeletes();
             $table->timestamps();
         });

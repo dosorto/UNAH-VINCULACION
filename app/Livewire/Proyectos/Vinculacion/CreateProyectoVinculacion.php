@@ -22,6 +22,10 @@ use App\Livewire\Proyectos\Vinculacion\Secciones\CuartaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\QuintaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\SextaParte;
 
+// Para enviar Emails
+use App\Mail\Correos\CorreoParticipacion;
+use Illuminate\Support\Facades\Mail;
+
 class CreateProyectoVinculacion extends Component implements HasForms
 {
     use InteractsWithForms;
@@ -108,15 +112,27 @@ class CreateProyectoVinculacion extends Component implements HasForms
             'estado_revision' => 'Aprobado',
             'firma_id' => auth()->user()->empleado->firma->id,
             'sello_id' => auth()->user()->empleado->sello->id,
+            'estado_actual_id' => TipoEstado::where('nombre', 'Esperando Firma Coorinador Proyecto')->first()->id,
             'hash' => 'hash'
         ]);
 
         $record->estado_proyecto()->create([
             'empleado_id' => auth()->user()->empleado->id,
-            'tipo_estado_id' => $firmaP->cargo_firma->estadoProyectoSiguiente->id,
+            'tipo_estado_id' => $firmaP->estado_actual->estado_siguiente_id,
             'fecha' => now(),
             'comentario' => 'Proyecto creado',
         ]);
+
+        foreach ($record->integrantes as $empleado) {
+            // Accede al usuario de cada empleado y a su correo
+            $usuario = $empleado->user;  // Asumiendo que cada empleado tiene un usuario relacionado
+            if ($usuario && $usuario->email) {
+                // Enviar el correo al email del usuario
+                Mail::to($usuario->email)->send(new CorreoParticipacion());
+            }
+        }
+        // Mail::to('ernesto.moncada@unah.hn')->send(new CorreoParticipacion());
+
 
         Notification::make()
             ->title('¡Éxito!')

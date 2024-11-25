@@ -273,12 +273,12 @@ class Proyecto extends Model
     // relacion uno a muchos con el modelo FirmaProyecto
     public function firma_proyecto()
     {
-        return $this->hasMany(FirmaProyecto::class, 'proyecto_id');
+         return $this->morphMany(FirmaProyecto::class, 'firmable');
     }
 
     public function firma_coodinador_proyecto()
     {
-        return $this->hasMany(FirmaProyecto::class, 'proyecto_id')
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
             ->where('cargo_firma.nombre', 'Coordinador Proyecto');
     }
@@ -287,22 +287,21 @@ class Proyecto extends Model
     // firma_enlace_vinculacion
     public function firma_proyecto_enlace()
     {
-        return $this->hasMany(FirmaProyecto::class, 'proyecto_id')
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
             ->where('cargo_firma.nombre', 'Enlace Vinculacion');
     }
-
     // firma del decano
     public function firma_proyecto_decano()
     {
-        return $this->hasMany(FirmaProyecto::class, 'proyecto_id')
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
             ->where('cargo_firma.nombre', 'Director centro');
     }
 
     public function firma_proyecto_jefe()
     {
-        return $this->hasMany(FirmaProyecto::class, 'proyecto_id')
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
             ->where('cargo_firma.nombre', 'Jefe Departamento');
     }
@@ -319,10 +318,10 @@ class Proyecto extends Model
         return $this->hasOne(FirmaProyecto::class, 'proyecto_id');
     }
 
-    // relacion uno a muchos con el modelo estado_proyecto
+    // relacion uno a muchos con el modelo do_proyecto
     public function estado_proyecto()
     {
-        return $this->hasMany(EstadoProyecto::class, 'proyecto_id');
+        return $this->morphMany(EstadoProyecto::class, 'estadoable');
     }
 
 

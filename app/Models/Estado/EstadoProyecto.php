@@ -16,13 +16,22 @@ class EstadoProyecto extends Model
 
     protected static $logAttributes = [
         'id',
-        'proyecto_id',
         'empleado_id',
         'tipo_estado_id',
         'fecha',
         'comentario',
-        'es_actual'
+        'es_actual',
+        'estadoable_id',
+        'estadoable_type'
     ];
+
+    // relacion 
+
+    public function estadable()
+    {
+        return $this->morphTo();
+    }
+
 
     protected static $logName = 'EstadoProyecto';
 
@@ -56,7 +65,8 @@ class EstadoProyecto extends Model
         parent::boot();
 
         static::saving(function ($estadoProyecto) {
-            self::where('proyecto_id', $estadoProyecto->proyecto_id)
+            self::where('estadoable_id', $estadoProyecto->estadoable_id)
+                ->where('estadoable_type', $estadoProyecto->estadoable_type)
                 ->update(['es_actual' => false]);
         });
     }

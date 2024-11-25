@@ -17,12 +17,6 @@ class EstadoProyectoSeeder extends Seeder
     public function run(): void
     {
         //
-        EstadoProyecto::insert([
-            'proyecto_id' => 1,
-            'empleado_id' => 1,
-            'tipo_estado_id' => 1,
-            'fecha' => '2024-10-10',
-            'comentario' => 'comentario seeder',
-        ]);
+       
     }
 }
