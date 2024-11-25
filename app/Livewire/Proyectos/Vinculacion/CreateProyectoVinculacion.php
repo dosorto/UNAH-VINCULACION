@@ -22,6 +22,10 @@ use App\Livewire\Proyectos\Vinculacion\Secciones\CuartaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\QuintaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\SextaParte;
 
+// Para enviar Emails
+use App\Mail\Correos\CorreoParticipacion;
+use Illuminate\Support\Facades\Mail;
+
 class CreateProyectoVinculacion extends Component implements HasForms
 {
     use InteractsWithForms;
@@ -118,6 +122,17 @@ class CreateProyectoVinculacion extends Component implements HasForms
             'fecha' => now(),
             'comentario' => 'Proyecto creado',
         ]);
+
+        foreach ($record->integrantes as $empleado) {
+            // Accede al usuario de cada empleado y a su correo
+            $usuario = $empleado->user;  // Asumiendo que cada empleado tiene un usuario relacionado
+            if ($usuario && $usuario->email) {
+                // Enviar el correo al email del usuario
+                Mail::to($usuario->email)->send(new CorreoParticipacion());
+            }
+        }
+        // Mail::to('ernesto.moncada@unah.hn')->send(new CorreoParticipacion());
+
 
         Notification::make()
             ->title('¡Éxito!')
