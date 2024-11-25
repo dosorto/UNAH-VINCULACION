@@ -350,38 +350,50 @@
                     <tr>
                         <th class="header" colspan="19">9. En caso de proyectos presenciales, indicar el lugar donde se ejecuta:  </th>
                     </tr>
-                    <tr>
-                        <td class="sub-header" colspan="2">Departamento</td>
-                        <td class="full-width" colspan="11" rowspan="1">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
-                            value="{{ $proyecto->departamento->nombre }}" disabled>
-                        </td>
-                        <td class="sub-header" colspan="1">Ciudad:</td>
-                        <td class="full-width" colspan="5">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
-                            value="{{ $proyecto->ciudad->nombre }}" disabled>
-                        </td>
-                    <tr>
-                        <td class="sub-header" colspan="2">Municipio:</td>
-                        <td class="full-width" colspan="11">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
-                            value="{{ $proyecto->municipio->nombre }}" disabled>
-                        </td>
-                        <td class="sub-header" colspan="1">Aldea/caserío/<br>barrio/colonia:</td>
-                        <td class="full-width" colspan="5">
-                            <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
-                            value="{{ $proyecto->aldea }}" disabled>
-                        </td>
-                    </tr>
+                    @if (!empty($proyecto->departamento->nombre)) || !empty($proyecto->ciudad->nombre)
+                        <tr>
+                            @if (!empty($proyecto->departamento->nombre))
+                                <td class="sub-header" colspan="2">Departamento</td>
+                                <td class="full-width" colspan="11" rowspan="1">
+                                    <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                                        value="{{$proyecto->departamento->nombre}}" disabled>
+                                </td>
+                            @endif
+                            @if (!empty($proyecto->ciudad->nombre))
+                                <td class="sub-header" colspan="1">Ciudad:</td>
+                                <td class="full-width" colspan="5">
+                                    <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                                        value="{{$proyecto->ciudad->nombre}}" disabled>
+                                </td>
+                            @endif
+                        </tr>
+                    @endif
+
+                    @if (!empty($proyecto->municipio->nombre) || !empty($proyecto->aldea))
+                        <tr>
+                            @if (!empty($proyecto->municipio->nombre))
+                                <td class="sub-header" colspan="2">Municipio:</td>
+                                <td class="full-width" colspan="11">
+                                    <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                                        value="{{$proyecto->municipio->nombre}}" disabled>
+                                </td>
+                            @endif
+
+                            @if (!empty($proyecto->aldea))
+                                <td class="sub-header" colspan="1">Aldea/caserío/<br>barrio/colonia:</td>
+                                <td class="full-width" colspan="5">
+                                    <input type="text" class="input-field" placeholder="Ingrese el nombre de la entidad"
+                                        value="{{$proyecto->aldea}}" disabled>
+                                </td>
+                            @endif
+                        </tr>
+                    @endif
                     </tr>
                     <tr>
                         <th class="header" colspan="19">10. Descripción de actividades del proyecto (Descripción de
-                            todas
-                            las actividades enmarcadas en el proyecto, las cuales pueden ser, entre otras, la
-                            negociación inicial,
-                            la organización de los equipos de trabajo, la planificación, el desarrollo de actividades de
-                            capacitación y
-                            fortalecimiento, el seguimiento, la evaluación, la sistematización y la divulgación). </th>
+                            todas las actividades enmarcadas en el proyecto, las cuales pueden ser, entre otras, la
+                            negociación inicial,la organización de los equipos de trabajo, la planificación, el desarrollo de actividades de
+                            capacitación y fortalecimiento, el seguimiento, la evaluación, la sistematización y la divulgación). </th>
                     </tr>
                     <tr>
                         <td class="sub-header3" colspan="19"> Cronogramama de actividades</td>
@@ -508,12 +520,10 @@
                     </tr>
                         <tr>
                             <td class="full-width" colspan="14"><input type="text" class="input-field"
-                                placeholder="Ingrese el nombre de la entidad" 
-                                value="{{ $proyecto->superavit->inversion }}" disabled>
+                                placeholder="Ingrese el nombre de la entidad">
                             </td>
                             <td class="full-width " colspan="5"><input type="text" class="input-field"
-                                placeholder="Ingrese el nombre de la entidad" 
-                                value="{{ $proyecto->superavit->monto }}" disabled>
+                                placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
                         <tr>
@@ -534,77 +544,72 @@
                 <div class="section-title">IV. FIRMAS. </div>
                 <table class="table_datos4">
                     <tr>
-                        <td class="sub-header" colspan="2">Responsable de la contraparte</td>
                         <td class="sub-header" colspan="2">Coordinador del proyecto por la UNAH</td>
+                        <td class="sub-header" colspan="2">Jeje del Departamento</td>
                     </tr>
                     <tr>
-                        <td class="full-width " colspan="1">Nombre:</td>
-                        <td class="full-width " colspan="1">
-                            <input type="text" class="input-field"
-                                placeholder="Ingrese el nombre del responsable">
-                        </td>
                         <td class="full-width" colspan="1"> Nombre:</td>
                         <td class="full-width" colspan="1">
                             <input type="text" class="input-field"
-                                placeholder="Ingrese el nombre del coordinador">
+                                placeholder="Ingrese el nombre del coordinador"
+                                value="{{ optional(optional($proyecto->firma_coodinador_proyecto()->first())->empleado)->nombre_completo }}" disabled>
+                        </td>
+                        <td class="full-width " colspan="1">Nombre:</td>
+                        <td class="full-width " colspan="1">
+                            <input type="text" class="input-field"
+                                   value="{{ optional(optional($proyecto->firma_proyecto_jefe()->first())->empleado)->nombre_completo }}" disabled>    
                         </td>
                     </tr>
                     <tr>
-                        <td class="full-width" colspan="2" style="height: 200px; width: 200px;"></td>
-                        <td class="full-width" colspan="2" style="height: 200px; width: 200px;"></td>
+                        <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
+                            <img src="{{ optional(optional($proyecto->firma_coodinador_proyecto()->first())->sello)->ruta_storage }}" alt="" width="200px">
+                            <img src="{{ optional(optional($proyecto->firma_coodinador_proyecto()->first())->firma)->ruta_storage }}" alt="" width="200px">
+                        </td>
+                        <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
+                            <img src="{{ optional(optional($proyecto->firma_proyecto_jefe()->first())->sello)->ruta_storage }}" alt="" width="200px">
+                            <img src="{{ optional(optional($proyecto->firma_proyecto_jefe()->first())->firma)->ruta_storage }}" alt="" width="200px">
+                        </td>
                     </tr>
 
                     <tr>
-                        <th class="header" colspan="2">Firma y sello de la contra</th>
                         <th class="header" colspan="2">Firma del profesor/a responsable del proyecto</th>
+                        <th class="header" colspan="2">Firma y sello del Jefe/a del Departamento</th>
                     </tr>
                 </table>
                 <table class="table_datos4">
                     <tr>
-                        <td class="sub-header" colspan="2">Jeje del Departamento</td>
                         <td class="sub-header" colspan="2">Coordinador(a) del Comité de Vinculación <br> de la
                             facultad o Campus Universitario</td>
+                        <td class="sub-header" colspan="2">Decano(a) o Director(a) del Campus Universitario</td>    
                     </tr>
                     <tr>
-                        <td class="full-width " colspan="1">Nombre:</td>
-                        <td class="full-width " colspan="1">
-                            <input type="text" class="input-field"
-                                placeholder="Ingrese el nombre del responsable">
-                        </td>
                         <td class="full-width" colspan="1"> Nombre:</td>
                         <td class="full-width" colspan="1">
                             <input type="text" class="input-field"
-                                placeholder="Ingrese el nombre del coordinador">
+                                   value="{{ optional(optional($proyecto->firma_proyecto_enlace()->first())->empleado)->nombre_completo }}" disabled>    
+                        </td>
+                        <td class="full-width" colspan="1">Nombre:</td>
+                        <td class="full-width" colspan="1">
+                            <input type="text" class="input-field"
+                                placeholder="Ingrese el nombre del responsable"
+                                value="{{ optional(optional($proyecto->firma_proyecto_decano()->first())->empleado)->nombre_completo }}" disabled>
                         </td>
                     </tr>
                     <tr>
-                        <td class="full-width" colspan="2" style="height: 200px; width: 200px;"></td>
-                        <td class="full-width" colspan="2" style="height: 200px; width: 200px;"></td>
+                        <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
+                            <img src="{{ optional(optional($proyecto->firma_proyecto_enlace()->first())->sello)->ruta_storage }}" alt="" width="200px">
+                            <img src="{{ optional(optional($proyecto->firma_proyecto_enlace()->first())->firma)->ruta_storage }}" alt="" width="200px">
+                        </td>
+                        <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
+                            <img src="{{ optional(optional($proyecto->firma_proyecto_decano()->first())->sello)->ruta_storage }}" alt="" width="200px">
+                            <img src="{{ optional(optional($proyecto->firma_proyecto_decano()->first())->firma)->ruta_storage }}" alt="" width="200px">
+                        </td>
                     </tr>
 
                     <tr>
-                        <th class="header" colspan="2">Firma y sello del Jefe/a del Departamento</th>
                         <th class="header" colspan="2">Firma del Coordinador(a) del Comité de Vinculación <br> de
                             la Facultad o Campus Universitario</th>
-                    </tr>
-                </table>
-                <table class="table_datos4" style="width: 450px; margin: 0 auto;">
-                    <tr>
-                        <td class="sub-header" colspan="2">Decano(a) o Director(a) del Campus Universitario</td>
-                    </tr>
-                    <tr>
-                        <td class="full-width " colspan="1">Nombre:</td>
-                        <td class="full-width " colspan="1">
-                            <input type="text" class="input-field"
-                                placeholder="Ingrese el nombre del responsable">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="full-width" colspan="2" style="height: 200px; width: 200px;"></td>
-                    </tr>
-
-                    <tr>
-                        <th class="header" colspan="2">Firma y sello del Decano(a) o Director(a)</th>
+                            <th class="header" colspan="2">Firma y sello del Decano(a) o Director(a)</th>
                     </tr>
                 </table>
             </div>
@@ -700,8 +705,6 @@
                 <div class="header-box"> <input type="text" class="input-field"
                         placeholder="Ingrese No. dictamen de Proyecto">
                     <p class="header-text">No. dictamen de Proyecto</p>
-
-
                 </div>
             </div>
         </div>

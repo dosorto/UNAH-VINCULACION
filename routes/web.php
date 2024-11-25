@@ -34,6 +34,8 @@ use App\Livewire\Docente\Proyectos\SolicitudProyectosDocenteList;
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
 use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController;
 
+use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
+
 // Rutas para redireccionar a los usuario autenticados
 Route::middleware(['guest'])->group(function () {
     // rutas para autenticación con Microsoft
@@ -46,7 +48,7 @@ Route::middleware(['guest'])->group(function () {
     Route::get('/', function () {
         return redirect(route('login'));
     })
-    ->middleware('guest');;
+        ->middleware('guest');;
     Route::get('/login', Login::class)
         ->name('login')
         ->middleware('guest');
@@ -157,6 +159,11 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('crearProyectoVinculacion', CreateProyectoVinculacion::class)
             ->name('crearProyectoVinculacion')
+            ->middleware('permission:docente-crear-proyecto|proyectos-admin-proyectos');
+
+        // editar un proyecto ya sea en borrador o en subsanacion
+        Route::get('editarProyectoVinculacion/{proyecto}', EditProyectoVinculacionForm::class)
+            ->name('editarProyectoVinculacion')
             ->middleware('permission:docente-crear-proyecto|proyectos-admin-proyectos');
 
         Route::get('listarProyectosVinculacion', ListProyectosVinculacion::class)

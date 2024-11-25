@@ -87,7 +87,7 @@ class EditPerfil extends Component implements HasForms, HasActions
                                         FileUpload::make('ruta_storage')
                                             ->label('Firma')
                                             ->disk('public')
-                                            ->directory('firmas_sellos')
+                                            ->directory('images/firmas')
                                             ->image()
                                             ->required(),
                                         Hidden::make('tipo')
@@ -109,7 +109,7 @@ class EditPerfil extends Component implements HasForms, HasActions
                                         FileUpload::make('ruta_storage')
                                             ->label('')
                                             ->disk('public')
-                                            ->directory('firmas_sellos')
+                                            ->directory('images/firmas')
                                             ->image()
                                             ->disabled()
                                             ->nullable(),
@@ -136,7 +136,7 @@ class EditPerfil extends Component implements HasForms, HasActions
                                         FileUpload::make('ruta_storage')
                                             ->label('Firma')
                                             ->disk('public')
-                                            ->directory('firmas_sellos')
+                                            ->directory('images/firmas')
                                             ->image()
                                             ->required(),
                                         Hidden::make('tipo')
@@ -158,7 +158,7 @@ class EditPerfil extends Component implements HasForms, HasActions
                                         FileUpload::make('ruta_storage')
                                             ->label('')
                                             ->disk('public')
-                                            ->directory('firmas_sellos')
+                                            ->directory('images/firmas')
                                             ->image()
                                             ->disabled()
                                             ->nullable(),

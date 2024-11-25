@@ -2,20 +2,22 @@
 
 namespace App\Models\Personal;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
-
 use App\Models\User;
-use App\Models\UnidadAcademica\Campus;
-use App\Models\UnidadAcademica\DepartamentoAcademico;
-
-use App\Models\Personal\CategoriaEmpleado;
-use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\Actividad;
+use Spatie\Activitylog\LogOptions;
 use App\Models\Proyecto\FirmaProyecto;
+
+use App\Models\UnidadAcademica\Campus;
+use Illuminate\Database\Eloquent\Model;
+use App\Models\Personal\CategoriaEmpleado;
+
+use App\Models\Proyecto\EmpleadoActividad;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\UnidadAcademica\FacultadCentro;
+use App\Models\UnidadAcademica\DepartamentoAcademico;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Empleado extends Model
 {
@@ -119,7 +121,7 @@ class Empleado extends Model
     public function firmaProyectoPendientes()
     {
         return $this->hasMany(FirmaProyecto::class, 'empleado_id')
-            ->where('estado_revision', '!=', 'Aprobado')
+          //  ->where('estado_revision', '!=', 'Aprobado')
             ->whereIn('id', $this->getIdValidos());
     }
 
@@ -141,36 +143,21 @@ class Empleado extends Model
     }
 
 
+    // relacion uno a muchos con EmpleadoActividad
+    public function actividades()
+    {
+        return $this->belongsToMany(Actividad::class, 'actividad_empleado');
+    }
+
 
     public function getIdValidos()
-    {
-        $array = [];
+    {  
         // Mapear las firmas de los proyectos
-        $proyectos = $this->firmaProyecto->map(function ($firma) use (&$array) {
-            // Obtener el cargo de la firma
-            $cargoActual = $firma->cargo_firma;
-
-            // Si el cargo actual es el primero (sin cargo anterior)
-            if (is_null($cargoActual->cargo_firma_anterior_id) && $firma->estado_revision !== 'Aprobado') {
-                return $firma->id; // Retornar el ID del cargo actual
+        
+        $proyectos = $this->firmaProyecto->map(function ($firma) {
+            if ($firma->estado_actual->id == $firma->proyecto->estado->tipo_estado_id) {
+                return $firma->id;
             }
-
-            // Obtener el ID del cargo anterior
-            $cargoAnteriorId = $cargoActual->cargo_firma_anterior_id;
-
-            // Obtener la firma del cargo anterior en el proyecto
-            $firmaCargoAnterior = $firma->proyecto->firma_proyecto()
-                ->where('estado_revision', 'Aprobado')
-                ->where('cargo_firma_id', $cargoAnteriorId)
-                ->first();
-
-            // Si no existe la firma del cargo anterior, no se puede validar el cargo actual
-            if (is_null($firmaCargoAnterior)) {
-                return null;
-            }
-
-            // Retornar el ID del cargo actual
-            return $firma->id;
         });
 
         return $proyectos;

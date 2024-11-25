@@ -2,23 +2,38 @@
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
-use App\Models\Proyecto\Proyecto;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
 use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
-use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Enums\FiltersLayout;
-use Filament\Forms\Components\Select;
-use App\Models\UnidadAcademica\FacultadCentro;
-use App\Models\UnidadAcademica\DepartamentoAcademico;
-use Filament\Tables\Filters\Filter;
 use Filament\Forms\Get;
+use Livewire\Component;
+use Filament\Tables\Table;
+use App\Models\Estado\TipoEstado;
+use App\Models\Proyecto\Proyecto;
+use Filament\Tables\Actions\Action;
+use Filament\Tables\Filters\Filter;
+use Illuminate\Contracts\View\View;
+use Filament\Support\Enums\MaxWidth;
+use Illuminate\Support\Facades\Auth;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
+use App\Models\Proyecto\FirmaProyecto;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Contracts\HasTable;
+
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Forms\Components\DatePicker;
+
+use Filament\Tables\Filters\SelectFilter;
+use Illuminate\Database\Eloquent\Builder;
+use App\Models\UnidadAcademica\FacultadCentro;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Tables\Concerns\InteractsWithTable;
+use App\Models\UnidadAcademica\DepartamentoAcademico;
+use Filament\Forms\Components\Section;
+
 
 class ListProyectosSolicitado extends Component implements HasForms, HasTable
 {
@@ -27,65 +42,173 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
 
     public function table(Table $table): Table
     {
+
+
         return $table
             ->query(
                 Proyecto::query()
-                    ->join('estado_proyecto', 'estado_proyecto.proyecto_id', '=', 'proyecto.id')
-                    ->join('tipo_estado', 'tipo_estado.id', '=', 'estado_proyecto.tipo_estado_id')
-                    ->select(
-                        'proyecto.id AS proyecto_id',
-                        'proyecto.nombre_proyecto',
-                        'proyecto.fecha_inicio',
-                        'proyecto.fecha_finalizacion',
-                        'proyecto.objetivos_especificos',
-                        'tipo_estado.nombre AS nombre_estado'
-                    )
-                    ->where('tipo_estado.nombre', 'En revision')
-                    ->distinct()
+                    ->whereIn('id', function ($query) {
+                        $query->select('estadoable_id')
+                            ->from('estado_proyecto')
+                            ->where('estadoable_type', Proyecto::class) // Asegúrate de filtrar por el modelo `Proyecto`
+                            ->where('tipo_estado_id', TipoEstado::where('nombre', 'En revision')->first()->id)
+                            ->where('es_actual', true);
+                    })
+
             )
             ->columns([
-                Tables\Columns\TextColumn::make('proyecto_id')
-                    ->label('ID Proyecto')
-                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('nombre_proyecto')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('fecha_inicio')
-                    ->date()
-                    ->sortable(),
 
-                Tables\Columns\TextColumn::make('fecha_finalizacion')
-                    ->date()
-                    ->sortable(),
 
-                Tables\Columns\TextColumn::make('objetivos_especificos')
+                Tables\Columns\TextColumn::make('estado.tipoestado.nombre')
+                    ->badge()
+                    ->label('Estado Proyecto')
                     ->searchable(),
-
-                Tables\Columns\TextColumn::make('nombre_estado')
-                    ->label('Estado')
-                    ->searchable()
-                    ->color('success') // Cambia 'blue' por el color que desees
-                    ->badge(), // Esto aplicará el estilo de badge al texto
             ])
             ->actions([
-                Tables\Actions\Action::make('ver')
+
+
+
+                Action::make('first')
                     ->label('Ver')
-                    ->modalContent(fn(Proyecto $proyecto): View => 
-                        view('components.fichas.ficha-proyecto', ['proyecto' => $proyecto])
+                    ->modalContent(
+                        fn(Proyecto $proyecto) =>  view(
+                            'components.fichas.ficha-proyecto-vinculacion',
+                            ['proyecto' => $proyecto]
+                        )
+
                     )
-                    ->modalWidth('800px')
-                    ->modalSubmitAction(false),
+                    ->stickyModalFooter()
+                    ->stickyModalHeader()
+                    ->modalWidth(MaxWidth::SevenExtraLarge)
+                    ->modalSubmitAction(false)
+                    ->extraModalFooterActions([
+                        Action::make('second')
+                            ->label('Rechazar')
+                            ->form([
+                                Textarea::make('comentario')
+                                    ->label('Comentario')
+                                    ->columnSpanFull(),
+                            ])
+                            ->icon('heroicon-o-x-circle') // Icono para "Rechazar"
+                            ->color('danger')
+                            ->requiresConfirmation()
+                            ->modalHeading('Confirmar Rechazo') // Título del diálogo
+
+                            ->modalSubheading('¿Estás seguro de que deseas Rechazar la firma de este proyecto?')
+                            ->action(function (Proyecto $record,  array $data) {
+                                //  cambiar todos los estados de la revision a Pendiente
+                                $record->firma_proyecto()->update(['estado_revision' => 'Pendiente']);
+
+                                $record->estado_proyecto()->create([
+                                    'empleado_id' => Auth::user()->empleado->id,
+                                    'tipo_estado_id' => TipoEstado::where('nombre', 'Subsanacion')->first()->id,
+                                    'fecha' => now(),
+                                    'comentario' => $data['comentario'],
+                                ]);
+
+                                // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
+                                // ->where('empleado_id', $this->docente->id)
+                                // ->first());
+                                Notification::make()
+                                    ->title('¡Realizado!')
+                                    ->body('Proyecto Rechazado')
+                                    ->info()
+                                    ->send();
+                            })
+                            ->button(),
+
+                        Action::make('aprobar')
+                            ->label('Aprobar')
+                            ->form([
+                                Section::make('formulario_final')
+                                ->label(' ')
+                                    ->description('')
+                                    ->schema([
+                                        Hidden::make('responsable_revision_id')
+                                            ->default(auth()->user()->empleado->id),
+                                        Select::make('ods')
+                                            ->label('ODS')
+                                            ->multiple()
+                                            ->relationship('ods', 'nombre')
+                                            ->visible(fn(Proyecto $record): bool
+                                            => $record->estado->tipoestado->nombre === 'En revision')
+                                            ->columnSpanFull()
+                                            ->preload()
+                                            ->required(),
+                                        DatePicker::make('fecha_aprobacion')
+                                            ->label('Fecha de aprobacion')
+                                            ->columnSpan(1)
+                                            ->required(),
+                                        DatePicker::make('fecha_registro')
+                                            ->label('Fecha de registro')
+                                            ->columnSpan(1)
+                                            ->required(),
+                                        TextInput::make('numero_libro')
+                                            ->label('Numero de libro')
+                                            ->numeric(),
+                                        TextInput::make('numero_tomo')
+                                            ->label('Numero de tomo')
+                                            ->numeric(),
+                                        TextInput::make('numero_folio')
+                                            ->label('Numero de folio')
+                                            ->numeric(),
+                                        TextInput::make('numero_dictamen')
+                                            ->label('Numero de dictamen')
+                                            ->default(function (Proyecto $proyecto) {
+                                                $prefix = 'VRA';
+                                                $year = date('Y'); // Obtiene el año actual
+                                                $nextId = $proyecto ? $proyecto->id + 1 : 1; // Incrementa el ID o lo inicia en 1
+                                                $formattedId = str_pad($nextId, 3, '0', STR_PAD_LEFT); // Formatea el ID a 3 dígitos
+
+                                                return "{$prefix}-{$year}-{$formattedId}";
+                                            }),
+                                    ])
+                                    ->columns(2),
+
+
+                            ])
+                            ->cancelParentActions()
+                            ->icon('heroicon-o-check-circle') // Icono para "Aprobar"
+                            ->color('success')
+                            ->requiresConfirmation()
+                            ->modalHeading('Terminar Registro') // Título del diálogo
+                            ->modalSubheading('Para aprobar el proyecto, por favor llene los siguientes campos')
+                            ->action(function (Proyecto $proyecto, array $data) {
+                                // dd($this->docente);
+
+                                // actualizar el estado del proyecto al siguiente estado :)
+                                $proyecto->estado_proyecto()->create([
+                                    'empleado_id' => Auth::user()->empleado->id,
+                                    'tipo_estado_id' => TipoEstado::where('nombre', 'En curso')->first()->id,
+                                    'fecha' => now(),
+                                    'comentario' => 'El proyecto ha sido aprobado correctamente',
+                                ]);
+
+                                $proyecto->update($data);
+
+                                // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
+                                // ->where('empleado_id', $this->docente->id)
+                                // ->first());
+                                Notification::make()
+                                    ->title('¡Realizado!')
+                                    ->body('Proyecto Aprobado correctamente')
+                                    ->info()
+                                    ->send();
+                            })
+                            ->modalWidth(MaxWidth::SevenExtraLarge)
+                            ->button(),
+
+                    ])
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([]),
             ]);
     }
 
-    public function getTableRecordKey($record): string
-    {
-        return (string) $record->proyecto_id; // Asegúrate de que 'proyecto_id' es único
-    }
 
     public function render(): View
     {
@@ -93,4 +216,3 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
             ->layout('components.panel.modulos.modulo-proyectos');
     }
 }
-

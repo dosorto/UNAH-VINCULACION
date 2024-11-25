@@ -114,8 +114,8 @@ class Proyecto extends Model
         'nombre_proyecto',
         // 'coordinador_id',
         'modalidad_id',
-        'municipio_id',
-        'departamento_id',
+        // 'municipio_id',
+        // 'departamento_id',
         'ciudad_id',
         'aldea',
         'resumen',
@@ -147,7 +147,12 @@ class Proyecto extends Model
     //     return $this->belongsTo(Empleado::class, 'coordinador_id',);
     // }
 
-    public function od()
+    public function responsable_revision()
+    {
+        return $this->belongsTo(Empleado::class, 'responsable_revision_id',);
+    }
+
+    public function odss()
     {
         return $this->belongsTo(Od::class, 'od_id',);
     }
@@ -159,12 +164,12 @@ class Proyecto extends Model
 
     public function municipio()
     {
-        return $this->belongsTo(Municipio::class, 'municipio_id',);
+        return $this->belongsToMany(Municipio::class, 'proyecto_municipio', 'proyecto_id', 'municipio_id');
     }
 
     public function departamento()
     {
-        return $this->belongsTo(Departamento::class, 'departamento_id',);
+        return $this->belongsToMany(Departamento::class, 'proyecto_departamento', 'proyecto_id', 'departamento_id');
     }
 
     public function ciudad()
@@ -253,7 +258,6 @@ class Proyecto extends Model
         return $this->belongsToMany(Od::class, 'proyecto_ods', 'proyecto_id', 'ods_id');
     }
 
-
     // relacion muchos a muchos con el modelo categoria
     public function categoria()
     {
@@ -269,21 +273,35 @@ class Proyecto extends Model
     // relacion uno a muchos con el modelo FirmaProyecto
     public function firma_proyecto()
     {
-        return $this->hasMany(FirmaProyecto::class, 'proyecto_id');
+         return $this->morphMany(FirmaProyecto::class, 'firmable');
+    }
+
+    public function firma_coodinador_proyecto()
+    {
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->where('cargo_firma.nombre', 'Coordinador Proyecto');
     }
 
 
     // firma_enlace_vinculacion
     public function firma_proyecto_enlace()
     {
-        return $this->hasMany(FirmaProyecto::class, 'proyecto_id')
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
             ->where('cargo_firma.nombre', 'Enlace Vinculacion');
+    }
+    // firma del decano
+    public function firma_proyecto_decano()
+    {
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->where('cargo_firma.nombre', 'Director centro');
     }
 
     public function firma_proyecto_jefe()
     {
-        return $this->hasMany(FirmaProyecto::class, 'proyecto_id')
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
             ->where('cargo_firma.nombre', 'Jefe Departamento');
     }
@@ -300,25 +318,31 @@ class Proyecto extends Model
         return $this->hasOne(FirmaProyecto::class, 'proyecto_id');
     }
 
-    // relacion uno a muchos con el modelo estado_proyecto
+    // relacion uno a muchos con el modelo do_proyecto
     public function estado_proyecto()
     {
-        return $this->hasMany(EstadoProyecto::class, 'proyecto_id');
+        return $this->morphMany(EstadoProyecto::class, 'estadoable');
     }
 
 
     // relacion uno a muchos con actividad 
     public function actividades()
-{
-    return $this->hasMany(Actividad::class, 'proyecto_id');
+    {
+        return $this->hasMany(Actividad::class, 'proyecto_id');
 
-}
+    }
 
+    public function anexos()
+    {
+        return $this->hasMany(Anexo::class, 'proyecto_id');
+    }
 
     // obtener el estado actual del proyecto
     public function getEstadoAttribute()
     {
-        return $this->estado_proyecto->last();
+        return $this->estado_proyecto()
+            ->where('es_actual', true)
+            ->first();
     }
 
 

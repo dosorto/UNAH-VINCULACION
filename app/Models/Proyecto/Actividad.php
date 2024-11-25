@@ -2,13 +2,14 @@
 
 namespace App\Models\Proyecto;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Personal\Empleado;
 use Spatie\Activitylog\LogOptions;
+use Illuminate\Database\Eloquent\Model;
+use App\Models\Personal\EmpleadoProyecto;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-use App\Models\Personal\EmpleadoProyecto;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Actividad extends Model
 {
@@ -16,35 +17,37 @@ class Actividad extends Model
     use SoftDeletes;
     use LogsActivity;
 
-    protected static $logAttributes = ['id', 'proyecto_id', 'responsable_id', 'descripcion', 'fecha_ejecucion'];
+    protected static $logAttributes = ['id', 'proyecto_id', 'descripcion', 'objetivos', 'horas', 'fecha_inicio', 'fecha_finalizacion', 'resultados'];
 
     protected static $logName = 'Actividad';
 
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-        ->logOnly(['id', 'proyecto_id', 'responsable_id', 'descripcion', 'fecha_ejecucion'])
+        ->logOnly(['id', 'proyecto_id', 'responsable_id', 'descripcion', 'fecha_inicio', 'fecha_finalizacion', 'objetivos', 'resultados', 'horas'])
         ->setDescriptionForEvent(fn (string $eventName) => "El registro {$this->descripcion} ha sido {$eventName}");
     }
     
     protected $fillable = [
         'id',
-        'empleado_proyecto_id',
         'descripcion',
-        'fecha_ejecucion',
+        'fecha_inicio',
+        'fecha_finalizacion',
+        'objetivos',
+        'resultados',
+        'horas',
         'proyecto_id',
     ];
-
     
-
     public function proyecto()
     {
         return $this->belongsTo(Proyecto::class, 'proyecto_id',);
     }
 
-    public function empleado_proyecto()
+    // relacion 
+    public function empleados()
     {
-        return $this->belongsTo(EmpleadoProyecto::class, 'empleado_proyecto_id',);
+        return $this->belongsToMany(Empleado::class, 'actividad_empleado');
     }
 
     protected $table = 'actividades';
