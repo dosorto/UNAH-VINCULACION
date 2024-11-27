@@ -94,7 +94,9 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         ->modalWidth(MaxWidth::SevenExtraLarge)
                         ->extraModalFooterActions([
                             Action::make('third')
-                                ->label('Agregar Documento Intermedio')
+                                ->label(function (Proyecto $proyecto) {
+                                    return $proyecto->estado->tipoestado->nombre == 'En curso' ? 'Subsanar' : 'Revisar';
+                                })
                                 ->form([
 
                                     Repeater::make('documentos')
@@ -160,16 +162,108 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 ->visible(function (Proyecto $proyecto) {
                                     return ($proyecto->estado->tipoestado->nombre == 'En curso' &&
                                         is_null($proyecto->documento_intermedio)) ||
-                                        $proyecto->documento_intermedio?->estado?->tipoestado?->nombre == 'Subsanacion'; 
+                                        $proyecto->documento_intermedio?->estado?->tipoestado?->nombre == 'Subsanacion';
+                                })
+                                ->modalWidth(MaxWidth::SevenExtraLarge),
+
+
+
+                            // informe final logica
+                            Action::make('quinto')
+                                ->label(
+                                    'Informe Final'
+                                )
+                                ->form([
+                                    Repeater::make('documentos')
+                                        ->schema([
+                                            Hidden::make('tipo_documento')
+                                                ->default('Final'),
+                                            TextInput::make('informe_final')
+                                                ->label('Tipo de Informe')
+                                                ->disabled()
+                                                ->default('Intermedio'),
+
+                                            FileUpload::make('documento_url')
+                                                ->label('Documento')
+                                                ->acceptedFileTypes(['application/pdf'])
+                                        ])
+                                        ->addable(false)
+                                        ->reorderable(false)
+                                        ->deletable(false)
+                                ])
+                                ->action(function (Proyecto $proyecto, array $data) {
+                                    // eliminar las firmas de los documentos intermedios anteriores
+                                    $proyecto->documentos()
+                                        ->where('tipo_documento', 'Final')
+                                        ->each(function ($documento) {
+                                            $documento->firma_documento()->delete();
+                                        });
+
+                                    // eliminar los estados de los documentos intermedios anteriores
+                                    $proyecto->documentos()
+                                        ->where('tipo_documento', 'Final')
+                                        ->each(function ($documento) {
+                                            $documento->estado_documento()->delete();
+                                        });
+                                    // eliminar todos los documentos intermedios anteriores
+                                    $proyecto->documentos()
+                                        ->where('tipo_documento', 'Final')
+                                        ->delete();
+
+                                    // crear el documento intermedio 
+                                    $documentoIntermedio = $proyecto->documentos()->create([
+                                        'tipo_documento' => $data['documentos'][0]['tipo_documento'],
+                                        'documento_url' => $data['documentos'][0]['documento_url'],
+                                    ]);
+                                    $cargosFirmas = CargoFirma::where('descripcion', 'Documento_final')
+                                        ->get();
+                                    $cargosFirmas->each(function ($cargo) use ($proyecto, $documentoIntermedio) {
+                                        $documentoIntermedio->firma_documento()->create([
+                                            'empleado_id' => $proyecto->getFirmabyCargo($cargo->tipoCargoFirma->nombre)->empleado->id,
+                                            'cargo_firma_id' => $cargo->id,
+                                            'estado_revision' => 'Pendiente',
+                                            'hash' => 'hash'
+                                        ]);
+                                    });
+                                    $documentoIntermedio->estado_documento()->create([
+                                        'empleado_id' => auth()->user()->empleado->id,
+                                        'tipo_estado_id' => TipoEstado::where('nombre', 'Enlace Vinculacion')->first()->id,
+                                        'fecha' => now(),
+                                        'comentario' => 'Documento creado',
+                                    ]);
+                                })
+                                ->icon('heroicon-o-document-arrow-up') // Icono para "Rechazar"
+                                ->color('success')
+                                ->modalHeading('Documentos del Proyecto')
+                                ->modalSubheading('A continuación se muestran los documentos del proyecto y su estado')
+                                ->visible(function (Proyecto $proyecto) {
+                                    return ($proyecto->estado->tipoestado->nombre == 'En curso' &&
+                                        $proyecto->documento_intermedio?->estado?->tipoestado?->nombre == 'Aprobado') &&
+                                        is_null($proyecto->documento_final)
+                                        ||
+                                        $proyecto->documento_final?->estado?->tipoestado?->nombre == 'Subsanacion';
                                 })
                                 ->modalWidth(MaxWidth::SevenExtraLarge),
 
                         ])
                         ->modalSubmitAction(false),
+
+                        Action::make('subsanacion')
+                        ->label(fn (Proyecto $proyecto) : string => 
+                           $proyecto->estado->tipoestado->nombre == 'Subsanacion' ? 'Subsanar' : 'Editar Borrador'
+                        )
+                        ->icon('heroicon-o-document')
+                        ->color('warning')
+                        ->visible(function (Proyecto $proyecto) {
+                            return $proyecto->estado->tipoestado->nombre == 'Subsanacion';
+                        })
+                        ->url(fn (Proyecto $record): string => route('editarProyectoVinculacion', $record))
                 ])
                     ->button()
                     ->color('primary')
-                    ->label('Acciones')
+                    ->label('Acciones'),
+
+               
 
                 // ->openUrlInNewTab()
             ])

@@ -27,9 +27,11 @@
     @if ($proyecto->documento_final && $proyecto->documento_final->documento_url != null)
         <x-filament::section collapsible collapsed persist-collapsed id="user-details">
             <x-slot name="heading">
-                Documento Final
+                Documento Final, Estado: {{$proyecto->documento_final->estado->tipoestado->nombre}}
             </x-slot>
-
+            <x-slot name="description">
+                {{$proyecto->documento_final->estado->comentario}}
+            </x-slot>
             <h1>Visualizador de PDF</h1>
             <embed src="{{ asset('storage/' . $proyecto->documento_final->documento_url) }}" type="application/pdf"
                 width="100%" height="600px" />
