@@ -4,23 +4,28 @@ namespace App\Livewire\Proyectos\Vinculacion;
 
 use Livewire\Component;
 use Filament\Forms\Form;
+use App\Jobs\SendEmailJob;
 use App\Models\Estado\TipoEstado;
 use App\Models\Proyecto\Proyecto;
 use Illuminate\Support\HtmlString;
 use App\Models\Proyecto\CargoFirma;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Mail;
 use Filament\Forms\Components\Wizard;
 use Illuminate\Support\Facades\Blade;
 use Filament\Forms\Contracts\HasForms;
+
 use Filament\Notifications\Notification;
 use Filament\Forms\Concerns\InteractsWithForms;
-
-use App\Livewire\Proyectos\Vinculacion\Secciones\PrimeraParte;
-use App\Livewire\Proyectos\Vinculacion\Secciones\SegundaParte;
-use App\Livewire\Proyectos\Vinculacion\Secciones\TerceraParte;
+use App\Livewire\Proyectos\Vinculacion\Secciones\SextaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\CuartaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\QuintaParte;
-use App\Livewire\Proyectos\Vinculacion\Secciones\SextaParte;
+use App\Livewire\Proyectos\Vinculacion\Secciones\PrimeraParte;
+
+// Para enviar Emails
+// use App\Mail\Correos\CorreoParticipacion;
+use App\Livewire\Proyectos\Vinculacion\Secciones\SegundaParte;
+use App\Livewire\Proyectos\Vinculacion\Secciones\TerceraParte;
 
 class CreateProyectoVinculacion extends Component implements HasForms
 {
@@ -120,6 +125,18 @@ class CreateProyectoVinculacion extends Component implements HasForms
             'fecha' => now(),
             'comentario' => 'Proyecto creado',
         ]);
+
+        foreach ($record->integrantes as $empleado) {
+            // Accede al usuario de cada empleado y a su correo
+            $usuario = $empleado->user;  // Asumiendo que cada empleado tiene un usuario relacionado
+            if ($usuario && $usuario->email) {
+                // Enviar el correo al email del usuario
+                SendEmailJob::dispatch($usuario->email, 'CorreoParticipacion');
+            }
+        }
+        // Mail::to('ernesto.moncada@unah.hn')->send(new CorreoParticipacion());
+        
+
 
         Notification::make()
             ->title('¡Éxito!')
