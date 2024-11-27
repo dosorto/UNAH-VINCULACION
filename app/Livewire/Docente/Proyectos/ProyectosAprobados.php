@@ -73,7 +73,7 @@ class ProyectosAprobados extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.docente.proyectos.proyectos-aprobados')
-            ->layout('components.panel.modulos.modulo-firmas-docente');
+        return view('livewire.docente.proyectos.proyectos-por-firmar')
+        ->layout('components.panel.modulos.modulo-firmas-docente');
     }
 }
