@@ -78,41 +78,41 @@ class EditProyectoVinculacionForm extends Component implements HasForms
     public function form(Form $form): Form
     {
         return $form
-        ->schema([
-            Wizard::make([
-                Wizard\Step::make('I.')
-                    ->description('Información general del proyecto')
-                    ->schema(
-                        PrimeraParte::form()
-                    )
-                    ->columns(2),
-                Wizard\Step::make('II.')
-                    ->description('INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (en caso de contar con una contraparte).')
-                    ->schema(
-                        SegundaParte::form(),
-                    ),
-                Wizard\Step::make('III.')
-                    ->description('Cronograma de actividades.')
-                    ->schema(
-                        TerceraParte::form(),
-                    ),
-                Wizard\Step::make('IV.')
-                    ->description('DATOS DEL PROYECTO')
-                    ->schema(
-                        CuartaParte::form(),
-                    )
-                    ->columns(2),
-                Wizard\Step::make('V.')
-                    ->description('Anexos')
-                    ->schema(
-                        QuintaParte::form(),
-                    ),
-                Wizard\Step::make('VI.')
-                    ->description('Firmas')
-                    ->schema(
-                        SextaParte::form(),
-                    ),
-            ])->submitAction(new HtmlString(Blade::render(<<<BLADE
+            ->schema([
+                Wizard::make([
+                    Wizard\Step::make('I.')
+                        ->description('Información general del proyecto')
+                        ->schema(
+                            PrimeraParte::form()
+                        )
+                        ->columns(2),
+                    Wizard\Step::make('II.')
+                        ->description('INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (en caso de contar con una contraparte).')
+                        ->schema(
+                            SegundaParte::form(),
+                        ),
+                    Wizard\Step::make('III.')
+                        ->description('Cronograma de actividades.')
+                        ->schema(
+                            TerceraParte::form(),
+                        ),
+                    Wizard\Step::make('IV.')
+                        ->description('DATOS DEL PROYECTO')
+                        ->schema(
+                            CuartaParte::form(),
+                        )
+                        ->columns(2),
+                    Wizard\Step::make('V.')
+                        ->description('Anexos')
+                        ->schema(
+                            QuintaParte::form(),
+                        ),
+                    Wizard\Step::make('VI.')
+                        ->description('Firmas')
+                        ->schema(
+                            SextaParte::form(),
+                        ),
+                ])->submitAction(new HtmlString(Blade::render(<<<BLADE
             <x-filament::button
                 type="submit"
                 size="sm"
@@ -131,7 +131,7 @@ class EditProyectoVinculacionForm extends Component implements HasForms
         BLADE))),
 
 
-        ])
+            ])
             ->statePath('data')
             ->model($this->record);
     }
@@ -142,16 +142,21 @@ class EditProyectoVinculacionForm extends Component implements HasForms
 
         $this->record->update($data);
 
-        $this->record->firma_proyecto()->create([
+        $firmaP = $this->record->firma_proyecto()->create([
             'empleado_id' => auth()->user()->empleado->id,
-            'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
+            'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+                ->where('cargo_firma.descripcion', 'Proyecto')
+                ->first()->id,
             'estado_revision' => 'Aprobado',
+            'firma_id' => auth()->user()->empleado->firma->id,
+            'sello_id' => auth()->user()->empleado->sello->id,
             'hash' => 'hash'
         ]);
 
         $this->record->estado_proyecto()->create([
             'empleado_id' => auth()->user()->empleado->id,
-            'tipo_estado_id' => TipoEstado::where('nombre', 'Esperando firma de Jefe de Departamento')->first()->id,
+            'tipo_estado_id' => $firmaP->cargo_firma->estado_siguiente_id,
             'fecha' => now(),
             'comentario' => 'Proyecto creado',
         ]);

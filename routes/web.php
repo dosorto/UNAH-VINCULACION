@@ -4,6 +4,7 @@ use App\Livewire\User\Roles;
 use App\Livewire\User\Users;
 use App\Livewire\Login\Login;
 use App\Livewire\Inicio\InicioAdmin;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Demografia\Pais\CreatePais;
 use App\Livewire\Demografia\Pais\ListPaises;
@@ -19,22 +20,26 @@ use App\Livewire\Demografia\Ciudad\CreateCiudad;
 use App\Livewire\Personal\Empleado\ListEmpleado;
 use App\Http\Controllers\Auth\MicrosoftController;
 use App\Livewire\Personal\Empleado\CreateEmpleado;
+use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Livewire\Demografia\Municipio\CreateMunicipio;
+
 use App\Livewire\Demografia\Municipio\ListaMunicipios;
 use App\Livewire\Docente\Proyectos\ProyectosAprobados;
-
 use App\Livewire\Docente\Proyectos\ProyectosRechazados;
 use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
+
 use App\Livewire\Demografia\Departamento\ListDepartamentos;
 use App\Livewire\Demografia\Departamento\CreateDepartamento;
-
+use App\Livewire\Proyectos\Vinculacion\ListInformesSolicitado;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosSolicitado;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
+
 use App\Livewire\Docente\Proyectos\SolicitudProyectosDocenteList;
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
+use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
 use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController;
 
-use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
+use App\Livewire\Proyectos\Vinculacion\ListProyectoRevisionFinal;
 
 // Rutas para redireccionar a los usuario autenticados
 Route::middleware(['guest'])->group(function () {
@@ -58,7 +63,10 @@ Route::middleware(['guest'])->group(function () {
         ->name('password.request');
     Route::get('password/reset/{token}', ResetPasswordController::class)
         ->name('password.reset');
-});
+
+        
+    });
+Route::get('verificacion_constancia/{hashedProjectId}/{hashedEmployeeId}', [VerificarConstancia::class, 'index'])->name('verificacion_constancia');
 
 // Rutas para redireccionar a los usuario  no autenticados
 Route::middleware(['auth'])->group(function () {
@@ -173,6 +181,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('listarProyectosSolicitado', ListProyectosSolicitado::class)
             ->name('listarProyectosSolicitado')
             ->middleware('can:proyectos-admin-solicitados');
+
+        Route::get('listarInformesSolicitado', ListInformesSolicitado::class)
+            ->name('listarInformesSolicitado');
+            //->middleware('can:proyectos-admin-solicitados');
+
+        Route::get('listarProyectoRevisionFinal', ListProyectoRevisionFinal::class)
+            ->name('listarProyectoRevisionFinal');
+            //->middleware('can:proyectos-admin-revision-final');
     });
 
 

@@ -7,6 +7,7 @@ use App\Models\Proyecto\CargoFirma;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\TextInput;
 
 class SextaParte
 {
@@ -22,25 +23,21 @@ class SextaParte
                         ->label('')
                         ->searchable(['nombre_completo', 'numero_empleado'])
                         ->relationship(name: 'empleado', titleAttribute: 'nombre_completo'),
-                    Select::make('cargo_firma_id')
+                    TextInput::make('cargo')
                         ->label('')
-                        ->searchable()
-                        ->relationship(name: 'cargo_firma', titleAttribute: 'nombre')
                         ->default(
-                            CargoFirma::where('nombre', 'Jefe departamento')->first()->id
+                            'Jefe de departamento'
                         )
-                        ->disabled()
-                        ->preload(),
+                        ->disabled(),
+
                     Hidden::make('cargo_firma_id')
                         ->default(
-                            CargoFirma::where('nombre', 'Jefe departamento')->first()->id
+                            CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                                ->where('tipo_cargo_firma.nombre', 'Jefe Departamento')
+                                ->first()->id
                         ),
-                    Hidden::make('estado_revision')
-                        ->default('Pendiente'),
-                    Hidden::make('estado_actual_id')
-                        ->default(
-                            TipoEstado::where('nombre', 'Esperando Firma de Jefe de Departamento')->first()->id
-                        ),
+
+
 
                 ])
                 ->addable(false)
@@ -55,25 +52,19 @@ class SextaParte
                         ->label('')
                         ->searchable(['nombre_completo', 'numero_empleado'])
                         ->relationship(name: 'empleado', titleAttribute: 'nombre_completo'),
-                    Select::make('cargo_firma_id')
+                    TextInput::make('cargo')
                         ->label('')
-                        ->searchable()
-                        ->relationship(name: 'cargo_firma', titleAttribute: 'nombre')
                         ->default(
-                            CargoFirma::where('nombre', 'Director centro')->first()->id
+                            'Decano de facultad o director de centro'
                         )
-                        ->disabled()
-                        ->preload(),
+                        ->disabled(),
                     Hidden::make('cargo_firma_id')
                         ->default(
-                            CargoFirma::where('nombre', 'Director centro')->first()->id
+                            CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                                ->where('tipo_cargo_firma.nombre', 'Director centro')
+                                ->first()->id
                         ),
-                    Hidden::make('estado_revision')
-                        ->default('Pendiente'),
-                    Hidden::make('estado_actual_id')
-                        ->default(
-                            TipoEstado::where('nombre', 'Esperando firma de Director/Decano')->first()->id
-                        ),
+
 
                 ])
                 ->deletable(false)
@@ -86,30 +77,22 @@ class SextaParte
             Repeater::make('firma_proyecto_enlace')
                 ->label('Enlace de Vinculación')
                 ->schema([
-
-
                     Select::make('empleado_id')
                         ->label('')
                         ->searchable(['nombre_completo', 'numero_empleado'])
                         ->relationship(name: 'empleado', titleAttribute: 'nombre_completo'),
-                    Select::make('cargo_firma_id')
+
+                    TextInput::make('cargo')
                         ->label('')
-                        ->searchable()
-                        ->relationship(name: 'cargo_firma', titleAttribute: 'nombre')
                         ->default(
-                            CargoFirma::where('nombre', 'Enlace Vinculacion')->first()->id
+                            'Enlace de Vinculación'
                         )
-                        ->disabled()
-                        ->preload(),
+                        ->disabled(),
                     Hidden::make('cargo_firma_id')
                         ->default(
-                            CargoFirma::where('nombre', 'Enlace Vinculacion')->first()->id
-                        ),
-                    Hidden::make('estado_revision')
-                        ->default('Pendiente'),
-                    Hidden::make('estado_actual_id')
-                        ->default(
-                            TipoEstado::where('nombre', 'Esperando Firma de Vinculacion')->first()->id
+                            CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                                ->where('tipo_cargo_firma.nombre', 'Enlace Vinculacion')
+                                ->first()->id
                         ),
 
                 ])

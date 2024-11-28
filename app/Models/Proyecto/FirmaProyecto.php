@@ -36,6 +36,8 @@ class FirmaProyecto extends Model
         return $this->morphTo();
     }
 
+
+
     // relacion con estado
     public function estado_actual()
     {
@@ -46,6 +48,12 @@ class FirmaProyecto extends Model
     {
         return $this->belongsTo(Proyecto::class, 'firmable_id');
     }
+
+    public function documento_proyecto()
+    {
+        return $this->belongsTo(DocumentoProyecto::class, 'firmable_id');
+    }
+
 
     public function empleado()
     {
