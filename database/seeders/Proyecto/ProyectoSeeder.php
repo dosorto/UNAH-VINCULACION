@@ -11,6 +11,8 @@ use App\Models\Proyecto\Od;
 use App\Models\Estado\EstadoProyecto;
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Estado\TipoEstado;
+use App\Models\Proyecto\TipoCargoFirma;
+
 
 
 
@@ -21,47 +23,41 @@ class ProyectoSeeder extends Seeder
      */
     public function run(): void
     {
-        // crear los cargos de las personas que firman los proyectos
-        // Director, Coordinador, Asesor, Evaluador, Revisor, Aprobador
+        // crear los cargos de las firmas 
+        $cargosFirmas = collect(config('nexo.cargos_firmas'));
+
+        $cargosFirmas->each(function ($cargo) {
+            TipoCargoFirma::create([
+                'nombre' => $cargo,
+            ]);
+        });
 
 
         // crear los tipos de estado para el proyecto
-        TipoEstado::insert([
-            // no se puede dambiar  el orden de esto indicriminadamente 
-            ['nombre' => 'Esperando Firma Coorinador Proyecto', 'estado_siguiente_id' => 2],
-            ['nombre' => 'Esperando Firma de Vinculacion', 'estado_siguiente_id' => 3],
-            ['nombre' => 'Esperando Firma de Jefe de Departamento', 'estado_siguiente_id' => 4],
-            ['nombre' => 'Esperando firma de Director/Decano', 'estado_siguiente_id' => 5],
-            ['nombre' => 'En revision', 'estado_siguiente_id' => null],
+        $estadosProyecto = collect(config('nexo.estados_proyecto'));
 
-            // hasta aca.
-            ['nombre' => 'Subsanacion','estado_siguiente_id' => null],
-            ['nombre' => 'En curso', 'estado_siguiente_id' => null],
-            ['nombre' => 'En cuurso: esperando firma', 'estado_siguiente_id' => null],
-            ['nombre' => 'Rechazado', 'estado_siguiente_id' => null],
-            ['nombre' => 'Inscrito','estado_siguiente_id' => null],
-
-            ['nombre' => 'Finalizado', 'estado_siguiente_id' => null],
-            ['nombre' => 'Cancelado', 'estado_siguiente_id' => null],
-
-            ['nombre' => 'Borrador', 'estado_siguiente_id' => null],
-        ]);
+        $estadosProyecto->each(function ($estado) {
+            TipoEstado::create([
+                'nombre' => $estado,
+            ]);
+        });
 
 
-        CargoFirma::insert([
-            ['nombre' => 'Coordinador Proyecto'],
-            ['nombre' => 'Enlace Vinculacion'],
-            ['nombre' => 'Jefe Departamento'],
-            ['nombre' => 'Director centro'],
-        ]);
+        // crear los cargos de las firmas de los proyectos
+        $fimasCargos = collect(config('nexo.firmas_cargos'));
 
+        $fimasCargos->each(function ($firma) {
+            $firmas = collect($firma);
+            $firmas->each(function ($firma) {
+                CargoFirma::create([
+                    'descripcion' => $firma['descripcion'], // Cambiado a notación de arreglo
+                    'tipo_cargo_firma_id' => TipoCargoFirma::where('nombre', $firma['cargo'])->first()->id,
+                    'tipo_estado_id' => TipoEstado::where('nombre', $firma['estado'])->first()->id,
+                    'estado_siguiente_id' => TipoEstado::where('nombre', $firma['estado_siguiente'])->first()->id,
+                ]);
+            });
+        });
 
-
-        // crear las modalidades para el proyecto
-
-
-
-        // Unidisciplinar Multidisciplinar Interdisciplinar Transdisciplinar ____
 
         Modalidad::insert([
             ['nombre' => 'Unidisciplinar'],

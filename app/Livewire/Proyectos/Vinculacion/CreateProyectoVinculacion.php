@@ -109,17 +109,19 @@ class CreateProyectoVinculacion extends Component implements HasForms
 
         $firmaP = $record->firma_proyecto()->create([
             'empleado_id' => auth()->user()->empleado->id,
-            'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
+            'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+                ->where('cargo_firma.descripcion', 'Proyecto')
+                ->first()->id,
             'estado_revision' => 'Aprobado',
             'firma_id' => auth()->user()->empleado->firma->id,
             'sello_id' => auth()->user()->empleado->sello->id,
-            'estado_actual_id' => TipoEstado::where('nombre', 'Esperando Firma Coorinador Proyecto')->first()->id,
             'hash' => 'hash'
         ]);
 
         $record->estado_proyecto()->create([
             'empleado_id' => auth()->user()->empleado->id,
-            'tipo_estado_id' => $firmaP->estado_actual->estado_siguiente_id,
+            'tipo_estado_id' => $firmaP->cargo_firma->estado_siguiente_id,
             'fecha' => now(),
             'comentario' => 'Proyecto creado',
         ]);
@@ -153,9 +155,12 @@ class CreateProyectoVinculacion extends Component implements HasForms
         $record = Proyecto::create($data);
         $this->form->model($record)->saveRelationships();
 
-        $record->firma_proyecto()->create([
+        $firmaP = $record->firma_proyecto()->create([
             'empleado_id' => auth()->user()->empleado->id,
-            'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
+            'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+                ->where('cargo_firma.descripcion', 'Proyecto')
+                ->first()->id,
             'estado_revision' => 'Pendiente',
             'hash' => 'hash'
         ]);
@@ -166,7 +171,6 @@ class CreateProyectoVinculacion extends Component implements HasForms
             'fecha' => now(),
             'comentario' => 'Proyecto creado',
         ]);
-
         Notification::make()
             ->title('¡Éxito!')
             ->body('Proyecto creado correctamente')
