@@ -15,6 +15,7 @@ return [
         'Jefe Departamento',
         'Director centro',
         'En revision',
+        'En revision final',
 
         
 
