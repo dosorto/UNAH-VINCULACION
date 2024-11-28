@@ -36,6 +36,7 @@ use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController
 
 use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
 use App\Livewire\Proyectos\Vinculacion\ListInformesSolicitado;
+use App\Livewire\Proyectos\Vinculacion\ListProyectoRevisionFinal;
 
 // Rutas para redireccionar a los usuario autenticados
 Route::middleware(['guest'])->group(function () {
@@ -178,6 +179,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('listarInformesSolicitado', ListInformesSolicitado::class)
             ->name('listarInformesSolicitado');
             //->middleware('can:proyectos-admin-solicitados');
+
+        Route::get('listarProyectoRevisionFinal', ListProyectoRevisionFinal::class)
+            ->name('listarProyectoRevisionFinal');
+            //->middleware('can:proyectos-admin-revision-final');
     });
 
 
