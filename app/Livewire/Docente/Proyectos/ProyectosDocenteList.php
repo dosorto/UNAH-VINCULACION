@@ -2,32 +2,38 @@
 
 namespace App\Livewire\Docente\Proyectos;
 
-use App\Models\Estado\EstadoProyecto;
+use Filament\Tables;
+use Livewire\Component;
+use Filament\Tables\Table;
+use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
-use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\Proyecto;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
-use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
+use PHPUnit\Framework\Reorderable;
+use App\Models\Proyecto\CargoFirma;
 use Filament\Tables\Actions\Action;
+use Illuminate\Contracts\View\View;
 use Filament\Support\Enums\MaxWidth;
+use Illuminate\Support\Facades\File;
+use App\Models\Estado\EstadoProyecto;
 
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
-use Filament\Tables\Actions\ActionGroup;
-use Filament\Notifications\Notification;
+use Filament\Forms\Components\Select;
+use Illuminate\Support\Facades\Crypt;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Components\Repeater;
 
-use Filament\Forms\Components\Select;
+use Filament\Tables\Contracts\HasTable;
 use Filament\Forms\Components\TextInput;
-use PHPUnit\Framework\Reorderable;
+use Filament\Notifications\Notification;
+
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Forms\Components\FileUpload;
+use Illuminate\Database\Eloquent\Builder;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Tables\Concerns\InteractsWithTable;
 
 class ProyectosDocenteList extends Component implements HasForms, HasTable
 {
@@ -257,16 +263,67 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         ->visible(function (Proyecto $proyecto) {
                             return $proyecto->estado->tipoestado->nombre == 'Subsanacion';
                         })
-                        ->url(fn (Proyecto $record): string => route('editarProyectoVinculacion', $record))
-                ])
-                    ->button()
-                    ->color('primary')
-                    ->label('Acciones'),
+                        ->url(fn (Proyecto $record): string => route('editarProyectoVinculacion', $record)),
+                        Action::make('constancia')
+                            ->label('Constancia')
+                            ->icon('heroicon-o-document')
+                            ->color('info')
+                            ->visible(function (Proyecto $proyecto) {
+                                return $proyecto->estado->tipoestado->nombre == 'En curso';
+                            })
+                            ->action(function (Proyecto $proyecto) {
+                                
+                                // genear la constancia pdf
+
+                                // Hashear los IDs
+                                $hashedProjectId = Crypt::encrypt($proyecto->id);
+                                $hashedEmployeeId = Crypt::encrypt(auth()->user()->empleado->id);
+
+                                // Generar el código QR como imagen base64
+                                $qrCode = QrCode::format('png')->size(150)->generate(url('/verificacion_constancia/' . $hashedProjectId. '/' . $hashedEmployeeId));
+                                $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($qrCode);
+                                
+                                // Cargar las imágenes y convertirlas a base64
+                                $logoPath = resource_path('views/pdf/imagen1.jpg'); // Ruta de la imagen
+                                $logoBase64 = base64_encode(File::get($logoPath));
+
+                                // Datos que se pasan a la vista
+                                $data = [
+                                    'title' => 'Constancia de Participación',
+                                    'proyecto' => $proyecto,
+                                    'empleado' => auth()->user()->empleado,
+                                    'qrCode' => $qrCodeBase64, 
+                                    'logoBase64' => $logoBase64,  // Agregar imagen base64
+                                ];
+                                
+                                // Generar el PDF desde una vista
+                                $pdf = Pdf::loadView('pdf.constancia', $data);
+
+                                // Generar un nombre único para el archivo basandome el los id del empleado en el proyecto (que deberia ser unica esa combinacion por logica)
+                                $fileName = 'constancia_' . $proyecto->id . '_' . auth()->user()->empleado->id . '_' . Str::random(8) . '.pdf';
+
+                                // Definir la ruta con el nombre único
+                                $filePath = storage_path('app/public/' . $fileName);
+
+                                // dd($filePath);
+                                // Guardar el PDF en la ruta
+                                $pdf->save($filePath);
+
+                                // Descargar el PDF y eliminarlo al instante para que no quede en storage
+                                return response()
+                                        ->download($filePath, 'Constancia_Participacion.pdf')
+                                        ->deleteFileAfterSend(true);
+    
+                            }),
+                    ])
+                        ->button()
+                        ->color('primary')
+                        ->label('Acciones'),
 
                
 
-                // ->openUrlInNewTab()
-            ])
+                    // ->openUrlInNewTab()
+                ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     //
