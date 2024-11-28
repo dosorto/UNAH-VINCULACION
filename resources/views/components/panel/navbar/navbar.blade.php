@@ -28,7 +28,14 @@
         <x-panel.navbar.one-item titulo="Empleado" route="ListarEmpleados" :routes="['ListarEmpleados', 'crearEmpleado']" icono="heroicon-c-cube"
             :permisos="['empleados-admin-empleados']" />
 
-        <x-panel.navbar.one-item titulo="Proyecto" route="listarProyectosVinculacion" :routes="['crearProyectoVinculacion', 'listarProyectosVinculacion']"
+
+        <x-panel.navbar.one-item titulo="Proyecto" route="listarProyectosVinculacion" :routes="[
+            'crearProyectoVinculacion',
+            'listarProyectosVinculacion',
+            'listarProyectosSolicitado',
+            'listarProyectoRevisionFinal',
+            'listarInformesSolicitado',
+        ]"
             icono="heroicon-m-puzzle-piece" :permisos="['proyectos-admin-proyectos', 'proyectos-admin-solicitados', 'proyectos-admin-aprobados']" />
 
         <!-- Modulo de docentes -->
