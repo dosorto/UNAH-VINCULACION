@@ -22,21 +22,53 @@ class SlideConfig extends Component implements HasForms
 
     public array $slides = [];
 
+    protected function getSlidesData(): array
+    {
+        return Slide::orderBy('id', 'desc')
+            ->get()
+            ->map(fn($slide) => [
+                'id' => $slide->id,
+                'image_url' => $slide->image_url,
+                'estado' => $slide->estado,
+            ])
+            ->toArray();
+    }
+
+    protected function updateSlides(array $slides): void
+    {
+        // Obtener IDs enviados desde el formulario
+        $submittedIds = collect($slides)->pluck('id')->filter()->all();
+
+        // Obtener IDs existentes en la base de datos
+        $existingIds = Slide::pluck('id')->all();
+
+        // Determinar IDs que deben ser eliminados
+        $deletedIds = array_diff($existingIds, $submittedIds);
+
+        // Eliminar los registros no enviados
+        if (!empty($deletedIds)) {
+            Slide::whereIn('id', $deletedIds)->delete();
+        }
+
+        // Actualizar o crear los registros enviados
+        foreach ($slides as $slide) {
+            Slide::updateOrCreate(
+                ['id' => $slide['id']],
+                [
+                    'image_url' => $slide['image_url'],
+                    'estado' => $slide['estado'],
+                ]
+            );
+        }
+    }
+
+
     public function mount(): void
     {
-        // Precargar todos los registros de la tabla Slide
-        $this->slides = [
-            'slides' => Slide::orderBy('id', 'desc') // Ordena por el id de mayor a menor
-                ->get() // Obtiene los registros
-                ->map(fn ($slide) => [
-                    'id' => $slide->id,
-                    'image_url' => $slide->image_url,
-                    'estado' => $slide->estado,
-                ])
-                ->toArray()
-        ];
-        // dd($this->slides);
-        $this->form->fill($this->slides);
+        $this->slides = $this->getSlidesData();
+        if (!empty($this->slides)) {
+            $this->form->fill(['slides' => $this->slides]);
+        }
     }
 
     public function form(Form $form): Form
@@ -69,30 +101,24 @@ class SlideConfig extends Component implements HasForms
     public function save(): void
     {
         $data = $this->form->getState();
+        
+        $validatedData = collect($data['slides'])
+            ->map(fn($slide) => [
+                'id' => (int) $slide['id'] ?? null,
+                'image_url' => $slide['image_url'],
+                'estado' => (bool) $slide['estado'],
+            ])
+            ->toArray();
 
-        // dd($data);
-        foreach ($data['slides'] as $slide) {
-            Slide::firstOrCreate(
-                [
-                    'id' => $slide['id']
-                ],
-                [
-                    'image_url' => $slide['image_url'],
-                    'estado' => $slide['estado']
-                ]
-            )
-                ->update([
-                    'image_url' => $slide['image_url'],
-                    'estado' => $slide['estado'],
-                ]);
-        }
+        $this->updateSlides($validatedData);
+
         Notification::make()
             ->title('Exito!')
             ->body('Modificado correctamente!')
             ->success()
             ->send();
 
-        $this->js('location.reload();');
+        $this->mount();
     }
 
     public function render(): View
