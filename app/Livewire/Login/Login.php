@@ -9,6 +9,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Livewire\Component;
 use Illuminate\Contracts\View\View;
+use App\Models\Slide\Slide;
 
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -58,6 +59,11 @@ class Login extends Component implements HasForms
     public function render()
     {
      
-        return view('livewire.login.login')->layout('components.layouts.login2');
+        $slides = Slide::where('estado', true)
+                    ->get();
+
+        $data = ['slides' => $slides];
+        
+        return view('livewire.login.login')->layout('components.layouts.login2', $data);
     }
 }

@@ -40,6 +40,7 @@ use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
 use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController;
 
 use App\Livewire\Proyectos\Vinculacion\ListProyectoRevisionFinal;
+use App\Livewire\Slide\SlideConfig;
 
 // Rutas para redireccionar a los usuario autenticados
 Route::middleware(['guest'])->group(function () {
@@ -53,7 +54,7 @@ Route::middleware(['guest'])->group(function () {
     Route::get('/', function () {
         return redirect(route('login'));
     })
-        ->middleware('guest');;
+        ->middleware('guest');
     Route::get('/login', Login::class)
         ->name('login')
         ->middleware('guest');
@@ -135,6 +136,10 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('listarPermisos', ListPermisos::class)
             ->name('listPermisos')
+            ->middleware('can:usuarios-admin-permiso');
+
+        Route::get('slides', SlideConfig::class)
+            ->name('slides')
             ->middleware('can:usuarios-admin-permiso');
 
 
