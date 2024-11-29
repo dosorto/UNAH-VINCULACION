@@ -15,7 +15,6 @@ return new class extends Migration
         Schema::create('tipo_estado', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
-            $table->bigInteger('estado_siguiente_id')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });
