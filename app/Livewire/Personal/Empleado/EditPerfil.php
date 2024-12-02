@@ -96,7 +96,7 @@ class EditPerfil extends Component implements HasForms, HasActions
                                     ->action(function (array $data) {
                                         // dd($data);
                                         FirmaSelloEmpleado::create($data);
-                                        $this->js('window.location.reload()');
+                                        $this->mount();
                                     })
                             ])
                             ->schema([
@@ -134,7 +134,7 @@ class EditPerfil extends Component implements HasForms, HasActions
                                         Hidden::make('empleado_id')
                                             ->default($this->record->id),
                                         FileUpload::make('ruta_storage')
-                                            ->label('Firma')
+                                            ->label('Sello')
                                             ->disk('public')
                                             ->directory('images/firmas')
                                             ->image()
@@ -145,7 +145,7 @@ class EditPerfil extends Component implements HasForms, HasActions
                                     ->action(function (array $data) {
                                         // dd($data);
                                         FirmaSelloEmpleado::create($data);
-                                        $this->js('window.location.reload()');
+                                        $this->mount();
                                     })
                             ])
                             ->schema([
