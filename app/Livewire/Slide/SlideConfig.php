@@ -92,7 +92,7 @@ class SlideConfig extends Component implements HasForms
                             ->columnSpan(1),
                     ])
                     ->grid(3)
-                    ->deletable(false)
+                    ->deletable(true)
                     ->columns(1),
             ])
             ->statePath('slides');
