@@ -282,7 +282,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 $hashedEmployeeId = Crypt::encrypt(auth()->user()->empleado->id);
 
                                 // Generar el código QR como imagen base64
-                                $qrCode = QrCode::format('png')->size(150)->generate(url('/verificacion_constancia/' . $hashedProjectId. '/' . $hashedEmployeeId));
+                                $qrCode = QrCode::format('png')->size(1000)->generate(url('/verificacion_constancia/' . $hashedProjectId. '/' . $hashedEmployeeId));
                                 $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($qrCode);
                                 
                                 // Cargar las imágenes y convertirlas a base64
