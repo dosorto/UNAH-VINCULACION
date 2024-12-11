@@ -110,10 +110,12 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                             Hidden::make('tipo_documento')
                                                 ->default('Intermedio'),
                                             TextInput::make('dd')
+                                                ->label('Tipo de Informe')
                                                 ->disabled()
                                                 ->default('Intermedio'),
 
                                             FileUpload::make('documento_url')
+                                                ->label('Informe Intermedio')
                                                 ->acceptedFileTypes(['application/pdf'])
                                         ])
                                         ->addable(false)
@@ -190,7 +192,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                                 ->default('Intermedio'),
 
                                             FileUpload::make('documento_url')
-                                                ->label('Documento')
+                                                ->label('Informe Final')
                                                 ->acceptedFileTypes(['application/pdf'])
                                         ])
                                         ->addable(false)

@@ -94,44 +94,50 @@ class CuartaParte
                 )
                 ->preload(),
 
-            Select::make('ciudad_id')
-                ->label('Ciudad')
-                ->searchable()
-                // ->visible(fn(Get $get): bool
-                // => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial')
-                ->relationship(name: 'ciudad', titleAttribute: 'nombre')
-                ->createOptionForm([
-                    Select::make('departamento_id')
-                        ->label('Departamento')
-                        ->searchable()
-                        ->options(
-                            Departamento::pluck('nombre', 'id')
-                        )
-                        ->live()
-                        ->preload(),
-                    Select::make('municipio_id')
-                        ->label('Municipio')
-                        ->searchable()
-                        ->relationship(
-                            name: 'municipio',
-                            titleAttribute: 'nombre',
-                            modifyQueryUsing: fn($query, Get $get) => $query->where('departamento_id', $get('departamento'))
-                        )
-                        ->preload(),
-                    Forms\Components\TextInput::make('nombre'), //->required(),
-                    Forms\Components\TextInput::make('codigo_postal')
-                        ->required()
-                ])
-                ->preload(),
+            // Select::make('ciudad_id')
+            //     ->label('Ciudad')
+            //     ->searchable()
+            //     // ->visible(fn(Get $get): bool
+            //     // => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial')
+            //     ->relationship(name: 'ciudad', titleAttribute: 'nombre')
+            //     ->createOptionForm([
+            //         Select::make('departamento_id')
+            //             ->label('Departamento')
+            //             ->searchable()
+            //             ->options(
+            //                 Departamento::pluck('nombre', 'id')
+            //             )
+            //             ->live()
+            //             ->preload(),
+            //         Select::make('municipio_id')
+            //             ->label('Municipio')
+            //             ->searchable()
+            //             ->relationship(
+            //                 name: 'municipio',
+            //                 titleAttribute: 'nombre',
+            //                 modifyQueryUsing: fn($query, Get $get) => $query->where('departamento_id', $get('departamento'))
+            //             )
+            //             ->preload(),
+            //         Forms\Components\TextInput::make('nombre'), //->required(),
+            //         Forms\Components\TextInput::make('codigo_postal')
+            //             ->required()
+            //     ])
+            //     ->preload(),
 
-            TextInput::make('aldea'),
+            TextInput::make('Barrio/Aldea'),
                 // ->visible(fn(Get $get): bool
                 // => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial'),
 
-            TextInput::make('resultados_esperados')
-                ->label('Resultados esperados'),
-            TextInput::make('indicadores_medicion_resultados')
-                ->label('Indicadores de medición de resultados'),
+            Fieldset::make('Presupuesto')
+                ->schema([
+                    TextInput::make('resultados_esperados')
+                        ->label('Resultados esperados'),
+                    TextInput::make('indicadores_medicion_resultados')
+                        ->label('Indicadores de medición de resultados'),
+                ])
+                ->label('')
+                ->columnSpanFull()
+                ->columns(2),
             Fieldset::make('Presupuesto')
                 ->schema([
                     TextInput::make('presupuesto.aporte_estudiantes')
