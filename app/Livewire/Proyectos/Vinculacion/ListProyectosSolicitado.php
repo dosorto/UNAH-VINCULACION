@@ -130,8 +130,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                         Action::make('aprobar')
                             ->label('Aprobar')
                             ->form([
-                                Section::make('formulario_final')
-                                ->label('Formulario Final.')
+                                Section::make('Formulario Final')
                                     ->description('')
                                     ->schema([
                                         Hidden::make('responsable_revision_id')
@@ -184,6 +183,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                                 return "{$prefix}-{$year}-{$formattedId}";
                                             }),
                                     ])
+                                    ->label('')
                                     ->columns(2),
 
 
