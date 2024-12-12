@@ -123,16 +123,28 @@ class ListInformesSolicitado extends Component implements HasForms, HasTable
                             ->modalSubheading('Para aprobar el proyecto, por favor llene los siguientes campos')
                             ->action(function (DocumentoProyecto $documentoProyecto) {
                                 // dd($this->docente);
-
+                                // dd($documentoProyecto->tipo_documento);
                                 // actualizar el estado del proyecto al siguiente estado :)
+
+                                // dd($documentoProyecto->tipo_documento);
+                                if ($documentoProyecto->tipo_documento == 'Informe Final') {
+                                    // dd('finalizado');
+                                    $documentoProyecto->proyecto->estado_proyecto()->create([
+                                        'empleado_id' => Auth::user()->empleado->id,
+                                        'tipo_estado_id' => TipoEstado::where('nombre', 'Finalizado')->first()->id,
+                                        'fecha' => now(),
+                                        'comentario' => 'El proyecto ha sido aprobado correctamente',
+                                    ]);
+                                    
+                                }
+
+                                // dd('antes de finalizar documento');
                                 $documentoProyecto->estado_documento()->create([
                                     'empleado_id' => Auth::user()->empleado->id,
                                     'tipo_estado_id' => TipoEstado::where('nombre', 'Aprobado')->first()->id,
                                     'fecha' => now(),
                                     'comentario' => 'El informe ha sido aprobado correctamente',
                                 ]);
-
-
                                 // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                                 // ->where('empleado_id', $this->docente->id)
                                 // ->first());
