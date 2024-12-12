@@ -3,22 +3,27 @@
 namespace App\Livewire\User;
 
 use App\Models\User;
-use App\Models\Personal\Empleado;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
 use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
 use Livewire\Component;
+use Filament\Tables\Table;
+use App\Livewire\User\Roles;
+use App\Models\Personal\Empleado;
+use Spatie\Permission\Models\Role;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables\Actions\ActionGroup;
-use Filament\Tables\Actions\DeleteAction;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
+use Filament\Tables\Contracts\HasTable;
 use Filament\Forms\Components\TextInput;
+use Filament\Tables\Actions\ActionGroup;
+use Spatie\Permission\Models\Permission;
 use Filament\Forms\Components\DatePicker;
+use Filament\Tables\Actions\DeleteAction;
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Tables\Concerns\InteractsWithTable;
 
 class Users extends Component implements HasForms, HasTable
 {
@@ -52,16 +57,26 @@ class Users extends Component implements HasForms, HasTable
             ->actions([
                 // ActionGroup::make([
                     EditAction::make()
-                    ->form([
-                        TextInput::make('name')
-                            ->required()
-                            ->maxLength(255),
-                        TextInput::make('email')
-                            ->required()
-                            ->maxLength(255),
-                        // TextInput::make('password')
-                        //     ->required(),
-                    ]),
+                        ->form([
+                            TextInput::make('name')
+                                ->required()
+                                ->maxLength(255),
+                            TextInput::make('email')
+                                ->required()
+                                ->maxLength(255),
+                            Select::make('roles')
+                                ->label('Roles')
+                                ->relationship(name: 'roles', titleAttribute: 'name')
+                                ->preload()
+                                ->multiple(),
+                            Select::make('permissions')
+                                ->label('Permisos')
+                                ->relationship(name: 'permissions', titleAttribute: 'name')
+                                ->preload()
+                                ->multiple(),
+                            // TextInput::make('password')
+                            //     ->required(),
+                        ]),
                     // DeleteAction::make(),
                 // ]),
                 //
@@ -81,8 +96,9 @@ class Users extends Component implements HasForms, HasTable
                         TextInput::make('email')
                             ->required()
                             ->maxLength(255),
-                        TextInput::make('password')
-                            ->required(),
+                        Hidden::make('password')
+                            ->required()
+                            ->default(bcrypt('123456dummy')),
                         TextInput::make('nombre')
                             ->required()
                             ->maxLength(255),

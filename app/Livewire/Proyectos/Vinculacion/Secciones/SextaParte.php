@@ -22,6 +22,7 @@ class SextaParte
                     Select::make('empleado_id')
                         ->label('')
                         ->searchable(['nombre_completo', 'numero_empleado'])
+                        ->required()
                         ->relationship(name: 'empleado', titleAttribute: 'nombre_completo'),
                     TextInput::make('cargo')
                         ->label('')
@@ -50,6 +51,7 @@ class SextaParte
                 ->schema([
                     Select::make('empleado_id')
                         ->label('')
+                        ->required()
                         ->searchable(['nombre_completo', 'numero_empleado'])
                         ->relationship(name: 'empleado', titleAttribute: 'nombre_completo'),
                     TextInput::make('cargo')
@@ -79,6 +81,7 @@ class SextaParte
                 ->schema([
                     Select::make('empleado_id')
                         ->label('')
+                        ->required()
                         ->searchable(['nombre_completo', 'numero_empleado'])
                         ->relationship(name: 'empleado', titleAttribute: 'nombre_completo'),
 

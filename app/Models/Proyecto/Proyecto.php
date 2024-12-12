@@ -161,6 +161,18 @@ class Proyecto extends Model
         return $this->hasMany(DocumentoProyecto::class, 'proyecto_id');
     }
 
+    public function documento_intermedio() {
+        return $this->documentos()
+                ->where('tipo_documento', 'Informe Intermedio')
+                ->first();
+    }
+
+    public function documento_final() {
+        return $this->documentos()
+                ->where('tipo_documento', 'Informe Final')
+                ->first();
+    }
+
 
     // public function coordinador()
     // {
@@ -357,6 +369,14 @@ class Proyecto extends Model
     {
         return $this->morphMany(EstadoProyecto::class, 'estadoable');
     }
+
+    public function obtenerUltimoEstado()
+    {
+        return $this->estado_proyecto()
+                    ->latest('created_at') // Ordenar por la columna que representa el último registro
+                    ->first();
+    }
+
 
 
     // relacion uno a muchos con actividad 

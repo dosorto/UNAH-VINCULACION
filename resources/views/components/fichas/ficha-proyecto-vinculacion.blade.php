@@ -10,30 +10,30 @@
 </head>
 
 <body>
-    @if ($proyecto->documento_intermedio && $proyecto->documento_intermedio->documento_url != null)
+    @if ($proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
         <x-filament::section collapsible collapsed persist-collapsed id="user-details">
             <x-slot name="heading">
-                Documento Intermedio, Estado: {{$proyecto->documento_intermedio->estado->tipoestado->nombre}}
+                Informe Intermedio, Estado: {{$proyecto->documento_intermedio()->estado->tipoestado->nombre}}
             </x-slot>
             <x-slot name="description">
-                {{$proyecto->documento_intermedio->estado->comentario}}
+                {{$proyecto->documento_intermedio()->estado->comentario}}
             </x-slot>
-            <embed src="{{ asset('storage/' . $proyecto->documento_intermedio->documento_url) 
+            <embed src="{{ asset('storage/' . $proyecto->documento_intermedio()->documento_url) 
                 
                 }}" type="application/pdf" width="100%"
                 height="600px" />
         </x-filament::section>
     @endif
-    @if ($proyecto->documento_final && $proyecto->documento_final->documento_url != null)
+    @if ($proyecto->documento_final() && $proyecto->documento_final()->documento_url != null)
         <x-filament::section collapsible collapsed persist-collapsed id="user-details">
             <x-slot name="heading">
-                Documento Final, Estado: {{$proyecto->documento_final->estado->tipoestado->nombre}}
+                Informe Final, Estado: {{$proyecto->documento_final()->estado->tipoestado->nombre}}
             </x-slot>
             <x-slot name="description">
-                {{$proyecto->documento_final->estado->comentario}}
+                {{$proyecto->documento_final()->estado->comentario}}
             </x-slot>
             <h1>Visualizador de PDF</h1>
-            <embed src="{{ asset('storage/' . $proyecto->documento_final->documento_url) }}" type="application/pdf"
+            <embed src="{{ asset('storage/' . $proyecto->documento_final()->documento_url) }}" type="application/pdf"
                 width="100%" height="600px" />
         </x-filament::section>
     @endif
