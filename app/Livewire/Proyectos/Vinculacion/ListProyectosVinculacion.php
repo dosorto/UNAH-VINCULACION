@@ -73,6 +73,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('poblacion_participante')
+                    ->label('Población Participante')
                     ->numeric()
                     ->sortable(),
 

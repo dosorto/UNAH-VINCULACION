@@ -131,7 +131,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                             ->label('Aprobar')
                             ->form([
                                 Section::make('formulario_final')
-                                ->label(' ')
+                                ->label('Formulario Final.')
                                     ->description('')
                                     ->schema([
                                         Hidden::make('responsable_revision_id')
@@ -158,21 +158,21 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                             ->preload()
                                             ->required(),
                                         DatePicker::make('fecha_aprobacion')
-                                            ->label('Fecha de aprobacion')
+                                            ->label('Fecha de aprobación.')
                                             ->columnSpan(1)
                                             ->required(),
                                         DatePicker::make('fecha_registro')
-                                            ->label('Fecha de registro')
+                                            ->label('Fecha de registro.')
                                             ->columnSpan(1)
                                             ->required(),
                                         TextInput::make('numero_libro')
-                                            ->label('Numero de libro')
+                                            ->label('Número de libro.')
                                             ->numeric(),
                                         TextInput::make('numero_tomo')
-                                            ->label('Numero de tomo')
+                                            ->label('Número de tomo.')
                                             ->numeric(),
                                         TextInput::make('numero_folio')
-                                            ->label('Numero de folio')
+                                            ->label('Número de folio.')
                                             ->numeric(),
                                         Hidden::make('numero_dictamen')
                                             ->default(function (Proyecto $proyecto) {
@@ -193,7 +193,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                             ->color('success')
                             ->requiresConfirmation()
                             ->modalHeading('Terminar Registro') // Título del diálogo
-                            ->modalSubheading('Para aprobar el proyecto, por favor llene los siguientes campos')
+                            ->modalSubheading('Para aprobar el proyecto, por favor llene los siguientes campos:')
                             ->action(function (Proyecto $proyecto, array $data) {
                                 // dd($this->docente);
 
