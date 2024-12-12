@@ -124,11 +124,12 @@ class CuartaParte
             //     ])
             //     ->preload(),
 
-            TextInput::make('Barrio/Aldea'),
+            TextInput::make('aldea')
+                ->label('Barrio/Aldea'),
                 // ->visible(fn(Get $get): bool
                 // => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial'),
 
-            Fieldset::make('Presupuesto')
+            Fieldset::make('Resultados_indicadores')
                 ->schema([
                     TextInput::make('resultados_esperados')
                         ->label('Resultados esperados'),
@@ -140,53 +141,54 @@ class CuartaParte
                 ->columns(2),
             Fieldset::make('Presupuesto')
                 ->schema([
-                    TextInput::make('presupuesto.aporte_estudiantes')
+                    TextInput::make('aporte_estudiantes')
                         ->label('Aporte de estudiantes')
                         ->numeric()
-                        ->columnSpan(1),
-                    TextInput::make('presupuesto.aporte_profesores')
+                        ->required(),
+                    
+                    TextInput::make('aporte_profesores')
                         ->label('Aporte de profesores')
                         ->numeric()
-                        ->columnSpan(1),
-                    TextInput::make('presupuesto.aporte_academico_unah')
+                        ->required(),
+                    
+                    TextInput::make('aporte_academico_unah')
                         ->label('Aporte académico UNAH')
                         ->numeric()
-                        ->columnSpan(1),
-                    TextInput::make('presupuesto.aporte_transporte_unah')
+                        ->required(),
+                    
+                    TextInput::make('aporte_transporte_unah')
                         ->label('Aporte de transporte UNAH')
                         ->numeric()
-                        ->columnSpan(1),
-                    TextInput::make('presupuesto.aporte_contraparte')
+                        ->required(),
+                    
+                    TextInput::make('aporte_contraparte')
                         ->label('Aporte de contraparte')
                         ->numeric()
-                        ->columnSpan(1),
-                    TextInput::make('presupuesto.aporte_comunidad')
+                        ->required(),
+                    
+                    TextInput::make('aporte_comunidad')
                         ->label('Aporte de comunidad')
                         ->numeric()
-                        ->columnSpan(1),
-
-                    TextInput::make('total_unah')
-                        ->label('Total UNAH')
-                        ->disabled()
+                        ->required(),
+                ])
+                ->relationship('presupuesto') // Relación hasOne
+                ->columnSpanFull()
+                ->columns(2 ),
+            
+            Repeater::make('superavit')
+                ->schema([
+                    Forms\Components\TextInput::make('inversion')
+                        ->label('Inversión')
                         ->numeric()
                         ->columnSpan(1),
-
-                    Repeater::make('superavit')
-                        ->schema([
-                            Forms\Components\TextInput::make('inversion')
-                                ->label('Inversión')
-                                ->numeric()
-                                ->columnSpan(1),
-                            //->required
-                            Forms\Components\TextInput::make('monto'),
-                            //->required
-                        ])
-                        ->label('Superávit')
-                        ->columnSpanFull()
-                        ->defaultItems(0)
-                        ->relationship()
+                    //->required
+                    Forms\Components\TextInput::make('monto'),
+                    //->required
                 ])
-                ->columns(2),
+                ->label('Superávit')
+                ->columnSpanFull()
+                ->defaultItems(0)
+                ->relationship(),
         ];
     }
 }

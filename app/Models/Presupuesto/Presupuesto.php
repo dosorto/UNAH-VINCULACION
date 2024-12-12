@@ -36,9 +36,13 @@ class Presupuesto extends Model
 
     protected $fillable = [
         'id',
-        'tipo_presupuesto_id',
-        'administrador_id',
         'proyecto_id',
+        'aporte_estudiantes',
+        'aporte_profesores',
+        'aporte_academico_unah',
+        'aporte_transporte_unah',
+        'aporte_contraparte',
+        'aporte_comunidad',
     ];
 
     public function tipopresupuesto()

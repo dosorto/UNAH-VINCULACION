@@ -96,6 +96,7 @@ class EditProyectoVinculacionForm extends Component implements HasForms
                         ->description('Información general del proyecto')
                         ->schema(
                             PrimeraParte::form()
+                            // CuartaParte::form(),
                         )
                         ->columns(2),
                     Wizard\Step::make('II.')
@@ -208,8 +209,10 @@ class EditProyectoVinculacionForm extends Component implements HasForms
     {
         $data = $this->form->getState();
 
+        // dd($data);
         $this->record->update($data);
         $this->record->save();
+        // dd($this->record->presupuesto);
         Notification::make()
             ->title('¡Éxito!')
             ->body('Cambios guardados')
