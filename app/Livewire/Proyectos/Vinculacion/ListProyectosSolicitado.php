@@ -136,6 +136,18 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                     ->schema([
                                         Hidden::make('responsable_revision_id')
                                             ->default(auth()->user()->empleado->id),
+                                        TextInput::make('numero_dictamen')
+                                            ->label('Numero de dictamen')
+                                            ->disabled()
+                                            ->columnSpanFull()
+                                            ->default(function (Proyecto $proyecto) {
+                                                $prefix = 'VRA';
+                                                $year = date('Y'); // Obtiene el año actual
+                                                $nextId = $proyecto ? $proyecto->id + 1 : 1; // Incrementa el ID o lo inicia en 1
+                                                $formattedId = str_pad($nextId, 3, '0', STR_PAD_LEFT); // Formatea el ID a 3 dígitos
+
+                                                return "{$prefix}-{$year}-{$formattedId}";
+                                            }),
                                         Select::make('ods')
                                             ->label('ODS')
                                             ->multiple()
@@ -162,8 +174,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                         TextInput::make('numero_folio')
                                             ->label('Numero de folio')
                                             ->numeric(),
-                                        TextInput::make('numero_dictamen')
-                                            ->label('Numero de dictamen')
+                                        Hidden::make('numero_dictamen')
                                             ->default(function (Proyecto $proyecto) {
                                                 $prefix = 'VRA';
                                                 $year = date('Y'); // Obtiene el año actual

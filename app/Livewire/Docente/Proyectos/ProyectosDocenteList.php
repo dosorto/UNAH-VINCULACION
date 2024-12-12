@@ -100,19 +100,21 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         ->modalWidth(MaxWidth::SevenExtraLarge)
                         ->extraModalFooterActions([
                             Action::make('third')
-                                ->label(function (Proyecto $proyecto) {
-                                    return $proyecto->estado->tipoestado->nombre == 'En curso' ? 'Subsanar' : 'Revisar';
-                                })
+                                ->label('Subir Informe Intermedio'
+                                //     function (Proyecto $proyecto) {
+                                //     return $proyecto->estado->tipoestado->nombre == 'En curso' ? 'Subsanar' : 'Revisar';
+                                // }
+                                )
                                 ->form([
 
                                     Repeater::make('documentos')
                                         ->schema([
                                             Hidden::make('tipo_documento')
-                                                ->default('Intermedio'),
+                                                ->default('Informe Intermedio'),
                                             TextInput::make('dd')
                                                 ->label('Tipo de Informe')
                                                 ->disabled()
-                                                ->default('Intermedio'),
+                                                ->default('Informe Intermedio'),
 
                                             FileUpload::make('documento_url')
                                                 ->label('Informe Intermedio')
@@ -125,20 +127,20 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 ->action(function (Proyecto $proyecto, array $data) {
                                     // eliminar las firmas de los documentos intermedios anteriores
                                     $proyecto->documentos()
-                                        ->where('tipo_documento', 'Intermedio')
+                                        ->where('tipo_documento', 'Informe Intermedio')
                                         ->each(function ($documento) {
                                             $documento->firma_documento()->delete();
                                         });
 
                                     // eliminar los estados de los documentos intermedios anteriores
                                     $proyecto->documentos()
-                                        ->where('tipo_documento', 'Intermedio')
+                                        ->where('tipo_documento', 'Informe Intermedio')
                                         ->each(function ($documento) {
                                             $documento->estado_documento()->delete();
                                         });
                                     // eliminar todos los documentos intermedios anteriores
                                     $proyecto->documentos()
-                                        ->where('tipo_documento', 'Intermedio')
+                                        ->where('tipo_documento', 'Informe Intermedio')
                                         ->delete();
 
                                     // crear el documento intermedio 
@@ -162,6 +164,8 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                         'fecha' => now(),
                                         'comentario' => 'Documento creado',
                                     ]);
+
+                                    // dd($proyecto->documento_intermedio());
                                 })
                                 ->icon('heroicon-o-document-arrow-up') // Icono para "Rechazar"
                                 ->color('success')
@@ -169,8 +173,8 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 ->modalSubheading('A continuación se muestran los documentos del proyecto y su estado')
                                 ->visible(function (Proyecto $proyecto) {
                                     return ($proyecto->estado->tipoestado->nombre == 'En curso' &&
-                                        is_null($proyecto->documento_intermedio)) ||
-                                        $proyecto->documento_intermedio?->estado?->tipoestado?->nombre == 'Subsanacion';
+                                        is_null($proyecto->documento_intermedio())) ||
+                                        $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion';
                                 })
                                 ->modalWidth(MaxWidth::SevenExtraLarge),
 
@@ -185,11 +189,11 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                     Repeater::make('documentos')
                                         ->schema([
                                             Hidden::make('tipo_documento')
-                                                ->default('Final'),
+                                                ->default('Informe Final'),
                                             TextInput::make('informe_final')
                                                 ->label('Tipo de Informe')
                                                 ->disabled()
-                                                ->default('Intermedio'),
+                                                ->default('Informe Final'),
 
                                             FileUpload::make('documento_url')
                                                 ->label('Informe Final')
@@ -202,20 +206,20 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 ->action(function (Proyecto $proyecto, array $data) {
                                     // eliminar las firmas de los documentos intermedios anteriores
                                     $proyecto->documentos()
-                                        ->where('tipo_documento', 'Final')
+                                        ->where('tipo_documento', 'Informe Final')
                                         ->each(function ($documento) {
                                             $documento->firma_documento()->delete();
                                         });
 
                                     // eliminar los estados de los documentos intermedios anteriores
                                     $proyecto->documentos()
-                                        ->where('tipo_documento', 'Final')
+                                        ->where('tipo_documento', 'Informe Final')
                                         ->each(function ($documento) {
                                             $documento->estado_documento()->delete();
                                         });
                                     // eliminar todos los documentos intermedios anteriores
                                     $proyecto->documentos()
-                                        ->where('tipo_documento', 'Final')
+                                        ->where('tipo_documento', 'Informe Final')
                                         ->delete();
 
                                     // crear el documento intermedio 
@@ -246,10 +250,10 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 ->modalSubheading('A continuación se muestran los documentos del proyecto y su estado')
                                 ->visible(function (Proyecto $proyecto) {
                                     return ($proyecto->estado->tipoestado->nombre == 'En curso' &&
-                                        $proyecto->documento_intermedio?->estado?->tipoestado?->nombre == 'Aprobado') &&
-                                        is_null($proyecto->documento_final)
+                                        $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Aprobado') &&
+                                        is_null($proyecto->documento_final())
                                         ||
-                                        $proyecto->documento_final?->estado?->tipoestado?->nombre == 'Subsanacion';
+                                        $proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion';
                                 })
                                 ->modalWidth(MaxWidth::SevenExtraLarge),
 
@@ -263,7 +267,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-document')
                         ->color('warning')
                         ->visible(function (Proyecto $proyecto) {
-                            return $proyecto->estado->tipoestado->nombre == 'Subsanacion';
+                            return $proyecto->estado->tipoestado->nombre == 'Subsanacion' || $proyecto->estado->tipoestado->nombre == 'Borrador';
                         })
                         ->url(fn (Proyecto $record): string => route('editarProyectoVinculacion', $record)),
                         Action::make('constancia')

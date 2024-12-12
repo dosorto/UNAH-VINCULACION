@@ -69,10 +69,22 @@ class EditProyectoVinculacionForm extends Component implements HasForms
 
     public Proyecto $record;
 
-    public function mount(Proyecto $proyecto): void
+    public function mount(Proyecto $proyecto)
     {
         $this->record = $proyecto;
-        $this->form->fill($this->record->attributesToArray());
+
+        if (in_array($this->record->obtenerUltimoEstado()->tipo_estado_id, TipoEstado::whereIn('nombre', ['Borrador', 'Subsanacion'])->pluck('id')->toArray())) {
+            $this->form->fill($this->record->attributesToArray());
+        } else {
+            Notification::make()
+                ->title('¡Error!')
+                ->body('El proyecto no se encuentra en estado de Borrador o Subsanación')
+                ->danger()
+                ->send();
+            return redirect()->route('proyectosDocente');
+        }
+        
+        // $this->form->fill($this->record->attributesToArray());
     }
 
     public function form(Form $form): Form
@@ -136,23 +148,46 @@ class EditProyectoVinculacionForm extends Component implements HasForms
             ->model($this->record);
     }
 
-    public function save(): void
+    public function save()
     {
         $data = $this->form->getState();
 
         $this->record->update($data);
 
-        $firmaP = $this->record->firma_proyecto()->create([
-            'empleado_id' => auth()->user()->empleado->id,
-            'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
-                ->where('cargo_firma.descripcion', 'Proyecto')
-                ->first()->id,
-            'estado_revision' => 'Aprobado',
-            'firma_id' => auth()->user()->empleado->firma->id,
-            'sello_id' => auth()->user()->empleado->sello->id,
-            'hash' => 'hash'
-        ]);
+        // $firmaP = $this->record->firma_proyecto()->create([
+        //     'empleado_id' => auth()->user()->empleado->id,
+        //     'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+        //         ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+        //         ->where('cargo_firma.descripcion', 'Proyecto')
+        //         ->first()->id,
+        //     'estado_revision' => 'Aprobado',
+        //     'firma_id' => auth()->user()->empleado->firma->id,
+        //     'sello_id' => auth()->user()->empleado->sello->id,
+        //     'hash' => 'hash'
+        // ]);
+
+        $firmaP = $this->record->firma_proyecto()->updateOrCreate(
+            // Condiciones para buscar un registro existente
+            [
+                'empleado_id' => auth()->user()->empleado->id,
+                'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                    ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+                    ->where('cargo_firma.descripcion', 'Proyecto')
+                    ->first()->id,
+            ],
+            // Valores para actualizar o crear
+            [
+                'empleado_id' => auth()->user()->empleado->id,
+                'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                    ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+                    ->where('cargo_firma.descripcion', 'Proyecto')
+                    ->first()->id,
+                'estado_revision' => 'Aprobado',
+                'firma_id' => auth()->user()->empleado->firma->id,
+                'sello_id' => auth()->user()->empleado->sello->id,
+                'hash' => 'hash',
+            ]
+        );
 
         $this->record->estado_proyecto()->create([
             'empleado_id' => auth()->user()->empleado->id,
@@ -166,7 +201,7 @@ class EditProyectoVinculacionForm extends Component implements HasForms
             ->body('El proyecto ha sido enviado a firmar exitosamente')
             ->success()
             ->send();
-        $this->js('location.reload();');
+        return redirect()->route('proyectosDocente');
     }
 
     public function borrador(): void
