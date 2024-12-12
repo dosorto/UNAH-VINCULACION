@@ -263,7 +263,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-document')
                         ->color('warning')
                         ->visible(function (Proyecto $proyecto) {
-                            return $proyecto->estado->tipoestado->nombre == 'Subsanacion';
+                            return $proyecto->estado->tipoestado->nombre == 'Subsanacion' || $proyecto->estado->tipoestado->nombre == 'Borrador';
                         })
                         ->url(fn (Proyecto $record): string => route('editarProyectoVinculacion', $record)),
                         Action::make('constancia')

@@ -107,17 +107,40 @@ class CreateProyectoVinculacion extends Component implements HasForms
         $record = Proyecto::create($data);
         $this->form->model($record)->saveRelationships();
 
-        $firmaP = $record->firma_proyecto()->create([
-            'empleado_id' => auth()->user()->empleado->id,
-            'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
-                ->where('cargo_firma.descripcion', 'Proyecto')
-                ->first()->id,
-            'estado_revision' => 'Aprobado',
-            'firma_id' => auth()->user()->empleado->firma->id,
-            'sello_id' => auth()->user()->empleado->sello->id,
-            'hash' => 'hash'
-        ]);
+        // $firmaP = $record->firma_proyecto()->create([
+        //     'empleado_id' => auth()->user()->empleado->id,
+        //     'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+        //         ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+        //         ->where('cargo_firma.descripcion', 'Proyecto')
+        //         ->first()->id,
+        //     'estado_revision' => 'Aprobado',
+        //     'firma_id' => auth()->user()->empleado->firma->id,
+        //     'sello_id' => auth()->user()->empleado->sello->id,
+        //     'hash' => 'hash'
+        // ]);
+
+        $firmaP = $record->firma_proyecto()->updateOrCreate(
+            // Condiciones para buscar un registro existente
+            [
+                'empleado_id' => auth()->user()->empleado->id,
+                'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                    ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+                    ->where('cargo_firma.descripcion', 'Proyecto')
+                    ->first()->id,
+            ],
+            // Valores para actualizar o crear
+            [
+                'empleado_id' => auth()->user()->empleado->id,
+                'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                    ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+                    ->where('cargo_firma.descripcion', 'Proyecto')
+                    ->first()->id,
+                'estado_revision' => 'Aprobado',
+                'firma_id' => auth()->user()->empleado->firma->id,
+                'sello_id' => auth()->user()->empleado->sello->id,
+                'hash' => 'hash',
+            ]
+        );
 
         $record->estado_proyecto()->create([
             'empleado_id' => auth()->user()->empleado->id,

@@ -358,6 +358,14 @@ class Proyecto extends Model
         return $this->morphMany(EstadoProyecto::class, 'estadoable');
     }
 
+    public function obtenerUltimoEstado()
+    {
+        return $this->estado_proyecto()
+                    ->latest('created_at') // Ordenar por la columna que representa el último registro
+                    ->first();
+    }
+
+
 
     // relacion uno a muchos con actividad 
     public function actividades()
