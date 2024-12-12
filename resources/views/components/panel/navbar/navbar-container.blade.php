@@ -7,7 +7,7 @@
             <div class="flex items-center  justify-between ">
                 <div class="flex items-center ">
                     <div class="w-36 h-8 rounded-lg flex items-center justify-center">
-                        <img src="{{ asset('images/LOGO.png') }}" alt="Logo" class="mx-auto"
+                        <img src="{{ asset('images/logo_nuevo.png') }}" alt="Logo" class="mx-auto"
                             style="width: auto; height: auto;">
                     </div>
 
