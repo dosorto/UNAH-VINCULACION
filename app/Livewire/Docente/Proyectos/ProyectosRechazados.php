@@ -32,33 +32,30 @@ class ProyectosRechazados extends Component implements HasForms, HasTable
     {
         return $table
             ->query(
-                Proyecto::query()
-                    ->whereIn('id', $this->docente->firmaProyectoRechazado->pluck('proyecto_id')->toArray())
+                $this->docente->firmaProyectoRechazado()
+                    ->getQuery()
             )
             ->columns([
                 //
-                Tables\Columns\TextColumn::make('nombre_proyecto')
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('departamentos_academicos.nombre')
+                Tables\Columns\TextColumn::make('cargo_firma.tipoCargoFirma.nombre')
                     ->badge()
                     ->color('info')
                     ->separator(',')
                     ->wrap()
-                    ->label('Departamento')
+                    ->label('Cargo de firma')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('facultades_centros.nombre')
-                    ->badge()
-                    ->wrap()
-                    ->label('Centro/Facultad'),
+                Tables\Columns\TextColumn::make('estado_revision')
+                    ->label('Estado Firma')
+                    ->searchable(),
 
-                Tables\Columns\TextColumn::make('fecha_inicio')
-                    ->date()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('firma_proyecto_cargo.cargo_firma.nombre')
-                    ->label('cargo')
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('cargo_firma.descripcion')
+                    ->badge()
+                    ->color('info')
+                    ->separator(',')
+                    ->wrap()
+                    ->label('Tipo Firma')
+                    ->searchable(),
             ])
             ->filters([
                 //
@@ -75,7 +72,6 @@ class ProyectosRechazados extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.docente.proyectos.proyectos-rechazados')
-            ->layout('components.panel.modulos.modulo-firmas-docente');
+        return view('livewire.docente.proyectos.proyectos-rechazados');
     }
 }

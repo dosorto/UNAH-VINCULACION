@@ -218,7 +218,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('AprobadoProyectosDocente', ProyectosAprobados::class)
             ->name('AprobadoProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
-        Route::get('RechazadoProyectosDocente', ProyectosRechazados::class)
+        Route::get('PendientesProyectosDocente', ProyectosRechazados::class)
             ->name('RechazadoProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
     });

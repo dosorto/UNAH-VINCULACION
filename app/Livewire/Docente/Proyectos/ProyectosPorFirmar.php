@@ -218,7 +218,6 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.docente.proyectos.proyectos-por-firmar')
-            ->layout('components.panel.modulos.modulo-firmas-docentfe');
+        return view('livewire.docente.proyectos.proyectos-por-firmar');
     }
 }
