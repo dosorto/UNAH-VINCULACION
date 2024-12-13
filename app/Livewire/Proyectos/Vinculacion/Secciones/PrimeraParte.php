@@ -56,7 +56,7 @@ class PrimeraParte
                     TextInput::make('nombre_empleado')
                         ->label('')
                         ->default(
-                            fn() => optional(Empleado::where('user_id', auth()->id())->first())
+                            fn() => optional(Empleado::where('user_id', auth()->user()->id)->first())
                                 ->nombre_completo
                         )
                         ->disabled(),

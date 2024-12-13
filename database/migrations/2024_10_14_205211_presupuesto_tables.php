@@ -19,12 +19,12 @@ return new class extends Migration
         Schema::create('presupuesto', function (Blueprint $table) {
             $table->id();
             $table->foreignId('proyecto_id')->constrained('proyecto');
-            $table->string('aporte_estudiantes');
-            $table->string('aporte_profesores');
-            $table->string('aporte_academico_unah');
-            $table->string('aporte_transporte_unah');
-            $table->string('aporte_contraparte');
-            $table->string('aporte_comunidad');
+            $table->string('aporte_estudiantes')->nullable();
+            $table->string('aporte_profesores')->nullable();
+            $table->string('aporte_academico_unah')->nullable();
+            $table->string('aporte_transporte_unah')->nullable();
+            $table->string('aporte_contraparte')->nullable();
+            $table->string('aporte_comunidad')->nullable();
             $table->softDeletes();
             $table->timestamps();
             $table->unique(['proyecto_id']);

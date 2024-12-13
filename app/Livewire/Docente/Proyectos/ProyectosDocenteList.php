@@ -55,6 +55,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                     ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
                     ->select('proyecto.*')
                     ->where('empleado_proyecto.empleado_id', $this->docente->id)
+                    ->distinct()
             )
             ->columns([
                 Tables\Columns\TextColumn::make('id')
