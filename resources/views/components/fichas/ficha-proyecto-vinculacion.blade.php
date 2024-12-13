@@ -761,7 +761,7 @@
                         <tr>
                             <td class="sub-header" colspan="1">Responsable de revisión</td>
                             <td class="full-width" colspan="10">
-                                <input type="text" class="input-field" value="{{ $proyecto->responsable_revision->nombre_completo }}" placeholder="Ingrese el día">
+                                <input type="text" class="input-field" value="{{ optional($proyecto->responsable_revision)->nombre_completo }}" placeholder="Ingrese el día">
                             </td>
                         </tr>
                     </table>
@@ -803,5 +803,11 @@
 
 
 </body>
+        dd(Proyecto::query()
+                    ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+                    ->select('proyecto.*')
+                    ->where('empleado_proyecto.empleado_id', $this->docente->id)
+                    ->distinct()
+                    ->get());
 
 </html>
