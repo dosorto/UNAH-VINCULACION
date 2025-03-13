@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import laravel, { refreshPaths } from 'laravel-vite-plugin'
+import tailwindcss from 'tailwindcss';
 
 export default defineConfig({
     plugins: [
@@ -15,5 +16,12 @@ export default defineConfig({
                 'app/Tables/Columns/**',
             ],
         }),
+        
     ],
+    css: {
+        postcss: {
+          plugins: [tailwindcss()],
+        },
+    }
 })
+
