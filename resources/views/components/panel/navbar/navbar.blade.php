@@ -44,9 +44,13 @@
 
 
 
-
         <!-- Grupo de "Firmas" dentro del grupo "Dashboard" -->
         <x-panel.navbar.one-item titulo="Firmas" route="SolicitudProyectosDocente" :routes="['SolicitudProyectosDocente']" :permisos="['docente-admin-proyectos', 'docente-admin-solicitados']"
             icono="heroicon-o-document-text" />
+
+        <x-panel.navbar.one-item titulo="Sugerencias" route="proyectosDocente" :routes="['proyectosDocente']"
+            icono="heroicon-o-light-bulb" :permisos="['docente-admin-proyectos', 'docente-admin-solicitados']" />
+
     </x-panel.navbar.group-item>
+
 </x-panel.navbar.navbar-container>
