@@ -134,7 +134,7 @@ class Empleado extends Model
     public function firmaProyectoRechazado()
     {
         return $this->hasMany(FirmaProyecto::class, 'empleado_id')
-            ->where('estado_revision', 'Rechazado');
+            ->where('estado_revision', 'Pendiente');
     }
 
     public function firmaProyecto()

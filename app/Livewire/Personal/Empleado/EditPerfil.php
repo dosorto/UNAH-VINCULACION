@@ -47,13 +47,15 @@ class EditPerfil extends Component implements HasForms, HasActions
         return $form
             ->schema([
                 Section::make('Editar Perfil de Empleado')
-                    ->description('Editar los datos de empleado Asociado.')
+                    ->description('Editar los datos de Empleado Asociado.')
                     ->schema([
                         // Otros campos del formulario
                         TextInput::make('nombre_completo')
+                            ->label('Nombre Completo')
                             ->required()
                             ->maxLength(255),
                         TextInput::make('numero_empleado')
+                            ->label('Número de Empleado')
                             ->required()
                             ->numeric()
                             ->maxLength(255),
@@ -62,7 +64,7 @@ class EditPerfil extends Component implements HasForms, HasActions
                             ->numeric()
                             ->maxLength(255),
                         Select::make('categoria_id')
-                            ->label('Categoria')
+                            ->label('Categoría')
                             ->relationship('categoria', 'nombre')
                             ->required(),
                         Select::make('centro_facultad_id')
@@ -70,7 +72,7 @@ class EditPerfil extends Component implements HasForms, HasActions
                             ->relationship('centro_facultad', 'nombre')
                             ->required(),
                         Select::make('departamento_academico_id')
-                            ->label('Departamento Academico')
+                            ->label('Departamento Académico')
                             ->relationship('DepartamentoAcademico', 'nombre')
                             ->required(),
 
@@ -80,6 +82,7 @@ class EditPerfil extends Component implements HasForms, HasActions
                             ->headerActions([
                                 Action::make('create')
                                     ->label('Crear Nueva Firma')
+                                    ->icon('heroicon-c-arrow-up-on-square')
                                     ->form([
                                         // ...
                                         Hidden::make('empleado_id')
@@ -125,10 +128,11 @@ class EditPerfil extends Component implements HasForms, HasActions
 
                         // Section para el sello
                         Section::make('Sello')
-                            ->description('Visualizar o agregar una nueva Firma.')
+                            ->description('Visualizar o agregar un nuevo Sello.')
                             ->headerActions([
                                 Action::make('create')
                                     ->label('Crear Nuevo Sello')
+                                    ->icon('heroicon-c-arrow-up-on-square')
                                     ->form([
                                         // ...
                                         Hidden::make('empleado_id')

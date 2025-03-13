@@ -10,30 +10,30 @@
 </head>
 
 <body>
-    @if ($proyecto->documento_intermedio && $proyecto->documento_intermedio->documento_url != null)
+    @if ($proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
         <x-filament::section collapsible collapsed persist-collapsed id="user-details">
             <x-slot name="heading">
-                Documento Intermedio, Estado: {{$proyecto->documento_intermedio->estado->tipoestado->nombre}}
+                Informe Intermedio, Estado: {{$proyecto->documento_intermedio()->estado->tipoestado->nombre}}
             </x-slot>
             <x-slot name="description">
-                {{$proyecto->documento_intermedio->estado->comentario}}
+                {{$proyecto->documento_intermedio()->estado->comentario}}
             </x-slot>
-            <embed src="{{ asset('storage/' . $proyecto->documento_intermedio->documento_url) 
+            <embed src="{{ asset('storage/' . $proyecto->documento_intermedio()->documento_url) 
                 
                 }}" type="application/pdf" width="100%"
                 height="600px" />
         </x-filament::section>
     @endif
-    @if ($proyecto->documento_final && $proyecto->documento_final->documento_url != null)
+    @if ($proyecto->documento_final() && $proyecto->documento_final()->documento_url != null)
         <x-filament::section collapsible collapsed persist-collapsed id="user-details">
             <x-slot name="heading">
-                Documento Final, Estado: {{$proyecto->documento_final->estado->tipoestado->nombre}}
+                Informe Final, Estado: {{$proyecto->documento_final()->estado->tipoestado->nombre}}
             </x-slot>
             <x-slot name="description">
-                {{$proyecto->documento_final->estado->comentario}}
+                {{$proyecto->documento_final()->estado->comentario}}
             </x-slot>
             <h1>Visualizador de PDF</h1>
-            <embed src="{{ asset('storage/' . $proyecto->documento_final->documento_url) }}" type="application/pdf"
+            <embed src="{{ asset('storage/' . $proyecto->documento_final()->documento_url) }}" type="application/pdf"
                 width="100%" height="600px" />
         </x-filament::section>
     @endif
@@ -761,49 +761,38 @@
                         <tr>
                             <td class="sub-header" colspan="1">Responsable de revisión</td>
                             <td class="full-width" colspan="10">
-                                <input type="text" class="input-field" placeholder="Ingrese el día">
+                                <input type="text" class="input-field" value="{{ optional($proyecto->responsable_revision)->nombre_completo }}" placeholder="Ingrese el día">
                             </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="1">Fecha de Aprobación</td>
-                            <td class="full-width" colspan="6">
-                                <input type="text" class="input-field" placeholder="Ingrese el día">
-                            </td>
-                            <td class="sub-header" colspan="1">Fecha de Registro</td>
-                            <td class="full-width" colspan="6">
-                                <input type="text" class="input-field" placeholder="Ingrese el día">
-                            </td>
-
                         </tr>
                     </table>
                     <table class="table_datos5">
                         <td class="sub-header" colspan="1">Fecha de Aprobación</td>
                         <td class="full-width" colspan="6">
-                            <input type="text" class="input-field" placeholder="Ingrese el día">
+                            <input type="text" class="input-field" value="{{ $proyecto->fecha_aprobacion }}" placeholder="Ingrese el día">
                         </td>
                         <td class="sub-header" colspan="1">Fecha de Registro</td>
                         <td class="full-width" colspan="6">
-                            <input type="text" class="input-field" placeholder="Ingrese el día">
+                            <input type="text" class="input-field" value="{{ $proyecto->fecha_registro }}" placeholder="Ingrese el día">
                         </td>
                         </tr>
                     </table>
                     <table class="table_datos7">
                         <td class="sub-header" colspan="1">No. de Libro </td>
                         <td class="full-width" colspan="1">
-                            <input type="text" class="input-field" placeholder="Ingrese el día">
+                            <input type="text" class="input-field" value="{{ $proyecto->numero_libro }}" placeholder="Ingrese el día">
                         </td>
                         <td class="sub-header" colspan="1">No. de Tomo </td>
                         <td class="full-width" colspan="1">
-                            <input type="text" class="input-field" placeholder="Ingrese el día">
+                            <input type="text" class="input-field" value="{{ $proyecto->numero_tomo }}" placeholder="Ingrese el día">
                         </td>
                         <td class="sub-header" colspan="1">No. de Folio </td>
                         <td class="full-width" colspan="1">
-                            <input type="text" class="input-field" placeholder="Ingrese el día">
+                            <input type="text" class="input-field" value="{{ $proyecto->numero_folio }}" placeholder="Ingrese el día">
                         </td>
                         </tr>
                     </table>
 
-                    <div class="header-box"> <input type="text" class="input-field"
+                    <div class="header-box"> <input type="text" class="input-field" value="{{ $proyecto->numero_dictamen }}"
                             placeholder="Ingrese No. dictamen de Proyecto">
                         <p class="header-text">No. dictamen de Proyecto</p>
                     </div>
@@ -814,5 +803,11 @@
 
 
 </body>
+        dd(Proyecto::query()
+                    ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+                    ->select('proyecto.*')
+                    ->where('empleado_proyecto.empleado_id', $this->docente->id)
+                    ->distinct()
+                    ->get());
 
 </html>

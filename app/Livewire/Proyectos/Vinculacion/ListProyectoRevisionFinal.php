@@ -128,7 +128,7 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
                             ->color('success')
                             ->requiresConfirmation()
                             ->modalHeading('Terminar Registro') // Título del diálogo
-                            ->modalSubheading('Para aprobar el proyecto, por favor llene los siguientes campos')
+                            ->modalSubheading('Para aprobar el proyecto, por favor presione el botón "Aprobar"')
                             ->action(function (Proyecto $proyecto, array $data) {
                                 // dd($this->docente);
 

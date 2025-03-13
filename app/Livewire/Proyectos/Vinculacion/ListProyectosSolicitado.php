@@ -130,12 +130,23 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                         Action::make('aprobar')
                             ->label('Aprobar')
                             ->form([
-                                Section::make('formulario_final')
-                                ->label(' ')
+                                Section::make('Formulario Final')
                                     ->description('')
                                     ->schema([
                                         Hidden::make('responsable_revision_id')
                                             ->default(auth()->user()->empleado->id),
+                                        TextInput::make('numero_dictamen')
+                                            ->label('Numero de dictamen')
+                                            ->disabled()
+                                            ->columnSpanFull()
+                                            ->default(function (Proyecto $proyecto) {
+                                                $prefix = 'VRA';
+                                                $year = date('Y'); // Obtiene el año actual
+                                                $nextId = $proyecto ? $proyecto->id + 1 : 1; // Incrementa el ID o lo inicia en 1
+                                                $formattedId = str_pad($nextId, 3, '0', STR_PAD_LEFT); // Formatea el ID a 3 dígitos
+
+                                                return "{$prefix}-{$year}-{$formattedId}";
+                                            }),
                                         Select::make('ods')
                                             ->label('ODS')
                                             ->multiple()
@@ -146,24 +157,23 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                             ->preload()
                                             ->required(),
                                         DatePicker::make('fecha_aprobacion')
-                                            ->label('Fecha de aprobacion')
+                                            ->label('Fecha de aprobación.')
                                             ->columnSpan(1)
                                             ->required(),
                                         DatePicker::make('fecha_registro')
-                                            ->label('Fecha de registro')
+                                            ->label('Fecha de registro.')
                                             ->columnSpan(1)
                                             ->required(),
                                         TextInput::make('numero_libro')
-                                            ->label('Numero de libro')
+                                            ->label('Número de libro.')
                                             ->numeric(),
                                         TextInput::make('numero_tomo')
-                                            ->label('Numero de tomo')
+                                            ->label('Número de tomo.')
                                             ->numeric(),
                                         TextInput::make('numero_folio')
-                                            ->label('Numero de folio')
+                                            ->label('Número de folio.')
                                             ->numeric(),
-                                        TextInput::make('numero_dictamen')
-                                            ->label('Numero de dictamen')
+                                        Hidden::make('numero_dictamen')
                                             ->default(function (Proyecto $proyecto) {
                                                 $prefix = 'VRA';
                                                 $year = date('Y'); // Obtiene el año actual
@@ -173,6 +183,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                                 return "{$prefix}-{$year}-{$formattedId}";
                                             }),
                                     ])
+                                    ->label('')
                                     ->columns(2),
 
 
@@ -182,7 +193,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                             ->color('success')
                             ->requiresConfirmation()
                             ->modalHeading('Terminar Registro') // Título del diálogo
-                            ->modalSubheading('Para aprobar el proyecto, por favor llene los siguientes campos')
+                            ->modalSubheading('Para aprobar el proyecto, por favor llene los siguientes campos:')
                             ->action(function (Proyecto $proyecto, array $data) {
                                 // dd($this->docente);
 
