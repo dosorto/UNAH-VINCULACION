@@ -102,7 +102,7 @@ class PersonalSeeder extends Seeder
 
         $user = User::create([
             'name' => 'neto',
-            'email' => 'neto@unah.hn',
+            'email' => 'notificacionespoa@unah.edu.hn',
             'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
         ])->assignRole('admin');
         
@@ -301,7 +301,7 @@ class PersonalSeeder extends Seeder
             [
                 'nombre' => 'Francisco Josafat',
                 'apellido' => 'Paz Flores',
-                'cuenta' => 'Grupo 2',
+                'cuenta' => '20212300157',
                 'email' => 'fjpazf@unah.hn',
             ],
         ];

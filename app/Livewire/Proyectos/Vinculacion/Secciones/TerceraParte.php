@@ -36,6 +36,11 @@ class TerceraParte
                                     return $item['empleado_id'];
                                 }, $data);
 
+                                // agregar al $ids el id del usuario logueado porque es el coordinador del proyecto
+                                $ids[] = auth()->user()->empleado->id;
+
+                                
+
                                 $query->whereIn('empleado.id', $ids)
                                     ->with(['actividades']);
                             }

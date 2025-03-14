@@ -23,12 +23,18 @@ class CuartaParte
         return [
             Forms\Components\Textarea::make('resumen')
                 ->label('Resumen')
+                ->rows(10)
+                ->cols(30)
                 ->columnSpanFull(),
             Forms\Components\Textarea::make('objetivo_general')
                 ->label('Objetivo general')
+                ->rows(10)
+                ->cols(30)
                 ->columnSpanFull(),
             Forms\Components\Textarea::make('objetivos_especificos')
                 ->label('Objetivos específicos')
+                ->rows(10)
+                ->cols(30)
                 ->columnSpanFull(),
 
             Fieldset::make('Fechas')
@@ -126,8 +132,8 @@ class CuartaParte
 
             TextInput::make('aldea')
                 ->label('Barrio/Aldea'),
-                // ->visible(fn(Get $get): bool
-                // => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial'),
+            // ->visible(fn(Get $get): bool
+            // => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial'),
 
             Fieldset::make('Resultados_indicadores')
                 ->schema([
@@ -145,27 +151,27 @@ class CuartaParte
                         ->label('Aporte de estudiantes')
                         ->numeric()
                         ->required(),
-                    
+
                     TextInput::make('aporte_profesores')
                         ->label('Aporte de profesores')
                         ->numeric()
                         ->required(),
-                    
+
                     TextInput::make('aporte_academico_unah')
                         ->label('Aporte académico UNAH')
                         ->numeric()
                         ->required(),
-                    
+
                     TextInput::make('aporte_transporte_unah')
                         ->label('Aporte de transporte UNAH')
                         ->numeric()
                         ->required(),
-                    
+
                     TextInput::make('aporte_contraparte')
                         ->label('Aporte de contraparte')
                         ->numeric()
                         ->required(),
-                    
+
                     TextInput::make('aporte_comunidad')
                         ->label('Aporte de comunidad')
                         ->numeric()
@@ -173,8 +179,8 @@ class CuartaParte
                 ])
                 ->relationship('presupuesto') // Relación hasOne
                 ->columnSpanFull()
-                ->columns(2 ),
-            
+                ->columns(2),
+
             Repeater::make('superavit')
                 ->schema([
                     Forms\Components\TextInput::make('inversion')

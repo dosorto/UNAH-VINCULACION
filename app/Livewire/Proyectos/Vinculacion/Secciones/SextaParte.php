@@ -24,12 +24,7 @@ class SextaParte
                         ->searchable(['nombre_completo', 'numero_empleado'])
                         ->required()
                         ->relationship(name: 'empleado', titleAttribute: 'nombre_completo'),
-                    TextInput::make('cargo')
-                        ->label('')
-                        ->default(
-                            'Jefe de departamento'
-                        )
-                        ->disabled(),
+                   
 
                     Hidden::make('cargo_firma_id')
                         ->default(
@@ -43,8 +38,7 @@ class SextaParte
                 ])
                 ->addable(false)
                 ->deletable(false)
-                ->relationship()
-                ->columns(2),
+                ->relationship(),
             Repeater::make('firma_proyecto_decano')
                 ->id('firma_proyecto_1')
                 ->label('Decano de facultad o director de centro')
@@ -54,12 +48,6 @@ class SextaParte
                         ->required()
                         ->searchable(['nombre_completo', 'numero_empleado'])
                         ->relationship(name: 'empleado', titleAttribute: 'nombre_completo'),
-                    TextInput::make('cargo')
-                        ->label('')
-                        ->default(
-                            'Decano de facultad o director de centro'
-                        )
-                        ->disabled(),
                     Hidden::make('cargo_firma_id')
                         ->default(
                             CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
@@ -71,8 +59,7 @@ class SextaParte
                 ])
                 ->deletable(false)
                 ->addable(false)
-                ->relationship()
-                ->columns(2),
+                ->relationship(),
 
 
             // repeter para el firma_proyecto_enlace
@@ -84,13 +71,6 @@ class SextaParte
                         ->required()
                         ->searchable(['nombre_completo', 'numero_empleado'])
                         ->relationship(name: 'empleado', titleAttribute: 'nombre_completo'),
-
-                    TextInput::make('cargo')
-                        ->label('')
-                        ->default(
-                            'Enlace de Vinculación'
-                        )
-                        ->disabled(),
                     Hidden::make('cargo_firma_id')
                         ->default(
                             CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
@@ -101,8 +81,7 @@ class SextaParte
                 ])
                 ->deletable(false)
                 ->addable(false)
-                ->relationship()
-                ->columns(2),
+                ->relationship(),
 
         ];
     }

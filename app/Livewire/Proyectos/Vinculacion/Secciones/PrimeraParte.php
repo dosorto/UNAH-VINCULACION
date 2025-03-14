@@ -17,6 +17,9 @@ use Filament\Forms\Components\Select;
 
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Forms\Set;
+
 
 class PrimeraParte
 {
@@ -26,12 +29,13 @@ class PrimeraParte
             TextInput::make('nombre_proyecto')
                 ->label('Nombre del proyecto')
                 ->columnSpanFull()
+                ->required()
                 ->maxLength(255),
             Select::make('modalidad_id')
                 ->label('Modalidad')
                 ->columnSpanFull()
-                ->searchable()
                 ->relationship(name: 'modalidad', titleAttribute: 'nombre')
+                ->required()
                 ->preload(),
             Select::make('facultades_centros')
                 ->label('Facultades o Centros')
@@ -39,6 +43,10 @@ class PrimeraParte
                 ->multiple()
                 ->live()
                 ->relationship(name: 'facultades_centros', titleAttribute: 'nombre')
+                ->afterStateUpdated(function (Set $set) {
+                    $set('departamentos_academicos', null);
+                })
+                ->required()
                 ->preload(),
             Select::make('departamentos_academicos')
                 ->label('Departamentos Académicos')
@@ -49,11 +57,14 @@ class PrimeraParte
                     titleAttribute: 'nombre',
                     modifyQueryUsing: fn($query, Get $get) => $query->whereIn('centro_facultad_id', $get('facultades_centros'))
                 )
+                ->visible(fn(Get $get) => !empty($get('facultades_centros')))
+                ->live()
+                ->required()
                 ->preload(),
             Repeater::make('coordinador_proyecto')
                 ->label('Coordinador')
                 ->schema([
-                    TextInput::make('nombre_empleado')
+                    TextInput::make('nombre_completo')
                         ->label('')
                         ->default(
                             fn() => optional(Empleado::where('user_id', auth()->user()->id)->first())
@@ -78,7 +89,13 @@ class PrimeraParte
                     Select::make('empleado_id')
                         ->label('Integrante')
                         ->searchable(['nombre_completo', 'numero_empleado'])
-                        ->relationship(name: 'empleado', titleAttribute: 'nombre_completo')
+                        ->relationship(
+                            name: 'empleado',
+                            titleAttribute: 'nombre_completo',
+                            // QUITAR EL ID DEL USUARIO LOGUEADO DE LA LISTA DE EMPLEADOS
+                            modifyQueryUsing: fn(Builder $query) =>  $query->where('user_id', '!=', auth()->id())
+                        )
+
                         ->createOptionForm([
 
                             // campus o facultad del empleado
@@ -87,6 +104,10 @@ class PrimeraParte
                                 ->label('Facultad o Centro')
                                 ->searchable()
                                 ->relationship(name: 'centro_facultad', titleAttribute: 'nombre')
+                                ->required()
+                                ->afterStateUpdated(function (?string $state, ?string $old, Set $set) {
+                                    $set('departamento_academico_id', null);
+                                })
                                 ->live()
                                 ->preload(),
 
@@ -95,32 +116,44 @@ class PrimeraParte
                             Select::make('departamento_academico_id')
                                 ->label('Departamento Académico')
                                 ->searchable()
-                                ->visible(fn(Get $get): bool => $get('centro_facultad_id') !== null)
+                                ->live()
+                                ->preload()
+                                ->visible(fn(Get $get): bool => !is_null($get('centro_facultad_id')))
                                 ->relationship(
                                     name: 'departamento_academico',
                                     titleAttribute: 'nombre',
                                     modifyQueryUsing: fn($query, Get $get) => $query->where('centro_facultad_id', $get('centro_facultad_id'))
                                 )
-                                ->live()
-                                ->preload(),
+                                ->required(),
+
+
+
                             Forms\Components\TextInput::make('nombre_completo')
-                                ->label('Nombre completo'), //->required(),
+
+                                ->label('Nombre completo')
+                                ->required(),
 
                             Forms\Components\TextInput::make('numero_empleado')
-                                ->label('Número de empleado'), //->required(),
+                                ->label('Número de empleado')
+                                ->unique('empleado', 'numero_empleado')
+                                ->required(),
 
                             Select::make('categoria_id')
                                 ->label('Categoría')
-                                ->searchable()
                                 ->relationship(name: 'categoria', titleAttribute: 'nombre')
+                                ->required()
                                 ->preload(),
 
                             Forms\Components\TextInput::make('email')
                                 ->label('Correo electrónico ')
+                                ->required()
+                                ->email()
+                                ->unique('users', 'email')
                                 ->email(), //->required(),
 
                             Forms\Components\TextInput::make('celular')
-                                ->label('Celular'), //->required(),
+                                ->label('Celular')
+                                ->required(),
 
                         ])
                         ->required()
@@ -161,32 +194,37 @@ class PrimeraParte
                     Select::make('estudiante_id')
                         ->label('Estudiante')
                         ->required()
-                        ->searchable()
-                        ->getSearchResultsUsing(fn(string $search): array =>
-                        Estudiante::join('users', 'estudiante.user_id', '=', 'users.id')
-                            ->where('users.email', 'like', "%{$search}%")
-                            ->limit(50)
-                            ->pluck('users.email', 'estudiante.id')
-                            ->toArray())
+                        ->searchable(['cuenta'])
+                        ->relationship(
+                            name: 'estudiante',
+                            titleAttribute: 'cuenta'
+                        )
                         ->createOptionForm([
                             TextInput::make('email')
                                 ->label('Correo electrónico Académico del Estudiante')
-                                ->email(), //->required(),
+                                ->required()
+                                ->unique('users', 'email')
+                                ->email()
+                                ->required(),
                             TextInput::make('nombre')
-                                ->label('Nombre '),
+                                ->label('Nombre ')
+                                ->required(),
                             TextInput::make('apellido')
-                                ->label('Apellidos del Estudiante'),
+                                ->label('Apellidos del Estudiante')
+                                ->required(),
                             Select::make('centro_facultad_id')
                                 ->label('Facultad o Centro')
                                 ->searchable()
                                 ->options(
-                                  FacultadCentro::all()->pluck('nombre', 'id')
+                                    FacultadCentro::all()->pluck('nombre', 'id')
                                 )
-                                ->live()
                                 ->preload(),
                             TextInput::make('numero_cuenta')
                                 ->label('Número de cuenta del Estudiante')
-                                ->numeric(), //->required(),
+                                ->required()
+                                ->unique('estudiante', 'cuenta')
+                                ->numeric()
+                                ->required()
 
                         ])
                         ->required()
@@ -203,8 +241,8 @@ class PrimeraParte
 
 
                             ]);
-                        }),
-                    //->required,
+                        })
+                        ->required(),
                     Select::make('tipo_participacion_estudiante')
                         ->label('Tipo de participación')
                         ->required()
@@ -214,8 +252,8 @@ class PrimeraParte
                             'Practica Profesional' => 'Practica Profesional',
                             'Voluntariado' => 'Voluntariado',
                             'Practica de Clase' => 'Practica de Clase',
-                        ]),
-                    //->required,
+                        ])
+                        ->required(),
                 ])
                 ->label('Estudiantes')
                 ->relationship()

@@ -47,18 +47,18 @@ return new class extends Migration
             // $table->foreignId('municipio_id')->nullable()->constrained('municipio');
             // $table->foreignId('departamento_id')->nullable()->constrained('departamento');
             $table->foreignId('ciudad_id')->nullable()->constrained('ciudad');
-            $table->string('aldea')->nullable();
-            $table->string('resumen')->nullable();
-            $table->string('objetivo_general')->nullable();
-            $table->string('objetivos_especificos')->nullable();
+            $table->longText('aldea')->nullable();
+            $table->longText('resumen')->nullable();
+            $table->longText('objetivo_general')->nullable();
+            $table->longText('objetivos_especificos')->nullable();
             $table->date('fecha_inicio')->nullable();
             $table->date('fecha_finalizacion')->nullable();
             $table->date('evaluacion_intermedia')->nullable();
             $table->date('evaluacion_final')->nullable();
             $table->decimal('poblacion_participante', 8, 2)->nullable();
             $table->enum('modalidad_ejecucion', ['Distancia', 'Presencial', 'Bimodal'])->nullable();
-            $table->string('resultados_esperados')->nullable();
-            $table->string('indicadores_medicion_resultados')->nullable();
+            $table->longText('resultados_esperados')->nullable();
+            $table->longText('indicadores_medicion_resultados')->nullable();
             $table->date('fecha_registro')->nullable();
 
             $table->foreignId('responsable_revision_id')->nullable()->constrained('empleado');

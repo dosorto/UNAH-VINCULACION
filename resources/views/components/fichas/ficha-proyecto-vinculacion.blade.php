@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{{ asset('css/app/fichaVinculacion.css') }}">
 </head>
 
-<body>
+<body style="background-color: #f2f2f2;">
     @if ($proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
         <x-filament::section collapsible collapsed persist-collapsed id="user-details">
             <x-slot name="heading">
@@ -43,7 +43,7 @@
             Ficha del proyecto
         </x-slot>
 
-        <div>
+        <div style="display: flex; justify-content: center; margin-top: 20px; background-color: white;">
             <div class="container">
                 <div class="header">
                     <div class="logo-space">
@@ -803,11 +803,6 @@
 
 
 </body>
-        dd(Proyecto::query()
-                    ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
-                    ->select('proyecto.*')
-                    ->where('empleado_proyecto.empleado_id', $this->docente->id)
-                    ->distinct()
-                    ->get());
+      
 
 </html>

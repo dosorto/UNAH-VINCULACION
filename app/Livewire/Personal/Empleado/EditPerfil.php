@@ -226,7 +226,16 @@ class EditPerfil extends Component implements HasForms, HasActions
     public function save()
     {
         $data = $this->form->getState();
+        
+       // dd($data);
+        // validar que el docente tenga almenos una firma y un sello
+       
+
+        
         $this->record->update($data);
+
+
+
         $this->record->user->assignRole('docente')->save();
         Notification::make()
             ->title('Exito!')

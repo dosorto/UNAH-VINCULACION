@@ -27,6 +27,7 @@
                         </svg>
                     </button>
                     <div class="relative inline-block text-left">
+                        <!--
                         <button id="toggleButton"
                             class="toggle-button inline-flex justify-center items-center px-2 py-2 border border-gray-300  text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
                                     dark:bg-gray-800 
@@ -46,6 +47,7 @@
                                     clip-rule="evenodd" />
                             </svg>
                         </button>
+                    -->
                         <div id="popup"
                             class="hidden popup origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black 
                                 ring-opacity-5  focus:outline-none
