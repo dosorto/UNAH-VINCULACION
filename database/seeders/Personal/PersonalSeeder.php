@@ -25,27 +25,27 @@ class PersonalSeeder extends Seeder
         ]);
 
         CategoriaEmpleado::create([
-            'nombre' => 'Titular 1',
+            'nombre' => 'Titular I',
             'descripcion' => 'Titular 1 de la universidad'
         ]);
 
         CategoriaEmpleado::create([
-            'nombre' => 'Titular 2',
+            'nombre' => 'Titular II',
             'descripcion' => 'Titular 2 de la universidad'
         ]);
 
         CategoriaEmpleado::create([
-            'nombre' => 'Titular 3',
+            'nombre' => 'Titular III',
             'descripcion' => 'Titular 3 de la universidad'
         ]);
 
         CategoriaEmpleado::create([
-            'nombre' => 'Titular 4',
+            'nombre' => 'Titular IV',
             'descripcion' => 'Titular 4 de la universidad'
         ]);
 
         CategoriaEmpleado::create([
-            'nombre' => 'Titular 5',
+            'nombre' => 'Titular V',
             'descripcion' => 'Titular 5 de la universidad'
         ]);
 
