@@ -138,17 +138,7 @@ class PersonalSeeder extends Seeder
             'categoria_id' => 1
         ]);
         
-        $ingeJessica->firma()->create([
-            'tipo' => 'firma',
-            'ruta_storage' => 'images/firmas/Firma_Jessica.png',
-            'estado' => true
-        ]);
-
-        $ingeJessica->firma()->create([
-            'tipo' => 'sello',
-            'ruta_storage' => 'images/firmas/Sello_Jessica.png',
-            'estado' => true
-        ]);
+       
 
        $ingeOscar = Empleado::create([
             'nombre_completo' => 'OSCAR OMAR PINEDA',

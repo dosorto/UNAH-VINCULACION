@@ -167,8 +167,8 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                                 if ($firma_proyecto->firmable_type == Proyecto::class) {
                                     $firma_proyecto->update([
                                         'estado_revision' => 'Aprobado',
-                                        'firma_id' => $this->docente->firma->id,
-                                        'sello_id' => $this->docente->sello->id,
+                                        'firma_id' => auth()->user()?->empleado?->firma?->id,
+                                        'sello_id' => auth()->user()?->empleado?->sello?->id,
                                     ]);
                                     // actualizar el estado del proyecto al siguiente estado :)
 
@@ -184,8 +184,8 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                                 } else {
                                     $firma_proyecto->update([
                                         'estado_revision' => 'Aprobado',
-                                        'firma_id' => $this->docente->firma->id,
-                                        'sello_id' => $this->docente->sello->id,
+                                        'firma_id' => auth()->user()?->empleado?->firma?->id,
+                                        'sello_id' => auth()->user()?->empleado?->sello?->id,
                                     ]);
 
                                     // actualizar el estado del proyecto al siguiente estado :)

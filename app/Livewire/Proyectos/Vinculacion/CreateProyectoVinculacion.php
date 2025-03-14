@@ -108,7 +108,11 @@ class CreateProyectoVinculacion extends Component implements HasForms
             $record = Proyecto::create($data);
             $this->form->model($record)->saveRelationships();
         } catch (\Exception $e) {
-            // Notificación de error si ocurre al crear el proyecto
+            // Notificación de error si ocurre al crear el proyecto y eliminar el registro
+
+
+            $record->delete();
+
             Notification::make()
                 ->title('Error')
                 ->body('Error al crear el proyecto: ' . $e->getMessage())
@@ -116,7 +120,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 ->send();
             return;
         }
-        
+
         try {
             // Intentar agregar o actualizar la firma
             $firmaP = $record->firma_proyecto()->updateOrCreate(
@@ -129,8 +133,8 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 ],
                 [
                     'estado_revision' => 'Aprobado',
-                    'firma_id' => auth()->user()->empleado->firma->id,
-                    'sello_id' => auth()->user()->empleado->sello->id,
+                    'firma_id' => auth()->user()?->empleado?->firma?->id,
+                    'sello_id' => auth()->user()?->empleado?->sello?->id,
                     'hash' => 'hash',
                 ]
             );
@@ -144,7 +148,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 ->send();
             return;
         }
-        
+
         try {
             // Intentar agregar el estado del proyecto
             $record->estado_proyecto()->create([
@@ -163,7 +167,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 ->send();
             return;
         }
-        
+
         try {
             // Intentar enviar correos a los empleados
             foreach ($record->integrantes as $empleado) {
@@ -183,14 +187,14 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 ->send();
             return;
         }
-        
+
         // Notificación de éxito si todo se completó correctamente
         Notification::make()
             ->title('¡Éxito!')
             ->body('Proyecto creado correctamente')
             ->success()
             ->send();
-        
+
         $this->js('location.reload();');
     }
 
@@ -201,7 +205,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
         try {
             $data = $this->form->getState();
             $data['fecha_registro'] = now();
-        
+
             // Intentar crear el proyecto
             $record = Proyecto::create($data);
             $this->form->model($record)->saveRelationships();
@@ -213,7 +217,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 ->send();
             return;
         }
-        
+
         try {
             // Intentar agregar la firma
             $firmaP = $record->firma_proyecto()->create([
@@ -235,7 +239,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 ->send();
             return;
         }
-        
+
         try {
             // Intentar agregar el estado del proyecto
             $record->estado_proyecto()->create([
@@ -254,14 +258,14 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 ->send();
             return;
         }
-        
+
         // Notificación de éxito si todo se completó correctamente
         Notification::make()
             ->title('¡Éxito!')
             ->body('Proyecto creado correctamente')
             ->success()
             ->send();
-        
+
         $this->js('location.reload();');
     }
 

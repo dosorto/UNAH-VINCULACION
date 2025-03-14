@@ -47,8 +47,8 @@
     </style>
 </head>
 
-<body class="sm:bg-gray-100 flex bg-white dark:bg-gray-950">
-    <div class="sm:flex w-full flex-col sm:flex-row">
+<body class="sm:bg-gray-100 flex bg-white dark:bg-gray-950" >
+    <div class="sm:flex w-full flex-col sm:flex-row" >
         <x-panel.navbar.navbar />
         <!-- Barra superior en dispositivos móviles -->
         <div

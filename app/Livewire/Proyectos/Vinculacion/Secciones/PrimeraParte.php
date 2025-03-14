@@ -66,19 +66,16 @@ class PrimeraParte
             Repeater::make('coordinador_proyecto')
                 ->label('Coordinador')
                 ->schema([
-                    TextInput::make('nombre_completo')
-                        ->minLength(2)
-                        ->maxLength(255)
-                        ->label('')
-                        ->default(
-                            fn() => optional(Empleado::where('user_id', auth()->user()->id)->first())
-                                ->nombre_completo
-                        )
+                    Select::make('empleado_id')
+                    ->label('')
+                    ->required()
+                    ->searchable(['nombre_completo', 'numero_empleado'])
+                    ->relationship(name: 'empleado', titleAttribute: 'nombre_completo')
+                    ->default(fn() => optional(Empleado::where('user_id', auth()->id())->first())->id)
                         ->disabled(),
                     Hidden::make('rol')
                         ->default('Coordinador'),
                     Hidden::make('empleado_id')
-                        ->default(fn() => optional(Empleado::where('user_id', auth()->id())->first())->id),
 
                 ])
                 ->columnSpanFull()

@@ -83,7 +83,7 @@ class EditProyectoVinculacionForm extends Component implements HasForms
                 ->send();
             return redirect()->route('proyectosDocente');
         }
-        
+
         // $this->form->fill($this->record->attributesToArray());
     }
 
@@ -184,8 +184,8 @@ class EditProyectoVinculacionForm extends Component implements HasForms
                     ->where('cargo_firma.descripcion', 'Proyecto')
                     ->first()->id,
                 'estado_revision' => 'Aprobado',
-                'firma_id' => auth()->user()->empleado->firma->id,
-                'sello_id' => auth()->user()->empleado->sello->id,
+                'firma_id' => auth()->user()?->empleado?->firma?->id,
+                'sello_id' => auth()->user()?->empleado?->sello?->id,
                 'hash' => 'hash',
             ]
         );
