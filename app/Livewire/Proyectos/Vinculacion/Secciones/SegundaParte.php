@@ -11,31 +11,35 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\FileUpload;
 
 
-class SegundaParte 
+class SegundaParte
 {
     public static function form(): array
     {
 
-        return  [ 
+        return  [
             Repeater::make('entidad_contraparte')
                 ->schema([
-                    Forms\Components\TextInput::make('nombre'),
-                    //->required
-
-
+                    Forms\Components\TextInput::make('nombre')
+                        ->label('Nombre de la entidad')
+                        ->columnSpan(1)
+                        ->required(),
                     Toggle::make('es_internacional')
                         ->inline(false)
                         ->label('Internacional')
                         ->default(false)
                         ->columnSpan(1),
-                    Forms\Components\TextInput::make('nombre_contacto'),
-                    //->required,
-                    Forms\Components\TextInput::make('telefono'),
-                    //->required,
-                    Forms\Components\TextInput::make('aporte')
-                        ->label('Aporte')
-                        ->columnSpan(1),
-                    //->required,
+                    Forms\Components\TextInput::make('nombre_contacto')
+                        ->label('Nombre del contacto')
+                        ->columnSpan(1)
+                        ->required(),
+                    Forms\Components\TextInput::make('telefono')
+                        ->label('Telefono')
+                        ->columnSpan(1)
+                        ->required(),
+                    Forms\Components\TextInput::make('correo')
+                        ->label('Correo de contacto')
+                        ->columnSpanFull()
+                        ->required(),
                     Repeater::make('instrumento_formalizacion')
                         ->schema([
                             FileUpload::make('documento_url')
@@ -44,12 +48,16 @@ class SegundaParte
                                 ->directory('instrumento_formalizacion')
                                 ->required()
                         ])
-                        ->relationship()
-                        ->columns(2),
+                        ->label('Instrumentos de formalización')
+                        ->columnSpanFull()
+                        ->relationship(),
+                    Forms\Components\TextInput::make('aporte')
+                        ->label('Aporte')
+                        ->columnSpan(1)
+                        ->required()
+                        ->default(0),
 
-                    Forms\Components\TextInput::make('correo')
-                        ->label('Correo de contacto')
-                        ->columnSpan(1),
+
                 ])
                 ->label('Entidades contraparte')
                 ->relationship()
@@ -57,7 +65,6 @@ class SegundaParte
                 ->columns(2)
                 ->defaultItems(0)
                 ->addActionLabel('Agregar entidad contraparte')
-        ];    
+        ];
     }
-
 }
