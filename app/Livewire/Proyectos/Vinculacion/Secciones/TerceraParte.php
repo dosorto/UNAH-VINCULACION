@@ -16,14 +16,24 @@ class TerceraParte
     public static function form(): array
     {
 
-        return  [ 
+        return  [
             Repeater::make('actividades')
                 ->relationship()
                 ->schema([
-                    Forms\Components\TextInput::make('descripcion')
-                        ->label('Descripción')
-                        // ->required()
-                        //->required
+                    Forms\Components\Textarea::make('descripcion')
+                        ->label('Descripción de la actividad')
+                        ->required()
+                        ->rows(5)
+                        ->columnSpanFull(),
+                    Forms\Components\Textarea::make('objetivos')
+                        ->label('Objetivos de la actividad')
+                        ->required()
+                        ->rows(5)
+                        ->columnSpanFull(),
+                    Forms\Components\Textarea::make('resultados')
+                        ->label('Resultados de la actividad')
+                        ->required()
+                        ->rows(5)
                         ->columnSpanFull(),
                     Select::make('empleados')
                         ->label('Responsables')
@@ -39,7 +49,7 @@ class TerceraParte
                                 // agregar al $ids el id del usuario logueado porque es el coordinador del proyecto
                                 $ids[] = auth()->user()->empleado->id;
 
-                                
+
 
                                 $query->whereIn('empleado.id', $ids)
                                     ->with(['actividades']);
@@ -47,27 +57,20 @@ class TerceraParte
                         )
                         ->preload()
                         ->multiple()
+                        ->required()
                         ->searchable()
                         ->columnSpanFull(),
                     Datepicker::make('fecha_inicio')
                         ->label('Fecha de Inicio')
-                        // ->required()
+                        ->required()
                         ->columnSpan(1),
                     Datepicker::make('fecha_finalizacion')
                         ->label('Fecha de Finalizacion')
-                        // ->required()
+                        ->required()
                         ->columnSpan(1),
-                    Forms\Components\TextInput::make('objetivos')
-                        ->label('Objetivos')
-                        // ->required()
-                        ->columnSpanFull(),
-                    Forms\Components\TextInput::make('resultados')
-                        ->label('Resultados')
-                        // ->required()
-                        ->columnSpanFull(),
                     Forms\Components\TextInput::make('horas')
                         ->label('Horas')
-                        // ->required()
+                        ->required()
                         ->numeric(),
                 ])
                 ->label('Actividades')

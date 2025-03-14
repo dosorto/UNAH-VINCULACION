@@ -117,14 +117,14 @@ return new class extends Migration
          // tabla actividades
          Schema::create('actividades', function (Blueprint $table) {
             $table->id();
-            $table->string('descripcion');
+            $table->longText('descripcion');
             $table->date('fecha_inicio');
             $table->date('fecha_finalizacion');
             // $table->foreignId('empleado_proyecto_id')->constrained('empleado_proyecto');
             // incluir el id del proyecto para recuperarlo mmas rapido
             $table->foreignId('proyecto_id')->constrained('proyecto');
-            $table->text('objetivos')->nullable();
-            $table->text('resultados')->nullable();
+            $table->longText('objetivos')->nullable();
+            $table->longText('resultados')->nullable();
             $table->integer('horas')->nullable();
             $table->softDeletes();
             $table->timestamps();
