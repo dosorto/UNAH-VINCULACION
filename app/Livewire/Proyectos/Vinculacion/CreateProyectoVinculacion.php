@@ -101,71 +101,96 @@ class CreateProyectoVinculacion extends Component implements HasForms
 
     public function create(): void
     {
-        // dd($this->form->getState());
-        $data = $this->form->getState();
-        $data['fecha_registro'] = now();
-        $record = Proyecto::create($data);
-        $this->form->model($record)->saveRelationships();
-
-        // $firmaP = $record->firma_proyecto()->create([
-        //     'empleado_id' => auth()->user()->empleado->id,
-        //     'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-        //         ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
-        //         ->where('cargo_firma.descripcion', 'Proyecto')
-        //         ->first()->id,
-        //     'estado_revision' => 'Aprobado',
-        //     'firma_id' => auth()->user()->empleado->firma->id,
-        //     'sello_id' => auth()->user()->empleado->sello->id,
-        //     'hash' => 'hash'
-        // ]);
-
-        $firmaP = $record->firma_proyecto()->updateOrCreate(
-            // Condiciones para buscar un registro existente
-            [
-                'empleado_id' => auth()->user()->empleado->id,
-                'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                    ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
-                    ->where('cargo_firma.descripcion', 'Proyecto')
-                    ->first()->id,
-            ],
-            // Valores para actualizar o crear
-            [
-                'empleado_id' => auth()->user()->empleado->id,
-                'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                    ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
-                    ->where('cargo_firma.descripcion', 'Proyecto')
-                    ->first()->id,
-                'estado_revision' => 'Aprobado',
-                'firma_id' => auth()->user()->empleado->firma->id,
-                'sello_id' => auth()->user()->empleado->sello->id,
-                'hash' => 'hash',
-            ]
-        );
-
-        $record->estado_proyecto()->create([
-            'empleado_id' => auth()->user()->empleado->id,
-            'tipo_estado_id' => $firmaP->cargo_firma->estado_siguiente_id,
-            'fecha' => now(),
-            'comentario' => 'Proyecto creado',
-        ]);
-
-        foreach ($record->integrantes as $empleado) {
-            // Accede al usuario de cada empleado y a su correo
-            $usuario = $empleado->user;  // Asumiendo que cada empleado tiene un usuario relacionado
-            if ($usuario && $usuario->email) {
-                // Enviar el correo al email del usuario
-                SendEmailJob::dispatch($usuario->email, 'CorreoParticipacion');
-            }
+        try {
+            // Intentar obtener el estado del formulario y crear el proyecto
+            $data = $this->form->getState();
+            $data['fecha_registro'] = now();
+            $record = Proyecto::create($data);
+            $this->form->model($record)->saveRelationships();
+        } catch (\Exception $e) {
+            // Notificación de error si ocurre al crear el proyecto
+            Notification::make()
+                ->title('Error')
+                ->body('Error al crear el proyecto: ' . $e->getMessage())
+                ->danger()
+                ->send();
+            return;
         }
-        // Mail::to('ernesto.moncada@unah.hn')->send(new CorreoParticipacion());
         
-
-
+        try {
+            // Intentar agregar o actualizar la firma
+            $firmaP = $record->firma_proyecto()->updateOrCreate(
+                [
+                    'empleado_id' => auth()->user()->empleado->id,
+                    'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                        ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+                        ->where('cargo_firma.descripcion', 'Proyecto')
+                        ->first()->id,
+                ],
+                [
+                    'estado_revision' => 'Aprobado',
+                    'firma_id' => auth()->user()->empleado->firma->id,
+                    'sello_id' => auth()->user()->empleado->sello->id,
+                    'hash' => 'hash',
+                ]
+            );
+        } catch (\Exception $e) {
+            // Eliminar el proyecto en caso de error en la firma
+            $record->delete();
+            Notification::make()
+                ->title('Error')
+                ->body('Error al agregar la firma: ' . $e->getMessage())
+                ->danger()
+                ->send();
+            return;
+        }
+        
+        try {
+            // Intentar agregar el estado del proyecto
+            $record->estado_proyecto()->create([
+                'empleado_id' => auth()->user()->empleado->id,
+                'tipo_estado_id' => $firmaP->cargo_firma->estado_siguiente_id,
+                'fecha' => now(),
+                'comentario' => 'Proyecto creado',
+            ]);
+        } catch (\Exception $e) {
+            // Eliminar el proyecto en caso de error al agregar el estado
+            $record->delete();
+            Notification::make()
+                ->title('Error')
+                ->body('Error al agregar el estado del proyecto: ' . $e->getMessage())
+                ->danger()
+                ->send();
+            return;
+        }
+        
+        try {
+            // Intentar enviar correos a los empleados
+            foreach ($record->integrantes as $empleado) {
+                // Accede al usuario de cada empleado y a su correo
+                $usuario = $empleado->user;  // Asumiendo que cada empleado tiene un usuario relacionado
+                if ($usuario && $usuario->email) {
+                    // Enviar el correo al email del usuario
+                    SendEmailJob::dispatch($usuario->email, 'CorreoParticipacion');
+                }
+            }
+        } catch (\Exception $e) {
+            // Notificar si hubo un error al enviar los correos
+            Notification::make()
+                ->title('Error')
+                ->body('Error al enviar correos: ' . $e->getMessage())
+                ->danger()
+                ->send();
+            return;
+        }
+        
+        // Notificación de éxito si todo se completó correctamente
         Notification::make()
             ->title('¡Éxito!')
             ->body('Proyecto creado correctamente')
             ->success()
             ->send();
+        
         $this->js('location.reload();');
     }
 
@@ -173,32 +198,70 @@ class CreateProyectoVinculacion extends Component implements HasForms
     // optimizar esta funcion para despues, es demasiado redundante y lo unico que cambia es el nombre del estado :)
     public function borrador(): void
     {
-        $data = $this->form->getState();
-        $data['fecha_registro'] = now();
-        $record = Proyecto::create($data);
-        $this->form->model($record)->saveRelationships();
-
-        $firmaP = $record->firma_proyecto()->create([
-            'empleado_id' => auth()->user()->empleado->id,
-            'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
-                ->where('cargo_firma.descripcion', 'Proyecto')
-                ->first()->id,
-            'estado_revision' => 'Pendiente',
-            'hash' => 'hash'
-        ]);
-
-        $record->estado_proyecto()->create([
-            'empleado_id' => auth()->user()->empleado->id,
-            'tipo_estado_id' => TipoEstado::where('nombre', 'Borrador')->first()->id,
-            'fecha' => now(),
-            'comentario' => 'Proyecto creado',
-        ]);
+        try {
+            $data = $this->form->getState();
+            $data['fecha_registro'] = now();
+        
+            // Intentar crear el proyecto
+            $record = Proyecto::create($data);
+            $this->form->model($record)->saveRelationships();
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Error')
+                ->body('Error al crear el proyecto: ' . $e->getMessage())
+                ->danger()
+                ->send();
+            return;
+        }
+        
+        try {
+            // Intentar agregar la firma
+            $firmaP = $record->firma_proyecto()->create([
+                'empleado_id' => auth()->user()->empleado->id,
+                'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                    ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+                    ->where('cargo_firma.descripcion', 'Proyecto')
+                    ->first()->id,
+                'estado_revision' => 'Pendiente',
+                'hash' => 'hash'
+            ]);
+        } catch (\Exception $e) {
+            // Eliminar el proyecto en caso de error
+            $record->delete();
+            Notification::make()
+                ->title('Error')
+                ->body('Error al agregar la firma: ' . $e->getMessage())
+                ->danger()
+                ->send();
+            return;
+        }
+        
+        try {
+            // Intentar agregar el estado del proyecto
+            $record->estado_proyecto()->create([
+                'empleado_id' => auth()->user()->empleado->id,
+                'tipo_estado_id' => TipoEstado::where('nombre', 'Borrador')->first()->id,
+                'fecha' => now(),
+                'comentario' => 'Proyecto creado',
+            ]);
+        } catch (\Exception $e) {
+            // Eliminar el proyecto en caso de error
+            $record->delete();
+            Notification::make()
+                ->title('Error')
+                ->body('Error al agregar el estado del proyecto: ' . $e->getMessage())
+                ->danger()
+                ->send();
+            return;
+        }
+        
+        // Notificación de éxito si todo se completó correctamente
         Notification::make()
             ->title('¡Éxito!')
             ->body('Proyecto creado correctamente')
             ->success()
             ->send();
+        
         $this->js('location.reload();');
     }
 

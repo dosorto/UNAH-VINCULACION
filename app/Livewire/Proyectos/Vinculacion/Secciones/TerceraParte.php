@@ -70,6 +70,8 @@ class TerceraParte
                         ->columnSpan(1),
                     Forms\Components\TextInput::make('horas')
                         ->label('Horas')
+                        ->minLength(1)
+                        ->maxLength(255)
                         ->required()
                         ->numeric(),
                 ])
