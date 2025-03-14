@@ -20,6 +20,8 @@ class SegundaParte
             Repeater::make('entidad_contraparte')
                 ->schema([
                     Forms\Components\TextInput::make('nombre')
+                        ->minLength(2)
+                        ->maxLength(255)
                         ->label('Nombre de la entidad')
                         ->columnSpan(1)
                         ->required(),
@@ -30,13 +32,19 @@ class SegundaParte
                         ->columnSpan(1),
                     Forms\Components\TextInput::make('nombre_contacto')
                         ->label('Nombre del contacto')
+                        ->minLength(2)
+                        ->maxLength(255)
                         ->columnSpan(1)
                         ->required(),
                     Forms\Components\TextInput::make('telefono')
+                        ->minLength(2)
+                        ->maxLength(255)
                         ->label('Telefono')
                         ->columnSpan(1)
                         ->required(),
                     Forms\Components\TextInput::make('correo')
+                        ->minLength(2)
+                        ->maxLength(255)
                         ->label('Correo de contacto')
                         ->columnSpanFull()
                         ->required(),
@@ -52,6 +60,8 @@ class SegundaParte
                         ->columnSpanFull()
                         ->relationship(),
                     Forms\Components\TextInput::make('aporte')
+                        ->minLength(2)
+                        ->maxLength(255)
                         ->label('Aporte')
                         ->columnSpan(1)
                         ->required()

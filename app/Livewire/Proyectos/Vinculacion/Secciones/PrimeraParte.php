@@ -28,6 +28,8 @@ class PrimeraParte
         return [
             TextInput::make('nombre_proyecto')
                 ->label('Nombre del proyecto')
+                ->minLength(2)
+                ->maxLength(255)
                 ->columnSpanFull()
                 ->required()
                 ->maxLength(255),
@@ -65,6 +67,8 @@ class PrimeraParte
                 ->label('Coordinador')
                 ->schema([
                     TextInput::make('nombre_completo')
+                        ->minLength(2)
+                        ->maxLength(255)
                         ->label('')
                         ->default(
                             fn() => optional(Empleado::where('user_id', auth()->user()->id)->first())
@@ -129,11 +133,14 @@ class PrimeraParte
 
 
                             Forms\Components\TextInput::make('nombre_completo')
-
+                                ->minLength(2)
+                                ->maxLength(255)
                                 ->label('Nombre completo')
                                 ->required(),
 
                             Forms\Components\TextInput::make('numero_empleado')
+                                ->minLength(2)
+                                ->maxLength(255)
                                 ->label('Número de empleado')
                                 ->unique('empleado', 'numero_empleado')
                                 ->required(),
@@ -145,6 +152,8 @@ class PrimeraParte
                                 ->preload(),
 
                             Forms\Components\TextInput::make('email')
+                                ->minLength(2)
+                                ->maxLength(255)
                                 ->label('Correo electrónico ')
                                 ->required()
                                 ->email()
@@ -152,6 +161,8 @@ class PrimeraParte
                                 ->email(), //->required(),
 
                             Forms\Components\TextInput::make('celular')
+                                ->minLength(2)
+                                ->maxLength(255)
                                 ->label('Celular')
                                 ->required(),
 
@@ -220,6 +231,7 @@ class PrimeraParte
                                 )
                                 ->preload(),
                             TextInput::make('numero_cuenta')
+                                ->maxLength(255)
                                 ->label('Número de cuenta del Estudiante')
                                 ->required()
                                 ->unique('estudiante', 'cuenta')
