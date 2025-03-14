@@ -15,6 +15,7 @@ use Filament\Forms\Components\TextInput;
 
 
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Set;
 
 class CuartaParte
 {
@@ -25,16 +26,19 @@ class CuartaParte
                 ->label('Resumen')
                 ->rows(10)
                 ->cols(30)
+                ->required()
                 ->columnSpanFull(),
             Forms\Components\Textarea::make('objetivo_general')
                 ->label('Objetivo general')
                 ->rows(10)
                 ->cols(30)
+                ->required()
                 ->columnSpanFull(),
             Forms\Components\Textarea::make('objetivos_especificos')
                 ->label('Objetivos específicos')
                 ->rows(10)
                 ->cols(30)
+                ->required()
                 ->columnSpanFull(),
 
             Fieldset::make('Fechas')
@@ -42,27 +46,28 @@ class CuartaParte
                 ->schema([
                     DatePicker::make('fecha_inicio')
                         ->label('Fecha de inicio')
-                        ->columnSpan(1),
-                    //->required,
+                        ->columnSpan(1)
+                        ->required(),
                     DatePicker::make('fecha_finalizacion')
                         ->label('Fecha de finalización')
-                        ->columnSpan(1),
-                    //->required,
+                        ->columnSpan(1)
+                        ->required(),
                     DatePicker::make('evaluacion_intermedia')
                         ->label('Evaluación intermedia')
-                        ->columnSpan(1),
-                    //->required,
+                        ->columnSpan(1)
+                        ->required(),
                     DatePicker::make('evaluacion_final')
                         ->label('Evaluación final')
-                        ->columnSpan(1),
-                    //->required,
+                        ->columnSpan(1)
+                        ->required(),
                 ])
                 ->columnSpanFull()
                 ->label('Fechas'),
             TextInput::make('poblacion_participante')
                 ->label('Población participante')
                 ->numeric()
-                ->columnSpan(1),
+                ->columnSpan(1)
+                ->required(),
 
 
             Select::make('modalidad_ejecucion')
@@ -73,7 +78,7 @@ class CuartaParte
                     'Bimodal' => 'Bimodal',
                 ])
                 ->in(['Distancia', 'Presencial', 'Bimodal'])
-                //->required()
+                ->required()
                 ->live()
                 ->columnSpan(1),
 
@@ -81,23 +86,26 @@ class CuartaParte
                 ->label('Departamento')
                 ->multiple()
                 ->searchable()
-                // ->visible(fn(Get $get): bool
-                // => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial')
                 ->relationship(name: 'departamento', titleAttribute: 'nombre')
                 ->live()
+                ->afterStateUpdated(function (Set $set) {
+                    $set('municipio', null);
+                })
+                ->live()
+                ->required()
                 ->preload(),
 
             Select::make('municipio')
                 ->label('Municipio')
                 ->searchable()
+                ->required()
                 ->multiple()
-                // ->visible(fn(Get $get): bool
-                // => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial')
                 ->relationship(
                     name: 'municipio',
                     titleAttribute: 'nombre',
                     modifyQueryUsing: fn($query, Get $get) => $query->whereIn('departamento_id', $get('departamento'))
                 )
+                ->live()
                 ->preload(),
 
             // Select::make('ciudad_id')
@@ -130,21 +138,26 @@ class CuartaParte
             //     ])
             //     ->preload(),
 
-            TextInput::make('aldea')
-                ->label('Barrio/Aldea'),
+            Forms\Components\Textarea::make('aldea')
+                ->rows(10)
+                ->cols(30)
+                ->label('Barrio/Aldea (opcional)')
+                ->columnSpanFull(),
             // ->visible(fn(Get $get): bool
             // => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial'),
 
-            Fieldset::make('Resultados_indicadores')
-                ->schema([
-                    TextInput::make('resultados_esperados')
-                        ->label('Resultados esperados'),
-                    TextInput::make('indicadores_medicion_resultados')
-                        ->label('Indicadores de medición de resultados'),
-                ])
-                ->label('')
-                ->columnSpanFull()
-                ->columns(2),
+
+            Forms\Components\Textarea::make('resultados_esperados')
+                ->cols(30)
+                ->rows(4)
+                ->label('Resultados esperados')
+                ->required(),
+            Forms\Components\Textarea::make('indicadores_medicion_resultados')
+                ->cols(30)
+                ->rows(4)
+                ->label('Indicadores de medición de resultados')
+                ->required(),
+
             Fieldset::make('Presupuesto')
                 ->schema([
                     TextInput::make('aporte_estudiantes')
@@ -182,14 +195,18 @@ class CuartaParte
                 ->columns(2),
 
             Repeater::make('superavit')
+            ->label('Superávit (En caso de existir)')
                 ->schema([
                     Forms\Components\TextInput::make('inversion')
                         ->label('Inversión')
                         ->numeric()
-                        ->columnSpan(1),
-                    //->required
-                    Forms\Components\TextInput::make('monto'),
-                    //->required
+                        ->columnSpan(1)
+                        ->required(),
+                    Forms\Components\TextInput::make('monto')
+                        ->label('Monto')
+                        ->numeric()
+                        ->columnSpan(1)
+                        ->required(),
                 ])
                 ->label('Superávit')
                 ->columnSpanFull()
