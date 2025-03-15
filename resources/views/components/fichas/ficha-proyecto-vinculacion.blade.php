@@ -508,49 +508,50 @@
                                 donde
                                 se ejecuta: </th>
                         </tr>
-                        @if (!empty($proyecto->departamento->nombre)) ||
-                            !empty($proyecto->ciudad->nombre)
-                            <tr>
-                                @if (!empty($proyecto->departamento->nombre))
-                                    <td class="sub-header" colspan="2">Departamento</td>
-                                    <td class="full-width" colspan="11" rowspan="1">
-                                        <input type="text" class="input-field"
-                                            placeholder="Ingrese el nombre de la entidad"
-                                            value="{{ $proyecto->departamento->nombre }}" disabled>
-                                    </td>
-                                @endif
-                                @if (!empty($proyecto->ciudad->nombre))
-                                    <td class="sub-header" colspan="1">Ciudad:</td>
-                                    <td class="full-width" colspan="5">
-                                        <input type="text" class="input-field"
-                                            placeholder="Ingrese el nombre de la entidad"
-                                            value="{{ $proyecto->ciudad->nombre }}" disabled>
-                                    </td>
-                                @endif
-                            </tr>
-                        @endif
 
-                        @if (!empty($proyecto->municipio->nombre) || !empty($proyecto->aldea))
-                            <tr>
-                                @if (!empty($proyecto->municipio->nombre))
-                                    <td class="sub-header" colspan="2">Municipio:</td>
-                                    <td class="full-width" colspan="11">
-                                        <input type="text" class="input-field"
-                                            placeholder="Ingrese el nombre de la entidad"
-                                            value="{{ $proyecto->municipio->nombre }}" disabled>
-                                    </td>
-                                @endif
+                        <tr>
 
-                                @if (!empty($proyecto->aldea))
-                                    <td class="sub-header" colspan="4">Aldea/caserío/<br>barrio/colonia:</td>
-                                    <td class="full-width" colspan="7">
-                                        <input type="text" class="input-field"
-                                            placeholder="Ingrese el nombre de la entidad"
-                                            value="{{ $proyecto->aldea }}" disabled>
-                                    </td>
-                                @endif
-                            </tr>
-                        @endif
+                            <td class="sub-header" colspan="4">Departamentos</td>
+                            <td class="full-width" colspan="15" rowspan="1">
+                                @forelse ($proyecto->departamento as $departamento)
+                                    <input type="text" class="input-field"
+                                        placeholder="Ingrese el nombre de la entidad"
+                                        value="{{ $departamento->nombre }}" disabled>
+
+                                @empty
+                                    <input type="text" class="input-field"
+                                        placeholder="Ingrese el nombre de la entidad" value="No hay departamentos"
+                                        disabled>
+                                @endforelse
+                            </td>
+
+                        </tr>
+
+                        <tr>
+                            <td class="sub-header" colspan="4">Municipios:</td>
+                            <td class="full-width" colspan="15">
+
+                                @forelse ($proyecto->municipio as $municipio)
+                                    <input type="text" class="input-field"
+                                        placeholder="Ingrese el nombre de la entidad"
+                                        value="{{ $municipio->nombre }}" disabled>
+                                @empty
+                                    <input type="text" class="input-field"
+                                        placeholder="Ingrese el nombre de la entidad" value="No hay municipios"
+                                        disabled>
+                                @endforelse
+                            </td>
+
+
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="4">Aldea/caserío/<br>barrio/colonia:</td>
+                            <td class="full-width" colspan="15">
+                                <input type="text" class="input-field"
+                                    placeholder="Ingrese el nombre de la entidad" value="{{ $proyecto->aldea }}"
+                                    disabled>
+                            </td>
+                        </tr>
                         </tr>
                         <tr>
                             <th class="header" colspan="19">10. Descripción de actividades del proyecto (Descripción
@@ -565,37 +566,43 @@
                             <td class="sub-header3" colspan="19"> Cronogramama de actividades</td>
                         </tr>
                         <tr>
-                            <td class="sub-header3" colspan="11"> Actividades</td>
-                            <td class="sub-header3" colspan="3"> Fecha de ejecución (tentativa)</td>
-                            <td class="sub-header3" colspan="5"> Responsable</td>
+                            <td class="sub-header" colspan="3"> Descripcion Actividad</td>
+                            <td class="sub-header3" colspan="4"> Objetivos </td>
+                            <td class="sub-header3" colspan="4"> resultados</td>
+                            <td class="sub-header3" colspan="2"> Fecha Inicio</td>
+                            <td class="sub-header3" colspan="2"> Fecha Fin</td>
+                            <td class="sub-header3" colspan="1"> Horas</td>
+                            <td class="sub-header3" colspan="3"> responsables</td>
                         </tr>
                         <tr>
-                            <td class="full-width" colspan="11"><input type="text" class="input-field"
-                                    placeholder="Ingrese el día">
-                            </td>
-                            <td class="full-width" colspan="3"><input type="text" class="input-field"
-                                    placeholder="Ingrese el mes">
-                            </td>
-                            <td class="full-width" colspan="5"><input type="text" class="input-field"
-                                    placeholder="Ingrese el día">
-                            </td>
+                            @forelse ($proyecto->actividades as $actividad)
+                                <td class="r" colspan="3">{{ $actividad->descripcion }}</td>
+                                <td class="3" colspan="4"> {{ $actividad->objetivos }}</td>
+                                <td class="s" colspan="4"> {{ $actividad->resultados }}</td>
+                                <td class="s3" colspan="2"> {{ $actividad->fecha_inicio }}</td>
+                                <td class="s3" colspan="2"> {{ $actividad->fecha_finalizacion }}</td>
+                                <td class="s" colspan="1"> {{ $actividad->horas }}</td>
+                                <td class="" colspan="3">
+                                    @forelse ($actividad->empleados as $responsable)
+                                        <input type="text" class="input-field"
+                                            placeholder="Ingrese el nombre de la entidad"
+                                            value="{{ $responsable->nombre_completo }}" disabled>
+
+                                    @empty
+                                    @endforelse
+
+                                </td>
+
+                            @empty
+                                <td class="full-width
+                                " colspan="19">
+                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                        value="No hay actividades" disabled>
+
+                                </td>
+                            @endforelse
                         </tr>
-                        <tr>
-                            <td class="full-width" colspan="11"><input type="text" class="input-field"
-                                    placeholder="Ingrese el día"></td>
-                            <td class="full-width" colspan="3"><input type="text" class="input-field"
-                                    placeholder="Ingrese el mes"></td>
-                            <td class="full-width" colspan="5"><input type="text" class="input-field"
-                                    placeholder="Ingrese el día"></td>
-                        </tr>
-                        <tr>
-                            <td class="full-width" colspan="11"><input type="text" class="input-field"
-                                    placeholder="Ingrese el día"></td>
-                            <td class="full-width" colspan="3"><input type="text" class="input-field"
-                                    placeholder="Ingrese el mes"></td>
-                            <td class="full-width" colspan="5"><input type="text" class="input-field"
-                                    placeholder="Ingrese el día"></td>
-                        </tr>
+
                         <tr>
                             <th class="header" colspan="19">11. Resultados esperados </th>
                         </tr>
@@ -621,12 +628,14 @@
                             <td class="sub-header" colspan="13">Aportes de estudiantes:</td>
                             <td class="full-width" colspan="6">
                                 <input type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_estudiantes }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         <tr>
                             <td class="sub-header" colspan="13">Aportes de profesores:</td>
                             <td class="full-width" colspan="6">
                                 <input type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_profesores }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -634,12 +643,14 @@
                             <td class="sub-header" colspan="13">Aporte académico de la UNAH:</td>
                             <td class="full-width" colspan="6">
                                 <input type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_academico_unah }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         <tr>
                             <td class="sub-header" colspan="13">Aporte transporte UNAH:</td>
                             <td class="full-width" colspan="6">
                                 <input type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_transporte_unah }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -647,12 +658,18 @@
                             <td class="sub-header" colspan="13">Otros Aportes:</td>
                             <td class="full-width" colspan="6">
                                 <input type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->otros_aportes }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         <tr>
                             <td class="sub-header4" colspan="13">TOTAL UNAH:</td>
                             <td class="full-width" colspan="6">
                                 <input type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_estudiantes +
+                                        $proyecto->presupuesto->aporte_profesores +
+                                        $proyecto->presupuesto->aporte_academico_unah +
+                                        $proyecto->presupuesto->aporte_transporte_unah +
+                                        $proyecto->presupuesto->otros_aportes }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -660,6 +677,7 @@
                             <td class="sub-header" colspan="13">Aporte de la contraparte:</td>
                             <td class="full-width" colspan="6">
                                 <input type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_contraparte }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -667,6 +685,7 @@
                             <td class="sub-header" colspan="13">Aporte de la comunidad:</td>
                             <td class="full-width" colspan="6">
                                 <input type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_comunidad }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         <tr>
@@ -674,6 +693,7 @@
                             <td class="sub-header4" colspan="13">TOTAL CONTRAPARTE:</td>
                             <td class="full-width" colspan="6">
                                 <input type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_contraparte + $proyecto->presupuesto->aporte_comunidad }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -681,6 +701,13 @@
                             <td class="sub-header4" colspan="13">MONTO TOTAL DEL PROYECTO:</td>
                             <td class="full-width" colspan="6">
                                 <input type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_estudiantes +
+                                        $proyecto->presupuesto->aporte_profesores +
+                                        $proyecto->presupuesto->aporte_academico_unah +
+                                        $proyecto->presupuesto->aporte_transporte_unah +
+                                        $proyecto->presupuesto->otros_aportes +
+                                        $proyecto->presupuesto->aporte_contraparte +
+                                        $proyecto->presupuesto->aporte_comunidad }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -696,26 +723,25 @@
                             <td class="sub-header3" colspan="14">Inversión:</td>
                             <td class="sub-header3" colspan="5">Monto:</td>
                         </tr>
+
+                        @forelse ($proyecto->superavit as $superavit)
+                        {{
+                            $superavit
+                        }}
+
+                        @empty
                         <tr>
-                            <td class="full-width" colspan="14"><input type="text" class="input-field"
-                                    placeholder="Ingrese el nombre de la entidad">
+                            <td class="full-width
+                            " colspan="19">
+                                <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    value="No hay superavit" disabled>
                             </td>
-                            <td class="full-width " colspan="5"><input type="text" class="input-field"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
                         </tr>
-                        <tr>
-                            <td class="full-width" colspan="14"><input type="text" class="input-field"
-                                    placeholder="Ingrese el nombre de la entidad"></td>
-                            <td class="full-width " colspan="5"><input type="text" class="input-field"
-                                    placeholder="Ingrese el nombre de la entidad"></td>
-                        </tr>
-                        <tr>
-                            <td class="full-width" colspan="14"><input type="text" class="input-field"
-                                    placeholder="Ingrese el nombre de la entidad"></td>
-                            <td class="full-width " colspan="5"><input type="text" class="input-field"
-                                    placeholder="Ingrese el nombre de la entidad"></td>
-                        </tr>
+
+
+                        @endforelse
+                        
+
                     </table>
                 </div>
                 <div class="section3">
