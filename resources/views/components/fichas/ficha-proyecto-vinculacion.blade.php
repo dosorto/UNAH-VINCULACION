@@ -13,31 +13,29 @@
     @if ($proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
         <x-filament::section collapsible collapsed persist-collapsed id="user-details">
             <x-slot name="heading">
-                Informe Intermedio, Estado: {{$proyecto->documento_intermedio()->estado->tipoestado->nombre}}
+                Informe Intermedio, Estado: {{ $proyecto->documento_intermedio()->estado->tipoestado->nombre }}
             </x-slot>
             <x-slot name="description">
-                {{$proyecto->documento_intermedio()->estado->comentario}}
+                {{ $proyecto->documento_intermedio()->estado->comentario }}
             </x-slot>
-            <embed src="{{ asset('storage/' . $proyecto->documento_intermedio()->documento_url) 
-                
-                }}" type="application/pdf" width="100%"
-                height="600px" />
+            <embed src="{{ asset('storage/' . $proyecto->documento_intermedio()->documento_url) }}"
+                type="application/pdf" width="100%" height="600px" />
         </x-filament::section>
     @endif
     @if ($proyecto->documento_final() && $proyecto->documento_final()->documento_url != null)
         <x-filament::section collapsible collapsed persist-collapsed id="user-details">
             <x-slot name="heading">
-                Informe Final, Estado: {{$proyecto->documento_final()->estado->tipoestado->nombre}}
+                Informe Final, Estado: {{ $proyecto->documento_final()->estado->tipoestado->nombre }}
             </x-slot>
             <x-slot name="description">
-                {{$proyecto->documento_final()->estado->comentario}}
+                {{ $proyecto->documento_final()->estado->comentario }}
             </x-slot>
             <h1>Visualizador de PDF</h1>
             <embed src="{{ asset('storage/' . $proyecto->documento_final()->documento_url) }}" type="application/pdf"
                 width="100%" height="600px" />
         </x-filament::section>
     @endif
- 
+
     <x-filament::section collapsible collapsed persist-collapsed id="user-details">
         <x-slot name="heading">
             Ficha del proyecto
@@ -147,6 +145,9 @@
                                 líneas de ser necesario)</th>
                         </tr>
                         <tr>
+                            <th class="header" colspan="6">Docentes</th>
+                        </tr>
+                        <tr>
                             <td class="sub-header">Nombre Completo:</td>
                             <td class="sub-header">No. de empleado/a:</td>
                             <td class="sub-header">Correo electrónico:</td>
@@ -154,7 +155,7 @@
                             <td class="sub-header">Departamento:</td>
                         </tr>
 
-                        @foreach ($proyecto->integrantes as $integrante)
+                        @forelse ($proyecto->integrantes as $integrante)
                             <tr>
                                 <td class="full-width" colspan="1">
                                     <input type="text" class="input-field"
@@ -180,24 +181,56 @@
                                         value="{{ $integrante->departamento_academico->nombre }}" disabled>
                                 </td>
                             </tr>
-                        @endforeach
-
+                        @empty
+                            <tr>
+                                <td class="full-width
+                                " colspan="6">
+                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                        value="No hay docentes" disabled>
+                                </td>
+                            </tr>
+                        @endforelse
                         <tr>
-                            <td class="sub-header" rowspan="2">Participación de estudiantes:</td>
-                            <td class="full-width" colspan="1"> Cantidad <br>
-                                <input type="number" class="input-field1"
-                                    value="{{ $proyecto->estudiante_proyecto->count() }}" disabled>
-                            </td>
-                            <td class="sub-header" rowspan="2">Tipo de participación:</td>
-                            <td class="full-width" colspan="2">
-                                Voluntariado <input type="checkbox" class="No"
-                                    @if ($proyecto->tipo_participacion_estudiante == 'Voluntario') checked @endif> <br>
-                                Práctica de asignatura <input type="checkbox" class="No"
-                                    @if ($proyecto->tipo_participacion_estudiante == 'Practica') checked @endif><br>
-                                Práctica profesional o servicio social <input type="checkbox" class="No"
-                                    @if ($proyecto->tipo_participacion_estudiante == 'Profesional') checked @endif><br>
-                            </td>
+                            <th class="header" colspan="6">Estudiantes</th>
                         </tr>
+                        <tr>
+                            <td class="sub-header" colspan="2">Nombre Completo:</td>
+                            <td class="sub-header">No. de cuenta</td>
+                            <td class="sub-header">Correo electrónico</td>
+                            <td class="sub-header">Tipo participacion:</td>
+                        </tr>
+                        @forelse ($proyecto->estudiante_proyecto as $integrante)
+                            <tr>
+                                <td class="full-width" colspan="2">
+                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                        value="{{ $integrante->estudiante->user->name }}" disabled>
+                                </td>
+
+                                <td class="full-width
+                                " colspan="1">
+                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                        value="{{ $integrante->estudiante->cuenta }}" disabled>
+                                </td>
+                                <td class="full-width
+                                " colspan="1">
+                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                        value="{{ $integrante->estudiante->user->email }}" disabled>
+                                </td>
+                                <td class="full-width
+                                " colspan="1">
+                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                        value="{{ $integrante->tipo_participacion_estudiante }}" disabled>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td class="full-width
+                                " colspan="6">
+                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                        value="No hay estudiantes" disabled>
+                                </td>
+                            </tr>
+                        @endforelse
                     </table>
                 </div>
                 <div class="section2">
@@ -210,7 +243,14 @@
                                 tabla
                                 de información por cada una de las contrapartes)</th>
                         </tr>
-                        @foreach ($proyecto->entidad_contraparte as $entidad)
+                        @forelse ($proyecto->entidad_contraparte as $entidad)
+                            <tr>
+                                <td class="header
+                                " colspan="5">
+                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                        value="# Entidad Contraparte" disabled>
+                                </td>
+                            </tr>
                             <tr>
                                 <td class="sub-header">Nombre de la entidad:</td>
                                 <td class="full-width" colspan="4">
@@ -243,18 +283,69 @@
                             </tr>
                             <tr>
                                 <td class="sub-header">Rol o aporte en el proyecto:</td>
-                                <td class="full-width" colspan="1">
+                                <td class="full-width" colspan="3">
                                     <input type="text" class="input-field"
                                         placeholder="Ingrese el nombre de la entidad" value="{{ $entidad->aporte }}"
                                         disabled>
                                 </td>
-                                <td class="sub-header">Instrumento de formalización de alianza (Si hubiese):</td>
-                                <td class="full-width" colspan="1">
-                                    <input type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad">
+
+
+                            </tr>
+                            <tr>
+                                <td class="sub-header" colspan="5">Instrumentos de formalización de alianza (Si
+                                    hubiese):</td>
+                            </tr>
+                            <tr>
+                                @forelse ($entidad->instrumento_formalizacion as $instrumento)
+                                    <td class="full-width
+                                    " colspan="3">
+                                        <input type="text" class="input-field"
+                                            placeholder="Ingrese el departamento" value="Documento de formalización"
+                                            disabled>
+                                    </td>
+                                    <td class="full-width
+                                    " colspan="2">
+                                        <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
+                                            <x-slot name="heading">
+                                                Documento de formalización
+                                            </x-slot>
+                                            <x-slot name="trigger">
+                                                <x-filament::button>
+                                                    Ver documento
+                                                </x-filament::button>
+                                            </x-slot>
+
+
+                                            <iframe src="{{ Storage::url($instrumento->documento_url) }}"
+                                                style="width: 100%; height: 85vh; border: none;"></iframe>
+
+                                        </x-filament::modal>
+                                        <x-filament::button>
+                                            <a href="{{ Storage::url($instrumento->documento_url) }}" download
+                                                style="text-decoration: none; color: inherit;">
+                                                Descargar
+                                            </a>
+                                        </x-filament::button>
+
+                                    </td>
+                                @empty
+                                    <td class="full-width
+                                    " colspan="5">
+                                        <input type="text" class="input-field"
+                                            placeholder="Ingrese el departamento"
+                                            value="No hay instrumentos de formalización" disabled>
+                                    </td>
+                                @endforelse
+                            </tr>
+                        @empty
+                            <tr>
+                                <td class="full-width
+                                " colspan="5">
+                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                        value="No hay entidades contraparte" disabled>
                                 </td>
                             </tr>
-                        @endforeach
+                        @endforelse
                     </table>
 
                 </div>
@@ -451,8 +542,8 @@
                                 @endif
 
                                 @if (!empty($proyecto->aldea))
-                                    <td class="sub-header" colspan="1">Aldea/caserío/<br>barrio/colonia:</td>
-                                    <td class="full-width" colspan="5">
+                                    <td class="sub-header" colspan="4">Aldea/caserío/<br>barrio/colonia:</td>
+                                    <td class="full-width" colspan="7">
                                         <input type="text" class="input-field"
                                             placeholder="Ingrese el nombre de la entidad"
                                             value="{{ $proyecto->aldea }}" disabled>
@@ -761,39 +852,46 @@
                         <tr>
                             <td class="sub-header" colspan="1">Responsable de revisión</td>
                             <td class="full-width" colspan="10">
-                                <input type="text" class="input-field" value="{{ optional($proyecto->responsable_revision)->nombre_completo }}" placeholder="Ingrese el día">
+                                <input type="text" class="input-field"
+                                    value="{{ optional($proyecto->responsable_revision)->nombre_completo }}"
+                                    placeholder="Ingrese el día">
                             </td>
                         </tr>
                     </table>
                     <table class="table_datos5">
                         <td class="sub-header" colspan="1">Fecha de Aprobación</td>
                         <td class="full-width" colspan="6">
-                            <input type="text" class="input-field" value="{{ $proyecto->fecha_aprobacion }}" placeholder="Ingrese el día">
+                            <input type="text" class="input-field" value="{{ $proyecto->fecha_aprobacion }}"
+                                placeholder="Ingrese el día">
                         </td>
                         <td class="sub-header" colspan="1">Fecha de Registro</td>
                         <td class="full-width" colspan="6">
-                            <input type="text" class="input-field" value="{{ $proyecto->fecha_registro }}" placeholder="Ingrese el día">
+                            <input type="text" class="input-field" value="{{ $proyecto->fecha_registro }}"
+                                placeholder="Ingrese el día">
                         </td>
                         </tr>
                     </table>
                     <table class="table_datos7">
                         <td class="sub-header" colspan="1">No. de Libro </td>
                         <td class="full-width" colspan="1">
-                            <input type="text" class="input-field" value="{{ $proyecto->numero_libro }}" placeholder="Ingrese el día">
+                            <input type="text" class="input-field" value="{{ $proyecto->numero_libro }}"
+                                placeholder="Ingrese el día">
                         </td>
                         <td class="sub-header" colspan="1">No. de Tomo </td>
                         <td class="full-width" colspan="1">
-                            <input type="text" class="input-field" value="{{ $proyecto->numero_tomo }}" placeholder="Ingrese el día">
+                            <input type="text" class="input-field" value="{{ $proyecto->numero_tomo }}"
+                                placeholder="Ingrese el día">
                         </td>
                         <td class="sub-header" colspan="1">No. de Folio </td>
                         <td class="full-width" colspan="1">
-                            <input type="text" class="input-field" value="{{ $proyecto->numero_folio }}" placeholder="Ingrese el día">
+                            <input type="text" class="input-field" value="{{ $proyecto->numero_folio }}"
+                                placeholder="Ingrese el día">
                         </td>
                         </tr>
                     </table>
 
-                    <div class="header-box"> <input type="text" class="input-field" value="{{ $proyecto->numero_dictamen }}"
-                            placeholder="Ingrese No. dictamen de Proyecto">
+                    <div class="header-box"> <input type="text" class="input-field"
+                            value="{{ $proyecto->numero_dictamen }}" placeholder="Ingrese No. dictamen de Proyecto">
                         <p class="header-text">No. dictamen de Proyecto</p>
                     </div>
                 </div>
@@ -803,6 +901,6 @@
 
 
 </body>
-      
+
 
 </html>

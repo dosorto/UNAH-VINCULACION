@@ -14,7 +14,7 @@ class EstudianteProyecto extends Model
     use SoftDeletes;
     use LogsActivity;
 
-    protected static $logAttributes = ['id', 'estudiante_id', 'proyecto_id', 'tipo_participacion'];
+    protected static $logAttributes = ['id', 'estudiante_id', 'proyecto_id', 'tipo_participacion_estudiante'];
 
     protected static $logName = 'EstudianteProyecto';
 
@@ -29,7 +29,7 @@ class EstudianteProyecto extends Model
         'id',
         'estudiante_id', 
         'proyecto_id', 
-        'tipo_participacion',
+        'tipo_participacion_estudiante',
     ];
 
     public function estudiante()
