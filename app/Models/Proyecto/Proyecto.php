@@ -281,7 +281,7 @@ class Proyecto extends Model
     // relacion uno a uno con el modelo superavit
     public function superavit()
     {
-        return $this->hasOne(Superavit::class, 'proyecto_id');
+        return $this->hasMany(Superavit::class, 'proyecto_id');
     }
 
     // relacion muchos a muchos con el modelo categoria

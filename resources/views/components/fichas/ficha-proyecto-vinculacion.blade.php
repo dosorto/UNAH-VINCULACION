@@ -566,23 +566,20 @@
                             <td class="sub-header3" colspan="19"> Cronogramama de actividades</td>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="3"> Descripcion Actividad</td>
-                            <td class="sub-header3" colspan="4"> Objetivos </td>
-                            <td class="sub-header3" colspan="4"> resultados</td>
-                            <td class="sub-header3" colspan="2"> Fecha Inicio</td>
-                            <td class="sub-header3" colspan="2"> Fecha Fin</td>
-                            <td class="sub-header3" colspan="1"> Horas</td>
-                            <td class="sub-header3" colspan="3"> responsables</td>
+                         
+                            <td class="sub-header3" colspan="4"> Fecha Inicio</td>
+                            <td class="sub-header3" colspan="4"> Horas</td>
+                            <td class="sub-header3" colspan="4"> Fecha Fin</td>
+                            <td class="sub-header3" colspan="5"> responsables</td>
+                            <td class="sub-header3" colspan="5"> Accion</td>
                         </tr>
                         <tr>
                             @forelse ($proyecto->actividades as $actividad)
-                                <td class="r" colspan="3">{{ $actividad->descripcion }}</td>
-                                <td class="3" colspan="4"> {{ $actividad->objetivos }}</td>
-                                <td class="s" colspan="4"> {{ $actividad->resultados }}</td>
-                                <td class="s3" colspan="2"> {{ $actividad->fecha_inicio }}</td>
-                                <td class="s3" colspan="2"> {{ $actividad->fecha_finalizacion }}</td>
-                                <td class="s" colspan="1"> {{ $actividad->horas }}</td>
-                                <td class="" colspan="3">
+                            <tr>
+                                <td class="s3" colspan="4"> {{ $actividad->fecha_inicio }}</td>
+                                <td class="s" colspan="4"> {{ $actividad->horas }}</td>
+                                <td class="s3" colspan="4"> {{ $actividad->fecha_finalizacion }}</td>
+                                <td class="" colspan="5">
                                     @forelse ($actividad->empleados as $responsable)
                                         <input type="text" class="input-field"
                                             placeholder="Ingrese el nombre de la entidad"
@@ -592,7 +589,45 @@
                                     @endforelse
 
                                 </td>
+                                <td class="" colspan="5">    
+                                    <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
+                                        <x-slot name="heading">
+                                            Actividad
+                                        </x-slot>
+                                        <x-slot name="trigger">
+                                            <x-filament::button>
+                                               Ver Actividad
+                                            </x-filament::button>
+                                        </x-slot>
 
+                                        <div class="activity-container">
+                                            <div class="activity-header">Detalles de la Actividad</div>
+                                            <div class="activity-body">
+                                                <div class="row">
+                                                    <div class="column"><strong>Fecha de Inicio:</strong> {{ $actividad->fecha_inicio }}</div>
+                                                    <div class="column"><strong>Fecha de Finalización:</strong> {{ $actividad->fecha_finalizacion }}</div>
+                                                </div>
+                                                <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}</div>
+                                                <div class="highlight"><strong>Responsables:</strong> 
+                                                    @forelse ($actividad->empleados as $responsable)
+                                                        
+                                                        <div>
+                                                            <div>{{ $responsable->nombre_completo }}</div>
+                                                        </div>
+                                                    @empty
+                                                        No asignado
+                                                    @endforelse
+                                                </div>
+                                                <div class="large-box"><strong>Descripción:</strong> {{ $actividad->descripcion }}</div>
+                                                <div class="large-box"><strong>Objetivos:</strong> {{ $actividad->objetivos }}</div>
+                                                <div class="large-box"><strong>Resultados:</strong> {{ $actividad->resultados }}</div>
+                                            </div>
+                                        </div>
+
+                                    </x-filament::modal>
+
+                                </td>
+                            </tr>
                             @empty
                                 <td class="full-width
                                 " colspan="19">
@@ -725,10 +760,20 @@
                         </tr>
 
                         @forelse ($proyecto->superavit as $superavit)
-                        {{
-                            $superavit
-                        }}
+                            <tr>
+                                <td class="full-width
+                                " colspan="14">
+                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                        value="{{ $superavit->inversion }}" disabled>
+                                </td>
+                                <td class="full-width
+                                " colspan="5">
+                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                        value="{{ $superavit->monto }}" disabled>
+                                </td>
 
+                            </tr>
+                        
                         @empty
                         <tr>
                             <td class="full-width
