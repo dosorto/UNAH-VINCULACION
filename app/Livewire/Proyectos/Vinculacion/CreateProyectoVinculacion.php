@@ -101,9 +101,9 @@ class CreateProyectoVinculacion extends Component implements HasForms
 
     public function create(): void
     {
+        $data = $this->form->getState();
         try {
             // Intentar obtener el estado del formulario y crear el proyecto
-            $data = $this->form->getState();
             $data['fecha_registro'] = now();
             $record = Proyecto::create($data);
             $this->form->model($record)->saveRelationships();
@@ -202,8 +202,9 @@ class CreateProyectoVinculacion extends Component implements HasForms
     // optimizar esta funcion para despues, es demasiado redundante y lo unico que cambia es el nombre del estado :)
     public function borrador(): void
     {
+
+        $data = $this->form->getState();
         try {
-            $data = $this->form->getState();
             $data['fecha_registro'] = now();
 
             // Intentar crear el proyecto

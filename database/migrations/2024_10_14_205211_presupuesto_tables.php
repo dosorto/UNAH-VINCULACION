@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('aporte_transporte_unah')->nullable();
             $table->string('aporte_contraparte')->nullable();
             $table->string('aporte_comunidad')->nullable();
+            $table->string('otros_aportes')->nullable();
             $table->softDeletes();
             $table->timestamps();
             $table->unique(['proyecto_id']);

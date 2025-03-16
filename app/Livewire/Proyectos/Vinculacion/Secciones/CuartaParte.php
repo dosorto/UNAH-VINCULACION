@@ -180,6 +180,11 @@ class CuartaParte
                         ->numeric()
                         ->required(),
 
+                    TextInput::make('otros_aportes')
+                        ->label('Otros aportes')
+                        ->numeric()
+                        ->required(),
+
                     TextInput::make('aporte_contraparte')
                         ->label('Aporte de contraparte')
                         ->numeric()
@@ -195,11 +200,11 @@ class CuartaParte
                 ->columns(2),
 
             Repeater::make('superavit')
-            ->label('Superávit (En caso de existir)')
+                ->label('Superávit (En caso de existir)')
                 ->schema([
                     Forms\Components\TextInput::make('inversion')
-                        ->label('Inversión')
-                        ->numeric()
+                        ->label('Inversión (Descripción de la inversión realizada)')
+                        ->maxLength(255)
                         ->columnSpan(1)
                         ->required(),
                     Forms\Components\TextInput::make('monto')

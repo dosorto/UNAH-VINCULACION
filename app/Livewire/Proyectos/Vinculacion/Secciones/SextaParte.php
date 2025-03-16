@@ -27,6 +27,12 @@ class SextaParte
                    
 
                     Hidden::make('cargo_firma_id')
+                    ->required()
+                    ->in(
+                        CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                            ->where('tipo_cargo_firma.nombre', 'Jefe Departamento')
+                            ->first()->id
+                    )
                         ->default(
                             CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
                                 ->where('tipo_cargo_firma.nombre', 'Jefe Departamento')
@@ -36,6 +42,8 @@ class SextaParte
 
 
                 ])
+                ->minItems(1)
+                ->maxItems(1)
                 ->addable(false)
                 ->deletable(false)
                 ->relationship(),

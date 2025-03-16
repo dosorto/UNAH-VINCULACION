@@ -43,6 +43,7 @@ class Presupuesto extends Model
         'aporte_transporte_unah',
         'aporte_contraparte',
         'aporte_comunidad',
+        'otros_aportes',
     ];
 
     public function tipopresupuesto()

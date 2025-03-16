@@ -297,6 +297,7 @@
                             </tr>
                             <tr>
                                 @forelse ($entidad->instrumento_formalizacion as $instrumento)
+                                <tr>
                                     <td class="full-width
                                     " colspan="3">
                                         <input type="text" class="input-field"
@@ -328,6 +329,7 @@
                                         </x-filament::button>
 
                                     </td>
+                                </tr>
                                 @empty
                                     <td class="full-width
                                     " colspan="5">
@@ -566,7 +568,7 @@
                             <td class="sub-header3" colspan="19"> Cronogramama de actividades</td>
                         </tr>
                         <tr>
-                         
+
                             <td class="sub-header3" colspan="4"> Fecha Inicio</td>
                             <td class="sub-header3" colspan="4"> Horas</td>
                             <td class="sub-header3" colspan="4"> Fecha Fin</td>
@@ -575,67 +577,71 @@
                         </tr>
                         <tr>
                             @forelse ($proyecto->actividades as $actividad)
-                            <tr>
-                                <td class="s3" colspan="4"> {{ $actividad->fecha_inicio }}</td>
-                                <td class="s" colspan="4"> {{ $actividad->horas }}</td>
-                                <td class="s3" colspan="4"> {{ $actividad->fecha_finalizacion }}</td>
-                                <td class="" colspan="5">
-                                    @forelse ($actividad->empleados as $responsable)
-                                        <input type="text" class="input-field"
-                                            placeholder="Ingrese el nombre de la entidad"
-                                            value="{{ $responsable->nombre_completo }}" disabled>
+                        <tr>
+                            <td class="s3" colspan="4"> {{ $actividad->fecha_inicio }}</td>
+                            <td class="s" colspan="4"> {{ $actividad->horas }}</td>
+                            <td class="s3" colspan="4"> {{ $actividad->fecha_finalizacion }}</td>
+                            <td class="" colspan="5">
+                                @forelse ($actividad->empleados as $responsable)
+                                    <input type="text" class="input-field"
+                                        placeholder="Ingrese el nombre de la entidad"
+                                        value="{{ $responsable->nombre_completo }}" disabled>
 
-                                    @empty
-                                    @endforelse
+                                @empty
+                                @endforelse
 
-                                </td>
-                                <td class="" colspan="5">    
-                                    <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
-                                        <x-slot name="heading">
-                                            Actividad
-                                        </x-slot>
-                                        <x-slot name="trigger">
-                                            <x-filament::button>
-                                               Ver Actividad
-                                            </x-filament::button>
-                                        </x-slot>
+                            </td>
+                            <td class="" colspan="5">
+                                <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
+                                    <x-slot name="heading">
+                                        Actividad
+                                    </x-slot>
+                                    <x-slot name="trigger">
+                                        <x-filament::button>
+                                            Ver Actividad
+                                        </x-filament::button>
+                                    </x-slot>
 
-                                        <div class="activity-container">
-                                            <div class="activity-header">Detalles de la Actividad</div>
-                                            <div class="activity-body">
-                                                <div class="row">
-                                                    <div class="column"><strong>Fecha de Inicio:</strong> {{ $actividad->fecha_inicio }}</div>
-                                                    <div class="column"><strong>Fecha de Finalización:</strong> {{ $actividad->fecha_finalizacion }}</div>
-                                                </div>
-                                                <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}</div>
-                                                <div class="highlight"><strong>Responsables:</strong> 
-                                                    @forelse ($actividad->empleados as $responsable)
-                                                        
-                                                        <div>
-                                                            <div>{{ $responsable->nombre_completo }}</div>
-                                                        </div>
-                                                    @empty
-                                                        No asignado
-                                                    @endforelse
-                                                </div>
-                                                <div class="large-box"><strong>Descripción:</strong> {{ $actividad->descripcion }}</div>
-                                                <div class="large-box"><strong>Objetivos:</strong> {{ $actividad->objetivos }}</div>
-                                                <div class="large-box"><strong>Resultados:</strong> {{ $actividad->resultados }}</div>
+                                    <div class="activity-container">
+                                        <div class="activity-header">Detalles de la Actividad</div>
+                                        <div class="activity-body">
+                                            <div class="row">
+                                                <div class="column"><strong>Fecha de Inicio:</strong>
+                                                    {{ $actividad->fecha_inicio }}</div>
+                                                <div class="column"><strong>Fecha de Finalización:</strong>
+                                                    {{ $actividad->fecha_finalizacion }}</div>
                                             </div>
+                                            <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}</div>
+                                            <div class="highlight"><strong>Responsables:</strong>
+                                                @forelse ($actividad->empleados as $responsable)
+                                                    <div>
+                                                        <div>{{ $responsable->nombre_completo }}</div>
+                                                    </div>
+                                                @empty
+                                                    No asignado
+                                                @endforelse
+                                            </div>
+                                            <div class="large-box"><strong>Descripción:</strong>
+                                                {{ $actividad->descripcion }}</div>
+                                            <div class="large-box"><strong>Objetivos:</strong>
+                                                {{ $actividad->objetivos }}</div>
+                                            <div class="large-box"><strong>Resultados:</strong>
+                                                {{ $actividad->resultados }}</div>
                                         </div>
+                                    </div>
 
-                                    </x-filament::modal>
+                                </x-filament::modal>
 
-                                </td>
-                            </tr>
-                            @empty
-                                <td class="full-width
+                            </td>
+                        </tr>
+                    @empty
+                        <td class="full-width
                                 " colspan="19">
-                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
-                                        value="No hay actividades" disabled>
+                            <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                value="No hay actividades" disabled>
 
-                                </td>
-                            @endforelse
+                        </td>
+                        @endforelse
                         </tr>
 
                         <tr>
@@ -773,19 +779,17 @@
                                 </td>
 
                             </tr>
-                        
+
                         @empty
-                        <tr>
-                            <td class="full-width
+                            <tr>
+                                <td class="full-width
                             " colspan="19">
-                                <input type="text" class="input-field" placeholder="Ingrese el departamento"
-                                    value="No hay superavit" disabled>
-                            </td>
-                        </tr>
-
-
+                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                        value="No hay superavit" disabled>
+                                </td>
+                            </tr>
                         @endforelse
-                        
+
 
                     </table>
                 </div>
@@ -813,15 +817,15 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
-                                <img src="{{ optional(optional($proyecto->firma_coodinador_proyecto()->first())->sello)->ruta_storage }}"
+                                <img src="{{ Storage::url(optional(optional($proyecto->firma_coodinador_proyecto()->first())->sello)->ruta_storage) }}"
                                     alt="" width="200px">
-                                <img src="{{ optional(optional($proyecto->firma_coodinador_proyecto()->first())->firma)->ruta_storage }}"
+                                <img src="{{ Storage::url(optional(optional($proyecto->firma_coodinador_proyecto()->first())->firma)->ruta_storage) }}"
                                     alt="" width="200px">
                             </td>
                             <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
-                                <img src="{{ optional(optional($proyecto->firma_proyecto_jefe()->first())->sello)->ruta_storage }}"
+                                <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_jefe()->first())->sello)->ruta_storage) }}"
                                     alt="" width="200px">
-                                <img src="{{ optional(optional($proyecto->firma_proyecto_jefe()->first())->firma)->ruta_storage }}"
+                                <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_jefe()->first())->firma)->ruta_storage) }}"
                                     alt="" width="200px">
                             </td>
                         </tr>
@@ -855,15 +859,15 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
-                                <img src="{{ optional(optional($proyecto->firma_proyecto_enlace()->first())->sello)->ruta_storage }}"
+                                <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_enlace()->first())->sello)->ruta_storage) }}"
                                     alt="" width="200px">
-                                <img src="{{ optional(optional($proyecto->firma_proyecto_enlace()->first())->firma)->ruta_storage }}"
+                                <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_enlace()->first())->firma)->ruta_storage) }}"
                                     alt="" width="200px">
                             </td>
                             <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
-                                <img src="{{ optional(optional($proyecto->firma_proyecto_decano()->first())->sello)->ruta_storage }}"
+                                <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_decano()->first())->sello)->ruta_storage) }}"
                                     alt="" width="200px">
-                                <img src="{{ optional(optional($proyecto->firma_proyecto_decano()->first())->firma)->ruta_storage }}"
+                                <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_decano()->first())->firma)->ruta_storage) }}"
                                     alt="" width="200px">
                             </td>
                         </tr>
@@ -880,45 +884,106 @@
                     <div class="section-title">V. ANEXOS. </div>
                     <table class="table_datos5">
                         <tr>
-                            <td class="sub-header" colspan="1">Categorías de proyectos de vinculación</td>
-                            <td class="full-width" colspan="1">Educación No Formal y/o Continua <br>
-                                <input type="checkbox" class="no">
+                            <th class="header" colspan="19">
+                                1. Categorias de proyectos de vinculación con la sociedad
+                            </th>
+                        </tr>
+                        <tr>
+
+                            @forelse ($proyecto->categoria as $categoria)
+                        <tr>
+                            <td class="full-width
+                                        " colspan="19">
+                                <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    value="{{ $categoria->nombre }}" disabled>
                             </td>
-                            <td class="full-width" colspan="1">APS <br>
-                                <input type="checkbox" class="no">
+                        </tr>
+
+                    @empty
+                        <tr>
+                            <td class="full-width 
+                                        " colspan="19">
+                                <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    value="No hay categorias" disabled>
                             </td>
-                            <td class="full-width" colspan="1">Desarrollo Regional <br>
-                                <input type="checkbox" class="no">
-                            </td>
-                            <td class="full-width" colspan="1">Desarrollo local <br>
-                                <input type="checkbox" class="no">
-                            </td>
-                            <td class="full-width" colspan="1">Investigación-acción-participación <br>
-                                <input type="checkbox" class="no">
-                            </td>
-                            <td class="full-width" colspan="1">Asesoría técnico-científica <br>
-                                <input type="checkbox" class="no">
-                            </td>
-                            <td class="full-width" colspan="1">Artísticos-culturales <br>
-                                <input type="checkbox" class="no">
-                            </td>
-                            <td class="full-width" colspan="1">Otras áreas <br>
-                                <input type="checkbox" class="no">
-                            </td>
+                        </tr>
+                        @endforelse
+
+
                         </tr>
                     </table>
                     <table class="table_datos5">
                         <tr>
-                            <th class="header" colspan="19">1. ODS en el que se enmarca el proyecto: Utilizar el
+                            <th class="header" colspan="19">2. ODS en el que se enmarca el proyecto: Utilizar el
                                 documento Agenda 20/45 y objetivos de desarrollo sostenible. </th>
                         </tr>
                         <tr>
-                            <td class="full-width" colspan="19">
-                                <textarea name="motivos" id="motivos" cols="30" rows="6" class="input-field"
-                                    placeholder="Ingrese el resumen"></textarea>
+                            @forelse ($proyecto->ods as $ods)
+                        <tr>
+                            <td class="full-width
+                                " colspan="19">
+                                <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    value="{{ $ods->nombre }}" disabled>
                             </td>
                         </tr>
+                    @empty
+
+                        <td class="full-width
+                                " colspan="19">
+                            <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                value="No hay ODS registrados en este momento" disabled>
+                        </td>
+                        @endforelse
+
+                        </tr>
                     </table>
+
+                    <table class="table_datos5">
+                        <tr>
+                            <th class="header" colspan="19">3. Anexos </th>
+                        </tr>
+                        <tr>
+                            @forelse ($proyecto->anexos as $anexo)
+                            <tr>
+                                <td class="full-width
+                                " colspan="8">
+                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                        value="ANEXO DEL PROYECTO" disabled>
+                                </td>
+                                <td class="full-width" colspan="11">
+                                    <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
+                                        <x-slot name="heading">
+                                            Anexo
+                                        </x-slot>
+                                        <x-slot name="trigger">
+                                            <x-filament::button>
+                                                Ver anexo
+                                            </x-filament::button>
+                                        </x-slot>
+                                        <iframe src="{{ Storage::url($anexo->documento_url) }}"
+                                            style="width: 100%; height: 85vh; border: none;"></iframe>
+                                    </x-filament::modal>
+                                    <x-filament::button>
+                                        <a href="{{ Storage::url($anexo->documento_url) }}" download
+                                            style="text-decoration: none; color: inherit;">
+                                            Descargar
+                                        </a>
+                                    </x-filament::button>
+
+                                </td>
+                            </tr>
+                            @empty
+                                <td class="full-width
+                                " colspan="19">
+                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                        value="No hay anexos registrados en este momento" disabled>
+                                </td>
+                            @endforelse
+                        </tr>
+                    </table>
+
+
+                    <div class="section-title" style="margin-top: 20px;">VI. DATOS DE REGISTRO. </div>
                     <table class="table_datos5">
                         <tr>
                             <td class="sub-header" colspan="1">Responsable de revisión</td>
