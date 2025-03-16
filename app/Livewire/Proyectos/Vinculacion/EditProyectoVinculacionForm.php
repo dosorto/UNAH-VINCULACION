@@ -72,8 +72,20 @@ class EditProyectoVinculacionForm extends Component implements HasForms
     public function mount(Proyecto $proyecto)
     {
         $this->record = $proyecto;
+        // validar que el coordinador del proyecto sea el usuario logueado
+        if ($this->record->coordinador_proyecto[0]->empleado_id != auth()->user()->empleado->id) {
+            Notification::make()
+                ->title('¡Error!')
+                ->body('No tienes permisos para editar este proyecto')
+                ->danger()
+                ->send();
+            return redirect()->route('proyectosDocente');
+        }
 
-        if (in_array($this->record->obtenerUltimoEstado()->tipo_estado_id, TipoEstado::whereIn('nombre', ['Borrador', 'Subsanacion'])->pluck('id')->toArray())) {
+
+        if (in_array($this->record->obtenerUltimoEstado()
+            ->tipo_estado_id, TipoEstado::whereIn('nombre', ['Borrador', 'Subsanacion'])
+            ->pluck('id')->toArray())) {
             $this->form->fill($this->record->attributesToArray());
         } else {
             Notification::make()
