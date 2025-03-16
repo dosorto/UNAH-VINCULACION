@@ -123,7 +123,7 @@
         </div>
         
         <div class="qr-code">
-        <img src="{{ $qrCode }}" alt="QR Code" style="width: 200px; height: 200px;">
+        <img src="data:image/png;base64,{{ $qrCode }}" alt="QR Code" style="width: 200px; height: 200px;">
         </div>
 
         <footer>

@@ -101,13 +101,14 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                             ->modalSubheading('¿Estás seguro de que deseas Rechazar la firma de este proyecto?')
                             ->action(function (Proyecto $record,  array $data) {
                                 //  cambiar todos los estados de la revision a Pendiente
-                                $record->firma_proyecto()->update(['estado_revision' => 'Pendiente',
-                                'firma_id' => null,
-                                'sello_id' => null,
+                                $record->firma_proyecto()->update([
+                                    'estado_revision' => 'Pendiente',
+                                    'firma_id' => null,
+                                    'sello_id' => null,
 
                                 ]);
 
-                                
+
 
                                 $record->estado_proyecto()->create([
                                     'empleado_id' => Auth::user()->empleado->id,
@@ -125,6 +126,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                     ->info()
                                     ->send();
                             })
+                            ->cancelParentActions()
                             ->button(),
 
                         Action::make('aprobar')
@@ -147,6 +149,12 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
 
                                                 return "{$prefix}-{$year}-{$formattedId}";
                                             }),
+                                        Select::make('categoria_id')
+                                            ->label('Categoría')
+                                            ->multiple()
+                                            ->relationship(name: 'categoria', titleAttribute: 'nombre')
+                                            ->required()
+                                            ->preload(),
                                         Select::make('ods')
                                             ->label('ODS')
                                             ->multiple()

@@ -7,12 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
+use App\Models\Personal\Empleado;
 
 class EstadoProyecto extends Model
 {
     use HasFactory;
     use SoftDeletes;
     use LogsActivity;
+    
 
     protected static $logAttributes = [
         'id',

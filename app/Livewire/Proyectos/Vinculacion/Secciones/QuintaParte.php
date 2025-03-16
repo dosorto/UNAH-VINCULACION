@@ -13,13 +13,6 @@ class QuintaParte
     {
         return [
 
-            Select::make('categoria_id')
-                ->label('Categoría')
-                ->multiple()
-                ->relationship(name: 'categoria', titleAttribute: 'nombre')
-                ->required()
-                ->preload(),
-
             Repeater::make('anexos')
                 ->label('Anexos')
                 ->schema([

@@ -42,30 +42,30 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-        ->query(
-            Proyecto::query()
-                ->whereIn('id', function ($query) {
-                    $query->select('estadoable_id')
-                        ->from('estado_proyecto')
-                        ->where('estadoable_type', Proyecto::class) // Asegúrate de filtrar por el modelo `Proyecto`
-                        ->where('tipo_estado_id', TipoEstado::where('nombre', 'En revision final')->first()->id)
-                        ->where('es_actual', true);
-                })
+            ->query(
+                Proyecto::query()
+                    ->whereIn('id', function ($query) {
+                        $query->select('estadoable_id')
+                            ->from('estado_proyecto')
+                            ->where('estadoable_type', Proyecto::class) // Asegúrate de filtrar por el modelo `Proyecto`
+                            ->where('tipo_estado_id', TipoEstado::where('nombre', 'En revision final')->first()->id)
+                            ->where('es_actual', true);
+                    })
 
-        )
+            )
             ->columns([
                 Tables\Columns\TextColumn::make('nombre_proyecto')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('modalidad_id')
                     ->numeric()
                     ->sortable(),
-               
+
             ])
             ->filters([
                 //
             ])
             ->actions([
-               
+
                 Action::make('first')
                     ->label('Ver')
                     ->modalContent(
@@ -95,13 +95,38 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
                             ->modalSubheading('¿Estás seguro de que deseas Rechazar la firma de este proyecto?')
                             ->action(function (Proyecto $record,  array $data) {
                                 //  cambiar todos los estados de la revision a Pendiente
-                                $record->firma_proyecto()->update(['estado_revision' => 'Pendiente',
-                                'firma_id' => null,
-                                'sello_id' => null,
+                                $record->firma_proyecto()->update([
+                                    'estado_revision' => 'Pendiente',
+                                    'firma_id' => null,
+                                    'sello_id' => null,
 
-                                ]);
+                                ]); 
 
-                                
+                                // quitar al responsable de la revision
+                                $record->responsable_revision_id = null;
+                                // quitar el numero de dictamen
+                                $record->numero_dictamen = null;
+                                // quitar la fecha de aprobacion
+                                $record->fecha_aprobacion = null;
+                                // quitar la fecha de registro
+                                $record->fecha_registro = null;
+                                // quitar el nuro de libro
+                                $record->numero_libro = null;
+
+                                // quitar el numero de tomo
+                                $record->numero_tomo = null;
+
+                                // quitar el numero de folio
+                                $record->numero_folio = null;
+
+                                $record->save();
+                                // quitar las categorias
+                                $record->categoria()->detach();
+
+                                // quitar los ods
+                                $record->ods()->detach();
+
+
 
                                 $record->estado_proyecto()->create([
                                     'empleado_id' => Auth::user()->empleado->id,
@@ -118,7 +143,11 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
                                     ->body('Proyecto Rechazado')
                                     ->info()
                                     ->send();
+
+                                    //recargar la pagina con js
+
                             })
+                            ->cancelParentActions()
                             ->button(),
 
                         Action::make('aprobar')
