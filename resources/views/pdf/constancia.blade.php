@@ -1,38 +1,58 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title }}</title>
     <style>
+        @page {
+            size: letter;
+            margin: 0;
+        }
+
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
             margin: 0;
-            padding: 20px;
             background-color: #fff;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            /* Permite que el contenido ocupe el espacio disponible */
         }
+
         .container {
             width: 100%;
-            max-width: 810px; /* Ancho de página A4 */
+            max-width: 816px;
+            max-height: 1056px;
             margin: 0 auto;
-            border: 1px solid #ccc;
-            padding: 20px;
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex-grow: 1;
+            /* Permite que el contenedor crezca para ocupar el espacio disponible */
         }
 
         .header {
-            text-align: center;
+            padding: 10px;
             margin-bottom: 20px;
+            display: flex;
+
         }
+
         .logo-space {
-            height: 100px;
+            height: 70px;
             background-color: #fff;
             display: flex;
             justify-content: center;
             align-items: center;
             margin-bottom: 20px;
         }
+
         .contact-info {
             text-align: right;
             font-size: 14px;
@@ -41,6 +61,7 @@
             font-weight: bold;
             color: rgb(4, 4, 126);
         }
+
         a {
             color: inherit;
             text-decoration: none;
@@ -58,12 +79,12 @@
             font-family: Arial, sans-serif;
             text-align: center;
             margin-bottom: 20px;
-            padding: 20px;
+            padding: 10px;
         }
 
         .constancia-texto {
             width: 100%;
-            max-width: 500px;
+            max-width: 700px;
             margin: 0 auto;
             margin-top: 20px;
         }
@@ -94,41 +115,73 @@
         .qr-code {
             text-align: center;
             margin-top: 30px;
+            /* Asegura que el código QR esté al final */
         }
-
-
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo-space">
-                <img src="data:image/jpeg;base64,{{ $logoBase64 }}" width="500px" height="120px" alt="Escudo de la UNAH">
-            </div>
-            <div class="contact-info">
-                <a href="mailto:vinculacion.sociedad@unah.edu.hn">vinculacion.sociedad@unah.edu.hn</a><br>
-                Tel. 2216-7070 Ext. 110576
-            </div>
-            <h1>{{ $title }}</h1>
+            <table>
+                <tr>
+                    <td>
+                        <div class="logo-space">
+                            <img src="file://{{ public_path('images/imagenvinculacion.jpg') }}" width="500px"
+                                height="120px" alt="Escudo de la UNAH">
+                        </div>
+
+                    </td>
+                    <td style="vertical-align: bottom;">
+                        <div class="contact-info" style="margin-right: 20px;">
+                            <a href="mailto:vinculacion.sociedad@unah.edu.hn">vinculacion.sociedad@unah.edu.hn</a><br>
+                            Tel. 2216-7070 Ext. 110576
+                        </div>
+                    </td>
+                </tr>
+            </table>
+            <h1 style="margin-top: 50px;">{{ $title }}</h1>
         </div>
 
-        <div class="constancia">
-            <div class="constancia-texto">
-                <p>El Área Dirección Vinculación Universidad Sociedad, hace constar que:</p>
-                <p>{{ $empleado->nombre_completo }} con número de empleado: 
-                    <span class="destacado">{{ $empleado->numero_empleado }}</span> participó en el proyecto
-                    <strong>"{{ $proyecto->nombre_proyecto }}"</strong>
-                <p>Y para los fines que al interesado(a) convenga, se le extiende la presente Constancia en la Ciudad Universitaria, José Trinidad Reyes, a los veinte días del mes de enero del año dos mil veintitrés.</p>
+        <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+            <div class="constancia" style=" ">
+                <div class="constancia-texto">
+                    <p>El Área Dirección Vinculación Universidad Sociedad, hace constar que:</p>
+                    <p> <strong> {{ $empleado->nombre_completo }} </strong> con número de empleado:
+                        <span class="destacado">{{ $empleado->numero_empleado }}</span> participó en el proyecto
+                        <strong>"{{ $proyecto->nombre_proyecto }}"</strong>
+                        Y para los fines que al interesado(a) convenga, se le extiende la presente Constancia en la
+                        Ciudad
+                        Universitaria, José Trinidad Reyes,
+                        @php
+                            $fecha = \Carbon\Carbon::now(); // Fecha actual
+                            $fechaFormateada =
+                                'a los ' .
+                                $fecha->day .
+                                ' días del mes de ' .
+                                $fecha->locale('es')->monthName .
+                                ' del año ' .
+                                $fecha->isoFormat('YYYY');
+                        @endphp
+
+                        {{ $fechaFormateada }}
+                    </p>
+                </div>
+            </div>
+
+            <div>
+                <div class="qr-code">
+                    <img src="{{ $qrCode }}" alt="QR Code" style="width: 200px; height: 200px;">
+                </div>
+                <footer>
+                    <p>Universidad Nacional Autónoma de Honduras | CIUDAD UNIVERSITARIA | Tegucigalpa, M.C.D Honduras
+                        C.A |
+                        <a href="http://www.unah.edu.hn">www.unah.edu.hn</a>
+                    </p>
+                </footer>
             </div>
         </div>
-        
-        <div class="qr-code">
-        <img src="data:image/png;base64,{{ $qrCode }}" alt="QR Code" style="width: 200px; height: 200px;">
-        </div>
-
-        <footer>
-            <p>Universidad Nacional Autónoma de Honduras | CIUDAD UNIVERSITARIA | Tegucigalpa, M.C.D Honduras C.A | <a href="http://www.unah.edu.hn">www.unah.edu.hn</a></p>
-        </footer>
     </div>
 </body>
+
 </html>

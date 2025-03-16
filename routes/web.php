@@ -42,6 +42,8 @@ use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController
 use App\Livewire\Proyectos\Vinculacion\ListProyectoRevisionFinal;
 use App\Livewire\Slide\SlideConfig;
 
+
+
 // Rutas para redireccionar a los usuario autenticados
 Route::middleware(['guest'])->group(function () {
     // rutas para autenticación con Microsoft

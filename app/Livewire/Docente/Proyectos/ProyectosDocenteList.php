@@ -68,7 +68,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                     ->separator(',')
                     ->wrap()
                     ->label('Estado'),
-               
+
 
 
 
@@ -96,10 +96,11 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         ->modalWidth(MaxWidth::SevenExtraLarge)
                         ->extraModalFooterActions([
                             Action::make('third')
-                                ->label('Subir Informe Intermedio'
-                                //     function (Proyecto $proyecto) {
-                                //     return $proyecto->estado->tipoestado->nombre == 'En curso' ? 'Subsanar' : 'Revisar';
-                                // }
+                                ->label(
+                                    'Subir Informe Intermedio'
+                                    //     function (Proyecto $proyecto) {
+                                    //     return $proyecto->estado->tipoestado->nombre == 'En curso' ? 'Subsanar' : 'Revisar';
+                                    // }
                                 )
                                 ->form([
 
@@ -256,76 +257,86 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         ])
                         ->modalSubmitAction(false),
 
-                        Action::make('subsanacion')
-                        ->label(fn (Proyecto $proyecto) : string => 
-                           $proyecto->estado->tipoestado->nombre == 'Subsanacion' ? 'Subsanar' : 'Editar Borrador'
+                    Action::make('subsanacion')
+                        ->label(
+                            fn(Proyecto $proyecto): string =>
+                            $proyecto->estado->tipoestado->nombre == 'Subsanacion' ? 'Subsanar' : 'Editar Borrador'
                         )
                         ->icon('heroicon-o-document')
                         ->color('warning')
                         ->visible(function (Proyecto $proyecto) {
                             return $proyecto->estado->tipoestado->nombre == 'Subsanacion' || $proyecto->estado->tipoestado->nombre == 'Borrador';
                         })
-                        ->url(fn (Proyecto $record): string => route('editarProyectoVinculacion', $record)),
-                        Action::make('constancia')
-                            ->label('Constancia')
-                            ->icon('heroicon-o-document')
-                            ->color('info')
-                            ->visible(function (Proyecto $proyecto) {
-                                return $proyecto->estado->tipoestado->nombre == 'En curso';
-                            })
-                            ->action(function (Proyecto $proyecto) {
-                                
-                                // genear la constancia pdf
+                        ->url(fn(Proyecto $record): string => route('editarProyectoVinculacion', $record)),
+                    Action::make('constancia')
+                        ->label('Constancia')
+                        ->icon('heroicon-o-document')
+                        ->color('info')
+                        ->visible(function (Proyecto $proyecto) {
+                            return $proyecto->estado->tipoestado->nombre == 'En curso';
+                        })
+                        ->action(function (Proyecto $proyecto) {
 
-                                // Hashear los IDs
-                                $hashedProjectId = Crypt::encrypt($proyecto->id);
-                                $hashedEmployeeId = Crypt::encrypt(auth()->user()->empleado->id);
+                            // crear un nombre random para el archivo qr
+                            $qrCodeName = Str::random(8) . '.png';
 
-                                // Generar el código QR como imagen base64
-                                $qrCode = QrCode::format('png')->size(1000)->generate(url('/verificacion_constancia/' . $hashedProjectId. '/' . $hashedEmployeeId));
-                                $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($qrCode);
-                                
-                                // Cargar las imágenes y convertirlas a base64
-                                $logoPath = resource_path('views/pdf/imagen1.jpg'); // Ruta de la imagen
-                                $logoBase64 = base64_encode(File::get($logoPath));
 
-                                // Datos que se pasan a la vista
-                                $data = [
-                                    'title' => 'Constancia de Participación',
-                                    'proyecto' => $proyecto,
-                                    'empleado' => auth()->user()->empleado,
-                                    'qrCode' => $qrCodeBase64, 
-                                    'logoBase64' => $logoBase64,  // Agregar imagen base64
-                                ];
-                                
-                                // Generar el PDF desde una vista
-                                $pdf = Pdf::loadView('pdf.constancia', $data);
+                            // Generar la constancia PDF
+                            $qrcodePath = storage_path('app/public/' . $qrCodeName); // Ruta donde se guardará el QR
 
-                                // Generar un nombre único para el archivo basandome el los id del empleado en el proyecto (que deberia ser unica esa combinacion por logica)
-                                $fileName = 'constancia_' . $proyecto->id . '_' . auth()->user()->empleado->id . '_' . Str::random(8) . '.pdf';
 
-                                // Definir la ruta con el nombre único
-                                $filePath = storage_path('app/public/' . $fileName);
+                            // Hashear los IDs
+                            $hashedProjectId = Crypt::encrypt($proyecto->id);
+                            $hashedEmployeeId = Crypt::encrypt(auth()->user()->empleado->id);
 
-                                // dd($filePath);
-                                // Guardar el PDF en la ruta
-                                $pdf->save($filePath);
+                            // Generar el código QR como imagen base64
+                            QrCode::format('png')->size(1000)->errorCorrection('H')->generate(
+                                url('/verificacion_constancia/' . $hashedProjectId . '/' . $hashedEmployeeId),
+                                $qrcodePath
+                            );
 
-                                // Descargar el PDF y eliminarlo al instante para que no quede en storage
-                                return response()
-                                        ->download($filePath, 'Constancia_Participacion.pdf')
-                                        ->deleteFileAfterSend(true);
-    
-                            }),
-                    ])
-                        ->button()
-                        ->color('primary')
-                        ->label('Acciones'),
 
-               
+                            // Cargar la imagen (logo) y moverla a la carpeta pública
+                         
+                            // Datos que se pasan a la vista
+                            $data = [
+                                'title' => 'Constancia de Participación',
+                                'proyecto' => $proyecto,
+                                'empleado' => auth()->user()->empleado,
+                                'qrCode' => $qrcodePath,
+                            ];
 
-                    // ->openUrlInNewTab()
+                            // Generar el PDF desde una vista
+                            $pdf = Pdf::loadView('pdf.constancia', $data)
+                            ->setPaper('letter');
+
+                            // Generar un nombre único para el archivo basándome en los id del empleado en el proyecto
+                            $fileName = 'constancia_' . $proyecto->id . '_' . auth()->user()->empleado->id . '_' . Str::random(8) . '.pdf';
+
+                            // Definir la ruta con el nombre único
+                            $filePath = storage_path('app/public/' . $fileName);
+
+                            // Guardar el PDF en la ruta
+                            $pdf->save($filePath);
+
+
+                            // eliminar el qr despues de generar el pdf
+                            unlink($qrcodePath);
+
+                            // Descargar el PDF y eliminarlo al instante para que no quede en storage
+                            return response()
+                                ->download($filePath, 'Constancia_Participacion.pdf')
+                                ->deleteFileAfterSend(true);
+                        }),
                 ])
+                    ->button()
+                    ->color('primary')
+                    ->label('Acciones'),
+
+
+
+                // ->openUrlInNewTab()
+            ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     //
