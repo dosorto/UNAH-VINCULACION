@@ -58,8 +58,6 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                     ->distinct()
             )
             ->columns([
-                Tables\Columns\TextColumn::make('id')
-                    ->searchable(),
 
                 Tables\Columns\TextColumn::make('nombre_proyecto')
                     ->searchable(),
@@ -70,10 +68,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                     ->separator(',')
                     ->wrap()
                     ->label('Estado'),
-                Tables\Columns\TextColumn::make('facultades_centros.nombre')
-                    ->badge()
-                    ->wrap()
-                    ->label('Centro/Facultad'),
+               
 
 
 

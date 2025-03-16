@@ -92,6 +92,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                             );
                         }
                     )
+                    ->closeModalByEscaping(false)
                     ->stickyModalFooter()
                     ->stickyModalHeader()
                     ->modalWidth(MaxWidth::SevenExtraLarge)
@@ -101,7 +102,10 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                             ->label('Rechazar')
                             ->form([
                                 Textarea::make('comentario')
-                                    ->label('Comentario')
+                                    ->label('Comentario: Indique el motivo de rechazo')
+                                    ->required()
+                                    ->columns(5)
+                                    ->rows(5)
                                     ->columnSpanFull(),
                             ])
                             ->icon('heroicon-o-x-circle') // Icono para "Rechazar"
@@ -150,6 +154,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                                     ->info()
                                     ->send();
                             })
+                            ->modalWidth(MaxWidth::FiveExtraLarge)
                             ->cancelParentActions()
                             ->button(),
 
@@ -206,6 +211,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                                     ->info()
                                     ->send();
                             })
+                            ->modalWidth(MaxWidth::SevenExtraLarge)
                             ->button(),
                     ])
             ])
