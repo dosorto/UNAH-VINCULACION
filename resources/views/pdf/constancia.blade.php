@@ -146,26 +146,24 @@
         <div style="margin-top: 20px; display: flex; justify-content: space-between;">
             <div class="constancia" style=" ">
                 <div class="constancia-texto">
-                    <p>El Área Dirección Vinculación Universidad Sociedad, hace constar que:</p>
-                    <p> <strong> {{ $empleado->nombre_completo }} </strong> con número de empleado:
-                        <span class="destacado">{{ $empleado->numero_empleado }}</span> participó en el proyecto
-                        <strong>"{{ $proyecto->nombre_proyecto }}"</strong>
-                        Y para los fines que al interesado(a) convenga, se le extiende la presente Constancia en la
-                        Ciudad
-                        Universitaria, José Trinidad Reyes,
-                        @php
-                            $fecha = \Carbon\Carbon::now(); // Fecha actual
-                            $fechaFormateada =
-                                'a los ' .
-                                $fecha->day .
-                                ' días del mes de ' .
-                                $fecha->locale('es')->monthName .
-                                ' del año ' .
-                                $fecha->isoFormat('YYYY');
-                        @endphp
 
-                        {{ $fechaFormateada }}
+                    <p>
+                        CONSTANCIA DE ACTIVIDAD DE VINCULACIÓN
+                        La Suscrita Directora de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace
+                        CONSTAR que, el Profesor {{ $empleado->nombre_completo }}  con número de empleado {{ $empleado->numero_empleado }} del
+                        departamento de {{ $empleado->departamento_academico->nombre }} dependiente de 
+                        , es parte del equipo que ejecuta y ha registrado la actividad de vinculación
+                        denominada {{ $proyecto->nombre_proyecto }} , Honduras 2024, la cual se ejecuta del 
+                        15 de marzo de 2024 hasta el 14 de marzo
+                        de 2025. Asimismo, se hace constar que la entrega del informe intermedio y final de dicha
+                        actividad, está pendiente. En consecuencia, esta constancia tiene validez únicamente para
+                        fines de inscripción en la Dirección de Vinculación Universidad – Sociedad.
+                        Dado en Ciudad Universitaria José Trinidad Reyes, a los cinco días del mes de febrero de
+                        dos mil veinticinco.
                     </p>
+                   
+
+                 
                 </div>
             </div>
 
@@ -173,6 +171,12 @@
                 <div class="qr-code">
                     <img src="{{ $qrCode }}" alt="QR Code" style="width: 200px; height: 200px;">
                 </div>
+                <center>
+                    <a href="{{ $enlace }}" style="text-align: center; margin-top: 20px; font-size: 16px;">
+                        ver constancia en línea
+                    </a>
+                </center>
+
                 <footer>
                     <p>Universidad Nacional Autónoma de Honduras | CIUDAD UNIVERSITARIA | Tegucigalpa, M.C.D Honduras
                         C.A |

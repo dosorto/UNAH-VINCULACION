@@ -289,11 +289,10 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                             $hashedProjectId = Crypt::encrypt($proyecto->id);
                             $hashedEmployeeId = Crypt::encrypt(auth()->user()->empleado->id);
 
+                            $enlace =  url('/verificacion_constancia/' . $hashedProjectId . '/' . $hashedEmployeeId);
+
                             // Generar el código QR como imagen base64
-                            QrCode::format('png')->size(1000)->errorCorrection('H')->generate(
-                                url('/verificacion_constancia/' . $hashedProjectId . '/' . $hashedEmployeeId),
-                                $qrcodePath
-                            );
+                            QrCode::format('png')->size(1000)->errorCorrection('H')->generate($enlace, $qrcodePath);
 
 
                             // Cargar la imagen (logo) y moverla a la carpeta pública
@@ -304,6 +303,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 'proyecto' => $proyecto,
                                 'empleado' => auth()->user()->empleado,
                                 'qrCode' => $qrcodePath,
+                                'enlace' => $enlace,
                             ];
 
                             // Generar el PDF desde una vista
