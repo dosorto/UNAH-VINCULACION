@@ -13,7 +13,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 use App\Models\Personal\Empleado;
 use App\Models\Estudiante\Estudiante;
-
+use Spatie\Permission\Models\Role;
 
 
 class User extends Authenticatable
@@ -40,6 +40,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'active_role_id',
     ];
 
     /**
@@ -94,4 +95,13 @@ class User extends Authenticatable
     {
         return $this->hasOne(Estudiante::class);
     }
+
+
+    public function getActiveRoleAttribute()
+    {
+        return \Spatie\Permission\Models\Role::find($this->active_role_id);
+    }
+
+
+
 }

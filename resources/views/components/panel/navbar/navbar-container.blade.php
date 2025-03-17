@@ -27,7 +27,10 @@
                         </svg>
                     </button>
                     <div class="relative inline-block text-left">
-                        <!--
+                        @php
+                            $roles = Auth::user()->roles; // Obtiene la colección de roles con ID y nombre
+                        @endphp
+
                         <button id="toggleButton"
                             class="toggle-button inline-flex justify-center items-center px-2 py-2 border border-gray-300  text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
                                     dark:bg-gray-800 
@@ -47,65 +50,32 @@
                                     clip-rule="evenodd" />
                             </svg>
                         </button>
-                   
+
                         <div id="popup"
                             class="hidden popup origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black 
                                 ring-opacity-5  focus:outline-none
                                       dark:border-gray-700
                                             dark:bg-gray-900 dark:ring-gray-700 dark:divide-gray-700
                                 ">
-                            <div class="py-1">
-                                <a href="#"
-                                    class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
-                                    <div class="flex-shrink-0 h-6 w-6 mr-3">
-                                        <div
-                                            class="w-full h-full bg-blue-600 rounded-md flex items-center justify-center">
-                                            <div class="w-3 h-3 border-2 border-white rounded-full"></div>
-                                        </div>
-                                    </div>
-                                    Untitled UI
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="ml-auto h-5 w-5 text-gray-400"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path
-                                            d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                                        <path
-                                            d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                                    </svg>
-                                </a>
-                            </div>
-                            <div class="py-1">
-                                <a href="#"
-                                    class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
-                                    <div class="flex-shrink-0 h-6 w-6 mr-3">
-                                        <div
-                                            class="w-full h-full bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500 rounded-md">
-                                        </div>
-                                    </div>
-                                    Sisyphus Ventures
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="ml-auto h-5 w-5 text-gray-400"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path
-                                            d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                                        <path
-                                            d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                                    </svg>
-                                </a>
-                            </div>
-                            <div class="py-1">
-                                <a href="#"
-                                    class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                        class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" viewBox="0 0 20 20"
-                                        fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                    New dashboard
-                                </a>
-                            </div>
+                            @forelse ($roles as $rol)
+                                <div class="py-1">
+                                    <a href="{{ route('setrole', $rol->id) }}"
+                                        class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
+                                       
+                                        Cambiar a {{ $rol->name }}
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="ml-auto h-5 w-5 text-gray-400"
+                                            viewBox="0 0 20 20" fill="currentColor">
+                                            <path
+                                                d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                            <path
+                                                d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                                        </svg>
+                                    </a>
+                                </div>
+                            @empty
+                            @endforelse
+
                         </div>
-                         -->
                     </div>
                 </div>
             </div>
@@ -167,7 +137,7 @@
                                         Ver perfil
                                     </a>
                                 </div>
-                               
+
                                 <div class="py-1">
                                     <a href="{{ route('logout') }}"
                                         class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
@@ -196,8 +166,8 @@
                                     dark:focus-visible:bg-white/10
                                     dark:focus-visible:text-gray-200 
                                     dark:focus-visible:border-gray-700">
-                                <svg id="chevronIcon" xmlns="http://www.w3.org/2000/svg"
-                                    class=" chevron-icon h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <svg id="chevronIcon" xmlns="http://www.w3.org/2000/svg" class=" chevron-icon h-5 w-5"
+                                    viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd"
                                         d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
                                         clip-rule="evenodd" />

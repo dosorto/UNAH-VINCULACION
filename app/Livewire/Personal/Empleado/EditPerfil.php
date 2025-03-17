@@ -26,6 +26,9 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 
+// importar modelo role de spatie
+use Spatie\Permission\Models\Role;
+
 class EditPerfil extends Component implements HasForms, HasActions
 {
     use InteractsWithForms;
@@ -217,6 +220,8 @@ class EditPerfil extends Component implements HasForms, HasActions
 
         $this->record->update($data);
         $this->record->user->assignRole('docente')->save();
+        $this->record->user->active_role_id =  Role::where('name', 'docente')->first()->id;
+        $this->record->user->save();
         Notification::make()
             ->title('Exito!')
             ->body('Perfil  actualizado correctamente.')

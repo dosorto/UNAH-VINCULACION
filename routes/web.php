@@ -42,6 +42,8 @@ use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController
 use App\Livewire\Proyectos\Vinculacion\ListProyectoRevisionFinal;
 use App\Livewire\Slide\SlideConfig;
 
+use App\Http\Controllers\SetRoleController;
+
 
 
 // Rutas para redireccionar a los usuario autenticados
@@ -73,6 +75,9 @@ Route::get('verificacion_constancia/{hashedProjectId}/{hashedEmployeeId}', [Veri
 
 // Rutas para redireccionar a los usuario  no autenticados
 Route::middleware(['auth'])->group(function () {
+    Route::get('setrole/{role_id}', [SetRoleController::class, 'SetRole'])
+        ->name('setrole');
+    
 
     // rutas agrupadas para el modulo de inicio
     Route::get('inicio', InicioAdmin::class)

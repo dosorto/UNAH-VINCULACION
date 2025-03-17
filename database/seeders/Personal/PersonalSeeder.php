@@ -58,6 +58,7 @@ class PersonalSeeder extends Seeder
             'name' => 'Admin Centro Facultad',
             'email' => 'admincentro@unah.edu.hn',
             'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
+            'active_role_id' => 2
         ])->assignRole('admin_centro_facultad');
 
         // user validador de proyectos en CU    
@@ -65,6 +66,7 @@ class PersonalSeeder extends Seeder
             'name' => 'Validador Proyectos',
             'email' => 'validador@unah.hn',
             'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
+            'active_role_id' => 2
         ])->assignRole('Validador');
 
 
@@ -73,25 +75,29 @@ class PersonalSeeder extends Seeder
         $userDorian = User::create([
             'name' => 'Dorian',
             'email' => 'dorianadolfo@unah.edu.hn',
-            'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
+            'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña\
+            'active_role_id' => 2
         ])->assignRole('docente');
 
         $userVictor = User::create([
             'name' => 'Victor',
             'email' => 'victor@unah.edu.hn',
             'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
+            'active_role_id' => 2
         ])->assignRole('docente');
 
         $userWilson = User::create([
             'name' => 'wilson',
             'email' => 'wilson@unah.edu.hn',
             'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
+            'active_role_id' => 2
         ])->assignRole('docente');
 
         $userOscar = User::create([
             'name' => 'Oscar',
             'email' => 'oscar@unah.edu.hn',
             'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
+            'active_role_id' => 2
         ])->assignRole('docente');
 
         $userJessica = User::create([
@@ -104,7 +110,8 @@ class PersonalSeeder extends Seeder
             'name' => 'neto',
             'email' => 'notificacionespoa@unah.edu.hn',
             'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
-        ])->assignRole('admin');
+            'active_role_id' => 1
+        ])->assignRole(['admin', 'docente']);
         
        Empleado::create([
         'nombre_completo' => 'Administrador',
