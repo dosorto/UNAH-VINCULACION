@@ -8,13 +8,10 @@
 
     <!-- Estilos de Tailwind CSS -->
     @vite('resources/css/app.css')
-
-
 </head>
 
 <body class="flex justify-center items-center min-h-screen p-4 bg-gray-100 dark:bg-gray-950">
-    <div class="max-w-3xl w-full bg-white p-8 border-1 border-gray-100 shadow-md" 
-    style="border: 1px solid #e2e8f0; border-radius: 0.375rem;">
+    <div class="max-w-3xl w-full bg-white p-8 border border-green-500 shadow-lg shadow-green-200 rounded-md">
         <!-- Header -->
         <div class="flex justify-between items-center mb-12 flex-wrap sm:flex-nowrap">
             <div class="flex items-center mb-4 sm:mb-0">
@@ -25,20 +22,33 @@
                 <p>Tel. 2216-7070 Ext. 110576</p>
             </div>
         </div>
-        
+
+        <!-- Icono de Check -->
+        <div class="flex items-center justify-center mb-4 space-x-2">
+            <x-heroicon-o-check-circle class="w-12 h-12 text-green-500" />
+            <h3 class="text-lg font-bold text-green-500">
+                Verificación Exitosa
+            </h3>
+        </div>
 
         <!-- Title -->
-        <h1 class="text-center text-2xl font-bold my-10">
-            Validación de Constancia de Participación en Proyecto
-        </h1>
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold mb-1">CONSTANCIA DE ENTREGA DE INFORME FINAL DEL</h1>
+            <h1 class="text-2xl font-bold">PROYECTO DE VINCULACIÓN</h1>
+        </div>
 
         <!-- Content -->
         <div class="leading-relaxed mb-10">
-            <p class="mb-4">El Area Dirección Vinculación Universidad Sociedad, hace constar que:</p>
-
-            <p class="mb-6"><span class="font-bold">{{ $data['nombre_empleado'] }}</span> con número de empleado:
-                <strong>{{ $data['numero_empleado'] }}</strong> participó en el proyecto según los siguientes detalles:
-            </p>
+            <div class="text-justify mb-8 leading-relaxed">
+                <p>La Suscrita Directora de la Dirección de Vinculación Universidad-Sociedad por este medio hace constar
+                    que el Profesor <span class="font-bold">  {{ $data['nombre_empleado'] }}</span> con número de empleado
+                    <span class="font-bold"> #{{ $data['numero_empleado'] }}</span> perteneciente al <span class="font-bold">CENTRO UNIVERSITARIO
+                        REGIONAL LITORAL PACÍFICO (CURLP)</span>, ha presentado el informe de finalización del proyecto
+                    de Vinculación denominado: <span class="font-bold">"FORTALECIMIENTO DE LAS CAPACIDADES TECNOLÓGICAS
+                        EN INSTALACIONES Y PERSONAL DOCENTE DEL INSTITUTO BTP MARÍA R. DONATE, UBICADO EN LA ALDEA DE
+                        CERRO VERDE DE LINACA - CHOLUTECA"</span> mismo que se ejecutó desde el 1 febrero de 2022 hasta
+                    el 30 noviembre de 2022.</p>
+            </div>
 
             <div class="my-8 overflow-hidden rounded-lg ">
                 <table class="w-full border-collapse bg-white">
@@ -102,7 +112,6 @@
                     </tbody>
                 </table>
             </div>
-            
 
             <p>Y para los fines que al interesado(a) convenga, se le Valida la presente Constancia en la Ciudad
                 Universitaria, José Trinidad Reyes, a los {{ now()->day }} días del mes de {{ now()->monthName }}

@@ -72,6 +72,8 @@ Route::middleware(['guest'])->group(function () {
 Route::get('verificacion_constancia/{hash}', [VerificarConstancia::class, 'index'])
     ->name('verificacion_constancia');
 
+
+
 // Rutas para redireccionar a los usuario  no autenticados
 Route::middleware(['auth'])->group(function () {
     Route::get('setPerfil/{role_id}', [SetRoleController::class, 'SetRole'])

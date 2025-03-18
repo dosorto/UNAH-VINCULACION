@@ -2,11 +2,12 @@
 
 namespace App\Livewire\Docente\Proyectos;
 
+use App\Http\Controllers\Docente\VerificarConstancia;
 use Filament\Tables;
 use Livewire\Component;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
-use Barryvdh\DomPDF\Facade\Pdf;
+
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Proyecto;
@@ -31,7 +32,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Database\Eloquent\Builder;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
+
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Concerns\InteractsWithTable;
 
@@ -56,7 +57,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-        ->striped()
+            ->striped()
             ->query(
 
                 Proyecto::query()
@@ -68,7 +69,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
             ->columns([
 
                 Tables\Columns\TextColumn::make('nombre_proyecto')
-                
+
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('Estado.tipoestado.nombre')
@@ -85,10 +86,10 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
             ])
             ->filters([
                 SelectFilter::make('categoria_id')
-                ->label('Categoría')
-                ->multiple()
-                ->relationship('categoria', 'nombre')
-                ->preload(),
+                    ->label('Categoría')
+                    ->multiple()
+                    ->relationship('categoria', 'nombre')
+                    ->preload(),
             ])
             ->actions([
                 ActionGroup::make([
@@ -282,66 +283,35 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         })
                         ->url(fn(Proyecto $record): string => route('editarProyectoVinculacion', $record)),
                     Action::make('constancia')
-                        ->label('Constancia')
+                        ->label('Constancia de Inscripción')
                         ->icon('heroicon-o-document')
                         ->color('info')
                         ->visible(function (Proyecto $proyecto) {
-                            return $proyecto->estado->tipoestado->nombre == 'En curso';
+                            return VerificarConstancia::validarConstanciaEmpleado($proyecto->docentes_proyecto()
+                                ->where('empleado_id', $this->docente->id)
+                                ->first());
                         })
                         ->action(function (Proyecto $proyecto) {
-
-                            // crear un nombre random para el archivo qr
-                            $qrCodeName = Str::random(8) . '.png';
-
-
-                            // Generar la constancia PDF
-                            $qrcodePath = storage_path('app/public/' . $qrCodeName); // Ruta donde se guardará el QR
-
-
-                            // Hashear los IDs
-                            $docenteProyecto = $proyecto->docentes_proyecto()->where('empleado_id', $this->docente->id)->first();
-
-                            $enlace =  url('/verificacion_constancia/' . $docenteProyecto->hash);
-
-                            // Generar el código QR como imagen base64
-                            QrCode::format('png')->size(200)->errorCorrection('H')->generate($enlace, $qrcodePath);
-
-
-                            // Cargar la imagen (logo) y moverla a la carpeta pública
-
-                            // Datos que se pasan a la vista
-                            $data = [
-                                'title' => 'Constancia de Participación',
-                                'proyecto' => $proyecto,
-                                'empleado' => auth()->user()->empleado,
-                                'qrCode' => $qrcodePath,
-                                'enlace' => $enlace,
-                            ];
-
-                            // Generar el PDF desde una vista
-                            $pdf = Pdf::loadView('pdf.constancia', $data)
-                                ->setPaper('letter');
-
-                            // Generar un nombre único para el archivo basándome en los id del empleado en el proyecto
-                            $fileName = 'constancia_' . $proyecto->id . '_' . auth()->user()->empleado->id . '_' . Str::random(8) . '.pdf';
-
-                            // Definir la ruta con el nombre único
-                            $filePath = storage_path('app/public/' . $fileName);
-
-                            // Guardar el PDF en la ruta
-                            $pdf->save($filePath);
-
-
-                            // eliminar el qr despues de generar el pdf
-                            unlink($qrcodePath);
-
-                            // Descargar el PDF y eliminarlo al instante para que no quede en storage
-                            return response()
-                                ->download($filePath, 'Constancia_Participacion.pdf')
-                                ->deleteFileAfterSend(true);
+                            return VerificarConstancia::CrearPdfInscripcion($proyecto->docentes_proyecto()
+                                ->where('empleado_id', $this->docente->id)
+                                ->first());
+                        }),
+                    Action::make('constancia_finalizacion')
+                        ->label('Constancia de Finalización')
+                        ->icon('heroicon-o-document')
+                        ->color('info')
+                        ->visible(function (Proyecto $proyecto) {
+                            return VerificarConstancia::validarConstanciaFinalizacion($proyecto->docentes_proyecto()
+                                ->where('empleado_id', $this->docente->id)
+                                ->first());
+                        })
+                        ->action(function (Proyecto $proyecto) {
+                            return VerificarConstancia::CrearPdfFinalizacion($proyecto->docentes_proyecto()
+                                ->where('empleado_id', $this->docente->id)
+                                ->first());
                         }),
                 ])
-                        
+
                     ->button()
                     ->color('primary')
                     ->label('Acciones'),
@@ -350,7 +320,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
 
                 // ->openUrlInNewTab()
             ])
-        
+
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     //
