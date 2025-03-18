@@ -25,7 +25,7 @@ use Filament\Forms\Get;
 use Filament\Tables\Actions\Action;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Columns\Layout\Split;
-
+use App\Models\Estado\TipoEstado;
 
 class ListProyectosVinculacion extends Component implements HasForms, HasTable
 {
@@ -38,11 +38,22 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
 
         return $table
             ->query(
+
                 Proyecto::query()
-                    ->leftJoin('proyecto_centro_facultad', 'proyecto_centro_facultad.proyecto_id', '=', 'proyecto.id')
-                    ->leftJoin('proyecto_depto_ac', 'proyecto_depto_ac.proyecto_id', '=', 'proyecto.id')
-                    ->select('proyecto.*')
-                    ->distinct('proyecto.id')
+                ->whereNotIn('proyecto.id', function ($query) {
+                    $query->select('estadoable_id')
+                        ->from('estado_proyecto')
+                        ->where('estadoable_type', Proyecto::class) // Asegúrate de filtrar por el modelo `Proyecto`
+                        ->whereIn('tipo_estado_id', TipoEstado::whereIn('nombre', ['Borrador'])->pluck('id')->toArray()) // Excluir 'Borrador' y 'Subsanacion'
+                        ->where('es_actual', true);
+                })
+                ->leftJoin('proyecto_centro_facultad', 'proyecto_centro_facultad.proyecto_id', '=', 'proyecto.id')
+                ->leftJoin('proyecto_depto_ac', 'proyecto_depto_ac.proyecto_id', '=', 'proyecto.id')
+                ->select('proyecto.*')
+                ->distinct('proyecto.id')
+
+
+
             )
             ->columns([
 
@@ -65,8 +76,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                 Tables\Columns\TextColumn::make('estado.tipoestado.nombre')
                     ->badge()
                     ->color('info')
-                    ->label('Estado')
-                    ->sortable(),
+                    ->label('Estado'),
 
                 Tables\Columns\TextColumn::make('fecha_inicio')
                     ->date()

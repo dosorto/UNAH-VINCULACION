@@ -71,13 +71,7 @@ class PersonalSeeder extends Seeder
 
 
 
-        // Datos de empleados
-        $userDorian = User::create([
-            'name' => 'Dorian',
-            'email' => 'dorianadolfo@unah.edu.hn',
-            'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña\
-            'active_role_id' => 2
-        ])->assignRole('docente');
+       
 
         $userVictor = User::create([
             'name' => 'Victor',
@@ -213,16 +207,7 @@ class PersonalSeeder extends Seeder
             'estado' => true
         ]);
 
-        $ingeDorian = Empleado::create([
-            'nombre_completo' => 'DORIAN ADOLFO ORDONEZ OSORTO',
-            'numero_empleado' => '12312',
-            'celular' => '99999999',
-            'user_id' => $userDorian->id,
-            'centro_facultad_id' => 1,
-            'departamento_academico_id' => 1,
-            'categoria_id' => 1
-        ]);
-        
+       
         $ingeDorian->firma()->create([
             'tipo' => 'firma',
             'ruta_storage' => 'images/firmas/Firma_Dorian.png',

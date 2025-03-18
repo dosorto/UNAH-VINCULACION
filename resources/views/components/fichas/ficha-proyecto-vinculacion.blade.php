@@ -62,7 +62,7 @@
                             <th class="full-width1">Nombre del Proyecto:</th>
                             <td class="full-width" colspan="5">
 
-                                <input type="text" class="input-field" placeholder="Ingrese el nombre del proyecto"
+                                <input disabled type="text" class="input-field" placeholder="Ingrese el nombre del proyecto"
                                     value="{{ $proyecto->nombre_proyecto }}" disabled>
 
                             </td>
@@ -91,52 +91,52 @@
                         <tr>
                             <th class="full-width1" rowspan="1">Modalidad</th>
                             <td class="sub-header1" colspan="1">Unidisciplinar <br>
-                                <input type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>
+                                <input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Multidisciplinar<br>
-                                <input type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Multidisciplinar') checked @endif>
+                                <input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Multidisciplinar') checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Interdisciplinar <br>
-                                <input type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Interdisciplinar') checked @endif>
+                                <input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Interdisciplinar') checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Transdisciplinar<br>
-                                <input type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>
+                                <input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>
                             </td>
                         </tr>
                         <tr>
                             <th class="full-width1" rowspan="3">Coordinador/a del Proyecto:</th>
                             <td class="sub-header">Nombre Completo:</td>
                             <td class="full-width" colspan="1">
-                                <input type="text" class="input-field" placeholder="Ingrese el nombre completo"
+                                <input disabled type="text" class="input-field" placeholder="Ingrese el nombre completo"
                                     value="{{ $proyecto->coordinador->nombre_completo }}" disabled>
                             </td>
                             <td class="sub-header">No. de empleado:</td>
                             <td class="full-width" colspan="">
-                                <input type="text" class="input-field" placeholder="Ingrese el número de empleado"
+                                <input disabled type="text" class="input-field" placeholder="Ingrese el número de empleado"
                                     value="{{ $proyecto->coordinador->numero_empleado }}" disabled>
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-header">Correo electrónico:</td>
                             <td class="full-width" colspan="1">
-                                <input type="text" class="input-field" placeholder="Ingrese el correo electrónico"
+                                <input disabled type="text" class="input-field" placeholder="Ingrese el correo electrónico"
                                     value="{{ $proyecto->coordinador->user->email }}" disabled>
                             </td>
                             <td class="sub-header">Celular:</td>
                             <td class="full-width" colspan="1">
-                                <input type="email" class="input-field" placeholder="Ingrese el número de celular"
+                                <input disabled type="email" class="input-field" placeholder="Ingrese el número de celular"
                                     value="{{ $proyecto->coordinador->celular }}" disabled>
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-header">Categoria:</td>
                             <td class="full-width" colspan="1">
-                                <input type="email" class="input-field" placeholder="Ingrese el número de celular"
+                                <input disabled type="email" class="input-field" placeholder="Ingrese el número de celular"
                                     value="{{ $proyecto->coordinador->categoria->nombre }}" disabled>
                             </td>
                             <td class="sub-header">Departamento:</td>
                             <td class="full-width" colspan="1">
-                                <input type="email" class="input-field" placeholder="Ingrese el número de celular"
+                                <input disabled type="email" class="input-field" placeholder="Ingrese el número de celular"
                                     value="{{ $proyecto->coordinador->departamento_academico->nombre }}" disabled>
                             </td>
                         </tr>
@@ -158,26 +158,26 @@
                         @forelse ($proyecto->integrantes as $integrante)
                             <tr>
                                 <td class="full-width" colspan="1">
-                                    <input type="text" class="input-field"
+                                    <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre completo"
                                         value="{{ $integrante->nombre_completo }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <input type="text" class="input-field"
+                                    <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el número de empleado"
                                         value="{{ $integrante->numero_empleado }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <input type="text" class="input-field"
+                                    <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el correo electrónico"
                                         value="{{ $integrante->user->email }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <input type="text" class="input-field" placeholder="Ingrese la categoría"
+                                    <input disabled type="text" class="input-field" placeholder="Ingrese la categoría"
                                         value="{{ $integrante->categoria->nombre }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                         value="{{ $integrante->departamento_academico->nombre }}" disabled>
                                 </td>
                             </tr>
@@ -185,7 +185,7 @@
                             <tr>
                                 <td class="full-width
                                 " colspan="6">
-                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                         value="No hay docentes" disabled>
                                 </td>
                             </tr>
@@ -202,23 +202,23 @@
                         @forelse ($proyecto->estudiante_proyecto as $integrante)
                             <tr>
                                 <td class="full-width" colspan="2">
-                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                         value="{{ $integrante->estudiante->user->name }}" disabled>
                                 </td>
 
                                 <td class="full-width
                                 " colspan="1">
-                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                         value="{{ $integrante->estudiante->cuenta }}" disabled>
                                 </td>
                                 <td class="full-width
                                 " colspan="1">
-                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                         value="{{ $integrante->estudiante->user->email }}" disabled>
                                 </td>
                                 <td class="full-width
                                 " colspan="1">
-                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                         value="{{ $integrante->tipo_participacion_estudiante }}" disabled>
                                 </td>
                             </tr>
@@ -226,7 +226,7 @@
                             <tr>
                                 <td class="full-width
                                 " colspan="6">
-                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                         value="No hay estudiantes" disabled>
                                 </td>
                             </tr>
@@ -247,14 +247,14 @@
                             <tr>
                                 <td class="header
                                 " colspan="5">
-                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                         value="# Entidad Contraparte" disabled>
                                 </td>
                             </tr>
                             <tr>
                                 <td class="sub-header">Nombre de la entidad:</td>
                                 <td class="full-width" colspan="4">
-                                    <input type="text" class="input-field"
+                                    <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre de la entidad" value="{{ $entidad->nombre }}"
                                         disabled>
                                 </td>
@@ -262,20 +262,20 @@
                             <tr>
                                 <td class="sub-header" rowspan="2">Nombre del contacto directo</td>
                                 <td class="full-width" colspan="1" rowspan="2">
-                                    <input type="text" class="input-field"
+                                    <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre de la entidad"
                                         value="{{ $entidad->nombre_contacto }}" disabled>
                                 </td>
                                 <td class="sub-header" rowspan="1">Correo electrónico:</td>
                                 <td class="full-width" colspan="1">
-                                    <input type="text" class="input-field"
+                                    <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre de la entidad" value="{{ $entidad->correo }}"
                                         disabled>
                                 </td>
                             <tr>
                                 <td class="sub-header" rowspan="1">Teléfono:</td>
                                 <td class="full-width" colspan="1">
-                                    <input type="text" class="input-field"
+                                    <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre de la entidad"
                                         value="{{ $entidad->telefono }}" disabled>
                                 </td>
@@ -284,7 +284,7 @@
                             <tr>
                                 <td class="sub-header">Rol o aporte en el proyecto:</td>
                                 <td class="full-width" colspan="3">
-                                    <input type="text" class="input-field"
+                                    <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre de la entidad" value="{{ $entidad->aporte }}"
                                         disabled>
                                 </td>
@@ -300,7 +300,7 @@
                                 <tr>
                                     <td class="full-width
                                     " colspan="3">
-                                        <input type="text" class="input-field"
+                                        <input disabled type="text" class="input-field"
                                             placeholder="Ingrese el departamento" value="Documento de formalización"
                                             disabled>
                                     </td>
@@ -333,7 +333,7 @@
                                 @empty
                                     <td class="full-width
                                     " colspan="5">
-                                        <input type="text" class="input-field"
+                                        <input disabled type="text" class="input-field"
                                             placeholder="Ingrese el departamento"
                                             value="No hay instrumentos de formalización" disabled>
                                     </td>
@@ -343,7 +343,7 @@
                             <tr>
                                 <td class="full-width
                                 " colspan="5">
-                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                         value="No hay entidades contraparte" disabled>
                                 </td>
                             </tr>
@@ -362,7 +362,7 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
-                                <textarea id="resumen" name="resumen" cols="30" rows="6" class="input-field"
+                                <textarea disabled id="resumen" name="resumen" cols="30" rows="6" class="input-field"
                                     placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->resumen) }}</textarea>
                             </td>
                         </tr>
@@ -375,7 +375,7 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
-                                <textarea cols="30" rows="6" class="input-field" placeholder="Ingrese el resumen"> {{ old('objetivo_general', $proyecto->objetivo_general) }}
+                                <textarea disabled cols="30" rows="6" class="input-field" placeholder="Ingrese el resumen"> {{ old('objetivo_general', $proyecto->objetivo_general) }}
                                 </textarea>
                             </td>
                         </tr>
@@ -387,7 +387,7 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
-                                <textarea cols="30" rows="6" class="input-field" placeholder="Ingrese el resumen"> {{ old('objetivos_especificos', $proyecto->objetivos_especificos) }}
+                                <textarea disabled cols="30" rows="6" class="input-field" placeholder="Ingrese el resumen"> {{ old('objetivos_especificos', $proyecto->objetivos_especificos) }}
                                 </textarea>
                             </td>
                         </tr>
@@ -395,33 +395,33 @@
                             <th class="header" colspan="9" rowspan="2"> 5. Fecha de ejecución
                             </th>
                             <td class="sub-header" colspan="2" rowspan="2"> Fecha de inicio </td>
-                            <td class="full-width" colspan="1"><input type="text" class="input-field"
+                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
                                     placeholder="Ingrese el día"
                                     value="{{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->format('d') }}"
                                     disabled>
                             </td>
-                            <td class="full-width" colspan="1"><input type="text" class="input-field"
+                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
                                     placeholder="Ingrese el mes"
                                     value="{{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->format('m') }}"
                                     disabled>
                             </td>
-                            <td class="full-width" colspan="1"><input type="text" class="input-field"
+                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
                                     placeholder="Ingrese el día"
                                     value="{{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->format('Y') }}"
                                     disabled>
                             </td>
                             <td class="sub-header" colspan="2" rowspan="2"> Fecha de Finalización</td>
-                            <td class="full-width" colspan="1"><input type="text" class="input-field"
+                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
                                     placeholder="Ingrese el día"
                                     value="{{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->format('d') }}"
                                     disabled>
                             </td>
-                            <td class="full-width" colspan="1"><input type="text" class="input-field"
+                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
                                     placeholder="Ingrese el mes"
                                     value="{{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->format('m') }}"
                                     disabled>
                             </td>
-                            <td class="full-width" colspan="1"><input type="text" class="input-field"
+                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
                                     placeholder="Ingrese el día"
                                     value="{{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->format('Y') }}"
                                     disabled>
@@ -439,33 +439,33 @@
                             <th class="header" colspan="9" rowspan="2"> 6. Fecha de evaluación
                             </th>
                             <td class="sub-header" colspan="2" rowspan="2"> Evaluación intermedia </td>
-                            <td class="full-width" colspan="1"><input type="text" class="input-field"
+                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
                                     placeholder="Ingrese el día"
                                     value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_intermedia)->format('d') }}"
                                     disabled>
                             </td>
-                            <td class="full-width" colspan="1"><input type="text" class="input-field"
+                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
                                     placeholder="Ingrese el mes"
                                     value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_intermedia)->format('m') }}"
                                     disabled>
                             </td>
-                            <td class="full-width" colspan="1"><input type="text" class="input-field"
+                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
                                     placeholder="Ingrese el día"
                                     value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_intermedia)->format('Y') }}"
                                     disabled>
                             </td>
                             <td class="sub-header" colspan="2" rowspan="2"> Evaluación Final</td>
-                            <td class="full-width" colspan="1"><input type="text" class="input-field"
+                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
                                     placeholder="Ingrese el día"
                                     value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_final)->format('d') }}"
                                     disabled>
                             </td>
-                            <td class="full-width" colspan="1"><input type="text" class="input-field"
+                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
                                     placeholder="Ingrese el mes"
                                     value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_final)->format('m') }}"
                                     disabled>
                             </td>
-                            <td class="full-width" colspan="1"><input type="text" class="input-field"
+                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
                                     placeholder="Ingrese el día"
                                     value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_final)->format('Y') }}"
                                     disabled>
@@ -482,7 +482,7 @@
                         <tr>
                             <td class="sub-header" colspan="13">7. Población beneficiada (número aproximado) </td>
                             <td class="full-width" colspan="6">
-                                <input type="text" class="input-field" placeholder="Ingrese el día"
+                                <input disabled type="text" class="input-field" placeholder="Ingrese el día"
                                     value="{{ floor($proyecto->poblacion_participante) }}" disabled>
                             </td>
                         </tr>
@@ -490,17 +490,17 @@
                             <td class="sub-header" colspan="12">8. Modalidad de ejecución (marcar con una X)</td>
                             <td class="full-width" colspan="3">
                                 Distancia <br>
-                                <input type="checkbox" class="no"
+                                <input disabled type="checkbox" class="no"
                                     @if ($proyecto->modalidad_ejecucion == 'Distancia') checked @endif>
                             </td>
                             <td class="full-width" colspan="2">
                                 Presencial <br>
-                                <input type="checkbox" class="no"
+                                <input disabled type="checkbox" class="no"
                                     @if ($proyecto->modalidad_ejecucion == 'Presencial') checked @endif>
                             </td>
                             <td class="full-width" colspan="3">
                                 Bimodal <br>
-                                <input type="checkbox" class="no"
+                                <input disabled type="checkbox" class="no"
                                     @if ($proyecto->modalidad_ejecucion == 'Bimodal') checked @endif>
                             </td>
 
@@ -516,12 +516,12 @@
                             <td class="sub-header" colspan="4">Departamentos</td>
                             <td class="full-width" colspan="15" rowspan="1">
                                 @forelse ($proyecto->departamento as $departamento)
-                                    <input type="text" class="input-field"
+                                    <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre de la entidad"
                                         value="{{ $departamento->nombre }}" disabled>
 
                                 @empty
-                                    <input type="text" class="input-field"
+                                    <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre de la entidad" value="No hay departamentos"
                                         disabled>
                                 @endforelse
@@ -534,11 +534,11 @@
                             <td class="full-width" colspan="15">
 
                                 @forelse ($proyecto->municipio as $municipio)
-                                    <input type="text" class="input-field"
+                                    <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre de la entidad"
                                         value="{{ $municipio->nombre }}" disabled>
                                 @empty
-                                    <input type="text" class="input-field"
+                                    <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre de la entidad" value="No hay municipios"
                                         disabled>
                                 @endforelse
@@ -549,7 +549,7 @@
                         <tr>
                             <td class="sub-header" colspan="4">Aldea/caserío/<br>barrio/colonia:</td>
                             <td class="full-width" colspan="15">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el nombre de la entidad" value="{{ $proyecto->aldea }}"
                                     disabled>
                             </td>
@@ -583,7 +583,7 @@
                             <td class="s3" colspan="4"> {{ $actividad->fecha_finalizacion }}</td>
                             <td class="" colspan="5">
                                 @forelse ($actividad->empleados as $responsable)
-                                    <input type="text" class="input-field"
+                                    <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre de la entidad"
                                         value="{{ $responsable->nombre_completo }}" disabled>
 
@@ -637,7 +637,7 @@
                     @empty
                         <td class="full-width
                                 " colspan="19">
-                            <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                            <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                 value="No hay actividades" disabled>
 
                         </td>
@@ -649,7 +649,7 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
-                                <textarea name="motivos" id="motivos" cols="30" rows="6" class="input-field"
+                                <textarea disabled name="motivos" id="motivos" cols="30" rows="6" class="input-field"
                                     placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->resultados_esperados) }}</textarea>
                             </td>
                         </tr>
@@ -658,7 +658,7 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
-                                <textarea name="motivos" id="motivos" cols="30" rows="6" class="input-field"
+                                <textarea disabled name="motivos" id="motivos" cols="30" rows="6" class="input-field"
                                     placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->indicadores_medicion_resultados) }}</textarea>
                             </td>
                         </tr>
@@ -668,14 +668,14 @@
                         <tr>
                             <td class="sub-header" colspan="13">Aportes de estudiantes:</td>
                             <td class="full-width" colspan="6">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     value="{{ $proyecto->presupuesto->aporte_estudiantes }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         <tr>
                             <td class="sub-header" colspan="13">Aportes de profesores:</td>
                             <td class="full-width" colspan="6">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     value="{{ $proyecto->presupuesto->aporte_profesores }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
@@ -683,14 +683,14 @@
                         <tr>
                             <td class="sub-header" colspan="13">Aporte académico de la UNAH:</td>
                             <td class="full-width" colspan="6">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     value="{{ $proyecto->presupuesto->aporte_academico_unah }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         <tr>
                             <td class="sub-header" colspan="13">Aporte transporte UNAH:</td>
                             <td class="full-width" colspan="6">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     value="{{ $proyecto->presupuesto->aporte_transporte_unah }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
@@ -698,14 +698,14 @@
                         <tr>
                             <td class="sub-header" colspan="13">Otros Aportes:</td>
                             <td class="full-width" colspan="6">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     value="{{ $proyecto->presupuesto->otros_aportes }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         <tr>
                             <td class="sub-header4" colspan="13">TOTAL UNAH:</td>
                             <td class="full-width" colspan="6">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     value="{{ $proyecto->presupuesto->aporte_estudiantes +
                                         $proyecto->presupuesto->aporte_profesores +
                                         $proyecto->presupuesto->aporte_academico_unah +
@@ -717,7 +717,7 @@
                         <tr>
                             <td class="sub-header" colspan="13">Aporte de la contraparte:</td>
                             <td class="full-width" colspan="6">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     value="{{ $proyecto->presupuesto->aporte_contraparte }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
@@ -725,7 +725,7 @@
                         <tr>
                             <td class="sub-header" colspan="13">Aporte de la comunidad:</td>
                             <td class="full-width" colspan="6">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     value="{{ $proyecto->presupuesto->aporte_comunidad }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
@@ -733,7 +733,7 @@
                         <tr>
                             <td class="sub-header4" colspan="13">TOTAL CONTRAPARTE:</td>
                             <td class="full-width" colspan="6">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     value="{{ $proyecto->presupuesto->aporte_contraparte + $proyecto->presupuesto->aporte_comunidad }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
@@ -741,7 +741,7 @@
                         <tr>
                             <td class="sub-header4" colspan="13">MONTO TOTAL DEL PROYECTO:</td>
                             <td class="full-width" colspan="6">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     value="{{ $proyecto->presupuesto->aporte_estudiantes +
                                         $proyecto->presupuesto->aporte_profesores +
                                         $proyecto->presupuesto->aporte_academico_unah +
@@ -769,12 +769,12 @@
                             <tr>
                                 <td class="full-width
                                 " colspan="14">
-                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                         value="{{ $superavit->inversion }}" disabled>
                                 </td>
                                 <td class="full-width
                                 " colspan="5">
-                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                         value="{{ $superavit->monto }}" disabled>
                                 </td>
 
@@ -784,7 +784,7 @@
                             <tr>
                                 <td class="full-width
                             " colspan="19">
-                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                         value="No hay superavit" disabled>
                                 </td>
                             </tr>
@@ -803,14 +803,14 @@
                         <tr>
                             <td class="full-width" colspan="1"> Nombre:</td>
                             <td class="full-width" colspan="1">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el nombre del coordinador"
                                     value="{{ optional(optional($proyecto->firma_coodinador_proyecto()->first())->empleado)->nombre_completo }}"
                                     disabled>
                             </td>
                             <td class="full-width " colspan="1">Nombre:</td>
                             <td class="full-width " colspan="1">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     value="{{ optional(optional($proyecto->firma_proyecto_jefe()->first())->empleado)->nombre_completo }}"
                                     disabled>
                             </td>
@@ -845,13 +845,13 @@
                         <tr>
                             <td class="full-width" colspan="1"> Nombre:</td>
                             <td class="full-width" colspan="1">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     value="{{ optional(optional($proyecto->firma_proyecto_enlace()->first())->empleado)->nombre_completo }}"
                                     disabled>
                             </td>
                             <td class="full-width" colspan="1">Nombre:</td>
                             <td class="full-width" colspan="1">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el nombre del responsable"
                                     value="{{ optional(optional($proyecto->firma_proyecto_decano()->first())->empleado)->nombre_completo }}"
                                     disabled>
@@ -894,7 +894,7 @@
                         <tr>
                             <td class="full-width
                                         " colspan="19">
-                                <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                     value="{{ $categoria->nombre }}" disabled>
                             </td>
                         </tr>
@@ -903,7 +903,7 @@
                         <tr>
                             <td class="full-width 
                                         " colspan="19">
-                                <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                     value="No hay categorias" disabled>
                             </td>
                         </tr>
@@ -922,7 +922,7 @@
                         <tr>
                             <td class="full-width
                                 " colspan="19">
-                                <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                     value="{{ $ods->nombre }}" disabled>
                             </td>
                         </tr>
@@ -930,7 +930,7 @@
 
                         <td class="full-width
                                 " colspan="19">
-                            <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                            <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                 value="No hay ODS registrados en este momento" disabled>
                         </td>
                         @endforelse
@@ -947,7 +947,7 @@
                             <tr>
                                 <td class="full-width
                                 " colspan="8">
-                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                         value="ANEXO DEL PROYECTO" disabled>
                                 </td>
                                 <td class="full-width" colspan="11">
@@ -975,7 +975,7 @@
                             @empty
                                 <td class="full-width
                                 " colspan="19">
-                                    <input type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
                                         value="No hay anexos registrados en este momento" disabled>
                                 </td>
                             @endforelse
@@ -988,7 +988,7 @@
                         <tr>
                             <td class="sub-header" colspan="1">Responsable de revisión</td>
                             <td class="full-width" colspan="10">
-                                <input type="text" class="input-field"
+                                <input disabled type="text" class="input-field"
                                     value="{{ optional($proyecto->responsable_revision)->nombre_completo }}"
                                     placeholder="Ingrese el día">
                             </td>
@@ -997,12 +997,12 @@
                     <table class="table_datos5">
                         <td class="sub-header" colspan="1">Fecha de Aprobación</td>
                         <td class="full-width" colspan="6">
-                            <input type="text" class="input-field" value="{{ $proyecto->fecha_aprobacion }}"
+                            <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_aprobacion }}"
                                 placeholder="Ingrese el día">
                         </td>
                         <td class="sub-header" colspan="1">Fecha de Registro</td>
                         <td class="full-width" colspan="6">
-                            <input type="text" class="input-field" value="{{ $proyecto->fecha_registro }}"
+                            <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_registro }}"
                                 placeholder="Ingrese el día">
                         </td>
                         </tr>
@@ -1010,23 +1010,23 @@
                     <table class="table_datos7">
                         <td class="sub-header" colspan="1">No. de Libro </td>
                         <td class="full-width" colspan="1">
-                            <input type="text" class="input-field" value="{{ $proyecto->numero_libro }}"
+                            <input disabled type="text" class="input-field" value="{{ $proyecto->numero_libro }}"
                                 placeholder="Ingrese el día">
                         </td>
                         <td class="sub-header" colspan="1">No. de Tomo </td>
                         <td class="full-width" colspan="1">
-                            <input type="text" class="input-field" value="{{ $proyecto->numero_tomo }}"
+                            <input disabled type="text" class="input-field" value="{{ $proyecto->numero_tomo }}"
                                 placeholder="Ingrese el día">
                         </td>
                         <td class="sub-header" colspan="1">No. de Folio </td>
                         <td class="full-width" colspan="1">
-                            <input type="text" class="input-field" value="{{ $proyecto->numero_folio }}"
+                            <input disabled type="text" class="input-field" value="{{ $proyecto->numero_folio }}"
                                 placeholder="Ingrese el día">
                         </td>
                         </tr>
                     </table>
 
-                    <div class="header-box"> <input type="text" class="input-field"
+                    <div class="header-box"> <input disabled type="text" class="input-field"
                             value="{{ $proyecto->numero_dictamen }}" placeholder="Ingrese No. dictamen de Proyecto">
                         <p class="header-text">No. dictamen de Proyecto</p>
                     </div>

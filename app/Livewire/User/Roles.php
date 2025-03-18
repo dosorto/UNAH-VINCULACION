@@ -24,6 +24,16 @@ class Roles extends Component implements HasForms, HasTable
     use InteractsWithForms;
     use InteractsWithTable;
 
+
+    // roles que NO se pueden eliminar ni editar
+    private $roles = [
+        'admin',
+        'docente',
+        'admin_centro_facultad',
+        'estudiante',
+        'Validador'
+    ];
+
     // Propiedad para manejar permisos seleccionados
     public ?array $selectedPermissions = [];
 
@@ -53,11 +63,25 @@ class Roles extends Component implements HasForms, HasTable
                             Select::make('permissions')
                                 ->label('Permisos')
                                 ->multiple()
-                                ->relationship(name: 'permissions', titleAttribute: 'name') 
+                                ->relationship(name: 'permissions', titleAttribute: 'name')
                                 ->preload(),
                         ];
+                    })
+                    ->visible(function ($record) {
+
+                        // validar ademas que el rol no tenga usuarios asignados
+
+                        $role = Role::find($record->id);
+                        $users = $role->users;
+
+                        return !in_array($record->name, $this->roles) && count($users) == 0;
                     }),
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->visible(function ($record) {
+                        $role = Role::find($record->id);
+                        $users = $role->users;
+                        return !in_array($record->name, $this->roles) && count($users) == 0;
+                    }),
             ])
             ->bulkActions([])
             ->headerActions([
@@ -66,7 +90,7 @@ class Roles extends Component implements HasForms, HasTable
                         TextInput::make('name')
                             ->required()
                             ->maxLength(255),
-                            Select::make('permissions')
+                        Select::make('permissions')
                             ->label('Permisos')
                             ->multiple()
                             ->relationship(name: 'permissions', titleAttribute: 'name')
@@ -78,6 +102,6 @@ class Roles extends Component implements HasForms, HasTable
     public function render(): View
     {
         return view('livewire.user.roles')
-        ->layout('components.panel.modulos.modulo-usuarios');
+            ->layout('components.panel.modulos.modulo-usuarios');
     }
 }

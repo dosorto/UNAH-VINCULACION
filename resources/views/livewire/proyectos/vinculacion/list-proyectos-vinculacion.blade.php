@@ -8,11 +8,7 @@
                 Listado de proyectos de vinculación registrados en el sistema
             </p>
         </div>
-        <div>
-            <x-filament::button color="info" icon="heroicon-o-document-arrow-up"     href="{{route('crearProyectoVinculacion')}}" tag="a" wire:navigate>
-                Nuevo
-            </x-filament::button>
-        </div>
+        
 
     </div>
     {{ $this->table }}

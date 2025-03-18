@@ -37,9 +37,9 @@ class DatabaseSeeder extends Seeder
         $this->call(PermisosSeeder::class);
         $this->call(PersonalSeeder::class);
 
-        $this->call(DataProyectoSeeder::class);
-        $this->call(EmpleadoProyectoSeeder::class);
-        $this->call(EstadoProyectoSeeder::class);
+       // $this->call(DataProyectoSeeder::class);
+        //$this->call(EmpleadoProyectoSeeder::class);
+       // $this->call(EstadoProyectoSeeder::class);
         // User::factory(10)->create();
 
         // User::factory()->create([

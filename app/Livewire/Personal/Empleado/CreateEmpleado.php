@@ -14,6 +14,21 @@ use Filament\Notifications\Notification;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use app\Models\User;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\TextInput;
+// use Filament\Pages\Actions\CreateAction;
+// use Filament\Actions\Action;
+use Filament\Forms\Components\FileUpload;
+use Filament\Actions\Contracts\HasActions;
+use App\Models\Personal\FirmaSelloEmpleado;
+use Filament\Forms\Components\Actions\Action;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Forms\Components\CheckboxList;
+// importar modelo role de spatie
+use Spatie\Permission\Models\Role;
 
 class CreateEmpleado extends Component implements HasForms
 {
@@ -30,36 +45,84 @@ class CreateEmpleado extends Component implements HasForms
     {
         return $form
             ->schema([
-                Section::make('Crear un nuevo empleado')
-                    ->description('Crea un nuevo empleado con sus datos asociados.')
+
+
+
+                Section::make('user')
                     ->schema([
-                        Forms\Components\TextInput::make('nombre')
+                        TextInput::make('usuario.name')
+                            ->label('Nombre de Usuario')
                             ->required()
+                            ->unique('users', 'name')
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('numero_empleado')
+                        TextInput::make('usuario.email')
+                            ->label('Correo Electrónico')
                             ->required()
+                            ->unique('users', 'email')
+                            ->email()
                             ->maxLength(255),
-                        Select::make('user_id')
-                            ->label('Usuario')
-                            ->options(
-                                User::all()
-                                    ->pluck('email', 'id')
-                            )
-                            ->required()
-                            ->searchable()
-                            ->columnSpanFull(),
-                        Forms\Components\DatePicker::make('fecha_contratacion')
-                            ->required(),
-                        Forms\Components\TextInput::make('salario')
-                            ->required()
-                            ->numeric(),
-                        Forms\Components\TextInput::make('supervisor')
-                            ->required()
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('jornada')
-                            ->required(),
+
                     ])
-                    ->columns(2)
+                    ->columnSpanFull(),
+
+
+
+                Section::make('Empleado')
+                    ->schema([
+                        TextInput::make('empleado.nombre_completo')
+                            ->label('Nombre Completo')
+                            ->required()
+                            ->maxLength(255),
+                        TextInput::make('empleado.numero_empleado')
+                            ->label('Número de Empleado')
+                            ->unique('empleado', 'numero_empleado')
+                            ->required()
+                            ->numeric()
+                            ->maxLength(255),
+                        TextInput::make('empleado.celular')
+                            ->required()
+                            ->numeric()
+                            ->maxLength(255),
+                        Select::make('empleado.categoria_id')
+                            ->label('Categoría')
+                            ->relationship('categoria', 'nombre')
+                            ->required(),
+                        Select::make('empleado.centro_facultad_id')
+                            ->label('Facultades o Centros')
+                            ->searchable()
+                            ->live()
+                            ->relationship(name: 'centro_facultad', titleAttribute: 'nombre')
+                            ->afterStateUpdated(function (Set $set) {
+                                $set('empleado.empleado.departamento_academico_id', null);
+                            })
+                            ->required()
+                            ->preload(),
+                        Select::make('empleado.departamento_academico_id')
+                            ->label('Departamentos Académicos')
+                            ->searchable()
+                            ->relationship(
+                                name: 'departamento_academico',
+                                titleAttribute: 'nombre',
+                                modifyQueryUsing: fn($query, Get $get) => $query->where('centro_facultad_id', $get('empleado.centro_facultad_id'))
+                            )
+                            ->visible(fn(Get $get) => !empty($get('empleado.centro_facultad_id')))
+                            ->live()
+                            ->required()
+                            ->preload(),
+
+                    ])
+                    ->columns(2),
+                Section::make('roles')
+                    ->schema([
+                        CheckboxList::make('roles.roles')
+                            ->label('Roles')
+                        
+                            ->columns(3)
+                            ->options(Role::all()->pluck('name', 'name')->toArray())
+
+                    ])
+                    
+                    ->columnSpanFull(),
             ])
 
             ->statePath('data')
@@ -69,9 +132,9 @@ class CreateEmpleado extends Component implements HasForms
     public function create(): void
     {
         $data = $this->form->getState();
-
-        $record = Empleado::create($data);
-
+        $user = User::create($data['usuario']);
+        $user->assignRole($data['roles']['roles']);
+        $record = $user->empleado()->create($data['empleado']);
         $this->form->model($record)->saveRelationships();
 
         Notification::make()

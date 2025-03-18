@@ -19,6 +19,9 @@ use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+// importar modelo role de spatie
+use Spatie\Permission\Models\Role;
+
 class Empleado extends Model
 {
     use HasFactory;
@@ -53,7 +56,18 @@ class Empleado extends Model
         'centro_facultad_id',
         'departamento_academico_id'
     ];
-
+    // Relación con Role a través de User
+    public function roles()
+    {
+        return $this->hasManyThrough(
+            Role::class,  // El modelo al que queremos acceder (Role)
+            User::class,  // El modelo intermedio (User)
+            'empleado_id',  // La clave foránea en el modelo intermedio (User)
+            'id',          // La clave foránea en el modelo final (Role)
+            'id',          // La clave local en Empleado (Empleado)
+            'role_id'      // La clave local en User (User tiene muchos roles)
+        );
+    }
 
     public function user()
     {
@@ -162,7 +176,7 @@ class Empleado extends Model
                 return $firma->id;
             } else if (
                 $firma->firmable_type != Proyecto::class &&
-               ( $firma->cargo_firma->tipo_estado_id == $firma->documento_proyecto->estado->tipoestado->id)
+                ($firma->cargo_firma->tipo_estado_id == $firma->documento_proyecto->estado->tipoestado->id)
             ) {
                 return $firma->id;
             }

@@ -75,7 +75,7 @@ Route::get('verificacion_constancia/{hashedProjectId}/{hashedEmployeeId}', [Veri
 
 // Rutas para redireccionar a los usuario  no autenticados
 Route::middleware(['auth'])->group(function () {
-    Route::get('setrole/{role_id}', [SetRoleController::class, 'SetRole'])
+    Route::get('setPerfil/{role_id}', [SetRoleController::class, 'SetRole'])
         ->name('setrole');
     
 
