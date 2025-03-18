@@ -79,26 +79,13 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->label('Estado'),
 
                 Tables\Columns\TextColumn::make('fecha_inicio')
-                    ->date()
-                    ->sortable(),
+                    ->date(),
 
                 Tables\Columns\TextColumn::make('poblacion_participante')
                     ->label('Población Participante')
-                    ->numeric()
-                    ->sortable(),
+                    ->numeric(),
 
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+              
 
             ])
             ->filters([
