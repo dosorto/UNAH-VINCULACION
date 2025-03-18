@@ -62,11 +62,14 @@ return new class extends Migration
             $table->date('fecha_registro')->nullable();
 
             $table->foreignId('responsable_revision_id')->nullable()->constrained('empleado');
+            $table->foreignId('user_director_id')->nullable()->constrained('users');
+
             $table->date('fecha_aprobacion')->nullable();
             $table->string('numero_libro')->nullable();
             $table->string('numero_tomo')->nullable();
             $table->string('numero_folio')->nullable();
             $table->string('numero_dictamen')->nullable();
+        
             $table->softDeletes();
             $table->timestamps();
         });
@@ -110,6 +113,10 @@ return new class extends Migration
             $table->foreignId('empleado_id')->constrained('empleado');
             $table->foreignId('proyecto_id')->constrained('proyecto');
             $table->enum('rol', ['Coordinador', 'Subcoordinador', 'Integrante']);
+
+            // hash
+            $table->string('hash')->nullable();
+
             $table->softDeletes();
             $table->timestamps();
         });

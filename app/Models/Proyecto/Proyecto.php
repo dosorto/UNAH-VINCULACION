@@ -240,6 +240,12 @@ class Proyecto extends Model
         return $this->belongsToMany(Empleado::class, 'empleado_proyecto', 'proyecto_id', 'empleado_id');
     }
 
+    public function docentes_proyecto()
+    {
+        return $this->hasMany(EmpleadoProyecto::class, 'proyecto_id');
+    }
+   
+
     // relacion uno a muchos con el modelo empleado_proyecto
     public function empleado_proyecto()
     {

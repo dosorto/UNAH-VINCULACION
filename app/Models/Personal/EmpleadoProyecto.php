@@ -10,6 +10,9 @@ use App\Models\Personal\Empleado;
 
 use App\Models\Proyecto\Actividad;
 
+use Illuminate\Support\Str;
+
+
 class EmpleadoProyecto extends Model
 {
     use HasFactory;
@@ -20,7 +23,22 @@ class EmpleadoProyecto extends Model
         'empleado_id',
         'proyecto_id',
         'rol',
+        'hash'
     ];
+
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            do {
+                $hash = Str::random(20);
+            } while (EmpleadoProyecto::where('hash', $hash)->exists());
+
+            $model->hash = $hash;
+        });
+    }
 
     public function empleado()
     {

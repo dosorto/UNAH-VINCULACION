@@ -68,16 +68,15 @@ Route::middleware(['guest'])->group(function () {
         ->name('password.request');
     Route::get('password/reset/{token}', ResetPasswordController::class)
         ->name('password.reset');
-
-        
-    });
-Route::get('verificacion_constancia/{hashedProjectId}/{hashedEmployeeId}', [VerificarConstancia::class, 'index'])->name('verificacion_constancia');
+});
+Route::get('verificacion_constancia/{hash}', [VerificarConstancia::class, 'index'])
+    ->name('verificacion_constancia');
 
 // Rutas para redireccionar a los usuario  no autenticados
 Route::middleware(['auth'])->group(function () {
     Route::get('setPerfil/{role_id}', [SetRoleController::class, 'SetRole'])
         ->name('setrole');
-    
+
 
     // rutas agrupadas para el modulo de inicio
     Route::get('inicio', InicioAdmin::class)
@@ -196,11 +195,11 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('listarInformesSolicitado', ListInformesSolicitado::class)
             ->name('listarInformesSolicitado');
-            //->middleware('can:proyectos-admin-solicitados');
+        //->middleware('can:proyectos-admin-solicitados');
 
         Route::get('listarProyectoRevisionFinal', ListProyectoRevisionFinal::class)
             ->name('listarProyectoRevisionFinal');
-            //->middleware('can:proyectos-admin-revision-final');
+        //->middleware('can:proyectos-admin-revision-final');
     });
 
 

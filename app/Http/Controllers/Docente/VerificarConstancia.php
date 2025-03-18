@@ -8,31 +8,26 @@ use App\Models\Proyecto\Proyecto;
 use App\Http\Controllers\Controller;
 use App\Models\Personal\Empleado;
 use Illuminate\Support\Facades\Crypt;
+use App\Models\Personal\EmpleadoProyecto;
 
 class VerificarConstancia extends Controller
 {
 
     // Método para mostrar la vista de verificación de constancia
-    public function index ($hashedProjectId, $hashedEmployeeId) {
+    public function index($hash)
+    {
         try {
             // Desencriptar los IDs
-            $proyectoId = unserialize(Crypt::decryptString($hashedProjectId));
-            $empleadoId = unserialize(Crypt::decryptString($hashedEmployeeId));
-
+            $empleadoProyecto = EmpleadoProyecto::where('hash', $hash)->firstOrFail();
             // obtener el nombre del proyecto
-            $proyecto = Proyecto::where('id', $proyectoId)
-                ->first();
-
-                // obtener el nombre del empleado
-            $empleado = Empleado::where('id', $empleadoId)
-                ->first();
-
-
+            $proyecto = $empleadoProyecto->proyecto;
+            // obtener el nombre del empleado
+            $empleado = $empleadoProyecto->empleado;
             // calular las horas del empleado en el proyecto
-            $horas = Empleado::where('id', $empleadoId)
+            $horas = $empleadoProyecto->empleado()
                 ->first()
                 ->actividades()
-                ->where('proyecto_id', $proyectoId)
+                ->where('proyecto_id', $proyecto->id)
                 ->sum('horas');
 
             $data = [
@@ -45,28 +40,16 @@ class VerificarConstancia extends Controller
                 'horas' => $horas
             ];
 
-    
-            // verificar si el empleado esta participando en el proyecto
-            $proyecto_empleado = Proyecto::where('id', $proyectoId)
-                ->first()
-                ->integrantes
-                ->where('id', $empleadoId)
-                ->first();
-    
-            if ($proyecto_empleado) {
-                // Aquí puedes realizar las acciones necesarias con los IDs desencriptados
-                return view('app.docente.verificacion_constancia', [
-                    'data' => $data
-                ]);
-            } else {
-                return view('app.docente.verificacion_constancia', [
-                    'mensaje' => 'La Constancia no es valida'
-                ]);
-            }
+
+
+
+            // Aquí puedes realizar las acciones necesarias con los IDs desencriptados
+            return view('app.docente.verificacion_constancia', [
+                'data' => $data
+            ]);
         } catch (Exception $e) {
             // Si falla la desencriptación, puedes manejar el error
             abort(404, 'Datos inválidos');
         }
     }
-
 }

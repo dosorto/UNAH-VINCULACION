@@ -6,6 +6,8 @@
 
     <x-panel.navbar-horizontal.navbar-horizontal>
         <x-panel.navbar-horizontal.item titulo="Proyectos" ruta="proyectosDocente" permiso="docente-admin-proyectos" />
+        <x-panel.navbar-horizontal.item titulo="Subsanacion" ruta="proyectosDocente" permiso="docente-admin-proyectos" />
+        <x-panel.navbar-horizontal.item titulo="Borrador" ruta="proyectosDocente" permiso="docente-admin-proyectos" />
     </x-panel.navbar-horizontal.navbar-horizontal>
 
     @livewire('docente.proyectos.proyectos-docente-list', ['docente' => $docenteLogeado])

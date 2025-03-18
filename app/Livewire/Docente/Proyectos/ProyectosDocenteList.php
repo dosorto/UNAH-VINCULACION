@@ -35,6 +35,10 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Concerns\InteractsWithTable;
 
+use Filament\Tables\Filters\Layout;
+use Filament\Tables\Filters\SelectFilter;
+
+
 class ProyectosDocenteList extends Component implements HasForms, HasTable
 {
     use InteractsWithForms;
@@ -45,10 +49,14 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
     {
         $this->docente = $docente;
     }
-
+    protected function getTableFiltersLayout(): ?string
+    {
+        return Layout::AboveContent;
+    }
     public function table(Table $table): Table
     {
         return $table
+        ->striped()
             ->query(
 
                 Proyecto::query()
@@ -60,6 +68,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
             ->columns([
 
                 Tables\Columns\TextColumn::make('nombre_proyecto')
+                
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('Estado.tipoestado.nombre')
@@ -75,7 +84,11 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
 
             ])
             ->filters([
-                //
+                SelectFilter::make('categoria_id')
+                ->label('Categoría')
+                ->multiple()
+                ->relationship('categoria', 'nombre')
+                ->preload(),
             ])
             ->actions([
                 ActionGroup::make([
@@ -286,17 +299,16 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
 
 
                             // Hashear los IDs
-                            $hashedProjectId = Crypt::encrypt($proyecto->id);
-                            $hashedEmployeeId = Crypt::encrypt(auth()->user()->empleado->id);
+                            $docenteProyecto = $proyecto->docentes_proyecto()->where('empleado_id', $this->docente->id)->first();
 
-                            $enlace =  url('/verificacion_constancia/' . $hashedProjectId . '/' . $hashedEmployeeId);
+                            $enlace =  url('/verificacion_constancia/' . $docenteProyecto->hash);
 
                             // Generar el código QR como imagen base64
-                            QrCode::format('png')->size(1000)->errorCorrection('H')->generate($enlace, $qrcodePath);
+                            QrCode::format('png')->size(200)->errorCorrection('H')->generate($enlace, $qrcodePath);
 
 
                             // Cargar la imagen (logo) y moverla a la carpeta pública
-                         
+
                             // Datos que se pasan a la vista
                             $data = [
                                 'title' => 'Constancia de Participación',
@@ -308,7 +320,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
 
                             // Generar el PDF desde una vista
                             $pdf = Pdf::loadView('pdf.constancia', $data)
-                            ->setPaper('letter');
+                                ->setPaper('letter');
 
                             // Generar un nombre único para el archivo basándome en los id del empleado en el proyecto
                             $fileName = 'constancia_' . $proyecto->id . '_' . auth()->user()->empleado->id . '_' . Str::random(8) . '.pdf';
@@ -329,6 +341,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 ->deleteFileAfterSend(true);
                         }),
                 ])
+                        
                     ->button()
                     ->color('primary')
                     ->label('Acciones'),
@@ -337,6 +350,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
 
                 // ->openUrlInNewTab()
             ])
+        
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     //
