@@ -56,6 +56,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                         ),
                     Wizard\Step::make('III.')
                         ->description('Cronograma de actividades.')
+                        
                         ->schema(
                             TerceraParte::form(),
                         ),

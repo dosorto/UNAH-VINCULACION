@@ -60,6 +60,8 @@ class ListEmpleado extends Component implements HasForms, HasTable
                     ->with('empleado.departamento_academico')
             )
             ->columns([
+                Tables\Columns\TextColumn::make('empleado.id')
+                ->searchable(),
                 Tables\Columns\TextColumn::make('empleado.nombre_completo')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('empleado.numero_empleado')
