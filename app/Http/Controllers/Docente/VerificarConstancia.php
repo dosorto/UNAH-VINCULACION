@@ -237,4 +237,9 @@ class VerificarConstancia extends Controller
             'data' => $data
         ]);
     }
+
+    public function verificacionConstanciaVista()
+    {
+        return view('app.docente.constanciasOnline.vista');
+    }
 }

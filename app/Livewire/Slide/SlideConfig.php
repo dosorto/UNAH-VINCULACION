@@ -123,6 +123,7 @@ class SlideConfig extends Component implements HasForms
 
     public function render(): View
     {
-        return view('livewire.slide.slide-config');
+        return view('livewire.slide.slide-config')
+        ->layout('components.panel.modulos.modulo-configuracion');
     }
 }

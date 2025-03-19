@@ -69,7 +69,12 @@ Route::middleware(['guest'])->group(function () {
     Route::get('password/reset/{token}', ResetPasswordController::class)
         ->name('password.reset');
 });
-Route::get('verificacion_constancia/{hash}', [VerificarConstancia::class, 'index'])
+
+Route::get('verificacion_constancia', [VerificarConstancia::class, 'verificacionConstanciaVista'])
+    ->name('verificacion_constancia');
+
+
+Route::get('verificacion_constancia/{hash?}', [VerificarConstancia::class, 'index'])
     ->name('verificacion_constancia');
 
 
