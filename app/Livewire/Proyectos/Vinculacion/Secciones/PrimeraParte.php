@@ -89,6 +89,7 @@ class PrimeraParte
                 ->schema([
                     Select::make('empleado_id')
                         ->label('Integrante')
+                        ->distinct()
                         ->searchable(['nombre_completo', 'numero_empleado'])
                         ->relationship(
                             name: 'empleado',

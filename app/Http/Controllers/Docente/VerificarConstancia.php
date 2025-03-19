@@ -240,6 +240,6 @@ class VerificarConstancia extends Controller
 
     public function verificacionConstanciaVista()
     {
-        return view('app.docente.constanciasOnline.vista');
+        return view('app.docente.constancias.constancia_finalizado');
     }
 }
