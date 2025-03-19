@@ -91,6 +91,8 @@ class SlideConfig extends Component implements HasForms
                             ->default(true)
                             ->columnSpan(1),
                     ])
+                    ->defaultItems(3)
+                    ->minItems(2)
                     ->grid(3)
                     ->deletable(true)
                     ->columns(1),

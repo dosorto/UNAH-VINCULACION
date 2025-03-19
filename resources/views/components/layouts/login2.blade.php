@@ -99,14 +99,35 @@
                     <!-- Carousel wrapper -->
                     <div class="relative  overflow-hidden rounded-lg h-full">
                         <!-- Itera sobre las imágenes de la variable $slides -->
-                        @foreach ($slides as $index => $slide)
+                        @forelse ($slides as $index => $slide)
                             <div class="hidden duration-700 ease-in-out" data-carousel-item
                                 @if ($index == 0) data-carousel-item="active" @endif>
                                 <img src="{{ asset('storage/' . $slide->image_url) }}"
                                     class="absolute block w-full h-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
                                     alt="Slide {{ $index + 1 }}">
                             </div>
-                        @endforeach
+                        @empty
+                            <div class="hidden duration-700 ease-in-out" data-carousel-item data-carousel-item="active">
+                                <img src="{{ asset('images/Slide/1.jpeg') }}"
+                                    class="absolute block w-full h-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
+                                    alt="Slide 1">
+                            </div>
+                            <div class="hidden duration-700 ease-in-out" data-carousel-item data-carousel-item="active">
+                                <img src="{{ asset('images/Slide/2.jpg') }}"
+                                    class="absolute block w-full h-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
+                                    alt="Slide 1">
+                            </div>
+                            <div class="hidden duration-700 ease-in-out" data-carousel-item data-carousel-item="active">
+                                <img src="{{ asset('images/Slide/3.jpg') }}"
+                                    class="absolute block w-full h-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
+                                    alt="Slide 1">
+                            </div>
+                            <div class="hidden duration-700 ease-in-out" data-carousel-item data-carousel-item="active">
+                                <img src="{{ asset('images/Slide/4.jpg') }}"
+                                    class="absolute block w-full h-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
+                                    alt="Slide 1">
+                            </div>
+                        @endforelse
                     </div>
                     <!-- Slider controls -->
                     <button type="button"
