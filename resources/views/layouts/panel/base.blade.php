@@ -52,7 +52,8 @@
         <x-panel.navbar.navbar />
         <!-- Barra superior en dispositivos móviles -->
         <div
-            class="flex justify-between items-center p-4 bg-white  sm:hidden sticky top-0 bg-white dark:bg-gray-950 z-49">
+            class="flex justify-between items-center p-4 bg-white  sm:hidden sticky top-0 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700 rounded-b-lg"
+            style="z-index: 39;">
             <div class="flex items-center ">
                 <div class="w-36 h-8 rounded-lg flex items-center justify-center">
                     <img src="{{ asset('images/logo_nuevo.png') }}" alt="Logo" class="mx-auto"
