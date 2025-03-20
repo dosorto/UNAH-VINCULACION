@@ -40,17 +40,17 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
             ->query(
 
                 Proyecto::query()
-                ->whereNotIn('proyecto.id', function ($query) {
-                    $query->select('estadoable_id')
-                        ->from('estado_proyecto')
-                        ->where('estadoable_type', Proyecto::class) // Asegúrate de filtrar por el modelo `Proyecto`
-                        ->whereIn('tipo_estado_id', TipoEstado::whereIn('nombre', ['Borrador'])->pluck('id')->toArray()) // Excluir 'Borrador' y 'Subsanacion'
-                        ->where('es_actual', true);
-                })
-                ->leftJoin('proyecto_centro_facultad', 'proyecto_centro_facultad.proyecto_id', '=', 'proyecto.id')
-                ->leftJoin('proyecto_depto_ac', 'proyecto_depto_ac.proyecto_id', '=', 'proyecto.id')
-                ->select('proyecto.*')
-                ->distinct('proyecto.id')
+                    ->whereNotIn('proyecto.id', function ($query) {
+                        $query->select('estadoable_id')
+                            ->from('estado_proyecto')
+                            ->where('estadoable_type', Proyecto::class) // Asegúrate de filtrar por el modelo `Proyecto`
+                            ->whereIn('tipo_estado_id', TipoEstado::whereIn('nombre', ['Borrador'])->pluck('id')->toArray()) // Excluir 'Borrador' y 'Subsanacion'
+                            ->where('es_actual', true);
+                    })
+                    ->leftJoin('proyecto_centro_facultad', 'proyecto_centro_facultad.proyecto_id', '=', 'proyecto.id')
+                    ->leftJoin('proyecto_depto_ac', 'proyecto_depto_ac.proyecto_id', '=', 'proyecto.id')
+                    ->select('proyecto.*')
+                    ->distinct('proyecto.id')
 
 
 
@@ -58,7 +58,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
             ->columns([
 
                 Tables\Columns\TextColumn::make('nombre_proyecto')
-                ->limit(30)
+                    ->limit(30)
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('departamentos_academicos.nombre')
@@ -86,7 +86,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->label('Población Participante')
                     ->numeric(),
 
-              
+
 
             ])
             ->filters([

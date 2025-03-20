@@ -39,6 +39,7 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Filters\Layout;
 use Filament\Tables\Filters\SelectFilter;
 
+use Filament\Tables\Enums\FiltersLayout;
 
 class ProyectosDocenteList extends Component implements HasForms, HasTable
 {
@@ -69,9 +70,23 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
             ->columns([
 
                 Tables\Columns\TextColumn::make('nombre_proyecto')
-                ->limit(30)
-                ->wrap()
+                    ->limit(30)
+                    ->wrap()
                     ->searchable(),
+
+                Tables\Columns\TextColumn::make('docentes_proyecto.rol')
+                    ->label('Rol')
+                    ->formatStateUsing(
+                        function (Proyecto $record) {
+                            return $record->docentes_proyecto()
+                                ->where('empleado_id', $this->docente->id)
+                                ->first()->rol;
+                        }
+                    )
+                    ->limit(30)
+                    ->wrap()
+                    ->searchable(),
+
 
                 Tables\Columns\TextColumn::make('Estado.tipoestado.nombre')
                     ->badge()
@@ -91,7 +106,14 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                     ->multiple()
                     ->relationship('categoria', 'nombre')
                     ->preload(),
-            ])
+
+                SelectFilter::make('rol')
+                    ->label('Rol')
+                    ->options([
+                        'Coordinador' => 'Coordinador',
+                        'Integrante' => 'Integrante',
+                    ])
+                ],  layout: FiltersLayout::AboveContent)
             ->actions([
                 ActionGroup::make([
                     Action::make('Proyecto de Vinculación')
@@ -129,8 +151,8 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                                 ->default('Informe Intermedio'),
 
                                             FileUpload::make('documento_url')
-                                            ->label('Informe Intermedio')
-                                            ->required()
+                                                ->label('Informe Intermedio')
+                                                ->required()
                                                 ->label('Informe Intermedio')
                                                 ->acceptedFileTypes(['application/pdf'])
                                         ])
@@ -186,9 +208,9 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 ->modalHeading('Documentos del Proyecto')
                                 ->modalSubheading('A continuación se muestran los documentos del proyecto y su estado')
                                 ->visible(function (Proyecto $proyecto) {
-                                    return ( ( ($proyecto->estado->tipoestado->nombre == 'En curso' &&
+                                    return ((($proyecto->estado->tipoestado->nombre == 'En curso' &&
                                         is_null($proyecto->documento_intermedio())) ||
-                                        $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion' )
+                                        $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion')
                                         && $proyecto->coordinador->id == auth()->user()->empleado->id);
                                 })
                                 ->modalWidth(MaxWidth::SevenExtraLarge),
@@ -265,7 +287,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 ->modalHeading('Documentos del Proyecto')
                                 ->modalSubheading('A continuación se muestran los documentos del proyecto y su estado')
                                 ->visible(function (Proyecto $proyecto) {
-                                    return ( (($proyecto->estado->tipoestado->nombre == 'En curso' &&
+                                    return ((($proyecto->estado->tipoestado->nombre == 'En curso' &&
                                         $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Aprobado') &&
                                         is_null($proyecto->documento_final())
                                         ||
@@ -285,8 +307,8 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-document')
                         ->color('warning')
                         ->visible(function (Proyecto $proyecto) {
-                             $condicion = ($proyecto->estado->tipoestado->nombre == 'Subsanacion' || 
-                             $proyecto->estado->tipoestado->nombre == 'Borrador') 
+                            $condicion = ($proyecto->estado->tipoestado->nombre == 'Subsanacion' ||
+                                $proyecto->estado->tipoestado->nombre == 'Borrador')
                                 && $proyecto->coordinador->id == auth()->user()->empleado->id;
 
                             return  $condicion;
