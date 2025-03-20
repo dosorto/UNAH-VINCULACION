@@ -123,6 +123,12 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                         return $query;
                     }),
 
+                    // filtrar por ods
+                SelectFilter::make('ods_id')
+                    ->label('ODS')
+                    ->multiple()
+                    ->relationship('ods', 'nombre')
+                    ->preload(),
                
 
                 SelectFilter::make('categoria_id')
