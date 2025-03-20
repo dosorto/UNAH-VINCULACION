@@ -51,8 +51,7 @@ class EditPerfil extends Component implements HasForms, HasActions
     {
         return $form
             ->schema([
-                Section::make('Editar Perfil de Empleado')
-                    ->description('Editar los datos de Empleado Asociado.')
+                Section::make('Perfil de Empleado')
                     ->schema([
                         // Otros campos del formulario
                         TextInput::make('nombre_completo')
@@ -100,7 +99,9 @@ class EditPerfil extends Component implements HasForms, HasActions
                             ->required()
                             ->preload(),
                     ])
-                    ->visible($this->record->firma()->exists()),
+                    ->visible($this->record->firma()->exists())
+                    // deshabilitar si el usuario no tiene el permiso de 'docente-cambiar-datos-personales'
+                    ->disabled(!auth()->user()->can('docente-cambiar-datos-personales')),
 
 
                 // Section para la firma
@@ -221,7 +222,10 @@ class EditPerfil extends Component implements HasForms, HasActions
         $this->record->update($data);
         $this->record->user->assignRole('docente')->save();
         $this->record->user->active_role_id =  Role::where('name', 'docente')->first()->id;
+        // quitar el permiso de 'configuracion-admin-mi-perfil al usuario
+        $this->record->user->revokePermissionTo('docente-cambiar-datos-personales');
         $this->record->user->save();
+
         Notification::make()
             ->title('Exito!')
             ->body('Perfil  actualizado correctamente.')

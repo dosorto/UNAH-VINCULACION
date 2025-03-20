@@ -47,7 +47,8 @@ class MicrosoftController extends Controller
                     'email' => $user->email,
                     'password' => bcrypt('123456dummy') // Cambié encrypt() por bcrypt()
                 ]
-            )->givePermissionTo('configuracion-admin-mi-perfil');
+            )->givePermissionTo('configuracion-admin-mi-perfil')
+            ->givePermissionTo('docente-cambiar-datos-personales');
 
             Auth::login($user, true);
 		//dd(auth()->user());

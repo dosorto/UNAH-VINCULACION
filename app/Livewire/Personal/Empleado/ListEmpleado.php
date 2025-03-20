@@ -79,8 +79,10 @@ class ListEmpleado extends Component implements HasForms, HasTable
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('empleado.nombre_completo')
+                ->searchable(isIndividual: true)
                     ->label('Nombre Completo'),
                 Tables\Columns\TextColumn::make('empleado.numero_empleado')
+                ->searchable(isIndividual: true)
                     ->label('Número de Empleado'),
                 Tables\Columns\TextColumn::make('empleado.categoria.nombre')
                     ->label('Categoría'),

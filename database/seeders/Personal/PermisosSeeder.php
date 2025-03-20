@@ -52,6 +52,8 @@ class PermisosSeeder extends Seeder
         // modulo para el administrador de centro / facultad
         $permission18 = Permission::create(['name' => 'admin_centro_facultad-proyectos']);
 
+        $permission19 = Permission::create(['name' => 'docente-cambiar-datos-personales']);
+
         // crear un rol de administrador con todos los permisos anteriores
         $role = Role::create(['name' => 'admin']);
         $roleDocente = Role::create(['name' => 'docente']);
@@ -80,10 +82,10 @@ class PermisosSeeder extends Seeder
         ])->save();
 
         $roleDocente->givePermissionTo([
-            'configuracion-admin-mi-perfil',
             'inicio-docente-inicio',
             'docente-admin-proyectos',
             'docente-crear-proyecto',
+            'configuracion-admin-mi-perfil',
         ])->save();
 
         $roleAdminCentroFacultad->givePermissionTo([

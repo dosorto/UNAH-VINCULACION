@@ -49,7 +49,7 @@ class PersonalSeeder extends Seeder
             'descripcion' => 'Titular 5 de la universidad'
         ]);
 
-    
+
         $userVictor = User::create([
             'name' => 'Victor',
             'email' => 'victor@unah.edu.hn',
@@ -62,7 +62,9 @@ class PersonalSeeder extends Seeder
             'name' => 'Jessica',
             'email' => 'jessica@unah.edu.hn',
             'password' => bcrypt('123'),
-        ])->assignRole('docente');
+        ])->assignRole('docente')
+            ->givePermissionTo('configuracion-admin-mi-perfil')
+            ->givePermissionTo('docente-cambiar-datos-personales');
 
         $user = User::create([
             'name' => 'neto',
@@ -70,18 +72,18 @@ class PersonalSeeder extends Seeder
             'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
             'active_role_id' => 1
         ])->assignRole(['admin', 'docente']);
-        
-       Empleado::create([
-        'nombre_completo' => 'Administrador',
-        'numero_empleado' => '123412125',
-        'celular' => '99999999',
-        'user_id' => $user->id,
-        'centro_facultad_id' => 1,
-        'departamento_academico_id' => 1,
-        'categoria_id' => 1
-       ]);
 
-        
+        Empleado::create([
+            'nombre_completo' => 'Administrador',
+            'numero_empleado' => '123412125',
+            'celular' => '99999999',
+            'user_id' => $user->id,
+            'centro_facultad_id' => 1,
+            'departamento_academico_id' => 1,
+            'categoria_id' => 1
+        ]);
+
+
 
 
         $ingeJessica = Empleado::create([
@@ -93,11 +95,11 @@ class PersonalSeeder extends Seeder
             'departamento_academico_id' => 1,
             'categoria_id' => 1
         ]);
-        
-       
 
-    
-       $licVictor = Empleado::create([
+
+
+
+        $licVictor = Empleado::create([
             'nombre_completo' => 'VICTOR NAHUN REYES NAVAS',
             'numero_empleado' => '12317',
             'celular' => '99999999',
@@ -105,9 +107,9 @@ class PersonalSeeder extends Seeder
             'centro_facultad_id' => 1,
             'departamento_academico_id' => 1,
             'categoria_id' => 1
-       ]);
+        ]);
 
-       $licVictor->firma()->create([
+        $licVictor->firma()->create([
             'tipo' => 'firma',
             'ruta_storage' => 'images/firmas/Firma_Oscar.png',
             'estado' => true
@@ -118,16 +120,5 @@ class PersonalSeeder extends Seeder
             'ruta_storage' => 'images/firmas/Sello_Victor.png',
             'estado' => true
         ]);
-
-       
-
-
-        
-
-        
-
-
-
-
     }
 }
