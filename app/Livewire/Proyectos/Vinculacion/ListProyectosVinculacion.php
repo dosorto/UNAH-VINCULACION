@@ -49,6 +49,11 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     })
                     ->leftJoin('proyecto_centro_facultad', 'proyecto_centro_facultad.proyecto_id', '=', 'proyecto.id')
                     ->leftJoin('proyecto_depto_ac', 'proyecto_depto_ac.proyecto_id', '=', 'proyecto.id')
+                    // unir con la tabla de estados
+                    ->leftJoin('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
+                    ->leftJoin('tipo_estado', 'estado_proyecto.tipo_estado_id', '=', 'tipo_estado.id')
+
+
                     ->select('proyecto.*')
                     ->distinct('proyecto.id')
 
@@ -74,9 +79,18 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->wrap()
                     ->label('Centro/Facultad'),
 
-                Tables\Columns\TextColumn::make('estado.tipoestado.nombre')
+                Tables\Columns\TextColumn::make('Estado.tipoestado.nombre')
                     ->badge()
-                    ->color('info')
+                    ->color(fn(Proyecto $proyecto) => match ($proyecto->estado->tipoestado->nombre) {
+                        'En curso' => 'success',
+                        'Subsanacion' => 'danger',
+                        'Borrador' => 'warning',
+                        'Finalizado' => 'info',
+                        default => 'primary',
+                    })
+                    ->label('Estado')
+                    ->separator(',')
+                    ->wrap()
                     ->label('Estado'),
 
                 Tables\Columns\TextColumn::make('fecha_inicio')
@@ -90,6 +104,27 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
 
             ])
             ->filters([
+
+                Filter::make('estado_id')
+                    ->label('Estado')
+                    ->form([
+                        Select::make('estado_id')
+                            ->label('Estado')
+                            ->options(TipoEstado::all()->pluck('nombre', 'id'))
+                            ->live()
+                            ->multiple(),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (!empty($data['estado_id'])) {
+                            $query
+                                ->whereIn('tipo_estado_id', $data['estado_id'])
+                                ->where('es_actual', true);
+                        }
+                        return $query;
+                    }),
+
+               
+
                 SelectFilter::make('categoria_id')
                     ->label('Categoría')
                     ->multiple()
@@ -101,6 +136,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->relationship('modalidad', 'nombre')
                     ->preload(),
 
+            
                 // filter name can be anything you want
                 Filter::make('created_at')
                     ->form([

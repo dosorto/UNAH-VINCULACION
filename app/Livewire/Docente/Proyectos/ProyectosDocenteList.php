@@ -51,10 +51,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
     {
         $this->docente = $docente;
     }
-    protected function getTableFiltersLayout(): ?string
-    {
-        return Layout::AboveContent;
-    }
+  
     public function table(Table $table): Table
     {
         return $table
@@ -129,7 +126,9 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                     ->options([
                         'Coordinador' => 'Coordinador',
                         'Integrante' => 'Integrante',
-                    ])
+                    ]),
+
+                    
             ],  layout: FiltersLayout::AboveContent)
             ->actions([
                 ActionGroup::make([
