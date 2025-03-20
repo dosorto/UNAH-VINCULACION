@@ -27,6 +27,12 @@ use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Columns\Layout\Split;
 use App\Models\Estado\TipoEstado;
 
+
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
+
+
 class ListProyectosVinculacion extends Component implements HasForms, HasTable
 {
     use InteractsWithForms;
@@ -71,13 +77,13 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->color('info')
                     ->separator(',')
                     ->wrap()
-                    ->label('Departamento')
+                    ->label('Departamentos')
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('facultades_centros.nombre')
                     ->badge()
                     ->wrap()
-                    ->label('Centro/Facultad'),
+                    ->label('Centros/Facultades'),
 
                 Tables\Columns\TextColumn::make('Estado.tipoestado.nombre')
                     ->badge()
@@ -98,7 +104,14 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
 
                 Tables\Columns\TextColumn::make('poblacion_participante')
                     ->label('Población Participante')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->numeric(),
+
+                Tables\Columns\TextColumn::make('categoria.nombre')
+                    ->badge()
+                    ->wrap()
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->label('Categoría'),
 
 
 
@@ -123,13 +136,13 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                         return $query;
                     }),
 
-                    // filtrar por ods
+                // filtrar por ods
                 SelectFilter::make('ods_id')
                     ->label('ODS')
                     ->multiple()
                     ->relationship('ods', 'nombre')
                     ->preload(),
-               
+
 
                 SelectFilter::make('categoria_id')
                     ->label('Categoría')
@@ -142,7 +155,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->relationship('modalidad', 'nombre')
                     ->preload(),
 
-            
+
                 // filter name can be anything you want
                 Filter::make('created_at')
                     ->form([
@@ -188,12 +201,23 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     )
                     // ->stickyModalHeader()
                     ->modalWidth(MaxWidth::SevenExtraLarge)
-                    ->modalSubmitAction(false)
+                    ->modalSubmitAction(false),
 
+
+            ])
+            ->headerActions([
+                ExportAction::make()->exports([
+                    ExcelExport::make('table')
+                        ->fromTable()
+                        ->askForFilename('Proyectos de Vinculación')
+                        ->askForWriterType(),
+                ])
+                    ->label('Exportar a Excel')
+                    ->color('success')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    //
+                    ExportBulkAction::make()
                 ]),
             ]);
     }
