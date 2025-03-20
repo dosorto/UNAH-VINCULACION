@@ -128,6 +128,8 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                                 ->default('Informe Intermedio'),
 
                                             FileUpload::make('documento_url')
+                                            ->label('Informe Intermedio')
+                                            ->required()
                                                 ->label('Informe Intermedio')
                                                 ->acceptedFileTypes(['application/pdf'])
                                         ])
@@ -183,9 +185,10 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 ->modalHeading('Documentos del Proyecto')
                                 ->modalSubheading('A continuación se muestran los documentos del proyecto y su estado')
                                 ->visible(function (Proyecto $proyecto) {
-                                    return ($proyecto->estado->tipoestado->nombre == 'En curso' &&
+                                    return ( ( ($proyecto->estado->tipoestado->nombre == 'En curso' &&
                                         is_null($proyecto->documento_intermedio())) ||
-                                        $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion';
+                                        $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion' )
+                                        && $proyecto->coordinador->id == auth()->user()->empleado->id);
                                 })
                                 ->modalWidth(MaxWidth::SevenExtraLarge),
 
@@ -208,6 +211,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
 
                                             FileUpload::make('documento_url')
                                                 ->label('Informe Final')
+                                                ->required()
                                                 ->acceptedFileTypes(['application/pdf'])
                                         ])
                                         ->addable(false)
@@ -260,11 +264,12 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 ->modalHeading('Documentos del Proyecto')
                                 ->modalSubheading('A continuación se muestran los documentos del proyecto y su estado')
                                 ->visible(function (Proyecto $proyecto) {
-                                    return ($proyecto->estado->tipoestado->nombre == 'En curso' &&
+                                    return ( (($proyecto->estado->tipoestado->nombre == 'En curso' &&
                                         $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Aprobado') &&
                                         is_null($proyecto->documento_final())
                                         ||
-                                        $proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion';
+                                        $proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion')
+                                        && $proyecto->coordinador->id == auth()->user()->empleado->id);
                                 })
                                 ->modalWidth(MaxWidth::SevenExtraLarge),
 
@@ -279,7 +284,11 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-document')
                         ->color('warning')
                         ->visible(function (Proyecto $proyecto) {
-                            return $proyecto->estado->tipoestado->nombre == 'Subsanacion' || $proyecto->estado->tipoestado->nombre == 'Borrador';
+                             $condicion = ($proyecto->estado->tipoestado->nombre == 'Subsanacion' || 
+                             $proyecto->estado->tipoestado->nombre == 'Borrador') 
+                                && $proyecto->coordinador->id == auth()->user()->empleado->id;
+
+                            return  $condicion;
                         })
                         ->url(fn(Proyecto $record): string => route('editarProyectoVinculacion', $record)),
                     Action::make('constancia')
