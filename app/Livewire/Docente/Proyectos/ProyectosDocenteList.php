@@ -58,6 +58,16 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
+            ->recordClasses(function (Proyecto $proyecto) {
+                if ($proyecto->estado->tipoestado->nombre == 'Subsanacion') {
+                    return 'bg-red-100 border-4 border-red-600 dark:bg-red-900 dark:border-red-400';
+
+
+                }
+                
+               
+                
+            })
             ->striped()
             ->query(
 
@@ -90,7 +100,14 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
 
                 Tables\Columns\TextColumn::make('Estado.tipoestado.nombre')
                     ->badge()
-                    ->color('info')
+                    ->color(fn (Proyecto $proyecto) => match ($proyecto->estado->tipoestado->nombre) {
+                        'En curso' => 'success',
+                        'Subsanacion' => 'danger',
+                        'Borrador' => 'warning',
+                        'Finalizado' => 'info',
+                        default => 'primary',
+                    })
+                    ->label('Estado')
                     ->separator(',')
                     ->wrap()
                     ->label('Estado'),
@@ -113,7 +130,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         'Coordinador' => 'Coordinador',
                         'Integrante' => 'Integrante',
                     ])
-                ],  layout: FiltersLayout::AboveContent)
+            ],  layout: FiltersLayout::AboveContent)
             ->actions([
                 ActionGroup::make([
                     Action::make('Proyecto de Vinculación')

@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{{ asset('css/app/fichaVinculacion.css') }}">
 </head>
 
-<body style="background-color: #f2f2f2;">
+<body style="background-color: #f2f2f2; " >
     @if ($proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
         <x-filament::section collapsible collapsed persist-collapsed id="user-details">
             <x-slot name="heading">
