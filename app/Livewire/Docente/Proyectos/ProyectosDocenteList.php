@@ -69,7 +69,8 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
             ->columns([
 
                 Tables\Columns\TextColumn::make('nombre_proyecto')
-
+                ->limit(30)
+                ->wrap()
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('Estado.tipoestado.nombre')

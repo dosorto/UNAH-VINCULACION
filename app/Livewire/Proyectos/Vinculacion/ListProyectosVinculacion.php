@@ -58,6 +58,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
             ->columns([
 
                 Tables\Columns\TextColumn::make('nombre_proyecto')
+                ->limit(30)
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('departamentos_academicos.nombre')
