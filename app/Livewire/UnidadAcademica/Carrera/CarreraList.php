@@ -119,6 +119,7 @@ class CarreraList extends Component implements HasForms, HasTable
                     ->multiple()
                     ->relationship('facultadcentro', 'nombre')
                     ->preload(),
+                    Tables\Filters\TrashedFilter::make(),
             ],  layout: FiltersLayout::AboveContent)
             ->actions([
                 EditAction::make()

@@ -121,7 +121,8 @@ class FacultadCentroList extends Component implements HasForms, HasTable
                     ->relationship('campus', 'nombre_campus')
                     ->preload(),
                 TernaryFilter::make('es_facultad')
-                    ->label('Es Facultad')
+                    ->label('Es Facultad'),
+                Tables\Filters\TrashedFilter::make(),
             ],  layout: FiltersLayout::AboveContent)
             ->actions([
                 EditAction::make()
@@ -145,7 +146,7 @@ class FacultadCentroList extends Component implements HasForms, HasTable
                         // ...
                     ])
                     ->using(function (array $data, string $model): Model {
-                        
+
                         return  $model::create($data);
                     }),
                 DeleteAction::make(),

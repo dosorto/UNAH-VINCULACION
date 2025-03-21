@@ -43,6 +43,7 @@ class DepartamentoAcademicoList extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
+            ->query(DepartamentoAcademico::query())
             ->striped()
             ->headerActions([
                 CreateAction::make()
@@ -78,7 +79,6 @@ class DepartamentoAcademicoList extends Component implements HasForms, HasTable
                     ->color('success'),
 
             ])
-            ->query(DepartamentoAcademico::query())
             ->columns([
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable(),
@@ -104,6 +104,7 @@ class DepartamentoAcademicoList extends Component implements HasForms, HasTable
                     ->multiple()
                     ->relationship('centroFacultad', 'nombre')
                     ->preload(),
+                Tables\Filters\TrashedFilter::make(),
             ],  layout: FiltersLayout::AboveContent)
             ->actions([
                 EditAction::make()
