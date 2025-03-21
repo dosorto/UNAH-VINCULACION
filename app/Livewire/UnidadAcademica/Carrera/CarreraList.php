@@ -88,13 +88,13 @@ class CarreraList extends Component implements HasForms, HasTable
                         Notification::make()
                             ->success()
                             ->title('Exito!')
-                            ->body('Departamento Academico creado exitosamente.')
+                            ->body('Carrera creada exitosamente.')
                     ),
                 ExportAction::make()->exports([
                     ExcelExport::make('table')
                         ->fromTable()
 
-                        ->askForFilename('Departamentos Academicos')
+                        ->askForFilename('Carreras')
                         ->askForWriterType(),
                 ])
                     ->label('Exportar a Excel')
@@ -114,8 +114,12 @@ class CarreraList extends Component implements HasForms, HasTable
                     ->badge(),
             ])
             ->filters([
-                //
-            ])
+                SelectFilter::make('centroFacultad')
+                    ->label('Centro/Facultad')
+                    ->multiple()
+                    ->relationship('facultadcentro', 'nombre')
+                    ->preload(),
+            ],  layout: FiltersLayout::AboveContent)
             ->actions([
                 EditAction::make()
                     ->form([

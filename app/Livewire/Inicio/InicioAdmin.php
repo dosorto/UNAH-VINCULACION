@@ -8,7 +8,6 @@ class InicioAdmin extends Component
 {
     public function render()
     {
-        return view('livewire.inicio.inicio-admin')
-            ->layout('components.panel.modulos.inicio-admin');
+        return view('livewire.inicio.inicio-admin');
     }
 }

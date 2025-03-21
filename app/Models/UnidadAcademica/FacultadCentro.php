@@ -30,6 +30,9 @@ class FacultadCentro extends Model
     protected $fillable = [
         'id',
         'nombre',
+        'es_facultad',
+        'siglas',
+        'campus_id'
     ];
 
     // relacion muchos a muchos con la carreras
