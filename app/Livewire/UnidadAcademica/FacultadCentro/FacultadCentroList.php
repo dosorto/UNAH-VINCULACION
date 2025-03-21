@@ -13,6 +13,7 @@ use Livewire\Component;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Enums\FiltersLayout;
 
 class FacultadCentroList extends Component implements HasForms, HasTable
 {
@@ -33,6 +34,7 @@ class FacultadCentroList extends Component implements HasForms, HasTable
                 Tables\Columns\TextColumn::make('campus.nombre_campus')
                     ->numeric()
                     ->sortable(),
+              
                 Tables\Columns\TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()
@@ -49,11 +51,11 @@ class FacultadCentroList extends Component implements HasForms, HasTable
             ->filters([
                 // filtrar por campus
                 SelectFilter::make('campus')
-                ->label('Campus')
-                ->multiple()
-                ->relationship('campus', 'nombre_campus')
-                ->preload(),
-            ])
+                    ->label('Campus')
+                    ->multiple()
+                    ->relationship('campus', 'nombre_campus')
+                    ->preload(),
+            ],  layout: FiltersLayout::AboveContent)
             ->actions([
                 //
             ])
@@ -67,6 +69,6 @@ class FacultadCentroList extends Component implements HasForms, HasTable
     public function render(): View
     {
         return view('livewire.unidad-academica.facultad-centro.facultad-centro-list')
-        ->layout('components.panel.modulos.modulo-unidad-academica', ['title' => 'Campus']);
+            ->layout('components.panel.modulos.modulo-unidad-academica', ['title' => 'Campus']);
     }
 }

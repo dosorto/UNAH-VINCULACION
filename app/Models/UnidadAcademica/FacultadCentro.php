@@ -66,6 +66,15 @@ class FacultadCentro extends Model
         return $this->belongsTo(Campus::class, 'campus_id');
     }
 
+    /*
+        relacion uno a muchos con departamentos academicos
+
+    */
+
+    public function departamentosAcademicos()
+    {
+        return $this->hasMany(DepartamentoAcademico::class, 'centro_facultad_id');
+    }
 
     protected $table = 'centro_facultad';
 }
