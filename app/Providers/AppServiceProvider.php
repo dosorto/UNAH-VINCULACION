@@ -4,9 +4,14 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Event;
+use App\Models\UnidadAcademica\FacultadCentro;
+use App\Policies\UnidadAcademica\FacultadCentroPolicy;
 
 class AppServiceProvider extends ServiceProvider
 {
+    protected $policies = [
+        FacultadCentro::class => FacultadCentroPolicy::class,
+    ];
     /**
      * Register any application services.
      */

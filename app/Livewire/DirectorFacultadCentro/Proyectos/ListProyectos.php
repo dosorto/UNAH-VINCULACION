@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Proyectos\Vinculacion;
+namespace App\Livewire\DirectorFacultadCentro\Proyectos;
 
 use App\Models\Proyecto\Proyecto;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -12,6 +12,9 @@ use Filament\Tables\Table;
 use Livewire\Component;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+
+
+
 
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Enums\FiltersLayout;
@@ -33,18 +36,43 @@ use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 
-class ListProyectosVinculacion extends Component implements HasForms, HasTable
+class ListProyectos extends Component implements HasForms, HasTable
 {
     use InteractsWithForms;
     use InteractsWithTable;
 
+    public FacultadCentro $facultadCentro;
+    public string $titulo;
+    public string $descripcion;
+
+    public function mount(FacultadCentro $facultadCentro)
+    {
+        // si el usuario tiene el permiso de admin_centro_facultad-proyectos validar que la facultad/centro sea la misma a la que pertenece
+        //  adminCentroFacultadProyectos
+        // Verifica si el usuario tiene alguno de los permisos
+
+        $user = auth()->user();
+
+
+        if ($user->hasPermissionTo('admin_centro_facultad-proyectos') && !$user->hasPermissionTo('proyectos-admin-proyectos')) {
+            // Si tiene este permiso, valida que pertenezca a la misma facultad/centro
+            $condicion =  $user->empleado->centro_facultad_id === $facultadCentro->id;
+            if (!$condicion) {
+                abort(403);
+            }
+        }
+
+
+        $this->facultadCentro = $facultadCentro;
+
+        $this->titulo = 'Proyectos de Vinculación de ' . $this->facultadCentro->nombre;
+        $this->descripcion = 'Listado de proyectos de vinculación de la Facultad/Centro';
+    }
+
     public function table(Table $table): Table
     {
-
-
         return $table
             ->query(
-
                 Proyecto::query()
                     ->whereNotIn('proyecto.id', function ($query) {
                         $query->select('estadoable_id')
@@ -59,7 +87,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->leftJoin('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
                     ->leftJoin('tipo_estado', 'estado_proyecto.tipo_estado_id', '=', 'tipo_estado.id')
                     // si  el usuario tiene el permiso de admin_centro_facultad-proyectos filtrar por el centro/facultad
-
+                    ->where('proyecto_centro_facultad.centro_facultad_id', $this->facultadCentro->id)
                     ->select('proyecto.*')
                     ->distinct('proyecto.id')
 
@@ -159,23 +187,11 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                 // filter name can be anything you want
                 Filter::make('created_at')
                     ->form([
-                        Select::make('centro_facultad_id')
-                            ->label('Centro/Facultad')
-                            ->default('asdf')
-                            ->options(function () {
-                                return FacultadCentro::query()
 
-                                    ->get()
-                                    ->pluck('nombre', 'id');
-                            })
-                            // si el usuario tiene el permiso de admin_centro_facultad-proyectos filtrar por el centro/facultad
-                            ->live()
-                            ->multiple(),
                         Select::make('departamento_id')
                             ->label('Departamento')
-                            ->visible(fn(Get $get) => !empty($get('centro_facultad_id')))
-                            ->options(fn(Get $get) => DepartamentoAcademico::query()
-                                ->whereIn('centro_facultad_id', $get('centro_facultad_id') ?: [])
+                            ->options(fn() => DepartamentoAcademico::query()
+                                ->where('centro_facultad_id', $this->facultadCentro->id)
                                 ->get()
                                 ->pluck('nombre', 'id'))
                             ->live()
@@ -233,7 +249,6 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
 
     public function render(): View
     {
-        return view('livewire.proyectos.vinculacion.list-proyectos-vinculacion')
-            ->layout('components.panel.modulos.modulo-proyectos');
+        return view('livewire.plantillas.table-plantilla');
     }
 }

@@ -47,8 +47,8 @@ use App\Livewire\UnidadAcademica\Campus\CampusList;
 use App\Livewire\UnidadAcademica\Carrera\CarreraList;
 use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList;
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
-
-
+use App\Http\Controllers\DirectorCentro\Proyectos\ListProyectosCentro;
+use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
 
 // Rutas para redireccionar a los usuario autenticados
 Route::middleware(['guest'])->group(function () {
@@ -222,7 +222,12 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('listarProyectosVinculacion', ListProyectosVinculacion::class)
             ->name('listarProyectosVinculacion')
-            ->middleware('permission:proyectos-admin-proyectos|admin_centro_facultad-proyectos');
+            ->middleware('permission:proyectos-admin-proyectos');
+
+
+        Route::get('proyectos-vinculacion/{facultadCentro}', ListProyectos::class)
+            ->name('proyectosCentroFacultad')
+            ->middleware('permission:admin_centro_facultad-proyectos|proyectos-admin-proyectos');
 
         Route::get('listarProyectosSolicitado', ListProyectosSolicitado::class)
             ->name('listarProyectosSolicitado')

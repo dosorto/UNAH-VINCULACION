@@ -36,8 +36,8 @@
             'listarProyectoRevisionFinal',
             'listarInformesSolicitado',
         ]"
-            icono="heroicon-m-puzzle-piece" :permisos="['proyectos-admin-proyectos', 'proyectos-admin-solicitados', 'proyectos-admin-aprobados','admin_centro_facultad-proyectos']" />
-         
+            icono="heroicon-m-puzzle-piece" :permisos="['proyectos-admin-proyectos', 'proyectos-admin-solicitados', 'proyectos-admin-aprobados']" />
+
 
 
         <x-panel.navbar.one-item titulo="Unidad Academica" route="campus" :routes="['campus', 'carrera', 'departamento-academico', 'facultad-centro']"
@@ -47,6 +47,15 @@
                 'unidad-academica-admin-departamento',
                 'unidad-academica-admin-facultad',
             ]" />
+
+        <!-- MODULO DE DIRECTOR CENTRO -->
+        @can('admin_centro_facultad-proyectos')
+            <x-panel.navbar.one-item titulo="Proyectos" route="proyectosCentroFacultad" :routes="['proyectosCentroFacultad']"
+                parametro="{{ auth()->user()->empleado->centro_facultad_id }}" icono="heroicon-o-academic-cap"
+                :permisos="['admin_centro_facultad-proyectos']" />
+        @endcan
+
+
 
         <!-- Modulo de docentes -->
         <x-panel.navbar.one-item titulo="Proyectos" route="proyectosDocente" :routes="['proyectosDocente']"
