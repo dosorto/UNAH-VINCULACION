@@ -65,25 +65,29 @@ class PersonalSeeder extends Seeder
         ])->assignRole('docente')
             ->givePermissionTo('configuracion-admin-mi-perfil')
             ->givePermissionTo('docente-cambiar-datos-personales');
+       
 
         $user = User::create([
-            'name' => 'neto',
+            'name' => 'NOTIFICACIONES  POA',
             'email' => 'notificacionespoa@unah.edu.hn',
+            'microsoft_id' => "0d887b9b-9589-4e2c-8d65-4ced9d5d6c87",
             'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
+            'surname' => 'POA',
+            'given_name' => 'NOTIFICACIONES',
             'active_role_id' => 1
         ])->assignRole(['admin', 'docente']);
-
+        
         Empleado::create([
-            'nombre_completo' => 'Administrador',
-            'numero_empleado' => '123412125',
+            'nombre_completo' => 'NOTIFICACIONES POA',
+            'numero_empleado' => '12280',
             'celular' => '99999999',
             'user_id' => $user->id,
-            'centro_facultad_id' => 1,
-            'departamento_academico_id' => 1,
+            'centro_facultad_id' => 4,
+            'departamento_academico_id' => 9,
             'categoria_id' => 1
         ]);
 
-
+    
 
 
         $ingeJessica = Empleado::create([

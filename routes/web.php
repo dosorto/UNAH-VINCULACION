@@ -86,7 +86,7 @@ Route::get('verificacion_constancia/{hash?}', [VerificarConstancia::class, 'inde
 // Rutas para redireccionar a los usuario  no autenticados
 Route::middleware(['auth'])->group(function () {
 
-   
+
 
     Route::get('campus', CampusList::class)
         ->name('campus')
@@ -114,7 +114,7 @@ Route::middleware(['auth'])->group(function () {
     // rutas agrupadas para el modulo de inicio
     Route::get('inicio', InicioAdmin::class)
         ->name('inicio')
-        ->middleware('permission:inicio-admin-inicio|inicio-docente-inicio');
+        ->middleware('permission:inicio-admin-inicio|inicio-docente-inicio|docente-cambiar-datos-personales');
 
     // rutas agrupadas para el modulo de demografia :)
     Route::middleware(['auth'])->group(function () {
@@ -204,6 +204,9 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('mi_perfil', EditPerfil::class)
             ->name('mi_perfil')
+            ->middleware('can:configuracion-admin-mi-perfil');
+        Route::get('mi_perfil_estudiante', EditPerfil::class)
+            ->name('mi_perfil_estudiante')
             ->middleware('can:configuracion-admin-mi-perfil');
     });
 

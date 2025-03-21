@@ -16,9 +16,9 @@ class MicrosoftController extends Controller
     //
 
     public function redirectToMicrosoft()
-     {
-         return Socialite::driver('microsoft')->redirect();
-     }
+    {
+        return Socialite::driver('microsoft')->redirect();
+    }
 
     // Redirigir al usuario a la página de inicio de sesión de Microsoft
     public function handleMicrosoftCallback()
@@ -26,11 +26,8 @@ class MicrosoftController extends Controller
         try {
             $user = Socialite::driver('microsoft')->user();
 
-            // Validar que el correo termine en '@unah.hn' o '@unah.edu.hn'
-            $emailDomain = substr(strrchr($user->email, "@"), 1);
-	    //dd(!in_array($emailDomain, ['unah.hn', 'unah.edu.hn']));
-            if (!in_array($emailDomain, ['unah.hn', 'unah.edu.hn'])) {
-                // Si el correo no pertenece a UNAH, simplemente redirige al login
+            // validar que sea una cuenta de la UNAH primero
+            if (!in_array(substr(strrchr($user->email, "@"), 1), ['unah.hn', 'unah.edu.hn'])) {
                 Notification::make()
                     ->title('Correo no válido')
                     ->body('Inicie sesion con un correo de la UNAH.')
@@ -39,38 +36,46 @@ class MicrosoftController extends Controller
                 return redirect()->route('login');
             }
 
-            // Crear o buscar el usuario en la base de datos
-            $user = User::firstOrCreate(
-                ['email' => $user->email],
-                [
-                    'name' => $user->name,
+            // buscar el user en la base de datos  por medio del id de microsoft
+            $testUser = User::where('microsoft_id', $user->id)->first();
+
+            // Si el usuario no existe, crearlo con los datos de Microsoft y ademas es un empleado 
+            if (!$testUser) {
+
+                $numero = $user->employeeId;
+
+
+                $user = User::create([
+                    'name' => $user->displayName,
                     'email' => $user->email,
-                    'password' => bcrypt('123456dummy') // Cambié encrypt() por bcrypt()
-                ]
-            )->givePermissionTo('configuracion-admin-mi-perfil')
-            ->givePermissionTo('docente-cambiar-datos-personales');
+                    'microsoft_id' => $user->id,
+                    'given_name' => $user->givenName,
+                    'surname' => $user->surname,
+                ]);
 
-            Auth::login($user, true);
-		//dd(auth()->user());
-            // Crear o buscar el perfil de empleado
-            $empleado = Empleado::firstOrCreate(
-                ['user_id' => auth()->user()->id],
-                ['user_id' => auth()->user()->id]
-            );
+                // su correo electronico termina en '@unah.edu.hn'
+                if (substr(strrchr($user->email, "@"), 1) == 'unah.edu.hn') {
+                    // crear un perfil de empleado
+                    $user->empleado()->create([
+                        'nombre_completo' => $user->name,
+                        'numero_empleado' => $numero,
+                    ]);
 
-            // Verificar si algún atributo de empleado es nulo
-            if (
-                is_null($empleado->nombre_completo) || is_null($empleado->numero_empleado) || is_null($empleado->celular) || is_null($empleado->categoria_id)
-                || is_null($empleado->centro_facultad_id) || is_null($empleado->departamento_academico_id)
-            ) {
-                Notification::make()
-                    ->title('Por favor, complete su perfil de empleado')
-                    ->body('Por favor, complete su perfil de empleado para continuar.')
-                    ->info()
-                    ->send();
-                return redirect()->route('mi_perfil');
+                    $user->givePermissionTo('configuracion-admin-mi-perfil')
+                        ->givePermissionTo('docente-cambiar-datos-personales');
+    
+                } else if (substr(strrchr($user->email, "@"), 1) == 'unah.hn') {
+                    // crear un perfil de estudiante
+                    $user->estudiante()->create([
+                        'nombre_completo' => $user->name,
+                        'numero_cuenta' => $numero,
+                    ]);
+    
+                }
+            } else {
+                $user = $testUser;
             }
-
+            Auth::login($user, true);
             return redirect()->route('inicio');
         } catch (\Exception $e) {
             Notification::make()
