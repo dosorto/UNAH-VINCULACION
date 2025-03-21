@@ -75,7 +75,7 @@ class PersonalSeeder extends Seeder
             'surname' => 'POA',
             'given_name' => 'NOTIFICACIONES',
             'active_role_id' => 1
-        ])->assignRole(['admin', 'docente']);
+        ])->assignRole(['admin', 'docente','admin_centro_facultad']);
         
         Empleado::create([
             'nombre_completo' => 'NOTIFICACIONES POA',

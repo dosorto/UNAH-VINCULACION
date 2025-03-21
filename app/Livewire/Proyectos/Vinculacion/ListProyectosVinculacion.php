@@ -58,8 +58,11 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     // unir con la tabla de estados
                     ->leftJoin('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
                     ->leftJoin('tipo_estado', 'estado_proyecto.tipo_estado_id', '=', 'tipo_estado.id')
-
-
+                    // si  el usuario tiene el permiso de admin_centro_facultad-proyectos filtrar por el centro/facultad
+                    ->when(auth()->user()->can('admin_centro_facultad-proyectos') &&
+                        !auth()->user()->can('proyectos-admin-proyectos'), function ($query) {
+                        $query->where('proyecto_centro_facultad.centro_facultad_id', auth()->user()->empleado->centro_facultad_id);
+                    })
                     ->select('proyecto.*')
                     ->distinct('proyecto.id')
 
@@ -161,7 +164,20 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->form([
                         Select::make('centro_facultad_id')
                             ->label('Centro/Facultad')
-                            ->options(FacultadCentro::all()->pluck('nombre', 'id'))
+                            ->default('asdf')
+                            ->options(function () {
+                                return FacultadCentro::query()
+                                    ->when(
+                                        auth()->user()->can('admin_centro_facultad-proyectos') &&
+                                            !auth()->user()->can('proyectos-admin-proyectos'),
+                                        function ($query) {
+                                            $query->where('id', auth()->user()->empleado->centro_facultad_id);
+                                        }
+                                    )
+                                    ->get()
+                                    ->pluck('nombre', 'id');
+                            })
+                            // si el usuario tiene el permiso de admin_centro_facultad-proyectos filtrar por el centro/facultad
                             ->live()
                             ->multiple(),
                         Select::make('departamento_id')
@@ -188,6 +204,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     })
 
 
+
             ],  layout: FiltersLayout::AboveContent)
             ->actions([
                 Action::make('Proyecto de Vinculación')
@@ -209,7 +226,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                 ExportAction::make()->exports([
                     ExcelExport::make('table')
                         ->fromTable()
-                     
+
                         ->askForFilename('Proyectos de Vinculación')
                         ->askForWriterType(),
                 ])

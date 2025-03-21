@@ -105,8 +105,6 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('can:unidad-academica-admin-facultad');
 
 
-
-
     Route::get('setPerfil/{role_id}', [SetRoleController::class, 'SetRole'])
         ->name('setrole');
 
@@ -224,7 +222,7 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('listarProyectosVinculacion', ListProyectosVinculacion::class)
             ->name('listarProyectosVinculacion')
-            ->middleware('can:proyectos-admin-proyectos');
+            ->middleware('permission:proyectos-admin-proyectos|admin_centro_facultad-proyectos');
 
         Route::get('listarProyectosSolicitado', ListProyectosSolicitado::class)
             ->name('listarProyectosSolicitado')
