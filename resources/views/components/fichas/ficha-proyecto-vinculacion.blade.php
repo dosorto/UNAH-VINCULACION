@@ -995,6 +995,16 @@
                         </tr>
                     </table>
                     <table class="table_datos5">
+                        <tr>
+                            <td class="sub-header" colspan="1">Responsable revision Final (Director de Vinculación)</td>
+                            <td class="full-width" colspan="10">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ optional($proyecto->director_proyecto)->nombre_completo }}"
+                                    placeholder="Ingrese el día">
+                            </td>
+                        </tr>
+                    </table>
+                    <table class="table_datos5">
                         <td class="sub-header" colspan="1">Fecha de Aprobación</td>
                         <td class="full-width" colspan="6">
                             <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_aprobacion }}"

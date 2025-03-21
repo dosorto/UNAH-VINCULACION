@@ -209,6 +209,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                 ExportAction::make()->exports([
                     ExcelExport::make('table')
                         ->fromTable()
+                     
                         ->askForFilename('Proyectos de Vinculación')
                         ->askForWriterType(),
                 ])

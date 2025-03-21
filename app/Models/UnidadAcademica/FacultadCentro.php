@@ -60,6 +60,12 @@ class FacultadCentro extends Model
             ->where('estado', 1);
     }
 
+    // relacion uno a muchos con campus
+    public function campus()
+    {
+        return $this->belongsTo(Campus::class, 'campus_id');
+    }
+
 
     protected $table = 'centro_facultad';
 }

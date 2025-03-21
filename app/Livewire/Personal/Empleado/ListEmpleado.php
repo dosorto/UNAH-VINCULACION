@@ -225,8 +225,9 @@ class ListEmpleado extends Component implements HasForms, HasTable
                 ExportAction::make()->exports([
                     ExcelExport::make('table')
                         ->fromTable()
-                        ->askForFilename('Empleados')
-                        ->askForWriterType(),
+                        //->queue()->withChunkSize(100)
+                        //->askForFilename('Empleados')
+                       // ->askForWriterType(),
                 ])
                     ->label('Exportar a Excel')
                     ->color('success')

@@ -168,10 +168,6 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                             ->label('Fecha de aprobación.')
                                             ->columnSpan(1)
                                             ->required(),
-                                        DatePicker::make('fecha_registro')
-                                            ->label('Fecha de registro.')
-                                            ->columnSpan(1)
-                                            ->required(),
                                         TextInput::make('numero_libro')
                                             ->label('Número de libro.')
                                             ->numeric(),

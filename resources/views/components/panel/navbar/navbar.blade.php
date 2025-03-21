@@ -38,6 +38,16 @@
         ]"
             icono="heroicon-m-puzzle-piece" :permisos="['proyectos-admin-proyectos', 'proyectos-admin-solicitados', 'proyectos-admin-aprobados']" />
 
+
+
+        <x-panel.navbar.one-item titulo="Unidad Academica" route="campus" :routes="['campus', 'carrera', 'departamento-academico', 'facultad-centro']"
+            icono="heroicon-o-academic-cap" :permisos="[
+                'unidad-academica-admin-campus',
+                'unidad-academica-admin-carrera',
+                'unidad-academica-admin-departamento',
+                'unidad-academica-admin-facultad',
+            ]" />
+
         <!-- Modulo de docentes -->
         <x-panel.navbar.one-item titulo="Proyectos" route="proyectosDocente" :routes="['proyectosDocente']"
             icono="heroicon-o-academic-cap" :permisos="['docente-admin-proyectos', 'docente-admin-solicitados']" />
@@ -47,7 +57,7 @@
         <!-- Grupo de "Firmas" dentro del grupo "Dashboard" -->
         <x-panel.navbar.one-item titulo="Firmas" route="SolicitudProyectosDocente" :routes="['SolicitudProyectosDocente']" :permisos="['docente-admin-proyectos', 'docente-admin-solicitados']"
             icono="heroicon-o-document-text" />
-<!--
+        <!--
         <x-panel.navbar.one-item titulo="Sugerencias" route="proyectosDocente" :routes="['proyectosDocente']"
             icono="heroicon-o-light-bulb" :permisos="['docente-admin-proyectos', 'docente-admin-solicitados']" />
     -->

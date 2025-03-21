@@ -43,6 +43,10 @@ use App\Livewire\Proyectos\Vinculacion\ListProyectoRevisionFinal;
 use App\Livewire\Slide\SlideConfig;
 
 use App\Http\Controllers\SetRoleController;
+use App\Livewire\UnidadAcademica\Campus\CampusList;
+use App\Livewire\UnidadAcademica\Carrera\CarreraList;
+use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList;
+use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
 
 
 
@@ -81,6 +85,28 @@ Route::get('verificacion_constancia/{hash?}', [VerificarConstancia::class, 'inde
 
 // Rutas para redireccionar a los usuario  no autenticados
 Route::middleware(['auth'])->group(function () {
+
+   
+
+    Route::get('campus', CampusList::class)
+        ->name('campus')
+        ->middleware('can:unidad-academica-admin-campus');
+
+    Route::get('carrera', CarreraList::class)
+        ->name('carrera')
+        ->middleware('can:unidad-academica-admin-carrera');
+
+    Route::get('departamento-academico', DepartamentoAcademicoList::class)
+        ->name('departamento-academico')
+        ->middleware('can:unidad-academica-admin-departamento');
+
+    Route::get('facultad-centro', FacultadCentroList::class)
+        ->name('facultad-centro')
+        ->middleware('can:unidad-academica-admin-facultad');
+
+
+
+
     Route::get('setPerfil/{role_id}', [SetRoleController::class, 'SetRole'])
         ->name('setrole');
 
@@ -92,6 +118,7 @@ Route::middleware(['auth'])->group(function () {
 
     // rutas agrupadas para el modulo de demografia :)
     Route::middleware(['auth'])->group(function () {
+
 
         Route::get('crearPais', CreatePais::class)
             ->name('crearPais')

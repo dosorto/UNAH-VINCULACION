@@ -169,6 +169,8 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
                                     'comentario' => 'El proyecto ha sido aprobado correctamente',
                                 ]);
 
+                                $proyecto->user_director_id = Auth::user()->empleado->id;
+                                $proyecto->save();
                                 $proyecto->update($data);
 
                                 // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)

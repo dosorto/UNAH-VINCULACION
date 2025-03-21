@@ -136,7 +136,8 @@ class Proyecto extends Model
         'numero_libro',
         'numero_tomo',
         'numero_folio',
-        'numero_dictamen'
+        'numero_dictamen',
+        'user_director_id'
 
 
     ];
@@ -263,6 +264,11 @@ class Proyecto extends Model
     public function  getCoordinadorAttribute()
     {
         return $this->coordinador_proyecto->first()->empleado;
+    }
+
+    public function director_proyecto()
+    {
+        return $this->belongsTo(Empleado::class, 'user_director_id');
     }
 
 
