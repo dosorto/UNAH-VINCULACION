@@ -71,7 +71,7 @@ class DepartamentoAcademicoList extends Component implements HasForms, HasTable
                 ExportAction::make()->exports([
                     ExcelExport::make('table')
                         ->fromTable()
-
+                        //->queue()->withChunkSize(100)
                         ->askForFilename('Departamentos Academicos')
                         ->askForWriterType(),
                 ])
