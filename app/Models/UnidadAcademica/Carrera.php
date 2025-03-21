@@ -42,7 +42,7 @@ class Carrera extends Model
     {
         return $this->belongsToMany(FacultadCentro::class, 'carrera_facultad_centro', 'carrera_id', 'facultad_centro_id');
     }
-
+   
 
     protected $table = 'carrera';
 

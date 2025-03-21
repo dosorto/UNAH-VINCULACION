@@ -44,6 +44,7 @@ class CarreraList extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
+            ->query(Carrera::query())
             ->striped()
             ->headerActions([
                 CreateAction::make()
@@ -62,22 +63,26 @@ class CarreraList extends Component implements HasForms, HasTable
                                     return $query->where('es_facultad', 1);
                                 }
                             ),
-                        Select::make('facultad_centro_id')
-                            ->required()
-                            ->label('Centros en los que se imparte')
+                        Select::make('facultades_centros')
+                            ->label('Facultades o Centros')
+                            ->searchable()
                             ->multiple()
+                            ->live()
                             ->relationship(
                                 name: 'facultadCentros',
                                 titleAttribute: 'nombre',
                                 modifyQueryUsing: function (\Illuminate\Database\Eloquent\Builder $query) {
-                                    return $query;
+                                    return $query->where('es_facultad', 0);
                                 }
                             )
+                            ->preload(),
 
                         // ...
                     ])
                     ->using(function (array $data, string $model): Model {
-                        return $model::create($data);
+                        $carrera = $model::create($data);
+                        $carrera->facultadCentros()->sync($data['facultad_centro_id']);
+                        return  $carrera;
                     })
                     ->successNotification(
                         Notification::make()
@@ -96,21 +101,59 @@ class CarreraList extends Component implements HasForms, HasTable
                     ->color('success'),
 
             ])
-            ->query(Carrera::query())
             ->columns([
                 Tables\Columns\TextColumn::make('nombre')
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('facultadcentro.nombre')
-                    ->label('Facultad/Centro')
-                    ->searchable()
-                    ->sortable(),
+                    ->label('Facultad')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('facultadCentros.nombre')
+                    ->label('Facultad y centro en donde se imparte')
+                    ->separator(',')
+                    ->wrap()
+                    ->badge(),
             ])
             ->filters([
                 //
             ])
             ->actions([
-                //
+                EditAction::make()
+                    ->form([
+                        TextInput::make('nombre')
+                            ->label('Nombre')
+                            ->required(),
+                        Select::make('facultad_centro_id')
+                            ->required()
+                            ->label('Facultad a la que pertenece')
+                            ->relationship(
+                                name: 'facultadcentro',
+                                titleAttribute: 'nombre',
+                                modifyQueryUsing: function (\Illuminate\Database\Eloquent\Builder $query) {
+                                    return $query->where('es_facultad', 1);
+                                }
+                            ),
+                        Select::make('facultades_centros')
+                            ->label('Facultades o Centros')
+                            ->searchable()
+                            ->multiple()
+                            ->live()
+                            ->relationship(
+                                name: 'facultadCentros',
+                                titleAttribute: 'nombre',
+                                modifyQueryUsing: function (\Illuminate\Database\Eloquent\Builder $query) {
+                                    return $query->where('es_facultad', 0);
+                                }
+                            )
+                            ->preload(),
+                        // ...
+                    ])
+                    ->using(function (array $data, string $model): Model {
+                        $carrera = $model::create($data);
+                        $carrera->facultadCentros()->sync($data['facultad_centro_id']);
+                        return  $carrera;
+                    }),
+                DeleteAction::make(),
+                RestoreAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
