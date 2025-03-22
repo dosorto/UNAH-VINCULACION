@@ -6,8 +6,6 @@
     </div>
     <x-panel.navbar-horizontal.navbar-horizontal>
         <x-panel.navbar-horizontal.item titulo="Logs" ruta="listarLogs" permiso="configuracion-admin-logs" />
-        <x-panel.navbar-horizontal.item titulo="Slides" ruta="slides" permiso="configuracion-admin-logs" />
-        <x-panel.navbar-horizontal.item titulo="Configuracion" ruta="listarDepartamentos" />
-        <x-panel.navbar-horizontal.item titulo="Mi perfil" ruta="ListarMunicipios" />
+        <x-panel.navbar-horizontal.item titulo="Slides" ruta="slides" permiso="apariencia-admin-slides" />
     </x-panel.navbar-horizontal.navbar-horizontal>
 @endsection

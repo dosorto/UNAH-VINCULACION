@@ -35,6 +35,9 @@
             'listarProyectosSolicitado',
             'listarProyectoRevisionFinal',
             'listarInformesSolicitado',
+            'proyectos-admin-revision-final',
+            'proyectos-admin-informenes',
+            'proyectos-admin-proyectos',
         ]"
             icono="heroicon-m-puzzle-piece" :permisos="['proyectos-admin-proyectos', 'proyectos-admin-solicitados', 'proyectos-admin-aprobados']" />
 

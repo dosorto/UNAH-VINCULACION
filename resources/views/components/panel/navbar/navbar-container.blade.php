@@ -86,7 +86,7 @@
             <div class=" ">
 
                 <x-panel.navbar.one-item titulo="Configuración" route="listarLogs" :routes="['listarLogs', 'crearEmpleado']"
-                    icono="heroicon-c-cog-6-tooth" class="mb-4" :permisos="['configuracion-admin-logs']" />
+                    icono="heroicon-c-cog-6-tooth" class="mb-4" :permisos="['configuracion-admin-logs','apariencia-admin-slides']" />
 
 
                 <div

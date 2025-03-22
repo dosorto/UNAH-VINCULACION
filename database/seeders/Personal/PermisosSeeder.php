@@ -58,21 +58,32 @@ class PermisosSeeder extends Seeder
         $permission21 = Permission::create(['name' => 'unidad-academica-admin-carrera']);
         $permission22 = Permission::create(['name' => 'unidad-academica-admin-departamento']);
         $permission23 = Permission::create(['name' => 'unidad-academica-admin-facultad']);
+        $permission24 = Permission::create(['name' => 'global-set-role']);
+
+        $permission25 = Permission::create(['name' => 'estudiante-inicio-inicio']);
+        $permission26 = Permission::create(['name' => 'estudiante-cambiar-datos-personales']);
+
+        // apariencia-admin-slides
+        $permission27 = Permission::create(['name' => 'apariencia-admin-slides']);
+        // proyectos-admin-informenes
+        $permission28 = Permission::create(['name' => 'proyectos-admin-informenes']);
+        // proyectos-admin-revision-final
+        $permission29 = Permission::create(['name' => 'proyectos-admin-revision-final']);
 
         // crear un rol de administrador con todos los permisos anteriores
         $role = Role::create(['name' => 'admin']);
         $roleDocente = Role::create(['name' => 'docente']);
-        $roleAdminCentroFacultad = Role::create(['name' => 'admin_centro_facultad']);
-        $rolValidador = Role::create(['name' => 'Validador']);
-
+        $roleAdminCentroFacultad = Role::create(['name' => 'Director / Enlace']);
+        $rolEstudiante = Role::create(['name' => 'estudiante']);
 
         $role->givePermissionTo([
             'demografia-admin-pais',
             'demografia-admin-departamento',
             'demografia-admin-municipio',
-            'demografia-admin-aldea',
-            'demografia-admin-ciudad',
             'usuarios-admin-usuarios',
+            'proyectos-admin-revision-final',
+            'apariencia-admin-slides',
+            'proyectos-admin-informenes',
             'usuarios-admin-rol',
             'usuarios-admin-permiso',
             'empleados-admin-empleados',
@@ -87,8 +98,8 @@ class PermisosSeeder extends Seeder
             'unidad-academica-admin-carrera',
             'unidad-academica-admin-departamento',
             'unidad-academica-admin-facultad',
+            'global-set-role',
             
-
             
         ])->save();
 
@@ -97,10 +108,12 @@ class PermisosSeeder extends Seeder
             'docente-admin-proyectos',
             'docente-crear-proyecto',
             'configuracion-admin-mi-perfil',
+            'global-set-role',
         ])->save();
 
         $roleAdminCentroFacultad->givePermissionTo([
             'admin_centro_facultad-proyectos',
+            'global-set-role',
         ])->save();
     }
 }
