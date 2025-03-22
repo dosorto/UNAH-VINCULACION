@@ -73,7 +73,7 @@ class PermisosSeeder extends Seeder
         // crear un rol de administrador con todos los permisos anteriores
         $role = Role::create(['name' => 'admin']);
         $roleDocente = Role::create(['name' => 'docente']);
-        $roleAdminCentroFacultad = Role::create(['name' => 'Director / Enlace']);
+        $roleAdminCentroFacultad = Role::create(['name' => 'Director/Enlace']);
         $rolEstudiante = Role::create(['name' => 'estudiante']);
 
         $role->givePermissionTo([
