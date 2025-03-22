@@ -79,7 +79,9 @@
                     </div>
                 </div>
             </div>
-            {{ $slot }}
+            <div style="height: 80dvh;" class="overflow-auto scrollbar-hiddenp-4 sm:p-6 md:p-8">
+                {{ $slot }}
+            </div>            
         </div>
 
         <div>
