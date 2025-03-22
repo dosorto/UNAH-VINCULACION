@@ -80,7 +80,7 @@
                 </div>
             </div>        
         </div>
-        <div style="  flex-grow: 1; background-color:red; " class="overflow-auto scrollbar-hiddenp-4 sm:p-6 md:p-8">
+        <div style="  flex-grow: 1;" class="overflow-auto scrollbar-hiddenp-4 sm:p-6 md:p-8">
             {{ $slot }}
         </div>    
 
