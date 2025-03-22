@@ -134,6 +134,10 @@ class CreateEmpleado extends Component implements HasForms
         $data = $this->form->getState();
         $user = User::create($data['usuario']);
         $user->assignRole($data['roles']['roles']);
+        // cambiar el rol activo al primer rol que tenga asignado
+        $user->active_role_id = $user->roles->first()->id;
+        $user->save();
+
         $record = $user->empleado()->create($data['empleado']);
         $this->form->model($record)->saveRelationships();
 

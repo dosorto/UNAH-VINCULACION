@@ -104,8 +104,8 @@ Route::middleware(['auth'])->group(function () {
 
 
     Route::get('setPerfil/{role_id}', [SetRoleController::class, 'SetRole'])
-        ->name('setrole')
-        ->middleware('can:global-set-role');
+        ->name('setrole');
+       // ->middleware('can:global-set-role');
 
 
     // rutas agrupadas para el modulo de inicio
