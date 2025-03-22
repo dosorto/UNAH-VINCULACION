@@ -30,7 +30,7 @@
                 :class="isActive ? 'text-primary-600 dark:text-primary-400 bg-gray-200 dark:bg-white/5 cursor-default' :
                     'hover:bg-gray-200 dark:hover:bg-white/5'"
                 class="w-full flex items-center justify-between py-2 px-4 rounded-md transition-colors duration-150 ease-in-out dark:text-gray-200 {{ $class }}"
-                :disabled="isActive">
+                >
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
                         @if ($isActive)
