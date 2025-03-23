@@ -8,6 +8,7 @@ use Illuminate\View\Component;
 
 class OneItem extends Component
 {
+
     /**
      * Create a new component instance.
      */
@@ -21,6 +22,7 @@ class OneItem extends Component
      */
     public function render(): View|Closure|string
     {
+
         return view('components.panel.navbar.one-item');
     }
 }

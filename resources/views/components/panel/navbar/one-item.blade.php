@@ -68,10 +68,8 @@
                                 isset($DataNavBar) &&
                                 auth()->user()->hasPermissionTo($child['permiso'])
                             ) {
-                                $resultado_funcion = call_user_func(
-                                    ['App\Clases\DataNavBar', $child['funcion']],
-                                    $DataNavBar,
-                                );
+                                $resultado_funcion = App\Clases\DataNavBar::{$child['funcion']}();
+
                             }
                         @endphp
                         <a href="{{ route($child['route'], $child['parametro'] ?? '') }}" wire:navigate.hover
