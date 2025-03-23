@@ -266,4 +266,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('RechazadoProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
     });
+
+    
 });
+
+

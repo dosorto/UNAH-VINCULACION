@@ -39,7 +39,7 @@
             
                 // More child routes...
             ]" />
-
+ 
         <x-panel.navbar.one-item titulo="Usuarios" route="Usuarios" :routes="['Usuarios', 'roles', 'listPermisos']" icono="heroicon-o-user-group"
             :permisos="['usuarios-admin-usuarios', 'usuarios-admin-rol', 'usuarios-admin-permiso']" :children="[
                 [
@@ -93,21 +93,26 @@
                     'texto' => 'Proyectos',
                     'route' => 'listarProyectosVinculacion',
                     'permiso' => 'proyectos-admin-proyectos',
+                   // 'funcion' => 'obtenerCantidadProyectos',
                 ],
                 [
                     'texto' => 'Solicitud Proyecto',
                     'route' => 'listarProyectosSolicitado',
                     'permiso' => 'proyectos-admin-solicitados',
+                    'funcion' => 'obtenerCantidadProyectosEnRevision',
                 ],
                 [
                     'texto' => 'Revisión de Informes',
                     'route' => 'listarInformesSolicitado',
                     'permiso' => 'proyectos-admin-informenes',
+                    'funcion' => 'obtenerCantidadInformesSolicitados',
+             
                 ],
                 [
                     'texto' => 'Revisión Final',
                     'route' => 'listarProyectoRevisionFinal',
                     'permiso' => 'proyectos-admin-revision-final',
+                    'funcion' => 'obtenerCantidadProyectosEnRevisionFinal',
                 ],
             ]" />
 
@@ -175,6 +180,7 @@
                     'texto' => 'Solicitud Proyecto',
                     'route' => 'SolicitudProyectosDocente',
                     'permiso' => 'docente-admin-proyectos',
+                    'funcion' => 'obtenerCantidadProyectosPorFirmar',
                 ],
                 [
                     'texto' => 'Aprobado Proyectos',
@@ -187,9 +193,6 @@
                     'permiso' => 'docente-admin-proyectos',
                 ],
             ]" />
-
-
-
     </x-panel.navbar.group-item>
 
 </x-panel.navbar.navbar-container>
