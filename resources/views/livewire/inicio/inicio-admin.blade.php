@@ -97,9 +97,9 @@
                                         </svg>
                                     </div>
                                     <div class="ml-5">
-                                        <p class="text-base font-medium text-gray-600 dark:text-gray-400">Constancias
+                                        <p class="text-base font-medium text-gray-600 dark:text-gray-400">En curso
                                         </p>
-                                        <h4 class="text-2xl font-bold text-gray-900 dark:text-white">5</h4>
+                                        <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{$ejecucion->count()}}</h4>
                                     </div>
                                 </div>
 
@@ -146,7 +146,7 @@
                         <div
                             class="h-full bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
                             <h4 class="text-lg p-4 text-gray-900 dark:text-white font-semibold">Últimos proyectos</h4>
-                            <div class="relative pb-2 overflow-x-auto sm:rounded-lg">
+                            <div class="relative overflow-x-auto sm:rounded-lg">
                                 <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                                     <thead
                                         class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -363,7 +363,7 @@
                                         </svg>
                                     </div>
                                     <div class="ml-5">
-                                        <p class="text-base font-medium text-gray-600 dark:text-gray-400">Constancias
+                                        <p class="text-base font-medium text-gray-600 dark:text-gray-400">En curso
                                         </p>
                                         <h4 class="text-2xl font-bold text-gray-900 dark:text-white">5</h4>
                                     </div>
@@ -412,7 +412,7 @@
                         <div
                             class="h-full bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
                             <h4 class="text-lg p-4 text-gray-900 dark:text-white font-semibold">Mis proyectos</h4>
-                            <div class="relative pb-2 overflow-x-auto sm:rounded-lg">
+                            <div class="relative overflow-x-auto sm:rounded-lg">
                                 <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                                     <thead
                                         class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">

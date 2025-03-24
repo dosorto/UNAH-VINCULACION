@@ -15,6 +15,11 @@ class InicioAdmin extends Component
         return Empleado::withCount('proyectos')->paginate(4);
     }
 
+    public function empleadosVinculacion()
+    {
+        return Empleado::whereHas('proyectos')->count();
+    }
+
     /**
      * Obtiene las últimas actividades del sistema.
      *
@@ -49,6 +54,7 @@ class InicioAdmin extends Component
     public function render()
     {
         $empleadosWithCount = $this->getProjectsCountByEmployees();
+        $empleadosVinculacion = $this->empleadosVinculacion();
          // consultas de dashboards...
          $activities = $this->getLatestActivities();
          $activitiesUser = $this->getLatestActivitiesUser();
@@ -68,6 +74,15 @@ class InicioAdmin extends Component
                     ->from('estado_proyecto')
                     ->where('estadoable_type', Proyecto::class)
                     ->where('tipo_estado_id', TipoEstado::where('nombre', 'Subsanacion')->first()->id)
+                    ->where('es_actual', true);
+            })->get();
+
+        $ejecucion = Proyecto::query()
+            ->whereIn('id', function ($query) {
+                $query->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->where('tipo_estado_id', TipoEstado::where('nombre', 'En curso')->first()->id)
                     ->where('es_actual', true);
             })->get();
 
@@ -151,11 +166,13 @@ class InicioAdmin extends Component
 
         return view('livewire.inicio.inicio-admin', [
             'empleadosWithCount' => $empleadosWithCount,
+            'empleadosVinculacion' => $empleadosVinculacion,
             'activities' => $activities,
             'activitiesUser' => $activitiesUser,
             // admin dashboard
             'finalizados'        => $finalizados,
             'subsanacion'        => $subsanacion,
+            'ejecucion'         => $ejecucion,
             'proyectos'          => $proyectos,
             'borrador'           => $borrador,
             'empleados'          => $empleados,
