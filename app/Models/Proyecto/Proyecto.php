@@ -410,7 +410,10 @@ class Proyecto extends Model
             ->first();
     }
 
-
+    public function empleados()
+    {
+        return $this->belongsToMany(Empleado::class, 'empleado_proyecto');
+    }
 
     protected $table = 'proyecto';
 }
