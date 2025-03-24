@@ -90,7 +90,7 @@
 
 
                 <div
-                    class="bg-white rounded-lg p-2 border border-gray-300 rounded-lg  dark:bg-white/5 dark:border-gray-700">
+                    class="bg-white rounded-lg p-2 border border-gray-300 dark:bg-white/5 dark:border-gray-700">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-3">
                             <img class="fi-avatar object-cover object-center fi-circular rounded-full h-9 w-9 fi-user-avatar"
