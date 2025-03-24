@@ -7,6 +7,8 @@ return [
         'Enlace Vinculacion',
         'Jefe Departamento',
         'Director centro',
+        'Revisor Vinculacion',
+        'Director Vinculacion',
     ],
 
     'estados_proyecto' => [
@@ -17,7 +19,7 @@ return [
         'En revision',
         'En revision final',
 
-        
+
 
         'Subsanacion',
         'En curso',

@@ -214,8 +214,12 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
                                     'estado_revision' => 'Pendiente',
                                     'firma_id' => null,
                                     'sello_id' => null,
+                                    'fecha_firma' => null,
 
                                 ]);
+                                // eliminar al  $proyecto->firma_revisor_vinculacion()->create([
+                                 
+                                $record->firma_revisor_vinculacion()->delete();
 
                                 // quitar al responsable de la revision
                                 $record->responsable_revision_id = null;
@@ -282,6 +286,14 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
                                     'tipo_estado_id' => TipoEstado::where('nombre', 'En curso')->first()->id,
                                     'fecha' => now(),
                                     'comentario' => 'El proyecto ha sido aprobado correctamente',
+                                ]);
+
+                                $proyecto->firma_director_vinculacion()->create([
+                                    'empleado_id' => Auth::user()->empleado->id,
+                                    'estado_revision' => 'Aprobado',
+                                    'firma_id' => auth()->user()?->empleado?->firma?->id,
+                                    'sello_id' => auth()->user()?->empleado?->sello?->id,
+                                    'fecha_firma' => now(),
                                 ]);
 
                                 $proyecto->user_director_id = Auth::user()->empleado->id;

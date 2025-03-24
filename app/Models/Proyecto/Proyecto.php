@@ -339,6 +339,26 @@ class Proyecto extends Model
     }
 
 
+    public function firma_revisor_vinculacion()
+    {
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+            ->where('tipo_cargo_firma.nombre', 'Revisor Vinculacion');
+    }
+
+    public function firma_director_vinculacion()
+    {
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+            ->where('tipo_cargo_firma.nombre', 'Director Vinculacion');
+    }
+
+
+
+
+
     // firma_enlace_vinculacion
     public function firma_proyecto_enlace()
     {

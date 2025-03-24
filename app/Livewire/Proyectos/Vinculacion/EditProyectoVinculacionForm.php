@@ -199,6 +199,7 @@ class EditProyectoVinculacionForm extends Component implements HasForms
                 'firma_id' => auth()->user()?->empleado?->firma?->id,
                 'sello_id' => auth()->user()?->empleado?->sello?->id,
                 'hash' => 'hash',
+                'fecha_firma' => now(),
             ]
         );
 

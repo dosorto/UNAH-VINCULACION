@@ -120,6 +120,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                                         'estado_revision' => 'Pendiente',
                                         'firma_id' => null,
                                         'sello_id' => null,
+                                        'fecha_firma' => null,
                                     ]);
 
                                     // actualizar el estado del proyecto al siguiente estado :)
@@ -174,6 +175,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                                         'estado_revision' => 'Aprobado',
                                         'firma_id' => auth()->user()?->empleado?->firma?->id,
                                         'sello_id' => auth()->user()?->empleado?->sello?->id,
+                                        'fecha_firma' => now(),
                                     ]);
                                     // actualizar el estado del proyecto al siguiente estado :)
 

@@ -169,6 +169,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                     'estado_revision' => 'Pendiente',
                                     'firma_id' => null,
                                     'sello_id' => null,
+                                    'fecha_firma' => null,
 
                                 ]);
 
@@ -271,6 +272,14 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                     'tipo_estado_id' => TipoEstado::where('nombre', 'En revision final')->first()->id,
                                     'fecha' => now(),
                                     'comentario' => 'El proyecto ha sido aprobado correctamente',
+                                ]);
+                                
+                                $proyecto->firma_revisor_vinculacion()->create([
+                                    'empleado_id' => Auth::user()->empleado->id,
+                                    'estado_revision' => 'Aprobado',
+                                    'firma_id' => auth()->user()?->empleado?->firma?->id,
+                                    'sello_id' => auth()->user()?->empleado?->sello?->id,
+                                    'fecha_firma' => now(),
                                 ]);
 
                                 $proyecto->update($data);

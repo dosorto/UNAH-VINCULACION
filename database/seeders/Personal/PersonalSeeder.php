@@ -77,7 +77,7 @@ class PersonalSeeder extends Seeder
             'active_role_id' => 1
         ])->assignRole(['admin', 'docente','Director/Enlace']);
         
-        Empleado::create([
+        $adminUser = Empleado::create([
             'nombre_completo' => 'NOTIFICACIONES POA',
             'numero_empleado' => '12280',
             'celular' => '99999999',
@@ -124,5 +124,18 @@ class PersonalSeeder extends Seeder
             'ruta_storage' => 'images/firmas/Sello_Victor.png',
             'estado' => true
         ]);
+
+        $adminUser->firma()->create([
+            'tipo' => 'firma',
+            'ruta_storage' => 'images/firmas/Firma_Oscar.png',
+            'estado' => true
+        ]);
+
+        $adminUser->firma()->create([
+            'tipo' => 'sello',
+            'ruta_storage' => 'images/firmas/Sello_Victor.png',
+            'estado' => true
+        ]);
     }
+
 }
