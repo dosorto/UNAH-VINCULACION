@@ -25,7 +25,7 @@ use Filament\Forms\Components\Textarea;
 
 use Filament\Notifications\Notification;
 
-
+use App\Models\Proyecto\CargoFirma;
 
 
 use Filament\Tables\Filters\SelectFilter;
@@ -218,7 +218,7 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
 
                                 ]);
                                 // eliminar al  $proyecto->firma_revisor_vinculacion()->create([
-                                 
+
                                 $record->firma_revisor_vinculacion()->delete();
 
                                 // quitar al responsable de la revision
@@ -288,13 +288,22 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
                                     'comentario' => 'El proyecto ha sido aprobado correctamente',
                                 ]);
 
-                                $proyecto->firma_director_vinculacion()->create([
-                                    'empleado_id' => Auth::user()->empleado->id,
-                                    'estado_revision' => 'Aprobado',
-                                    'firma_id' => auth()->user()?->empleado?->firma?->id,
-                                    'sello_id' => auth()->user()?->empleado?->sello?->id,
-                                    'fecha_firma' => now(),
-                                ]);
+                                $proyecto->firma_proyecto()->updateOrCreate(
+                                    [
+                                        'empleado_id' => auth()->user()->empleado->id,
+                                        'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                                            ->where('tipo_cargo_firma.nombre', 'Director Vinculacion')
+                                            ->where('cargo_firma.descripcion', 'Proyecto')
+                                            ->first()->id,
+                                    ],
+                                    [
+                                        'estado_revision' => 'Aprobado',
+                                        'firma_id' => auth()->user()?->empleado?->firma?->id,
+                                        'sello_id' => auth()->user()?->empleado?->sello?->id,
+                                        'hash' => 'hash',
+                                        'fecha_firma' => now(),
+                                    ]
+                                );
 
                                 $proyecto->user_director_id = Auth::user()->empleado->id;
                                 $proyecto->save();
