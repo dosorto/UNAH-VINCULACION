@@ -43,6 +43,9 @@ class FacultadCentroList extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
+            ->recordUrl(
+                fn(Model $record): string => route('proyectosCentroFacultad', $record->id)
+            )
             ->query(FacultadCentro::query())
             ->striped()
             ->headerActions([

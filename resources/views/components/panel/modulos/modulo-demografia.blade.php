@@ -7,8 +7,6 @@
         <x-panel.navbar-horizontal.item titulo="País" ruta="listarPaises" permiso="demografia-admin-pais" />
         <x-panel.navbar-horizontal.item titulo="Departamento" ruta="listarDepartamentos" permiso="demografia-admin-departamento" />
         <x-panel.navbar-horizontal.item titulo="Municipios" ruta="ListarMunicipios" permiso="demografia-admin-municipio" />
-        <x-panel.navbar-horizontal.item titulo="Aldea" ruta="ListarAldeas" permiso="demografia-admin-aldea" />
-        <x-panel.navbar-horizontal.item titulo="Ciudades" ruta="ListarCiudades" permiso="demografia-admin-ciudad" />
     </x-panel.navbar-horizontal.navbar-horizontal>
 @endsection
 

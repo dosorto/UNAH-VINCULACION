@@ -21,7 +21,20 @@ class User extends Authenticatable
     use HasFactory, Notifiable, HasRoles;
     use SoftDeletes;
     use LogsActivity;
-
+/*
+      $table->id();
+            $table->string('name')->nullable();
+            $table->string('microsoft_id')->nullable()->unique();
+            $table->string('given_name')->nullable();
+            $table->string('surname')->nullable();
+            $table->string('email')->unique();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->foreignId('active_role_id')->nullable()->index();
+            $table->string('password')->nullable();
+            $table->softDeletes();
+            $table->rememberToken();
+            $table->timestamps();
+*/
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
@@ -41,6 +54,10 @@ class User extends Authenticatable
         'email',
         'password',
         'active_role_id',
+        'microsoft_id',
+        'given_name',
+        'surname',
+    
     ];
 
     /**

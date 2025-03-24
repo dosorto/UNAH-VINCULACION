@@ -1,7 +1,7 @@
 <div id="mobile-menu"
     class="fixed inset-0 bg-white shadow-lg transition-transform transform -translate-x-full sm:translate-x-0 sm:shadow-none  sm:flex h-screen flex-col justify-between py-4 pr-2 pl-4 w-3/4 sm:w-1/4 h-[100vh] sm:sticky top-0 sm:bg-gray-100 dark:bg-gray-950"
     style="z-index: 40; height: 100dvh;">
-    <div id="fondoimagen" class="flex justify-between  flex-col h-full">
+    <div id="fondoimagen" class="flex justify-between  flex-col h-full       flex-direction: column;">
         <div>
 
             <div class="flex items-center  justify-between ">
@@ -78,15 +78,17 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            {{ $slot }}
+            </div>        
         </div>
+        <div style="  flex-grow: 1;" class="overflow-auto scrollbar-hiddenp-4">
+            {{ $slot }}
+        </div>    
 
         <div>
             <div class=" ">
 
                 <x-panel.navbar.one-item titulo="Configuración" route="listarLogs" :routes="['listarLogs', 'crearEmpleado']"
-                    icono="heroicon-c-cog-6-tooth" class="mb-4" :permisos="['configuracion-admin-logs']" />
+                    icono="heroicon-c-cog-6-tooth" class="mb-4" :permisos="['configuracion-admin-logs','apariencia-admin-slides']" />
 
 
                 <div
