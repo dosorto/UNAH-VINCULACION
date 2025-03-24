@@ -29,6 +29,7 @@ class FirmaProyecto extends Model
         'firmable_id',
         'estado_actual_id',
         'tipo_firma', // proyecto, contrato, acta, etc
+        'fecha_firma',
     ];
 
     public function firmable()

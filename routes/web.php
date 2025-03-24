@@ -110,8 +110,8 @@ Route::middleware(['auth'])->group(function () {
 
     // rutas agrupadas para el modulo de inicio
     Route::get('inicio', InicioAdmin::class)
-        ->name('inicio')
-        ->middleware('permission:inicio-admin-inicio|inicio-docente-inicio|docente-cambiar-datos-personales|estudiante-inicio-inicio|estudiante-cambiar-datos-personales');
+        ->name('inicio');
+       // ->middleware('permission:inicio-admin-inicio|inicio-docente-inicio|docente-cambiar-datos-personales|estudiante-inicio-inicio|estudiante-cambiar-datos-personales');
     // rutas agrupadas para el modulo de demografia :)
     Route::middleware(['auth'])->group(function () {
 

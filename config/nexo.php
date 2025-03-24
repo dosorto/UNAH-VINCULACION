@@ -7,6 +7,8 @@ return [
         'Enlace Vinculacion',
         'Jefe Departamento',
         'Director centro',
+        'Revisor Vinculacion',
+        'Director Vinculacion',
     ],
 
     'estados_proyecto' => [
@@ -17,7 +19,7 @@ return [
         'En revision',
         'En revision final',
 
-        
+
 
         'Subsanacion',
         'En curso',
@@ -57,6 +59,18 @@ return [
                 'cargo' => 'Director centro',
                 'estado' => 'Director centro',
                 'estado_siguiente' => 'En revision',
+            ],
+            [
+                'descripcion' => 'Proyecto',
+                'cargo' => 'Revisor Vinculacion',
+                'estado' => 'En revision',
+                'estado_siguiente' => 'En revision final',
+            ],
+            [
+                'descripcion' => 'Proyecto',
+                'cargo' => 'Director Vinculacion',
+                'estado' => 'En revision final',
+                'estado_siguiente' => 'En curso',
             ],
 
         ],

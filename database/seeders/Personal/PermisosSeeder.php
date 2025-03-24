@@ -70,6 +70,11 @@ class PermisosSeeder extends Seeder
         // proyectos-admin-revision-final
         $permission29 = Permission::create(['name' => 'proyectos-admin-revision-final']);
 
+        $permission30 = Permission::create(['name' => 'ver-dashboard-admin']);
+        $permission31 = Permission::create(['name' => 'ver-dashboard-docente']);
+        $permission32 = Permission::create(['name' => 'ver-dashboard-estudiante']);
+        $permission33 = Permission::create(['name' => 'ver-dashboard-admin-centro-facultad']);
+
         // crear un rol de administrador con todos los permisos anteriores
         $role = Role::create(['name' => 'admin']);
         $roleDocente = Role::create(['name' => 'docente']);
@@ -81,6 +86,7 @@ class PermisosSeeder extends Seeder
             'demografia-admin-departamento',
             'demografia-admin-municipio',
             'usuarios-admin-usuarios',
+            'ver-dashboard-admin',
             'proyectos-admin-revision-final',
             'apariencia-admin-slides',
             'proyectos-admin-informenes',
@@ -108,12 +114,14 @@ class PermisosSeeder extends Seeder
             'docente-admin-proyectos',
             'docente-crear-proyecto',
             'configuracion-admin-mi-perfil',
+            'ver-dashboard-docente',
             'global-set-role',
         ])->save();
 
         $roleAdminCentroFacultad->givePermissionTo([
             'admin_centro_facultad-proyectos',
             'global-set-role',
+            'ver-dashboard-admin-centro-facultad',
         ])->save();
     }
 }

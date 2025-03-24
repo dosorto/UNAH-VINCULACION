@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{{ asset('css/app/fichaVinculacion.css') }}">
 </head>
 
-<body style="background-color: #f2f2f2; " >
+<body style="background-color: #f2f2f2; ">
     @if ($proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
         <x-filament::section collapsible collapsed persist-collapsed id="user-details">
             <x-slot name="heading">
@@ -62,7 +62,8 @@
                             <th class="full-width1">Nombre del Proyecto:</th>
                             <td class="full-width" colspan="5">
 
-                                <input disabled type="text" class="input-field" placeholder="Ingrese el nombre del proyecto"
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el nombre del proyecto"
                                     value="{{ $proyecto->nombre_proyecto }}" disabled>
 
                             </td>
@@ -91,52 +92,62 @@
                         <tr>
                             <th class="full-width1" rowspan="1">Modalidad</th>
                             <td class="sub-header1" colspan="1">Unidisciplinar <br>
-                                <input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Multidisciplinar<br>
-                                <input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Multidisciplinar') checked @endif>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Multidisciplinar') checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Interdisciplinar <br>
-                                <input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Interdisciplinar') checked @endif>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Interdisciplinar') checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Transdisciplinar<br>
-                                <input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>
                             </td>
                         </tr>
                         <tr>
                             <th class="full-width1" rowspan="3">Coordinador/a del Proyecto:</th>
                             <td class="sub-header">Nombre Completo:</td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="Ingrese el nombre completo"
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el nombre completo"
                                     value="{{ $proyecto->coordinador->nombre_completo }}" disabled>
                             </td>
                             <td class="sub-header">No. de empleado:</td>
                             <td class="full-width" colspan="">
-                                <input disabled type="text" class="input-field" placeholder="Ingrese el número de empleado"
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el número de empleado"
                                     value="{{ $proyecto->coordinador->numero_empleado }}" disabled>
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-header">Correo electrónico:</td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="Ingrese el correo electrónico"
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el correo electrónico"
                                     value="{{ $proyecto->coordinador->user->email }}" disabled>
                             </td>
                             <td class="sub-header">Celular:</td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="email" class="input-field" placeholder="Ingrese el número de celular"
+                                <input disabled type="email" class="input-field"
+                                    placeholder="Ingrese el número de celular"
                                     value="{{ $proyecto->coordinador->celular }}" disabled>
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-header">Categoria:</td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="email" class="input-field" placeholder="Ingrese el número de celular"
+                                <input disabled type="email" class="input-field"
+                                    placeholder="Ingrese el número de celular"
                                     value="{{ $proyecto->coordinador->categoria->nombre }}" disabled>
                             </td>
                             <td class="sub-header">Departamento:</td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="email" class="input-field" placeholder="Ingrese el número de celular"
+                                <input disabled type="email" class="input-field"
+                                    placeholder="Ingrese el número de celular"
                                     value="{{ $proyecto->coordinador->departamento_academico->nombre }}" disabled>
                             </td>
                         </tr>
@@ -173,11 +184,13 @@
                                         value="{{ $integrante->user->email }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field" placeholder="Ingrese la categoría"
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese la categoría"
                                         value="{{ $integrante->categoria->nombre }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento"
                                         value="{{ $integrante->departamento_academico->nombre }}" disabled>
                                 </td>
                             </tr>
@@ -185,8 +198,8 @@
                             <tr>
                                 <td class="full-width
                                 " colspan="6">
-                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
-                                        value="No hay docentes" disabled>
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento" value="No hay docentes" disabled>
                                 </td>
                             </tr>
                         @endforelse
@@ -202,23 +215,27 @@
                         @forelse ($proyecto->estudiante_proyecto as $integrante)
                             <tr>
                                 <td class="full-width" colspan="2">
-                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento"
                                         value="{{ $integrante->estudiante->user->name }}" disabled>
                                 </td>
 
                                 <td class="full-width
                                 " colspan="1">
-                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento"
                                         value="{{ $integrante->estudiante->cuenta }}" disabled>
                                 </td>
                                 <td class="full-width
                                 " colspan="1">
-                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento"
                                         value="{{ $integrante->estudiante->user->email }}" disabled>
                                 </td>
                                 <td class="full-width
                                 " colspan="1">
-                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento"
                                         value="{{ $integrante->tipo_participacion_estudiante }}" disabled>
                                 </td>
                             </tr>
@@ -226,8 +243,8 @@
                             <tr>
                                 <td class="full-width
                                 " colspan="6">
-                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
-                                        value="No hay estudiantes" disabled>
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento" value="No hay estudiantes" disabled>
                                 </td>
                             </tr>
                         @endforelse
@@ -247,8 +264,8 @@
                             <tr>
                                 <td class="header
                                 " colspan="5">
-                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
-                                        value="# Entidad Contraparte" disabled>
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento" value="# Entidad Contraparte" disabled>
                                 </td>
                             </tr>
                             <tr>
@@ -297,56 +314,57 @@
                             </tr>
                             <tr>
                                 @forelse ($entidad->instrumento_formalizacion as $instrumento)
-                                <tr>
-                                    <td class="full-width
-                                    " colspan="3">
-                                        <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese el departamento" value="Documento de formalización"
-                                            disabled>
-                                    </td>
-                                    <td class="full-width
-                                    " colspan="2">
-                                        <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
-                                            <x-slot name="heading">
-                                                Documento de formalización
-                                            </x-slot>
-                                            <x-slot name="trigger">
-                                                <x-filament::button>
-                                                    Ver documento
-                                                </x-filament::button>
-                                            </x-slot>
-
-
-                                            <iframe src="{{ Storage::url($instrumento->documento_url) }}"
-                                                style="width: 100%; height: 85vh; border: none;"></iframe>
-
-                                        </x-filament::modal>
-                                        <x-filament::button>
-                                            <a href="{{ Storage::url($instrumento->documento_url) }}" download
-                                                style="text-decoration: none; color: inherit;">
-                                                Descargar
-                                            </a>
-                                        </x-filament::button>
-
-                                    </td>
-                                </tr>
-                                @empty
-                                    <td class="full-width
-                                    " colspan="5">
-                                        <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese el departamento"
-                                            value="No hay instrumentos de formalización" disabled>
-                                    </td>
-                                @endforelse
-                            </tr>
-                        @empty
                             <tr>
                                 <td class="full-width
-                                " colspan="5">
-                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
-                                        value="No hay entidades contraparte" disabled>
+                                    " colspan="3">
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento" value="Documento de formalización"
+                                        disabled>
+                                </td>
+                                <td class="full-width
+                                    " colspan="2">
+                                    <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
+                                        <x-slot name="heading">
+                                            Documento de formalización
+                                        </x-slot>
+                                        <x-slot name="trigger">
+                                            <x-filament::button>
+                                                Ver documento
+                                            </x-filament::button>
+                                        </x-slot>
+
+
+                                        <iframe src="{{ Storage::url($instrumento->documento_url) }}"
+                                            style="width: 100%; height: 85vh; border: none;"></iframe>
+
+                                    </x-filament::modal>
+                                    <x-filament::button>
+                                        <a href="{{ Storage::url($instrumento->documento_url) }}" download
+                                            style="text-decoration: none; color: inherit;">
+                                            Descargar
+                                        </a>
+                                    </x-filament::button>
+
                                 </td>
                             </tr>
+                        @empty
+                            <td class="full-width
+                                    " colspan="5">
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el departamento" value="No hay instrumentos de formalización"
+                                    disabled>
+                            </td>
+                        @endforelse
+                        </tr>
+                    @empty
+                        <tr>
+                            <td class="full-width
+                                " colspan="5">
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el departamento" value="No hay entidades contraparte"
+                                    disabled>
+                            </td>
+                        </tr>
                         @endforelse
                     </table>
 
@@ -769,13 +787,15 @@
                             <tr>
                                 <td class="full-width
                                 " colspan="14">
-                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
-                                        value="{{ $superavit->inversion }}" disabled>
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento" value="{{ $superavit->inversion }}"
+                                        disabled>
                                 </td>
                                 <td class="full-width
                                 " colspan="5">
-                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
-                                        value="{{ $superavit->monto }}" disabled>
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento" value="{{ $superavit->monto }}"
+                                        disabled>
                                 </td>
 
                             </tr>
@@ -784,8 +804,8 @@
                             <tr>
                                 <td class="full-width
                             " colspan="19">
-                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
-                                        value="No hay superavit" disabled>
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento" value="No hay superavit" disabled>
                                 </td>
                             </tr>
                         @endforelse
@@ -807,6 +827,8 @@
                                     placeholder="Ingrese el nombre del coordinador"
                                     value="{{ optional(optional($proyecto->firma_coodinador_proyecto()->first())->empleado)->nombre_completo }}"
                                     disabled>
+
+
                             </td>
                             <td class="full-width " colspan="1">Nombre:</td>
                             <td class="full-width " colspan="1">
@@ -831,8 +853,26 @@
                         </tr>
 
                         <tr>
-                            <th class="header" colspan="2">Firma del profesor/a responsable del proyecto</th>
-                            <th class="header" colspan="2">Firma y sello del Jefe/a del Departamento</th>
+                            <th class="header" colspan="2">Firma del profesor/a responsable del proyecto
+                                <br>
+                                <p>
+                                    {{ optional($proyecto->firma_coodinador_proyecto->first())->fecha_firma
+                                        ? \Carbon\Carbon::parse(optional($proyecto->firma_coodinador_proyecto->first())->fecha_firma)->translatedFormat(
+                                            'l d F Y h:i:s A',
+                                        )
+                                        : '' }}
+                                </p>
+                            </th>
+                            <th class="header" colspan="2">Firma y sello del Jefe/a del Departamento
+                                <br>
+                                <p>
+                                    {{ optional($proyecto->firma_proyecto_jefe->first())->fecha_firma
+                                        ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_jefe->first())->fecha_firma)->translatedFormat(
+                                            'l d F Y h:i:s A',
+                                        )
+                                        : '' }}
+                                </p>
+                            </th>
                         </tr>
                     </table>
                     <table class="table_datos4">
@@ -875,8 +915,28 @@
                         <tr>
                             <th class="header" colspan="2">Firma del Coordinador(a) del Comité de Vinculación <br>
                                 de
-                                la Facultad o Campus Universitario</th>
-                            <th class="header" colspan="2">Firma y sello del Decano(a) o Director(a)</th>
+                                la Facultad o Campus Universitario
+                                <br>
+                                <p>
+                                    {{ optional($proyecto->firma_proyecto_enlace->first())->fecha_firma
+                                        ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_enlace->first())->fecha_firma)->translatedFormat(
+                                            'l d F Y h:i:s A',
+                                        )
+                                        : '' }}
+                                </p>
+                            </th>
+                            <th class="header" colspan="2">Firma y sello del Decano(a) o Director(a)
+                                <br>
+
+                                <p>
+                                    {{ optional($proyecto->firma_proyecto_decano->first())->fecha_firma
+                                        ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_decano->first())->fecha_firma)->translatedFormat(
+                                            'l d F Y h:i:s A',
+                                        )
+                                        : '' }}
+                                </p>
+
+                            </th>
                         </tr>
                     </table>
                 </div>
@@ -894,8 +954,8 @@
                         <tr>
                             <td class="full-width
                                         " colspan="19">
-                                <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
-                                    value="{{ $categoria->nombre }}" disabled>
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el departamento" value="{{ $categoria->nombre }}" disabled>
                             </td>
                         </tr>
 
@@ -903,8 +963,8 @@
                         <tr>
                             <td class="full-width 
                                         " colspan="19">
-                                <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
-                                    value="No hay categorias" disabled>
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el departamento" value="No hay categorias" disabled>
                             </td>
                         </tr>
                         @endforelse
@@ -922,8 +982,8 @@
                         <tr>
                             <td class="full-width
                                 " colspan="19">
-                                <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
-                                    value="{{ $ods->nombre }}" disabled>
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el departamento" value="{{ $ods->nombre }}" disabled>
                             </td>
                         </tr>
                     @empty
@@ -944,41 +1004,41 @@
                         </tr>
                         <tr>
                             @forelse ($proyecto->anexos as $anexo)
-                            <tr>
-                                <td class="full-width
+                        <tr>
+                            <td class="full-width
                                 " colspan="8">
-                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
-                                        value="ANEXO DEL PROYECTO" disabled>
-                                </td>
-                                <td class="full-width" colspan="11">
-                                    <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
-                                        <x-slot name="heading">
-                                            Anexo
-                                        </x-slot>
-                                        <x-slot name="trigger">
-                                            <x-filament::button>
-                                                Ver anexo
-                                            </x-filament::button>
-                                        </x-slot>
-                                        <iframe src="{{ Storage::url($anexo->documento_url) }}"
-                                            style="width: 100%; height: 85vh; border: none;"></iframe>
-                                    </x-filament::modal>
-                                    <x-filament::button>
-                                        <a href="{{ Storage::url($anexo->documento_url) }}" download
-                                            style="text-decoration: none; color: inherit;">
-                                            Descargar
-                                        </a>
-                                    </x-filament::button>
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el departamento" value="ANEXO DEL PROYECTO" disabled>
+                            </td>
+                            <td class="full-width" colspan="11">
+                                <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
+                                    <x-slot name="heading">
+                                        Anexo
+                                    </x-slot>
+                                    <x-slot name="trigger">
+                                        <x-filament::button>
+                                            Ver anexo
+                                        </x-filament::button>
+                                    </x-slot>
+                                    <iframe src="{{ Storage::url($anexo->documento_url) }}"
+                                        style="width: 100%; height: 85vh; border: none;"></iframe>
+                                </x-filament::modal>
+                                <x-filament::button>
+                                    <a href="{{ Storage::url($anexo->documento_url) }}" download
+                                        style="text-decoration: none; color: inherit;">
+                                        Descargar
+                                    </a>
+                                </x-filament::button>
 
-                                </td>
-                            </tr>
-                            @empty
-                                <td class="full-width
+                            </td>
+                        </tr>
+                    @empty
+                        <td class="full-width
                                 " colspan="19">
-                                    <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
-                                        value="No hay anexos registrados en este momento" disabled>
-                                </td>
-                            @endforelse
+                            <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
+                                value="No hay anexos registrados en este momento" disabled>
+                        </td>
+                        @endforelse
                         </tr>
                     </table>
 
@@ -989,17 +1049,17 @@
                             <td class="sub-header" colspan="1">Responsable de revisión</td>
                             <td class="full-width" colspan="10">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ optional($proyecto->responsable_revision)->nombre_completo }}"
+                                    value="{{ optional(optional($proyecto->firma_revisor_vinculacion()->first())->empleado)->nombre_completo }}"
                                     placeholder="Ingrese el día">
                             </td>
                         </tr>
                     </table>
                     <table class="table_datos5">
                         <tr>
-                            <td class="sub-header" colspan="1">Responsable revision Final (Director de Vinculación)</td>
+                            <td class="sub-header" colspan="1">Director de Vinculación</td>
                             <td class="full-width" colspan="10">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ optional($proyecto->director_proyecto)->nombre_completo }}"
+                                    value="{{ optional(optional($proyecto->firma_director_vinculacion()->first())->empleado)->nombre_completo }}"
                                     placeholder="Ingrese el día">
                             </td>
                         </tr>
@@ -1007,21 +1067,21 @@
                     <table class="table_datos5">
                         <td class="sub-header" colspan="1">Fecha de Aprobación</td>
                         <td class="full-width" colspan="6">
-                            <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_aprobacion }}"
-                                placeholder="Ingrese el día">
+                            <input disabled type="text" class="input-field"
+                                value="{{ $proyecto->fecha_aprobacion }}" placeholder="Ingrese el día">
                         </td>
                         <td class="sub-header" colspan="1">Fecha de Registro</td>
                         <td class="full-width" colspan="6">
-                            <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_registro }}"
-                                placeholder="Ingrese el día">
+                            <input disabled type="text" class="input-field"
+                                value="{{ $proyecto->fecha_registro }}" placeholder="Ingrese el día">
                         </td>
                         </tr>
                     </table>
                     <table class="table_datos7">
                         <td class="sub-header" colspan="1">No. de Libro </td>
                         <td class="full-width" colspan="1">
-                            <input disabled type="text" class="input-field" value="{{ $proyecto->numero_libro }}"
-                                placeholder="Ingrese el día">
+                            <input disabled type="text" class="input-field"
+                                value="{{ $proyecto->numero_libro }}" placeholder="Ingrese el día">
                         </td>
                         <td class="sub-header" colspan="1">No. de Tomo </td>
                         <td class="full-width" colspan="1">
@@ -1030,8 +1090,8 @@
                         </td>
                         <td class="sub-header" colspan="1">No. de Folio </td>
                         <td class="full-width" colspan="1">
-                            <input disabled type="text" class="input-field" value="{{ $proyecto->numero_folio }}"
-                                placeholder="Ingrese el día">
+                            <input disabled type="text" class="input-field"
+                                value="{{ $proyecto->numero_folio }}" placeholder="Ingrese el día">
                         </td>
                         </tr>
                     </table>

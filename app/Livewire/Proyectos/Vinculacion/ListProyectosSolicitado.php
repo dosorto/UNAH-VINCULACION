@@ -25,7 +25,7 @@ use Filament\Notifications\Notification;
 
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Forms\Components\DatePicker;
-
+use App\Models\Proyecto\CargoFirma;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 use App\Models\UnidadAcademica\FacultadCentro;
@@ -169,6 +169,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                     'estado_revision' => 'Pendiente',
                                     'firma_id' => null,
                                     'sello_id' => null,
+                                    'fecha_firma' => null,
 
                                 ]);
 
@@ -272,6 +273,23 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                     'fecha' => now(),
                                     'comentario' => 'El proyecto ha sido aprobado correctamente',
                                 ]);
+                                
+                                $proyecto->firma_proyecto()->updateOrCreate(
+                                    [
+                                        'empleado_id' => auth()->user()->empleado->id,
+                                        'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                                            ->where('tipo_cargo_firma.nombre', 'Revisor Vinculacion')
+                                            ->where('cargo_firma.descripcion', 'Proyecto')
+                                            ->first()->id,
+                                    ],
+                                    [
+                                        'estado_revision' => 'Aprobado',
+                                        'firma_id' => auth()->user()?->empleado?->firma?->id,
+                                        'sello_id' => auth()->user()?->empleado?->sello?->id,
+                                        'hash' => 'hash',
+                                        'fecha_firma' => now(),
+                                    ]
+                                );
 
                                 $proyecto->update($data);
 
