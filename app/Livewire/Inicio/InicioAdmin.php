@@ -6,10 +6,76 @@ use App\Models\Estado\TipoEstado;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Personal\Empleado;
 use Livewire\Component;
+use Carbon\Carbon;
 use Spatie\Activitylog\Models\Activity;
 
 class InicioAdmin extends Component
 {
+    public $selectedYear = null;
+    public $projectsData = [];
+    public $projectsDataUser = [];
+    public $totalProjectsYear = 0;
+
+    public function mount()
+    {
+        $this->selectedYear = now()->year;
+        $this->updateChartData();
+        $this->updateChartDataUser();
+    }
+
+    public function updatedSelectedYear()
+    {
+        $this->updateChartData();
+        $this->updateChartDataUser();
+        $this->dispatch('updateChart', ['data' => array_values($this->projectsData)]);
+    }
+
+    public function updateChartData()
+    {
+        // Consulta los proyectos agrupados por trimestre para el año seleccionado
+        $this->projectsData = Proyecto::selectRaw('QUARTER(created_at) as quarter, COUNT(*) as count')
+            ->whereYear('created_at', $this->selectedYear)
+            ->groupBy('quarter')
+            ->orderBy('quarter')
+            ->pluck('count', 'quarter')
+            ->toArray();
+
+        // Rellena los trimestres faltantes con 0
+        $this->projectsData = array_replace([
+            1 => 0,
+            2 => 0,
+            3 => 0,
+            4 => 0,
+        ], $this->projectsData);
+        // Calcula el total de proyectos en el año seleccionado
+        $this->totalProjectsYear = array_sum($this->projectsData);
+        $this->dispatch('updateChart', data: array_values($this->projectsData));
+    }
+
+    public function updateChartDataUser()
+    {
+        // Consulta los proyectos agrupados por año (no se filtra por un único año)
+        $this->projectsDataUser = Proyecto::join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+            ->selectRaw('YEAR(proyecto.created_at) as year, COUNT(*) as count')
+            ->where('empleado_proyecto.empleado_id', auth()->user()->empleado->id)
+            ->groupBy('year')
+            ->orderBy('year')
+            ->pluck('count', 'year')
+            ->toArray();
+
+        // (Opcional) Rellena con 0 los años que faltan en un rango determinado, por ejemplo desde 2022 hasta el año actual
+        $start = 2022;
+        $end = now()->year;
+        $yearsRange = range($start, $end);
+        $this->projectsDataUser = array_replace(array_fill_keys($yearsRange, 0), $this->projectsDataUser);
+
+        // Calcula el total de proyectos del usuario en el rango de años
+        $this->totalProjectsYear = array_sum($this->projectsDataUser);
+
+        // Envía el array asociativo para que en el gráfico se utilicen las claves como categorías
+        $this->dispatch('updateChart-User', ['data' => $this->projectsDataUser]);
+    }
+
     public function getProjectsCountByEmployees()
     {
         return Empleado::withCount('proyectos')->paginate(4);
@@ -34,7 +100,7 @@ class InicioAdmin extends Component
             ->get();
     }
 
-     /**
+    /**
      * Obtiene las últimas actividades del usuario autenticado.
      *
      * @param int $limit
@@ -53,11 +119,13 @@ class InicioAdmin extends Component
 
     public function render()
     {
+        // empleados con su numero de proyectos
         $empleadosWithCount = $this->getProjectsCountByEmployees();
+        // numero de empleados vinculados a proyectos
         $empleadosVinculacion = $this->empleadosVinculacion();
-         // consultas de dashboards...
-         $activities = $this->getLatestActivities();
-         $activitiesUser = $this->getLatestActivitiesUser();
+        // consultas de dashboards...
+        $activities = $this->getLatestActivities();
+        $activitiesUser = $this->getLatestActivitiesUser();
         // ADMIN DASHBOARD (consultas generales)
         $finalizados = Proyecto::query()
             ->whereIn('id', function ($query) {
@@ -116,7 +184,7 @@ class InicioAdmin extends Component
             ->paginate(10);
 
         // USER DASHBOARD (filtrado por usuario autenticado con la tabla pivote empleado_proyecto)
-        $userId =  auth()->user()->empleado->id;
+        $userId = auth()->user()->empleado->id;
 
         // Obtén el id del estado "Finalizado"
         $finalizadoEstadoId = TipoEstado::where('nombre', 'Finalizado')->first()->id;
@@ -157,6 +225,18 @@ class InicioAdmin extends Component
             ->distinct()
             ->get();
 
+        // Para el estado "En curso"
+        $ejecucionEstadoId = TipoEstado::where('nombre', 'En curso')->first()->id;
+        $ejecucionUser = Proyecto::query()
+            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+            ->join('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
+            ->where('empleado_proyecto.empleado_id', $userId)
+            ->where('estado_proyecto.estadoable_type', Proyecto::class)
+            ->where('estado_proyecto.tipo_estado_id', $ejecucionEstadoId)
+            ->where('estado_proyecto.es_actual', true)
+            ->distinct()
+            ->get();
+
         // Si necesitas obtener todos los proyectos asociados al usuario sin filtrar por estado:
         $proyectosUser = Proyecto::query()
             ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
@@ -164,24 +244,36 @@ class InicioAdmin extends Component
             ->distinct()
             ->get();
 
+        //obtener lista de años en los cuales hay proyectos creados
+        $años = Proyecto::selectRaw('YEAR(created_at) as year')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year');
+
         return view('livewire.inicio.inicio-admin', [
             'empleadosWithCount' => $empleadosWithCount,
             'empleadosVinculacion' => $empleadosVinculacion,
             'activities' => $activities,
             'activitiesUser' => $activitiesUser,
             // admin dashboard
-            'finalizados'        => $finalizados,
-            'subsanacion'        => $subsanacion,
-            'ejecucion'         => $ejecucion,
-            'proyectos'          => $proyectos,
-            'borrador'           => $borrador,
-            'empleados'          => $empleados,
-            'proyectosTable'     => $proyectosTable,
+            'finalizados' => $finalizados,
+            'subsanacion' => $subsanacion,
+            'ejecucion' => $ejecucion,
+            'proyectos' => $proyectos,
+            'borrador' => $borrador,
+            'empleados' => $empleados,
+            'proyectosTable' => $proyectosTable,
             // User dashboard
-            'finalizadosUser'    => $finalizadosUser,
-            'subsanacionUser'    => $subsanacionUser,
-            'borradorUser'       => $borradorUser,
-            'proyectosUser'      => $proyectosUser,
+            'finalizadosUser' => $finalizadosUser,
+            'subsanacionUser' => $subsanacionUser,
+            'ejecucionUser' => $ejecucionUser,
+            'borradorUser' => $borradorUser,
+            'proyectosUser' => $proyectosUser,
+            //chartAdmin
+            'chartData' => array_values($this->projectsData),
+            'años' => $años,
+            //chartUser
+            'chartDataUser' => $this->projectsDataUser,
         ]);
     }
 }
