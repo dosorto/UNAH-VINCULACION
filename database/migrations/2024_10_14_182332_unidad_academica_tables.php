@@ -57,7 +57,24 @@ return new class extends Migration
         });
 
 
-        
+        // tabla de carreras
+        Schema::create('carrera', function (Blueprint $table) {
+            $table->id();
+            $table->string('nombre');
+            $table->foreignId('facultad_centro_id')->constrained('centro_facultad');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+       
+        // tabla de carrera_facultad_centro
+        Schema::create('carrera_facultad_centro', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('carrera_id')->constrained('carrera');
+            $table->foreignId('facultad_centro_id')->constrained('centro_facultad');
+            $table->softDeletes();
+            $table->timestamps();
+        });
 
 
     }

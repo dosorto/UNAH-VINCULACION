@@ -27,6 +27,12 @@ use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Columns\Layout\Split;
 use App\Models\Estado\TipoEstado;
 
+
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
+
+
 class ListProyectosVinculacion extends Component implements HasForms, HasTable
 {
     use InteractsWithForms;
@@ -40,17 +46,22 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
             ->query(
 
                 Proyecto::query()
-                ->whereNotIn('proyecto.id', function ($query) {
-                    $query->select('estadoable_id')
-                        ->from('estado_proyecto')
-                        ->where('estadoable_type', Proyecto::class) // Asegúrate de filtrar por el modelo `Proyecto`
-                        ->whereIn('tipo_estado_id', TipoEstado::whereIn('nombre', ['Borrador'])->pluck('id')->toArray()) // Excluir 'Borrador' y 'Subsanacion'
-                        ->where('es_actual', true);
-                })
-                ->leftJoin('proyecto_centro_facultad', 'proyecto_centro_facultad.proyecto_id', '=', 'proyecto.id')
-                ->leftJoin('proyecto_depto_ac', 'proyecto_depto_ac.proyecto_id', '=', 'proyecto.id')
-                ->select('proyecto.*')
-                ->distinct('proyecto.id')
+                    ->whereNotIn('proyecto.id', function ($query) {
+                        $query->select('estadoable_id')
+                            ->from('estado_proyecto')
+                            ->where('estadoable_type', Proyecto::class) // Asegúrate de filtrar por el modelo `Proyecto`
+                            ->whereIn('tipo_estado_id', TipoEstado::whereIn('nombre', ['Borrador'])->pluck('id')->toArray()) // Excluir 'Borrador' y 'Subsanacion'
+                            ->where('es_actual', true);
+                    })
+                    ->leftJoin('proyecto_centro_facultad', 'proyecto_centro_facultad.proyecto_id', '=', 'proyecto.id')
+                    ->leftJoin('proyecto_depto_ac', 'proyecto_depto_ac.proyecto_id', '=', 'proyecto.id')
+                    // unir con la tabla de estados
+                    ->leftJoin('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
+                    ->leftJoin('tipo_estado', 'estado_proyecto.tipo_estado_id', '=', 'tipo_estado.id')
+                    // si  el usuario tiene el permiso de admin_centro_facultad-proyectos filtrar por el centro/facultad
+
+                    ->select('proyecto.*')
+                    ->distinct('proyecto.id')
 
 
 
@@ -58,6 +69,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
             ->columns([
 
                 Tables\Columns\TextColumn::make('nombre_proyecto')
+                    ->limit(30)
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('departamentos_academicos.nombre')
@@ -65,17 +77,26 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->color('info')
                     ->separator(',')
                     ->wrap()
-                    ->label('Departamento')
+                    ->label('Departamentos')
                     ->searchable(),
 
                 Tables\Columns\TextColumn::make('facultades_centros.nombre')
                     ->badge()
                     ->wrap()
-                    ->label('Centro/Facultad'),
+                    ->label('Centros/Facultades'),
 
-                Tables\Columns\TextColumn::make('estado.tipoestado.nombre')
+                Tables\Columns\TextColumn::make('Estado.tipoestado.nombre')
                     ->badge()
-                    ->color('info')
+                    ->color(fn(Proyecto $proyecto) => match ($proyecto->estado->tipoestado->nombre) {
+                        'En curso' => 'success',
+                        'Subsanacion' => 'danger',
+                        'Borrador' => 'warning',
+                        'Finalizado' => 'info',
+                        default => 'primary',
+                    })
+                    ->label('Estado')
+                    ->separator(',')
+                    ->wrap()
                     ->label('Estado'),
 
                 Tables\Columns\TextColumn::make('fecha_inicio')
@@ -83,12 +104,46 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
 
                 Tables\Columns\TextColumn::make('poblacion_participante')
                     ->label('Población Participante')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->numeric(),
 
-              
+                Tables\Columns\TextColumn::make('categoria.nombre')
+                    ->badge()
+                    ->wrap()
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->label('Categoría'),
+
+
 
             ])
             ->filters([
+
+                Filter::make('estado_id')
+                    ->label('Estado')
+                    ->form([
+                        Select::make('estado_id')
+                            ->label('Estado')
+                            ->options(TipoEstado::all()->pluck('nombre', 'id'))
+                            ->live()
+                            ->multiple(),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (!empty($data['estado_id'])) {
+                            $query
+                                ->whereIn('tipo_estado_id', $data['estado_id'])
+                                ->where('es_actual', true);
+                        }
+                        return $query;
+                    }),
+
+                // filtrar por ods
+                SelectFilter::make('ods_id')
+                    ->label('ODS')
+                    ->multiple()
+                    ->relationship('ods', 'nombre')
+                    ->preload(),
+
+
                 SelectFilter::make('categoria_id')
                     ->label('Categoría')
                     ->multiple()
@@ -100,12 +155,20 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->relationship('modalidad', 'nombre')
                     ->preload(),
 
+
                 // filter name can be anything you want
                 Filter::make('created_at')
                     ->form([
                         Select::make('centro_facultad_id')
                             ->label('Centro/Facultad')
-                            ->options(FacultadCentro::all()->pluck('nombre', 'id'))
+                            ->default('asdf')
+                            ->options(function () {
+                                return FacultadCentro::query()
+
+                                    ->get()
+                                    ->pluck('nombre', 'id');
+                            })
+                            // si el usuario tiene el permiso de admin_centro_facultad-proyectos filtrar por el centro/facultad
                             ->live()
                             ->multiple(),
                         Select::make('departamento_id')
@@ -132,6 +195,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     })
 
 
+
             ],  layout: FiltersLayout::AboveContent)
             ->actions([
                 Action::make('Proyecto de Vinculación')
@@ -145,12 +209,24 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     )
                     // ->stickyModalHeader()
                     ->modalWidth(MaxWidth::SevenExtraLarge)
-                    ->modalSubmitAction(false)
+                    ->modalSubmitAction(false),
 
+
+            ])
+            ->headerActions([
+                ExportAction::make()->exports([
+                    ExcelExport::make('table')
+                        ->fromTable()
+
+                        ->askForFilename('Proyectos de Vinculación')
+                        ->askForWriterType(),
+                ])
+                    ->label('Exportar a Excel')
+                    ->color('success')
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    //
+                    ExportBulkAction::make()
                 ]),
             ]);
     }

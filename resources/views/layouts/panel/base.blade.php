@@ -16,7 +16,6 @@
             display: none !important;
         }
     </style>
-     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
     @filamentStyles
     @vite('resources/css/app.css')
     <meta charset="UTF-8">
@@ -52,7 +51,8 @@
         <x-panel.navbar.navbar />
         <!-- Barra superior en dispositivos móviles -->
         <div
-            class="flex justify-between items-center p-4 bg-white  sm:hidden sticky top-0 bg-white dark:bg-gray-950 z-49">
+            class="flex justify-between items-center p-4 bg-white  sm:hidden sticky top-0 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700 rounded-b-lg"
+            style="z-index: 39;">
             <div class="flex items-center ">
                 <div class="w-36 h-8 rounded-lg flex items-center justify-center">
                     <img src="{{ asset('images/logo_nuevo.png') }}" alt="Logo" class="mx-auto"
@@ -82,21 +82,7 @@
             </div>
         </main>
     </div>
-    <script>
-        const themeToggleBtn = document.getElementById('theme-toggle');
-        const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
-        const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
-
-        // Change the icons inside the button based on previous settings
-        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window
-                .matchMedia(
-                    '(prefers-color-scheme: dark)').matches)) {
-            themeToggleLightIcon.classList.remove('hidden');
-            document.documentElement.classList.add('dark');
-        } else {
-            themeToggleDarkIcon.classList.remove('hidden');
-        }
-    </script>
+   
     @livewire('notifications')
     @filamentScripts
     @vite('resources/js/app.js')

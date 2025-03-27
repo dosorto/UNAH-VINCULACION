@@ -91,6 +91,8 @@ class SlideConfig extends Component implements HasForms
                             ->default(true)
                             ->columnSpan(1),
                     ])
+                    ->defaultItems(3)
+                    ->minItems(2)
                     ->grid(3)
                     ->deletable(true)
                     ->columns(1),
@@ -123,6 +125,7 @@ class SlideConfig extends Component implements HasForms
 
     public function render(): View
     {
-        return view('livewire.slide.slide-config');
+        return view('livewire.slide.slide-config')
+        ->layout('components.panel.modulos.modulo-configuracion');
     }
 }

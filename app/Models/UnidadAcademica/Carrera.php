@@ -37,6 +37,12 @@ class Carrera extends Model
         return $this->belongsTo(FacultadCentro::class, 'facultad_centro_id',);
     }
 
+    // relacion muchos a muchos con la tabla facultad_centro mediante la tabla intermedia carrera_facultad_centro
+    public function facultadCentros()
+    {
+        return $this->belongsToMany(FacultadCentro::class, 'carrera_facultad_centro', 'carrera_id', 'facultad_centro_id');
+    }
+   
 
     protected $table = 'carrera';
 

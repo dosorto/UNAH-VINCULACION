@@ -44,8 +44,20 @@ use App\Livewire\Proyectos\Vinculacion\ListProyectoRevisionFinal;
 use App\Livewire\Slide\SlideConfig;
 
 use App\Http\Controllers\SetRoleController;
+use App\Livewire\UnidadAcademica\Campus\CampusList;
+use App\Livewire\UnidadAcademica\Carrera\CarreraList;
+use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList;
+use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
+use App\Http\Controllers\DirectorCentro\Proyectos\ListProyectosCentro;
+use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
 
 
+Route::get('verificacion_constancia', [VerificarConstancia::class, 'verificacionConstanciaVista'])
+    ->name('verificacion_constancia');
+
+
+Route::get('verificacion_constancia/{hash?}', [VerificarConstancia::class, 'index'])
+    ->name('verificacion_constancia');
 
 // Rutas para redireccionar a los usuario autenticados
 Route::middleware(['guest'])->group(function () {
@@ -63,29 +75,47 @@ Route::middleware(['guest'])->group(function () {
     Route::get('/login', Login::class)
         ->name('login')
         ->middleware('guest');
-
     // Rutas para restablecimiento de contraseña olvidada
-    Route::get('password/reset', ForgotPasswordController::class)
-        ->name('password.request');
-    Route::get('password/reset/{token}', ResetPasswordController::class)
-        ->name('password.reset');
+    // Route::get('password/reset', ForgotPasswordController::class)
+    //     ->name('password.request');
+    // Route::get('password/reset/{token}', ResetPasswordController::class)
+    //    ->name('password.reset');
 });
-Route::get('verificacion_constancia/{hash}', [VerificarConstancia::class, 'index'])
-    ->name('verificacion_constancia');
 
 // Rutas para redireccionar a los usuario  no autenticados
 Route::middleware(['auth'])->group(function () {
+
+
+
+    Route::get('campus', CampusList::class)
+        ->name('campus')
+        ->middleware('can:unidad-academica-admin-campus');
+
+    Route::get('carrera', CarreraList::class)
+        ->name('carrera')
+        ->middleware('can:unidad-academica-admin-carrera');
+
+    Route::get('departamento-academico', DepartamentoAcademicoList::class)
+        ->name('departamento-academico')
+        ->middleware('can:unidad-academica-admin-departamento');
+
+    Route::get('facultad-centro', FacultadCentroList::class)
+        ->name('facultad-centro')
+        ->middleware('can:unidad-academica-admin-facultad');
+
+
     Route::get('setPerfil/{role_id}', [SetRoleController::class, 'SetRole'])
         ->name('setrole');
+       // ->middleware('can:global-set-role');
 
 
     // rutas agrupadas para el modulo de inicio
     Route::get('inicio', InicioAdmin::class)
-        ->name('inicio')
-        ->middleware('permission:inicio-admin-inicio|inicio-docente-inicio');
-
+        ->name('inicio');
+       // ->middleware('permission:inicio-admin-inicio|inicio-docente-inicio|docente-cambiar-datos-personales|estudiante-inicio-inicio|estudiante-cambiar-datos-personales');
     // rutas agrupadas para el modulo de demografia :)
     Route::middleware(['auth'])->group(function () {
+
 
         Route::get('crearPais', CreatePais::class)
             ->name('crearPais')
@@ -104,22 +134,22 @@ Route::middleware(['auth'])->group(function () {
             ->name('listarDepartamentos')
             ->middleware('can:demografia-admin-departamento');
 
-        Route::get('ListarCiudades', ListaCiudad::class)
-            ->name('ListarCiudades')
-            ->middleware('can:demografia-admin-ciudad');
+        // Route::get('ListarCiudades', ListaCiudad::class)
+        //    ->name('ListarCiudades')
+        //    ->middleware('can:demografia-admin-ciudad');
 
-        Route::get('crearCiudad', CreateCiudad::class)
-            ->name('crearCiudad')
-            ->middleware('can:demografia-admin-ciudad');
+        //  Route::get('crearCiudad', CreateCiudad::class)
+        //     ->name('crearCiudad')
+        //    ->middleware('can:demografia-admin-ciudad');
 
 
-        Route::get('ListarAldeas', ListAldeas::class)
-            ->name('ListarAldeas')
-            ->middleware('can:demografia-admin-aldea');
+        //Route::get('ListarAldeas', ListAldeas::class)
+        //   ->name('ListarAldeas')
+        //   ->middleware('can:demografia-admin-aldea');
 
-        Route::get('crearAldea', CreateAldea::class)
-            ->name('crearAldea')
-            ->middleware('can:demografia-admin-aldea');
+        //    Route::get('crearAldea', CreateAldea::class)
+        //      ->name('crearAldea')
+        //    ->middleware('can:demografia-admin-aldea');
 
         Route::get('ListarMunicipios', ListaMunicipios::class)
             ->name('ListarMunicipios')
@@ -150,7 +180,7 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('slides', SlideConfig::class)
             ->name('slides')
-            ->middleware('can:usuarios-admin-permiso');
+            ->middleware('can:apariencia-admin-slides');
 
 
         Route::get('/logout', function () {
@@ -175,6 +205,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('mi_perfil', EditPerfil::class)
             ->name('mi_perfil')
             ->middleware('can:configuracion-admin-mi-perfil');
+        Route::get('mi_perfil_estudiante', EditPerfil::class)
+            ->name('mi_perfil_estudiante')
+            ->middleware('can:estudiante-cambiar-datos-personales');
     });
 
     // rutas agrupadas para el modulo de Proyectos
@@ -182,28 +215,33 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('crearProyectoVinculacion', CreateProyectoVinculacion::class)
             ->name('crearProyectoVinculacion')
-            ->middleware('permission:docente-crear-proyecto|proyectos-admin-proyectos');
+            ->middleware('permission:docente-crear-proyecto');
 
         // editar un proyecto ya sea en borrador o en subsanacion
         Route::get('editarProyectoVinculacion/{proyecto}', EditProyectoVinculacionForm::class)
             ->name('editarProyectoVinculacion')
-            ->middleware('permission:docente-crear-proyecto|proyectos-admin-proyectos');
+            ->middleware('permission:docente-crear-proyecto');
 
         Route::get('listarProyectosVinculacion', ListProyectosVinculacion::class)
             ->name('listarProyectosVinculacion')
-            ->middleware('can:proyectos-admin-proyectos');
+            ->middleware('permission:proyectos-admin-proyectos');
+
+
+        Route::get('proyectos-vinculacion/{facultadCentro}', ListProyectos::class)
+            ->name('proyectosCentroFacultad')
+            ->middleware('permission:admin_centro_facultad-proyectos|proyectos-admin-proyectos');
 
         Route::get('listarProyectosSolicitado', ListProyectosSolicitado::class)
             ->name('listarProyectosSolicitado')
             ->middleware('can:proyectos-admin-solicitados');
 
         Route::get('listarInformesSolicitado', ListInformesSolicitado::class)
-            ->name('listarInformesSolicitado');
-        //->middleware('can:proyectos-admin-solicitados');
+            ->name('listarInformesSolicitado')
+            ->middleware('can:proyectos-admin-informenes');
 
         Route::get('listarProyectoRevisionFinal', ListProyectoRevisionFinal::class)
-            ->name('listarProyectoRevisionFinal');
-        //->middleware('can:proyectos-admin-revision-final');
+            ->name('listarProyectoRevisionFinal')
+            ->middleware('can:proyectos-admin-revision-final');
     });
 
 
@@ -247,4 +285,7 @@ Route::middleware(['auth'])->group(function () {
 
 
 
+    
 });
+
+

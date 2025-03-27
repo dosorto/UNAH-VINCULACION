@@ -2,11 +2,12 @@
 
 namespace App\Livewire\Docente\Proyectos;
 
+use App\Http\Controllers\Docente\VerificarConstancia;
 use Filament\Tables;
 use Livewire\Component;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
-use Barryvdh\DomPDF\Facade\Pdf;
+
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Proyecto;
@@ -31,13 +32,14 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Database\Eloquent\Builder;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
+
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Concerns\InteractsWithTable;
 
 use Filament\Tables\Filters\Layout;
 use Filament\Tables\Filters\SelectFilter;
 
+use Filament\Tables\Enums\FiltersLayout;
 
 class ProyectosDocenteList extends Component implements HasForms, HasTable
 {
@@ -49,14 +51,21 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
     {
         $this->docente = $docente;
     }
-    protected function getTableFiltersLayout(): ?string
-    {
-        return Layout::AboveContent;
-    }
+  
     public function table(Table $table): Table
     {
         return $table
-        ->striped()
+            ->recordClasses(function (Proyecto $proyecto) {
+                if ($proyecto->estado->tipoestado->nombre == 'Subsanacion') {
+                    return 'bg-red-100 border-4 border-red-600 dark:bg-red-900 dark:border-red-400';
+
+
+                }
+                
+               
+                
+            })
+            ->striped()
             ->query(
 
                 Proyecto::query()
@@ -68,12 +77,34 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
             ->columns([
 
                 Tables\Columns\TextColumn::make('nombre_proyecto')
-                
+                    ->limit(30)
+                    ->wrap()
                     ->searchable(),
+
+                Tables\Columns\TextColumn::make('docentes_proyecto.rol')
+                    ->label('Rol')
+                    ->formatStateUsing(
+                        function (Proyecto $record) {
+                            return $record->docentes_proyecto()
+                                ->where('empleado_id', $this->docente->id)
+                                ->first()->rol;
+                        }
+                    )
+                    ->limit(30)
+                    ->wrap()
+                    ->searchable(),
+
 
                 Tables\Columns\TextColumn::make('Estado.tipoestado.nombre')
                     ->badge()
-                    ->color('info')
+                    ->color(fn (Proyecto $proyecto) => match ($proyecto->estado->tipoestado->nombre) {
+                        'En curso' => 'success',
+                        'Subsanacion' => 'danger',
+                        'Borrador' => 'warning',
+                        'Finalizado' => 'info',
+                        default => 'primary',
+                    })
+                    ->label('Estado')
                     ->separator(',')
                     ->wrap()
                     ->label('Estado'),
@@ -85,11 +116,20 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
             ])
             ->filters([
                 SelectFilter::make('categoria_id')
-                ->label('Categoría')
-                ->multiple()
-                ->relationship('categoria', 'nombre')
-                ->preload(),
-            ])
+                    ->label('Categoría')
+                    ->multiple()
+                    ->relationship('categoria', 'nombre')
+                    ->preload(),
+
+                SelectFilter::make('rol')
+                    ->label('Rol')
+                    ->options([
+                        'Coordinador' => 'Coordinador',
+                        'Integrante' => 'Integrante',
+                    ]),
+
+                    
+            ],  layout: FiltersLayout::AboveContent)
             ->actions([
                 ActionGroup::make([
                     Action::make('Proyecto de Vinculación')
@@ -127,6 +167,8 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                                 ->default('Informe Intermedio'),
 
                                             FileUpload::make('documento_url')
+                                                ->label('Informe Intermedio')
+                                                ->required()
                                                 ->label('Informe Intermedio')
                                                 ->acceptedFileTypes(['application/pdf'])
                                         ])
@@ -182,9 +224,10 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 ->modalHeading('Documentos del Proyecto')
                                 ->modalSubheading('A continuación se muestran los documentos del proyecto y su estado')
                                 ->visible(function (Proyecto $proyecto) {
-                                    return ($proyecto->estado->tipoestado->nombre == 'En curso' &&
+                                    return ((($proyecto->estado->tipoestado->nombre == 'En curso' &&
                                         is_null($proyecto->documento_intermedio())) ||
-                                        $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion';
+                                        $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion')
+                                        && $proyecto->coordinador->id == auth()->user()->empleado->id);
                                 })
                                 ->modalWidth(MaxWidth::SevenExtraLarge),
 
@@ -207,6 +250,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
 
                                             FileUpload::make('documento_url')
                                                 ->label('Informe Final')
+                                                ->required()
                                                 ->acceptedFileTypes(['application/pdf'])
                                         ])
                                         ->addable(false)
@@ -259,11 +303,12 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 ->modalHeading('Documentos del Proyecto')
                                 ->modalSubheading('A continuación se muestran los documentos del proyecto y su estado')
                                 ->visible(function (Proyecto $proyecto) {
-                                    return ($proyecto->estado->tipoestado->nombre == 'En curso' &&
+                                    return ((($proyecto->estado->tipoestado->nombre == 'En curso' &&
                                         $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Aprobado') &&
                                         is_null($proyecto->documento_final())
                                         ||
-                                        $proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion';
+                                        $proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion')
+                                        && $proyecto->coordinador->id == auth()->user()->empleado->id);
                                 })
                                 ->modalWidth(MaxWidth::SevenExtraLarge),
 
@@ -278,70 +323,43 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-document')
                         ->color('warning')
                         ->visible(function (Proyecto $proyecto) {
-                            return $proyecto->estado->tipoestado->nombre == 'Subsanacion' || $proyecto->estado->tipoestado->nombre == 'Borrador';
+                            $condicion = ($proyecto->estado->tipoestado->nombre == 'Subsanacion' ||
+                                $proyecto->estado->tipoestado->nombre == 'Borrador')
+                                && $proyecto->coordinador->id == auth()->user()->empleado->id;
+
+                            return  $condicion;
                         })
                         ->url(fn(Proyecto $record): string => route('editarProyectoVinculacion', $record)),
                     Action::make('constancia')
-                        ->label('Constancia')
+                        ->label('Constancia de Inscripción')
                         ->icon('heroicon-o-document')
                         ->color('info')
                         ->visible(function (Proyecto $proyecto) {
-                            return $proyecto->estado->tipoestado->nombre == 'En curso';
+                            return VerificarConstancia::validarConstanciaEmpleado($proyecto->docentes_proyecto()
+                                ->where('empleado_id', $this->docente->id)
+                                ->first());
                         })
                         ->action(function (Proyecto $proyecto) {
-
-                            // crear un nombre random para el archivo qr
-                            $qrCodeName = Str::random(8) . '.png';
-
-
-                            // Generar la constancia PDF
-                            $qrcodePath = storage_path('app/public/' . $qrCodeName); // Ruta donde se guardará el QR
-
-
-                            // Hashear los IDs
-                            $docenteProyecto = $proyecto->docentes_proyecto()->where('empleado_id', $this->docente->id)->first();
-
-                            $enlace =  url('/verificacion_constancia/' . $docenteProyecto->hash);
-
-                            // Generar el código QR como imagen base64
-                            QrCode::format('png')->size(200)->errorCorrection('H')->generate($enlace, $qrcodePath);
-
-
-                            // Cargar la imagen (logo) y moverla a la carpeta pública
-
-                            // Datos que se pasan a la vista
-                            $data = [
-                                'title' => 'Constancia de Participación',
-                                'proyecto' => $proyecto,
-                                'empleado' => auth()->user()->empleado,
-                                'qrCode' => $qrcodePath,
-                                'enlace' => $enlace,
-                            ];
-
-                            // Generar el PDF desde una vista
-                            $pdf = Pdf::loadView('pdf.constancia', $data)
-                                ->setPaper('letter');
-
-                            // Generar un nombre único para el archivo basándome en los id del empleado en el proyecto
-                            $fileName = 'constancia_' . $proyecto->id . '_' . auth()->user()->empleado->id . '_' . Str::random(8) . '.pdf';
-
-                            // Definir la ruta con el nombre único
-                            $filePath = storage_path('app/public/' . $fileName);
-
-                            // Guardar el PDF en la ruta
-                            $pdf->save($filePath);
-
-
-                            // eliminar el qr despues de generar el pdf
-                            unlink($qrcodePath);
-
-                            // Descargar el PDF y eliminarlo al instante para que no quede en storage
-                            return response()
-                                ->download($filePath, 'Constancia_Participacion.pdf')
-                                ->deleteFileAfterSend(true);
+                            return VerificarConstancia::CrearPdfInscripcion($proyecto->docentes_proyecto()
+                                ->where('empleado_id', $this->docente->id)
+                                ->first());
+                        }),
+                    Action::make('constancia_finalizacion')
+                        ->label('Constancia de Finalización')
+                        ->icon('heroicon-o-document')
+                        ->color('info')
+                        ->visible(function (Proyecto $proyecto) {
+                            return VerificarConstancia::validarConstanciaFinalizacion($proyecto->docentes_proyecto()
+                                ->where('empleado_id', $this->docente->id)
+                                ->first());
+                        })
+                        ->action(function (Proyecto $proyecto) {
+                            return VerificarConstancia::CrearPdfFinalizacion($proyecto->docentes_proyecto()
+                                ->where('empleado_id', $this->docente->id)
+                                ->first());
                         }),
                 ])
-                        
+
                     ->button()
                     ->color('primary')
                     ->label('Acciones'),
@@ -350,7 +368,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
 
                 // ->openUrlInNewTab()
             ])
-        
+
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     //

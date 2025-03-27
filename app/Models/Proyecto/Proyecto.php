@@ -136,7 +136,8 @@ class Proyecto extends Model
         'numero_libro',
         'numero_tomo',
         'numero_folio',
-        'numero_dictamen'
+        'numero_dictamen',
+        'user_director_id'
 
 
     ];
@@ -265,6 +266,11 @@ class Proyecto extends Model
         return $this->coordinador_proyecto->first()->empleado;
     }
 
+    public function director_proyecto()
+    {
+        return $this->belongsTo(Empleado::class, 'user_director_id');
+    }
+
 
     // realacion uno a muchos con el modelo estudiante_proyecto
     public function estudiante_proyecto()
@@ -331,6 +337,26 @@ class Proyecto extends Model
             ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
             ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto');
     }
+
+
+    public function firma_revisor_vinculacion()
+    {
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+            ->where('tipo_cargo_firma.nombre', 'Revisor Vinculacion');
+    }
+
+    public function firma_director_vinculacion()
+    {
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+            ->where('tipo_cargo_firma.nombre', 'Director Vinculacion');
+    }
+
+
+
 
 
     // firma_enlace_vinculacion
@@ -404,7 +430,10 @@ class Proyecto extends Model
             ->first();
     }
 
-
+    public function empleados()
+    {
+        return $this->belongsToMany(Empleado::class, 'empleado_proyecto');
+    }
 
     protected $table = 'proyecto';
 }

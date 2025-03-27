@@ -8,7 +8,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\DatePicker;
 
-
+use Illuminate\Validation\Rule;
 
 
 class TerceraParte
@@ -55,6 +55,27 @@ class TerceraParte
                                     ->with(['actividades']);
                             }
                         )
+
+                        ->rules(function (Get $get) {
+                            $data = $get('../../empleado_proyecto') ?? [];
+                    
+                            // Extraer los IDs de los empleados si existen en cada entrada
+                            $ids = array_map(fn($item) => $item['empleado_id'] ?? null, array_values($data));
+                    
+                            // Filtrar valores nulos
+                            $ids = array_filter($ids);
+                    
+                            // Agregar el ID del usuario logueado
+                            $ids[] = auth()->user()->empleado->id;
+                            $ids = array_values(array_unique($ids)); // Evita duplicados
+                    
+                            // Retornar la regla de validación
+                            return ['array', Rule::in($ids)];
+                        })
+                        ->validationMessages([
+                            'in' => 'El Empleado seleccionado debe ser un integrante del proyecto :)'
+                        ])
+                        ->required()
                         ->preload()
                         ->multiple()
                         ->required()

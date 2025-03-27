@@ -17,6 +17,7 @@ use Filament\Tables\Columns\TextColumn;
 
 use Filament\Tables\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
+use Filament\Tables\Enums\FiltersLayout;
 
 class ListPaises extends Component implements HasForms, HasTable
 {
@@ -39,7 +40,7 @@ class ListPaises extends Component implements HasForms, HasTable
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
-            ])
+            ],  layout: FiltersLayout::AboveContent)
             ->actions([
                 DeleteAction::make(),
                 Tables\Actions\ForceDeleteAction::make(),

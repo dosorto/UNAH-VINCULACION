@@ -231,6 +231,7 @@ return new class extends Migration
             $table->foreignId('firma_id')->nullable();//->constrained('firma');
             $table->foreignId('sello_id')->nullable();
             $table->foreignId('cargo_firma_id')->constrained('cargo_firma');
+            $table->dateTime('fecha_firma')->nullable();
             $table->enum('estado_revision', ['Pendiente', 'Rechazado', 'Aprobado'])->default('Pendiente');
             $table->string('hash')->nullable();
 

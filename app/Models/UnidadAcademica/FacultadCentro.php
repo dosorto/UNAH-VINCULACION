@@ -30,6 +30,9 @@ class FacultadCentro extends Model
     protected $fillable = [
         'id',
         'nombre',
+        'es_facultad',
+        'siglas',
+        'campus_id'
     ];
 
     // relacion muchos a muchos con la carreras
@@ -60,6 +63,21 @@ class FacultadCentro extends Model
             ->where('estado', 1);
     }
 
+    // relacion uno a muchos con campus
+    public function campus()
+    {
+        return $this->belongsTo(Campus::class, 'campus_id');
+    }
+
+    /*
+        relacion uno a muchos con departamentos academicos
+
+    */
+
+    public function departamentosAcademicos()
+    {
+        return $this->hasMany(DepartamentoAcademico::class, 'centro_facultad_id');
+    }
 
     protected $table = 'centro_facultad';
 }
