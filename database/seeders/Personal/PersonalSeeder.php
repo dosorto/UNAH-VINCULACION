@@ -207,7 +207,16 @@ class PersonalSeeder extends Seeder
             'estado' => true
         ]);
 
-       
+        $ingeDorian = Empleado::create([
+            'nombre_completo' => 'DORIAN ADOLFO ORDOÑEZ',
+            'numero_empleado' => '12318',
+            'celular' => '99999999',
+            'user_id' => $userVictor->id,
+            'centro_facultad_id' => 1,
+            'departamento_academico_id' => 1,
+            'categoria_id' => 1
+       ]);
+
         $ingeDorian->firma()->create([
             'tipo' => 'firma',
             'ruta_storage' => 'images/firmas/Firma_Dorian.png',
