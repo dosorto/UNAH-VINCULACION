@@ -14,7 +14,13 @@ class InicioAdmin extends Component
     public $selectedYear = null;
     public $projectsData = [];
     public $projectsDataUser = [];
-    public $totalProjectsYear = 0;
+    public $totalProjectsYear = 0;     // Total para el año seleccionado (admin)
+    public $totalProjectsYearUser = 0;
+
+    // Nuevo: año fijo de inicio
+    public $chartStartYear = 2021;
+    // Nuevo: determina si se muestra el rango completo o solo los últimos 4 años (por defecto se muestran solo los últimos 4)
+    public $chartFullRange = false;
 
     public function mount()
     {
@@ -22,12 +28,17 @@ class InicioAdmin extends Component
         $this->updateChartData();
         $this->updateChartDataUser();
     }
+    // Método para cambiar la opción de rango en la vista (por ejemplo: botón para ver años anteriores)
+    public function toggleChartRange()
+    {
+        $this->chartFullRange = !$this->chartFullRange;
+        $this->updateChartDataUser();
+    }
 
     public function updatedSelectedYear()
     {
         $this->updateChartData();
         $this->updateChartDataUser();
-        $this->dispatch('updateChart', ['data' => array_values($this->projectsData)]);
     }
 
     public function updateChartData()
@@ -49,12 +60,13 @@ class InicioAdmin extends Component
         ], $this->projectsData);
         // Calcula el total de proyectos en el año seleccionado
         $this->totalProjectsYear = array_sum($this->projectsData);
+        // Envía el array para que en el gráfico se utilicen las claves como categorías
         $this->dispatch('updateChart', data: array_values($this->projectsData));
     }
 
     public function updateChartDataUser()
     {
-        // Consulta los proyectos agrupados por año (no se filtra por un único año)
+        // Consulta los proyectos agrupados por año
         $this->projectsDataUser = Proyecto::join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
             ->selectRaw('YEAR(proyecto.created_at) as year, COUNT(*) as count')
             ->where('empleado_proyecto.empleado_id', auth()->user()->empleado->id)
@@ -63,17 +75,25 @@ class InicioAdmin extends Component
             ->pluck('count', 'year')
             ->toArray();
 
-        // (Opcional) Rellena con 0 los años que faltan en un rango determinado, por ejemplo desde 2022 hasta el año actual
-        $start = 2022;
         $end = now()->year;
-        $yearsRange = range($start, $end);
+        if ($this->chartFullRange) {
+            // Muestra desde el año de inicio hasta el año actual
+            $yearsRange = range($this->chartStartYear, $end);
+        } else {
+            // Muestra solo los últimos 4 años, respetando el año de inicio mínimo
+            $startPeriod = max($this->chartStartYear, $end - 3); // 4 años: $end-3, $end-2, $end-1, $end
+            $yearsRange = range($startPeriod, $end);
+        }
+
+        // Rellena con 0 en los años faltantes en el rango determinado
         $this->projectsDataUser = array_replace(array_fill_keys($yearsRange, 0), $this->projectsDataUser);
 
-        // Calcula el total de proyectos del usuario en el rango de años
-        $this->totalProjectsYear = array_sum($this->projectsDataUser);
+        // Calcula el total de proyectos en el rango de años
+        $this->totalProjectsYearUser = array_sum($this->projectsDataUser);
 
         // Envía el array asociativo para que en el gráfico se utilicen las claves como categorías
-        $this->dispatch('updateChart-User', ['data' => $this->projectsDataUser]);
+        $this->dispatch('updateChart-User', dataUser: $this->projectsDataUser);
+
     }
 
     public function getProjectsCountByEmployees()
