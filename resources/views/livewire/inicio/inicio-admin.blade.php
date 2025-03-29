@@ -816,12 +816,11 @@
                         <div class="grid grid-cols-1 items-center border-gray-200 border-t dark:border-gray-700 justify-between">
                             <div class="flex justify-between items-center pt-5">
                                 <button wire:click="toggleChartRange"
-                                    class="inline-flex items-center px-4 py-2 font-medium text-sm rounded-md transition duration-200
-                                        @if($chartFullRange)
-                                            bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-500 dark:hover:bg-blue-600
-                                        @else
-                                            bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200
-                                        @endif">
+                                class="inline-flex items-center px-4 py-2 font-medium text-sm rounded-md transition duration-200
+                                    {{ $chartFullRange 
+                                    ? 'bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-500 dark:hover:bg-blue-600' 
+                                    : 'bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200' }}"
+                                    >
                                     @if($chartFullRange)
                                         Ver últimos 4 años
                                     @else
