@@ -18,7 +18,7 @@ class InicioAdmin extends Component
     public $totalProjectsYearUser = 0;
 
     // Nuevo: año fijo de inicio
-    public $chartStartYear = 2021;
+    public $chartStartYear = 2020;
     // Nuevo: determina si se muestra el rango completo o solo los últimos 4 años (por defecto se muestran solo los últimos 4)
     public $chartFullRange = false;
 
@@ -66,34 +66,51 @@ class InicioAdmin extends Component
 
     public function updateChartDataUser()
     {
-        // Consulta los proyectos agrupados por año
-        $this->projectsDataUser = Proyecto::join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
-            ->selectRaw('YEAR(proyecto.created_at) as year, COUNT(*) as count')
-            ->where('empleado_proyecto.empleado_id', auth()->user()->empleado->id)
-            ->groupBy('year')
-            ->orderBy('year')
-            ->pluck('count', 'year')
-            ->toArray();
+        $userId = auth()->user()->empleado->id;
 
+        // Obtén los proyectos del usuario con sus datos completos
+        $userProjects = Proyecto::join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+            ->where('empleado_proyecto.empleado_id', $userId)
+            ->select('proyecto.*')
+            ->get();
+
+        // Define el rango de años a mostrar según la opción seleccionada
         $end = now()->year;
         if ($this->chartFullRange) {
-            // Muestra desde el año de inicio hasta el año actual
+            // Rango completo: desde el año de inicio hasta el actual
             $yearsRange = range($this->chartStartYear, $end);
         } else {
-            // Muestra solo los últimos 4 años, respetando el año de inicio mínimo
-            $startPeriod = max($this->chartStartYear, $end - 3); // 4 años: $end-3, $end-2, $end-1, $end
+            // Solo los últimos 4 años, respetando el mínimo de chartStartYear
+            $startPeriod = max($this->chartStartYear, $end - 3);
             $yearsRange = range($startPeriod, $end);
         }
 
-        // Rellena con 0 en los años faltantes en el rango determinado
-        $this->projectsDataUser = array_replace(array_fill_keys($yearsRange, 0), $this->projectsDataUser);
+        // Filtra los proyectos que se encuentren en el rango determinado
+        $userProjects = $userProjects->filter(function ($project) use ($yearsRange) {
+            $year = Carbon::parse($project->created_at)->format('Y');
+            return in_array((int) $year, $yearsRange);
+        });
 
-        // Calcula el total de proyectos en el rango de años
-        $this->totalProjectsYearUser = array_sum($this->projectsDataUser);
+        // Agrupa los proyectos por año usando el campo created_at
+        $grouped = $userProjects->groupBy(function ($project) {
+            return Carbon::parse($project->created_at)->format('Y');
+        });
 
-        // Envía el array asociativo para que en el gráfico se utilicen las claves como categorías
+        // Genera la estructura final con 'count' y 'projects'
+        $chartDataUser = [];
+        foreach ($yearsRange as $year) {
+            $projectsOfYear = $grouped->get($year, collect());
+            $chartDataUser[(string) $year] = [
+                'count' => $projectsOfYear->count(),
+                'projects' => $projectsOfYear->pluck('nombre_proyecto')->toArray(),
+            ];
+        }
+
+        $this->projectsDataUser = $chartDataUser;
+        $this->totalProjectsYearUser = array_sum(array_column($chartDataUser, 'count'));
+
+        // Envío de datos al gráfico
         $this->dispatch('updateChart-User', dataUser: $this->projectsDataUser);
-
     }
 
     public function getProjectsCountByEmployees()
