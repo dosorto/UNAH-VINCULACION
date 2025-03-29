@@ -137,6 +137,52 @@ class InicioAdmin extends Component
             ->get();
     }
 
+    /**
+     * Obtiene los proyectos según el nombre del estado.
+     *
+     * @param string $stateName 
+     * @return \Illuminate\Support\Collection
+     */
+    public function getProjectsByState($stateName)
+    {
+        // Obtiene el objeto TipoEstado según el nombre
+        $tipoEstado = TipoEstado::where('nombre', $stateName)->first();
+        if (!$tipoEstado) {
+            return collect();
+        }
+
+        // Consulta los proyectos que tienen asignado ese estado actual
+        return Proyecto::query()
+            ->whereIn('id', function($query) use ($tipoEstado) {
+                $query->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->where('tipo_estado_id', $tipoEstado->id)
+                    ->where('es_actual', true);
+            })->get();
+    }
+
+        /**
+     * Obtiene proyectos cuyos estados se encuentren en la lista de nombres.
+     *
+     * @param array $stateNames
+     * @return \Illuminate\Support\Collection
+     */
+    public function proyectosEnRevisiones(array $stateNames)
+    {
+        $tipoEstadosIds = TipoEstado::whereIn('nombre', $stateNames)->pluck('id');
+
+        return Proyecto::with('tipo_estado')
+            ->whereIn('id', function ($query) use ($tipoEstadosIds) {
+                $query->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->whereIn('tipo_estado_id', $tipoEstadosIds)
+                    ->where('es_actual', true);
+            })
+            ->orderBy('id', 'asc')
+            ->get();
+    }
     public function render()
     {
         // empleados con su numero de proyectos
@@ -270,6 +316,33 @@ class InicioAdmin extends Component
             ->orderBy('year', 'desc')
             ->pluck('year');
 
+            // Obtener proyectos para los estados solicitados:
+        $estados = [
+                'Esperando documento',
+                'Subsanar documento',
+                'Enlace Vinculacion',
+                'Coordinador Proyecto',
+                'Jefe Departamento',
+                'Director Centro',
+                'En revision final',
+                'Aprobado',
+                'Subsanacion',
+                'Rechazado',
+                'Inscrito',
+                'Cancelado',
+                'En revision'
+        ];
+        $enRevision = $this->proyectosEnRevisiones($estados);
+
+        // Obtener proyectos Finalizados
+        $enFinalizados = $this->getProjectsByState('Finalizado');
+
+        // Obtener proyectos en Ejecución (En curso)
+        $enEjecucion = $this->getProjectsByState('En curso');
+
+        // Obtener proyectos en Borrador
+        $enBorrador = $this->getProjectsByState('Borrador');
+
         return view('livewire.inicio.inicio-admin', [
             'empleadosWithCount' => $empleadosWithCount,
             'empleadosVinculacion' => $empleadosVinculacion,
@@ -294,6 +367,15 @@ class InicioAdmin extends Component
             'años' => $años,
             //chartUser
             'chartDataUser' => $this->projectsDataUser,
+            //mostrar las colecciones por estado
+            'enFinalizados' => $enFinalizados,
+            'enFinalizadosCount'  => $enFinalizados->count(),  // Total de proyectos finalizados
+            'enEjecucion' => $enEjecucion,
+            'enEjecucionCount' => $enEjecucion->count(),  // Total de proyectos en ejecución
+            'enBorrador' => $enBorrador,
+            'enBorradorCount' => $enBorrador->count(),  // Total de proyectos en borrador
+            'enRevision' => $enRevision,
+            'enRevisionCount' => $enRevision->count(),  // Total de proyectos en revisión
         ]);
     }
 }
