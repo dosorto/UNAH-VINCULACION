@@ -448,10 +448,10 @@
                                         {{ $proyecto->nombre_proyecto }}
                                     </th>
                                     <td class="px-6 py-4">
-                                        {{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->locale('es')->isoFormat('D [de] MMMM YYYY') }}
+                                        {{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->isoFormat('D [de] MMMM YYYY') }}
                                     </td>
                                     <td class="px-6 py-4">
-                                        {{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->locale('es')->isoFormat('D [de] MMMM YYYY') }}
+                                        {{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->isoFormat('D [de] MMMM YYYY') }}
                                     </td>
                                     <td class="px-6 py-4">
                                         Categoría
@@ -1097,10 +1097,10 @@
                                             {{ $proyecto->nombre_proyecto }}
                                         </th>
                                         <td class="px-6 py-4">
-                                            {{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->locale('es')->isoFormat('D [de] MMMM YYYY') }}
+                                            {{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->isoFormat('D [de] MMMM YYYY') }}
                                         </td>
                                         <td class="px-6 py-4">
-                                            {{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->locale('es')->isoFormat('D [de] MMMM YYYY') }}
+                                            {{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->isoFormat('D [de] MMMM YYYY') }}
                                         </td>
                                         <td class="px-6 py-4">
                                             Categoría
