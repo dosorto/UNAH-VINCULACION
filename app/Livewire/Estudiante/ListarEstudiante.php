@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Estudiante;
 
-use App\Models\Estudiante;
+use App\Models\Estudiante\Estudiante;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Tables;
@@ -25,7 +25,7 @@ class ListarEstudiante extends Component implements HasForms, HasTable
     {
         return $table
             ->heading('Estudiantes y Proyectos')
-            ->query(Estudiante::with(['centroFacultad', 'departamentoAcademico', 'estudianteProyectos.proyecto']))
+            ->query(Estudiante::with(['centroFacultad', 'departamentoAcademico', 'estudianteProyecto.proyecto']))
             ->columns([
                 TextColumn::make('nombre')
                     ->label('Nombres')
@@ -45,11 +45,11 @@ class ListarEstudiante extends Component implements HasForms, HasTable
                 TextColumn::make('departamentoAcademico.nombre')
                     ->label('Departamento Académico'),
 
-                TextColumn::make('estudianteProyectos.proyecto.nombre')
+                TextColumn::make('estudianteProyecto.proyecto.nombre_proyecto')
                     ->label('Proyecto')
                     ->sortable(),
 
-                TextColumn::make('estudianteProyectos.tipo_participacion_estudiante')
+                TextColumn::make('estudianteProyecto.tipo_participacion_estudiante')
                     ->label('Tipo de Participación')
                     ->sortable(),
             ])

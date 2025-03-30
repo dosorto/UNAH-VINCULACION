@@ -1,7 +1,7 @@
 <?php
-
 namespace App\Models\Estudiante;
 
+use App\Models\Proyecto;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -21,25 +21,26 @@ class EstudianteProyecto extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-        ->logOnly(['id', 'estudiante_id', 'proyecto_id', 'tipo_participacion'])
-        ->setDescriptionForEvent(fn (string $eventName) => "El registro {$this->estudiante_id} ha sido {$eventName}");
+            ->logOnly(['id', 'estudiante_id', 'proyecto_id', 'tipo_participacion_estudiante']) 
+            ->setDescriptionForEvent(fn (string $eventName) => "El registro {$this->estudiante_id} ha sido {$eventName}");
     }
-    
+
     protected $fillable = [
         'id',
         'estudiante_id', 
         'proyecto_id', 
         'tipo_participacion_estudiante',
+        'rol',
     ];
 
     public function estudiante()
     {
-        return $this->belongsTo(Estudiante::class, 'estudiante_id',);
+        return $this->belongsTo(Estudiante::class);
     }
 
     public function proyecto()
     {
-        return $this->belongsTo(Proyecto::class, 'proyecto_id',);
+        return $this->belongsTo(Proyecto::class, 'proyecto_id');
     }
 
     protected $table = 'estudiante_proyecto';

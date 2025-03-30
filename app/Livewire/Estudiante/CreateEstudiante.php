@@ -5,9 +5,17 @@ namespace App\Livewire\Estudiante;
 use App\Models\Estudiante\Estudiante;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Estudiante\EstudianteProyecto;
+use App\Models\UnidadAcademica\FacultadCentro;
+use App\Models\UnidadAcademica\DepartamentoAcademico;
+use App\Models\User\Users;
+use app\Models\User;
+// importar modelo role de spatie
+use Spatie\Permission\Models\Role;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
@@ -33,94 +41,114 @@ class CreateEstudiante extends Component implements HasForms
     {
         return $form
             ->schema([
-                Section::make('Usuario')
+                Section::make('Usuario Estudiante')
                     ->schema([
                         TextInput::make('usuario.name')
                             ->label('Nombre de Usuario')
                             ->required()
                             ->unique('users', 'name')
                             ->maxLength(255),
-
                         TextInput::make('usuario.email')
                             ->label('Correo Electrónico')
                             ->required()
                             ->unique('users', 'email')
                             ->email()
                             ->maxLength(255),
+
                     ])
                     ->columnSpanFull(),
 
-                Section::make('Estudiante')
+                    Section::make('Datos de Estudiante')
                     ->schema([
-                        TextInput::make('nombre')
+                        TextInput::make('estudiante.nombre')
                             ->label('Nombres')
                             ->required()
                             ->maxLength(255),
-
-                        TextInput::make('apellido')
+                        TextInput::make('estudiante.apellido')
                             ->label('Apellidos')
                             ->required()
                             ->maxLength(255),
-
-                        TextInput::make('cuenta')
+                        TextInput::make('estudiante.cuenta')
                             ->label('Número de Cuenta')
-                            ->unique('estudiantes', 'cuenta')
+                            ->unique('estudiante', 'cuenta')
                             ->required()
                             ->numeric()
-                            ->maxLength(15),
+                            ->maxLength(255),
 
-                        Select::make('centro_facultad_id')
+                        Select::make('estudiante.centro_facultad_id')
                             ->label('Facultades o Centros')
                             ->searchable()
                             ->live()
-                            ->relationship(name: 'centroFacultad', titleAttribute: 'nombre')
-                            ->afterStateUpdated(fn(Set $set) => $set('departamento_academico_id', null))
-                            ->required()
-                            ->preload(),
-
-                        Select::make('departamento_academico_id')
-                            ->label('Departamentos Académicos')
-                            ->searchable()
-                            ->relationship(
-                                name: 'departamentoAcademico',
-                                titleAttribute: 'nombre',
-                                modifyQueryUsing: fn($query, Get $get) => $query->where('centro_facultad_id', $get('centro_facultad_id'))
-                            )
-                            ->visible(fn(Get $get) => !empty($get('centro_facultad_id')))
+                            ->relationship(name: 'centro_facultad', titleAttribute: 'nombre')
+                            ->afterStateUpdated(function (Set $set) {
+                                $set('estudiante.estudiante.departamento_academico_id', null);
+                            })
                             ->live()
                             ->required()
                             ->preload(),
-                    ])
-                    ->columnSpanFull(),
 
-                Section::make('Asignar Estudiante a Proyecto')
-                    ->description('Asocia este estudiante a uno o varios proyectos.')
+                        Select::make('estudiante.departamento_academico_id')
+                            ->label('Departamentos Académicos')
+                            ->searchable()
+                            ->relationship(
+                                name: 'departamento_academico',
+                                titleAttribute: 'nombre',
+                                modifyQueryUsing: fn($query, Get $get) => $query->where('centro_facultad_id', $get('estudiante.centro_facultad_id'))
+                            )
+                            ->visible(fn(Get $get) => !empty($get('estudiante.centro_facultad_id')))
+                            ->live()
+                            ->required()
+                            ->preload(),
+
+                    ])
+                    ->columns(2),
+
+                    Section::make('Asignar Proyecto a Estudiante')
                     ->schema([
-                        Repeater::make('proyectos')
-                            ->relationship('estudianteProyectos')
-                            ->schema([
-                                Select::make('proyecto_id')
-                                    ->label('Proyecto')
-                                    ->options(Proyecto::pluck('nombre', 'id')->toArray())
-                                    ->required(),
+                       /* Select::make('estudiante_id')
+                            ->label('Estudiante')
+                            ->relationship('estudiante', 'nombre')
+                            ->searchable()
+                            ->preload()
+                            ->required(),*/
 
-                                Select::make('tipo_participacion_estudiante')
-                                    ->label('Tipo de Participación')
-                                    ->options([
-                                        'Servicio Social Universitario' => 'Servicio Social Universitario',
-                                        'Practica Profesional' => 'Práctica Profesional',
-                                        'Voluntariado' => 'Voluntariado',
-                                        'Practica de Clase' => 'Práctica de Clase',
-                                    ])
-                                    ->required(),
+                        Select::make('estudiante.proyecto_id')
+                            ->label('Proyecto')
+                            ->searchable()
+                            ->live()
+                            ->relationship(name: 'proyecto', titleAttribute:'nombre_proyecto')
+                            ->afterStateUpdated(function (Set $set) {
+                                $set('estudiante.estudiante.proyecto_id', null);
+                            })
+                            ->live()
+                            ->preload(),
+
+                        Radio::make('tipo_participacion_estudiante')
+                            ->label('Tipo de Participación')
+                            ->options([
+                                'Servicio Social Universitario' => 'Servicio Social Universitario',
+                                'Practica Profesional' => 'Práctica Profesional',
+                                'Voluntariado' => 'Voluntariado',
+                                'Practica de Clase' => 'Práctica de Clase',
                             ])
-                            ->columns(2)
-                            ->minItems(1)
-                            ->maxItems(5)
+                            ->inline(),
+                        ])    
+                        ->columnSpanFull(),                   
+
+                Section::make('Roles')
+                    ->schema([
+                        CheckboxList::make('roles.roles')
+                            ->label('Roles')
+                        
+                            ->columns(3)
+                            ->options(Role::all()->pluck('name', 'name')->toArray())
+
                     ])
+                    
                     ->columnSpanFull(),
-            ])
-            ->columns(2)
+                    ])
+                
+
             ->statePath('data')
             ->model(Estudiante::class);
     }
@@ -128,34 +156,34 @@ class CreateEstudiante extends Component implements HasForms
     public function create(): void
     {
         $data = $this->form->getState();
-
-        // Crear estudiante
-        $estudiante = Estudiante::create([
-            'nombre' => $data['nombre'],
-            'apellido' => $data['apellido'],
-            'cuenta' => $data['cuenta'],
-            'centro_facultad_id' => $data['centro_facultad_id'],
-            'departamento_academico_id' => $data['departamento_academico_id'],
-        ]);
-
-        // Asignar proyectos
-        $proyectos = collect($data['proyectos'])->mapWithKeys(fn ($p) => [
-            $p['proyecto_id'] => ['tipo_participacion_estudiante' => $p['tipo_participacion_estudiante']]
-        ]);
-
-        $estudiante->proyectos()->sync($proyectos);
-
+    
+        // Crear usuario primero
+        $user = User::create($data['usuario']);
+        $user->assignRole($data['roles']['roles']);
+        $user->active_role_id = $user->roles->first()->id;
+        $user->save();
+    
+        // Crear el estudiante vinculado al usuario
+        $estudianteData = $data['estudiante'];
+        $estudianteData['user_id'] = $user->id; // Asociar el usuario con el estudiante
+    
+        $record = Estudiante::create($estudianteData);
+    
+        // Guardar relaciones adicionales si es necesario
+        $this->form->model($record)->saveRelationships();
+    
+        // Notificación de éxito
         Notification::make()
             ->title('¡Éxito!')
-            ->body('El estudiante fue registrado y asignado a los proyectos correctamente.')
+            ->body('Estudiante creado correctamente.')
             ->success()
             ->send();
-
-        // Limpiar formulario
+    
+        // Limpiar el formulario
         $this->data = [];
-        $this->dispatch('estudianteCreado');
     }
-
+    
+   
     public function render(): View
     {
         return view('livewire.estudiante.create-estudiante');
