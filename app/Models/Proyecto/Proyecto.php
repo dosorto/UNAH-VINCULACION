@@ -2,6 +2,7 @@
 
 namespace App\Models\Proyecto;
 
+use App\Models\Estado\TipoEstado;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -434,6 +435,29 @@ class Proyecto extends Model
     {
         return $this->belongsToMany(Empleado::class, 'empleado_proyecto');
     }
-
+    public function estadoActual()
+    {
+        return $this->hasOne(EstadoProyecto::class, 'estadoable_id')
+                    ->where('estadoable_type', self::class)
+                    ->where('es_actual', true);
+    }
+    
+    /**
+     * Acceso directo al tipo de estado actual mediante un "hasOneThrough".
+     * Alternativamente, si prefieres acceder como $proyecto->tipo_estado, puedes definir:
+     */
+    public function tipo_estado()
+    {
+        return $this->hasOneThrough(
+            TipoEstado::class,      // Modelo final
+            EstadoProyecto::class,  // Modelo intermedio
+            'estadoable_id',        // FK en estado_proyecto que referencia a proyecto
+            'id',                   // Clave primaria de TipoEstado
+            'id',                   // Clave primaria de Proyecto
+            'tipo_estado_id'        // FK en estado_proyecto que referencia a TipoEstado
+        )
+        ->where('estado_proyecto.estadoable_type', self::class)
+        ->where('estado_proyecto.es_actual', true);
+    }
     protected $table = 'proyecto';
 }
