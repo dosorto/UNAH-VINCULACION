@@ -113,9 +113,19 @@ class InicioAdmin extends Component
         $this->dispatch('updateChart-User', dataUser: $this->projectsDataUser);
     }
 
+    // propiedad para el término de búsqueda
+    public $employeeSearch = '';
+
+    // Modifica el método para filtrar por empleado (por ejemplo, filtrando por "nombre_completo")
     public function getProjectsCountByEmployees()
     {
-        return Empleado::withCount('proyectos')->paginate(4);
+        $query = Empleado::query();
+
+        if ($this->employeeSearch) {
+            $query->where('nombre_completo', 'like', '%' . $this->employeeSearch . '%');
+        }
+
+        return $query->withCount('proyectos')->paginate(4);
     }
 
     public function empleadosVinculacion()
@@ -333,7 +343,7 @@ class InicioAdmin extends Component
             ->orderBy('year', 'desc')
             ->pluck('year');
 
-            // Obtener proyectos para los estados solicitados:
+        // Obtener proyectos para los estados solicitados:
         $estados = [
                 'Esperando documento',
                 'Subsanar documento',
@@ -349,6 +359,8 @@ class InicioAdmin extends Component
                 'Cancelado',
                 'En revision'
         ];
+
+        // Obtener proyectos en Revisión
         $enRevision = $this->proyectosEnRevisiones($estados);
 
         // Obtener proyectos Finalizados

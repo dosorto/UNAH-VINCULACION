@@ -14,8 +14,7 @@
                                 <div class="relative max-w-sm mx-auto lg:mx-0 mb-2 lg:mb-0">
                                     <h3 class="text-3xl font-bold text-white">Bienvenido a su Dashboard
                                     </h3>
-                                    <p class="font-medium text-blue-200">Aquí podrás darle seguimiento a tus
-                                        proyectos.</p>
+                                    <p class="font-medium text-blue-200">Aquí podrá gestionar los proyectos.</p>
                                 </div>
                             </div>
                         </div>
@@ -158,7 +157,7 @@
 
             <!-- grafico proyectos en trimestres -->
             <div class="w-full bg-white border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm dark:bg-gray-800 p-4 md:p-6">
-                <div class="flex justify-between border-gray-200 border-b dark:border-gray-700 pb-3">
+                <div class="flex justify-between border-gray-200 border-b dark:border-gray-700 pb-3 mb-7">
                     <dl>
                         <dt class="text-base font-normal text-gray-500 dark:text-gray-400 pb-1">Proyectos en el año {{ $selectedYear }}</dt>
                         <dd class="leading-none text-3xl font-bold text-gray-900 dark:text-white">{{ $totalProjectsYear }}</dd>
@@ -357,9 +356,36 @@
             <div>
                 <div
                     class="h-auto py-6 px-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                    <h4 class="text-lg text-gray-900 dark:text-white font-semibold mb-6">Proyectos por empleados
+                    <h4 class="text-lg text-gray-900 dark:text-white font-semibold mb-2">Proyectos por empleados
                     </h4>
-
+                    <div class="relative w-full max-w-md sm:max-w-xs mb-2">
+                        <!-- Icono de búsqueda -->
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                          <svg
+                            class="w-5 h-5 text-gray-500 dark:text-gray-400"
+                            aria-hidden="true"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              stroke="currentColor"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
+                            />
+                          </svg>
+                        </div>
+                      
+                        <!-- Input de búsqueda -->
+                        <input
+                          type="text"
+                          wire:model.live="employeeSearch"
+                          placeholder="Buscar empleado..."
+                          class="block w-full p-2.5 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                        />
+                      </div>
                     @forelse($empleadosWithCount as $empleado)
                         <a class="flex p-4 items-center justify-between rounded-xl transition duration-150 hover:bg-gray-100 dark:hover:bg-gray-700"
                             href="#">
@@ -422,10 +448,10 @@
                                         {{ $proyecto->nombre_proyecto }}
                                     </th>
                                     <td class="px-6 py-4">
-                                        {{ $proyecto->fecha_inicio }}
+                                        {{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->locale('es')->isoFormat('D [de] MMMM YYYY') }}
                                     </td>
                                     <td class="px-6 py-4">
-                                        {{ $proyecto->fecha_finalizacion }}
+                                        {{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->locale('es')->isoFormat('D [de] MMMM YYYY') }}
                                     </td>
                                     <td class="px-6 py-4">
                                         Categoría
@@ -448,6 +474,7 @@
     </div>
      <!-- Panel de estados de proyectos -->
      <div class="container mx-auto py-6">
+        <h4 class="text-lg py-2 text-gray-900 dark:text-white font-semibold">Panel de estados de proyectos</h4>
         <div class="flex flex-wrap -mx-3 -mb-8">
             <div class="w-full md:w-1/2 lg:w-1/4 px-3 mb-6">
                 <div class="max-w-md mx-auto h-full px-4 pt-6 pb-24 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
@@ -799,7 +826,7 @@
                     </div>
                     <!-- grafico proyectos en trimestres -->
                     <div class="w-full bg-white border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm dark:bg-gray-800 p-4 md:p-6">
-                        <div class="flex justify-between border-gray-200 border-b dark:border-gray-700 pb-3">
+                        <div class="flex justify-between border-gray-200 border-b dark:border-gray-700 pb-3 mb-2">
                             <dl>
                                 <dt class="text-base font-normal text-gray-500 dark:text-gray-400 pb-1">Mis proyectos</dt>
                                 <dd class="leading-none text-3xl font-bold text-gray-900 dark:text-white">{{ $totalProjectsYearUser }}</dd>
@@ -896,7 +923,7 @@
                                             </span>
 
                                             <!-- Lista de proyectos -->
-                                            <ul class="list-disc list-inside dark:text-gray-300 text-gray-800 text-xs">
+                                            <ul class="list-disc list-inside text-wrap dark:text-gray-300 text-gray-800 text-xs">
                                                 ${projectList}
                                             </ul>
                                         </div>
@@ -972,7 +999,7 @@
                 class="grid grid-cols-1 md:grid-cols-2 md:col-span-2 sm:md:col-span-2 lg:md:col-span-1 sm:grid-cols-1 lg:grid-cols-1 gap-6 self-start">
                 <div>
                     <div
-                        class="py-6 px-4 sm:px-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                        class="py-6 px-5 sm:px-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
                         <h4 class="text-lg text-gray-900 dark:text-white font-semibold mb-6">Mis actividades recientes </h4>
                         @forelse($activitiesUser as $activity)
                             <a class="flex p-4 items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition duration-150"
@@ -1005,12 +1032,11 @@
                 <!-- tabla proyectos por empleados -->
                 <div>
                     <div
-                        class="h-auto py-6 px-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                        <h4 class="text-lg text-gray-900 dark:text-white font-semibold mb-6">Proyectos por empleados
+                        class="h-auto py-4 px-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                        <h4 class="text-lg text-gray-900 dark:text-white font-semibold mb-4">Proyectos por empleados
                         </h4>
-
                         @forelse($empleadosWithCount as $empleado)
-                            <a class="flex p-4 items-center justify-between rounded-xl transition duration-150 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            <a class="flex p-5 items-center justify-between rounded-xl transition duration-150 hover:bg-gray-100 dark:hover:bg-gray-700"
                                 href="#">
                                 <div class="flex items-center pr-2">
                                     <div
@@ -1071,10 +1097,10 @@
                                             {{ $proyecto->nombre_proyecto }}
                                         </th>
                                         <td class="px-6 py-4">
-                                            {{ $proyecto->fecha_inicio }}
+                                            {{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->locale('es')->isoFormat('D [de] MMMM YYYY') }}
                                         </td>
                                         <td class="px-6 py-4">
-                                            {{ $proyecto->fecha_finalizacion }}
+                                            {{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->locale('es')->isoFormat('D [de] MMMM YYYY') }}
                                         </td>
                                         <td class="px-6 py-4">
                                             Categoría
