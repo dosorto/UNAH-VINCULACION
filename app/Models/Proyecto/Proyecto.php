@@ -118,7 +118,7 @@ class Proyecto extends Model
         'modalidad_id',
         // 'municipio_id',
         // 'departamento_id',
-        'ciudad_id',
+        //'ciudad_id',
         'aldea',
         'resumen',
         'objetivo_general',

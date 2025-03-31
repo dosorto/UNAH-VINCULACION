@@ -44,9 +44,11 @@ class Estudiante extends Model
     }
     public function proyectos()
     {
-        return $this->belongsToMany(Proyecto::class, 'estudiante_proyecto', 'estudiante_id', 'proyecto_id');
- 
+        return $this->belongsToMany(Proyecto::class, 'estudiante_proyecto')
+                    ->withPivot('tipo_participacion') 
+                    ->withTimestamps();
     }
+
 
     public function proyecto()
     {

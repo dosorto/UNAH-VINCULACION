@@ -1,7 +1,7 @@
 <?php
 namespace App\Models\Estudiante;
 
-use App\Models\Proyecto;
+use App\Models\Proyecto\Proyecto;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -14,14 +14,14 @@ class EstudianteProyecto extends Model
     use SoftDeletes;
     use LogsActivity;
 
-    protected static $logAttributes = ['id', 'estudiante_id', 'proyecto_id', 'tipo_participacion_estudiante'];
+    protected static $logAttributes = ['id', 'estudiante_id', 'proyecto_id', 'tipo_participacion_id'];
 
     protected static $logName = 'EstudianteProyecto';
 
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['id', 'estudiante_id', 'proyecto_id', 'tipo_participacion_estudiante']) 
+            ->logOnly(['id', 'estudiante_id', 'proyecto_id', 'tipo_participacion_id']) 
             ->setDescriptionForEvent(fn (string $eventName) => "El registro {$this->estudiante_id} ha sido {$eventName}");
     }
 
@@ -29,7 +29,7 @@ class EstudianteProyecto extends Model
         'id',
         'estudiante_id', 
         'proyecto_id', 
-        'tipo_participacion_estudiante',
+        'tipo_participacion_id',
         'rol',
     ];
 

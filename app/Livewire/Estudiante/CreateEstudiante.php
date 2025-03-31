@@ -5,6 +5,7 @@ namespace App\Livewire\Estudiante;
 use App\Models\Estudiante\Estudiante;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Estudiante\EstudianteProyecto;
+use App\Models\Estudiante\TipoParticipacion;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\User\Users;
@@ -125,12 +126,7 @@ class CreateEstudiante extends Component implements HasForms
 
                         Radio::make('tipo_participacion_estudiante')
                             ->label('Tipo de Participación')
-                            ->options([
-                                'Servicio Social Universitario' => 'Servicio Social Universitario',
-                                'Practica Profesional' => 'Práctica Profesional',
-                                'Voluntariado' => 'Voluntariado',
-                                'Practica de Clase' => 'Práctica de Clase',
-                            ])
+                            ->options(TipoParticipacion::all()->pluck('nombre', 'nombre')->toArray())
                             ->inline(),
                         ])    
                         ->columnSpanFull(),                   
@@ -156,33 +152,41 @@ class CreateEstudiante extends Component implements HasForms
     public function create(): void
     {
         $data = $this->form->getState();
+
     
-        // Crear usuario primero
         $user = User::create($data['usuario']);
         $user->assignRole($data['roles']['roles']);
         $user->active_role_id = $user->roles->first()->id;
         $user->save();
+
     
-        // Crear el estudiante vinculado al usuario
         $estudianteData = $data['estudiante'];
-        $estudianteData['user_id'] = $user->id; // Asociar el usuario con el estudiante
-    
-        $record = Estudiante::create($estudianteData);
-    
-        // Guardar relaciones adicionales si es necesario
-        $this->form->model($record)->saveRelationships();
-    
+        $estudianteData['user_id'] = $user->id;
+
+        $estudiante = Estudiante::create($estudianteData);
+
+        
+        $this->form->model($estudiante)->saveRelationships();
+
+        if (!empty($data['estudiante']['proyecto_id']) && !empty($data['tipo_participacion_estudiante'])) {
+            EstudianteProyecto::create([
+                'estudiante_id' => $estudiante->id,
+                'proyecto_id' => $data['estudiante']['proyecto_id'],
+                'tipo_participacion_id' => TipoParticipacion::where('nombre', $data['tipo_participacion_estudiante'])->first()->id,
+            ]);
+        }
+
         // Notificación de éxito
         Notification::make()
             ->title('¡Éxito!')
-            ->body('Estudiante creado correctamente.')
+            ->body('Estudiante y proyecto asignado correctamente.')
             ->success()
             ->send();
-    
+
         // Limpiar el formulario
         $this->data = [];
     }
-    
+
    
     public function render(): View
     {

@@ -32,6 +32,34 @@ class ProyectoSeeder extends Seeder
             ]);
         });
 
+        $proyectos = [
+            [
+                'nombre_proyecto' => 'Proyecto de Educación Comunitaria',
+                'modalidad_id' => Modalidad::firstOrCreate(['nombre' => 'Multidisciplinar'])->id,
+                'resumen' => 'Proyecto para mejorar la educación en comunidades rurales',
+                'objetivo_general' => 'Mejorar los índices de educación en comunidades marginadas',
+                'fecha_inicio' => '2023-01-15',
+                'fecha_finalizacion' => '2023-12-15',
+                'modalidad_ejecucion' => 'Bimodal',
+                'fecha_registro' => now(),
+            ],
+
+            [
+                'nombre_proyecto' => 'Proyecto de Salud Preventiva',
+                'modalidad_id' => Modalidad::firstOrCreate(['nombre' => 'Multidisciplinar'])->id, 
+                'resumen' => 'Iniciativa para promover la salud preventiva en zonas urbanas',
+                'objetivo_general' => 'Reducir la incidencia de enfermedades prevenibles',
+                'fecha_inicio' => '2023-03-01',
+                'fecha_finalizacion' => '2023-11-30',
+                'modalidad_ejecucion' => 'Presencial',
+                'fecha_registro' => now(),
+            ],
+        ];
+    
+        foreach ($proyectos as $proyecto) {
+            Proyecto::create($proyecto);
+        }
+
 
         // crear los tipos de estado para el proyecto
         $estadosProyecto = collect(config('nexo.estados_proyecto'));
