@@ -11,29 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // tablas de modulo de estado
-        Schema::create('tipo_estado', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre');
-            $table->softDeletes();
-            $table->timestamps();
-        });
-
-        // estado del proyecto por empleado usando fecha
-        Schema::create('estado_proyecto', function (Blueprint $table) {
-            $table->id();
-            
-            $table->foreignId('empleado_id')->constrained('empleado');
-            $table->foreignId('tipo_estado_id')->constrained('tipo_estado');
-            $table->date('fecha');
-            $table->text('comentario')->nullable();
-            $table->boolean('es_actual')->default(true);
-
-            $table->morphs('estadoable');
-            $table->softDeletes();
-            $table->timestamps();
-        });
-
+      
     }
 
     /**
