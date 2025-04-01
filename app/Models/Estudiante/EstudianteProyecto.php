@@ -30,12 +30,18 @@ class EstudianteProyecto extends Model
         'estudiante_id', 
         'proyecto_id', 
         'tipo_participacion_id',
-        'rol',
+      
     ];
+
+
+    public function tipoParticipacion()
+    {
+        return $this->belongsTo(TipoParticipacion::class, 'tipo_participacion_id');
+    }
 
     public function estudiante()
     {
-        return $this->belongsTo(Estudiante::class);
+        return $this->belongsTo(Estudiante::class, 'estudiante_id');
     }
 
     public function proyecto()
@@ -43,5 +49,5 @@ class EstudianteProyecto extends Model
         return $this->belongsTo(Proyecto::class, 'proyecto_id');
     }
 
-    protected $table = 'estudiante_proyecto';
+        protected $table = 'estudiante_proyecto';
 }

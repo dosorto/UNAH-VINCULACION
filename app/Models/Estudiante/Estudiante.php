@@ -42,17 +42,11 @@ class Estudiante extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
-    public function proyectos()
-    {
-        return $this->belongsToMany(Proyecto::class, 'estudiante_proyecto')
-                    ->withPivot('tipo_participacion') 
-                    ->withTimestamps();
-    }
-
+    
 
     public function proyecto()
     {
-        return $this->hasMany(Proyecto::class, 'proyecto_id');
+        return $this->hasMany(Proyecto::class, 'id');
     }
 
     public function proyectosEstudiante()
@@ -69,7 +63,28 @@ class Estudiante extends Model
     {
         return $this->belongsTo(DepartamentoAcademico::class);
     }
+    
+    public function proyectos()
+    {
+        return $this->belongsToMany(Proyecto::class, 'estudiante_proyecto', 'estudiante_id', 'proyecto_id')
+                    ->using(EstudianteProyecto::class)
+                    ->withPivot('tipo_participacion_id')
+                    ->withTimestamps();
+    }
 
+    public function tipoParticipaciones()
+    {
+        return $this->belongsToMany(TipoParticipacion::class, 'estudiante_proyecto', 'estudiante_id', 'tipo_participacion_id')
+                    ->withPivot('proyecto_id');
+    }
+
+
+    public function participacionesProyectos()
+    {
+        return $this->hasMany(EstudianteProyecto::class, 'estudiante_id')
+                    ->with(['proyecto', 'tipoParticipacion']);
+    }
+    
     public function centro_facultad()
     {
         return $this->belongsTo(FacultadCentro::class, 'centro_facultad_id');
