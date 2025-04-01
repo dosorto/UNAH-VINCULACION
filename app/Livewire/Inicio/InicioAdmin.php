@@ -210,6 +210,69 @@ class InicioAdmin extends Component
             ->orderBy('id', 'asc')
             ->get();
     }
+
+/**
+ * Obtiene los proyectos del usuario logueado según el nombre del estado.
+ *
+ * @param string $stateName 
+ * @return \Illuminate\Support\Collection
+ */
+    public function getProjectsByStateUser($stateName)
+    {
+        $userId = auth()->user()->empleado->id;
+
+        // Obtiene el objeto TipoEstado según el nombre
+        $tipoEstado = TipoEstado::where('nombre', $stateName)->first();
+        if (!$tipoEstado) {
+            return collect();
+        }
+
+        // Consulta los proyectos que tienen asignado ese estado actual y pertenecen al usuario logueado
+        return Proyecto::query()
+            ->whereIn('id', function ($query) use ($tipoEstado) {
+                $query->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->where('tipo_estado_id', $tipoEstado->id)
+                    ->where('es_actual', true);
+            })
+            ->whereIn('id', function ($query) use ($userId) {
+                $query->select('proyecto_id')
+                    ->from('empleado_proyecto')
+                    ->where('empleado_id', $userId);
+            })
+            ->get();
+    }
+
+    /**
+     * Obtiene proyectos del usuario logueado cuyos estados se encuentren en la lista de nombres.
+     *
+     * @param array $stateNames
+     * @return \Illuminate\Support\Collection
+     */
+    public function proyectosEnRevisionesUser(array $stateNames)
+    {
+        $userId = auth()->user()->empleado->id;
+
+        $tipoEstadosIds = TipoEstado::whereIn('nombre', $stateNames)->pluck('id');
+
+        return Proyecto::with('tipo_estado')
+            ->whereIn('id', function ($query) use ($tipoEstadosIds) {
+                $query->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->whereIn('tipo_estado_id', $tipoEstadosIds)
+                    ->where('es_actual', true);
+            })
+            ->whereIn('id', function ($query) use ($userId) {
+                $query->select('proyecto_id')
+                    ->from('empleado_proyecto')
+                    ->where('empleado_id', $userId);
+            })
+            ->orderBy('id', 'asc')
+            ->get();
+    }
+
     public function render()
     {
         // empleados con su numero de proyectos
@@ -344,7 +407,7 @@ class InicioAdmin extends Component
             ->pluck('year');
 
         // Obtener proyectos para los estados solicitados:
-        $estados = [
+        $estadosUser = [
                 'Esperando documento',
                 'Subsanar documento',
                 'Enlace Vinculacion',
@@ -360,6 +423,22 @@ class InicioAdmin extends Component
                 'En revision'
         ];
 
+        $estados = [
+            'Esperando documento',
+            'Subsanar documento',
+            'Enlace Vinculacion',
+            'Coordinador Proyecto',
+            'Jefe Departamento',
+            'Director Centro',
+            'En revision final',
+            'Aprobado',
+            'Subsanacion',
+            'Rechazado',
+            'Inscrito',
+            'Cancelado',
+            'En revision'
+        ];
+
         // Obtener proyectos en Revisión
         $enRevision = $this->proyectosEnRevisiones($estados);
 
@@ -371,6 +450,19 @@ class InicioAdmin extends Component
 
         // Obtener proyectos en Borrador
         $enBorrador = $this->getProjectsByState('Borrador');
+
+        //Panel Proyecto User
+         // Obtener proyectos en Revisión
+         $enRevisionUser = $this->proyectosEnRevisionesUser($estadosUser);
+
+         // Obtener proyectos Finalizados
+         $enFinalizadosUser = $this->getProjectsByStateUser('Finalizado');
+ 
+         // Obtener proyectos en Ejecución (En curso)
+         $enEjecucionUser = $this->getProjectsByStateUser('En curso');
+ 
+         // Obtener proyectos en Borrador
+         $enBorradorUser = $this->getProjectsByStateUser('Borrador');
 
         return view('livewire.inicio.inicio-admin', [
             'empleadosWithCount' => $empleadosWithCount,
@@ -405,6 +497,15 @@ class InicioAdmin extends Component
             'enBorradorCount' => $enBorrador->count(),  // Total de proyectos en borrador
             'enRevision' => $enRevision,
             'enRevisionCount' => $enRevision->count(),  // Total de proyectos en revisión
+            //mostrar panel de estados para user
+            'enFinalizadosUser' => $enFinalizadosUser,
+            'enFinalizadosUserCount'  => $enFinalizadosUser->count(),  // Total de proyectos finalizados
+            'enEjecucionUser' => $enEjecucionUser,
+            'enEjecucionUserCount' => $enEjecucionUser->count(),  // Total de proyectos en ejecución
+            'enBorradorUser' => $enBorradorUser,
+            'enBorradorUserCount' => $enBorradorUser->count(),  // Total de proyectos en borrador
+            'enRevisionUser' => $enRevisionUser,
+            'enRevisionUserCount' => $enRevisionUser->count(),  // Total de proyectos en revisión
         ]);
     }
 }

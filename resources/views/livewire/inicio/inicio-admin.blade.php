@@ -200,7 +200,7 @@
                     // Data inicial pasada desde el componente
                     let chartData = @json($chartData);
                     const maxValue = Math.max(...chartData);
-                    const yAxisMax = maxValue + 2;  // Ajusta el margen según tus necesidades
+                    const yAxisMax = maxValue + 3;  // Ajusta el margen según tus necesidades
                     // Configuración del gráfico
                     const options = {
                         series: [
@@ -473,7 +473,7 @@
         </div>
     </div>
      <!-- Panel de estados de proyectos -->
-     <div class="container mx-auto py-6">
+    <div class="container mx-auto py-6">
         <h4 class="text-lg py-2 text-gray-900 dark:text-white font-semibold">Panel de estados de proyectos</h4>
         <div class="flex flex-wrap -mx-3 -mb-8">
             <div class="w-full md:w-1/2 lg:w-1/4 px-3 mb-6">
@@ -664,7 +664,7 @@
             </div>
         </div>
     </div>
-    </div>
+</div>
 @endif
 
 
@@ -879,7 +879,7 @@
                         const seriesData = categories.map(year => chartDataUser[year]?.count || 0);
 
                         const maxValue = Math.max(...seriesData, 0);
-                        const yAxisMax = maxValue + 2;
+                        const yAxisMax = maxValue + 3;
 
                         const options = {
                             series: [{ name: "Proyectos", color: "#3B82F6", data: seriesData }],
@@ -967,7 +967,7 @@
                             const newCategories = Object.keys(newData);
                             const newSeriesData = newCategories.map(year => newData[year]?.count || 0);
                             const maxValueNew = Math.max(...newSeriesData, 0);
-                            const yAxisMaxNew = maxValueNew + 2;
+                            const yAxisMaxNew = maxValueNew + 3;
 
                             if (window.projectsChart) {
                                 window.projectsChart.updateOptions({
@@ -1117,6 +1117,197 @@
                                 @endforelse
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container mx-auto py-6">
+            <h4 class="text-lg py-2 text-gray-900 dark:text-white font-semibold">Panel de estados de proyectos</h4>
+            <div class="flex flex-wrap -mx-3 -mb-8">
+                <div class="w-full md:w-1/2 lg:w-1/4 px-3 mb-6">
+                    <div class="max-w-md mx-auto h-full px-4 pt-6 pb-24 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center">
+                                <h3 class="text-lg text-gray-900 dark:text-white font-semibold mr-2">Borrador</h3>
+                                <span class="inline-flex items-center justify-center w-6 h-7 rounded-full bg-gray-200 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400">{{$enBorradorUserCount}}</span>
+                            </div>
+                        </div>
+                
+                        <!-- Línea de progreso -->
+                        <div class="h-1 w-full mb-4 rounded-full bg-purple-600 dark:bg-purple-400"></div>
+                
+                        <!-- Tarjeta de tarea -->
+                        @forelse($enBorradorUser as $proyecto)
+                        <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200" href="#">
+                            <h4 class="text-gray-900 dark:text-white font-semibold leading-6 mb-1">{{$proyecto->nombre_proyecto}}</h4>
+                            <div class="flex items-center mb-4">
+                                <span class="h-2 w-2 mr-1 bg-purple-500 dark:bg-purple-400 rounded-full"></span>
+                                <span class="text-xs font-medium text-purple-500 dark:text-purple-400">Borrador</span>
+                            </div>
+                          <!--<p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10"></p>
+                            <div class="pt-4 border-t border-gray-300 dark:border-gray-600">
+                                <div class="flex flex-wrap items-center justify-between -m-2">
+                                    <div class="w-auto p-2">
+                                        <div class="flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md">
+                                            <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                                                <path fill-rule="evenodd" d="M5 5a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1h1a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1h1a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1 2 2 0 0 1 2 2v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a2 2 0 0 1 2-2ZM3 19v-7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Zm6.01-6a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm2 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm6 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm-10 4a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm6 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm2 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z" clip-rule="evenodd"/>
+                                              </svg>
+                                              
+                                            <span class="ml-2 text-xs font-medium text-gray-700 dark:text-gray-300">21 de marzo</span>
+                                        </div>
+                                    </div>
+                                    <div class="w-auto p-2">
+                                        <div class="flex h-full items-center">
+                                            <img class="w-7 h-7 rounded-full object-cover" src="tracker-assets/images/avatar-women-2-circle-border.png" alt="" />
+                                            <img class="w-7 h-7 -ml-3 rounded-full object-cover" src="tracker-assets/images/avatar-women-3-circle-border.png" alt="" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>-->
+                        </a>
+                        @empty
+                            <p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10">No hay proyectos en borrador</p>
+                        @endforelse
+                    </div>
+                </div>
+                
+                <div class="w-full md:w-1/2 lg:w-1/4 px-3 mb-6">
+                    <div class="max-w-md mx-auto h-full px-4 pt-6 pb-24 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center">
+                                <h3 class="text-lg text-gray-900 dark:text-white font-semibold mr-2">En revisión</h3>
+                                <span class="inline-flex items-center justify-center w-6 h-7 rounded-full bg-gray-200 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400">{{$enRevisionUserCount}}</span>
+                            </div>
+                        </div>
+                
+                        <!-- Línea de progreso -->
+                        <div class="h-1 w-full mb-4 rounded-full bg-yellow-500 dark:bg-yellow-400"></div>
+                
+                        <!-- Tarjeta de tarea -->
+                       @forelse($enRevisionUser as $proyecto)
+                        <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200" href="#">
+                            <h4 class="text-gray-900 dark:text-white font-semibold leading-6 mb-1">{{$proyecto->nombre_proyecto}}</h4>
+                            <div class="flex items-center mb-4">
+                                <span class="h-2 w-2 mr-1 bg-yellow-500 dark:bg-yellow-400 rounded-full"></span>
+                                <span class="text-xs font-medium text-yellow-500 dark:text-ywllow-400">{{$proyecto->tipo_estado->nombre}}</span>
+                            </div>
+                            <!--<p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10">Comentario de retroalimentación para esta subsanacion</p>
+                            <div class="pt-4 border-t border-gray-300 dark:border-gray-600">
+                                <div class="flex flex-wrap items-center justify-between -m-2">
+                                    <div class="w-auto p-2">
+                                        <div class="flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md">
+                                            <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                                                <path fill-rule="evenodd" d="M5 5a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1h1a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1h1a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1 2 2 0 0 1 2 2v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a2 2 0 0 1 2-2ZM3 19v-7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Zm6.01-6a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm2 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm6 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm-10 4a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm6 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm2 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z" clip-rule="evenodd"/>
+                                              </svg>
+                                            <span class="ml-2 text-xs font-medium text-gray-700 dark:text-gray-300">21 de marzo</span>
+                                        </div>
+                                    </div>
+                                    <div class="w-auto p-2">
+                                        <div class="flex h-full items-center">
+                                            <img class="w-7 h-7 rounded-full object-cover" src="tracker-assets/images/avatar-women-3-circle-border.png" alt="" />
+                                            <img class="w-7 h-7 -ml-3 rounded-full object-cover" src="tracker-assets/images/avatar-women-circle-border.png" alt="" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>-->
+                        </a>
+                        @empty
+                            <p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10">Esperando proyectos</p>
+                        @endforelse
+                    </div>
+                </div>
+                
+    
+                <div class="w-full md:w-1/2 lg:w-1/4 px-3 mb-6">
+                    <div class="max-w-md mx-auto h-full px-4 pt-6 pb-24 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center">
+                                <h3 class="text-lg text-gray-900 dark:text-white font-semibold mr-2">En curso</h3>
+                                <span class="inline-flex items-center justify-center w-6 h-7 rounded-full bg-gray-200 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400">{{$enEjecucionUserCount}}</span>
+                            </div>
+                        </div>
+                
+                        <!-- Línea de progreso -->
+                        <div class="h-1 w-full mb-4 rounded-full bg-blue-500 dark:bg-blue-400"></div>
+                
+                         <!-- Tarjeta de tarea -->
+                         @forelse($enEjecucionUser as $proyecto)
+                         <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200" href="#">
+                             <h4 class="text-gray-900 dark:text-white font-semibold leading-6 mb-1">{{$proyecto->nombre_proyecto}}</h4>
+                             <div class="flex items-center mb-4">
+                                 <span class="h-2 w-2 mr-1 bg-blue-500 dark:bg-blue-400 rounded-full"></span>
+                                 <span class="text-xs font-medium text-blue-500 dark:text-blue-400">{{$proyecto->tipo_estado->nombre}}</span>
+                             </div>
+                             <!--<p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10">This is an example task that can be used within a Kanban system.</p>
+                             <div class="pt-4 border-t border-gray-300 dark:border-gray-600">
+                                 <div class="flex flex-wrap items-center justify-between -m-2">
+                                     <div class="w-auto p-2">
+                                         <div class="flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md">
+                                             <svg width="14" height="14" viewbox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                 <path d="M11.0001 2.33337H3.00008C2.2637 2.33337..." stroke="currentColor"></path>
+                                             </svg>
+                                             <span class="ml-2 text-xs font-medium text-gray-700 dark:text-gray-300">Jul 03</span>
+                                         </div>
+                                     </div>
+                                     <div class="w-auto p-2">
+                                         <div class="flex h-full items-center">
+                                             <img class="w-7 h-7 rounded-full object-cover" src="tracker-assets/images/avatar-women-3-circle-border.png" alt="" />
+                                             <img class="w-7 h-7 -ml-3 rounded-full object-cover" src="tracker-assets/images/avatar-women-circle-border.png" alt="" />
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>-->
+                         </a>
+                        @empty
+                            <p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10">Esperando proyectos</p>
+                        @endforelse
+                    </div>
+                </div>
+                
+    
+                <div class="w-full md:w-1/2 lg:w-1/4 px-3 mb-6">
+                    <div class="max-w-md mx-auto h-full px-4 pt-6 pb-24 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center">
+                                <h3 class="text-lg text-gray-900 dark:text-white font-semibold mr-2">Finalizados</h3>
+                                <span class="inline-flex items-center justify-center w-6 h-7 rounded-full bg-gray-200 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400">{{$enFinalizadosUserCount}}</span>
+                            </div>
+                        </div>
+                
+                        <!-- Línea de progreso -->
+                        <div class="h-1 w-full mb-4 rounded-full bg-green-500 dark:bg-green-400"></div>
+                
+                         <!-- Tarjeta de tarea -->
+                         @forelse($enFinalizadosUser as $proyecto)
+                         <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200" href="#">
+                             <h4 class="text-gray-900 dark:text-white font-semibold leading-6 mb-1">{{$proyecto->nombre_proyecto}}</h4>
+                             <div class="flex items-center mb-4">
+                                 <span class="h-2 w-2 mr-1 bg-green-500 dark:bg-green-400 rounded-full"></span>
+                                 <span class="text-xs font-medium text-green-500 dark:text-green-400">{{$proyecto->tipo_estado->nombre}}</span>
+                             </div>
+                            <!-- <p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10">This is an example task that can be used within a Kanban system.</p>
+                             <div class="pt-4 border-t border-gray-300 dark:border-gray-600">
+                                 <div class="flex flex-wrap items-center justify-between -m-2">
+                                     <div class="w-auto p-2">
+                                         <div class="flex items-center p-2 bg-gray-200 dark:bg-gray-700 rounded-md">
+                                             <svg width="14" height="14" viewbox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                 <path d="M11.0001 2.33337H3.00008C2.2637 2.33337..." stroke="currentColor"></path>
+                                             </svg>
+                                             <span class="ml-2 text-xs font-medium text-gray-700 dark:text-gray-300">Jul 03</span>
+                                         </div>
+                                     </div>
+                                     <div class="w-auto p-2">
+                                         <div class="flex h-full items-center">
+                                             <img class="w-7 h-7 rounded-full object-cover" src="tracker-assets/images/avatar-women-3-circle-border.png" alt="" />
+                                             <img class="w-7 h-7 -ml-3 rounded-full object-cover" src="tracker-assets/images/avatar-women-circle-border.png" alt="" />
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>-->
+                         </a>
+                        @empty
+                            <p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10">Esperando proyectos</p>
+                        @endforelse
                     </div>
                 </div>
             </div>
