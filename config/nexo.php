@@ -88,6 +88,13 @@ return [
                 'estado' => 'Jefe Departamento',
                 'estado_siguiente' => 'En revision',
             ],
+            [
+                'descripcion' => 'Documento_intermedio',
+                'cargo' => 'Revisor Vinculacion',
+                'estado' => 'En revision',
+                'estado_siguiente' => 'Aprobado',
+            ],
+
         ],
         'revisores_documento_final' => [
             [
@@ -108,7 +115,13 @@ return [
                 'estado' => 'Director centro',
                 'estado_siguiente' => 'En revision',
 
-            ]
+            ],
+            [
+                'descripcion' => 'Documento_final',
+                'cargo' => 'Revisor Vinculacion',
+                'estado' => 'En revision',
+                'estado_siguiente' => 'Aprobado',
+            ],
         ]
     ]
 ];
