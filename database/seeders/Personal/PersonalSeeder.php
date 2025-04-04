@@ -49,24 +49,6 @@ class PersonalSeeder extends Seeder
             'descripcion' => 'Titular 5 de la universidad'
         ]);
 
-
-        $userVictor = User::create([
-            'name' => 'Victor',
-            'email' => 'victor@unah.edu.hn',
-            'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
-            'active_role_id' => 2
-        ])->assignRole('docente');
-
-
-        $userJessica = User::create([
-            'name' => 'Jessica',
-            'email' => 'jessica@unah.edu.hn',
-            'password' => bcrypt('123'),
-        ])->assignRole('docente')
-            ->givePermissionTo('configuracion-admin-mi-perfil')
-            ->givePermissionTo('docente-cambiar-datos-personales');
-       
-
         $user = User::create([
             'name' => 'NOTIFICACIONES  POA',
             'email' => 'notificacionespoa@unah.edu.hn',
@@ -85,44 +67,6 @@ class PersonalSeeder extends Seeder
             'centro_facultad_id' => 4,
             'departamento_academico_id' => 9,
             'categoria_id' => 1
-        ]);
-
-    
-
-
-        $ingeJessica = Empleado::create([
-            'nombre_completo' => 'JESSICA NOHELY AVILA CRUZ',
-            'numero_empleado' => '12310',
-            'celular' => '99999999',
-            'user_id' => $userJessica->id,
-            'centro_facultad_id' => 1,
-            'departamento_academico_id' => 1,
-            'categoria_id' => 1
-        ]);
-
-
-
-
-        $licVictor = Empleado::create([
-            'nombre_completo' => 'VICTOR NAHUN REYES NAVAS',
-            'numero_empleado' => '12317',
-            'celular' => '99999999',
-            'user_id' => $userVictor->id,
-            'centro_facultad_id' => 1,
-            'departamento_academico_id' => 1,
-            'categoria_id' => 1
-        ]);
-
-        $licVictor->firma()->create([
-            'tipo' => 'firma',
-            'ruta_storage' => 'images/firmas/Firma_Oscar.png',
-            'estado' => true
-        ]);
-
-        $licVictor->firma()->create([
-            'tipo' => 'sello',
-            'ruta_storage' => 'images/firmas/Sello_Victor.png',
-            'estado' => true
         ]);
 
         $adminUser->firma()->create([

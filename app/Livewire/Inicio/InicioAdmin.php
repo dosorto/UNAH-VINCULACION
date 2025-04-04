@@ -24,17 +24,23 @@ class InicioAdmin extends Component
         $this->perPage += 5;
     }
 
-    // Nuevo: año fijo de inicio
-    public $chartStartYear = 2020;
-    // Nuevo: determina si se muestra el rango completo o solo los últimos 4 años (por defecto se muestran solo los últimos 4)
-    public $chartFullRange = false;
-
     public function mount()
     {
         $this->selectedYear = now()->year;
         $this->updateChartData();
         $this->updateChartDataUser();
+        // si el usuario autenticado tiene el permiso docente-cambiar-datos-personales
+        // redirigirlo a la pagina de configuracion de su perfil
+        if (auth()->user()->can('docente-cambiar-datos-personales')) {
+            return redirect()->route('mi_perfil');
+        };
     }
+
+    // año fijo de inicio
+    public $chartStartYear = 2020;
+    // Nuevo: determina si se muestra el rango completo o solo los últimos 4 años (por defecto se muestran solo los últimos 4)
+    public $chartFullRange = false;
+
     // Método para cambiar la opción de rango en la vista (por ejemplo: botón para ver años anteriores)
     public function toggleChartRange()
     {

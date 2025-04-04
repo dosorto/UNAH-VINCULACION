@@ -518,7 +518,9 @@
                         </div>-->
                     </a>
                     @empty
-                        <p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10">No hay proyectos en borrador</p>
+                     <!--   <div class="flex items-center justify-center h-full">
+                            <p class="text-gray-500 dark:text-gray-400">No hay proyectos en borrador</p>
+                        </div>-->
                     @endforelse
                     <div class="flex flex-col bg-white rounded-t-lg dark:bg-gray-800 p-5 sm:flex-row flex-wrap space-y-4 sm:space-y-0 items-center justify-between">
                         @if ($enBorrador->hasMorePages())
@@ -601,7 +603,7 @@
                         </div>-->
                     </a>
                     @empty
-                        <p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10">Esperando proyectos</p>
+                       <!--  <p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10">Esperando proyectos</p>-->
                     @endforelse
                     <div class="flex flex-col bg-white rounded-t-lg dark:bg-gray-800 p-5 sm:flex-row flex-wrap space-y-4 sm:space-y-0 items-center justify-between">
                         @if ($enRevision->hasMorePages())
@@ -769,7 +771,7 @@
                          </div>-->
                      </a>
                     @empty
-                        <p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10">Esperando proyectos</p>
+                        <!-- <p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10">Esperando proyectos</p> -->
                     @endforelse
                     <div class="flex flex-col bg-white rounded-t-lg dark:bg-gray-800 p-5 sm:flex-row flex-wrap space-y-4 sm:space-y-0 items-center justify-between">
                         @if ($enFinalizados->hasMorePages())

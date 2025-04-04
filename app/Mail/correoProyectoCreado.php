@@ -28,8 +28,10 @@ class correoProyectoCreado extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address($this->auth()->user()->email, $this->auth()->user()->empleado->nombre_completo),
-            subject: $this->auth()->user()->empleado->nombre_completo . ' Creó un nuevo proyecto',
+            from: new Address('notificacionespoa@unah.edu.hn', 'Notificaciones POA'),
+            subject: 'Nuevo Proyecto Creado',
+           // from: new Address($this->auth()->user()->email, $this->auth()->user()->empleado->nombre_completo),
+           // subject: $this->auth()->user()->empleado->nombre_completo . ' Creó un nuevo proyecto',
         );
     }
 

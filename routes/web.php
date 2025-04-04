@@ -1,9 +1,11 @@
 <?php
 
+use App\Jobs\SendEmailJob;
 use App\Livewire\User\Roles;
 use App\Livewire\User\Users;
 use App\Livewire\Login\Login;
 use App\Livewire\Inicio\InicioAdmin;
+use App\Mail\correoProyectoCreado;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
@@ -206,6 +208,12 @@ Route::middleware(['auth'])->group(function () {
             ->name('mi_perfil_estudiante')
             ->middleware('can:estudiante-cambiar-datos-personales');
     });
+
+    Route::get('pruebacorreo', function () {
+        Mail::to('acxel.aplicano@unah.hn')
+            ->send(new correoProyectoCreado());
+        return 'Correo enviado';
+    })->name('pruebacorreo');
 
     // rutas agrupadas para el modulo de Proyectos
     Route::middleware(['auth'])->group(function () {
