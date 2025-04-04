@@ -175,8 +175,9 @@ class Empleado extends Model
             ) {
                 return $firma->id;
             } else if (
-                $firma->firmable_type != Proyecto::class &&
-                ($firma->cargo_firma->tipo_estado_id == $firma->documento_proyecto->estado->tipoestado->id)
+               ( $firma->firmable_type != Proyecto::class &&
+                ($firma->cargo_firma->tipo_estado_id == $firma->documento_proyecto->estado->tipoestado->id))
+                && ($firma->cargo_firma->tipoCargoFirma->nombre !== "Revisor Vinculacion")
             ) {
                 return $firma->id;
             }
