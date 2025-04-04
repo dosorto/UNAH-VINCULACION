@@ -159,6 +159,17 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 'fecha' => now(),
                 'comentario' => 'Proyecto creado',
             ]);
+            // Enviar el correo al usuario que creó el proyecto
+            // Obtener el nombre del estado al que cambió el proyecto
+            $estado = TipoEstado::find($firmaP->cargo_firma->estado_siguiente_id);
+            $estadoNombre = $estado ? $estado->nombre : 'Desconocido';
+
+            // Enviar el correo al usuario que creó el proyecto
+            $creadorEmail = auth()->user()->email; //  usuario autenticado es quien crea el proyecto
+            $cambiadoPorNombre = auth()->user()->empleado->nombre_completo;  // Nombre del usuario que cambió el estado
+            $cambiadoPorCorreo = auth()->user()->email;  // Nombre del usuario que cambió el estado	
+            SendEmailJob::dispatch($creadorEmail, 'correoEstado', $estadoNombre, $cambiadoPorCorreo, $cambiadoPorNombre);
+            
         } catch (\Exception $e) {
             // Eliminar el proyecto en caso de error al agregar el estado
             $record->delete();
@@ -171,13 +182,13 @@ class CreateProyectoVinculacion extends Component implements HasForms
         }
 
         try {
-            // Intentar enviar correos a los empleados
+            // Enviar correos a los empleados Participantes en firma
             foreach ($record->integrantes as $empleado) {
                 // Accede al usuario de cada empleado y a su correo
                 $usuario = $empleado->user;  // Asumiendo que cada empleado tiene un usuario relacionado
                 if ($usuario && $usuario->email) {
                     // Enviar el correo al email del usuario
-                    SendEmailJob::dispatch($usuario->email, 'CorreoParticipacion');
+                    SendEmailJob::dispatch($usuario->email, 'correoProyectoCreado');
                 }
             }
         } catch (\Exception $e) {
@@ -189,7 +200,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 ->send();
             return;
         }
-
+            
         // Notificación de éxito si todo se completó correctamente
         Notification::make()
             ->title('¡Éxito!')
