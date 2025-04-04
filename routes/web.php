@@ -5,6 +5,7 @@ use App\Livewire\User\Users;
 use App\Livewire\Login\Login;
 use App\Livewire\Inicio\InicioAdmin;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Demografia\Pais\CreatePais;
 use App\Livewire\Demografia\Pais\ListPaises;

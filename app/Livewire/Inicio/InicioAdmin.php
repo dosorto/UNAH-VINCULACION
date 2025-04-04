@@ -11,11 +11,18 @@ use Spatie\Activitylog\Models\Activity;
 
 class InicioAdmin extends Component
 {
+    public $perPage = 5;
     public $selectedYear = null;
     public $projectsData = [];
     public $projectsDataUser = [];
     public $totalProjectsYear = 0;     // Total para el año seleccionado (admin)
     public $totalProjectsYearUser = 0;
+
+    // Método para cargar más proyectos en la tabla
+    public function loadMore()
+    {
+        $this->perPage += 5;
+    }
 
     // Nuevo: año fijo de inicio
     public $chartStartYear = 2020;
@@ -165,35 +172,38 @@ class InicioAdmin extends Component
     }
 
     /**
-     * Obtiene los proyectos según el nombre del estado.
+     * Obtiene los proyectos según el nombre del estado y los pagina.
      *
      * @param string $stateName 
-     * @return \Illuminate\Support\Collection
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function getProjectsByState($stateName)
     {
         // Obtiene el objeto TipoEstado según el nombre
         $tipoEstado = TipoEstado::where('nombre', $stateName)->first();
         if (!$tipoEstado) {
-            return collect();
+            // Retornamos un paginador de colección vacía
+            return collect()->paginate($this->perPage);
         }
 
-        // Consulta los proyectos que tienen asignado ese estado actual
+        // Consulta los proyectos que tienen asignado ese estado actual y los pagina
         return Proyecto::query()
-            ->whereIn('id', function($query) use ($tipoEstado) {
+            ->whereIn('id', function ($query) use ($tipoEstado) {
                 $query->select('estadoable_id')
                     ->from('estado_proyecto')
                     ->where('estadoable_type', Proyecto::class)
                     ->where('tipo_estado_id', $tipoEstado->id)
                     ->where('es_actual', true);
-            })->get();
+            })
+            ->orderBy('id', 'asc')
+            ->paginate($this->perPage);
     }
 
-        /**
-     * Obtiene proyectos cuyos estados se encuentren en la lista de nombres.
+    /**
+     * Obtiene proyectos cuyos estados se encuentren en la lista de nombres y los pagina.
      *
      * @param array $stateNames
-     * @return \Illuminate\Support\Collection
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function proyectosEnRevisiones(array $stateNames)
     {
@@ -208,15 +218,15 @@ class InicioAdmin extends Component
                     ->where('es_actual', true);
             })
             ->orderBy('id', 'asc')
-            ->get();
+            ->paginate($this->perPage);
     }
 
-/**
- * Obtiene los proyectos del usuario logueado según el nombre del estado.
- *
- * @param string $stateName 
- * @return \Illuminate\Support\Collection
- */
+    /**
+     * Obtiene los proyectos del usuario logueado según el nombre del estado.
+     *
+     * @param string $stateName 
+     * @return \Illuminate\Support\Collection
+     */
     public function getProjectsByStateUser($stateName)
     {
         $userId = auth()->user()->empleado->id;
@@ -398,7 +408,8 @@ class InicioAdmin extends Component
             ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
             ->where('empleado_proyecto.empleado_id', $userId)
             ->distinct()
-            ->get();
+            ->paginate(10);
+            
 
         //obtener lista de años en los cuales hay proyectos creados
         $años = Proyecto::selectRaw('YEAR(created_at) as year')
@@ -406,7 +417,7 @@ class InicioAdmin extends Component
             ->orderBy('year', 'desc')
             ->pluck('year');
 
-        // Obtener proyectos para los estados solicitados:
+        // cObtener proyectos para los estados solicitados:
         $estadosUser = [
                 'Esperando documento',
                 'Subsanar documento',
