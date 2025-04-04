@@ -84,7 +84,7 @@ class PersonalSeeder extends Seeder
             'user_id' => $user->id,
             'centro_facultad_id' => 4,
             'departamento_academico_id' => 9,
-            'categoria_id' => 1
+            'categoria_id' => 2
         ]);
 
     
