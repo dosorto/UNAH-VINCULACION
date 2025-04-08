@@ -49,6 +49,7 @@ use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
+use Illuminate\Database\Eloquent\Model;
 
 class ListEmpleado extends Component implements HasForms, HasTable
 {
@@ -210,7 +211,7 @@ class ListEmpleado extends Component implements HasForms, HasTable
                             ->columns(2),
                         Section::make('Roles')
                             ->schema([
-                                CheckboxList::make('technologies')
+                                CheckboxList::make('Roles')
                                     ->label('Roles')
                                     ->columns(3)
                                     ->relationship(name: 'roles', titleAttribute: 'name')
@@ -220,6 +221,9 @@ class ListEmpleado extends Component implements HasForms, HasTable
                             ->columnSpanFull(),
                         //
                     ])
+                    ->after(function(Model $model){
+                       dd($model);
+                    })
             ])
             ->headerActions([
                 ExportAction::make()->exports([

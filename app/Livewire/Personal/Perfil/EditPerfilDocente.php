@@ -30,6 +30,8 @@ use Filament\Forms\Set;
 // importar modelo role de spatie
 use Spatie\Permission\Models\Role;
 
+
+
 class EditPerfilDocente extends Component implements HasForms, HasActions
 {
     use InteractsWithForms;
@@ -52,8 +54,18 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
     {
         return $form
             ->schema([
+
                 Section::make('Perfil de Empleado')
                     ->schema([
+
+                        Select::make('tipo_empleado')
+                            ->label("Selecciona que tipo de empleado eres")
+                            ->live()
+                            ->required()
+                            ->options([
+                                'administrativo' => 'Administrativo',
+                                'docente' => 'Docente',
+                            ]),
                         // Otros campos del formulario
                         TextInput::make('nombre_completo')
                             ->label('Nombre Completo')
@@ -96,6 +108,7 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
                                 modifyQueryUsing: fn($query, Get $get) => $query->where('centro_facultad_id', $get('centro_facultad_id'))
                             )
                             ->visible(fn(Get $get) => !empty($get('centro_facultad_id')))
+                            ->visible(fn(Get $get) => $get('tipo_empleado') == 'docente')
                             ->live()
                             ->required()
                             ->preload(),
@@ -221,11 +234,14 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
 
 
         $this->record->update($data);
-        $this->record->user->assignRole('docente')->save();
-        $this->record->user->active_role_id =  Role::where('name', 'docente')->first()->id;
-        
-        
-        
+
+        if ($this->record->tipo_empleado == 'docente') {
+            $this->record->user->assignRole('docente')->save();
+            $this->record->user->active_role_id =  Role::where('name', 'docente')->first()->id;
+        }
+
+
+
         // quitar el permiso de 'configuracion-admin-mi-perfil al usuario
         $this->record->user->revokePermissionTo('cambiar-datos-personales');
         $this->record->user->save();
@@ -244,6 +260,4 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
             'record' => $this->record,
         ]);
     }
-
-
 }

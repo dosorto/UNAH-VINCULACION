@@ -73,9 +73,9 @@ class MicrosoftController extends Controller
                 } else if (substr(strrchr($user->email, "@"), 1) == 'unah.hn') {
                     // crear un perfil de estudiante
                     $user->estudiante()->updateOrCreate(
-                        ['numero_cuenta' => $numero,],
+                        ['cuenta' => $numero,],
                         [
-                            'nombre_completo' => $user->name,
+                            'nombre' => $user->name,
                         ]
                     );
                 }

@@ -158,9 +158,11 @@ class PrimeraParte
                             ]);
                             $user->estudiante()->create([
                                 'user_id' => $user->id,
-                                'correo' => $data['email'],
-                                'cuenta' => $data['numero_cuenta'],
+                                'nombre' => $data['nombre'],
+                                'apellido' => $data['apellido'],
+                                'cuenta' => $data['cuenta'],
                                 'centro_facultad_id' => $data['centro_facultad_id'],
+                                'carrera_id' => $data['carrera_id'],
 
 
                             ]);

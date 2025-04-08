@@ -11,10 +11,14 @@ use Filament\Forms\Components\TextInput;
 
 class FormularioEstudiante
 {
-    public static function form(): array
+    public static function form(Bool $Showemail = true): array
     {
         return [
-            TextInput::make('email')->label('Correo electrónico Académico del Estudiante')->required()->unique('users', 'email')->email()->required(),
+            TextInput::make('email')
+                ->label('Correo electrónico Académico del Estudiante')
+                ->required()
+                ->visible($Showemail)
+                ->unique('users', 'email')->email()->required(),
             TextInput::make('nombre')->label('Nombre ')->required(),
             TextInput::make('apellido')->label('Apellidos del Estudiante')->required(),
             Select::make('centro_facultad_id')
@@ -29,7 +33,12 @@ class FormularioEstudiante
                 ->required()
                 ->options(Carrera::all()->pluck('nombre', 'id'))
                 ->preload(),
-            TextInput::make('numero_cuenta')->maxLength(255)->label('Número de cuenta del Estudiante')->required()->unique('estudiante', 'cuenta')->numeric()->required(),
+            TextInput::make('cuenta')
+                ->maxLength(255)->label('Número de cuenta del Estudiante')
+                ->required()
+                ->unique('estudiante', 'cuenta', ignoreRecord: true)
+                ->numeric()
+                ->required(),
         ];
     }
 }
