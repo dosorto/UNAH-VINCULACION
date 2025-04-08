@@ -31,7 +31,9 @@ class Estudiante extends Model
         'user_id',
         'nombre', 
         'apellido', 
-        'cuenta'
+        'cuenta',
+        'carrera_id',
+        'centro_facultad_id'
     ];
 
     public function user()

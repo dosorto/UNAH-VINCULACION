@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Personal\Perfil;
 
+use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioEstudiante;
 use App\Models\Estudiante\Estudiante;
 use Livewire\Component;
 
@@ -54,34 +55,7 @@ class EditPerfilEstudiante    extends Component implements HasForms, HasActions
             ->schema([
                 Section::make('Perfil de Empleado')
                     ->schema([
-                        TextInput::make('email')
-                            ->label('Correo electrónico Académico del Estudiante')
-                            ->required()
-                            ->unique('users', 'email')
-                            ->email()
-                            ->required(),
-                        TextInput::make('nombre')
-                            ->label('Nombre ')
-                            ->required(),
-                        TextInput::make('apellido')
-                            ->label('Apellidos del Estudiante')
-                            ->required(),
-                        Select::make('centro_facultad_id')
-                            ->label('Facultad o Centro')
-                            ->searchable()
-                            ->options(
-                                FacultadCentro::all()->pluck('nombre', 'id')
-                            )
-                            ->preload(),
-                        TextInput::make('numero_cuenta')
-                            ->maxLength(255)
-                            ->label('Número de cuenta del Estudiante')
-                            ->required()
-                            ->unique('estudiante', 'cuenta')
-                            ->numeric()
-                            ->required()
-
-
+                       FormularioEstudiante::form()
                     ])
                     // deshabilitar si el usuario no tiene el permiso de 'docente-cambiar-datos-personales'
                     ->disabled(!auth()->user()->can('cambiar-datos-personales')),
