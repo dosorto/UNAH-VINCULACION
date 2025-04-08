@@ -15,7 +15,7 @@ use App\Livewire\Configuracion\Logs\ListLogs;
 use App\Livewire\Demografia\Aldea\ListAldeas;
 use App\Livewire\Auth\ResetPasswordController;
 use App\Livewire\Demografia\Aldea\CreateAldea;
-use App\Livewire\Personal\Empleado\EditPerfil;
+use App\Livewire\Personal\Perfil\EditPerfil;
 use App\Livewire\Auth\ForgotPasswordController;
 use App\Livewire\Demografia\Ciudad\ListaCiudad;
 use App\Livewire\Personal\Permiso\ListPermisos;

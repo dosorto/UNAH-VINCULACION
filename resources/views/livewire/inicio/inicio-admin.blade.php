@@ -7,6 +7,6 @@
 
     @if (auth()->user()->hasPermissionTo('ver-dashboard-docente') &&
             auth()->user()->activeRole->hasPermissionTo('ver-dashboard-docente'))
-              @livewire('inicio.dashboards.dasboard-docente')
+        @livewire('inicio.dashboards.dasboard-docente')
     @endif
 </div>

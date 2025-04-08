@@ -52,7 +52,7 @@ class PermisosSeeder extends Seeder
         // modulo para el administrador de centro / facultad
         $permission18 = Permission::create(['name' => 'admin_centro_facultad-proyectos']);
 
-        $permission19 = Permission::create(['name' => 'docente-cambiar-datos-personales']);
+        $permission19 = Permission::create(['name' => 'cambiar-datos-personales']);
 
         $permission20 = Permission::create(['name' => 'unidad-academica-admin-campus']);
         $permission21 = Permission::create(['name' => 'unidad-academica-admin-carrera']);
@@ -61,7 +61,6 @@ class PermisosSeeder extends Seeder
         $permission24 = Permission::create(['name' => 'global-set-role']);
 
         $permission25 = Permission::create(['name' => 'estudiante-inicio-inicio']);
-        $permission26 = Permission::create(['name' => 'estudiante-cambiar-datos-personales']);
 
         // apariencia-admin-slides
         $permission27 = Permission::create(['name' => 'apariencia-admin-slides']);
@@ -80,6 +79,10 @@ class PermisosSeeder extends Seeder
         $roleDocente = Role::create(['name' => 'docente']);
         $roleAdminCentroFacultad = Role::create(['name' => 'Director/Enlace']);
         $rolEstudiante = Role::create(['name' => 'estudiante']);
+
+  //      $rolEstudiante->givePermissionTo([
+//
+       // ]);
 
         $role->givePermissionTo([
             'demografia-admin-pais',

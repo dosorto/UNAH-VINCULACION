@@ -15,10 +15,8 @@ class InicioAdmin extends Component
 
     public function mount()
     {
-
-        if (auth()->user()->can('docente-cambiar-datos-personales')) {
+        if (auth()->user()->can('cambiar-datos-personales'))
             return redirect()->route('mi_perfil');
-        };
     }
 
 

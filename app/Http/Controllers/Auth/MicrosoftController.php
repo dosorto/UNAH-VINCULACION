@@ -70,9 +70,6 @@ class MicrosoftController extends Controller
 
                         ]
                     );
-
-                    $user->givePermissionTo('configuracion-admin-mi-perfil')
-                        ->givePermissionTo('docente-cambiar-datos-personales');
                 } else if (substr(strrchr($user->email, "@"), 1) == 'unah.hn') {
                     // crear un perfil de estudiante
                     $user->estudiante()->updateOrCreate(
@@ -82,6 +79,9 @@ class MicrosoftController extends Controller
                         ]
                     );
                 }
+
+                $user->givePermissionTo('configuracion-admin-mi-perfil')
+                    ->givePermissionTo('cambiar-datos-personales');
             } else {
                 $user = $testUser;
             }
