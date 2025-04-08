@@ -39,38 +39,48 @@ class MicrosoftController extends Controller
             // buscar el user en la base de datos  por medio del id de microsoft
             $testUser = User::where('microsoft_id', $user->id)->first();
 
+
+
+
+
             // Si el usuario no existe, crearlo con los datos de Microsoft y ademas es un empleado 
             if (!$testUser) {
 
                 $numero = $user->employeeId;
 
 
-                $user = User::create([
-                    'name' => $user->displayName,
-                    'email' => $user->email,
-                    'microsoft_id' => $user->id,
-                    'given_name' => $user->givenName,
-                    'surname' => $user->surname,
-                ]);
+
+                $user = User::updateOrCreate(
+                    ['email' => $user->email],
+                    [
+                        'name' => $user->displayName,
+                        'microsoft_id' => $user->id,
+                        'given_name' => $user->givenName,
+                        'surname' => $user->surname,
+                    ]
+                );
 
                 // su correo electronico termina en '@unah.edu.hn'
                 if (substr(strrchr($user->email, "@"), 1) == 'unah.edu.hn') {
                     // crear un perfil de empleado
-                    $user->empleado()->create([
-                        'nombre_completo' => $user->name,
-                        'numero_empleado' => $numero,
-                    ]);
+                    $user->empleado()->updateOrCreate(
+                        ['numero_empleado' => $numero,],
+                        [
+                            'nombre_completo' => $user->name,
+
+                        ]
+                    );
 
                     $user->givePermissionTo('configuracion-admin-mi-perfil')
                         ->givePermissionTo('docente-cambiar-datos-personales');
-    
                 } else if (substr(strrchr($user->email, "@"), 1) == 'unah.hn') {
                     // crear un perfil de estudiante
-                    $user->estudiante()->create([
-                        'nombre_completo' => $user->name,
-                        'numero_cuenta' => $numero,
-                    ]);
-    
+                    $user->estudiante()->updateOrCreate(
+                        ['numero_cuenta' => $numero,],
+                        [
+                            'nombre_completo' => $user->name,
+                        ]
+                    );
                 }
             } else {
                 $user = $testUser;
