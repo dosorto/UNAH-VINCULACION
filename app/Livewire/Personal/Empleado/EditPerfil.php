@@ -54,6 +54,14 @@ class EditPerfil extends Component implements HasForms, HasActions
                 Section::make('Perfil de Empleado')
                     ->schema([
                         // Otros campos del formulario
+                        Select::make('tipo_empleado')
+                            ->label("Tipo de empleado")
+                            ->live()
+                            ->required()
+                            ->options([
+                                'administrativo' => 'Administrativo',
+                                'docente' => 'Docente',
+                            ]),
                         TextInput::make('nombre_completo')
                             ->label('Nombre Completo')
                             ->required()

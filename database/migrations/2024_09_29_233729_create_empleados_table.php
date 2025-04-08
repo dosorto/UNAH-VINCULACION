@@ -28,7 +28,7 @@ return new class extends Migration
             $table->string('celular')->nullable(); // Número de celular
 
             // 
-            $table->enum('tipo_empleado', ['docente', 'administrativo'])->nullable()->default(null); // Tipo de empleado (docente o administrativo)
+            $table->enum('tipo_empleado', ['docente', 'administrativo'])->default("docente"); // Tipo de empleado (docente o administrativo)
 
             $table->unsignedBigInteger('categoria_id')->nullable(); // Identificador de la categoría
             $table->unsignedBigInteger('user_id'); // Llave foránea para la tabla users

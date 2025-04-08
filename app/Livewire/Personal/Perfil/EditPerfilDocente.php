@@ -58,14 +58,7 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
                 Section::make('Perfil de Empleado')
                     ->schema([
 
-                        Select::make('tipo_empleado')
-                            ->label("Selecciona que tipo de empleado eres")
-                            ->live()
-                            ->required()
-                            ->options([
-                                'administrativo' => 'Administrativo',
-                                'docente' => 'Docente',
-                            ]),
+
                         // Otros campos del formulario
                         TextInput::make('nombre_completo')
                             ->label('Nombre Completo')
@@ -108,7 +101,6 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
                                 modifyQueryUsing: fn($query, Get $get) => $query->where('centro_facultad_id', $get('centro_facultad_id'))
                             )
                             ->visible(fn(Get $get) => !empty($get('centro_facultad_id')))
-                            ->visible(fn(Get $get) => $get('tipo_empleado') == 'docente')
                             ->live()
                             ->required()
                             ->preload(),
@@ -235,10 +227,9 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
 
         $this->record->update($data);
 
-        if ($this->record->tipo_empleado == 'docente') {
-            $this->record->user->assignRole('docente')->save();
-            $this->record->user->active_role_id =  Role::where('name', 'docente')->first()->id;
-        }
+        $this->record->user->assignRole('docente')->save();
+        $this->record->user->active_role_id =  Role::where('name', 'docente')->first()->id;
+
 
 
 

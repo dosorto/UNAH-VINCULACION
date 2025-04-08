@@ -69,6 +69,14 @@ class CreateEmpleado extends Component implements HasForms
 
                 Section::make('Empleado')
                     ->schema([
+                        Select::make('tipo_empleado')
+                            ->label("Tipo de empleado")
+                            ->live()
+                            ->required()
+                            ->options([
+                                'administrativo' => 'Administrativo',
+                                'docente' => 'Docente',
+                            ]),
                         TextInput::make('empleado.nombre_completo')
                             ->label('Nombre Completo')
                             ->required()
@@ -116,12 +124,12 @@ class CreateEmpleado extends Component implements HasForms
                     ->schema([
                         CheckboxList::make('roles.roles')
                             ->label('Roles')
-                        
+
                             ->columns(3)
                             ->options(Role::all()->pluck('name', 'name')->toArray())
 
                     ])
-                    
+
                     ->columnSpanFull(),
             ])
 

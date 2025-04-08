@@ -151,12 +151,7 @@ class CarreraList extends Component implements HasForms, HasTable
                             )
                             ->preload(),
                         // ...
-                    ])
-                    ->using(function (array $data, string $model): Model {
-                        $carrera = $model::create($data);
-                        $carrera->facultadCentros()->sync($data['facultad_centro_id']);
-                        return  $carrera;
-                    }),
+                            ]),
                 DeleteAction::make(),
                 RestoreAction::make(),
             ])
