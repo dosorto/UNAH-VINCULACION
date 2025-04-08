@@ -69,7 +69,7 @@ class ListEmpleado extends Component implements HasForms, HasTable
                     ->with('empleado.centro_facultad')
                     ->leftJoin('empleado', 'users.id', '=', 'empleado.user_id')
                     ->select('users.*')
-                 
+
             )
             ->columns([
 
@@ -80,10 +80,10 @@ class ListEmpleado extends Component implements HasForms, HasTable
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('empleado.nombre_completo')
-                ->searchable(isIndividual: true)
+                    ->searchable(isIndividual: true)
                     ->label('Nombre Completo'),
                 Tables\Columns\TextColumn::make('empleado.numero_empleado')
-                ->searchable(isIndividual: true)
+                    ->searchable(isIndividual: true)
                     ->label('Número de Empleado'),
                 Tables\Columns\TextColumn::make('empleado.categoria.nombre')
                     ->label('Categoría'),
@@ -138,7 +138,7 @@ class ListEmpleado extends Component implements HasForms, HasTable
                         }
                         return $query;
                     })
-                ],  layout: FiltersLayout::AboveContent)
+            ],  layout: FiltersLayout::AboveContent)
             ->actions([
 
                 EditAction::make()
@@ -221,17 +221,24 @@ class ListEmpleado extends Component implements HasForms, HasTable
                             ->columnSpanFull(),
                         //
                     ])
-                    ->after(function(Model $model){
-                       dd($model);
+                    ->using(function (User $record, array $data) {
+                        $primerRol = $record->roles()->first();
+
+                        if ($primerRol) {
+                            $record->active_role_id = $primerRol->id;
+                            $record->save();
+                        }
+
+                        return $record;
                     })
             ])
             ->headerActions([
                 ExportAction::make()->exports([
                     ExcelExport::make('table')
                         ->fromTable()
-                        //->queue()->withChunkSize(100)
-                        //->askForFilename('Empleados')
-                       // ->askForWriterType(),
+                    //->queue()->withChunkSize(100)
+                    //->askForFilename('Empleados')
+                    // ->askForWriterType(),
                 ])
                     ->label('Exportar a Excel')
                     ->color('success')
