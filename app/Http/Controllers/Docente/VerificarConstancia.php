@@ -147,6 +147,11 @@ class VerificarConstancia extends Controller
             ->where('tipo_constancia_id', TipoConstancia::where('nombre', $tipo)->first()->id)
             ->first();
 
+        $Constancia->descargas()
+            ->create([
+                'user_id' => auth()->user()->id,
+            ]);
+
 
 
         // obtener el estado del proyecto para seleccionar la vista del tipo de constancia
@@ -183,7 +188,7 @@ class VerificarConstancia extends Controller
         $pdf = PDF::loadView($vista, $data);
 
 
-
+        
         // Generar un nombre único para el archivo basándome en los id del empleado en el proyecto
         $fileName = 'constancia_' . $proyecto->id . '_' . auth()->user()->empleado->id . '_' . Str::random(8) . '.pdf';
 
@@ -213,7 +218,7 @@ class VerificarConstancia extends Controller
     {
         try {
 
-          
+
 
             // buscar el empleado proyecto con el hash
             $Constancia = Constancia::where('hash', $hash)->firstOrFail();
@@ -222,13 +227,13 @@ class VerificarConstancia extends Controller
             $empleadoProyecto = EmpleadoProyecto::where('proyecto_id', $Constancia->origen_id)
                 ->where('empleado_id', $Constancia->destinatario_id)
                 ->firstOrFail();
-
+           
+                $Constancia->validaciones += 1;
+                $Constancia->save();
             if ($tipo == 'Inscripcion')
                 return Self::inscripcion($empleadoProyecto);
             else if ($tipo == 'Finalizacion')
                 return Self::finalizacion($empleadoProyecto);
-
-        
         } catch (Exception $e) {
             // Si falla la desencriptación, puedes manejar el error
             abort(404, 'Datos inválidos');
@@ -249,7 +254,7 @@ class VerificarConstancia extends Controller
             ->actividades()
             ->where('proyecto_id', $proyecto->id)
             ->sum('horas');
-        
+
         $data = [
             'nombre_proyecto' => $proyecto->nombre_proyecto,
             'nombre_empleado' => $empleado->nombre_completo,
@@ -280,7 +285,7 @@ class VerificarConstancia extends Controller
             ->actividades()
             ->where('proyecto_id', $proyecto->id)
             ->sum('horas');
-          
+
         $data = [
             'nombre_proyecto' => $proyecto->nombre_proyecto,
             'nombre_empleado' => $empleado->nombre_completo,
