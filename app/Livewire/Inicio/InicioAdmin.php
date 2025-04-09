@@ -18,28 +18,13 @@ class InicioAdmin extends Component
     public $totalProjectsYear = 0;     // Total para el año seleccionado (admin)
     public $totalProjectsYearUser = 0;
 
-    // Método para cargar más proyectos en la tabla
-    public function loadMore()
-    {
-        $this->perPage += 5;
-    }
 
     public function mount()
     {
-        $this->selectedYear = now()->year;
-        $this->updateChartData();
-        $this->updateChartDataUser();
-        // si el usuario autenticado tiene el permiso docente-cambiar-datos-personales
-        // redirigirlo a la pagina de configuracion de su perfil
-        if (auth()->user()->can('docente-cambiar-datos-personales')) {
+        if (auth()->user()->can('cambiar-datos-personales'))
             return redirect()->route('mi_perfil');
-        };
     }
 
-    // año fijo de inicio
-    public $chartStartYear = 2020;
-    // Nuevo: determina si se muestra el rango completo o solo los últimos 4 años (por defecto se muestran solo los últimos 4)
-    public $chartFullRange = false;
 
     // Método para cambiar la opción de rango en la vista (por ejemplo: botón para ver años anteriores)
     public function toggleChartRange()
@@ -305,7 +290,7 @@ class InicioAdmin extends Component
             ->get();
     }
 
-        /**
+    /**
      * Obtiene los proyectos del usuario logueado según el nombre del estado y los pagina.
      *
      * @param string $stateName
@@ -495,7 +480,7 @@ class InicioAdmin extends Component
             ->where('empleado_proyecto.empleado_id', $userId)
             ->distinct()
             ->paginate(10);
-            
+
 
         //obtener lista de años en los cuales hay proyectos creados
         $años = Proyecto::selectRaw('YEAR(created_at) as year')
@@ -505,19 +490,19 @@ class InicioAdmin extends Component
 
         // cObtener proyectos para los estados solicitados:
         $estadosUser = [
-                'Esperando documento',
-                'Subsanar documento',
-                'Enlace Vinculacion',
-                'Coordinador Proyecto',
-                'Jefe Departamento',
-                'Director Centro',
-                'En revision final',
-                'Aprobado',
-                'Subsanacion',
-                'Rechazado',
-                'Inscrito',
-                'Cancelado',
-                'En revision'
+            'Esperando documento',
+            'Subsanar documento',
+            'Enlace Vinculacion',
+            'Coordinador Proyecto',
+            'Jefe Departamento',
+            'Director Centro',
+            'En revision final',
+            'Aprobado',
+            'Subsanacion',
+            'Rechazado',
+            'Inscrito',
+            'Cancelado',
+            'En revision'
         ];
 
         $estados = [
@@ -537,14 +522,14 @@ class InicioAdmin extends Component
         ];
 
         $enRevisionCount = $this->proyectosEnRevisionesCount($estados);
-         // Obtener proyectos Finalizados
-         $enFinalizadosCount = $this->getProjectsByStateCount('Finalizado');
+        // Obtener proyectos Finalizados
+        $enFinalizadosCount = $this->getProjectsByStateCount('Finalizado');
 
-         // Obtener proyectos en Ejecución (En curso)
-         $enEjecucionCount = $this->getProjectsByStateCount('En curso');
- 
-         // Obtener proyectos en Borrador
-         $enBorradorCount = $this->getProjectsByStateCount('Borrador');
+        // Obtener proyectos en Ejecución (En curso)
+        $enEjecucionCount = $this->getProjectsByStateCount('En curso');
+
+        // Obtener proyectos en Borrador
+        $enBorradorCount = $this->getProjectsByStateCount('Borrador');
 
         // Obtener proyectos en Revisión
         $enRevision = $this->proyectosEnRevisiones($estados);
@@ -559,19 +544,19 @@ class InicioAdmin extends Component
         $enBorrador = $this->getProjectsByState('Borrador');
 
         //Panel Proyecto User
-         // Obtener proyectos en Revisión
-         $enRevisionUser = $this->proyectosEnRevisionesUser($estadosUser);
+        // Obtener proyectos en Revisión
+        $enRevisionUser = $this->proyectosEnRevisionesUser($estadosUser);
 
-         // Obtener proyectos Finalizados
-         $enFinalizadosUser = $this->getProjectsByStateUser('Finalizado');
+        // Obtener proyectos Finalizados
+        $enFinalizadosUser = $this->getProjectsByStateUser('Finalizado');
 
-         $enFinalizadosUserCount = $this->getProjectsByStateUserCount('Finalizado');
- 
-         // Obtener proyectos en Ejecución (En curso)
-         $enEjecucionUser = $this->getProjectsByStateUser('En curso');
- 
-         // Obtener proyectos en Borrador
-         $enBorradorUser = $this->getProjectsByStateUser('Borrador');
+        $enFinalizadosUserCount = $this->getProjectsByStateUserCount('Finalizado');
+
+        // Obtener proyectos en Ejecución (En curso)
+        $enEjecucionUser = $this->getProjectsByStateUser('En curso');
+
+        // Obtener proyectos en Borrador
+        $enBorradorUser = $this->getProjectsByStateUser('Borrador');
 
         return view('livewire.inicio.inicio-admin', [
             'empleadosWithCount' => $empleadosWithCount,
@@ -599,7 +584,7 @@ class InicioAdmin extends Component
             'chartDataUser' => $this->projectsDataUser,
             //mostrar las colecciones por estado
             'enFinalizados' => $enFinalizados,
-            'enFinalizadosCount'  => $enFinalizadosCount->count(),  // Total de proyectos finalizados
+            'enFinalizadosCount' => $enFinalizadosCount->count(),  // Total de proyectos finalizados
             'enEjecucion' => $enEjecucion,
             'enEjecucionCount' => $enEjecucionCount->count(),  // Total de proyectos en ejecución
             'enBorrador' => $enBorrador,
@@ -608,7 +593,7 @@ class InicioAdmin extends Component
             'enRevisionCount' => $enRevisionCount->count(),  // Total de proyectos en revisión
             //mostrar panel de estados para user
             'enFinalizadosUser' => $enFinalizadosUser,
-            'enFinalizadosUserCount'  => $enFinalizadosUserCount->count(),  // Total de proyectos finalizados
+            'enFinalizadosUserCount' => $enFinalizadosUserCount->count(),  // Total de proyectos finalizados
             'enEjecucionUser' => $enEjecucionUser,
             'enEjecucionUserCount' => $enEjecucionUser->count(),  // Total de proyectos en ejecución
             'enBorradorUser' => $enBorradorUser,
@@ -616,5 +601,6 @@ class InicioAdmin extends Component
             'enRevisionUser' => $enRevisionUser,
             'enRevisionUserCount' => $enRevisionUser->count(),  // Total de proyectos en revisión
         ]);
+
     }
 }
