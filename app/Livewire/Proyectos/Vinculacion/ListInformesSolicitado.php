@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
+use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Models\Proyecto\DocumentoProyecto;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -129,13 +130,16 @@ class ListInformesSolicitado extends Component implements HasForms, HasTable
                                 // dd($documentoProyecto->tipo_documento);
                                 if ($documentoProyecto->tipo_documento == 'Informe Final') {
                                     // dd('finalizado');
-                                    $documentoProyecto->proyecto->estado_proyecto()->create([
+                                    $proyecto  =  $documentoProyecto->proyecto;
+                                    $proyecto->estado_proyecto()->create([
                                         'empleado_id' => Auth::user()->empleado->id,
                                         'tipo_estado_id' => TipoEstado::where('nombre', 'Finalizado')->first()->id,
                                         'fecha' => now(),
                                         'comentario' => 'El proyecto ha sido aprobado correctamente',
                                     ]);
-                                    
+
+
+                                    VerificarConstancia::makeConstanciasProyecto($proyecto);
                                 }
 
                                 // dd('antes de finalizar documento');

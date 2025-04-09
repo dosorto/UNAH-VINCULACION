@@ -51,19 +51,14 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
     {
         $this->docente = $docente;
     }
-  
+
     public function table(Table $table): Table
     {
         return $table
             ->recordClasses(function (Proyecto $proyecto) {
                 if ($proyecto->estado->tipoestado->nombre == 'Subsanacion') {
                     return 'bg-red-100 border-4 border-red-600 dark:bg-red-900 dark:border-red-400';
-
-
                 }
-                
-               
-                
             })
             ->striped()
             ->query(
@@ -97,7 +92,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
 
                 Tables\Columns\TextColumn::make('Estado.tipoestado.nombre')
                     ->badge()
-                    ->color(fn (Proyecto $proyecto) => match ($proyecto->estado->tipoestado->nombre) {
+                    ->color(fn(Proyecto $proyecto) => match ($proyecto->estado->tipoestado->nombre) {
                         'En curso' => 'success',
                         'Subsanacion' => 'danger',
                         'Borrador' => 'warning',
@@ -128,7 +123,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         'Integrante' => 'Integrante',
                     ]),
 
-                    
+
             ],  layout: FiltersLayout::AboveContent)
             ->actions([
                 ActionGroup::make([
@@ -335,7 +330,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-document')
                         ->color('info')
                         ->visible(function (Proyecto $proyecto) {
-                            return VerificarConstancia::validarConstanciaEmpleado($proyecto->docentes_proyecto()
+                            return VerificarConstancia::validarConstancia($proyecto->docentes_proyecto()
                                 ->where('empleado_id', $this->docente->id)
                                 ->first());
                         })
@@ -349,9 +344,9 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-document')
                         ->color('info')
                         ->visible(function (Proyecto $proyecto) {
-                            return VerificarConstancia::validarConstanciaFinalizacion($proyecto->docentes_proyecto()
+                            return VerificarConstancia::validarConstancia($proyecto->docentes_proyecto()
                                 ->where('empleado_id', $this->docente->id)
-                                ->first());
+                                ->first(), 'finalizacion');
                         })
                         ->action(function (Proyecto $proyecto) {
                             return VerificarConstancia::CrearPdfFinalizacion($proyecto->docentes_proyecto()

@@ -35,7 +35,8 @@ class Empleado extends Model
         'categoria',
         'user_id',
         'campus_id',
-        'departamento_academico_id'
+        'departamento_academico_id',
+        'tipo_empleado'
     ];
 
     protected static $logName = 'Empleado';
@@ -54,8 +55,25 @@ class Empleado extends Model
         'categoria_id',
         'user_id',
         'centro_facultad_id',
-        'departamento_academico_id'
+        'departamento_academico_id',
+        'tipo_empleado'
     ];
+
+
+    // Scope para empleados docentes
+    public function scopeDocentes($query)
+    {
+        return $query->where('tipo_empleado', 'docente');
+    }
+
+    // Scope para empleados administrativos
+    public function scopeAdministrativos($query)
+    {
+        return $query->where('tipo_empleado', 'administrativo');
+    }
+
+
+
     // Relación con Role a través de User
     public function roles()
     {
@@ -175,8 +193,8 @@ class Empleado extends Model
             ) {
                 return $firma->id;
             } else if (
-               ( $firma->firmable_type != Proyecto::class &&
-                ($firma->cargo_firma->tipo_estado_id == $firma->documento_proyecto->estado->tipoestado->id))
+                ($firma->firmable_type != Proyecto::class &&
+                    ($firma->cargo_firma->tipo_estado_id == $firma->documento_proyecto->estado->tipoestado->id))
                 && ($firma->cargo_firma->tipoCargoFirma->nombre !== "Revisor Vinculacion")
             ) {
                 return $firma->id;

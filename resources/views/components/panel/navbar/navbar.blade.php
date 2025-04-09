@@ -1,6 +1,6 @@
 <x-panel.navbar.navbar-container>
     <x-panel.navbar.group-item titulo="Dashboard" icono="ri-dashboard-line">
-        <x-panel.navbar.one-item titulo="Inicio" route="inicio" :routes="['inicio']" :permisos="['inicio-admin-inicio', 'inicio-docente-inicio']"
+        <x-panel.navbar.one-item titulo="Inicio" route="inicio" :routes="['inicio']" :permisos="['inicio-admin-inicio', 'ver-dashboard-admin', 'ver-dashboard-docente']"
             icono="heroicon-o-home" />
         <x-panel.navbar.one-item titulo="Demografía" route="listarPaises" :routes="[
             'listarPaises',
@@ -39,7 +39,7 @@
             
                 // More child routes...
             ]" />
- 
+
         <x-panel.navbar.one-item titulo="Usuarios" route="Usuarios" :routes="['Usuarios', 'roles', 'listPermisos']" icono="heroicon-o-user-group"
             :permisos="['usuarios-admin-usuarios', 'usuarios-admin-rol', 'usuarios-admin-permiso']" :children="[
                 [
@@ -58,6 +58,10 @@
                     'permiso' => 'usuarios-admin-permiso',
                 ],
             ]" />
+
+        <x-panel.navbar.one-item titulo="Constancias" route="constancias" :routes="['constancias']"
+            icono="heroicon-o-document-text" :permisos="['constancia-admin-constancias']" />
+
 
         <x-panel.navbar.one-item titulo="Empleado" route="ListarEmpleados" :routes="['ListarEmpleados', 'crearEmpleado']" icono="heroicon-c-cube"
             :permisos="['empleados-admin-empleados']" :children="[
@@ -84,16 +88,18 @@
             'proyectos-admin-informenes',
             'proyectos-admin-proyectos',
         ]"
-            icono="heroicon-m-puzzle-piece" :permisos="['proyectos-admin-proyectos', 
-            'proyectos-admin-solicitados', 'proyectos-admin-aprobados',
-            'proyectos-admin-informenes', 'proyectos-admin-revision-final']"
-            
-            :children="[
+            icono="heroicon-m-puzzle-piece" :permisos="[
+                'proyectos-admin-proyectos',
+                'proyectos-admin-solicitados',
+                'proyectos-admin-aprobados',
+                'proyectos-admin-informenes',
+                'proyectos-admin-revision-final',
+            ]" :children="[
                 [
                     'texto' => 'Proyectos',
                     'route' => 'listarProyectosVinculacion',
                     'permiso' => 'proyectos-admin-proyectos',
-                   // 'funcion' => 'obtenerCantidadProyectos',
+                    // 'funcion' => 'obtenerCantidadProyectos',
                 ],
                 [
                     'texto' => 'Solicitud Proyecto',
@@ -106,7 +112,6 @@
                     'route' => 'listarInformesSolicitado',
                     'permiso' => 'proyectos-admin-informenes',
                     'funcion' => 'obtenerCantidadInformesSolicitados',
-             
                 ],
                 [
                     'texto' => 'Revisión Final',

@@ -57,8 +57,8 @@ class PersonalSeeder extends Seeder
             'surname' => 'POA',
             'given_name' => 'NOTIFICACIONES',
             'active_role_id' => 1
-        ])->assignRole(['admin', 'docente','Director/Enlace']);
-        
+        ])->assignRole(['admin', 'docente', 'Director/Enlace']);
+
         $adminUser = Empleado::create([
             'nombre_completo' => 'NOTIFICACIONES POA',
             'numero_empleado' => '12280',
@@ -80,6 +80,46 @@ class PersonalSeeder extends Seeder
             'ruta_storage' => 'images/firmas/Sello_Victor.png',
             'estado' => true
         ]);
-    }
 
+        if (app()->environment('local')) {
+
+            $user2 = User::create([
+                'name' => 'NOTIFICACIONES  POA',
+                'email' => 'correo',
+                'password' => bcrypt('123'),
+                'surname' => 'POA',
+                'given_name' => 'NOTIFICACIONES',
+            ]);
+
+            Empleado::create([
+                'nombre_completo' => 'NOTIFICACIONES POA',
+                'numero_empleado' => '1228asdfasdf0',
+                'celular' => '99999999',
+                'user_id' => $user2->id,
+                'centro_facultad_id' => 4,
+                'departamento_academico_id' => 9,
+                'categoria_id' => 2
+            ]);
+
+            $user2->givePermissionTo('cambiar-datos-personales');
+            $user2->givePermissionTo('configuracion-admin-mi-perfil');
+
+            $user3 = User::create([
+                'name' => 'NOTIFICACIONES  POA',
+                'email' => 'estudiante',
+                'password' => bcrypt('123'),
+                'surname' => 'POA',
+                'given_name' => 'NOTIFICACIONES',
+            ]);
+
+            $user3 = Estudiante::create([
+                'cuenta' => '123123',
+                'user_id' => $user3->id,
+                'nombre' => 'nombre'
+            ]);
+
+            $user3->user->givePermissionTo('cambiar-datos-personales');
+            $user3->user->givePermissionTo('configuracion-admin-mi-perfil');
+        }
+    }
 }

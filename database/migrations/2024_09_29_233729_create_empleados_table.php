@@ -26,6 +26,10 @@ return new class extends Migration
             $table->string('nombre_completo')->nullable(); // Nombre completo del empleado
             $table->string('numero_empleado')->unique()->nullable(); // Número de empleado
             $table->string('celular')->nullable(); // Número de celular
+
+            // 
+            $table->enum('tipo_empleado', ['docente', 'administrativo'])->default("docente"); // Tipo de empleado (docente o administrativo)
+
             $table->unsignedBigInteger('categoria_id')->nullable(); // Identificador de la categoría
             $table->unsignedBigInteger('user_id'); // Llave foránea para la tabla users
             $table->integer('centro_facultad_id')->nullable(); // Identificador del campus

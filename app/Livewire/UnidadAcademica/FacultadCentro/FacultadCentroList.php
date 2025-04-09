@@ -147,11 +147,7 @@ class FacultadCentroList extends Component implements HasForms, HasTable
 
                             ),
                         // ...
-                    ])
-                    ->using(function (array $data, string $model): Model {
-
-                        return  $model::create($data);
-                    }),
+                        ]),
                 DeleteAction::make(),
                 RestoreAction::make(),
             ])

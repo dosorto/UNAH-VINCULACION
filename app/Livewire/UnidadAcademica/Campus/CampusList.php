@@ -142,11 +142,7 @@ class CampusList extends Component implements HasForms, HasTable
                             ->maxLength(255)
                             ->required(),
                         // ...
-                    ])
-                    ->using(function (array $data, string $model): Model {
-
-                        return  $model::create($data);
-                    }),
+                    ]),
                 DeleteAction::make(),
                 RestoreAction::make(),
             ])
