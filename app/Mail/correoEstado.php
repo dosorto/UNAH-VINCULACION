@@ -15,7 +15,7 @@ class correoEstado extends Mailable
     use Queueable, SerializesModels;
 
     public $estadoNombre;
-    public $cambiadoPorCorreo;
+    //public $cambiadoPorCorreo;
     public $cambiadoPorNombre;
     /**
      * Create a new message instance.
@@ -24,10 +24,10 @@ class correoEstado extends Mailable
      * @param string $cambiadoPor   Nombre del usuario que realizó el cambio.
      */
     
-     public function __construct($estadoNombre, $cambiadoPorCorreo, $cambiadoPorNombre)
+     public function __construct($estadoNombre, /*$cambiadoPorCorreo,*/ $cambiadoPorNombre)
      {
          $this->cambiadoPorNombre = $cambiadoPorNombre;
-         $this->cambiadoPorCorreo = $cambiadoPorCorreo;
+        // $this->cambiadoPorCorreo = $cambiadoPorCorreo;
          $this->estadoNombre = $estadoNombre;
      }
 
@@ -37,7 +37,7 @@ class correoEstado extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address($this->cambiadoPorCorreo, $this->cambiadoPorNombre),
+            from: new Address('notificacionespoa@unah.edu.hn', 'Notificaciones POA'),
             subject: 'Notificación de cambio de estado del proyecto - Cambiado por: ' . $this->cambiadoPorNombre,
         );
     }
@@ -52,7 +52,7 @@ class correoEstado extends Mailable
             with: [
                 'estadoNombre' => $this->estadoNombre,
                 'cambiadoPorNombre' => $this->cambiadoPorNombre,
-                'cambiadoPorCorreo' => $this->cambiadoPorCorreo,
+                //'cambiadoPorCorreo' => $this->cambiadoPorCorreo,
             ],
         );
     }

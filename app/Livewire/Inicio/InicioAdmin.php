@@ -11,7 +11,7 @@ use Spatie\Activitylog\Models\Activity;
 
 class InicioAdmin extends Component
 {
-    public $perPage = 5;
+    public $perPage = 3;
     public $selectedYear = null;
     public $projectsData = [];
     public $projectsDataUser = [];
@@ -228,12 +228,57 @@ class InicioAdmin extends Component
     }
 
     /**
+     * Obtiene proyectos cuyos estados se encuentren en la lista de nombres.
+     *
+     * @param array $stateNames
+     * @return \Illuminate\Support\Collection
+     */
+    public function proyectosEnRevisionesCount(array $stateNames)
+    {
+        $tipoEstadosIds = TipoEstado::whereIn('nombre', $stateNames)->pluck('id');
+
+        return Proyecto::with('tipo_estado')
+            ->whereIn('id', function ($query) use ($tipoEstadosIds) {
+                $query->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->whereIn('tipo_estado_id', $tipoEstadosIds)
+                    ->where('es_actual', true);
+            })
+            ->orderBy('id', 'asc')
+            ->get();
+    }
+    /**
+     * Obtiene los proyectos según el nombre del estado.
+     *
+     * @param string $stateName
+     * @return \Illuminate\Support\Collection
+     */
+    public function getProjectsByStateCount($stateName)
+    {
+        // Obtiene el objeto TipoEstado según el nombre
+        $tipoEstado = TipoEstado::where('nombre', $stateName)->first();
+        if (!$tipoEstado) {
+            return collect();
+        }
+        // Consulta los proyectos que tienen asignado ese estado actual
+        return Proyecto::query()
+            ->whereIn('id', function ($query) use ($tipoEstado) {
+                $query->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->where('tipo_estado_id', $tipoEstado->id)
+                    ->where('es_actual', true);
+            })->get();
+    }
+
+    /**
      * Obtiene los proyectos del usuario logueado según el nombre del estado.
      *
      * @param string $stateName 
      * @return \Illuminate\Support\Collection
      */
-    public function getProjectsByStateUser($stateName)
+    public function getProjectsByStateUserCount($stateName)
     {
         $userId = auth()->user()->empleado->id;
 
@@ -258,6 +303,41 @@ class InicioAdmin extends Component
                     ->where('empleado_id', $userId);
             })
             ->get();
+    }
+
+        /**
+     * Obtiene los proyectos del usuario logueado según el nombre del estado y los pagina.
+     *
+     * @param string $stateName
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getProjectsByStateUser($stateName)
+    {
+        $userId = auth()->user()->empleado->id;
+
+        // Obtiene el objeto TipoEstado según el nombre
+        $tipoEstado = TipoEstado::where('nombre', $stateName)->first();
+        if (!$tipoEstado) {
+            // Retorna un paginador vacío
+            return collect()->paginate($this->perPage);
+        }
+
+        // Consulta los proyectos que tienen asignado ese estado actual y pertenecen al usuario logueado
+        return Proyecto::query()
+            ->whereIn('id', function ($query) use ($tipoEstado) {
+                $query->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->where('tipo_estado_id', $tipoEstado->id)
+                    ->where('es_actual', true);
+            })
+            ->whereIn('id', function ($query) use ($userId) {
+                $query->select('proyecto_id')
+                    ->from('empleado_proyecto')
+                    ->where('empleado_id', $userId);
+            })
+            ->orderBy('id', 'asc')
+            ->paginate($this->perPage);
     }
 
     /**
@@ -456,6 +536,16 @@ class InicioAdmin extends Component
             'En revision'
         ];
 
+        $enRevisionCount = $this->proyectosEnRevisionesCount($estados);
+         // Obtener proyectos Finalizados
+         $enFinalizadosCount = $this->getProjectsByStateCount('Finalizado');
+
+         // Obtener proyectos en Ejecución (En curso)
+         $enEjecucionCount = $this->getProjectsByStateCount('En curso');
+ 
+         // Obtener proyectos en Borrador
+         $enBorradorCount = $this->getProjectsByStateCount('Borrador');
+
         // Obtener proyectos en Revisión
         $enRevision = $this->proyectosEnRevisiones($estados);
 
@@ -474,6 +564,8 @@ class InicioAdmin extends Component
 
          // Obtener proyectos Finalizados
          $enFinalizadosUser = $this->getProjectsByStateUser('Finalizado');
+
+         $enFinalizadosUserCount = $this->getProjectsByStateUserCount('Finalizado');
  
          // Obtener proyectos en Ejecución (En curso)
          $enEjecucionUser = $this->getProjectsByStateUser('En curso');
@@ -507,16 +599,16 @@ class InicioAdmin extends Component
             'chartDataUser' => $this->projectsDataUser,
             //mostrar las colecciones por estado
             'enFinalizados' => $enFinalizados,
-            'enFinalizadosCount'  => $enFinalizados->count(),  // Total de proyectos finalizados
+            'enFinalizadosCount'  => $enFinalizadosCount->count(),  // Total de proyectos finalizados
             'enEjecucion' => $enEjecucion,
-            'enEjecucionCount' => $enEjecucion->count(),  // Total de proyectos en ejecución
+            'enEjecucionCount' => $enEjecucionCount->count(),  // Total de proyectos en ejecución
             'enBorrador' => $enBorrador,
-            'enBorradorCount' => $enBorrador->count(),  // Total de proyectos en borrador
+            'enBorradorCount' => $enBorradorCount->count(),  // Total de proyectos en borrador
             'enRevision' => $enRevision,
-            'enRevisionCount' => $enRevision->count(),  // Total de proyectos en revisión
+            'enRevisionCount' => $enRevisionCount->count(),  // Total de proyectos en revisión
             //mostrar panel de estados para user
             'enFinalizadosUser' => $enFinalizadosUser,
-            'enFinalizadosUserCount'  => $enFinalizadosUser->count(),  // Total de proyectos finalizados
+            'enFinalizadosUserCount'  => $enFinalizadosUserCount->count(),  // Total de proyectos finalizados
             'enEjecucionUser' => $enEjecucionUser,
             'enEjecucionUserCount' => $enEjecucionUser->count(),  // Total de proyectos en ejecución
             'enBorradorUser' => $enBorradorUser,
