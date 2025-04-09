@@ -132,13 +132,13 @@ class Proyecto extends Model
         'resultados_esperados',
         'indicadores_medicion_resultados',
         'fecha_registro',
-        'responsable_revision_id',
+       // 'responsable_revision_id',
         'fecha_aprobacion',
         'numero_libro',
         'numero_tomo',
         'numero_folio',
         'numero_dictamen',
-        'user_director_id'
+        //'user_director_id'
 
 
     ];

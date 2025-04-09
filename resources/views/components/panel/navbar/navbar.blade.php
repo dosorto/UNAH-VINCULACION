@@ -59,6 +59,10 @@
                 ],
             ]" />
 
+        <x-panel.navbar.one-item titulo="Constancias" route="constancias" :routes="['constancias']"
+            icono="heroicon-o-document-text" :permisos="['constancia-admin-constancias']" />
+
+
         <x-panel.navbar.one-item titulo="Empleado" route="ListarEmpleados" :routes="['ListarEmpleados', 'crearEmpleado']" icono="heroicon-c-cube"
             :permisos="['empleados-admin-empleados']" :children="[
                 [

@@ -45,6 +45,9 @@ class PermisosSeeder extends Seeder
         $permission14 = Permission::create(['name' => 'inicio-admin-inicio']);
         $permission15 = Permission::create(['name' => 'inicio-docente-inicio']);
 
+        // modulo de constancias 
+        $permission15 = Permission::create(['name' => 'constancia-admin-constancias']);
+
         // modulo para el usuario docente
         $permission16 = Permission::create(['name' => 'docente-admin-proyectos']);
         $permission17 = Permission::create(['name' => 'docente-crear-proyecto']);
@@ -108,6 +111,7 @@ class PermisosSeeder extends Seeder
             'unidad-academica-admin-departamento',
             'unidad-academica-admin-facultad',
             'global-set-role',
+            'constancia-admin-constancias',
             
             
         ])->save();

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
+use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Models\Proyecto\Proyecto;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -280,6 +281,8 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
                             ->action(function (Proyecto $proyecto, array $data) {
                                 // dd($this->docente);
 
+                                
+
                                 // actualizar el estado del proyecto al siguiente estado :)
                                 $proyecto->estado_proyecto()->create([
                                     'empleado_id' => Auth::user()->empleado->id,
@@ -308,7 +311,8 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
                                 $proyecto->user_director_id = Auth::user()->empleado->id;
                                 $proyecto->save();
                                 $proyecto->update($data);
-
+                                
+                                VerificarConstancia::makeConstanciasProyecto($proyecto);
                                 // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                                 // ->where('empleado_id', $this->docente->id)
                                 // ->first());

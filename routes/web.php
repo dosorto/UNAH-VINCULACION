@@ -52,6 +52,7 @@ use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
 use App\Http\Controllers\DirectorCentro\Proyectos\ListProyectosCentro;
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
+use App\Livewire\Constancia\ListConstancias;
 
 
 Route::get('verificacion_constancia', [VerificarConstancia::class, 'verificacionConstanciaVista'])
@@ -258,6 +259,15 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('can:configuracion-admin-logs');
     });
 
+    // rutas para el modludo de constancias
+
+    
+    Route::middleware(['auth'])->group(function () {
+
+        Route::get('listConstancias', ListConstancias::class)
+            ->name('constancias')
+            ->middleware('can:constancia-admin-constancias');
+    });
 
     // agregar rutas para el modulo de docente
     Route::middleware(['auth'])->group(function () {

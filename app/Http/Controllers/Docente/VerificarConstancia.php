@@ -6,6 +6,8 @@ use Exception;
 use Illuminate\Http\Request;
 use App\Models\Proyecto\Proyecto;
 use App\Http\Controllers\Controller;
+use App\Models\Constancia\Constancia;
+use App\Models\Constancia\TipoConstancia;
 use App\Models\Personal\Empleado;
 use Illuminate\Support\Facades\Crypt;
 use App\Models\Personal\EmpleadoProyecto;
@@ -15,6 +17,62 @@ use Illuminate\Support\Str;
 
 class VerificarConstancia extends Controller
 {
+
+
+    /*
+        CREAR LAS CONSTANCIAS A LOS PROYECTOS 
+    */
+    public static function makeConstanciasProyecto(Proyecto $proyecto)
+    {
+        // validar que el proyecto este en estado de 'En curso' o 'Finalizado'
+        $nombreEstadoProyecto = $proyecto->estado->tipoestado->nombre;
+        if ($nombreEstadoProyecto != 'En curso' && $nombreEstadoProyecto != 'Finalizado') {
+            return;
+        }
+
+
+        // mapear los empleados proyectos y llamar al metodo validarConstanciaEmpleado para ver si puede recibir o no su constancia
+
+        $proyecto->docentes_proyecto->map(function ($empleadoProyecto) use ($nombreEstadoProyecto) {
+            // validar si el empleado del proyecto se puede generar constancia o no
+            if (self::validarConstanciaEmpleado($empleadoProyecto)) {
+                // crear la constancia
+                Constancia::create([
+                    'origen_type' => Proyecto::class,
+                    'origen_id' => $empleadoProyecto->proyecto_id,
+                    'destinatario_type' => Empleado::class,
+                    'destinatario_id' => $empleadoProyecto->empleado_id,
+                    'tipo_constancia_id' => $nombreEstadoProyecto == 'En curso'
+                        ? TipoConstancia::where('nombre', 'inscripcion')->first()->id
+                        : TipoConstancia::where('nombre', 'finalizacion')->first()->id,
+                ]);
+            }
+        });
+
+
+        return;
+    }
+
+    // recibe un empleado proyecto y valida si tiene una constancia del tipo inscripcion
+
+    public static function validarConstancia(EmpleadoProyecto $empleadoProyecto, $tipo = 'inscripcion'): bool
+    {
+        // Obtener el ID del tipo de constancia solo una vez
+        $tipoConstanciaId = TipoConstancia::where('nombre', $tipo)->value('id');
+
+        // Realizar la consulta
+        $existeConstancia = Constancia::where('origen_type', Proyecto::class)
+            ->where('origen_id', $empleadoProyecto->proyecto_id)
+            ->where('destinatario_type', Empleado::class)
+            ->where('destinatario_id', $empleadoProyecto->empleado_id)
+            ->where('tipo_constancia_id', $tipoConstanciaId)
+            ->exists(); // Devuelve true si existe, false si no
+
+        return $existeConstancia;
+    }
+
+
+
 
     /*
         metodo para validar si el empleado del proyecto se puede generar constancia o no
@@ -39,6 +97,9 @@ class VerificarConstancia extends Controller
 
         return true;
     }
+
+
+
 
 
     public static function validarConstanciaInscripcion(EmpleadoProyecto $empleadoProyecto)
@@ -71,12 +132,22 @@ class VerificarConstancia extends Controller
         return self::CrearPdf($empleadoProyecto, 'finalizacion');
     }
 
-    public static function CrearPdf(EmpleadoProyecto $empleadoProyecto, String $tipo)
+    public static function CrearPdf(EmpleadoProyecto $empleadoProyecto, $tipo)
     {
         // validar si el empleado del proyecto se puede generar constancia o no
         if (!self::validarConstanciaEmpleado($empleadoProyecto)) {
             return redirect()->back()->with('error', 'No se puede generar la constancia');
         }
+
+
+        $Constancia = Constancia::where('origen_type', Proyecto::class)
+            ->where('origen_id', $empleadoProyecto->proyecto_id)
+            ->where('destinatario_type', Empleado::class)
+            ->where('destinatario_id', $empleadoProyecto->empleado_id)
+            ->where('tipo_constancia_id', TipoConstancia::where('nombre', $tipo)->first()->id)
+            ->first();
+
+
 
         // obtener el estado del proyecto para seleccionar la vista del tipo de constancia
         $proyecto = $empleadoProyecto->proyecto;
@@ -85,14 +156,13 @@ class VerificarConstancia extends Controller
         // Generar la constancia PDF
         $qrcodePath = storage_path('app/public/' . $qrCodeName); // Ruta donde se guardará el QR
 
+        $enlace =  url('/verificacion_constancia/' . $Constancia->hash);
 
-        if ($tipo == 'inscripcion') {
-            $enlace =  url('/verificacion_constancia/i' . $empleadoProyecto->hash);
+        if ($tipo == 'inscripcion')
             $vista = 'app.docente.constancias.constancia_en_curso';
-        } else if ($tipo == 'finalizacion') {
+        else if ($tipo == 'finalizacion')
             $vista = 'app.docente.constancias.constancia_finalizado';
-            $enlace =  url('/verificacion_constancia/f' . $empleadoProyecto->hash);
-        }
+
 
 
         // Generar el código QR como imagen base64
@@ -143,34 +213,22 @@ class VerificarConstancia extends Controller
     {
         try {
 
-            // quitar el ultimo caracter del hash 
-
-            $tipo = substr($hash, 0, 1);
-            $hash = substr($hash, 1);
+          
 
             // buscar el empleado proyecto con el hash
-            $empleadoProyecto = EmpleadoProyecto::where('hash', $hash)->firstOrFail();
-
+            $Constancia = Constancia::where('hash', $hash)->firstOrFail();
+            $tipo = $Constancia->tipo->nombre;
             // validar si el empleado del proyecto se puede generar constancia o n
+            $empleadoProyecto = EmpleadoProyecto::where('proyecto_id', $Constancia->origen_id)
+                ->where('empleado_id', $Constancia->destinatario_id)
+                ->firstOrFail();
 
-            // obtener el primer caracter del hash
-            if ($tipo == 'i') {
-                // validar si el empleado del proyecto se puede generar constancia o no
-                if (!self::validarConstanciaInscripcion($empleadoProyecto)) {
-                    abort(404, 'No se puede generar la constancia');
-                }
-                return $this->inscripcion($empleadoProyecto);
-            } else if ($tipo == 'f') {
+            if ($tipo == 'Inscripcion')
+                return Self::inscripcion($empleadoProyecto);
+            else if ($tipo == 'Finalizacion')
+                return Self::finalizacion($empleadoProyecto);
 
-                // validar si el empleado del proyecto se puede generar constancia o no
-                if (!self::validarConstanciaFinalizacion($empleadoProyecto)) {
-                    abort(404, 'No se puede generar la constancia');
-                }
-
-                return $this->finalizacion($empleadoProyecto);
-            } else {
-                abort(404, 'Datos inválidos');
-            }
+        
         } catch (Exception $e) {
             // Si falla la desencriptación, puedes manejar el error
             abort(404, 'Datos inválidos');
@@ -191,7 +249,7 @@ class VerificarConstancia extends Controller
             ->actividades()
             ->where('proyecto_id', $proyecto->id)
             ->sum('horas');
-
+        
         $data = [
             'nombre_proyecto' => $proyecto->nombre_proyecto,
             'nombre_empleado' => $empleado->nombre_completo,
@@ -222,7 +280,7 @@ class VerificarConstancia extends Controller
             ->actividades()
             ->where('proyecto_id', $proyecto->id)
             ->sum('horas');
-
+          
         $data = [
             'nombre_proyecto' => $proyecto->nombre_proyecto,
             'nombre_empleado' => $empleado->nombre_completo,

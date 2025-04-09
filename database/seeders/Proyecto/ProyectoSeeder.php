@@ -2,6 +2,7 @@
 
 namespace Database\Seeders\Proyecto;
 
+use App\Models\Constancia\TipoConstancia;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Proyecto\Proyecto;
@@ -110,6 +111,11 @@ class ProyectoSeeder extends Seeder
             ['nombre' => '15. Vida de ecosistemas terrestres'],
             ['nombre' => '16. Paz, justicia e instituciones sólidas'],
             ['nombre' => '17. Alianzas para lograr los objetivos'],
+        ]);
+
+        TipoConstancia::insert([
+            ['nombre' =>'Inscripcion', 'descripcion' => 'Se emite cuando un proyecto alcanza el estado en curso'],
+            ['nombre' =>'Finalizacion', 'descripcion' => 'Se emite cuando un proyecto alcanza el estado Finalizado'],
         ]);
     }
 }
