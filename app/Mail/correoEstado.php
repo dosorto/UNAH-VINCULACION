@@ -19,6 +19,7 @@ class correoEstado extends Mailable
     public $empleadoNombre;
     public $logoUrl;
     public $appName;
+    public $actionUrl;
     /**
      * Create a new message instance.
      *
