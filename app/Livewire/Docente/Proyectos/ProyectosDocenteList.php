@@ -123,7 +123,22 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         'Integrante' => 'Integrante',
                     ]),
 
-
+                SelectFilter::make('estado')
+                    ->label('Estado')
+                    ->multiple()
+                    ->preload()
+                    ->options(TipoEstado::pluck('nombre', 'id')->toArray())
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['values'])) {
+                            $query->whereIn('proyecto.id', function ($subQuery) use ($data) {  
+                                $subQuery->select('estadoable_id')
+                                    ->from('estado_proyecto')
+                                    ->where('estadoable_type', Proyecto::class)
+                                    ->whereIn('tipo_estado_id', $data['values'])
+                                    ->where('es_actual', true);
+                            });
+                        }
+                    }),
             ],  layout: FiltersLayout::AboveContent)
             ->actions([
                 ActionGroup::make([

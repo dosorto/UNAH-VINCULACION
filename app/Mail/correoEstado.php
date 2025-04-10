@@ -15,20 +15,28 @@ class correoEstado extends Mailable
     use Queueable, SerializesModels;
 
     public $estadoNombre;
-    //public $cambiadoPorCorreo;
-    public $cambiadoPorNombre;
+    //public $empleadoCorreo;
+    public $empleadoNombre;
+    public $logoUrl;
+    public $appName;
     /**
      * Create a new message instance.
      *
-     * @param string $estadoNombre Nombre del nuevo estado del proyecto.
-     * @param string $cambiadoPor   Nombre del usuario que realizó el cambio.
+     * @param string $empleadoNombre Nombre del empleado que recibe la notificación.
+     * @param string $actionUrl     URL de la acción relacionada con el cambio de estado.
+     * @param string $logoUrl       URL del logo de la aplicación.
+     * @param string $appName       Nombre de la aplicación.
+     * 
      */
     
-     public function __construct($estadoNombre, /*$cambiadoPorCorreo,*/ $cambiadoPorNombre)
+     public function __construct($estadoNombre, /*$cambiadoPorCorreo,*/ $empleadoNombre)
      {
-         $this->cambiadoPorNombre = $cambiadoPorNombre;
+         $this->empleadoNombre = $empleadoNombre;
         // $this->cambiadoPorCorreo = $cambiadoPorCorreo;
          $this->estadoNombre = $estadoNombre;
+         $this->actionUrl = config('app.url');
+         $this->logoUrl = asset('images/LOGO_NX.png');
+         $this->appName = config('app.name');
      }
 
     /**
@@ -38,7 +46,7 @@ class correoEstado extends Mailable
     {
         return new Envelope(
             from: new Address('notificacionespoa@unah.edu.hn', 'Notificaciones POA'),
-            subject: 'Notificación de cambio de estado del proyecto - Cambiado por: ' . $this->cambiadoPorNombre,
+            subject: 'Notificación de cambio de estado del proyecto - Cambiado por: ' . $this->empleadoNombre,
         );
     }
 
@@ -51,7 +59,10 @@ class correoEstado extends Mailable
             view: 'emails.correoEstado',
             with: [
                 'estadoNombre' => $this->estadoNombre,
-                'cambiadoPorNombre' => $this->cambiadoPorNombre,
+                'cambiadoPorNombre' => $this->empleadoNombre,
+                'actionUrl' => $this->actionUrl,
+                'logoUrl' => $this->logoUrl,
+                'appName' => $this->appName,
                 //'cambiadoPorCorreo' => $this->cambiadoPorCorreo,
             ],
         );

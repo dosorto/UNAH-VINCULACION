@@ -165,10 +165,10 @@ class CreateProyectoVinculacion extends Component implements HasForms
             $estadoNombre = $estado ? $estado->nombre : 'Desconocido';
 
             // Enviar el correo al usuario que creó el proyecto
-            $creadorEmail = auth()->user()->email; //  usuario autenticado es quien crea el proyecto
-            $cambiadoPorNombre = auth()->user()->empleado->nombre_completo;  // Nombre del usuario que cambió el estado
-            $cambiadoPorCorreo = auth()->user()->email;  // Correo del usuario que cambió el estado	
-            SendEmailJob::dispatch($creadorEmail, 'correoEstado', $estadoNombre, $cambiadoPorNombre);
+            $creadorEmail = auth()->user()->email; //  usuario autenticado quien crea el proyecto
+            $empleadoNombre = auth()->user()->empleado->nombre_completo;  // Nombre del usuario
+           // $empleadoCorreo = auth()->user()->email;  // Correo del usuario 
+            SendEmailJob::dispatch($creadorEmail, 'correoEstado', $estadoNombre, $empleadoNombre);
             
         } catch (\Exception $e) {
             // Eliminar el proyecto en caso de error al agregar el estado
