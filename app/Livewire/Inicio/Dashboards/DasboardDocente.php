@@ -228,10 +228,10 @@ class DasboardDocente extends Component
     }
 
     /**
-     * Obtiene los proyectos del usuario logueado según el nombre del estado.
+     * Obtiene los proyectos del usuario logueado según el nombre del estado y los pagina.
      *
-     * @param string $stateName 
-     * @return \Illuminate\Support\Collection
+     * @param string $stateName
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function getProjectsByStateUser($stateName)
     {
@@ -240,7 +240,8 @@ class DasboardDocente extends Component
         // Obtiene el objeto TipoEstado según el nombre
         $tipoEstado = TipoEstado::where('nombre', $stateName)->first();
         if (!$tipoEstado) {
-            return collect();
+            // Retorna un paginador vacío
+            return collect()->paginate($this->perPage);
         }
 
         // Consulta los proyectos que tienen asignado ese estado actual y pertenecen al usuario logueado
@@ -257,7 +258,8 @@ class DasboardDocente extends Component
                     ->from('empleado_proyecto')
                     ->where('empleado_id', $userId);
             })
-            ->get();
+            ->orderBy('id', 'asc')
+            ->paginate($this->perPage);
     }
 
     /**
