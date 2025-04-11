@@ -151,12 +151,7 @@ class CarreraList extends Component implements HasForms, HasTable
                             )
                             ->preload(),
                         // ...
-                    ])
-                    ->using(function (array $data, string $model): Model {
-                        $carrera = $model::create($data);
-                        $carrera->facultadCentros()->sync($data['facultad_centro_id']);
-                        return  $carrera;
-                    }),
+                            ]),
                 DeleteAction::make(),
                 RestoreAction::make(),
             ])
@@ -170,6 +165,6 @@ class CarreraList extends Component implements HasForms, HasTable
     public function render(): View
     {
         return view('livewire.unidad-academica.carrera.carrera-list')
-            ->layout('components.panel.modulos.modulo-unidad-academica', ['title' => 'Campus']);
+            ;//->layout('components.panel.modulos.modulo-unidad-academica', ['title' => 'Campus']);
     }
 }

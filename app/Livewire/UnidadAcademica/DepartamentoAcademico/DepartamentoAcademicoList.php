@@ -132,6 +132,6 @@ class DepartamentoAcademicoList extends Component implements HasForms, HasTable
     public function render(): View
     {
         return view('livewire.unidad-academica.departamento-academico.departamento-academico-list')
-            ->layout('components.panel.modulos.modulo-unidad-academica', ['title' => 'Campus']);
+           ;// ->layout('components.panel.modulos.modulo-unidad-academica', ['title' => 'Campus']);
     }
 }

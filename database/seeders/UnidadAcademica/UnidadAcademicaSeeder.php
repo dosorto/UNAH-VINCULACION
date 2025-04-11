@@ -54,7 +54,7 @@ class UnidadAcademicaSeeder extends Seeder
         $centroCurlP = FacultadCentro::create(['nombre' => 'UNAH CHOLUTECA', 'es_facultad' => false, 'siglas' => 'CURLP', 'campus_id' => $UNAH_CHOLUTECA->id]);
         $centroCuroc = FacultadCentro::create(['nombre' => 'UNAH COPÁN', 'es_facultad' => false, 'siglas' => 'CUROC', 'campus_id' => $UNAH_COPAN->id]);
         $centroAguan = FacultadCentro::create(['nombre' => 'UNAH YORO', 'es_facultad' => false, 'siglas' => 'UNAH-TEC Aguán', 'campus_id' => $UNAH_YORO->id]);
-        
+
 
 
         //Departamentos de la Facultad de Ciencias Sociales
@@ -65,7 +65,7 @@ class UnidadAcademicaSeeder extends Seeder
         $departamentoControlQuimico = DepartamentoAcademico::create(['nombre' => 'Control Químico', 'centro_facultad_id' => $facultadQuimicaFarmacia->id]);
         $departamentoTecnologiaFarmaceutica = DepartamentoAcademico::create(['nombre' => 'Tecnología Farmacéutica', 'centro_facultad_id' => $facultadQuimicaFarmacia->id]);
         $departamentoQuimica = DepartamentoAcademico::create(['nombre' => 'Química', 'centro_facultad_id' => $facultadQuimicaFarmacia->id]);
-       
+
         //Departamentos de la Facultad de Odontología
         $departamentoOdontologiaPreventivaSocial = DepartamentoAcademico::create(['nombre' => 'Odontología Preventiva y Social', 'centro_facultad_id' => $facultadOdontologia->id]);
         $departamentoEstomatologia = DepartamentoAcademico::create(['nombre' => 'Estomatología', 'centro_facultad_id' => $facultadOdontologia->id]);
@@ -80,9 +80,9 @@ class UnidadAcademicaSeeder extends Seeder
         $departamentoDerechoProcesal = DepartamentoAcademico::create(['nombre' => 'Derecho Procesal', 'centro_facultad_id' => $facultadCienciasJuridicas->id]);
         $departamentoDerechoSocial = DepartamentoAcademico::create(['nombre' => 'Derecho Social', 'centro_facultad_id' => $facultadCienciasJuridicas->id]);
         $departamentoTeoriaHistoriaDerecho = DepartamentoAcademico::create(['nombre' => 'Teoría e Historia del Derecho', 'centro_facultad_id' => $facultadCienciasJuridicas->id]);
-        
 
-        
+
+
         //Departamentos de la Facultad de Ingeniería 
 
 
@@ -143,5 +143,12 @@ class UnidadAcademicaSeeder extends Seeder
         $departamentoLenguasExtranjeras = DepartamentoAcademico::create(['nombre' => 'Lenguas Extranjeras Choluteca', 'centro_facultad_id' => $centroCurlP->id]);
         $departamentoCulturaFisicaDeportes = DepartamentoAcademico::create(['nombre' => 'Cultura Física y Deportes Choluteca', 'centro_facultad_id' => $centroCurlP->id]);
 
+
+        Carrera::create(
+            [
+                'nombre' => 'Ingenieria en sistemas',
+                'facultad_centro_id' =>  $facultadIngenieria->id,
+            ]
+        );
     }
 }

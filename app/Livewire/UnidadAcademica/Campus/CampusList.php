@@ -142,11 +142,7 @@ class CampusList extends Component implements HasForms, HasTable
                             ->maxLength(255)
                             ->required(),
                         // ...
-                    ])
-                    ->using(function (array $data, string $model): Model {
-
-                        return  $model::create($data);
-                    }),
+                    ]),
                 DeleteAction::make(),
                 RestoreAction::make(),
             ])
@@ -162,6 +158,6 @@ class CampusList extends Component implements HasForms, HasTable
     public function render(): View
     {
         return view('livewire.unidad-academica.campus.campus-list')
-            ->layout('components.panel.modulos.modulo-unidad-academica', ['title' => 'Campus']);
+           ;// ->layout('components.panel.modulos.modulo-unidad-academica', ['title' => 'Campus']);
     }
 }

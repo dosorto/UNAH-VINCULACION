@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Personal\Empleado;
 
+use App\Livewire\Personal\Empleado\Formularios\FormularioEmpleado;
 use App\Models\Personal\Empleado;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -49,6 +50,7 @@ use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
+use Illuminate\Database\Eloquent\Model;
 
 class ListEmpleado extends Component implements HasForms, HasTable
 {
@@ -68,7 +70,7 @@ class ListEmpleado extends Component implements HasForms, HasTable
                     ->with('empleado.centro_facultad')
                     ->leftJoin('empleado', 'users.id', '=', 'empleado.user_id')
                     ->select('users.*')
-                 
+
             )
             ->columns([
 
@@ -79,10 +81,10 @@ class ListEmpleado extends Component implements HasForms, HasTable
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('empleado.nombre_completo')
-                ->searchable(isIndividual: true)
+                    ->searchable(isIndividual: true)
                     ->label('Nombre Completo'),
                 Tables\Columns\TextColumn::make('empleado.numero_empleado')
-                ->searchable(isIndividual: true)
+                    ->searchable(isIndividual: true)
                     ->label('Número de Empleado'),
                 Tables\Columns\TextColumn::make('empleado.categoria.nombre')
                     ->label('Categoría'),
@@ -137,97 +139,34 @@ class ListEmpleado extends Component implements HasForms, HasTable
                         }
                         return $query;
                     })
-                ],  layout: FiltersLayout::AboveContent)
+            ],  layout: FiltersLayout::AboveContent)
             ->actions([
 
                 EditAction::make()
-                    ->form([
+                    ->form(
+                    FormularioEmpleado::form()
+                    )
+                    ->using(function (User $record, array $data) {
 
-                        Section::make('user')
-                            ->schema([
-                                TextInput::make('name')
-                                    ->label('Nombre de Usuario')
-                                    ->required()
-                                    ->unique('users', 'name', ignoreRecord: true)
-                                    ->maxLength(255),
-                                TextInput::make('email')
-                                    ->label('Correo Electrónico')
-                                    ->required()
-                                    ->unique('users', 'email', ignoreRecord: true)
-                                    ->email()
-                                    ->maxLength(255),
+                        $record->update($data);
+                        
+                        $primerRol = $record->roles()->first();
 
-                            ])
-                            ->columnSpanFull(),
+                        if ($primerRol) {
+                            $record->active_role_id = $primerRol->id;
+                            $record->save();
+                        }
 
-
-
-                        Section::make('Empleado')
-                            ->schema([
-                                TextInput::make('nombre_completo')
-                                    ->label('Nombre Completo')
-                                    ->required()
-                                    ->maxLength(255),
-                                TextInput::make('numero_empleado')
-                                    ->label('Número de Empleado')
-                                    ->unique('empleado', 'numero_empleado', ignoreRecord: true)
-                                    ->required()
-                                    ->numeric()
-                                    ->maxLength(255),
-                                TextInput::make('celular')
-                                    ->required()
-                                    ->numeric()
-                                    ->maxLength(255),
-                                Select::make('categoria_id')
-                                    ->label('Categoría')
-                                    ->relationship('categoria', 'nombre')
-                                    ->required(),
-                                Select::make('empleado.centro_facultad_id')
-                                    ->label('Facultades o Centros')
-                                    ->searchable()
-                                    ->live()
-                                    ->relationship(name: 'centro_facultad', titleAttribute: 'nombre')
-                                    ->afterStateUpdated(function (Set $set) {
-                                        $set('empleado.empleado.departamento_academico_id', null);
-                                    })
-                                    ->required()
-                                    ->preload(),
-                                Select::make('empleado.departamento_academico_id')
-                                    ->label('Departamentos Académicos')
-                                    ->searchable()
-                                    ->relationship(
-                                        name: 'departamento_academico',
-                                        titleAttribute: 'nombre',
-                                        modifyQueryUsing: fn($query, Get $get) => $query->where('centro_facultad_id', $get('empleado.centro_facultad_id'))
-                                    )
-                                    ->visible(fn(Get $get) => !empty($get('empleado.centro_facultad_id')))
-                                    ->live()
-                                    ->required()
-                                    ->preload(),
-
-                            ])
-                            ->relationship('empleado')
-                            ->columns(2),
-                        Section::make('Roles')
-                            ->schema([
-                                CheckboxList::make('technologies')
-                                    ->label('Roles')
-                                    ->columns(3)
-                                    ->relationship(name: 'roles', titleAttribute: 'name')
-
-                            ])
-
-                            ->columnSpanFull(),
-                        //
-                    ])
+                        return $record;
+                    })
             ])
             ->headerActions([
                 ExportAction::make()->exports([
                     ExcelExport::make('table')
                         ->fromTable()
-                        //->queue()->withChunkSize(100)
-                        //->askForFilename('Empleados')
-                       // ->askForWriterType(),
+                    //->queue()->withChunkSize(100)
+                    //->askForFilename('Empleados')
+                    // ->askForWriterType(),
                 ])
                     ->label('Exportar a Excel')
                     ->color('success')
@@ -243,6 +182,6 @@ class ListEmpleado extends Component implements HasForms, HasTable
     public function render(): View
     {
         return view('livewire.personal.empleado.list-empleado')
-            ->layout('components.panel.modulos.modulo-empleado');
+            ;//->layout('components.panel.modulos.modulo-empleado');
     }
 }

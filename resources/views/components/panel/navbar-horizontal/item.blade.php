@@ -1,8 +1,17 @@
-@props(['titulo' => '', 'ruta' => 'login', 'permiso' => ''])
+@props(['titulo' => '', 
+'ruta' => 'login', 
+'permiso' => [],
+'parametro' => null
+]
+)
+
+{{-- Verificar si el parámetro está presente --}}
+
+
 
 @if(auth()->user()->activeRole && auth()->user()->activeRole->hasAnyPermission($permiso))
     <li class="flex items-center p-1 text-sm gap-x-2 text-slate-600">
-        <a href="{{ route($ruta) }}"
+        <a href="{{ route($ruta, $parametro) }}"
             class="flex items-center font-semibold p-2  rounded hover:bg-gray-100 hover:border-gray-300 focus:bg-gray-200 focus:border-gray-300
       
 dark:hover:bg-white/5 dark:focus-visible:bg-white/5 dark:text-gray-200

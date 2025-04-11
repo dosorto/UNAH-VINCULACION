@@ -86,6 +86,6 @@ class ListaCiudad extends Component implements HasForms, HasTable
     public function render(): View
     {
         return view('livewire.demografia.ciudad.lista-ciudad')
-        ->layout('components.panel.modulos.modulo-demografia');
+        ;//->layout('components.panel.modulos.modulo-demografia');
     }
 }

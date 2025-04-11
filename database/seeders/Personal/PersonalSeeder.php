@@ -49,24 +49,6 @@ class PersonalSeeder extends Seeder
             'descripcion' => 'Titular 5 de la universidad'
         ]);
 
-
-        $userVictor = User::create([
-            'name' => 'Victor',
-            'email' => 'victor@unah.edu.hn',
-            'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
-            'active_role_id' => 2
-        ])->assignRole('docente');
-
-
-        $userJessica = User::create([
-            'name' => 'Jessica',
-            'email' => 'jessica@unah.edu.hn',
-            'password' => bcrypt('123'),
-        ])->assignRole('docente')
-            ->givePermissionTo('configuracion-admin-mi-perfil')
-            ->givePermissionTo('docente-cambiar-datos-personales');
-       
-
         $user = User::create([
             'name' => 'NOTIFICACIONES  POA',
             'email' => 'notificacionespoa@unah.edu.hn',
@@ -75,8 +57,8 @@ class PersonalSeeder extends Seeder
             'surname' => 'POA',
             'given_name' => 'NOTIFICACIONES',
             'active_role_id' => 1
-        ])->assignRole(['admin', 'docente','Director/Enlace']);
-        
+        ])->assignRole(['admin', 'docente', 'Director/Enlace']);
+
         $adminUser = Empleado::create([
             'nombre_completo' => 'NOTIFICACIONES POA',
             'numero_empleado' => '12280',
@@ -84,45 +66,7 @@ class PersonalSeeder extends Seeder
             'user_id' => $user->id,
             'centro_facultad_id' => 4,
             'departamento_academico_id' => 9,
-            'categoria_id' => 1
-        ]);
-
-    
-
-
-        $ingeJessica = Empleado::create([
-            'nombre_completo' => 'JESSICA NOHELY AVILA CRUZ',
-            'numero_empleado' => '12310',
-            'celular' => '99999999',
-            'user_id' => $userJessica->id,
-            'centro_facultad_id' => 1,
-            'departamento_academico_id' => 1,
-            'categoria_id' => 1
-        ]);
-
-
-
-
-        $licVictor = Empleado::create([
-            'nombre_completo' => 'VICTOR NAHUN REYES NAVAS',
-            'numero_empleado' => '12317',
-            'celular' => '99999999',
-            'user_id' => $userVictor->id,
-            'centro_facultad_id' => 1,
-            'departamento_academico_id' => 1,
-            'categoria_id' => 1
-        ]);
-
-        $licVictor->firma()->create([
-            'tipo' => 'firma',
-            'ruta_storage' => 'images/firmas/Firma_Oscar.png',
-            'estado' => true
-        ]);
-
-        $licVictor->firma()->create([
-            'tipo' => 'sello',
-            'ruta_storage' => 'images/firmas/Sello_Victor.png',
-            'estado' => true
+            'categoria_id' => 2
         ]);
 
         $ingeDorian = Empleado::create([
@@ -147,6 +91,46 @@ class PersonalSeeder extends Seeder
             'ruta_storage' => 'images/firmas/Sello_Victor.png',
             'estado' => true
         ]);
-    }
 
+        if (app()->environment('local')) {
+
+            $user2 = User::create([
+                'name' => 'NOTIFICACIONES  POA',
+                'email' => 'correo@unah.edu.hn',
+                'password' => bcrypt('123'),
+                'surname' => 'POA',
+                'given_name' => 'NOTIFICACIONES',
+            ]);
+
+            Empleado::create([
+                'nombre_completo' => 'NOTIFICACIONES POA',
+                'numero_empleado' => '1228asdfasdf0',
+                'celular' => '99999999',
+                'user_id' => $user2->id,
+                'centro_facultad_id' => 4,
+                'departamento_academico_id' => 9,
+                'categoria_id' => 2
+            ]);
+
+            $user2->givePermissionTo('cambiar-datos-personales');
+            $user2->givePermissionTo('configuracion-admin-mi-perfil');
+
+            $user3 = User::create([
+                'name' => 'NOTIFICACIONES  POA',
+                'email' => 'estudiante@unah.hn',
+                'password' => bcrypt('123'),
+                'surname' => 'POA',
+                'given_name' => 'NOTIFICACIONES',
+            ]);
+
+            $user3 = Estudiante::create([
+                'cuenta' => '123123',
+                'user_id' => $user3->id,
+                'nombre' => 'nombre'
+            ]);
+
+            $user3->user->givePermissionTo('cambiar-datos-personales');
+            $user3->user->givePermissionTo('configuracion-admin-mi-perfil');
+        }
+    }
 }

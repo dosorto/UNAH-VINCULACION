@@ -80,16 +80,14 @@
                 </div>
             </div>        
         </div>
-        <div style="  flex-grow: 1;" class="overflow-auto scrollbar-hiddenp-4">
+        <div style="  flex-grow: 1;" class="overflow-auto scrollbar-hidden pb-4"  wire:scroll>
             {{ $slot }}
         </div>    
 
         <div>
             <div class=" ">
 
-                <x-panel.navbar.one-item titulo="Configuración" route="listarLogs" :routes="['listarLogs', 'crearEmpleado']"
-                    icono="heroicon-c-cog-6-tooth" class="mb-4" :permisos="['configuracion-admin-logs','apariencia-admin-slides']" />
-
+               
 
                 <div
                     class="bg-white rounded-lg p-2 border border-gray-300 dark:bg-white/5 dark:border-gray-700">

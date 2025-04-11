@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Personal\Empleado;
 
+use App\Livewire\Personal\Empleado\Formularios\FormularioEmpleado;
 use App\Livewire\User\Users;
 use App\Models\Personal\Empleado;
 use Filament\Forms;
@@ -44,103 +45,22 @@ class CreateEmpleado extends Component implements HasForms
     public function form(Form $form): Form
     {
         return $form
-            ->schema([
-
-
-
-                Section::make('user')
-                    ->schema([
-                        TextInput::make('usuario.name')
-                            ->label('Nombre de Usuario')
-                            ->required()
-                            ->unique('users', 'name')
-                            ->maxLength(255),
-                        TextInput::make('usuario.email')
-                            ->label('Correo Electrónico')
-                            ->required()
-                            ->unique('users', 'email')
-                            ->email()
-                            ->maxLength(255),
-
-                    ])
-                    ->columnSpanFull(),
-
-
-
-                Section::make('Empleado')
-                    ->schema([
-                        TextInput::make('empleado.nombre_completo')
-                            ->label('Nombre Completo')
-                            ->required()
-                            ->maxLength(255),
-                        TextInput::make('empleado.numero_empleado')
-                            ->label('Número de Empleado')
-                            ->unique('empleado', 'numero_empleado')
-                            ->required()
-                            ->numeric()
-                            ->maxLength(255),
-                        TextInput::make('empleado.celular')
-                            ->required()
-                            ->numeric()
-                            ->maxLength(255),
-                        Select::make('empleado.categoria_id')
-                            ->label('Categoría')
-                            ->relationship('categoria', 'nombre')
-                            ->required(),
-                        Select::make('empleado.centro_facultad_id')
-                            ->label('Facultades o Centros')
-                            ->searchable()
-                            ->live()
-                            ->relationship(name: 'centro_facultad', titleAttribute: 'nombre')
-                            ->afterStateUpdated(function (Set $set) {
-                                $set('empleado.empleado.departamento_academico_id', null);
-                            })
-                            ->required()
-                            ->preload(),
-                        Select::make('empleado.departamento_academico_id')
-                            ->label('Departamentos Académicos')
-                            ->searchable()
-                            ->relationship(
-                                name: 'departamento_academico',
-                                titleAttribute: 'nombre',
-                                modifyQueryUsing: fn($query, Get $get) => $query->where('centro_facultad_id', $get('empleado.centro_facultad_id'))
-                            )
-                            ->visible(fn(Get $get) => !empty($get('empleado.centro_facultad_id')))
-                            ->live()
-                            ->required()
-                            ->preload(),
-
-                    ])
-                    ->columns(2),
-                Section::make('roles')
-                    ->schema([
-                        CheckboxList::make('roles.roles')
-                            ->label('Roles')
-                        
-                            ->columns(3)
-                            ->options(Role::all()->pluck('name', 'name')->toArray())
-
-                    ])
-                    
-                    ->columnSpanFull(),
-            ])
-
+            ->schema(FormularioEmpleado::form())
             ->statePath('data')
-            ->model(Empleado::class);
+            ->model(User::class);
     }
 
     public function create(): void
     {
         $data = $this->form->getState();
-        $user = User::create($data['usuario']);
-        $user->assignRole($data['roles']['roles']);
-        // cambiar el rol activo al primer rol que tenga asignado
-        $user->active_role_id = $user->roles->first()->id;
-        $user->save();
-
-        $record = $user->empleado()->create($data['empleado']);
+        $record = User::create($data);
         $this->form->model($record)->saveRelationships();
 
+        // cambiar el rol activo al primer rol que tenga asignado
+        $record->active_role_id = $record->roles->first()->id;
+        $record->save();
+
+        
         Notification::make()
             ->title('Exito!')
             ->body('Empleado creado correctamente.')
@@ -154,6 +74,6 @@ class CreateEmpleado extends Component implements HasForms
     public function render(): View
     {
         return view('livewire.personal.empleado.create-empleado')
-            ->layout('components.panel.modulos.modulo-empleado');
+            ;//->layout('components.panel.modulos.modulo-empleado');
     }
 }

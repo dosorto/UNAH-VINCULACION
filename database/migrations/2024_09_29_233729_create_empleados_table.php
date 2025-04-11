@@ -26,7 +26,11 @@ return new class extends Migration
             $table->string('nombre_completo')->nullable(); // Nombre completo del empleado
             $table->string('numero_empleado')->unique()->nullable(); // Número de empleado
             $table->string('celular')->nullable(); // Número de celular
-            $table->integer('categoria_id')->nullable(); // Identificador de la categoría
+
+            // 
+            $table->enum('tipo_empleado', ['docente', 'administrativo'])->default("docente"); // Tipo de empleado (docente o administrativo)
+
+            $table->unsignedBigInteger('categoria_id')->nullable(); // Identificador de la categoría
             $table->unsignedBigInteger('user_id'); // Llave foránea para la tabla users
             $table->integer('centro_facultad_id')->nullable(); // Identificador del campus
             $table->integer('departamento_academico_id')->nullable(); // Identificador del departamento académico
@@ -35,6 +39,7 @@ return new class extends Migration
         
             // Definir la clave foránea hacia la tabla users
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('categoria_id')->references('id')->on('categoria')->onDelete('cascade');
         });
 
         Schema::create('firma_sello_empleado', function (Blueprint $table) {

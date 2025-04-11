@@ -12,6 +12,31 @@ return new class extends Migration
     public function up(): void
     {
 
+          // tablas de modulo de estado
+          Schema::create('tipo_estado', function (Blueprint $table) {
+            $table->id();
+            $table->string('nombre');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+        // estado del proyecto por empleado usando fecha
+        Schema::create('estado_proyecto', function (Blueprint $table) {
+            $table->id();
+            
+            $table->foreignId('empleado_id')->constrained('empleado');
+            $table->foreignId('tipo_estado_id')->constrained('tipo_estado');
+            $table->date('fecha');
+            $table->text('comentario')->nullable();
+            $table->boolean('es_actual')->default(true);
+
+            $table->morphs('estadoable');
+            $table->softDeletes();
+            $table->timestamps();
+        });
+
+
+
         // tablas catalogo del modulo de proyecto
         // tabla ods
         Schema::create('ods', function (Blueprint $table) {
@@ -46,7 +71,7 @@ return new class extends Migration
             $table->foreignId('modalidad_id')->nullable()->constrained('modalidad');
             // $table->foreignId('municipio_id')->nullable()->constrained('municipio');
             // $table->foreignId('departamento_id')->nullable()->constrained('departamento');
-            $table->foreignId('ciudad_id')->nullable()->constrained('ciudad');
+            //$table->foreignId('ciudad_id')->nullable()->constrained('ciudad');
             $table->longText('aldea')->nullable();
             $table->longText('resumen')->nullable();
             $table->longText('objetivo_general')->nullable();
@@ -218,8 +243,8 @@ return new class extends Migration
             $table->id();
             $table->string('descripcion')->nullable();
             $table->foreignId('tipo_cargo_firma_id')->nullable()->constrained('tipo_cargo_firma');
-            $table->integer('tipo_estado_id')->nullable();
-            $table->integer('estado_siguiente_id')->nullable();
+            $table->foreignId('tipo_estado_id')->nullable()->constrained('tipo_estado');
+            $table->foreignId('estado_siguiente_id')->nullable()->constrained('tipo_estado');
             $table->softDeletes();
             $table->timestamps();
         });

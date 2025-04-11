@@ -237,6 +237,6 @@ class EditProyectoVinculacionForm extends Component implements HasForms
     public function render(): View
     {
         return view('livewire.proyectos.vinculacion.edit-proyecto-vinculacion-form')
-            ->layout('components.panel.modulos.modulo-proyectos');
+            ;//->layout('components.panel.modulos.modulo-proyectos');
     }
 }

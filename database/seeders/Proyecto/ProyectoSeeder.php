@@ -2,6 +2,7 @@
 
 namespace Database\Seeders\Proyecto;
 
+use App\Models\Constancia\TipoConstancia;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Proyecto\Proyecto;

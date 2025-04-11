@@ -22,6 +22,7 @@ use Filament\Support\Enums\MaxWidth;
 
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Illuminate\Support\Facades\Auth;
 
 class ProyectosPorFirmar extends Component implements HasForms, HasTable
 {
@@ -30,13 +31,10 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
 
     public Empleado $docente;
 
-    public function mount()
+    public function mount($docente = null): void
     {
-        // dd($this->docente->firmaProyectoPendiente->pluck('id')->toArray());
-        // $model = Proyecto::where('id', 2)->first();
-        // dd($model->firma_proyecto_cargo);
+        $this->docente = $docente ?? Auth::user()->empleado;
     }
-
 
 
     public function table(Table $table): Table

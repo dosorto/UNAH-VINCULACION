@@ -1,10 +1,13 @@
 <?php
 
+use App\Jobs\SendEmailJob;
 use App\Livewire\User\Roles;
 use App\Livewire\User\Users;
 use App\Livewire\Login\Login;
 use App\Livewire\Inicio\InicioAdmin;
+use App\Mail\correoProyectoCreado;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Demografia\Pais\CreatePais;
 use App\Livewire\Demografia\Pais\ListPaises;
@@ -12,7 +15,7 @@ use App\Livewire\Configuracion\Logs\ListLogs;
 use App\Livewire\Demografia\Aldea\ListAldeas;
 use App\Livewire\Auth\ResetPasswordController;
 use App\Livewire\Demografia\Aldea\CreateAldea;
-use App\Livewire\Personal\Empleado\EditPerfil;
+use App\Livewire\Personal\Perfil\EditPerfil;
 use App\Livewire\Auth\ForgotPasswordController;
 use App\Livewire\Demografia\Ciudad\ListaCiudad;
 use App\Livewire\Personal\Permiso\ListPermisos;
@@ -50,7 +53,8 @@ use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
 use App\Http\Controllers\DirectorCentro\Proyectos\ListProyectosCentro;
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
-
+use App\Livewire\Constancia\ListConstancias;
+use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
 
 Route::get('verificacion_constancia', [VerificarConstancia::class, 'verificacionConstanciaVista'])
     ->name('verificacion_constancia');
@@ -210,6 +214,12 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('can:estudiante-cambiar-datos-personales');
     });
 
+    Route::get('pruebacorreo', function () {
+        Mail::to('acxel.aplicano@unah.hn')
+            ->send(new correoProyectoCreado());
+        return 'Correo enviado';
+    })->name('pruebacorreo');
+
     // rutas agrupadas para el modulo de Proyectos
     Route::middleware(['auth'])->group(function () {
 
@@ -227,7 +237,7 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('permission:proyectos-admin-proyectos');
 
 
-        Route::get('proyectos-vinculacion/{facultadCentro}', ListProyectos::class)
+        Route::get('proyectos-vinculacion', ListProyectos::class)
             ->name('proyectosCentroFacultad')
             ->middleware('permission:admin_centro_facultad-proyectos|proyectos-admin-proyectos');
 
@@ -253,14 +263,23 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('can:configuracion-admin-logs');
     });
 
+    // rutas para el modludo de constancias
+
+    
+    Route::middleware(['auth'])->group(function () {
+
+        Route::get('listConstancias', ListConstancias::class)
+            ->name('constancias')
+            ->middleware('can:constancia-admin-constancias');
+    });
 
     // agregar rutas para el modulo de docente
     Route::middleware(['auth'])->group(function () {
-        Route::get('proyectosDocente', [DocenteProyectoController::class, 'listaDeProyectos'])
+        Route::get('proyectosDocente',  ProyectosDocenteList::class)
             ->name('proyectosDocente')
             ->middleware('can:docente-admin-proyectos');
 
-        Route::get('SolicitudProyectosDocente', [DocenteProyectoController::class, 'SolicitudProyectosDocente'])
+        Route::get('SolicitudProyectosDocente', ProyectosPorFirmar::class)
             ->name('SolicitudProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
         Route::get('AprobadoProyectosDocente', ProyectosAprobados::class)

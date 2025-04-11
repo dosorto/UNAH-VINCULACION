@@ -45,14 +45,14 @@ class ListProyectos extends Component implements HasForms, HasTable
     public string $titulo;
     public string $descripcion;
 
-    public function mount(FacultadCentro $facultadCentro)
+    public function mount($facultadCentro = null)
     {
         // si el usuario tiene el permiso de admin_centro_facultad-proyectos validar que la facultad/centro sea la misma a la que pertenece
         //  adminCentroFacultadProyectos
         // Verifica si el usuario tiene alguno de los permisos
 
         $user = auth()->user();
-
+        $facultadCentro =  auth()->user()->empleado->centro_facultad;
 
         if ($user->hasPermissionTo('admin_centro_facultad-proyectos') && !$user->hasPermissionTo('proyectos-admin-proyectos')) {
             // Si tiene este permiso, valida que pertenezca a la misma facultad/centro
