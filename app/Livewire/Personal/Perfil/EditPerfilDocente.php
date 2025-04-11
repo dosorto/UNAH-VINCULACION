@@ -66,7 +66,7 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
                 // Section para la firma
                 Section::make('Firma (Requerido)')
                     ->description('Visualizar o agregar una nueva Firma.')
-                    ->relationship('empleado')
+                    ->model($this->record->empleado)
                     ->headerActions([
                         Action::make('create')
                             ->label('Crear Nueva Firma')
