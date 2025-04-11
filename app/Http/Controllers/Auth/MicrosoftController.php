@@ -30,7 +30,7 @@ class MicrosoftController extends Controller
             if (!in_array(substr(strrchr($user->email, "@"), 1), ['unah.hn', 'unah.edu.hn'])) {
                 Notification::make()
                     ->title('Correo no válido')
-                    ->body('Inicie sesion con un correo de la UNAH.')
+                    ->body('Inicie sesion con un correo de la UNAH. :(')
                     ->danger()
                     ->send();
                 return redirect()->route('login');

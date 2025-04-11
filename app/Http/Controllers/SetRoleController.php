@@ -36,15 +36,15 @@ class SetRoleController extends Controller
         }
 
 
-        Notification::make()
-            ->title('Exito!')
-            ->body('Rol cambiado exitosamente.')
-            ->success()
-            ->send();
-
         // Asignar el nuevo rol si pasa la validación
         $user->active_role_id = $request->role_id;
         $user->save();
+
+        Notification::make()
+        ->title('Exito!')
+        ->body('Rol cambiado exitosamente.')
+        ->success()
+        ->send();
 
         // Redirigir a la ruta 'inicio' con un mensaje de éxito
         return redirect()->route('inicio')->with('success', 'Rol cambiado exitosamente.');
