@@ -147,6 +147,9 @@ class ListEmpleado extends Component implements HasForms, HasTable
                     FormularioEmpleado::form()
                     )
                     ->using(function (User $record, array $data) {
+
+                        $record->update($data);
+                        
                         $primerRol = $record->roles()->first();
 
                         if ($primerRol) {
