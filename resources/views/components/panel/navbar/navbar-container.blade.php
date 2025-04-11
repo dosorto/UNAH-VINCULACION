@@ -80,7 +80,7 @@
                 </div>
             </div>        
         </div>
-        <div style="  flex-grow: 1;" class="overflow-auto scrollbar-hiddenp-4">
+        <div style="  flex-grow: 1;" class="overflow-auto scrollbar-hidden pb-4"  wire:scroll>
             {{ $slot }}
         </div>    
 

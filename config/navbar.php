@@ -184,9 +184,9 @@ return [
                 'icono' => 'heroicon-o-document-text',
                 'permisos' => ['docente-admin-proyectos', 'docente-admin-solicitados'],
                 'children' => [
-                    ['texto' => 'Solicitud Proyecto', 'route' => 'SolicitudProyectosDocente', 'permiso' => 'docente-admin-proyectos', 'funcion' => 'obtenerCantidadProyectosPorFirmar'],
-                    ['texto' => 'Aprobado Proyectos', 'route' => 'AprobadoProyectosDocente', 'permiso' => 'docente-admin-proyectos'],
-                    ['texto' => 'Pendientes Proyectos', 'route' => 'RechazadoProyectosDocente', 'permiso' => 'docente-admin-proyectos'],
+                    ['texto' => 'Solicitud de Firma', 'route' => 'SolicitudProyectosDocente', 'permiso' => 'docente-admin-proyectos', 'funcion' => 'obtenerCantidadProyectosPorFirmar'],
+                    ['texto' => 'Firmas Aprobadas', 'route' => 'AprobadoProyectosDocente', 'permiso' => 'docente-admin-proyectos'],
+                    ['texto' => 'Firmas Proximas', 'route' => 'RechazadoProyectosDocente', 'permiso' => 'docente-admin-proyectos'],
                 ],
                 'funcion' => null,
                 'parametro' => null,

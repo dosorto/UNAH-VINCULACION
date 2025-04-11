@@ -2,7 +2,7 @@
 
 <div class="mt-0 sm:mt-2">
     @if($titulo)
-        <h2 class="text-lg font-semibold text-gray-800 ">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
             {{ $titulo }}
         </h2>
     @endif
