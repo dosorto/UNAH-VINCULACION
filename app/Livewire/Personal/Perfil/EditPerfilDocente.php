@@ -175,7 +175,6 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
         
         $data = $this->form->getState();
 
-         dd($data);
         // validar que el docente tenga almenos una firma y un sello
 
 
