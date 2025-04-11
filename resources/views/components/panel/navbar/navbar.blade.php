@@ -1,7 +1,7 @@
 <x-panel.navbar.navbar-container>
     @php
-    $menu = include(resource_path('views/components/panel/navbar.php'));
-@endphp
+    $menu = [];
+    @endphp
 
     @foreach($menu as $grupo)
         <x-panel.navbar.group-item :titulo="$grupo['titulo']" :icono="$grupo['icono']">
