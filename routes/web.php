@@ -62,6 +62,15 @@ Route::get('verificacion_constancia', [VerificarConstancia::class, 'verificacion
 Route::get('verificacion_constancia/{hash?}', [VerificarConstancia::class, 'index'])
     ->name('verificacion_constancia');
 
+Route::get('/logout', function () {
+    if (Auth::check()) { // Verifica si el usuario está autenticado
+        Auth::logout(); // Cierra la sesión
+        return redirect('/'); // Redirige al inicio
+    }
+
+    return redirect()->route('login'); // Si no está autenticado, redirige a la página de login
+})->name('logout');
+
 // Rutas para redireccionar a los usuario autenticados
 Route::middleware(['guest'])->group(function () {
     // rutas para autenticación con Microsoft
@@ -109,13 +118,13 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
     Route::get('setPerfil/{role_id}', [SetRoleController::class, 'SetRole'])
         ->name('setrole');
-       // ->middleware('can:global-set-role');
+    // ->middleware('can:global-set-role');
 
 
     // rutas agrupadas para el modulo de inicio
     Route::get('inicio', InicioAdmin::class)
         ->name('inicio');
-       // ->middleware('permission:inicio-admin-inicio|inicio-docente-inicio|docente-cambiar-datos-personales|estudiante-inicio-inicio|estudiante-cambiar-datos-personales');
+    // ->middleware('permission:inicio-admin-inicio|inicio-docente-inicio|docente-cambiar-datos-personales|estudiante-inicio-inicio|estudiante-cambiar-datos-personales');
     // rutas agrupadas para el modulo de demografia :)
     Route::middleware(['auth'])->group(function () {
 
@@ -181,13 +190,6 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         Route::get('slides', SlideConfig::class)
             ->name('slides')
             ->middleware('can:apariencia-admin-slides');
-
-
-        Route::get('/logout', function () {
-            Auth::logout();
-            return redirect('/');
-        })
-            ->name('logout');
     });
 
 
@@ -261,7 +263,7 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
     // rutas para el modludo de constancias
 
-    
+
     Route::middleware(['auth'])->group(function () {
 
         Route::get('listConstancias', ListConstancias::class)
@@ -285,8 +287,4 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('RechazadoProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
     });
-
-    
 });
-
-
