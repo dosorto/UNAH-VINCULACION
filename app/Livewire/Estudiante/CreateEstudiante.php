@@ -96,7 +96,6 @@ class CreateEstudiante extends Component implements HasForms
                                 titleAttribute: 'nombre',
                                 modifyQueryUsing: fn($query, Get $get) => $query->where('centro_facultad_id', $get('estudiante.centro_facultad_id'))
                             )
-                            ->visible(fn(Get $get) => !empty($get('estudiante.centro_facultad_id')))
                             ->live()
                             ->required()
                             ->preload(),

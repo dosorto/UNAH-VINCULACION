@@ -275,12 +275,12 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['auth'])->group(function () {
 
         Route::get('listarEstudiante', ListarEstudiante::class)
-            ->name('listarEstudiante');
-    //        ->middleware('can:estudiante');
+            ->name('listarEstudiante')
+            ->middleware('can:estudiante-admin-estudiante');
 
         Route::get('crearEstudiante', CreateEstudiante::class)
-            ->name('crearEstudiante');
-     //       ->middleware('can:estudiante-admin-estudiante');
+            ->name('crearEstudiante')
+            ->middleware('can:estudiante-admin-estudiante');
     });
 
 
