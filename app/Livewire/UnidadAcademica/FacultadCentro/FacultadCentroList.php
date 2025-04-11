@@ -161,6 +161,6 @@ class FacultadCentroList extends Component implements HasForms, HasTable
     public function render(): View
     {
         return view('livewire.unidad-academica.facultad-centro.facultad-centro-list')
-            ->layout('components.panel.modulos.modulo-unidad-academica', ['title' => 'Campus']);
+           ;// ->layout('components.panel.modulos.modulo-unidad-academica', ['title' => 'Campus']);
     }
 }

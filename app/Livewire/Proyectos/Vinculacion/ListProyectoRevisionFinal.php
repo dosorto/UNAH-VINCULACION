@@ -336,6 +336,6 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
     public function render(): View
     {
         return view('livewire.proyectos.vinculacion.list-proyecto-revision-final')
-            ->layout('components.panel.modulos.modulo-proyectos');
+            ;//->layout('components.panel.modulos.modulo-proyectos');
     }
 }

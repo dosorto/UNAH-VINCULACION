@@ -76,6 +76,6 @@ class ListPaises extends Component implements HasForms, HasTable
     public function render(): View
     {
         return view('livewire.demografia.pais.list-paises')
-            ->layout('components.panel.modulos.modulo-demografia');
+           ;// ->layout('components.panel.modulos.modulo-demografia');
     }
 }

@@ -286,6 +286,6 @@ class CreateProyectoVinculacion extends Component implements HasForms
     public function render(): View
     {
         return view('livewire.proyectos.vinculacion.create-proyecto-vinculacion')
-            ->layout('components.panel.modulos.modulo-proyectos');
+            ;//->layout('components.panel.modulos.modulo-proyectos');
     }
 }

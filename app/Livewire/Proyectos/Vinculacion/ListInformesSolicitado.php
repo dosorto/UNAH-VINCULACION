@@ -172,6 +172,6 @@ class ListInformesSolicitado extends Component implements HasForms, HasTable
     public function render(): View
     {
         return view('livewire.proyectos.vinculacion.list-informes-solicitado')
-            ->layout('components.panel.modulos.modulo-proyectos');
+            ;//->layout('components.panel.modulos.modulo-proyectos');
     }
 }

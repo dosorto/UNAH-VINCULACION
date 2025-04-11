@@ -1,6 +1,6 @@
 <x-panel.navbar.navbar-container>
     @php
-    $menu = [];
+        $menu = include(resource_path('views/components/panel/navbar.php'));
     @endphp
 
     @foreach($menu as $grupo)

@@ -162,6 +162,6 @@ class CreateEmpleado extends Component implements HasForms
     public function render(): View
     {
         return view('livewire.personal.empleado.create-empleado')
-            ->layout('components.panel.modulos.modulo-empleado');
+            ;//->layout('components.panel.modulos.modulo-empleado');
     }
 }

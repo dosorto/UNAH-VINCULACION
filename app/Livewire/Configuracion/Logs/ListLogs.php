@@ -70,6 +70,6 @@ class ListLogs extends Component implements HasForms, HasTable
     public function render(): View
     {
         return view('livewire.configuracion.logs.list-logs')
-        ->layout('components.panel.modulos.modulo-configuracion');
+        ;//->layout('components.panel.modulos.modulo-configuracion');
     }
 }

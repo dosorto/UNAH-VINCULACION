@@ -72,6 +72,6 @@ class CreateAldea extends Component implements HasForms
     public function render(): View
     {
         return view('livewire.demografia.aldea.create-aldea')
-        ->layout('components.panel.modulos.modulo-demografia');
+        ;//->layout('components.panel.modulos.modulo-demografia');
     }
 }
