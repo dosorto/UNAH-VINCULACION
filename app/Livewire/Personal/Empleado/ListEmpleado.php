@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Personal\Empleado;
 
+use App\Livewire\Personal\Empleado\Formularios\FormularioEmpleado;
 use App\Models\Personal\Empleado;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -142,85 +143,9 @@ class ListEmpleado extends Component implements HasForms, HasTable
             ->actions([
 
                 EditAction::make()
-                    ->form([
-
-                        Section::make('user')
-                            ->schema([
-                                TextInput::make('name')
-                                    ->label('Nombre de Usuario')
-                                    ->required()
-                                    ->unique('users', 'name', ignoreRecord: true)
-                                    ->maxLength(255),
-                                TextInput::make('email')
-                                    ->label('Correo Electrónico')
-                                    ->required()
-                                    ->unique('users', 'email', ignoreRecord: true)
-                                    ->email()
-                                    ->maxLength(255),
-
-                            ])
-                            ->columnSpanFull(),
-
-
-
-                        Section::make('Empleado')
-                            ->schema([
-                                TextInput::make('nombre_completo')
-                                    ->label('Nombre Completo')
-                                    ->required()
-                                    ->maxLength(255),
-                                TextInput::make('numero_empleado')
-                                    ->label('Número de Empleado')
-                                    ->unique('empleado', 'numero_empleado', ignoreRecord: true)
-                                    ->required()
-                                    ->numeric()
-                                    ->maxLength(255),
-                                TextInput::make('celular')
-                                    ->required()
-                                    ->numeric()
-                                    ->maxLength(255),
-                                Select::make('categoria_id')
-                                    ->label('Categoría')
-                                    ->relationship('categoria', 'nombre')
-                                    ->required(),
-                                Select::make('empleado.centro_facultad_id')
-                                    ->label('Facultades o Centros')
-                                    ->searchable()
-                                    ->live()
-                                    ->relationship(name: 'centro_facultad', titleAttribute: 'nombre')
-                                    ->afterStateUpdated(function (Set $set) {
-                                        $set('empleado.empleado.departamento_academico_id', null);
-                                    })
-                                    ->required()
-                                    ->preload(),
-                                Select::make('empleado.departamento_academico_id')
-                                    ->label('Departamentos Académicos')
-                                    ->searchable()
-                                    ->relationship(
-                                        name: 'departamento_academico',
-                                        titleAttribute: 'nombre',
-                                        modifyQueryUsing: fn($query, Get $get) => $query->where('centro_facultad_id', $get('empleado.centro_facultad_id'))
-                                    )
-                                    ->visible(fn(Get $get) => !empty($get('empleado.centro_facultad_id')))
-                                    ->live()
-                                    ->required()
-                                    ->preload(),
-
-                            ])
-                            ->relationship('empleado')
-                            ->columns(2),
-                        Section::make('Roles')
-                            ->schema([
-                                CheckboxList::make('Roles')
-                                    ->label('Roles')
-                                    ->columns(3)
-                                    ->relationship(name: 'roles', titleAttribute: 'name')
-
-                            ])
-
-                            ->columnSpanFull(),
-                        //
-                    ])
+                    ->form(
+                    FormularioEmpleado::form()
+                    )
                     ->using(function (User $record, array $data) {
                         $primerRol = $record->roles()->first();
 

@@ -85,7 +85,7 @@ class PersonalSeeder extends Seeder
 
             $user2 = User::create([
                 'name' => 'NOTIFICACIONES  POA',
-                'email' => 'correo',
+                'email' => 'correo@unah.edu.hn',
                 'password' => bcrypt('123'),
                 'surname' => 'POA',
                 'given_name' => 'NOTIFICACIONES',
@@ -106,7 +106,7 @@ class PersonalSeeder extends Seeder
 
             $user3 = User::create([
                 'name' => 'NOTIFICACIONES  POA',
-                'email' => 'estudiante',
+                'email' => 'estudiante@unah.hn',
                 'password' => bcrypt('123'),
                 'surname' => 'POA',
                 'given_name' => 'NOTIFICACIONES',

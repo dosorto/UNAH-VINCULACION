@@ -20,8 +20,9 @@
     });
 @endphp
 
+@if ($moduloSeleccionado)
 <x-panel.navbar-horizontal.navbar-horizontal titulo="{{$moduloSeleccionado['titulo']}}">
-    @if ($moduloSeleccionado)
+   
         {{-- Si tiene hijos, solo mostrar hijos --}}
         @if (!empty($moduloSeleccionado['children']))
             @foreach ($moduloSeleccionado['children'] as $child)

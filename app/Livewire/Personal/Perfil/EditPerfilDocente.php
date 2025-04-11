@@ -3,6 +3,7 @@
 
 namespace App\Livewire\Personal\Perfil;
 
+use App\Livewire\Personal\Empleado\Formularios\FormularioEmpleado;
 use Filament\Forms;
 use Livewire\Component;
 use Filament\Forms\Form;
@@ -30,6 +31,7 @@ use Filament\Forms\Set;
 // importar modelo role de spatie
 use Spatie\Permission\Models\Role;
 
+use App\Models\User;
 
 
 class EditPerfilDocente extends Component implements HasForms, HasActions
@@ -39,14 +41,11 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
 
     public ?array $data = [];
     public ?array $data_firma = [];
-    public Empleado $record;
+    public User $record;
 
     public function mount(): void
     {
-        $this->record = Empleado::firstOrCreate(
-            ['user_id' => auth()->user()->id],
-            ['user_id' => auth()->user()->id]
-        );
+        $this->record = auth()->user();
         $this->form->fill($this->record->attributesToArray());
     }
 
@@ -56,56 +55,10 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
             ->schema([
 
                 Section::make('Perfil de Empleado')
-                    ->schema([
-
-
-                        // Otros campos del formulario
-                        TextInput::make('nombre_completo')
-                            ->label('Nombre Completo')
-                            ->required()
-                            ->default($this->record->user->name)
-                            ->maxLength(255),
-                        TextInput::make('numero_empleado')
-                            ->label('Número de Empleado')
-                            ->unique('empleado', 'numero_empleado', ignoreRecord: true)
-                            ->required()
-                            ->numeric()
-                            ->maxLength(255),
-                        TextInput::make('celular')
-                            ->required()
-                            ->numeric()
-                            ->maxLength(255),
-                        Select::make('categoria_id')
-                            ->label('Categoría')
-                            ->relationship('categoria', 'nombre')
-                            ->required(),
-                        Select::make('centro_facultad_id')
-                            ->label('Facultades o Centros')
-                            ->searchable()
-                            ->live()
-                            ->relationship(name: 'centro_facultad', titleAttribute: 'nombre')
-                            ->afterStateUpdated(function (Set $set) {
-                                $set('departamento_academico_id', null);
-                            })
-                            ->required()
-                            ->preload(),
-
-
-
-                        Select::make('departamento_academico_id')
-                            ->label('Departamentos Académicos')
-                            ->searchable()
-                            ->relationship(
-                                name: 'departamento_academico',
-                                titleAttribute: 'nombre',
-                                modifyQueryUsing: fn($query, Get $get) => $query->where('centro_facultad_id', $get('centro_facultad_id'))
-                            )
-                            ->visible(fn(Get $get) => !empty($get('centro_facultad_id')))
-                            ->live()
-                            ->required()
-                            ->preload(),
-                    ])
-                    ->visible($this->record->firma()->exists())
+                    ->schema(
+                        FormularioEmpleado::form(disableTipoEmpleado:true)
+                    )
+                    ->visible($this->record->empleado->firma()->exists())
                     // deshabilitar si el usuario no tiene el permiso de 'docente-cambiar-datos-personales'
                     ->disabled(!auth()->user()->can('cambiar-datos-personales')),
 
@@ -113,6 +66,7 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
                 // Section para la firma
                 Section::make('Firma (Requerido)')
                     ->description('Visualizar o agregar una nueva Firma.')
+                    ->relationship('empleado')
                     ->headerActions([
                         Action::make('create')
                             ->label('Crear Nueva Firma')
@@ -140,7 +94,7 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
                         // ...
                         Repeater::make('firma')
                             ->label('')
-                            ->relationship()
+                            ->relationship('firma')
                             ->deletable(false)
                             ->schema([
                                 FileUpload::make('ruta_storage')
@@ -155,7 +109,6 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
                             ])
                             ->minItems(1)
                             ->maxItems(1)
-                            ->defaultItems(1)
                             ->addable(false)
                             ->columns(1),
                     ]),
@@ -163,6 +116,7 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
                 // Section para el sello
                 Section::make('Sello (opcional)')
                     ->description('Visualizar o agregar un nuevo Sello.')
+                    ->relationship('empleado')
                     ->headerActions([
                         Action::make('create')
                             ->label('Crear Nuevo Sello')
@@ -218,24 +172,22 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
 
     public function save()
     {
+        
         $data = $this->form->getState();
 
-        // dd($data);
+         dd($data);
         // validar que el docente tenga almenos una firma y un sello
 
 
 
         $this->record->update($data);
 
-        $this->record->user->assignRole('docente')->save();
-        $this->record->user->active_role_id =  Role::where('name', 'docente')->first()->id;
-
-
-
+        $this->record->assignRole('docente')->save();
+        $this->record->active_role_id =  Role::where('name', 'docente')->first()->id;
 
         // quitar el permiso de 'configuracion-admin-mi-perfil al usuario
-        $this->record->user->revokePermissionTo('cambiar-datos-personales');
-        $this->record->user->save();
+        $this->record->revokePermissionTo('cambiar-datos-personales');
+        $this->record->save();
 
         Notification::make()
             ->title('Exito!')
