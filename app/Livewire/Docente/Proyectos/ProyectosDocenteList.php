@@ -40,6 +40,8 @@ use Filament\Tables\Filters\Layout;
 use Filament\Tables\Filters\SelectFilter;
 
 use Filament\Tables\Enums\FiltersLayout;
+use Illuminate\Support\Facades\Auth;
+
 
 class ProyectosDocenteList extends Component implements HasForms, HasTable
 {
@@ -47,11 +49,10 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
     use InteractsWithTable;
     public Empleado $docente;
 
-    public function mount(Empleado $docente): void
+    public function mount($docente = null): void
     {
-        $this->docente = $docente;
+        $this->docente = $docente ?? Auth::user()->empleado;
     }
-
     public function table(Table $table): Table
     {
         return $table
@@ -60,7 +61,6 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                     return 'bg-red-100 border-4 border-red-600 dark:bg-red-900 dark:border-red-400';
                 }
             })
-            ->striped()
             ->query(
 
                 Proyecto::query()

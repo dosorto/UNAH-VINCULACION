@@ -53,7 +53,7 @@ use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
 use App\Http\Controllers\DirectorCentro\Proyectos\ListProyectosCentro;
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
 use App\Livewire\Constancia\ListConstancias;
-
+use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
 
 Route::get('verificacion_constancia', [VerificarConstancia::class, 'verificacionConstanciaVista'])
     ->name('verificacion_constancia');
@@ -233,7 +233,7 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('permission:proyectos-admin-proyectos');
 
 
-        Route::get('proyectos-vinculacion/{facultadCentro}', ListProyectos::class)
+        Route::get('proyectos-vinculacion', ListProyectos::class)
             ->name('proyectosCentroFacultad')
             ->middleware('permission:admin_centro_facultad-proyectos|proyectos-admin-proyectos');
 
@@ -271,11 +271,11 @@ Route::middleware(['auth'])->group(function () {
 
     // agregar rutas para el modulo de docente
     Route::middleware(['auth'])->group(function () {
-        Route::get('proyectosDocente', [DocenteProyectoController::class, 'listaDeProyectos'])
+        Route::get('proyectosDocente',  ProyectosDocenteList::class)
             ->name('proyectosDocente')
             ->middleware('can:docente-admin-proyectos');
 
-        Route::get('SolicitudProyectosDocente', [DocenteProyectoController::class, 'SolicitudProyectosDocente'])
+        Route::get('SolicitudProyectosDocente', ProyectosPorFirmar::class)
             ->name('SolicitudProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
         Route::get('AprobadoProyectosDocente', ProyectosAprobados::class)

@@ -1,7 +1,7 @@
 @extends('layouts.panel.base')
 @section('main')
 @php
-    $menu = include(resource_path('views/components/panel/navbar.php'));
+    $menu = $menu = config('navbar');
     $rutaActual = Route::currentRouteName();
 
     $moduloSeleccionado = collect($menu[0]['items'])->first(function ($item) use ($rutaActual) {

@@ -148,7 +148,6 @@ return [
                 'permisos' => ['admin_centro_facultad-proyectos'],
                 'children' => [],
                 'funcion' => null,
-                'parametro' => auth()->user()->empleado->centro_facultad_id ?? null,
                 'can' => 'admin_centro_facultad-proyectos',
             ],
             [
