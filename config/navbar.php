@@ -92,7 +92,6 @@ return [
                 'titulo' => 'Proyecto',
                 'route' => 'listarProyectosVinculacion',
                 'routes' => [
-                    'crearProyectoVinculacion',
                     'listarProyectosVinculacion',
                     'listarProyectosSolicitado',
                     'listarProyectoRevisionFinal',
@@ -140,6 +139,20 @@ return [
                 'parametro' => null,
                 'can' => null,
             ],
+
+            [
+                'titulo' => 'Configuración',
+                'route' => 'listarLogs',
+                'routes' => ['listarLogs', 'slides'],
+                'icono' => 'heroicon-c-cog-6-tooth',
+                'class' => 'mb-4',
+                'permisos' => ['configuracion-admin-logs', 'apariencia-admin-slides'],
+                'children' => [
+                    ['texto' => 'Logs', 'route' => 'listarLogs', 'permiso' => 'configuracion-admin-logs'],
+                    ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia-admin-slides']
+                ],
+            ],
+
             [
                 'titulo' => 'Proyectos',
                 'route' => 'proyectosCentroFacultad',
@@ -153,7 +166,7 @@ return [
             [
                 'titulo' => 'Proyectos',
                 'route' => 'proyectosDocente',
-                'routes' => ['proyectosDocente'],
+                'routes' => ['proyectosDocente', 'crearProyectoVinculacion'],
                 'icono' => 'heroicon-o-academic-cap',
                 'permisos' => ['docente-admin-proyectos'],
                 'children' => [
@@ -167,7 +180,7 @@ return [
             [
                 'titulo' => 'Firmas',
                 'route' => 'SolicitudProyectosDocente',
-                'routes' => ['SolicitudProyectosDocente'],
+                'routes' => ['SolicitudProyectosDocente', 'AprobadoProyectosDocente', 'RechazadoProyectosDocente'],
                 'icono' => 'heroicon-o-document-text',
                 'permisos' => ['docente-admin-proyectos', 'docente-admin-solicitados'],
                 'children' => [
@@ -179,6 +192,9 @@ return [
                 'parametro' => null,
                 'can' => null,
             ],
+
+            
+            
         ],
     ],
 ];

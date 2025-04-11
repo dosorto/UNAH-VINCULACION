@@ -78,6 +78,7 @@
             <div class="bg-white p-6 border border-gray-300 rounded-lg dark:bg-white/5 dark:border-gray-700 h-full">
                 @yield('titulo')
                 <div class="mt-4">
+                    @include('components.panel.navbar-horizontal.navbar')
                     @yield('main')
                 </div>
             </div>

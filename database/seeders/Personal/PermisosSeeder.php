@@ -127,6 +127,7 @@ class PermisosSeeder extends Seeder
 
         $roleAdminCentroFacultad->givePermissionTo([
             'admin_centro_facultad-proyectos',
+            'inicio-admin-inicio',
             'global-set-role',
             'ver-dashboard-admin-centro-facultad',
         ])->save();
