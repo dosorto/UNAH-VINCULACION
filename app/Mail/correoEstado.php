@@ -17,6 +17,7 @@ class correoEstado extends Mailable
     public $estadoNombre;
     //public $empleadoCorreo;
     public $empleadoNombre;
+    public $nombreProyecto;
     public $logoUrl;
     public $appName;
     public $actionUrl;
@@ -30,14 +31,12 @@ class correoEstado extends Mailable
      * 
      */
     
-     public function __construct($estadoNombre, /*$cambiadoPorCorreo,*/ $empleadoNombre)
+     public function __construct($estadoNombre, /*$cambiadoPorCorreo,*/ $empleadoNombre, $nombreProyecto)
      {
-         $this->empleadoNombre = $empleadoNombre;
+        $this->nombreProyecto = $nombreProyecto;
+        $this->empleadoNombre = $empleadoNombre;
         // $this->cambiadoPorCorreo = $cambiadoPorCorreo;
-         $this->estadoNombre = $estadoNombre;
-         $this->actionUrl = config('app.url');
-         $this->logoUrl = asset('images/LOGO_NX.png');
-         $this->appName = config('app.name');
+        $this->estadoNombre = $estadoNombre;
      }
 
     /**
@@ -46,8 +45,8 @@ class correoEstado extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address('notificacionespoa@unah.edu.hn', 'Notificaciones POA'),
-            subject: 'Notificación de cambio de estado del proyecto - Cambiado por: ' . $this->empleadoNombre,
+            from: new Address('notificacionespoa@unah.edu.hn', 'Notificaciones NEXO-UNAH'),
+            subject: 'Notificación de cambio de estado del proyecto',
         );
     }
 
@@ -61,9 +60,10 @@ class correoEstado extends Mailable
             with: [
                 'estadoNombre' => $this->estadoNombre,
                 'cambiadoPorNombre' => $this->empleadoNombre,
-                'actionUrl' => $this->actionUrl,
-                'logoUrl' => $this->logoUrl,
-                'appName' => $this->appName,
+                'mensaje' => 'Su proyecto'. $this->nombreProyecto . 'ha sido actualizado a: ' . $this->estadoNombre,
+                'actionUrl' => route('listarProyectosVinculacion'),
+                'logoUrl' => asset('images/logo_nuevo.png'),
+                'appName' => 'NEXO-UNAH',
                 //'cambiadoPorCorreo' => $this->cambiadoPorCorreo,
             ],
         );

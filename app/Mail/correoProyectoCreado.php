@@ -13,13 +13,17 @@ use Illuminate\Queue\SerializesModels;
 class correoProyectoCreado extends Mailable
 {
     use Queueable, SerializesModels;
-
+    public $nombreProyecto;
+    public $empleadoNombre;
+    public $logoUrl;
+    public $appName;
+    public $actionUrl;
     /**
      * Create a new message instance.
      */
-    public function __construct()
+    public function __construct($nombreProyecto)
     {
-        //
+        $this->nombreProyecto = $nombreProyecto;
     }
 
     /**
@@ -28,8 +32,8 @@ class correoProyectoCreado extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address('notificacionespoa@unah.edu.hn', 'Notificaciones POA'),
-            subject: 'Nuevo Proyecto Creado',
+            from: new Address('notificacionespoa@unah.edu.hn', 'Notificaciones NEXO-UNAH'),
+            subject: 'Nuevo Proyecto Creado: ' . $this->nombreProyecto,
         );
     }
 
@@ -39,6 +43,14 @@ class correoProyectoCreado extends Mailable
     public function content(): Content
     {
         return new Content(
+            with: [
+                'empleadoNombre' => $this->empleadoNombre,
+                'nombreProyecto' => $this->nombreProyecto,
+                'mensaje' => 'Se ha creado un nuevo proyecto en el sistema, identificado como '. $this->nombreProyecto,
+                'logoUrl' => asset('images/logo_nuevo.png'),
+                'appName' => 'NEXO-UNAH',
+                'actionUrl' =>  route('listarProyectosVinculacion'),
+            ],
             view: 'emails.correoProyectoCreado',
         );
     }
