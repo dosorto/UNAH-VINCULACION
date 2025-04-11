@@ -56,7 +56,7 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
 
                 Section::make('Perfil de Empleado')
                     ->schema(
-                        FormularioEmpleado::form(disableTipoEmpleado:true)
+                        FormularioEmpleado::form(disableTipoEmpleado: true)
                     )
                     ->visible($this->record->empleado->firma()->exists())
                     // deshabilitar si el usuario no tiene el permiso de 'docente-cambiar-datos-personales'
@@ -172,17 +172,19 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
 
     public function save()
     {
-        
+
         $data = $this->form->getState();
 
         // validar que el docente tenga almenos una firma y un sello
 
 
-
         $this->record->update($data);
 
-        $this->record->assignRole('docente')->save();
-        $this->record->active_role_id =  Role::where('name', 'docente')->first()->id;
+        if ($this->record->empleado->tipo_empleado === 'docente') {
+            $this->record->assignRole('docente')->save();
+            $this->record->active_role_id =  Role::where('name', 'docente')->first()->id;
+        }
+
 
         // quitar el permiso de 'configuracion-admin-mi-perfil al usuario
         $this->record->revokePermissionTo('cambiar-datos-personales');

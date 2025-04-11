@@ -15,15 +15,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+            
         ]);
+       
         $middleware->redirectGuestsTo('/');
 
         // redirect users to the 'listarPais' route after login
         $middleware->redirectUsersTo('inicio');
-        //
-    })
-    ->withMiddleware(function (Middleware $middleware) {
+
         $middleware->trustProxies(at: '*');
+        //
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

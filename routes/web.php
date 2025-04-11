@@ -86,7 +86,7 @@ Route::middleware(['guest'])->group(function () {
 });
 
 // Rutas para redireccionar a los usuario  no autenticados
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfil::class])->group(function () {
 
 
 
