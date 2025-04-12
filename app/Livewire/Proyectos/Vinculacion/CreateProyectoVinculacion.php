@@ -169,7 +169,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
             $nombreProyecto = $record->nombre_proyecto; // Nombre del proyecto
             $empleadoNombre = auth()->user()->empleado->nombre_completo;  // Nombre del usuario
            // $empleadoCorreo = auth()->user()->email;  // Correo del usuario 
-            SendEmailJob::dispatch($creadorEmail, 'correoEstado', $estadoNombre, $nombreProyecto, $empleadoNombre);
+           // SendEmailJob::dispatch($creadorEmail, 'correoEstado', $estadoNombre, $nombreProyecto, $empleadoNombre);
             
         } catch (\Exception $e) {
             // Eliminar el proyecto en caso de error al agregar el estado
@@ -182,35 +182,6 @@ class CreateProyectoVinculacion extends Component implements HasForms
             return;
         }
 
-        try {
-            // Enviar correos a los empleados Participantes en firma
-            foreach ($record->integrantes as $empleado) {
-                // Accede al usuario de cada empleado y a su correo
-                $usuario = $empleado->user;  // Asumiendo que cada empleado tiene un usuario relacionado
-                $nombreProyecto = $record->nombre_proyecto; // Nombre del proyecto
-                $empleadoNombre = auth()->user()->empleado->nombre_completo;  // Nombre del usuario
-                if ($usuario && $usuario->email) {
-                    // Enviar el correo al email del usuario
-                    SendEmailJob::dispatch($usuario->email, 'correoProyectoCreado', $nombreProyecto, $empleadoNombre);
-                } else {
-                    // Notificar si no se encontró el correo del usuario
-                    Notification::make()
-                        ->title('Error')
-                        ->body('No se encontró el correo del usuario: ' . $empleado->nombre_completo)
-                        ->danger()
-                        ->send();
-                    return;
-                }
-            }
-        } catch (\Exception $e) {
-            // Notificar si hubo un error al enviar los correos
-            Notification::make()
-                ->title('Error')
-                ->body('Error al enviar correos: ' . $e->getMessage())
-                ->danger()
-                ->send();
-            return;
-        }
             
         // Notificación de éxito si todo se completó correctamente
         Notification::make()
