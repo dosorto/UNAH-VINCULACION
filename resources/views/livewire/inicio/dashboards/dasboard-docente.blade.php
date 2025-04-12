@@ -111,18 +111,20 @@
                                             class="relative flex items-center p-8 rounded-xl border border-gray-200 bg-white  dark:border-gray-700 dark:bg-gray-800">
                                             <div
                                                 class="flex items-center justify-center w-14 h-14 rounded-full bg-purple-100 dark:bg-purple-700">
-                                                <svg class="w-8 h-8 text-purple-600 dark:text-white" aria-hidden="true"
-                                                    xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                                    fill="currentColor" viewBox="0 0 24 24">
+                                                <svg class="w-8 h-8 text-purple-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24"
+                                                    height="24" fill="currentColor" viewBox="0 0 24 24">
                                                     <path fill-rule="evenodd"
-                                                        d="M12 6a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm-1.5 8a4 4 0 0 0-4 4 2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 4 4 0 0 0-4-4h-3Zm6.82-3.096a5.51 5.51 0 0 0-2.797-6.293 3.5 3.5 0 1 1 2.796 6.292ZM19.5 18h.5a2 2 0 0 0 2-2 4 4 0 0 0-4-4h-1.1a5.503 5.503 0 0 1-.471.762A5.998 5.998 0 0 1 19.5 18ZM4 7.5a3.5 3.5 0 0 1 5.477-2.889 5.5 5.5 0 0 0-2.796 6.293A3.501 3.501 0 0 1 4 7.5ZM7.1 12H6a4 4 0 0 0-4 4 2 2 0 0 0 2 2h.5a5.998 5.998 0 0 1 3.071-5.238A5.505 5.505 0 0 1 7.1 12Z"
+                                                        d="M8 7V2.221a2 2 0 0 0-.5.365L3.586 6.5a2 2 0 0 0-.365.5H8Zm2 0V2h7a2 2 0 0 1 2 2v.126a5.087 5.087 0 0 0-4.74 1.368v.001l-6.642 6.642a3 3 0 0 0-.82 1.532l-.74 3.692a3 3 0 0 0 3.53 3.53l3.694-.738a3 3 0 0 0 1.532-.82L19 15.149V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9h5a2 2 0 0 0 2-2Z"
+                                                        clip-rule="evenodd" />
+                                                    <path fill-rule="evenodd"
+                                                        d="M17.447 8.08a1.087 1.087 0 0 1 1.187.238l.002.001a1.088 1.088 0 0 1 0 1.539l-.377.377-1.54-1.542.373-.374.002-.001c.1-.102.22-.182.353-.237Zm-2.143 2.027-4.644 4.644-.385 1.924 1.925-.385 4.644-4.642-1.54-1.54Zm2.56-4.11a3.087 3.087 0 0 0-2.187.909l-6.645 6.645a1 1 0 0 0-.274.51l-.739 3.693a1 1 0 0 0 1.177 1.176l3.693-.738a1 1 0 0 0 .51-.274l6.65-6.646a3.088 3.088 0 0 0-2.185-5.275Z"
                                                         clip-rule="evenodd" />
                                                 </svg>
                                             </div>
                                             <div class="ml-5">
-                                                <p class="text-base font-medium text-gray-600 dark:text-gray-400">Empleados
+                                                <p class="text-base font-medium text-gray-600 dark:text-gray-400">En revisión
                                                 </p>
-                                                <h4 class="text-2xl font-bold text-gray-900 dark:text-white">14</h4>
+                                                <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{$enRevisionUser->count()}}</h4>
                                             </div>
                                         </div>
     
@@ -171,9 +173,9 @@
                                 <div class="flex justify-between items-center pt-5">
                                     <button wire:click="toggleChartRange"
                                     class="inline-flex items-center px-4 py-2 font-medium text-sm rounded-md transition duration-200
-                                        {{ $chartFullRange 
-                                        ? 'bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-500 dark:hover:bg-blue-600' 
-                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200' }}"
+                                        {{ $chartFullRange
+    ? 'bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-500 dark:hover:bg-blue-600'
+    : 'bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200' }}"
                                         >
                                         @if($chartFullRange)
                                             Ver últimos 4 años
@@ -360,7 +362,7 @@
                     <div>
                         <div
                             class="h-auto py-4 px-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                            <h4 class="text-lg text-gray-900 dark:text-white font-semibold mb-4">Proyectos por empleados
+                            <h4 class="text-lg text-gray-900 dark:text-white font-semibold mb-4">Cantidad de proyectos
                             </h4>
                             @forelse($empleadosWithCount as $empleado)
                                 <a class="flex p-5 items-center justify-between rounded-xl transition duration-150 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -416,11 +418,11 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($proyectosUser as $proyecto)
+                                    @forelse($proyectosUserTable as $proyecto)
                                         <tr
                                             class="bg-white border-t hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-800 dark:border-gray-700 border-gray-200">
                                             <th scope="row"
-                                                class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                                class="px-6 py-4 font-medium text-gray-900 max-w-sm dark:text-white">
                                                 {{ $proyecto->nombre_proyecto }}
                                             </th>
                                             <td class="px-6 py-4">
@@ -445,7 +447,7 @@
                                 </tbody>
                             </table>
                             <div class="flex items-center justify-end px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-                                {{$proyectosUser->links()}}
+                                {{$proyectosUserTable->links()}}
                             </div>
                         </div>
                     </div>
@@ -459,7 +461,7 @@
                             <div class="flex items-center justify-between mb-3">
                                 <div class="flex items-center">
                                     <h3 class="text-lg text-gray-900 dark:text-white font-semibold mr-2">Borrador</h3>
-                                    <span class="inline-flex items-center justify-center w-6 h-7 rounded-full bg-gray-200 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400">{{$enBorradorUserCount}}</span>
+                                    <span class="inline-flex items-center justify-center w-6 h-7 rounded-full bg-gray-200 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400">{{$borradorUser->count()}}</span>
                                 </div>
                             </div>
                     
@@ -498,6 +500,43 @@
                             @empty
                                 <p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10">No hay proyectos en borrador</p>
                             @endforelse
+                            <div class="flex flex-col bg-white rounded-t-lg dark:bg-gray-800 p-5 sm:flex-row flex-wrap space-y-4 sm:space-y-0 items-center justify-between">
+                                @if ($enBorradorUser->hasMorePages())
+                                    <div class="mt-4 text-center">
+                                        <button 
+                                            wire:click="loadMore"
+                                            class="px-4 py-2 bg-yellow-500 text-white rounded-md"
+                                            wire:loading.attr="disabled"
+                                            wire:loading.class="bg-gray-300 cursor-not-allowed"
+                                        >
+                                            Ver más
+                                            <div wire:loading>
+                                                <svg 
+                                                    aria-hidden="true" 
+                                                    role="status"
+                                                    class="inline w-4 h-4 me-3 text-gray-200 animate-spin dark:text-gray-600"
+                                                    viewBox="0 0 100 101" 
+                                                    fill="none" 
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                >
+                                                    <path 
+                                                        d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                                                        fill="currentColor"
+                                                    />
+                                                    <path 
+                                                        d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                                                        fill="#ffff"
+                                                    />
+                                                </svg>
+                                            </div>
+                                        </button>
+                                    </div>
+                                @else
+                                    <div class="text-center">
+                                        <p class="text-gray-300 dark:text-gray-400">----------------------------</p>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     </div>
                     
@@ -506,7 +545,7 @@
                             <div class="flex items-center justify-between mb-3">
                                 <div class="flex items-center">
                                     <h3 class="text-lg text-gray-900 dark:text-white font-semibold mr-2">En revisión</h3>
-                                    <span class="inline-flex items-center justify-center w-6 h-7 rounded-full bg-gray-200 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400">{{$enRevisionUserCount}}</span>
+                                    <span class="inline-flex items-center justify-center w-6 h-7 rounded-full bg-gray-200 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400">{{$enRevisionUser->count()}}</span>
                                 </div>
                             </div>
                     
@@ -544,6 +583,43 @@
                             @empty
                                 <p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10">Esperando proyectos</p>
                             @endforelse
+                            <div class="flex flex-col bg-white rounded-t-lg dark:bg-gray-800 p-5 sm:flex-row flex-wrap space-y-4 sm:space-y-0 items-center justify-between">
+                                @if ($enRevisionUser->hasMorePages())
+                                    <div class="mt-4 text-center">
+                                        <button 
+                                            wire:click="loadMore"
+                                            class="px-4 py-2 bg-yellow-500 text-white rounded-md"
+                                            wire:loading.attr="disabled"
+                                            wire:loading.class="bg-gray-300 cursor-not-allowed"
+                                        >
+                                            Ver más
+                                            <div wire:loading>
+                                                <svg 
+                                                    aria-hidden="true" 
+                                                    role="status"
+                                                    class="inline w-4 h-4 me-3 text-gray-200 animate-spin dark:text-gray-600"
+                                                    viewBox="0 0 100 101" 
+                                                    fill="none" 
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                >
+                                                    <path 
+                                                        d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                                                        fill="currentColor"
+                                                    />
+                                                    <path 
+                                                        d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                                                        fill="#ffff"
+                                                    />
+                                                </svg>
+                                            </div>
+                                        </button>
+                                    </div>
+                                @else
+                                    <div class="text-center">
+                                        <p class="text-gray-300 dark:text-gray-400">----------------------------</p>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     </div>
                     
@@ -553,7 +629,7 @@
                             <div class="flex items-center justify-between mb-3">
                                 <div class="flex items-center">
                                     <h3 class="text-lg text-gray-900 dark:text-white font-semibold mr-2">En curso</h3>
-                                    <span class="inline-flex items-center justify-center w-6 h-7 rounded-full bg-gray-200 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400">{{$enEjecucionUserCount}}</span>
+                                    <span class="inline-flex items-center justify-center w-6 h-7 rounded-full bg-gray-200 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400">{{$ejecucionUser->count()}}</span>
                                 </div>
                             </div>
                     
@@ -591,6 +667,43 @@
                             @empty
                                 <p class="text-xs text-gray-600 dark:text-gray-300 leading-normal mb-10">Esperando proyectos</p>
                             @endforelse
+                            <div class="flex flex-col bg-white rounded-t-lg dark:bg-gray-800 p-5 sm:flex-row flex-wrap space-y-4 sm:space-y-0 items-center justify-between">
+                                @if ($enEjecucionUser->hasMorePages())
+                                    <div class="mt-4 text-center">
+                                        <button 
+                                            wire:click="loadMore"
+                                            class="px-4 py-2 bg-yellow-500 text-white rounded-md"
+                                            wire:loading.attr="disabled"
+                                            wire:loading.class="bg-gray-300 cursor-not-allowed"
+                                        >
+                                            Ver más
+                                            <div wire:loading>
+                                                <svg 
+                                                    aria-hidden="true" 
+                                                    role="status"
+                                                    class="inline w-4 h-4 me-3 text-gray-200 animate-spin dark:text-gray-600"
+                                                    viewBox="0 0 100 101" 
+                                                    fill="none" 
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                >
+                                                    <path 
+                                                        d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                                                        fill="currentColor"
+                                                    />
+                                                    <path 
+                                                        d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                                                        fill="#ffff"
+                                                    />
+                                                </svg>
+                                            </div>
+                                        </button>
+                                    </div>
+                                @else
+                                    <div class="text-center">
+                                        <p class="text-gray-300 dark:text-gray-400">----------------------------</p>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     </div>
                     
@@ -600,7 +713,7 @@
                             <div class="flex items-center justify-between mb-3">
                                 <div class="flex items-center">
                                     <h3 class="text-lg text-gray-900 dark:text-white font-semibold mr-2">Finalizados</h3>
-                                    <span class="inline-flex items-center justify-center w-6 h-7 rounded-full bg-gray-200 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400">{{$enFinalizadosUserCount}}</span>
+                                    <span class="inline-flex items-center justify-center w-6 h-7 rounded-full bg-gray-200 dark:bg-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400"> {{ $finalizadosUser->count() }}</span>
                                 </div>
                             </div>
                     
@@ -671,7 +784,7 @@
                                     </div>
                                 @else
                                     <div class="text-center">
-                                        <p class="text-gray-500 dark:text-gray-400">No hay más proyectos</p>
+                                        <p class="text-gray-300 dark:text-gray-400">----------------------------</p>
                                     </div>
                                 @endif
                             </div>

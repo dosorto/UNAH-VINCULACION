@@ -163,9 +163,6 @@ class VerificarConstancia extends Controller
 
         $enlace =  url('/verificacion_constancia/' . $Constancia->hash);
 
-        if ($tipo == 'inscripcion')
-            $vista = 'app.docente.constancias.constancia_en_curso';
-        else if ($tipo == 'finalizacion')
             $vista = 'app.docente.constancias.constancia_finalizado';
 
 
@@ -183,6 +180,7 @@ class VerificarConstancia extends Controller
             'empleado' => auth()->user()->empleado,
             'qrCode' => $qrcodePath,
             'enlace' => $enlace,
+            'pdf' => true,
         ];
 
         $pdf = PDF::loadView($vista, $data);
@@ -303,6 +301,24 @@ class VerificarConstancia extends Controller
 
     public function verificacionConstanciaVista()
     {
-        return view('app.docente.constancias.constancia_finalizado');
+        $ep = EmpleadoProyecto::find(1);
+        $proyecto = $ep->proyecto;
+        $empleado = $ep->empleado;
+        $qrcodeName = Str::random(8) . '.png';
+        $qrcodePath = storage_path('app/public/' . $qrcodeName); // Ruta donde se guardará el QR
+        $enlace =  url('/verificacion_constancia/' . $ep->hash);
+        // Generar el código QR como imagen base64
+
+        QrCode::format('png')->size(200)->errorCorrection('H')->generate($enlace, $qrcodePath);
+
+        $data = [
+            'title' => 'Constancia de Participación',
+            'proyecto' => $proyecto,
+            'empleado' => $empleado,
+            'qrCode' => $qrcodeName,
+            'enlace' => $enlace,
+            'pdf' => false
+        ];
+        return view('app.docente.constancias.constancia_finalizado', $data);
     }
 }

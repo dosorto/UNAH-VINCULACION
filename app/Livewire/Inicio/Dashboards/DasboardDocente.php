@@ -5,13 +5,14 @@ namespace App\Livewire\Inicio\Dashboards;
 use App\Models\Estado\TipoEstado;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Personal\Empleado;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Carbon\Carbon;
 use Spatie\Activitylog\Models\Activity;
 
 class DasboardDocente extends Component
 {
-    public $perPage = 5;
+    public $perPage = 3;
     public $selectedYear = null;
     public $projectsData = [];
     public $projectsDataUser = [];
@@ -21,7 +22,7 @@ class DasboardDocente extends Component
     // Método para cargar más proyectos en la tabla
     public function loadMore()
     {
-        $this->perPage += 5;
+        $this->perPage += 3;
     }
 
     public function mount()
@@ -132,12 +133,9 @@ class DasboardDocente extends Component
     // Modifica el método para filtrar por empleado (por ejemplo, filtrando por "nombre_completo")
     public function getProjectsCountByEmployees()
     {
+        $userId = auth()->user()->empleado->id;
         $query = Empleado::query();
-
-        if ($this->employeeSearch) {
-            $query->where('nombre_completo', 'like', '%' . $this->employeeSearch . '%');
-        }
-
+        $query->where('id', 'like', '%' .$userId . '%');
         return $query->withCount('proyectos')->paginate(4);
     }
 
@@ -262,34 +260,37 @@ class DasboardDocente extends Component
             ->paginate($this->perPage);
     }
 
-    /**
-     * Obtiene proyectos del usuario logueado cuyos estados se encuentren en la lista de nombres.
-     *
-     * @param array $stateNames
-     * @return \Illuminate\Support\Collection
-     */
-    public function proyectosEnRevisionesUser(array $stateNames)
-    {
-        $userId = auth()->user()->empleado->id;
 
-        $tipoEstadosIds = TipoEstado::whereIn('nombre', $stateNames)->pluck('id');
+/**
+ * Obtiene proyectos del usuario logueado cuyos estados se encuentren en la lista de nombres y los pagina.
+ *
+ * @param array $stateNames
+ * @param int $perPage
+ * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+ */
+public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
+{
+    $userId = auth()->user()->empleado->id;
+    $perPage = $perPage ?? $this->perPage;
 
-        return Proyecto::with('tipo_estado')
-            ->whereIn('id', function ($query) use ($tipoEstadosIds) {
-                $query->select('estadoable_id')
-                    ->from('estado_proyecto')
-                    ->where('estadoable_type', Proyecto::class)
-                    ->whereIn('tipo_estado_id', $tipoEstadosIds)
-                    ->where('es_actual', true);
-            })
-            ->whereIn('id', function ($query) use ($userId) {
-                $query->select('proyecto_id')
-                    ->from('empleado_proyecto')
-                    ->where('empleado_id', $userId);
-            })
-            ->orderBy('id', 'asc')
-            ->get();
-    }
+    $tipoEstadosIds = TipoEstado::whereIn('nombre', $stateNames)->pluck('id');
+
+    return Proyecto::with('tipo_estado')
+        ->whereIn('id', function ($query) use ($tipoEstadosIds) {
+            $query->select('estadoable_id')
+                ->from('estado_proyecto')
+                ->where('estadoable_type', Proyecto::class)
+                ->whereIn('tipo_estado_id', $tipoEstadosIds)
+                ->where('es_actual', true);
+        })
+        ->whereIn('id', function ($query) use ($userId) {
+            $query->select('proyecto_id')
+                ->from('empleado_proyecto')
+                ->where('empleado_id', $userId);
+        })
+        ->orderBy('id', 'asc')
+        ->paginate($perPage);
+}
 
     public function render()
     {
@@ -412,11 +413,17 @@ class DasboardDocente extends Component
             ->get();
 
         // Si necesitas obtener todos los proyectos asociados al usuario sin filtrar por estado:
+        $proyectosUserTable = Proyecto::query()
+            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+            ->where('empleado_proyecto.empleado_id', $userId)
+            ->distinct()
+            ->paginate( 10);
+
         $proyectosUser = Proyecto::query()
             ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
             ->where('empleado_proyecto.empleado_id', $userId)
             ->distinct()
-            ->paginate(10);
+            ->get();
 
 
         //obtener lista de años en los cuales hay proyectos creados
@@ -501,6 +508,7 @@ class DasboardDocente extends Component
             'subsanacionUser' => $subsanacionUser,
             'ejecucionUser' => $ejecucionUser,
             'borradorUser' => $borradorUser,
+            'proyectosUserTable' => $proyectosUserTable,
             'proyectosUser' => $proyectosUser,
             //chartAdmin
             'chartData' => array_values($this->projectsData),
@@ -517,14 +525,11 @@ class DasboardDocente extends Component
             'enRevision' => $enRevision,
             'enRevisionCount' => $enRevision->count(),  // Total de proyectos en revisión
             //mostrar panel de estados para user
-            'enFinalizadosUser' => $enFinalizadosUser,
-            'enFinalizadosUserCount'  => $enFinalizadosUser->count(),  // Total de proyectos finalizados
-            'enEjecucionUser' => $enEjecucionUser,
-            'enEjecucionUserCount' => $enEjecucionUser->count(),  // Total de proyectos en ejecución
-            'enBorradorUser' => $enBorradorUser,
-            'enBorradorUserCount' => $enBorradorUser->count(),  // Total de proyectos en borrador
+            'enFinalizadosUser' => $enFinalizadosUser,  // Total de proyectos finalizados
+            'enEjecucionUser' => $enEjecucionUser, // Total de proyectos en ejecución
+            'enBorradorUser' => $enBorradorUser,// Total de proyectos en borrador
             'enRevisionUser' => $enRevisionUser,
-            'enRevisionUserCount' => $enRevisionUser->count(),  // Total de proyectos en revisión
+          
         ]);
     }
 }

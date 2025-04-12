@@ -2,6 +2,7 @@
 
 namespace App\Models\Estado;
 
+use App\Services\Correos\EnviarCorreos;
 use App\Models\Proyecto\Proyecto;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -47,12 +48,13 @@ class EstadoProyecto extends Model
 
     protected $fillable = [
         'id',
-        'proyecto_id',
         'empleado_id',
         'tipo_estado_id',
         'fecha',
         'comentario',
-        'es_actual'
+        'es_actual',
+        'estadoable_id',
+        'estadoable_type'
     ];
 
 
@@ -72,6 +74,11 @@ class EstadoProyecto extends Model
                 ->where('estadoable_type', $estadoProyecto->estadoable_type)
                 ->update(['es_actual' => false]);
         });
+
+        static::saved(function ($estadoProyecto) {
+            app(EnviarCorreos::class)->enviar($estadoProyecto);
+        });
+
     }
 
 
@@ -81,9 +88,12 @@ class EstadoProyecto extends Model
     }
 
 
+
     public function proyecto()
     {
-        return $this->belongsTo(Proyecto::class, 'proyecto_id',);
+        // recuperar el modelo del proyecto
+
+        return $this->belongsTo(Proyecto::class, 'estadoable_id');
     }
 
 
