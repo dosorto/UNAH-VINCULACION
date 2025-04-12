@@ -11,14 +11,15 @@ use App\Models\Constancia\TipoConstancia;
 use App\Models\Personal\Empleado;
 use Illuminate\Support\Facades\Crypt;
 use App\Models\Personal\EmpleadoProyecto;
+use App\Services\Constancia\BuilderConstancia;
+use App\Services\Constancia\ConstanciaBuilder;
+use App\Services\Constancia\MakeConstancia;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
 
 class VerificarConstancia extends Controller
 {
-
-
     /*
         CREAR LAS CONSTANCIAS A LOS PROYECTOS 
     */
@@ -30,9 +31,7 @@ class VerificarConstancia extends Controller
             return;
         }
 
-
         // mapear los empleados proyectos y llamar al metodo validarConstanciaEmpleado para ver si puede recibir o no su constancia
-
         $proyecto->docentes_proyecto->map(function ($empleadoProyecto) use ($nombreEstadoProyecto) {
             // validar si el empleado del proyecto se puede generar constancia o no
             if (self::validarConstanciaEmpleado($empleadoProyecto)) {
@@ -98,10 +97,6 @@ class VerificarConstancia extends Controller
         return true;
     }
 
-
-
-
-
     public static function validarConstanciaInscripcion(EmpleadoProyecto $empleadoProyecto)
     {
         if (!self::validarConstanciaEmpleado($empleadoProyecto)) {
@@ -135,75 +130,8 @@ class VerificarConstancia extends Controller
     public static function CrearPdf(EmpleadoProyecto $empleadoProyecto, $tipo)
     {
         // validar si el empleado del proyecto se puede generar constancia o no
-        if (!self::validarConstanciaEmpleado($empleadoProyecto)) {
-            return redirect()->back()->with('error', 'No se puede generar la constancia');
-        }
-
-
-        $Constancia = Constancia::where('origen_type', Proyecto::class)
-            ->where('origen_id', $empleadoProyecto->proyecto_id)
-            ->where('destinatario_type', Empleado::class)
-            ->where('destinatario_id', $empleadoProyecto->empleado_id)
-            ->where('tipo_constancia_id', TipoConstancia::where('nombre', $tipo)->first()->id)
-            ->first();
-
-        $Constancia->descargas()
-            ->create([
-                'user_id' => auth()->user()->id,
-            ]);
-
-
-
-        // obtener el estado del proyecto para seleccionar la vista del tipo de constancia
-        $proyecto = $empleadoProyecto->proyecto;
-        // crear un nombre random para el archivo qr
-        $qrCodeName = Str::random(8) . '.png';
-        // Generar la constancia PDF
-        $qrcodePath = storage_path('app/public/' . $qrCodeName); // Ruta donde se guardará el QR
-
-        $enlace =  url('/verificacion_constancia/' . $Constancia->hash);
-
-            $vista = 'app.docente.constancias.constancia_finalizado';
-
-
-
-        // Generar el código QR como imagen base64
-        QrCode::format('png')->size(200)->errorCorrection('H')->generate($enlace, $qrcodePath);
-
-
-        // Cargar la imagen (logo) y moverla a la carpeta pública
-
-        // Datos que se pasan a la vista
-        $data = [
-            'title' => 'Constancia de Participación',
-            'proyecto' => $proyecto,
-            'empleado' => auth()->user()->empleado,
-            'qrCode' => $qrcodePath,
-            'enlace' => $enlace,
-            'pdf' => true,
-        ];
-
-        $pdf = PDF::loadView($vista, $data);
-
-
-        
-        // Generar un nombre único para el archivo basándome en los id del empleado en el proyecto
-        $fileName = 'constancia_' . $proyecto->id . '_' . auth()->user()->empleado->id . '_' . Str::random(8) . '.pdf';
-
-        // Definir la ruta con el nombre único
-        $filePath = storage_path('app/public/' . $fileName);
-
-        // Guardar el PDF en la ruta
-        $pdf->save($filePath);
-
-
-        // eliminar el qr despues de generar el pdf
-        unlink($qrcodePath);
-
-        // Descargar el PDF y eliminarlo al instante para que no quede en storage
-        return response()
-            ->download($filePath, 'Constancia_Participacion.pdf')
-            ->deleteFileAfterSend(true);
+        return BuilderConstancia::make($empleadoProyecto, $tipo)
+            ->getConstancia();
     }
 
 
@@ -215,9 +143,6 @@ class VerificarConstancia extends Controller
     public function index($hash)
     {
         try {
-
-
-
             // buscar el empleado proyecto con el hash
             $Constancia = Constancia::where('hash', $hash)->firstOrFail();
             $tipo = $Constancia->tipo->nombre;
@@ -225,9 +150,9 @@ class VerificarConstancia extends Controller
             $empleadoProyecto = EmpleadoProyecto::where('proyecto_id', $Constancia->origen_id)
                 ->where('empleado_id', $Constancia->destinatario_id)
                 ->firstOrFail();
-           
-                $Constancia->validaciones += 1;
-                $Constancia->save();
+
+            $Constancia->validaciones += 1;
+            $Constancia->save();
             if ($tipo == 'Inscripcion')
                 return Self::inscripcion($empleadoProyecto);
             else if ($tipo == 'Finalizacion')
@@ -312,12 +237,14 @@ class VerificarConstancia extends Controller
         QrCode::format('png')->size(200)->errorCorrection('H')->generate($enlace, $qrcodePath);
 
         $data = [
-            'title' => 'Constancia de Participación',
-            'proyecto' => $proyecto,
-            'empleado' => $empleado,
-            'qrCode' => $qrcodeName,
-            'enlace' => $enlace,
-            'pdf' => false
+            'titulo' => '$this->titulo',
+            'texto' => '$this->texto',
+            'firmaDirector' => ' $this->firmaDirector',
+            'selloDirector' => '$this->selloDirector',
+            'anioAcademico' => '$this->anioAcademico',
+
+            'pdf' => false,
+            'qrCode' => asset('storage/' . $qrcodeName),
         ];
         return view('app.docente.constancias.constancia_finalizado', $data);
     }

@@ -3,7 +3,6 @@
     $logoImage = $pdf ? 'file://' . public_path('images/imagenvinculacion.jpg') : asset('images/imagenvinculacion.jpg');
     $firmaImage = $pdf ? public_path('f.png') : asset('f.png');
     $qrCode = $pdf ? storage_path('app/public/' . $qrCode) : Storage::url($qrCode);
-
 @endphp
 
 <!DOCTYPE html>
@@ -11,7 +10,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $title }}</title>
+    <title>{{ $titulo }}</title>
     <style>
         @page { size: letter; margin: 0; }
         
@@ -28,17 +27,15 @@
             background-color: #fff;
             width: 100%;
             height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            
         }
         .container {
             width: 100%;
             max-width: 816px;
-            max-height: 1056px;
+            min-height: 1053px;
+            height: 1053px;
             margin: 0 auto;
             box-sizing: border-box;
-            display: flex;
             overflow: hidden;
             flex-direction: column;
             justify-content: space-between;
@@ -48,9 +45,6 @@
         }
         .logo-space {
             height: 70px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             margin-bottom: 20px;
             padding-left: 10px;
         }
@@ -84,7 +78,6 @@
             height: 110px;
         }
         .firma, .nombre-firma {
-            display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -171,59 +164,19 @@
     </div>
 
     <div class="header">
-        <table>
-            <tr>
-                <td class="celda-izquierda" rowspan="2" style="vertical-align: top !important;">
-                    <div class="logo-space">
-                        <img src="{{ $logoImage }}" width="450px" alt="Escudo de la UNAH">
-                    </div>
-                    <div class="codigo-texto" style="padding-left: 20px;">
-                        Código de Verificación: <br>
-                        <span style="font-size: 20px; font-weight: bold;"></span>
-                    </div>
-                </td>
-                <td class="celda-superior-derecha" colspan="2" style="text-align: right;">
-                    <div class="contact-info">
-                        <a href="mailto:vinculacion.sociedad@unah.edu.hn">vinculacion.sociedad@unah.edu.hn</a><br>
-                        Tel. 2216-7070 Ext. 110576
-                    </div>
-                </td>
-                <td class="celda-amarilla" rowspan="2">
-                    <div class="rectangulo-interno"></div>
-                </td>
-            </tr>
-            <tr class="fila-2">
-                <td class="celda-inferior-derecha-1"></td>
-                <td class="celda-inferior-derecha-2" style="text-align: right;">
-                    <div class="qr-code">
-                        <img src="{{ $qrCode }}" alt="QR Code" style="width: 80px; height: 80px;">
-                    </div>
-                </td>
-            </tr>
-        </table>
+        <img src="{{ $logoImage }}" width="450px" alt="Escudo de la UNAH">
     </div>
 
-    <h1>CONSTANCIA DE ACTIVIDAD DE VINCULACIÓN</h1>
+    <h1>{{$titulo}}</h1>
 
     <div class="constancia-texto">
-        <p>
-            La Suscrita Directora de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace CONSTAR que,
-            el Profesor Dorian Ordoñez Osorno con número de empleado 14703 del departamento de ingeniería en
-            sistema dependiente de UNAH Campus Choluteca, es parte del equipo que ejecuta y ha registrado la
-            actividad de vinculación denominada Primer congreso Acuicultura "Innovación y desarrollo sostenible"
-            Choluteca, Honduras 2024, la cual se ejecuta del 15 de marzo de 2024 hasta el 14 de marzo de 2025.
-            Asimismo, se hace constar que la entrega del informe intermedio y final de dicha actividad, está pendiente.
-            En consecuencia, esta constancia tiene validez única para fines de inscripción en la Dirección de
-            Vinculación Universidad – Sociedad.
-        </p>
-        <p>
-            Dado en Ciudad Universitaria José Trinidad Reyes, a los cinco días del mes de febrero de dos mil
-            veinticinco.
-        </p>
+        {!!
+            $texto
+        !!}
     </div>
 
     <div class="firma">
-        <img src="{{ $firmaImage }}" alt="Firma">
+
     </div>
 
     <div class="nombre-firma">
