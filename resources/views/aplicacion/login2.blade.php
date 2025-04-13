@@ -1,159 +1,86 @@
-<!-- resources/views/home.blade.php -->
 @extends('layouts.aplicacion.app')
 
-@section('title', 'Inicio')
+@section('title', 'Iniciar Sesión')
 
 @section('content')
-
-        <!-- Header -->
-
-        <div class="bg-amber-500  h-2 p-2 w-full dark:bg-gray-900">
-        </div>
-        <header class="shadow-lg p-2 bg-white dark:bg-gray-800">
-
-            <div class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-5 ">
-                <div class="flex items-center flex-wrap justify-center">
-                    <img src="{{ asset('images/Image/Imagen2.png') }}" alt="UNAH Logo"
-                        class="max-w-full h-auto  md:w-[65%]">
-                </div>
-
-                <button id="darkModeToggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+<div class="min-h-screen pt-32 pb-12">
+    <div class="max-w-md mx-auto bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden md:max-w-2xl m-4">
+        <div class="p-8">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold text-black dark:text-white mb-2">Iniciar Sesión</h2>
+                <p class="text-gray-700 dark:text-gray-400">Accede a la plataforma UNAH-VINCULACIÓN</p>
+            </div>
+            
+            <div class="space-y-6">
+                <a href="
+                " class="flex items-center justify-center w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm text-sm font-medium text-black dark:text-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23 23">
+                        <path fill="#f3f3f3" d="M0 0h23v23H0z"/>
+                        <path fill="#f35325" d="M1 1h10v10H1z"/>
+                        <path fill="#81bc06" d="M12 1h10v10H12z"/>
+                        <path fill="#05a6f0" d="M1 12h10v10H1z"/>
+                        <path fill="#ffba08" d="M12 12h10v10H12z"/>
                     </svg>
-                </button>
-            </div>
-        </header>
-
-        <!-- Main Content -->
-        <main class="  p-4  h-[calc(50vh)] p-2">
-            <!-- Login Form -->
-            <div class="w-full  md:w-3/4  mx-auto flex flex-col md:flex-row h-full ">
-                <div class="bg-white dark:bg-gray-800  rounded-lg shadow-lg max-w-md w-full mx-auto h-full shadow-lg">
-                    <div class="px-4 py-2 bg-gray-100 dark:bg-gray-700">
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white ">Iniciar sesión</h3>
+                    Iniciar sesión con Microsoft
+                </a>
+                
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-300 dark:border-gray-700"></div>
                     </div>
-                    <div class="p-2 md:p-4">
-                        {{ $slot }}
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400">O continúa con</span>
                     </div>
                 </div>
-
-                <!-- Banner Image -->
-                <div id="gallery" class="pl-3 w-full h-full hidden md:block md:relative" data-carousel="slide">
-                    <!-- Carousel wrapper -->
-                    <div class="relative  overflow-hidden rounded-lg h-full">
-                        <!-- Itera sobre las imágenes de la variable $slides -->
-                        @forelse ($slides as $index => $slide)
-                            <div class="hidden duration-700 ease-in-out" data-carousel-item
-                                @if ($index == 0) data-carousel-item="active" @endif>
-                                <img src="{{ asset('storage/' . $slide->image_url) }}"
-                                    class="absolute block w-full h-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
-                                    alt="Slide {{ $index + 1 }}">
-                            </div>
-                        @empty
-                            <div class="hidden duration-700 ease-in-out" data-carousel-item data-carousel-item="active">
-                                <img src="{{ asset('images/Slide/1.jpeg') }}"
-                                    class="absolute block w-full h-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
-                                    alt="Slide 1">
-                            </div>
-                            <div class="hidden duration-700 ease-in-out" data-carousel-item data-carousel-item="active">
-                                <img src="{{ asset('images/Slide/2.jpg') }}"
-                                    class="absolute block w-full h-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
-                                    alt="Slide 1">
-                            </div>
-                            <div class="hidden duration-700 ease-in-out" data-carousel-item data-carousel-item="active">
-                                <img src="{{ asset('images/Slide/3.jpg') }}"
-                                    class="absolute block w-full h-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
-                                    alt="Slide 1">
-                            </div>
-                            <div class="hidden duration-700 ease-in-out" data-carousel-item data-carousel-item="active">
-                                <img src="{{ asset('images/Slide/4.jpg') }}"
-                                    class="absolute block w-full h-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
-                                    alt="Slide 1">
-                            </div>
-                        @endforelse
+                {{$slot}}
+                <form method="POST" action="{{ route('login') }}" class="space-y-6">
+                    @csrf
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Correo electrónico</label>
+                        <div class="mt-1">
+                            <input id="email" name="email" type="email" autocomplete="email" required class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 dark:focus:ring-yellow-400 focus:border-blue-500 dark:focus:border-yellow-400 sm:text-sm bg-white dark:bg-gray-800 text-black dark:text-white">
+                        </div>
                     </div>
-                    <!-- Slider controls -->
-                    <button type="button"
-                        class="absolute top-0 start-0 z-30 flex items-center justify-center h-full px-4 cursor-pointer group focus:outline-none"
-                        data-carousel-prev>
-                        <span
-                            class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/30 dark:bg-gray-800/30 group-hover:bg-white/50 dark:group-hover:bg-gray-800/60 group-focus:ring-4 group-focus:ring-white dark:group-focus:ring-gray-800/70 group-focus:outline-none">
-                            <svg class="w-4 h-4 text-white dark:text-gray-800 rtl:rotate-180" aria-hidden="true"
-                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                    stroke-width="2" d="M5 1 1 5l4 4" />
-                            </svg>
-                            <span class="sr-only">Previous</span>
-                        </span>
-                    </button>
-                    <button type="button"
-                        class="absolute top-0 end-0 z-30 flex items-center justify-center h-full px-4 cursor-pointer group focus:outline-none"
-                        data-carousel-next>
-                        <span
-                            class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/30 dark:bg-gray-800/30 group-hover:bg-white/50 dark:group-hover:bg-gray-800/60 group-focus:ring-4 group-focus:ring-white dark:group-focus:ring-gray-800/70 group-focus:outline-none">
-                            <svg class="w-4 h-4 text-white dark:text-gray-800 rtl:rotate-180" aria-hidden="true"
-                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                    stroke-width="2" d="m1 9 4-4-4-4" />
-                            </svg>
-                            <span class="sr-only">Next</span>
-                        </span>
-                    </button>
+
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contraseña</label>
+                        <div class="mt-1">
+                            <input id="password" name="password" type="password" autocomplete="current-password" required class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 dark:focus:ring-yellow-400 focus:border-blue-500 dark:focus:border-yellow-400 sm:text-sm bg-white dark:bg-gray-800 text-black dark:text-white">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input id="remember_me" name="remember" type="checkbox" class="h-4 w-4 text-blue-600 dark:text-yellow-400 focus:ring-blue-500 dark:focus:ring-yellow-400 border-gray-300 dark:border-gray-700 rounded">
+                            <label for="remember_me" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                                Recordarme
+                            </label>
+                        </div>
+
+                        <div class="text-sm">
+                            <a href="" class="font-medium text-blue-600 dark:text-yellow-400 hover:text-blue-500 dark:hover:text-yellow-300">
+                                ¿Olvidaste tu contraseña?
+                            </a>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-yellow-400">
+                            Iniciar sesión
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="text-center mt-4">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        ¿No tienes una cuenta? 
+                        <a href="" class="font-medium text-blue-600 dark:text-yellow-400 hover:text-blue-500 dark:hover:text-yellow-300">
+                            Regístrate
+                        </a>
+                    </p>
                 </div>
-
-
-            </div>
-        </main>
-
-        <!-- Help Section -->
-        <div class="bg-blue-900  text-white p-2 mb-2 dark:bg-gray-800">
-            <div class="container mx-auto">
-                <h4 class="font-bold mb-2">En caso de no poder ingresar:</h4>
-                <ol class="list-decimal list-inside ">
-                    <li>Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod
-                        tincidunt ut laoreet dolore magna aliquam erat volutpat.</li>
-                    <li>Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper.</li>
-                    <li>Suscipit lobortis nisl ut aliquip ex ea commodo consequat. Duis autem vel eum iriure dolor in
-                        hendrerit in vulputate velit esse molestie consequat.</li>
-                </ol>
             </div>
         </div>
-
-        <!-- Footer -->
-        <footer class="bg-amber-400  p-6 w-full h-full dark:bg-gray-900">
-            <div class="container mx-auto grid md:grid-cols-2 gap-8">
-                <div class="space-y-2">
-                    <p class="flex items-center gap-2">
-                        <span class="w-6">📍</span>
-                        Ciudad Universitaria, Edificio Alma Máter, 5to piso.
-                    </p>
-                    <p class="flex items-center gap-2">
-                        <span class="w-6">📞</span>
-                        (504) 2216-7070 Ext. 110576
-                    </p>
-                    <p class="flex items-center gap-2">
-                        <span class="w-6">🌐</span>
-                        https://vinculacion.unah.edu.hn
-                    </p>
-                    <p class="flex items-center gap-2">
-                        <span class="w-6">✉️</span>
-                        vinculacion.sociedad@unah.edu.hn
-                    </p>
-                </div>
-                <div class="text-navy-900 dark:text-gray-900">
-                    <p class="text-justify dark:text-gray-200">
-                        La vinculación académica con la sociedad, junto a la investigación científica y la
-                        docencia son funciones esenciales de una universidad. Los vínculos académicos
-                        que la Universidad establece con el Estado, los sectores productivos y la sociedad
-                        civil posibilitan que los conocimientos científicos, técnicos y humanistas de la
-                        Universidad sean útiles para orientar y resolver problemas en la nación. Difundir
-                        ampliamente el conocimiento acumulado, haciéndolo llegar a diferentes sectores
-                        económicos y sociales en toda la geografía nacional, es un deber universitario.
-                    </p>
-                </div>
-            </div>
-        </footer>
-
-
+    </div>
+</div>
 @endsection
