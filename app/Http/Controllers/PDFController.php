@@ -10,17 +10,14 @@ class PDFController extends Controller
 {
     public function generatePDF()
     {
-        $qrcodePath = storage_path('app/qrcode.png'); // Ruta donde se guardará
-        QrCode::format('png')->size(200)->errorCorrection('H')->generate('string', $qrcodePath);
-    
+        $qrcode = base64_encode(QrCode::format('png')->size(200)->errorCorrection('H')->generate('string'));
+
         $data = [
             'title' => 'Welcome to Online Web Tutor',
-            'qrcode' => $qrcodePath // Pasamos la ruta
-        ];
-    
+            'qrcode' => $qrcode
+        ];  
+              
         $pdf = PDF::loadView('my-pdf', $data);
-    
-        return $pdf->download('onlinewebtutor.pdf');
   
         return $pdf->download('onlinewebtutor.pdf');
     }
@@ -33,7 +30,7 @@ class PDFController extends Controller
             'title' => 'Welcome to Online Web Tutor',
             'qrcode' => $qrcode
         ];  
-              
+          dd('data:image/png;base64,'.$qrcode);    
         return view('my-pdf', $data);
     }
 }

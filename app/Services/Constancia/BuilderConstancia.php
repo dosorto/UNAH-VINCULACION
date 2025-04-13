@@ -61,7 +61,7 @@ class BuilderConstancia
         return MakeConstancia::make($this->constancia)
             ->setLayout("app.docente.constancias.constancia_finalizado")
             ->setData($this->data)
-            ->buildPDF()
+            ->generate()
             ->downloadPDF();
     }
 
@@ -122,10 +122,12 @@ class BuilderConstancia
         }
 
         // Agregar siempre estos datos al final
-        $this->data['firmaDirector'] = $this->firmaDirector ?? '';
-        $this->data['selloDirector'] = $this->selloDirector ?? '';
+        $this->data['nombreDirector'] = $this->director?->nombre_completo ?? 'Nombre del Director'; 
+        $this->data['firmaDirector'] = $this->director?->firma?->ruta_storage ?? '';
+        $this->data['selloDirector'] = $this->director?->sello?->ruta_storage ?? '';
         $this->data['anioAcademico'] = $this->anioAcademico ?? '';
-
+        $this->data['codigoVerificacion'] = $this->constancia->hash ?? '';
+        $this->data['anioAcademico'] = 'Año Académico 2025 "José Dionisio de Herrera"';
         return $this->data;
     }
 }

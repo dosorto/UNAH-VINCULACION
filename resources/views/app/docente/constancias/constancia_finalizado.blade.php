@@ -2,7 +2,10 @@
     $solImage = $pdf ? public_path('/images/Image/Sol.png') : asset('images/Image/Sol.png');
     $logoImage = $pdf ? 'file://' . public_path('images/imagenvinculacion.jpg') : asset('images/imagenvinculacion.jpg');
     $firmaImage = $pdf ? public_path('f.png') : asset('f.png');
-    $qrCode = $pdf ? storage_path('app/public/' . $qrCode) : Storage::url($qrCode);
+    $qrCode = $pdf ? 'file://' .   storage_path('app/public/' . $qrCode) : asset('storage/'.$qrCode);
+    $firmaDirector = $pdf ? 'file://' . storage_path('app/public/'.$firmaDirector) : asset('images/firma.png');
+    $selloDirector = $pdf ? 'file://' . storage_path('app/public/'.$selloDirector) : asset('images/sello.png'); 
+   // dd($firmaDirector,$selloDirector);  
 @endphp
 
 <!DOCTYPE html>
@@ -73,10 +76,7 @@
             margin-bottom: 10px;
             font-size: 16px;
         }
-        .firma img, .nombre-firma img {
-            width: 150px;
-            height: 110px;
-        }
+       
         .firma, .nombre-firma {
             flex-direction: column;
             align-items: center;
@@ -137,7 +137,6 @@
         }
         td {
             height: 100px;
-            vertical-align: bottom;
             position: relative;
         }
         .celda-izquierda { width: 50%; height: 200px; }
@@ -163,10 +162,34 @@
         <img class="lucent" src="{{ $solImage }}" alt="Fondo">
     </div>
 
-    <div class="header">
-        <img src="{{ $logoImage }}" width="450px" alt="Escudo de la UNAH">
-    </div>
-
+    <table style="width: 100%; border-collapse: collapse; padding: 20px;">
+        <tr>
+            <!-- LOGO: más grande, ocupa todo el alto -->
+            <td style="width: 60%; vertical-align: top; padding-right: 20px;">
+                <img src="{{ $logoImage }}" alt="Escudo de la UNAH" style="width: 100%;">
+            </td>
+    
+            <!-- TEXTO DE CONTACTO + RECTÁNGULO DERECHO -->
+            <td style="width: 40%; vertical-align: top;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <!-- TEXTO DE CONTACTO, ARRIBA Y AL INICIO -->
+                        <td style="text-align: center; font-weight: bold; font-family: Arial, sans-serif; font-size: 14px; color: #0056b3; padding-left: 10px;">
+                            vinculacion.sociedad@unah.edu.hn<br>
+                            Tel. 2216-7070 Ext. 110576
+                        </td>
+    
+                        <!-- RECTÁNGULO AMBAR MÁS GRUESO Y PEGADO A LA DERECHA -->
+                        <td style="width: 20px; background-color: #FFBF00;">&nbsp;</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+        
+    
+    
+    
     <h1>{{$titulo}}</h1>
 
     <div class="constancia-texto">
@@ -175,21 +198,61 @@
         !!}
     </div>
 
-    <div class="firma">
-
-    </div>
-
-    <div class="nombre-firma">
-        <div>
-            Oneyda Cleothilde Mendoza Zepeda<br>
-            DIRECTORA DE VINCULACIÓN UNIVERSIDAD – SOCIEDAD<br>
-            VRA-UNAH
-        </div>
-    </div>
+   
 
     <div class="fondo">
+        <div class="firma">
+            <table align="center" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center">
+                    <img src="{{$selloDirector}}" alt="Sello del director" style="display: block;" width="200px" >
+                    <br>
+                    <img src="{{$firmaDirector}}" alt="Firma del director" style="margin-top: -100px;" width="200px">
+                  </td>
+                </tr>
+              </table>              
+        </div>
+    
+        <div class="nombre-firma">
+            <div>
+               {{$nombreDirector}}<br>
+               <center>
+                <strong>
+                    DIRECTOR/A DE VINCULACIÓN UNIVERSIDAD – SOCIEDAD <br>
+                    VRA-UNAH
+                </strong>
+                
+               </center>
+    
+            </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-top: 4px;">
+            <tr>
+               
+                <!-- Celda izquierda: Código QR -->
+                <td style="width: 50%; padding-lef: 20px; text-align: center; vertical-align: middle;">
+                    <div style="
+                        border: 2px solid #000;
+                        padding: 10px;
+                        display: inline-block;
+                        font-size: 18px;
+                        font-weight: bold;
+                    ">
+                        Código de Verificación: <br>
+                        {{ $codigoVerificacion ?? 'N/A' }}
+                    </div>
+                </td>
+        
+                <!-- Celda derecha: Código de verificación con borde -->
+                <td style="width: 50%; text-align: center; vertical-align: middle;">
+                    <img src="{{ $qrCode }}" width="130px" height="130px"/>
+                   
+                </td>
+            </tr>
+        </table>
         <div class="anio-academico">
-            Año Académico 2025 "José Dionisio de Herrera"
+        {{ $anioAcademico}}
         </div>
     
         <footer>

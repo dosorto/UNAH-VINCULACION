@@ -2,10 +2,9 @@
 
 namespace App\Services\Constancia;
 
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
-
 use App\Models\Constancia\Constancia as ConstanciaModel;
-use Barryvdh\DomPDF\Facade\Pdf;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use PDF;
 
 class MakeConstancia
 {
@@ -16,17 +15,17 @@ class MakeConstancia
     private $firmaDirector;
     private $selloDirector;
     private $anioAcademico;
-    
+
     private $hash;
     private $constancia;
-    
-    
+
+
     private $qrpath;
     private $pdfPath;
     private $data;
 
 
-    public function __construct(ConstanciaModel $constancia) 
+    public function __construct(ConstanciaModel $constancia)
     {
         $this->hash = $constancia->hash;
         $this->titulo = 'Constancia';
@@ -119,19 +118,40 @@ class MakeConstancia
         return $this;
     }
 
-    public function generate(): self 
+    public function generate(): self
     {
         $this->buildQR();
         // si la variable data es null entonces llamar a generateData sino usar la data de ahi
-        if (is_null($this->data)) 
+        if (is_null($this->data))
             $this->preparateData();
-        
+
 
         $this->buildPDF();
 
         return $this;
-
     }
+
+    public function buildQRBase64()
+    {
+        // Enlace que deseas codificar en el QR
+        $enlace = route('verificacion_constancia', ['hash' => $this->hash]);
+
+        // Generar el código QR como imagen binaria en memoria
+        $qrBinary = base64_encode(QrCode::format('png')
+            ->size(200)
+            ->errorCorrection('H')
+            ->generate('string'));
+
+          
+
+        // Codificar la imagen binaria en base64
+        $this->qrpath = $qrBinary;
+        // Retornar el base64
+        return $this->qrpath;
+    }
+
+
+
 
 
     public function buildQR()
@@ -148,7 +168,7 @@ class MakeConstancia
             ->generate($enlace, $qrcodePath);
 
         // Obtener la URL de la imagen QR
-        $qrCodeUrl = asset('storage/' . $qrCodeName);
+        $qrCodeUrl =  $qrCodeName;
 
         // Devolver la URL de la imagen QR
         $this->qrpath = $qrCodeUrl;
@@ -159,9 +179,10 @@ class MakeConstancia
     {
         $this->data['pdf']  = true;
         $this->data['qrCode'] = $this->qrpath;
+
         $pdf = PDF::loadView($this->layout, $this->data);
         // Generar un nombre único para el archivo basándome en los id del empleado en el proyecto
-        $fileName = 'constancia_' . '.pdf';
+        $fileName = 'constancia_' . $this->hash . '_' . time() . '.pdf';
 
         // Definir la ruta con el nombre único
         $filePath = storage_path('app/public/' . $fileName);

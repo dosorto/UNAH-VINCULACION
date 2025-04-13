@@ -51,12 +51,21 @@ use App\Livewire\UnidadAcademica\Carrera\CarreraList;
 use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList;
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
 use App\Http\Controllers\DirectorCentro\Proyectos\ListProyectosCentro;
+use App\Http\Controllers\PDFController;
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
 use App\Livewire\Constancia\ListConstancias;
 use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
 
+
 Route::get('verificacion_constancia', [VerificarConstancia::class, 'verificacionConstanciaVista'])
     ->name('verificacion_constancia');
+
+//...
+
+
+Route::get('generate-pdf', [PDFController::class, 'generatePDF']);
+
+//...
 
 
 Route::get('verificacion_constancia/{hash?}', [VerificarConstancia::class, 'index'])
