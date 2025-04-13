@@ -1,42 +1,60 @@
 <!DOCTYPE html>
-<html lang="es" class="scroll-smooth">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UNAH-VINCULACIÓN - @yield('title', 'Inicio')</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="utf-8">
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            400: '#3b82f6', // blue-400
-                            600: '#2563eb', // blue-600
-                            700: '#1d4ed8', // blue-700
-                            900: '#1e3a8a', // blue-900
-                        },
-                        secondary: {
-                            300: '#fcd34d', // yellow-300
-                            400: '#fbbf24', // yellow-400
-                            500: '#f59e0b', // yellow-500
-                        }
-                    }
-                }
-            }
+        // Evitar parpadeo al detectar y aplicar modo oscuro
+        if (
+            localStorage.getItem('theme') === 'dark' ||
+            (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        ) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
         }
     </script>
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .text-shadow {
-                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
+    <meta name="application-name" content="{{ config('app.name') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>{{ config('app.name') }}</title>
+    <link rel="icon" href="{{ asset('images/Logo_Nexo.png') }}" type="image/png">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.46.0/dist/apexcharts.min.js"></script>
+
+    <style>
+        [x-cloak] {
+            display: none !important;
         }
     </style>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    @filamentStyles
+    @vite('resources/css/app.css')
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    @stack('styles')
+    <style>
+        #fondoimagen::before {
+            content: "";
+            /* Necesario para que el pseudo-elemento aparezca */
+            position: absolute;
+            /* Lo posicionamos de manera absoluta */
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            /* Lo hacemos llenar todo el contenedor */
+            background-image: url('{{ asset('images/Sol.svg') }}');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.3;
+            /* Opacidad del pseudo-elemento */
+            z-index: -1;
+            /* Aseguramos que quede detrás del contenido */
+        }
+
+      
+    </style>
     @yield('styles')
 </head>
 <body class="min-h-screen bg-white dark:bg-black overflow-x-hidden">
@@ -51,31 +69,12 @@
     <!-- Footer -->
     @include('partials.footer')
 
-    <!-- Scripts -->
-    <script>
-        // Dark mode toggle
-        const themeToggle = document.getElementById('theme-toggle');
-        const html = document.documentElement;
-        
-        // Check for saved theme preference or use system preference
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            html.classList.add('dark');
-        } else {
-            html.classList.remove('dark');
-        }
-        
-        // Toggle theme on button click
-        themeToggle.addEventListener('click', () => {
-            html.classList.toggle('dark');
-            
-            // Save preference to localStorage
-            if (html.classList.contains('dark')) {
-                localStorage.theme = 'dark';
-            } else {
-                localStorage.theme = 'light';
-            }
-        });
-    </script>
+    @livewire('notifications')
+    @filamentScripts
+    @vite('resources/js/app.js')
     @yield('scripts')
 </body>
+
 </html>
+
+

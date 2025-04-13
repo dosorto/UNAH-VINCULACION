@@ -55,10 +55,15 @@ use App\Http\Controllers\PDFController;
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
 use App\Livewire\Constancia\ListConstancias;
 use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
-
+use App\Models\Slide\Slide;
 
 Route::get('/', function () {
-    return view('aplicacion.home');
+    $slides = Slide::where('estado', true)
+                    ->get();
+
+        $data = ['slides' => $slides];
+
+    return view('aplicacion.home', $data);
 })->name('home');
 
 Route::get('verificacion_constancia', [VerificarConstancia::class, 'verificacionConstanciaVista'])
@@ -67,7 +72,7 @@ Route::get('verificacion_constancia', [VerificarConstancia::class, 'verificacion
 //...
 
 
-Route::get('generate-pdf', [PDFController::class, 'generatePDF']);
+//Route::get('generate-pdf', [PDFController::class, 'generatePDF']);
 
 //...
 

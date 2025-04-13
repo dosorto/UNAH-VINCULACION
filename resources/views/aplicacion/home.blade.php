@@ -4,7 +4,7 @@
 
 @section('content')
     <!-- Hero Section -->
-    <div class="relative pt-32 pb-0 sm:pt-40">
+    <div class="relative pt-32 pb-0 sm:pt-32">
         <!-- Enhanced Gradient Background -->
         <div class="absolute inset-0">
             <div class="absolute inset-0 bg-gradient-to-b from-white via-gray-50 to-white dark:from-black dark:via-gray-900 dark:to-black"></div>
@@ -28,47 +28,60 @@
                 Conectando la academia con la sociedad para el desarrollo integral de Honduras a través de proyectos de impacto social, investigación aplicada y transferencia de conocimiento.
             </p>
 
-            <button class="bg-blue-600 text-white hover:bg-blue-700 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-500 px-6 py-3 rounded-lg font-medium mb-16">
-                Conocer más
+          
+
+           <!-- Image Carousel -->
+<div class="relative max-w-5xl mx-auto mt-20 mb-0">
+    <div class="relative rounded-lg overflow-hidden">
+        <!-- Carousel Container -->
+        <div class="carousel-container relative">
+            <div class="carousel-slides flex transition-transform duration-500">
+                @forelse ($slides as $slide)
+                    <div class="carousel-slide min-w-full">
+                        <img src="{{ asset('storage/' . $slide->image_url) }}"
+                             alt="Slide dinámico"
+                             class="w-[1200px] h-[675px] object-fill object-center rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl">
+                    </div>
+                @empty
+                    @php
+                        $defaultImages = [
+                            'images/Slide/1.jpeg',
+                            'images/Slide/2.jpg',
+                            'images/Slide/3.jpg',
+                            'images/Slide/4.jpg',
+                        ];
+                    @endphp
+                    @foreach ($defaultImages as $img)
+                        <div class="carousel-slide min-w-full">
+                            <img src="{{ asset($img) }}"
+                                 alt="Slide por defecto"
+                                 class="w-[1200px] h-[675px] object-fill object-center rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl">
+                        </div>
+                    @endforeach
+                @endforelse
+            </div>
+
+            <!-- Carousel Controls -->
+            <button class="carousel-prev absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white w-10 h-10 rounded-full flex items-center justify-center">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="carousel-next absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white w-10 h-10 rounded-full flex items-center justify-center">
+                <i class="fas fa-chevron-right"></i>
             </button>
 
-            <!-- Image Carousel -->
-            <div class="relative max-w-5xl mx-auto mt-20 mb-0">
-                <div class="relative rounded-lg overflow-hidden">
-                    <!-- Carousel Container -->
-                    <div class="carousel-container relative">
-                        <div class="carousel-slides flex transition-transform duration-500">
-                            <!-- Slide 1 -->
-                            <div class="carousel-slide min-w-full">
-                                <img src="https://via.placeholder.com/1200x675/2563eb/ffffff?text=UNAH+Vinculación" alt="UNAH Vinculación" class="w-full h-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl">
-                            </div>
-                            <!-- Slide 2 -->
-                            <div class="carousel-slide min-w-full">
-                                <img src="https://via.placeholder.com/1200x675/f59e0b/ffffff?text=Proyectos+Sociales" alt="Proyectos Sociales" class="w-full h-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl">
-                            </div>
-                            <!-- Slide 3 -->
-                            <div class="carousel-slide min-w-full">
-                                <img src="https://via.placeholder.com/1200x675/1e3a8a/ffffff?text=Impacto+Comunitario" alt="Impacto Comunitario" class="w-full h-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl">
-                            </div>
-                        </div>
-                        
-                        <!-- Carousel Controls -->
-                        <button class="carousel-prev absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 text-white w-10 h-10 rounded-full flex items-center justify-center">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <button class="carousel-next absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 text-white w-10 h-10 rounded-full flex items-center justify-center">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                        
-                        <!-- Carousel Indicators -->
-                        <div class="carousel-indicators flex justify-center gap-2 mt-4">
-                            <button class="w-3 h-3 rounded-full bg-blue-600 dark:bg-yellow-400 carousel-indicator active"></button>
-                            <button class="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600 carousel-indicator"></button>
-                            <button class="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600 carousel-indicator"></button>
-                        </div>
-                    </div>
-                </div>
+            <!-- Carousel Indicators -->
+            <div class="carousel-indicators flex justify-center gap-2 mt-4">
+                @php
+                    $count = count($slides) > 0 ? count($slides) : count($defaultImages);
+                @endphp
+                @for ($i = 0; $i < $count; $i++)
+                    <button class="w-3 h-3 rounded-full {{ $i === 0 ? 'bg-blue-600 dark:bg-yellow-400' : 'bg-gray-300 dark:bg-gray-600' }} carousel-indicator"></button>
+                @endfor
             </div>
+        </div>
+    </div>
+</div>
+
 
             <!-- Mission, Vision, Goals Section -->
             <div id="mision" class="relative mt-20 py-20">
