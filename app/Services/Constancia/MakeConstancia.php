@@ -120,66 +120,19 @@ class MakeConstancia
 
     public function generate(): self
     {
-        $this->buildQR();
         // si la variable data es null entonces llamar a generateData sino usar la data de ahi
         if (is_null($this->data))
             $this->preparateData();
-
-
         $this->buildPDF();
-
         return $this;
     }
 
-    public function buildQRBase64()
-    {
-        // Enlace que deseas codificar en el QR
-        $enlace = route('verificacion_constancia', ['hash' => $this->hash]);
-
-        // Generar el código QR como imagen binaria en memoria
-        $qrBinary = base64_encode(QrCode::format('png')
-            ->size(200)
-            ->errorCorrection('H')
-            ->generate('string'));
-
-          
-
-        // Codificar la imagen binaria en base64
-        $this->qrpath = $qrBinary;
-        // Retornar el base64
-        return $this->qrpath;
-    }
-
-
-
-
-
-    public function buildQR()
-    {
-
-        $qrCodeName = $this->hash . '.png';
-        $qrcodePath = storage_path('app/public/' . $qrCodeName);
-        $enlace =  route('verificacion_constancia', ['hash' => $this->hash]);
-
-        // Generar el código QR como imagen base64
-        QrCode::format('png')
-            ->size(200)
-            ->errorCorrection('H')
-            ->generate($enlace, $qrcodePath);
-
-        // Obtener la URL de la imagen QR
-        $qrCodeUrl =  $qrCodeName;
-
-        // Devolver la URL de la imagen QR
-        $this->qrpath = $qrCodeUrl;
-    }
+    
 
 
     public function buildPDF()
     {
-        $this->data['pdf']  = true;
-        $this->data['qrCode'] = $this->qrpath;
-
+        
         $pdf = PDF::loadView($this->layout, $this->data);
         // Generar un nombre único para el archivo basándome en los id del empleado en el proyecto
         $fileName = 'constancia_' . $this->hash . '_' . time() . '.pdf';

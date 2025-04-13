@@ -57,8 +57,12 @@ use App\Livewire\Constancia\ListConstancias;
 use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
 
 
+Route::get('/', function () {
+    return view('aplicacion.home');
+})->name('home');
+
 Route::get('verificacion_constancia', [VerificarConstancia::class, 'verificacionConstanciaVista'])
-    ->name('verificacion_constancia');
+    ->name('validar');
 
 //...
 
@@ -89,10 +93,7 @@ Route::middleware(['guest'])->group(function () {
     Route::get('auth/microsoft/callback', [MicrosoftController::class, 'handleMicrosoftCallback'])
         ->name('auth.microsoft.callback');
 
-    Route::get('/', function () {
-        return redirect(route('login'));
-    })
-        ->middleware('guest');
+  
     Route::get('/login', Login::class)
         ->name('login')
         ->middleware('guest');

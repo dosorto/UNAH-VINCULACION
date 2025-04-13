@@ -1009,7 +1009,7 @@
                                 " colspan="8">
                                 <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el departamento" value="ANEXO DEL PROYECTO" disabled>
-                            </td>
+                           </td>
                             <td class="full-width" colspan="11">
                                 <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
                                     <x-slot name="heading">

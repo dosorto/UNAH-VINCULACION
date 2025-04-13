@@ -1,3 +1,14 @@
+<!-- resources/views/home.blade.php -->
+@extends('layouts.aplicacion.app')
+
+@section('title', 'Inicio')
+
+@section('content')
+@livewire('notifications')
+@filamentScripts
+@vite('resources/js/app.js')
+
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -57,12 +68,10 @@
 </head>
 
 <body>
-    @livewire('notifications')
-    @filamentScripts
-    @vite('resources/js/app.js')
-
+  
     <body class="min-h-screen  dark:bg-gray-900 flex flex-col bg-gray-200">
         <!-- Header -->
+
         <div class="bg-amber-500  h-2 p-2 w-full dark:bg-gray-900">
         </div>
         <header class="shadow-lg p-2 bg-white dark:bg-gray-800">
@@ -257,3 +266,4 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.4.7/flowbite.min.js"></script>
 
 </html>
+@endsection

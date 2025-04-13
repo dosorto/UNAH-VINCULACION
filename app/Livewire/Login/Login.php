@@ -64,6 +64,7 @@ class Login extends Component implements HasForms
 
         $data = ['slides' => $slides];
         
-        return view('livewire.login.login')->layout('components.layouts.login2', $data);
+        return view('livewire.login.login')
+        ->layout('aplicacion.login2', $data);
     }
 }

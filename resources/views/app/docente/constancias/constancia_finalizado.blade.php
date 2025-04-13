@@ -1,13 +1,3 @@
-@php
-    $solImage = $pdf ? public_path('/images/Image/Sol.png') : asset('images/Image/Sol.png');
-    $logoImage = $pdf ? 'file://' . public_path('images/imagenvinculacion.jpg') : asset('images/imagenvinculacion.jpg');
-    $firmaImage = $pdf ? public_path('f.png') : asset('f.png');
-    $qrCode = $pdf ? 'file://' .   storage_path('app/public/' . $qrCode) : asset('storage/'.$qrCode);
-    $firmaDirector = $pdf ? 'file://' . storage_path('app/public/'.$firmaDirector) : asset('images/firma.png');
-    $selloDirector = $pdf ? 'file://' . storage_path('app/public/'.$selloDirector) : asset('images/sello.png'); 
-   // dd($firmaDirector,$selloDirector);  
-@endphp
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -26,7 +16,6 @@
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
-            margin: 0;
             background-color: #fff;
             width: 100%;
             height: 100%;
@@ -44,7 +33,7 @@
             justify-content: space-between;
             flex-grow: 1;
             position: relative;
-            border: 1px solid #0023ad;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
         .logo-space {
             height: 70px;

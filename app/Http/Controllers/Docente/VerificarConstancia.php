@@ -130,7 +130,7 @@ class VerificarConstancia extends Controller
     public static function CrearPdf(EmpleadoProyecto $empleadoProyecto, $tipo)
     {
         // validar si el empleado del proyecto se puede generar constancia o no
-        return BuilderConstancia::make($empleadoProyecto, $tipo)
+        return BuilderConstancia::make($empleadoProyecto, $tipo, True)
             ->getConstancia();
     }
 
@@ -226,26 +226,8 @@ class VerificarConstancia extends Controller
 
     public function verificacionConstanciaVista()
     {
-        $ep = EmpleadoProyecto::find(1);
-        $proyecto = $ep->proyecto;
-        $empleado = $ep->empleado;
-        $qrcodeName = Str::random(8) . '.png';
-        $qrcodePath = storage_path('app/public/' . $qrcodeName); // Ruta donde se guardará el QR
-        $enlace =  url('/verificacion_constancia/' . $ep->hash);
-        // Generar el código QR como imagen base64
+        
 
-        QrCode::format('png')->size(200)->errorCorrection('H')->generate($enlace, $qrcodePath);
-
-        $data = [
-            'titulo' => '$this->titulo',
-            'texto' => '$this->texto',
-            'firmaDirector' => ' $this->firmaDirector',
-            'selloDirector' => '$this->selloDirector',
-            'anioAcademico' => '$this->anioAcademico',
-
-            'pdf' => false,
-            'qrCode' => asset('storage/' . $qrcodeName),
-        ];
-        return view('app.docente.constancias.constancia_finalizado', $data);
+        return view('aplicacion.validar-constancias');
     }
 }
