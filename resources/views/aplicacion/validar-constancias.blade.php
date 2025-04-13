@@ -16,66 +16,10 @@
             <div class="p-6 sm:p-8">
                 <div class="mb-8">
                     <h2 class="text-xl font-semibold text-black dark:text-white mb-4">Buscar por código</h2>
-                    <form action="" method="POST" class="space-y-4">
-                        @csrf
-                        <div>
-                            <label for="certificate_code" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código de constancia</label>
-                            <input 
-                                type="text" 
-                                id="certificate_code" 
-                                name="certificate_code" 
-                                placeholder="Ej. UNAH-VIN-2025-12345" 
-                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-blue-500 dark:focus:ring-yellow-400 focus:border-blue-500 dark:focus:border-yellow-400 bg-white dark:bg-gray-800 text-black dark:text-white"
-                                required
-                            >
-                        </div>
-                        <button 
-                            type="submit" 
-                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-yellow-400 dark:hover:bg-yellow-500 text-white dark:text-black rounded-lg font-medium"
-                        >
-                            Verificar
-                        </button>
-                    </form>
+                    @livewire('constancia.buscar-constancia')
                 </div>
                 
-                <div class="border-t border-gray-200 dark:border-gray-800 pt-8">
-                    <h2 class="text-xl font-semibold text-black dark:text-white mb-4">Subir documento para validación</h2>
-                    <form action="" method="POST" enctype="multipart/form-data" class="space-y-4">
-                        @csrf
-                        <div class="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center">
-                            <div class="space-y-2">
-                                <div class="mx-auto flex justify-center">
-                                    <i class="fas fa-file-pdf text-4xl text-gray-400 dark:text-gray-600"></i>
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-gray-400">
-                                    <label for="file-upload" class="relative cursor-pointer rounded-md font-medium text-blue-600 dark:text-yellow-400 hover:text-blue-500 dark:hover:text-yellow-300">
-                                        <span>Sube un archivo</span>
-                                        <input id="file-upload" name="certificate_file" type="file" class="sr-only" accept=".pdf">
-                                    </label>
-                                    <p>o arrastra y suelta</p>
-                                </div>
-                                <p class="text-xs text-gray-500 dark:text-gray-500">PDF hasta 10MB</p>
-                            </div>
-                            <div class="mt-4 hidden" id="file-preview">
-                                <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                                    <div class="flex items-center">
-                                        <i class="fas fa-file-pdf text-blue-600 dark:text-yellow-400 mr-2"></i>
-                                        <span class="text-sm text-gray-700 dark:text-gray-300" id="file-name"></span>
-                                    </div>
-                                    <button type="button" id="remove-file" class="text-gray-500 hover:text-red-500">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <button 
-                            type="submit" 
-                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-yellow-400 dark:hover:bg-yellow-500 text-white dark:text-black rounded-lg font-medium"
-                        >
-                            Validar documento
-                        </button>
-                    </form>
-                </div>
+                
             </div>
         </div>
         

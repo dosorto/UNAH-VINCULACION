@@ -1,4 +1,4 @@
-<nav class="fixed top-0 left-0 right-0 z-50 bg-white/30 dark:bg-black/30 backdrop-blur-md border-b border-gray-300 dark:border-gray-700 shadow-md">
+<nav class="fixed top-0 left-0 right-0 z-50 bg-white/30 dark:bg-black/30 backdrop-blur-md dark:border-b dark:border-gray-700 ">
     <div class="max-w-screen-xl mx-auto px-4">
         <div class="flex items-center justify-between h-16 my-2">
             <div class="flex items-center gap-8 md:gap-16">
@@ -9,7 +9,6 @@
                     <span class="ml-2 text-black dark:text-white font-bold">UNAH-VINCULACIÓN</span>
                 </a>
                 <div class="hidden md:flex items-center space-x-8">
-                    <a href="{{ route('home') }}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Inicio</a>
                     <a href="{{route('login')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Login</a>
                     <a href="{{route('verificacion_constancia')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Validar Constancias</a>
                 </div>
@@ -31,11 +30,8 @@
         <!-- Mobile Menu -->
         <div id="mobile-menu" class="md:hidden hidden pb-4">
             <div class="flex flex-col space-y-4">
-                <a href="{{ route('home') }}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Inicio</a>
-                <a href="#mision" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Misión</a>
-                <a href="#vision" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Visión</a>
-                <a href="#desarrolladores" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Desarrolladores</a>
-                <a href="#" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Contacto</a>
+                <a href="{{route('login')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Login</a>
+                <a href="{{route('verificacion_constancia')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Validar Constancia</a>
             </div>
         </div>
     </div>
