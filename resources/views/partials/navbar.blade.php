@@ -12,6 +12,7 @@
                 <div class="hidden md:flex items-center space-x-8">
                   
                     <a href="{{route('verificacion_constancia')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Validar Constancia</a>
+                    <a href="{{route('login')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Iniciar Sesion</a>
                 </div>
             </div>
 
@@ -21,9 +22,7 @@
                     <x-heroicon-m-sun class="w-5 h-5 hidden dark:block"/>
                 </button>
 
-                <a href="{{ route('login') }}" class="bg-[#235383] hover:bg-blue-700 text-white px-4 py-2 rounded-xl">
-                    Iniciar Sesión
-                </a>
+             
 
                 <!-- Hamburger button -->
                 <button class="md:hidden text-black dark:text-white focus:outline-none" id="mobile-menu-button">
@@ -36,6 +35,7 @@
         <div id="mobile-menu" class="md:hidden hidden pb-4">
             <div class="flex flex-col space-y-4">
                 <a href="{{route('verificacion_constancia')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Validar Constancia</a>
+                <a href="{{route('login')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Iniciar Sesion</a>
             </div>
         </div>
     </div>
