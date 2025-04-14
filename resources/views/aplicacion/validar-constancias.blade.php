@@ -24,64 +24,7 @@
         </div>
         
         <!-- Resultados de validación (mostrar condicionalmente) -->
-        <div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden" id="validation-results" style="display: none;">
-            <div class="p-6 sm:p-8">
-                <h2 class="text-xl font-semibold text-black dark:text-white mb-4">Resultado de la validación</h2>
-                
-                <!-- Ejemplo de constancia válida -->
-                <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900 rounded-lg p-4 mb-6">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-check-circle text-green-600 dark:text-green-400 text-xl"></i>
-                        </div>
-                        <div class="ml-3">
-                            <h3 class="text-lg font-medium text-green-800 dark:text-green-300">Constancia válida</h3>
-                            <div class="mt-2 text-green-700 dark:text-green-400">
-                                <p>La constancia ha sido verificada correctamente en nuestra base de datos.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="border-t border-gray-200 dark:border-gray-800 pt-6">
-                    <h3 class="text-lg font-medium text-black dark:text-white mb-4">Detalles de la constancia</h3>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Código de constancia</p>
-                            <p class="mt-1 text-black dark:text-white">UNAH-VIN-2025-12345</p>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Fecha de emisión</p>
-                            <p class="mt-1 text-black dark:text-white">15 de marzo de 2025</p>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Nombre del participante</p>
-                            <p class="mt-1 text-black dark:text-white">Juan Antonio Pérez Rodríguez</p>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Tipo de constancia</p>
-                            <p class="mt-1 text-black dark:text-white">Participación en proyecto de vinculación</p>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Proyecto</p>
-                            <p class="mt-1 text-black dark:text-white">Desarrollo de sistemas para comunidades rurales</p>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Horas acreditadas</p>
-                            <p class="mt-1 text-black dark:text-white">120 horas</p>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-6">
-                        <a href="#" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-yellow-400">
-                            <i class="fas fa-download mr-2"></i> Descargar certificado digital
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+       
 </div>
 @endsection
 

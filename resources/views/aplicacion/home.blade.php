@@ -213,37 +213,40 @@
                     <!-- Developers Cards -->
                     <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                         <!-- Francisco Paz -->
-                        <div class="relative group">
-                            <div class="relative bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-lg dark:shadow-[0_0_30px_-5px_rgba(234,179,8,0.4)] transition-all duration-300 hover:shadow-xl">
-                                <div class="flex flex-col items-center">
-                                    <div class="mb-6">
-                                        <img 
-                                            src="https://via.placeholder.com/150/2563eb/ffffff?text=FP" 
-                                            alt="Francisco Paz" 
-                                            class="w-32 h-32 rounded-full border-4 border-blue-600 dark:border-yellow-400"
-                                        >
-                                    </div>
-                                    <h3 class="text-xl font-semibold text-black dark:text-white mb-2">Francisco Paz</h3>
-                                    <p class="text-gray-700 dark:text-gray-400 mb-4">Desarrollador Full Stack</p>
-                                    
-                                    <div class="flex space-x-4 mb-4">
-                                        <a href="#" class="text-gray-700 dark:text-gray-400 hover:text-blue-600 dark:hover:text-yellow-400 transition-colors">
-                                            <i class="fab fa-github text-xl"></i>
-                                        </a>
-                                        <a href="#" class="text-gray-700 dark:text-gray-400 hover:text-blue-600 dark:hover:text-yellow-400 transition-colors">
-                                            <i class="fab fa-linkedin text-xl"></i>
-                                        </a>
-                                        <a href="#" class="text-gray-700 dark:text-gray-400 hover:text-blue-600 dark:hover:text-yellow-400 transition-colors">
-                                            <i class="fab fa-instagram text-xl"></i>
-                                        </a>
-                                    </div>
-                                    
-                                    <p class="text-gray-700 dark:text-gray-300">
-                                        Especialista en desarrollo web y arquitectura de sistemas, con enfoque en soluciones escalables y seguras.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                       <!-- Francisco Paz -->
+<div class="relative group">
+    <div class="relative bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-lg dark:shadow-[0_0_30px_-5px_rgba(234,179,8,0.4)] transition-all duration-300 hover:shadow-xl">
+        <div class="flex flex-col items-center">
+            <div class="mb-6">
+                <img 
+                    src="https://avatars.githubusercontent.com/u/95550123?v=4" 
+                    alt="Francisco Paz" 
+                    class="w-32 h-32 rounded-full border-4 border-blue-600 dark:border-yellow-400"
+                >
+            </div>
+            <h3 class="text-xl font-semibold text-black dark:text-white mb-2">Francisco Paz</h3>
+            <p class="text-gray-700 dark:text-gray-400 mb-4">Desarrollador Full Stack</p>
+            
+            <div class="flex space-x-4 mb-4">
+                <a href="https://github.com/Franciscopaz199" class="text-gray-700 dark:text-gray-400 hover:text-blue-600 dark:hover:text-yellow-400 transition-colors">
+              
+                </a>
+                <!-- Si tienes enlaces para LinkedIn e Instagram, puedes agregarlos aquí -->
+                <a href="#" class="text-gray-700 dark:text-gray-400 hover:text-blue-600 dark:hover:text-yellow-400 transition-colors">
+                
+                </a>
+                <a href="#" class="text-gray-700 dark:text-gray-400 hover:text-blue-600 dark:hover:text-yellow-400 transition-colors">
+                   
+                </a>
+            </div>
+            
+            <p class="text-gray-700 dark:text-gray-300">
+                Especialista en desarrollo web y arquitectura de sistemas, con enfoque en soluciones escalables y seguras.
+            </p>
+            
+        </div>
+    </div>
+</div>
 
                         <!-- Ernesto Moncada -->
                         <div class="relative group">
@@ -251,7 +254,7 @@
                                 <div class="flex flex-col items-center">
                                     <div class="mb-6">
                                         <img 
-                                            src="https://via.placeholder.com/150/f59e0b/ffffff?text=EM" 
+                                            src="https://avatars.githubusercontent.com/u/123714290?v=4" 
                                             alt="Ernesto Moncada" 
                                             class="w-32 h-32 rounded-full border-4 border-blue-600 dark:border-yellow-400"
                                         >
@@ -260,7 +263,7 @@
                                     <p class="text-gray-700 dark:text-gray-400 mb-4">Desarrollador Frontend</p>
                                     
                                     <div class="flex space-x-4 mb-4">
-                                        <a href="#" class="text-gray-700 dark:text-gray-400 hover:text-blue-600 dark:hover:text-yellow-400 transition-colors">
+                                        <a href="https://github.com/ernestomoncada14" class="text-gray-700 dark:text-gray-400 hover:text-blue-600 dark:hover:text-yellow-400 transition-colors">
                                             <i class="fab fa-github text-xl"></i>
                                         </a>
                                         <a href="#" class="text-gray-700 dark:text-gray-400 hover:text-blue-600 dark:hover:text-yellow-400 transition-colors">

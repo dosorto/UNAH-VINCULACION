@@ -136,8 +136,6 @@ class VerificarConstancia extends Controller
 
 
 
-    public static function crearConstancia(EmpleadoProyecto $empleadoProyecto) {}
-
 
     // Método para mostrar la vista de verificación de constancia
     public function index($hash)
@@ -151,12 +149,16 @@ class VerificarConstancia extends Controller
                 ->where('empleado_id', $Constancia->destinatario_id)
                 ->firstOrFail();
 
+                
+
+            $data = BuilderConstancia::make($empleadoProyecto,'inscripcion', false)
+                ->getData();
+
             $Constancia->validaciones += 1;
             $Constancia->save();
-            if ($tipo == 'Inscripcion')
-                return Self::inscripcion($empleadoProyecto);
-            else if ($tipo == 'Finalizacion')
-                return Self::finalizacion($empleadoProyecto);
+
+            return view('aplicacion.resultado', $data);
+
         } catch (Exception $e) {
             // Si falla la desencriptación, puedes manejar el error
             abort(404, 'Datos inválidos');
