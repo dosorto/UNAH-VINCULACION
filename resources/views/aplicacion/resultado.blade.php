@@ -151,7 +151,7 @@
                             
                                     <x-slot name="heading">
                                         
-                                        <div class="mt-6 flex justify-center space-x-3">
+                                        
                                             <x-filament::button
                                             x-on:click="scale = Math.min(scale + 0.1, 2)"
                                             icon="heroicon-m-magnifying-glass-plus"
@@ -173,12 +173,11 @@
                                             icon="heroicon-m-arrow-path"
                                             color="white"
                                         >
-                                            <span class="text-white">Reset</span>
+                                            <span >Reset</span>
                                         </x-filament::button>
                                       
-                                        <button
+                                        
             
-                                        </div>
                                     </x-slot>
                             
                                     {{-- Contenido escalable --}}
