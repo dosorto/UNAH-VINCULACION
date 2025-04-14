@@ -15,7 +15,6 @@
         .constancia-wrapper .container {
             font-family: Arial, sans-serif;
             line-height: 1.6;
-            background-color: #fff;
             width: 816px;
             height: 1035px;
             min-width: 816px;
@@ -165,7 +164,7 @@
     </style>
 </head>
 <body>
-    <div class="constancia-wrapper">
+    <div id="impresion" class="constancia-wrapper">
         <div class="container">
             <div class="lucen">
                 <img class="lucent" src="{{ $solImage }}" alt="Fondo">

@@ -21,18 +21,10 @@
 
         <div class="relative max-w-3xl mx-auto px-4 sm:px-6">
             <!-- Navigation Header -->
-            <div class="flex justify-between items-center mb-8">
-                <!-- Back Button -->
-                <a href="#" class="inline-flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-yellow-400 transition-colors">
-                    <i class="fas fa-arrow-left mr-2"></i>
-                    <span class="font-medium">Atrás</span>
-                </a>
+            <div class="flex justify-between items-center mb-4">
+
                 
-                <!-- Print Button -->
-                <button class="inline-flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-700/50 rounded-lg text-blue-700 dark:text-yellow-300 hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors shadow-[0_0_15px_-5px_rgba(37,99,235,0.2)] dark:shadow-[0_0_15px_-5px_rgba(59,130,246,0.3)]">
-                    <i class="fas fa-print mr-2"></i>
-                    <span>Imprimir</span>
-                </button>
+                
             </div>
             
             <!-- Message Box -->
@@ -179,11 +171,13 @@
                                         <x-filament::button
                                             x-on:click="scale = 1"
                                             icon="heroicon-m-arrow-path"
-                                            color="primary"
+                                            color="white"
                                         >
                                             <span class="text-white">Reset</span>
                                         </x-filament::button>
-                                        
+                                      
+                                        <button
+            
                                         </div>
                                     </x-slot>
                             
@@ -191,7 +185,7 @@
                                    
                                     <div
     x-bind:style="'transform: scale(' + scale + ') translate(' + translateX + 'px,' + translateY + 'px); transform-origin: center;'"
-    class="w-full w-full flex justify-center items-center py-8 transition-transform duration-300 cursor-grab"
+    class="bg-white w-full w-full flex justify-center items-center py-8 transition-transform duration-300 cursor-grab"
    
 >
                                         @include('app.docente.constancias.constancia_finalizado')
@@ -215,4 +209,9 @@
             
         </div>
     </div>
+    
+      
+    
+ 
 @endsection
+

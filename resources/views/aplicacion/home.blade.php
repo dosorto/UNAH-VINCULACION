@@ -285,7 +285,7 @@
             </div>
 
             <!-- Contact Section -->
-            <div class="relative mt-20 py-20 bg-blue-50/70 dark:bg-transparent">
+            <div id="contacto" class="relative mt-20 py-20 bg-blue-50/70 dark:bg-transparent">
                 <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     <h2 class="text-4xl sm:text-5xl font-bold tracking-tight text-black dark:text-white mb-4">Contáctanos</h2>
                     <p class="text-lg text-gray-700 dark:text-gray-400 mb-12">

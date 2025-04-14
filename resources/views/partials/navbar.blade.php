@@ -10,8 +10,8 @@
                 </a>
                 <!-- Desktop Links -->
                 <div class="hidden md:flex items-center space-x-8">
-                    <a href="{{route('login')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Login</a>
-                    <a href="{{route('verificacion_constancia')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Validar Constancias</a>
+                  
+                    <a href="{{route('verificacion_constancia')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Validar Constancia</a>
                 </div>
             </div>
 
@@ -21,7 +21,7 @@
                     <x-heroicon-m-sun class="w-5 h-5 hidden dark:block"/>
                 </button>
 
-                <a href="{{ route('login') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl">
+                <a href="{{ route('login') }}" class="bg-[#235383] hover:bg-blue-700 text-white px-4 py-2 rounded-xl">
                     Iniciar Sesión
                 </a>
 
@@ -35,7 +35,6 @@
         <!-- Mobile Menu -->
         <div id="mobile-menu" class="md:hidden hidden pb-4">
             <div class="flex flex-col space-y-4">
-                <a href="{{route('login')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Login</a>
                 <a href="{{route('verificacion_constancia')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Validar Constancia</a>
             </div>
         </div>
