@@ -44,7 +44,7 @@ TextInput::make('codigo')
         ->first();
 
         if($Constancia)
-            return redirect()->route('constancia.show', $Constancia->id);
+            return redirect()->route('verificacion_constancia', $data['codigo']);
         else
            Notification::make()
             ->title('Error')

@@ -16,7 +16,7 @@
     <div class="relative pt-24 pb-16">
         <!-- Enhanced Gradient Background -->
         <div class="absolute inset-0">
-            <div class="absolute inset-0 bg-gradient-to-b from-blue-50 via-white to-yellow-50 dark:from-black dark:via-gray-900 dark:to-black"></div>
+            <div class="absolute inset-0 bg-gradient-to-b from-blue-50 via-white dark:from-black dark:via-gray-900 dark:to-black"></div>
         </div>
 
         <div class="relative max-w-3xl mx-auto px-4 sm:px-6">
