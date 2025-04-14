@@ -5,17 +5,17 @@
 @section('content')
 <div class="min-h-screen pt-32 pb-12">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-10">
+        <div class="p-4 md:p-0 mb-10">
             <h1 class="text-3xl font-bold text-black dark:text-white mb-2">Validación de Constancias</h1>
-            <p class="text-gray-700 dark:text-gray-400 max-w-2xl mx-auto">
-                Verifica la autenticidad de las constancias emitidas por UNAH-VINCULACIÓN ingresando el código único o subiendo el documento para su validación.
+            <p class="text-gray-700 dark:text-gray-400 max-w-2xl">
+                Verifica la autenticidad de las constancias emitidas por UNAH-VINCULACIÓN ingresando el código único para su validación.
             </p>
         </div>
         
-        <div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden mb-8">
+        <div class="bg-[#235383] dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden mb-8">
             <div class="p-6 sm:p-8">
                 <div class="mb-8">
-                    <h2 class="text-xl font-semibold text-black dark:text-white mb-4">Buscar por código</h2>
+                    <h2 class="text-xl font-semibold text-black text-white dark:text-white mb-4">Buscar por código</h2>
                     @livewire('constancia.buscar-constancia')
                 </div>
                 

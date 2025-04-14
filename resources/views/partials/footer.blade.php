@@ -1,3 +1,9 @@
+<div class="flex h-[20px] w-full">
+    <div class="w-[33.3333%]" style="background-color: #235383;"></div>
+    <div class="w-[33.3333%]" style="background-color: #FFFFFF;"></div>
+    <div class="w-[33.3333%] bg-yellow-400" ></div>
+  </div>
+  
 <footer class="bg-[#235383] text-white border-t border-[#1d4769] dark:bg-gray-800 dark:border-gray-700 dark:text-white">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
         <div class="grid md:grid-cols-2 gap-8 mb-8">

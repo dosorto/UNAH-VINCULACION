@@ -1,5 +1,8 @@
+
 <nav class="fixed top-0 left-0 right-0 z-40 bg-white/30 dark:bg-black/30 backdrop-blur-md dark:border-b dark:border-none">
-    <div class="md:max-w-5xl max-w-screen-xl mx-auto px-4 border border-gray-300 rounded-xl dark:border-gray-700">
+
+      
+    <div class="md:max-w-5xl bg-white max-w-screen-xl mx-auto px-4 border border-gray-300 dark:border-gray-800 rounded-xl dark:bg-gray-900">
         <div class="flex items-center justify-between h-16 my-2">
             <div class="flex items-center gap-8 md:gap-16">
                 <a href="{{ route('home') }}" class="flex items-center">

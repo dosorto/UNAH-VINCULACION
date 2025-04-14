@@ -83,8 +83,13 @@
 
 
             <!-- Mission, Vision, Goals Section -->
-            <div id="mision" class="relative mt-20 py-20 bg-blue-50 dark:bg-transparent">
+            <div id="mision" class=" mb-20 relative mt-20 py-20 bg-[#235383] dark:bg-gray-900 rounded-xl overflow-hidde">
                 <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <h2 class="text-4xl sm:text-5xl font-bold tracking-tight text-white dark:text-white mb-4">Vinculación Universidad–Sociedad</h2>
+                    <p class="text-lg dark:text-gray-400 mb-12 text-gray-100">
+                        Conectamos la Universidad Nacional Autónoma de Honduras con la sociedad hondureña, impulsando proyectos colaborativos que promueven el desarrollo sostenible y la transformación social.
+                    </p>
+
                     <div class="grid gap-8 md:grid-cols-3">
                         <!-- Misión -->
                         <div class="relative group">
@@ -152,14 +157,14 @@
             </div>
 
             <!-- About Section -->
-            <div class="relative mt-0 bg-gradient-to-b from-blue-100 via-blue-50 to-transparent dark:from-blue-900/20 dark:via-blue-950/30 dark:to-transparent py-32">
+            <div class="relative bg-yellow-400 mt-0 py-32 dark:bg-gray-900 rounded-xl">
                 <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     <h2 class="text-4xl sm:text-5xl font-bold tracking-tight  dark:text-white mb-4">Acerca de</h2>
                     <p class="text-lg  dark:text-gray-400 mb-12 max-w-3xl mx-auto">
                         Conoce más sobre la plataforma UNAH-VINCULACIÓN y su impacto en la comunidad universitaria y la sociedad hondureña.
                     </p>
 
-                    <div class="bg-white/80 backdrop-blur-sm dark:bg-black/40 dark:backdrop-blur-sm rounded-2xl p-8 border border-blue-100 dark:border-white/10 shadow-lg dark:shadow-[0_0_50px_-12px_rgba(37,99,235,0.4)] max-w-4xl mx-auto">
+                    <div class="bg-white backdrop-blur-sm dark:bg-black/40 dark:backdrop-blur-sm rounded-2xl p-8 border border-blue-100 dark:border-white/10 shadow-lg dark:shadow-[0_0_50px_-12px_rgba(37,99,235,0.4)] max-w-4xl mx-auto">
                         <div class="grid md:grid-cols-2 gap-8">
                             <div>
                                 <h3 class="text-2xl font-bold dark:text-white mb-4">La Plataforma</h3>
@@ -203,7 +208,7 @@
       
 
             <!-- Developers Section -->
-            <div id="desarrolladores" class="relative mt-20 py-20  dark:bg-transparent">
+            <div id="desarrolladores" class="border dark:border-none relative mt-20 py-20 dark:bg-gray-900 rounded-xl shadow-lg">
                 <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     <h2 class="text-4xl sm:text-5xl font-bold tracking-tight text-black dark:text-white mb-4">Desarrolladores</h2>
                     <p class="text-lg text-gray-700 dark:text-gray-400 mb-12 max-w-2xl mx-auto">
@@ -285,10 +290,10 @@
             </div>
 
             <!-- Contact Section -->
-            <div id="contacto" class="relative mt-20 py-20 bg-blue-50/70 dark:bg-transparent">
+            <div id="contacto" class=" mb-20 relative mt-20 py-20 bg-[#235383] dark:bg-gray-900 rounded-xl overflow-hidde">
                 <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <h2 class="text-4xl sm:text-5xl font-bold tracking-tight text-black dark:text-white mb-4">Contáctanos</h2>
-                    <p class="text-lg text-gray-700 dark:text-gray-400 mb-12">
+                    <h2 class="text-4xl sm:text-5xl font-bold tracking-tight text-white dark:text-white mb-4">Contáctanos</h2>
+                    <p class="text-lg dark:text-gray-400 mb-12 text-gray-100">
                         ¿Tienes alguna pregunta o propuesta? No dudes en ponerte en contacto con nosotros.
                     </p>
 
