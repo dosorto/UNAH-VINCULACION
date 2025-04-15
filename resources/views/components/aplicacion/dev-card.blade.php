@@ -8,7 +8,7 @@
     'instagram' => null,
 ])
 
-<div class="flex items-center gap-4 p-4 bg-white dark:bg-gray-900 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 w-full max-w-2xl mx-auto">
+<div class="w-full flex items-center gap-4 p-4 bg-white dark:bg-gray-900 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 w-full max-w-2xl mx-auto">
     <!-- Imagen -->
     <img src="{{ $image }}" alt="{{ $name }}" class="w-16 h-16 rounded-full object-cover border-b border-gray-300 dark:border-gray-600">
 

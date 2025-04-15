@@ -29,7 +29,8 @@ class BuscarConstancia extends Component implements HasForms
         return $form
             ->schema([
                 TextInput::make('codigo')
-                ->label('')
+                ->required()
+                ->label('Codigo')
             ])
             ->statePath('data');
     }

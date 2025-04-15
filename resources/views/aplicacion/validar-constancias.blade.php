@@ -3,29 +3,32 @@
 @section('title', 'Validar Constancia')
 
 @section('content')
-<div class="min-h-screen pt-32 pb-12">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="p-4 md:p-0 mb-10">
-            <h1 class="text-3xl font-bold text-black dark:text-white mb-2">Validación de Constancias</h1>
-            <p class="text-gray-700 dark:text-gray-400 max-w-2xl">
-                Verifica la autenticidad de las constancias emitidas por UNAH-VINCULACIÓN ingresando el código único para su validación.
-            </p>
+
+
+<!-- Contact Section -->
+<x-aplicacion.hero-section
+title="Validación de Constancias"
+description="Verifica la autenticidad de las constancias emitidas por UNAH-VINCULACIÓN ingresando el código único para su validación."
+theme="azul"
+text-position="top-right"
+contentPosition="opposide"
+:backgroundImage="true"
+:fullpage="true"
+>
+<div class=" w-full md:w-xl  max-w-xl bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden mb-8">
+    <div class="p-6 sm:p-8">
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold text-black text-[#235383] dark:text-white mb-4">Buscar por código</h2>
+            @livewire('constancia.buscar-constancia')
         </div>
         
-        <div class="bg-[#235383] dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden mb-8">
-            <div class="p-6 sm:p-8">
-                <div class="mb-8">
-                    <h2 class="text-xl font-semibold text-black text-white dark:text-white mb-4">Buscar por código</h2>
-                    @livewire('constancia.buscar-constancia')
-                </div>
-                
-                
-            </div>
-        </div>
         
-        <!-- Resultados de validación (mostrar condicionalmente) -->
-       
+    </div>
 </div>
+
+</x-aplicacion.hero-section>
+
+     
 @endsection
 
 @section('scripts')

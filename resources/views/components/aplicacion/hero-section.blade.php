@@ -3,9 +3,10 @@
     'description' => null,
     'theme' => 'azul',
     'textPosition' => 'center',
-    'contentPosition' => 'opposite',
+    'contentPosition' => 'opposite', // 'beside' o 'opposite'
     'backgroundImage' => false,
     'backgroundPosition' => 'izquierda',
+    'fullpage' => false,
 ])
 
 @php
@@ -27,6 +28,9 @@
     $textClasses = $textAlignments[$textPosition] ?? $textAlignments['center'];
     $backgroundClass = $backgroundImage ? 'with-bg-image' : '';
     $bgPositionClass = $backgroundImage ? ($backgroundPosition === 'derecha' ? 'bg-right-flip' : 'bg-left') : '';
+    $layoutClass = $fullpage 
+        ? 'min-h-screen w-full py-20 px-6 sm:px-12  ' 
+        : 'py-20 px-6 sm:px-12 rounded-xl mb-20 mt-20';
 @endphp
 
 @once
@@ -39,13 +43,13 @@
                 background-image: url('/images/Image/Sol.png');
                 background-repeat: no-repeat;
                 background-size: cover;
-                background-position: 75% center; /* Mueve el sol a la derecha (evita la izquierda fea) */
+                background-position: 75% center;
                 opacity: 0.15;
                 z-index: 0;
             }
 
             .with-bg-image.bg-right-flip::before {
-                background-position: 25% center; /* Para espejo: mueve el sol al otro lado bonito */
+                background-position: 25% center;
                 transform: scaleX(-1);
             }
 
@@ -57,14 +61,13 @@
     @endpush
 @endonce
 
-
 <div {{ $attributes->merge([
-    'class' => "relative py-20 px-6 sm:px-12 rounded-xl overflow-hidden mb-20 mt-20 $themeClasses $backgroundClass $bgPositionClass dark:bg-gray-900 dark:text-white dark:border-none"
+    'class' => "flex relative overflow-hidden $layoutClass $themeClasses $backgroundClass $bgPositionClass dark:bg-gray-900 dark:text-white dark:border-none"
 ]) }}>
-    <div class="max-w-7xl mx-auto flex flex-col md:flex-row gap-10 {{ $contentPosition === 'beside' ? 'md:flex-row' : 'md:flex-col' }}">
+    <div class="max-w-7xl mx-auto w-full flex flex-col {{ $contentPosition === 'beside' ? 'md:flex-row' : '' }} gap-10 items-center justify-center">
         
-        {{-- Texto --}}
-        <div class="flex flex-1 flex-col {{ $textClasses }}">
+        {{-- Bloque de texto --}}
+        <div class="flex-1 flex flex-col {{ $textClasses }} {{$fullpage ? 'mt-8': '' }}">
             @if($title)
                 <h2 class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">{{ $title }}</h2>
             @endif
@@ -74,9 +77,10 @@
             @endif
         </div>
 
-        {{-- Slot para contenido adicional --}}
-        <div class="flex-1">
+        {{-- Contenido adicional (slot) --}}
+        <div class="flex-1 p-2 w-full flex justify-center items-center">
             {{ $slot }}
         </div>
+
     </div>
 </div>

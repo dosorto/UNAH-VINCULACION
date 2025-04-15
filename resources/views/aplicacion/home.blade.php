@@ -222,9 +222,9 @@
 
     backgroundPosition="derecha"
         >
-        <div x-data="{ showAll: false }" class="space-y-4">
+        <div x-data="{ showAll: false }" class="w-full space-y-4">
             <!-- Grid contenedor -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         
 <x-aplicacion.dev-card 
     name="Dorian Osorto"
@@ -290,7 +290,7 @@
                         name="Acxel Aplicano"
                         role="Diseñador UI/UX"
                         image="https://avatars.githubusercontent.com/u/132090869?v=4"
-                        github="#"
+                        github="https://github.com/vanesszambrano9"
                         linkedin="#"
                         instagram="#"
                     />
@@ -335,7 +335,7 @@
     :backgroundImage="true"
 >
     {{-- Aquí puedes meter un formulario, imagen o cualquier otra cosa --}}
-    <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-lg max-w-xl mx-auto dark:bg-gray-800 dark:border-gray-800">
+    <div class="w-full bg-white rounded-xl p-6 border border-gray-200 shadow-lg max-w-xl mx-auto dark:bg-gray-800 dark:border-gray-800">
         @livewire('aplicacion.contacto.contacto')
     </div>
 </x-aplicacion.hero-section>
