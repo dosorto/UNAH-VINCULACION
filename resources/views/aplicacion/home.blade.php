@@ -91,6 +91,9 @@
             description="Conectamos la Universidad Nacional Autónoma de Honduras con la sociedad hondureña, impulsando proyectos colaborativos que promueven el desarrollo sostenible y la transformación social."
             theme="azul"
             colorFondo="bg-[#235383]"
+            :backgroundImage="true"
+
+            backgroundPosition="derecha"
             
         >
             <div class="grid gap-8 md:grid-cols-3">
@@ -164,6 +167,8 @@
             theme="amarillo"
             text-position="center"
             contentPosition="beside"
+            :backgroundImage="true"
+
             >
             <div class="bg-white backdrop-blur-sm dark:bg-black/40 dark:backdrop-blur-sm rounded-2xl p-8 border border-blue-100 dark:border-white/10 shadow-lg dark:shadow-[0_0_50px_-12px_rgba(37,99,235,0.4)] max-w-4xl mx-auto">
                 <div class="grid md:grid-cols-2 gap-8">
@@ -213,6 +218,9 @@
             theme="blanco"
             text-position="center"
             contentPosition="opposite"
+             :backgroundImage="true"
+
+    backgroundPosition="derecha"
         >
         <div x-data="{ showAll: false }" class="space-y-4">
             <!-- Grid contenedor -->
@@ -324,6 +332,7 @@
     theme="azul"
     text-position="top-right"
     contentPosition="beside"
+    :backgroundImage="true"
 >
     {{-- Aquí puedes meter un formulario, imagen o cualquier otra cosa --}}
     <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-lg max-w-xl mx-auto dark:bg-gray-800 dark:border-gray-800">
