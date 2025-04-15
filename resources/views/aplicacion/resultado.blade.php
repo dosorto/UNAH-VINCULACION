@@ -171,7 +171,7 @@
                                         <x-filament::button
                                             x-on:click="scale = 1"
                                             icon="heroicon-m-arrow-path"
-                                            color="white"
+                                            
                                         >
                                             <span >Reset</span>
                                         </x-filament::button>
