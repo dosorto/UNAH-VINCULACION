@@ -44,8 +44,8 @@
                 background-repeat: no-repeat;
                 background-size: cover;
                 background-position: 75% center;
-                opacity: 0.15;
                 z-index: 0;
+                transition: opacity 0.3s ease;
             }
 
             .with-bg-image.bg-right-flip::before {
@@ -57,19 +57,36 @@
                 position: relative;
                 z-index: 10;
             }
+
+            /* Opacidad por defecto */
+            .with-bg-image::before {
+                opacity: 0.15;
+            }
+
+            /* Más opacidad si el tema es azul o amarillo */
+            .bg-[#235383].with-bg-image::before,
+            .bg-yellow-400.with-bg-image::before {
+                opacity: 0.9;
+            }
+
+            /* Si está en modo oscuro, la opacidad vuelve a 0.15 sin importar el tema */
+            .dark .with-bg-image::before {
+                opacity: 0.15 !important;
+            }
         </style>
     @endpush
 @endonce
 
+
 <div {{ $attributes->merge([
     'class' => "flex relative overflow-hidden $layoutClass $themeClasses $backgroundClass $bgPositionClass dark:bg-gray-900 dark:text-white dark:border-none"
 ]) }}>
-    <div class="max-w-7xl mx-auto w-full flex flex-col {{ $contentPosition === 'beside' ? 'md:flex-row' : '' }} gap-10 items-center justify-center">
+    <div class="max-w-7xl mx-auto w-full flex flex-col {{ $contentPosition === 'beside' ? 'md:flex-row' : '' }} gap-6 items-center justify-center">
         
         {{-- Bloque de texto --}}
         <div class="flex-1 flex flex-col {{ $textClasses }} {{$fullpage ? 'mt-8': '' }}">
             @if($title)
-                <h2 class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">{{ $title }}</h2>
+                <h2 class="text-4xl sm:text-5xl font-bold tracking-tight mb-2">{{ $title }}</h2>
             @endif
 
             @if($description)
@@ -84,3 +101,6 @@
 
     </div>
 </div>
+
+
+

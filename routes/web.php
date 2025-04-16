@@ -56,6 +56,7 @@ use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
 use App\Livewire\Constancia\ListConstancias;
 use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
 use App\Models\Slide\Slide;
+use App\Livewire\Personal\Contacto\ListContactos;
 
 Route::get('/', function () {
     $slides = Slide::where('estado', true)
@@ -284,6 +285,11 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         Route::get('listConstancias', ListConstancias::class)
             ->name('constancias')
             ->middleware('can:constancia-admin-constancias');
+
+        
+        Route::get('listContactanos', ListContactos::class) 
+            ->name('contactanos')
+            ->middleware('can:configuracion-admin-contactanos');
     });
 
     // agregar rutas para el modulo de docente

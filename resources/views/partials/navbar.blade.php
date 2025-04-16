@@ -7,7 +7,7 @@
                     <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
                         <div class="w-3 h-3 rounded-full bg-white"></div>
                     </div>
-                    <span class="ml-2 text-black dark:text-white font-bold">UNAH-VINCULACIÓN</span>
+                    <span class="ml-2 text-black dark:text-white font-bold">{{config('app.name')}}</span>
                 </a>
                 <!-- Desktop Links -->
                 <div class="hidden md:flex items-center space-x-8">

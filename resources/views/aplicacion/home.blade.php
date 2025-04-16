@@ -219,7 +219,6 @@
             text-position="center"
             contentPosition="opposite"
              :backgroundImage="true"
-
     backgroundPosition="derecha"
         >
         <div x-data="{ showAll: false }" class="w-full space-y-4">

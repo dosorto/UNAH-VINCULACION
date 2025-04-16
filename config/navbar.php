@@ -149,10 +149,12 @@ return [
                 'permisos' => ['configuracion-admin-logs', 'apariencia-admin-slides'],
                 'children' => [
                     ['texto' => 'Logs', 'route' => 'listarLogs', 'permiso' => 'configuracion-admin-logs'],
-                    ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia-admin-slides']
+                    ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia-admin-slides'],
+                    ['texto' => 'Contactanos', 'route' => 'contactanos', 'permiso' => 'configuracion-admin-contactanos']
                 ],
             ],
 
+            // director enlace de vinculacion
             [
                 'titulo' => 'Proyectos',
                 'route' => 'proyectosCentroFacultad',
@@ -163,6 +165,7 @@ return [
                 'funcion' => null,
                 'can' => 'admin_centro_facultad-proyectos',
             ],
+            // modulo docentes
             [
                 'titulo' => 'Proyectos',
                 'route' => 'proyectosDocente',

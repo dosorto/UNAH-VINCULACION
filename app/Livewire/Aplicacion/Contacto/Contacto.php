@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Aplicacion\Contacto;
 
+use App\Models\Personal\Contacto as PersonalContacto;
 use Filament\Forms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -9,7 +10,9 @@ use Filament\Forms\Form;
 use Livewire\Component;
 use Illuminate\Contracts\View\View;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Forms\Components\Textarea;
+
 
 
 
@@ -29,11 +32,11 @@ class Contacto extends Component implements HasForms
     {
         return $form
             ->schema([
-                TextInput::make('nombre')
+                TextInput::make('nombres')
                     ->label('Nombres')
                     ->required()
                     ->maxLength(255),
-                TextInput::make('Apellido')
+                TextInput::make('apellidos')
                     ->label('Apellidos')
                     ->required()
                     ->maxLength(255),
@@ -67,6 +70,14 @@ class Contacto extends Component implements HasForms
     public function submit(): void
     {
         $data = $this->form->getState();
+        PersonalContacto::create($data);
+        Notification::make()
+            ->title('¡Éxito!')
+            ->body('su mensaje ha sido enviado correctamente.')
+            ->success()
+            ->send();
+
+        $this->js('location.reload();');
 
         //
     }

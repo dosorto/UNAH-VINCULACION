@@ -15,7 +15,7 @@ contentPosition="opposide"
 :backgroundImage="true"
 :fullpage="true"
 >
-<div class=" w-full md:w-xl  max-w-xl bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden mb-8">
+<div class=" w-full md:w-xl  max-w-xl bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden mb-8">
     <div class="p-6 sm:p-8">
         <div class="mb-8">
             <h2 class="text-xl font-semibold text-black text-[#235383] dark:text-white mb-4">Buscar por código</h2>
