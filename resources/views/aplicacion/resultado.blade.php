@@ -201,16 +201,11 @@
                     </div>
                 </div>
             </div>
+        </div> 
         </div>
-            
-            <!-- Constantin Box (Content/Details) -->
-               
-            
-        </div>
-    </div>
-    
-      
-    
- 
+    </div> 
+@endsection
+@section('scripts')
+
 @endsection
 

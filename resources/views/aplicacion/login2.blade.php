@@ -41,11 +41,12 @@ contentPosition="beside"
     </div>
 </div>
 </x-aplicacion.hero-section>
-
 @endsection
 
 
+@section('scripts')
 
+@endsection
 
 
 

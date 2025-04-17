@@ -52,7 +52,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title>{{ config('app.name') }}</title>
-    <link rel="icon" href="{{ asset('images/Logo_Nexo.png') }}" type="image/png">
+
+    <link rel="icon" href="{{ asset('images/Image/logo_nexo.png') }}" type="image/png">
     <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.46.0/dist/apexcharts.min.js"></script>
 
     <style>
@@ -105,8 +106,9 @@
     @livewire('notifications')
     @filamentScripts
     @vite('resources/js/app.js')
-    @yield('scripts')
+    
 </body>
+@yield('scripts')
 </html>
 
 

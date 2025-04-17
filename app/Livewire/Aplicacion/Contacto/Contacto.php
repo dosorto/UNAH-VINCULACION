@@ -14,8 +14,9 @@ use Filament\Notifications\Notification;
 use Filament\Forms\Components\Textarea;
 
 
-
-
+use App\Services\Correos\EmailBuilder;
+use Illuminate\Support\Facades\Mail;
+use phpseclib3\File\ASN1\Maps\PersonalName;
 
 class Contacto extends Component implements HasForms
 {
@@ -57,20 +58,37 @@ class Contacto extends Component implements HasForms
 
                 Textarea::make('mensaje')
                     ->columnSpanFull()
-                    
+
                     ->rows(5)
                     ->required()
                     ->cols(15)
-                
+
             ])
             ->columns(2)
             ->statePath('data');
     }
 
+    private function enviarCorreo(PersonalContacto $contacto): void
+    {
+        $correo = (new EmailBuilder())
+            ->setEstadoNombre("")
+            ->setEmpleadoNombre($contacto->nombres . ' ' . $contacto->apellidos)
+            ->setNombreProyecto("")
+            ->setActionUrl(route('home'))
+            ->setLogoUrl(asset('images/logo_nuevo.png'))
+            ->setAppName('NEXO-UNAH')
+            ->setMensaje("Gracias por ponerse en contacto con nosotros. Daremos respuesta a su consulta lo más pronto posible.")
+            ->setSubject('Confirmación de envío de consulta')
+            ->build();
+
+        Mail::to($contacto->email)->queue($correo);
+    }
+
     public function submit(): void
     {
         $data = $this->form->getState();
-        PersonalContacto::create($data);
+        $contacto = PersonalContacto::create($data);
+        $this->enviarCorreo($contacto);
         Notification::make()
             ->title('¡Éxito!')
             ->body('su mensaje ha sido enviado correctamente.')

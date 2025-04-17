@@ -1,13 +1,10 @@
 
-<nav class="fixed top-0 left-0 right-0 z-40  dark:bg-black/30 dark:backdrop-blur-md dark:border-b dark:border-none">
-<div class="md:max-w-5xl bg-white max-w-screen-xl mx-auto px-4 border border-gray-300 dark:border-gray-800 rounded-xl dark:bg-gray-900">
+<nav class="fixed top-0 left-0 right-0 z-40   dark:border-b dark:border-none">
+<div class="md:max-w-5xl bg-white max-w-screen-xl mx-auto px-4 border border-gray-300 dark:border-gray-800 rounded-bl-lg rounded-br-lg rounded-tl-none rounded-tr-none dark:bg-gray-900">
         <div class="flex items-center justify-between h-16 my-2">
             <div class="flex items-center gap-8 md:gap-16">
                 <a href="{{ route('home') }}" class="flex items-center">
-                    <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
-                        <div class="w-3 h-3 rounded-full bg-white"></div>
-                    </div>
-                    <span class="ml-2 text-black dark:text-white font-bold">{{config('app.name')}}</span>
+                    <x-logo size="lg" color="rojo" displayText="true" displayIsotipo="true"/>
                 </a>
                 <!-- Desktop Links -->
                 <div class="hidden md:flex items-center space-x-8">
