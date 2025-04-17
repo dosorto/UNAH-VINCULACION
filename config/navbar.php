@@ -69,7 +69,10 @@ return [
                 'routes' => ['constancias'],
                 'icono' => 'heroicon-o-document-text',
                 'permisos' => ['constancia-admin-constancias'],
-                'children' => [],
+                'children' => [
+                    ['texto' => 'Constancias', 'route' => 'constancias', 'permiso' => 'constancia-admin-constancias'],
+                    //['texto' => 'Solicitudes', 'route' => 'crearEmpleado', 'permiso' => 'empleados-admin-empleados'],
+                ],
                 'funcion' => null,
                 'parametro' => null,
                 'can' => null,

@@ -66,7 +66,7 @@
             style="z-index: 39;">
             <div class="flex items-center ">
                 <div class="w-36 h-8 rounded-lg flex">
-                    <x-logo size="lg" color="rojo" displayText="true" displayIsotipo="true"/>
+                    <x-logo size="sm"  displayText="true" displayIsotipo="true"/>
                 </div>
                 
             </div>

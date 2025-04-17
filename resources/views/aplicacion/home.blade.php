@@ -323,6 +323,9 @@
         
         
         </x-aplicacion.hero-section>
+
+        
+    
         
             <!-- Contact Section -->
             <x-aplicacion.hero-section
@@ -338,6 +341,18 @@
         @livewire('aplicacion.contacto.contacto')
     </div>
 </x-aplicacion.hero-section>
+
+<x-aplicacion.hero-section
+        title="{{config('app.name')}}"
+        description=""
+        theme="blanco"
+        text-position="top-right"
+         contentPosition="beside"
+        
+    >
+    <x-logo size="xl"  :displayText="false" displayIsotipo="true"/>
+       
+    </x-aplicacion.hero-section>
 
         </div>
     </div>

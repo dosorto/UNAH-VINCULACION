@@ -7,7 +7,7 @@
             <div class="flex items-center  justify-between ">
                 <div class="flex items-center ">
                     <div class="w-36 h-8 rounded-lg flex  ">
-                        <x-logo size="lg" color="rojo" displayText="true" displayIsotipo="true"/>
+                        <x-logo size="sm" color="rojo" displayText="true" displayIsotipo="true"/>
                     </div>
 
                 </div>

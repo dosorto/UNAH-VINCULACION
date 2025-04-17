@@ -36,7 +36,7 @@ class VerificarConstancia extends Controller
             // validar si el empleado del proyecto se puede generar constancia o no
             if (self::validarConstanciaEmpleado($empleadoProyecto)) {
                 // crear la constancia
-                Constancia::create([
+                $Constancia = Constancia::create([
                     'origen_type' => Proyecto::class,
                     'origen_id' => $empleadoProyecto->proyecto_id,
                     'destinatario_type' => Empleado::class,

@@ -3,6 +3,7 @@
 
 return [
     'cargos_firmas' => [
+        'Creador',
         'Coordinador Proyecto',
         'Enlace Vinculacion',
         'Jefe Departamento',
@@ -120,6 +121,20 @@ return [
                 'descripcion' => 'Documento_final',
                 'cargo' => 'Revisor Vinculacion',
                 'estado' => 'En revision',
+                'estado_siguiente' => 'Aprobado',
+            ],
+        ],
+        'revisores_constancia' => [
+            [
+                'descripcion' => 'Constancia',
+                'cargo' => 'Creador',
+                'estado' => 'Inscrito',
+                'estado_siguiente' => 'En revision final',
+            ],
+            [
+                'descripcion' => 'Constancia',
+                'cargo' => 'Director Vinculacion',
+                'estado' => 'En revision final',
                 'estado_siguiente' => 'Aprobado',
             ],
         ]

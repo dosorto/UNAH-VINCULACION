@@ -4,7 +4,7 @@
         <div class="flex items-center justify-between h-16 my-2">
             <div class="flex items-center gap-8 md:gap-16">
                 <a href="{{ route('home') }}" class="flex items-center">
-                    <x-logo size="lg" color="rojo" displayText="true" displayIsotipo="true"/>
+                    <x-logo size="sm"  displayText="true" displayIsotipo="true"/>
                 </a>
                 <!-- Desktop Links -->
                 <div class="hidden md:flex items-center space-x-8">
