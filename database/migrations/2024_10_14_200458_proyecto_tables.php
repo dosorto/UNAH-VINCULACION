@@ -84,12 +84,8 @@ return new class extends Migration
             $table->enum('modalidad_ejecucion', ['Distancia', 'Presencial', 'Bimodal'])->nullable();
             $table->longText('resultados_esperados')->nullable();
             $table->longText('indicadores_medicion_resultados')->nullable();
-            $table->date('fecha_registro')->nullable();
-
-            $table->foreignId('responsable_revision_id')->nullable()->constrained('empleado');
-            $table->foreignId('user_director_id')->nullable()->constrained('users');
-
             $table->date('fecha_aprobacion')->nullable();
+            $table->date('fecha_registro')->nullable();
             $table->string('numero_libro')->nullable();
             $table->string('numero_tomo')->nullable();
             $table->string('numero_folio')->nullable();
@@ -112,9 +108,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('proyecto_id')->constrained('proyecto');
             $table->string('nombre');
-            $table->string('telefono');
-            $table->string('correo');
             $table->string('nombre_contacto');
+            $table->string('correo');
+            $table->string('telefono');
             $table->boolean('es_internacional')->default(false);
             $table->string('aporte');
             // $table->string('instrumento_formalizacion');
@@ -149,12 +145,13 @@ return new class extends Migration
          // tabla actividades
          Schema::create('actividades', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('proyecto_id')->constrained('proyecto');
+            
             $table->longText('descripcion');
             $table->date('fecha_inicio');
             $table->date('fecha_finalizacion');
             // $table->foreignId('empleado_proyecto_id')->constrained('empleado_proyecto');
             // incluir el id del proyecto para recuperarlo mmas rapido
-            $table->foreignId('proyecto_id')->constrained('proyecto');
             $table->longText('objetivos')->nullable();
             $table->longText('resultados')->nullable();
             $table->integer('horas')->nullable();
@@ -253,9 +250,10 @@ return new class extends Migration
         Schema::create('firma_proyecto', function (Blueprint $table) {
             $table->id();
             $table->foreignId('empleado_id')->constrained('empleado');
+            $table->foreignId('cargo_firma_id')->constrained('cargo_firma');
+            
             $table->foreignId('firma_id')->nullable();//->constrained('firma');
             $table->foreignId('sello_id')->nullable();
-            $table->foreignId('cargo_firma_id')->constrained('cargo_firma');
             $table->dateTime('fecha_firma')->nullable();
             $table->enum('estado_revision', ['Pendiente', 'Rechazado', 'Aprobado'])->default('Pendiente');
             $table->string('hash')->nullable();

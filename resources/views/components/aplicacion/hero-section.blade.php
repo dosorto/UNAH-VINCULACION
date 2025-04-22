@@ -79,7 +79,7 @@
 
 
 <div {{ $attributes->merge([
-    'class' => "flex relative overflow-hidden $layoutClass $themeClasses $backgroundClass $bgPositionClass dark:bg-gray-900 dark:text-white dark:border-none"
+    'class' => "flex relative overflow-hidden $layoutClass $themeClasses $backgroundClass $bgPositionClass dark:bg-gray-900 dark:text-white select-none  dark:border-none"
 ]) }}>
     <div class="max-w-7xl mx-auto w-full flex flex-col {{ $contentPosition === 'beside' ? 'md:flex-row' : '' }} gap-6 items-center justify-center">
         
