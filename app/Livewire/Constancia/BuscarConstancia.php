@@ -28,8 +28,9 @@ class BuscarConstancia extends Component implements HasForms
     {
         return $form
             ->schema([
-
-TextInput::make('codigo')
+                TextInput::make('codigo')
+                ->required()
+                ->label('Codigo')
             ])
             ->statePath('data');
     }
@@ -41,16 +42,21 @@ TextInput::make('codigo')
         // mandar la notificacion que no lo encontro
 
         $Constancia = Constancia::where('hash', $data['codigo'])
-        ->first();
+            ->first();
 
-        if($Constancia)
-            return redirect()->route('constancia.show', $Constancia->id);
-        else
-           Notification::make()
-            ->title('Error')
-            ->body('NO SE ENCONTRO REGISTRO CON ESE CODIGO')
-            ->danger()
-            ->send();
+        if ($Constancia) {
+            Notification::make()
+                ->title('Exito')
+                ->body('Se ha encontrado un registro con ese codigo')
+                ->success()
+                ->send();
+            return redirect()->route('verificacion_constancia', $data['codigo']);
+        } else
+            Notification::make()
+                ->title('Error')
+                ->body('NO SE ENCONTRO REGISTRO CON ESE CODIGO')
+                ->danger()
+                ->send();
 
 
         //

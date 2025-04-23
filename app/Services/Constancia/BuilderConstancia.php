@@ -101,6 +101,11 @@ class BuilderConstancia
 
         $data = [
             'titulo' => $this->buildTitulo(),
+            'nombreEmpleado' => $empleado,
+            'numeroEmpleado' => $numeroEmpleado,
+            'nombreProyecto' => $nombreProyecto,
+	        'tipo' => $this->tipo,
+            'horas' => 0, // crear un metodo llamado getHoras
             'texto' => $this->buildTexto(
                 $empleado,
                 $numeroEmpleado,

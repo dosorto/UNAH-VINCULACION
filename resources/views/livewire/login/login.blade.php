@@ -13,30 +13,18 @@
         @endif
 
         @if (config('app.env') == 'production')
-            <div
-                class="w-full max-w-md p-6 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-md flex flex-col items-center">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">
-                    Usa tu cuenta Institucional
-                </h2>
-
-                <p class="text-gray-600 dark:text-gray-400 text-center mb-6">
-                    Para acceder a todas las funciones de {{ config('app.name') }}, inicia sesión con tu cuenta
-                    Institucional y completa el registro si aun no lo has hecho.
-                </p>
-
-                <!-- Icono de Microsoft -->
-                <a href="{{ route('auth.microsoft') }}"
-                    class="flex items-center justify-center w-full px-4 py-2 bg-white dark:bg-gray-800 text-black dark:text-white border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors">
-                    <svg class="mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 21">
-                        <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-                        <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-                        <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-                        <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-                    </svg>
-                    Iniciar con Microsoft
-                </a>
-            </div>
-        @endif
+        <a href="{{ route('auth.microsoft') }}" class="flex items-center justify-center w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm text-sm font-medium text-black dark:text-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23 23">
+                <path fill="#f3f3f3" d="M0 0h23v23H0z"/>
+                <path fill="#f35325" d="M1 1h10v10H1z"/>
+                <path fill="#81bc06" d="M12 1h10v10H12z"/>
+                <path fill="#05a6f0" d="M1 12h10v10H1z"/>
+                <path fill="#ffba08" d="M12 12h10v10H12z"/>
+            </svg>
+            Iniciar sesión con Microsoft
+        </a>
+        
+                @endif
 
     </form>
 

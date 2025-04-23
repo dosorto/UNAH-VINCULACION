@@ -76,6 +76,8 @@ class PermisosSeeder extends Seeder
         $permission31 = Permission::create(['name' => 'ver-dashboard-docente']);
         $permission32 = Permission::create(['name' => 'ver-dashboard-estudiante']);
         $permission33 = Permission::create(['name' => 'ver-dashboard-admin-centro-facultad']);
+        $permission34 = Permission::create(['name' => 'configuracion-admin-contactanos']);
+
 
         // crear un rol de administrador con todos los permisos anteriores
         $role = Role::create(['name' => 'admin']);
@@ -112,6 +114,7 @@ class PermisosSeeder extends Seeder
             'unidad-academica-admin-facultad',
             'global-set-role',
             'constancia-admin-constancias',
+            'configuracion-admin-contactanos'
             
             
         ])->save();

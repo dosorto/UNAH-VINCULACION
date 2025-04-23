@@ -50,8 +50,8 @@ return new class extends Migration
         // tablas de departamento
         Schema::create('departamento_academico', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
             $table->foreignId('centro_facultad_id')->constrained('centro_facultad');
+            $table->string('nombre');
             $table->softDeletes();
             $table->timestamps();
         });

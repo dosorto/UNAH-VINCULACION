@@ -69,7 +69,10 @@ return [
                 'routes' => ['constancias'],
                 'icono' => 'heroicon-o-document-text',
                 'permisos' => ['constancia-admin-constancias'],
-                'children' => [],
+                'children' => [
+                    ['texto' => 'Constancias', 'route' => 'constancias', 'permiso' => 'constancia-admin-constancias'],
+                    //['texto' => 'Solicitudes', 'route' => 'crearEmpleado', 'permiso' => 'empleados-admin-empleados'],
+                ],
                 'funcion' => null,
                 'parametro' => null,
                 'can' => null,
@@ -149,10 +152,12 @@ return [
                 'permisos' => ['configuracion-admin-logs', 'apariencia-admin-slides'],
                 'children' => [
                     ['texto' => 'Logs', 'route' => 'listarLogs', 'permiso' => 'configuracion-admin-logs'],
-                    ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia-admin-slides']
+                    ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia-admin-slides'],
+                    ['texto' => 'Contactanos', 'route' => 'contactanos', 'permiso' => 'configuracion-admin-contactanos']
                 ],
             ],
 
+            // director enlace de vinculacion
             [
                 'titulo' => 'Proyectos',
                 'route' => 'proyectosCentroFacultad',
@@ -163,6 +168,7 @@ return [
                 'funcion' => null,
                 'can' => 'admin_centro_facultad-proyectos',
             ],
+            // modulo docentes
             [
                 'titulo' => 'Proyectos',
                 'route' => 'proyectosDocente',

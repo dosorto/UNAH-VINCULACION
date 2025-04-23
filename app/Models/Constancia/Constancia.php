@@ -5,10 +5,12 @@ namespace App\Models\Constancia;
 use Illuminate\Database\Eloquent\Model;
 
 use Illuminate\Support\Str;
+use App\Traits\EstadoTrait;
 
 
 class Constancia extends Model
 {
+    use EstadoTrait;
 
     protected $table = 'constancia';
 

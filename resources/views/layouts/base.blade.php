@@ -3,13 +3,57 @@
 
 <head>
     <meta charset="utf-8">
-   
+    <script>
+        // Evitar parpadeo al detectar y aplicar modo oscuro
+        if (
+            localStorage.getItem('theme') === 'dark' ||
+            (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        ) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const themeToggle = document.getElementById('theme-toggle');
+        const htmlElement = document.documentElement;
+
+        // Verificar preferencia guardada
+        if (localStorage.getItem('theme') === 'dark' || 
+           (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            htmlElement.classList.add('dark');
+        } else {
+            htmlElement.classList.remove('dark');
+        }
+
+        // Alternar tema
+        themeToggle.addEventListener('click', () => {
+            htmlElement.classList.toggle('dark');
+            // Guardar preferencia
+            if (htmlElement.classList.contains('dark')) {
+                localStorage.setItem('theme', 'dark');
+            } else {
+                localStorage.setItem('theme', 'light');
+            }
+        });
+
+        // Menú móvil (ya lo tenías, lo dejo aquí junto)
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', function () {
+            mobileMenu.classList.toggle('hidden');
+        });
+    });
+</script>
+
     <meta name="application-name" content="{{ config('app.name') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title>{{ config('app.name') }}</title>
-    <link rel="icon" href="{{ asset('images/Logo_Nexo.png') }}" type="image/png">
+
+    <link rel="icon" href="{{ asset('images/Image/logo_nexo.png') }}" type="image/png">
     <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.46.0/dist/apexcharts.min.js"></script>
 
     <style>
@@ -45,57 +89,76 @@
 
       
     </style>
+    @yield('styles')
 </head>
-<body  >
-    @yield('contenido')   
+<body class="min-h-screen bg-white dark:bg-black overflow-x-hidden">
+    <!-- Navigation -->
+    @include('partials.navbar')
+
+    <!-- Main Content -->
+    <main>
+        @yield('content')
+    </main>
+
+    <!-- Footer -->
+    @include('partials.footer')
+
     @livewire('notifications')
     @filamentScripts
     @vite('resources/js/app.js')
+    
 </body>
 
-
 <script>
-    const darkModeToggle = document.getElementById('darkModeToggle');
-    darkModeToggle.addEventListener('click', () => {
-        document.documentElement.classList.toggle('dark');
-        if (document.documentElement.classList.contains('dark')) {
-            localStorage.setItem('color-theme', 'dark');
-        } else {
-            localStorage.setItem('color-theme', 'light');
+  (function() {
+    const devtools = {
+      isOpen: false,
+      orientation: null
+    };
+
+    const threshold = 160;
+
+    const emitEvent = (isOpen, orientation) => {
+      window.dispatchEvent(new CustomEvent('devtoolschange', {
+        detail: {
+          isOpen,
+          orientation
         }
+      }));
+    };
+
+    setInterval(() => {
+      const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+      const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+      const orientation = widthThreshold ? 'vertical' : 'horizontal';
+
+      if (!(heightThreshold && widthThreshold) &&
+          ((window.Firebug && window.Firebug.chrome && window.Firebug.chrome.isInitialized) ||
+           widthThreshold || heightThreshold)) {
+        if (!devtools.isOpen || devtools.orientation !== orientation) {
+          emitEvent(true, orientation);
+        }
+        devtools.isOpen = true;
+        devtools.orientation = orientation;
+      } else {
+        if (devtools.isOpen) {
+          emitEvent(false, null);
+        }
+        devtools.isOpen = false;
+        devtools.orientation = null;
+      }
+    }, 500);
+
+    window.addEventListener('devtoolschange', event => {
+      if (event.detail.isOpen) {
+        alert("¡DevTools detectado! Cerralo, por favor.");
+        window.location.href = "https://google.com";
+      }
     });
-
-    if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window
-            .matchMedia(
-                '(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark');
-    }
+  })();
 </script>
 
-
-<script>
-const COLORS = ["#fff2", "#fff4", "#fff7", "#fffc"];
-
-const generateSpaceLayer = (size, selector, totalStars, duration) => {
-    const layer = [];
-    for (let i = 0; i < totalStars; i++) {
-        const color = COLORS[~~(Math.random() * COLORS.length)];
-        const x = Math.floor(Math.random() * 100);
-        const y = Math.floor(Math.random() * 100);
-        layer.push(`${x}vw ${y}vh 0 ${color}, ${x}vw ${y + 100}vh 0 ${color}`);
-    }
-    const container = document.querySelector(selector);
-    container.style.setProperty("--size", size);
-    container.style.setProperty("--duration", duration);
-    container.style.setProperty("--space-layer", layer.join(","));
-}
-
-generateSpaceLayer("2px", ".space-1", 250, "25s");
-generateSpaceLayer("3px", ".space-2", 100, "20s");
-generateSpaceLayer("6px", ".space-3", 25, "15s");
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.4.7/flowbite.min.js"></script>
-
+@yield('scripts')
 </html>
+
+
