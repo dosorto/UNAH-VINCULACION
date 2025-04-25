@@ -109,15 +109,15 @@ class PersonalSeeder extends Seeder
         if (app()->environment('local')) {
 
             $user2 = User::create([
-                'name' => 'NOTIFICACIONES  POA',
-                'email' => 'correo@unah.edu.hn',
+                'name' => 'Ernesto Moncada',
+                'email' => 'ernesto.moncada@unah.hn',
                 'password' => bcrypt('123'),
-                'surname' => 'POA',
-                'given_name' => 'NOTIFICACIONES',
+                'surname' => 'Ernesto',
+                'given_name' => 'Moncada Valladares',
             ]);
 
             Empleado::create([
-                'nombre_completo' => 'NOTIFICACIONES POA',
+                'nombre_completo' => 'Ernesto Noe Moncada Valladarez',
                 'numero_empleado' => '1228asdfasdf0',
                 'celular' => '99999999',
                 'user_id' => $user2->id,

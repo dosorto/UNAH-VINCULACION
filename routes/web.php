@@ -52,16 +52,44 @@ use App\Livewire\UnidadAcademica\Carrera\CarreraList;
 use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList;
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
 use App\Http\Controllers\DirectorCentro\Proyectos\ListProyectosCentro;
+use App\Http\Controllers\PDFController;
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
 use App\Livewire\Constancia\ListConstancias;
 use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
+use App\Models\Slide\Slide;
+use App\Livewire\Personal\Contacto\ListContactos;
+
+Route::get('/', function () {
+    $slides = Slide::where('estado', true)
+                    ->get();
+
+        $data = ['slides' => $slides];
+
+    return view('aplicacion.home', $data);
+})->name('home');
 
 Route::get('verificacion_constancia', [VerificarConstancia::class, 'verificacionConstanciaVista'])
-    ->name('verificacion_constancia');
+    ->name('validar');
+
+//...
+
+
+//Route::get('generate-pdf', [PDFController::class, 'generatePDF']);
+
+//...
 
 
 Route::get('verificacion_constancia/{hash?}', [VerificarConstancia::class, 'index'])
     ->name('verificacion_constancia');
+
+Route::get('/logout', function () {
+    if (Auth::check()) { // Verifica si el usuario está autenticado
+        Auth::logout(); // Cierra la sesión
+        return redirect('/'); // Redirige al inicio
+    }
+
+    return redirect()->route('login'); // Si no está autenticado, redirige a la página de login
+})->name('logout');
 
 // Rutas para redireccionar a los usuario autenticados
 Route::middleware(['guest'])->group(function () {
@@ -72,10 +100,7 @@ Route::middleware(['guest'])->group(function () {
     Route::get('auth/microsoft/callback', [MicrosoftController::class, 'handleMicrosoftCallback'])
         ->name('auth.microsoft.callback');
 
-    Route::get('/', function () {
-        return redirect(route('login'));
-    })
-        ->middleware('guest');
+  
     Route::get('/login', Login::class)
         ->name('login')
         ->middleware('guest');
@@ -87,7 +112,7 @@ Route::middleware(['guest'])->group(function () {
 });
 
 // Rutas para redireccionar a los usuario  no autenticados
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfil::class])->group(function () {
 
 
 
@@ -110,13 +135,13 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('setPerfil/{role_id}', [SetRoleController::class, 'SetRole'])
         ->name('setrole');
-       // ->middleware('can:global-set-role');
+    // ->middleware('can:global-set-role');
 
 
     // rutas agrupadas para el modulo de inicio
     Route::get('inicio', InicioAdmin::class)
         ->name('inicio');
-       // ->middleware('permission:inicio-admin-inicio|inicio-docente-inicio|docente-cambiar-datos-personales|estudiante-inicio-inicio|estudiante-cambiar-datos-personales');
+    // ->middleware('permission:inicio-admin-inicio|inicio-docente-inicio|docente-cambiar-datos-personales|estudiante-inicio-inicio|estudiante-cambiar-datos-personales');
     // rutas agrupadas para el modulo de demografia :)
     Route::middleware(['auth'])->group(function () {
 
@@ -185,13 +210,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('slides', SlideConfig::class)
             ->name('slides')
             ->middleware('can:apariencia-admin-slides');
-
-
-        Route::get('/logout', function () {
-            Auth::logout();
-            return redirect('/');
-        })
-            ->name('logout');
     });
 
 
@@ -265,12 +283,17 @@ Route::middleware(['auth'])->group(function () {
 
     // rutas para el modludo de constancias
 
-    
+
     Route::middleware(['auth'])->group(function () {
 
         Route::get('listConstancias', ListConstancias::class)
             ->name('constancias')
             ->middleware('can:constancia-admin-constancias');
+
+        
+        Route::get('listContactanos', ListContactos::class) 
+            ->name('contactanos')
+            ->middleware('can:configuracion-admin-contactanos');
     });
 
     // agregar rutas para el modulo de docente
@@ -308,5 +331,3 @@ Route::middleware(['auth'])->group(function () {
 
     
 });
-
-

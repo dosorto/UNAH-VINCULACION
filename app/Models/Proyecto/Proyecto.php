@@ -132,7 +132,7 @@ class Proyecto extends Model
         'resultados_esperados',
         'indicadores_medicion_resultados',
         'fecha_registro',
-       // 'responsable_revision_id',
+        // 'responsable_revision_id',
         'fecha_aprobacion',
         'numero_libro',
         'numero_tomo',
@@ -163,10 +163,11 @@ class Proyecto extends Model
         return $this->hasMany(DocumentoProyecto::class, 'proyecto_id');
     }
 
-    public function documento_intermedio() {
+    public function documento_intermedio()
+    {
         return $this->documentos()
-                ->where('tipo_documento', 'Informe Intermedio')
-                ->first();
+            ->where('tipo_documento', 'Informe Intermedio')
+            ->first();
     }
    
     public function estudiantes()
@@ -191,9 +192,11 @@ class Proyecto extends Model
                     ->with(['estudiante', 'tipoParticipacion']);
     }
     public function documento_final() {
+    public function documento_final()
+    {
         return $this->documentos()
-                ->where('tipo_documento', 'Informe Final')
-                ->first();
+            ->where('tipo_documento', 'Informe Final')
+            ->first();
     }
 
 
@@ -267,7 +270,7 @@ class Proyecto extends Model
     {
         return $this->hasMany(EmpleadoProyecto::class, 'proyecto_id');
     }
-   
+
 
     // relacion uno a muchos con el modelo empleado_proyecto
     public function empleado_proyecto()
@@ -377,6 +380,12 @@ class Proyecto extends Model
             ->where('tipo_cargo_firma.nombre', 'Director Vinculacion');
     }
 
+    public function getDirectorVinculacionAttribute()
+    {
+        return $this->firma_director_vinculacion()->first()->empleado;
+    }
+
+
 
 
 
@@ -427,8 +436,8 @@ class Proyecto extends Model
     public function obtenerUltimoEstado()
     {
         return $this->estado_proyecto()
-                    ->latest('created_at') // Ordenar por la columna que representa el último registro
-                    ->first();
+            ->latest('created_at') // Ordenar por la columna que representa el último registro
+            ->first();
     }
 
 
@@ -459,10 +468,10 @@ class Proyecto extends Model
     public function estadoActual()
     {
         return $this->hasOne(EstadoProyecto::class, 'estadoable_id')
-                    ->where('estadoable_type', self::class)
-                    ->where('es_actual', true);
+            ->where('estadoable_type', self::class)
+            ->where('es_actual', true);
     }
-    
+
     /**
      * Acceso directo al tipo de estado actual mediante un "hasOneThrough".
      * Alternativamente, si prefieres acceder como $proyecto->tipo_estado, puedes definir:
@@ -477,8 +486,8 @@ class Proyecto extends Model
             'id',                   // Clave primaria de Proyecto
             'tipo_estado_id'        // FK en estado_proyecto que referencia a TipoEstado
         )
-        ->where('estado_proyecto.estadoable_type', self::class)
-        ->where('estado_proyecto.es_actual', true);
+            ->where('estado_proyecto.estadoable_type', self::class)
+            ->where('estado_proyecto.es_actual', true);
     }
     protected $table = 'proyecto';
 }
