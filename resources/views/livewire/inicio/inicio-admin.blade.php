@@ -9,4 +9,9 @@
             auth()->user()->activeRole->hasPermissionTo('ver-dashboard-docente'))
         @livewire('inicio.dashboards.dasboard-docente')
     @endif
+
+    @if (auth()->user()->hasPermissionTo('ver-dashboard-estudiante') &&
+            auth()->user()->activeRole->hasPermissionTo('ver-dashboard-estudiante'))
+        @livewire('inicio.dashboards.dashboard-estudiante')
+    @endif
 </div>
