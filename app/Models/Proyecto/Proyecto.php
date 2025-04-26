@@ -81,6 +81,11 @@ class Proyecto extends Model
         return LogOptions::defaults()
             ->logOnly([
                 'nombre_proyecto',
+                'descripcion',
+                'fecha_inicio',
+                'fecha_finalizacion',
+                'evaluacion_intermedia',
+                'evaluacion_final',
                 // 'coordinador_id',
                 'modalidad_id',
                 'municipio_id',
@@ -106,6 +111,8 @@ class Proyecto extends Model
                 'numero_folio',
                 'numero_dictamen'
             ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn(string $eventName) => "El registro {$this->nombre} ha sido {$eventName}");
     }
 

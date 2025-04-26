@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\SendEmailJob;
+use App\Livewire\Docente\Proyectos\HistorialProyecto;
 use App\Livewire\User\Roles;
 use App\Livewire\User\Users;
 use App\Livewire\Login\Login;
@@ -296,6 +297,10 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
     Route::middleware(['auth'])->group(function () {
         Route::get('proyectosDocente',  ProyectosDocenteList::class)
             ->name('proyectosDocente')
+            ->middleware('can:docente-admin-proyectos');
+
+        Route::get('historialproyecto/{proyecto}', HistorialProyecto::class)
+            ->name('historialproyecto')
             ->middleware('can:docente-admin-proyectos');
 
         Route::get('SolicitudProyectosDocente', ProyectosPorFirmar::class)
