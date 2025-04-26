@@ -4,6 +4,7 @@ namespace App\Livewire\Docente\Proyectos;
 
 use App\Models\Estado\EstadoProyecto;
 use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\DocumentoProyecto;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
@@ -21,24 +22,33 @@ class HistorialProyecto extends Component
         $this->logs = Activity::where(function($query) use ($proyecto) {
                 // Logs directos del proyecto
                 $query->where('subject_type', Proyecto::class)
-                      ->where('subject_id', $proyecto->id);
+                    ->where('subject_id', $proyecto->id);
             })
             ->orWhere(function($query) use ($proyecto) {
                 // Logs donde el proyecto aparece en los atributos
                 $query->whereJsonContains('properties->attributes->proyecto_id', $proyecto->id)
-                      ->orWhereJsonContains('properties->attributes->id', $proyecto->id);
+                    ->orWhereJsonContains('properties->attributes->id', $proyecto->id);
             })
             ->orWhere(function($query) use ($proyecto) {
                 // Logs de cambios de estado del proyecto
                 $query->where('subject_type', EstadoProyecto::class)
-                      ->whereIn('subject_id', function($subQuery) use ($proyecto) {
-                          $subQuery->select('id')
-                                  ->from('estado_proyecto')
-                                  ->where('estadoable_type', Proyecto::class)
-                                  ->where('estadoable_id', $proyecto->id);
-                      });
+                    ->whereIn('subject_id', function($subQuery) use ($proyecto) {
+                        $subQuery->select('id')
+                                ->from('estado_proyecto')
+                                ->where('estadoable_type', Proyecto::class)
+                                ->where('estadoable_id', $proyecto->id);
+                    });
             })
-            ->with('causer') // Carga anticipada del usuario que realizó la acción
+            ->orWhere(function($query) use ($proyecto) {
+                // Logs de DocumentoProyecto relacionados con este proyecto
+                $query->where('subject_type', DocumentoProyecto::class)
+                    ->whereIn('subject_id', function($subQuery) use ($proyecto) {
+                        $subQuery->select('id')
+                                ->from('proyecto_documento') // Nombre correcto de la tabla
+                                ->where('proyecto_id', $proyecto->id);
+                    });
+            })
+            ->with('causer')
             ->orderByDesc('created_at')
             ->get();
     }

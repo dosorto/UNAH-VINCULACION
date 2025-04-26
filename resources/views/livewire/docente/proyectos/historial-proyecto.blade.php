@@ -1,19 +1,19 @@
 
 <div class="flex flex-col md:flex-row lg:flex-row gap-4">
     @php
-    use App\Models\Estado\EstadoProyecto;
-    use App\Models\Proyecto\Proyecto;
-    use Carbon\Carbon;
+        use App\Models\Estado\EstadoProyecto;
+        use App\Models\Proyecto\Proyecto;
+        use Carbon\Carbon;
 
-    // Obtener la fecha de creación del proyecto (el primer log 'created' o la fecha de creacion del proyecto)
-    $creationLog = $logs->where('description', 'created')->where('subject_type', Proyecto::class)->first();
-    $projectStartDate = $creationLog ? Carbon::parse($creationLog->created_at) : Carbon::parse($proyecto->created_at);
-    
-    // Calcular días totales del proyecto (desde creación hasta hoy o hasta aprobacion)
-    $today = Carbon::now();
-    $projectEndDate = $proyecto->fecha_aprobacion ? Carbon::parse($proyecto->fecha_aprobacion) : $today;
-    $totalDaysProject = $projectStartDate->diffInDays($projectEndDate);
-@endphp
+        // Obtener la fecha de creación del proyecto (el primer log 'created' o la fecha de creacion del proyecto)
+        $creationLog = $logs->where('description', 'created')->where('subject_type', Proyecto::class)->first();
+        $projectStartDate = $creationLog ? Carbon::parse($creationLog->created_at) : Carbon::parse($proyecto->created_at);
+        
+        // Calcular días totales del proyecto (desde creación hasta hoy o hasta aprobacion)
+        $today = Carbon::now();
+        $projectEndDate = $proyecto->fecha_aprobacion ? Carbon::parse($proyecto->fecha_aprobacion) : $today;
+        $totalDaysProject = $projectStartDate->diffInDays($projectEndDate);
+    @endphp
     <div class="w-full md:w-3/5 lg:w-2/3">
         <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
             Ficha de proyecto: {{ $proyecto->estado->tipoestado->nombre }}
@@ -61,14 +61,14 @@
                         </div>
                         
                             @if($log->subject_type == EstadoProyecto::class)
-                            <h3 class=" flex text-lg font-semibold dark:text-white text-gray-900">
+                            <h3 class=" flex text-lg font-semibold dark:text-gray-200 text-gray-900">
                                 Cambio de estado
                                 <svg class="w-4 h-4 text-green-800 ml-0.5 mt-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
                                     <path fill-rule="evenodd" d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm13.707-1.293a1 1 0 0 0-1.414-1.414L11 12.586l-1.793-1.793a1 1 0 0 0-1.414 1.414l2.5 2.5a1 1 0 0 0 1.414 0l4-4Z" clip-rule="evenodd"/>
                                   </svg>
                             </h3>
                             @else
-                            <h3 class="text-lg font-semibold text-gray-900">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-200">
                                 {{ ucfirst($log->description) }} {{ $log->subject_type == Proyecto::class ? 'proyecto' : '' }}
                             </h3>
                             @endif
