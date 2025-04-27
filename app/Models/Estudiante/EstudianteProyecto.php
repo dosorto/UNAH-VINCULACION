@@ -3,12 +3,12 @@ namespace App\Models\Estudiante;
 
 use App\Models\Proyecto\Proyecto;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-class EstudianteProyecto extends Model
+class EstudianteProyecto extends Pivot
 {
     use HasFactory;
     use SoftDeletes;

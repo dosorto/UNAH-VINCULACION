@@ -191,7 +191,7 @@ class Proyecto extends Model
         return $this->hasMany(EstudianteProyecto::class, 'proyecto_id')
                     ->with(['estudiante', 'tipoParticipacion']);
     }
-    public function documento_final() {
+    
     public function documento_final()
     {
         return $this->documentos()

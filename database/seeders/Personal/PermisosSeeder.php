@@ -79,7 +79,6 @@ class PermisosSeeder extends Seeder
         $permission32 = Permission::create(['name' => 'ver-dashboard-estudiante']);
         $permission33 = Permission::create(['name' => 'ver-dashboard-admin-centro-facultad']);
         $permission34 = Permission::create(['name' => 'configuracion-admin-contactanos']);
-        $permission34 = Permission::create(['name' => 'estudiante']);
         $permission35 = Permission::create(['name' => 'estudiante-admin-estudiante']);
 
 
@@ -117,7 +116,6 @@ class PermisosSeeder extends Seeder
             'unidad-academica-admin-departamento',
             'unidad-academica-admin-facultad',
             'global-set-role',
-            'estudiante',
             'estudiante-admin-estudiante',
             'constancia-admin-constancias',
             'configuracion-admin-contactanos'
