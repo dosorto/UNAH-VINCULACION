@@ -78,6 +78,10 @@ class Estudiante extends Model
                     ->withPivot('proyecto_id');
     }
 
+    public function tipoParticipacion()
+    {
+        return $this->hasMany(TipoParticipacion::class);
+    }
 
     public function participacionesProyectos()
     {
