@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models\Estudiante;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +17,7 @@ class Estudiante extends Model
 {
     use HasFactory, SoftDeletes, LogsActivity;
 
-    protected static $logAttributes = ['id', 'user_id', 'nombre', 'apellido','cuenta','proyecto_id', 'campus_id', 'centro_facultad_id', 'departamento_academico_id'];
+    protected static $logAttributes = ['id', 'user_id', 'nombre', 'apellido', 'cuenta', 'proyecto_id', 'campus_id', 'centro_facultad_id', 'departamento_academico_id'];
     protected static $logName = 'Estudiante';
 
     public function getActivitylogOptions(): LogOptions
@@ -25,7 +26,7 @@ class Estudiante extends Model
             ->logOnly(['id', 'user_id', 'nombre', 'apellido', 'cuenta'])
             ->setDescriptionForEvent(fn (string $eventName) => "El registro {$this->nombre} ha sido {$eventName}");
     }
-    
+
     protected $fillable = [
         'id',
         'nombre', 
@@ -42,7 +43,6 @@ class Estudiante extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
-    
 
     public function proyecto()
     {
@@ -54,6 +54,12 @@ class Estudiante extends Model
         return $this->hasMany(EstudianteProyecto::class, 'estudiante_id');
     }
 
+    public function participacionesProyectos()
+    {
+        return $this->hasMany(EstudianteProyecto::class, 'estudiante_id')
+                    ->with(['proyecto']);
+    }
+
     public function DepartamentoAcademico()
     {
         return $this->belongsTo(DepartamentoAcademico::class);
@@ -63,32 +69,7 @@ class Estudiante extends Model
     {
         return $this->belongsTo(DepartamentoAcademico::class);
     }
-    
-    public function proyectos()
-    {
-        return $this->belongsToMany(Proyecto::class, 'estudiante_proyecto', 'estudiante_id', 'proyecto_id')
-                    ->using(EstudianteProyecto::class)
-                    ->withPivot('tipo_participacion_id')
-                    ->withTimestamps();
-    }
 
-    public function tipoParticipaciones()
-    {
-        return $this->belongsToMany(TipoParticipacion::class, 'estudiante_proyecto', 'estudiante_id', 'tipo_participacion_id')
-                    ->withPivot('proyecto_id');
-    }
-
-    public function tipoParticipacion()
-    {
-        return $this->hasMany(TipoParticipacion::class);
-    }
-
-    public function participacionesProyectos()
-    {
-        return $this->hasMany(EstudianteProyecto::class, 'estudiante_id')
-                    ->with(['proyecto', 'tipoParticipacion']);
-    }
-    
     public function centro_facultad()
     {
         return $this->belongsTo(FacultadCentro::class, 'centro_facultad_id');

@@ -3,8 +3,6 @@
 namespace App\Livewire\Inicio\Dashboards;
 
 use App\Models\Proyecto\Proyecto;
-use App\Models\Estudiante\TipoParticipacion;
-use App\Models\Estudiante\Estudiante;
 use App\Models\Estudiante\EstudianteProyecto;
 use Filament\Tables;
 use Filament\Tables\TableComponent;
@@ -16,24 +14,34 @@ class DashboardEstudiante extends TableComponent
 {
     public function table(Table $table): Table
     {
+        $estudiante = auth()->user()->estudiante; // Obtén el estudiante asociado al usuario
+
+        if (!$estudiante) {
+            return $table->heading('No hay estudiante asociado.');
+        }
+
+        $query = Proyecto::query()
+            ->with('estudianteProyecto')
+            ->whereHas('estudianteProyecto', function ($query) use ($estudiante) {
+                $query->where('estudiante_id', $estudiante->id);
+            });
+
         return $table
             ->heading('Mis Proyectos')
-            ->query(
-                Proyecto::query()
-                    ->whereHas('tipoParticipacion', function ($query) {
-                        $query->where('estudiante_id', auth()->user()->id);
-                    })
-                    ->with(['tipoParticipacion'])
-            )
+            ->query($query)
             ->columns([
                 TextColumn::make('nombre_proyecto')
                     ->label('Nombre del Proyecto')
                     ->sortable()
                     ->searchable(),
-                TextColumn::make('tipoParticipacion.nombre')
+                TextColumn::make('estudianteProyecto.tipo_participacion_estudiante')
                     ->label('Tipo de Participación')
                     ->sortable()
                     ->searchable(),
+                TextColumn::make('fecha_inicio')
+                    ->label('Fecha de Inicio')
+                    ->date()
+                    ->sortable(),
                 TextColumn::make('fecha_finalizacion')
                     ->label('Fecha de Finalización')
                     ->date()
@@ -42,10 +50,7 @@ class DashboardEstudiante extends TableComponent
             ->actions([
                 Action::make('Constancia')
                     ->label('Descargar Constancia')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    //->icon('heroicon-o-download')
-                    //->url(fn ()),
-                    //->openUrlInNewTab(),
+                    ->icon('heroicon-o-arrow-down-tray'),
             ]);
     }
 

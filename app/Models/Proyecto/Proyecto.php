@@ -490,11 +490,12 @@ class Proyecto extends Model
             ->where('estado_proyecto.es_actual', true);
     }
 
-public function tipoParticipacion()
-{
-    return $this->belongsToMany(TipoParticipacion::class, 'estudiante_proyecto', 'proyecto_id', 'tipo_participacion_id')
-                ->withPivot('estudiante_id');
-}
+    public function estudianteProyecto()
+    {
+        return $this->hasMany(EstudianteProyecto::class, 'proyecto_id');
+    }
+    
+    
 
     protected $table = 'proyecto';
 }

@@ -48,30 +48,6 @@ class PersonalSeeder extends Seeder
             'nombre' => 'Titular V',
             'descripcion' => 'Titular 5 de la universidad'
         ]);
-       // Crear un usuario con el rol de estudiante
-       $userEstudiante = User::create([
-        'name' => 'Acxelin',
-        'email' => 'axelin@unah.edu.hn',
-        'password' => bcrypt('123'), 
-        'surname' => 'Prueba',
-        'given_name' => 'Estudiante',
-    ]);
-
-    $userEstudiante->assignRole('estudiante');
-
-    // Asignar el ID del rol activo
-    $userEstudiante->active_role_id = $userEstudiante->roles()->where('name', 'estudiante')->first()->id;
-    $userEstudiante->save();
-
-    // Crear un registro en la tabla Estudiante asociado al usuario
-    Estudiante::create([
-        'nombre' => 'acxelin',
-        'apellido' => 'aplicanin',
-        'cuenta' => '2002123456', // Número de cuenta del estudiante
-        'user_id' => $userEstudiante->id,
-        'centro_facultad_id' => 1, // Cambia según tu base de datos
-        'departamento_academico_id' => 1, // Cambia según tu base de datos
-    ]);
 
         $user = User::create([
             'name' => 'NOTIFICACIONES  POA',
@@ -93,7 +69,6 @@ class PersonalSeeder extends Seeder
             'categoria_id' => 2
         ]);
 
-      
         $adminUser->firma()->create([
             'tipo' => 'firma',
             'ruta_storage' => 'images/firmas/Firma_Oscar.png',
