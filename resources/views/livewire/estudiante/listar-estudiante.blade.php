@@ -8,11 +8,7 @@
                 Proyectos asignados a Estudiantes 
             </p>
         </div>
-        <div>
-            <x-filament::button color="info" icon="heroicon-o-document-arrow-up"     href="{{route('crearEstudiante')}}" tag="a" wire:navigate>
-                Nuevo
-            </x-filament::button>
-        </div>
+  
 
     </div>
 
