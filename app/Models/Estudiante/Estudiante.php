@@ -34,7 +34,8 @@ class Estudiante extends Model
         'cuenta',
         'user_id',
         'centro_facultad_id',
-        'departamento_academico_id'
+        'departamento_academico_id',
+        'tipo_participacion_estudiante',
     ];
 
     protected $table = 'estudiante';

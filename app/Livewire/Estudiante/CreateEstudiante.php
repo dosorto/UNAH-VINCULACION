@@ -5,12 +5,10 @@ namespace App\Livewire\Estudiante;
 use App\Models\Estudiante\Estudiante;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Estudiante\EstudianteProyecto;
-use App\Models\Estudiante\TipoParticipacion;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
+use App\Models\UnidadAcademica\Carrera;
 use App\Models\User\Users;
-use app\Models\User;
-// importar modelo role de spatie
 use Spatie\Permission\Models\Role;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -20,12 +18,12 @@ use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Repeater;
 use Filament\Notifications\Notification;
 use Livewire\Component;
 use Illuminate\Contracts\View\View;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use App\Models\User;
 
 class CreateEstudiante extends Component implements HasForms
 {
@@ -55,11 +53,10 @@ class CreateEstudiante extends Component implements HasForms
                             ->unique('users', 'email')
                             ->email()
                             ->maxLength(255),
-
                     ])
                     ->columnSpanFull(),
 
-                    Section::make('Datos de Estudiante')
+                Section::make('Datos de Estudiante')
                     ->schema([
                         TextInput::make('estudiante.nombre')
                             ->label('Nombres')
@@ -87,31 +84,17 @@ class CreateEstudiante extends Component implements HasForms
                             ->live()
                             ->required()
                             ->preload(),
-
-                        Select::make('estudiante.departamento_academico_id')
-                            ->label('Departamentos Académicos')
+                        Select::make('carrera_id')
+                            ->label('Carrera')
                             ->searchable()
-                            ->relationship(
-                                name: 'departamento_academico',
-                                titleAttribute: 'nombre',
-                                modifyQueryUsing: fn($query, Get $get) => $query->where('centro_facultad_id', $get('estudiante.centro_facultad_id'))
-                            )
-                            ->live()
                             ->required()
+                            ->options(Carrera::all()->pluck('nombre', 'id'))
                             ->preload(),
-
                     ])
                     ->columns(2),
 
-                    Section::make('Asignar Proyecto a Estudiante')
+                Section::make('Asignar Proyecto a Estudiante')
                     ->schema([
-                       /* Select::make('estudiante_id')
-                            ->label('Estudiante')
-                            ->relationship('estudiante', 'nombre')
-                            ->searchable()
-                            ->preload()
-                            ->required(),*/
-
                         Select::make('estudiante.proyecto_id')
                             ->label('Proyecto')
                             ->searchable()
@@ -120,30 +103,29 @@ class CreateEstudiante extends Component implements HasForms
                             ->afterStateUpdated(function (Set $set) {
                                 $set('estudiante.estudiante.proyecto_id', null);
                             })
-                            ->live()
                             ->preload(),
 
                         Radio::make('tipo_participacion_estudiante')
                             ->label('Tipo de Participación')
-                            ->options(TipoParticipacion::all()->pluck('nombre', 'nombre')->toArray())
+                            ->options([
+                                'Servicio Social Universitario' => 'Servicio Social Universitario',
+                                'Práctica Profesional' => 'Práctica Profesional',
+                                'Voluntariado' => 'Voluntariado',
+                                'Práctica de Clase' => 'Práctica de Clase',
+                            ])
                             ->inline(),
-                        ])    
-                        ->columnSpanFull(),                   
+                    ])
+                    ->columnSpanFull(),
 
                 Section::make('Roles')
                     ->schema([
                         CheckboxList::make('roles.roles')
                             ->label('Roles')
-                        
                             ->columns(3)
                             ->options(Role::all()->pluck('name', 'name')->toArray())
-
                     ])
-                    
                     ->columnSpanFull(),
-                    ])
-                
-
+            ])
             ->statePath('data')
             ->model(Estudiante::class);
     }
@@ -152,41 +134,35 @@ class CreateEstudiante extends Component implements HasForms
     {
         $data = $this->form->getState();
 
-    
         $user = User::create($data['usuario']);
         $user->assignRole($data['roles']['roles']);
         $user->active_role_id = $user->roles->first()->id;
         $user->save();
 
-    
         $estudianteData = $data['estudiante'];
         $estudianteData['user_id'] = $user->id;
 
         $estudiante = Estudiante::create($estudianteData);
 
-        
         $this->form->model($estudiante)->saveRelationships();
 
         if (!empty($data['estudiante']['proyecto_id']) && !empty($data['tipo_participacion_estudiante'])) {
             EstudianteProyecto::create([
                 'estudiante_id' => $estudiante->id,
                 'proyecto_id' => $data['estudiante']['proyecto_id'],
-                'tipo_participacion_id' => TipoParticipacion::where('nombre', $data['tipo_participacion_estudiante'])->first()->id,
+                'tipo_participacion_estudiante' => $data['tipo_participacion_estudiante'], // se guarda como string
             ]);
         }
 
-        // Notificación de éxito
         Notification::make()
             ->title('¡Éxito!')
             ->body('Estudiante y proyecto asignado correctamente.')
             ->success()
             ->send();
 
-        // Limpiar el formulario
         $this->data = [];
     }
 
-   
     public function render(): View
     {
         return view('livewire.estudiante.create-estudiante');
