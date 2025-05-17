@@ -3,9 +3,9 @@
     {{-- Encabezado con info y botón al lado --}}
     @php
         $usuarioActual = auth()->user();
-        $esAdmin = $usuarioActual->hasRole('admin');
+        $puedeFinalizar = $usuarioActual->can('admin-tickets-administrar-tickets');
 
-        $nombreOtroUsuario = $esAdmin
+        $nombreOtroUsuario = $puedeFinalizar
             ? ($ticket->user->name ?? 'Usuario')
             : optional($ticket->mensajes->where('user_id', '!=', $usuarioActual->id)->last())->user->name ?? 'Administrador';
     @endphp
@@ -16,8 +16,8 @@
             <div>Asunto: {{ $ticket->asunto }}</div>
         </div>
 
-        {{-- Botón Finalizar (al lado del encabezado si es admin y no está cerrado) --}}
-        @if($esAdmin && $ticket->estado !== 'cerrado')
+        {{-- Botón Finalizar (si tiene permiso y el ticket no está cerrado) --}}
+        @if($puedeFinalizar && $ticket->estado !== 'cerrado')
             <x-filament::button
                 color="danger"
                 wire:click="finalizarTicket"
@@ -36,7 +36,7 @@
     >
         @forelse ($ticket->mensajes as $mensaje)
             @php
-                $esPropio = $mensaje->user_id === auth()->id();
+                $esPropio = $mensaje->user_id === $usuarioActual->id;
             @endphp
 
             <div class="flex {{ $esPropio ? 'justify-end' : 'justify-start' }}">

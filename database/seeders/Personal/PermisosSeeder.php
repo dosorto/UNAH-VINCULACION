@@ -81,6 +81,7 @@ class PermisosSeeder extends Seeder
         $permission34 = Permission::create(['name' => 'configuracion-admin-contactanos']);
         $permission35 = Permission::create(['name' => 'estudiante-admin-estudiante']);
         $permission36 = Permission::create(['name' => 'tickets-ver-modulo']);
+        $permission37 = Permission::create(['name' => 'admin-tickets-administrar-tickets']);
 
         // crear un rol de administrador con todos los permisos anteriores
         $role = Role::create(['name' => 'admin']);
@@ -120,6 +121,7 @@ class PermisosSeeder extends Seeder
             'constancia-admin-constancias',
             'configuracion-admin-contactanos',
             'tickets-ver-modulo',
+            'admin-tickets-administrar-tickets'
             
         ])->save();
 

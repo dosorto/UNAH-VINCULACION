@@ -103,7 +103,7 @@ class ListarTicket extends Component implements HasForms, HasTable
                 Action::make('ver_mensaje')
                     ->label('Ver mensaje')
                     ->icon(fn (Ticket $record) => $this->debeMostrarIconoNuevoMensaje($record) ? 'heroicon-o-bell-alert' : 'heroicon-o-eye')
-                    ->tooltip(fn (Ticket $record) => $this->debeMostrarIconoNuevoMensaje($record) ? 'Nuevo mensaje sin leer' : 'Ver mensaje')
+                    ->tooltip(fn (Ticket $record) => $this->debeMostrarIconoNuevoMensaje($record) ? 'Mensaje sin contestar' : 'Ver mensaje')
                     ->button()
                     ->color('primary')
                     ->iconPosition(IconPosition::Before)
@@ -159,7 +159,7 @@ class ListarTicket extends Component implements HasForms, HasTable
         }
 
         $userId = Auth::id();
-        $esAdmin = Auth::user()?->hasRole('admin');
+        $esAdmin = Auth::user()?->can('admin-tickets-administrar-tickets');
 
         TicketSugerencia::create([
             'ticket_id' => $this->ticketSeleccionado->id,
@@ -205,7 +205,7 @@ class ListarTicket extends Component implements HasForms, HasTable
 
     public function finalizarTicket()
     {
-        if ($this->ticketSeleccionado && Auth::user()?->hasRole('admin')) {
+        if ($this->ticketSeleccionado && Auth::user()?->can('admin-tickets-administrar-tickets')) {
             $this->ticketSeleccionado->estado = 'cerrado';
             $this->ticketSeleccionado->save();
 
