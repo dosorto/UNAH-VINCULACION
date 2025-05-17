@@ -31,6 +31,8 @@ use App\Livewire\Docente\Proyectos\ProyectosRechazados;
 use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
 use App\Livewire\Estudiante\CreateEstudiante;
 use App\Livewire\Estudiante\ListarEstudiante;
+use App\Livewire\Ticket\HistorialTicket;
+use App\Livewire\Ticket\ListarTicket;
 
 use App\Livewire\Demografia\Departamento\ListDepartamentos;
 use App\Livewire\Demografia\Departamento\CreateDepartamento;
@@ -313,7 +315,7 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->middleware('can:docente-admin-proyectos');
     });
 
-    // agregar rutas para el modulo de Estudiante
+    // rutas para el modulo de Estudiante
     Route::middleware(['auth'])->group(function () {
 
         Route::get('listarEstudiante', ListarEstudiante::class)
@@ -325,7 +327,21 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->middleware('can:estudiante-admin-estudiante');
     });
 
-  
+    // rutas para el modulo de Tickets
+
+        Route::middleware(['auth'])->group(function () {
+
+            Route::get('listarTicket', ListarTicket::class)
+                ->name('listarTicket')
+                ->middleware('can:tickets-ver-modulo');
+
+            Route::get('historialTicket', HistorialTicket::class)
+                ->name('historialTicket')
+                ->middleware('can:tickets-ver-modulo');
+
+        });
+
+ 
 
 
 
