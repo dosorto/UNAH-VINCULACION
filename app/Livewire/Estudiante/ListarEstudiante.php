@@ -4,7 +4,6 @@ namespace App\Livewire\Estudiante;
 
 use App\Models\Estudiante\Estudiante;
 use App\Models\User;
-use App\Models\Proyecto\Proyecto;
 use App\Models\UnidadAcademica\Carrera;
 use Filament\Forms;
 use Filament\Tables;
@@ -16,10 +15,6 @@ use Filament\Tables\Actions\DeleteAction;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Radio;
-use Illuminate\Database\Eloquent\Model;
-use Filament\Forms\Components\Group;
-use Filament\Forms\Set;
 use Illuminate\Validation\Rule;
 
 class ListarEstudiante extends TableComponent
@@ -104,32 +99,8 @@ class ListarEstudiante extends TableComponent
                                     ->preload(),
                             ])
                             ->columns(2),
-
-                        Section::make('Asignar Proyecto a Estudiante')
-                            ->schema([
-                                Select::make('proyecto_id')
-                                    ->label('Proyecto')
-                                    ->relationship(name: 'proyecto', titleAttribute: 'nombre_proyecto')
-                                    ->searchable()
-                                    ->preload()
-                                    ->live()
-                                    ->default(fn ($record) => $record->proyectosEstudiante->first()?->proyecto_id),
-
-                                Radio::make('tipo_participacion_estudiante')
-                                    ->label('Tipo de Participación')
-                                    ->options([
-                                        'Servicio Social Universitario' => 'Servicio Social Universitario',
-                                        'Práctica Profesional' => 'Práctica Profesional',
-                                        'Voluntariado' => 'Voluntariado',
-                                        'Práctica de Clase' => 'Práctica de Clase',
-                                    ])
-                                    ->inline()
-                                    ->default(fn ($record) => $record->proyectosEstudiante->first()?->tipo_participacion_estudiante),
-                            ]),
                     ])
                     ->mutateRecordDataUsing(function (Estudiante $record): array {
-                        $primeraParticipacion = $record->proyectosEstudiante->first();
-
                         return [
                             'nombre_usuario' => $record->user?->name,
                             'correo_electronico' => $record->user?->email,
@@ -137,8 +108,6 @@ class ListarEstudiante extends TableComponent
                             'apellido' => $record->apellido,
                             'cuenta' => $record->cuenta,
                             'centro_facultad_id' => $record->centro_facultad_id,
-                            'proyecto_id' => $primeraParticipacion?->proyecto_id,
-                            'tipo_participacion_estudiante' => $primeraParticipacion?->tipo_participacion_estudiante,
                         ];
                     })
                     ->using(function (Estudiante $record, array $data): void {
@@ -153,27 +122,9 @@ class ListarEstudiante extends TableComponent
                         // Actualizar datos del usuario relacionado
                         if ($record->user) {
                             $record->user->update([
-                                'name' => $data['nombre_usuario'], // Guarda en la tabla users
-                                'email' => $data['correo_electronico'], // Guarda en la tabla users
+                                'name' => $data['nombre_usuario'],
+                                'email' => $data['correo_electronico'],
                             ]);
-                        }
-
-                        // Actualizar o crear la relación con proyecto y tipo de participación
-                        if (!empty($data['proyecto_id'])) {
-                            $participacion = $record->proyectosEstudiante()
-                                ->where('proyecto_id', $data['proyecto_id'])
-                                ->first();
-
-                            if ($participacion) {
-                                $participacion->update([
-                                    'tipo_participacion_estudiante' => $data['tipo_participacion_estudiante'],
-                                ]);
-                            } else {
-                                $record->proyectosEstudiante()->create([
-                                    'proyecto_id' => $data['proyecto_id'],
-                                    'tipo_participacion_estudiante' => $data['tipo_participacion_estudiante'],
-                                ]);
-                            }
                         }
                     }),
             ]);
