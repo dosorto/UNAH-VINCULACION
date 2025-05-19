@@ -25,6 +25,7 @@ class MicrosoftController extends Controller
     {
         try {
             $user = Socialite::driver('microsoft')->user();
+            $user->email = $user->user['mail'];
 
             // validar que sea una cuenta de la UNAH primero
             if (!in_array(substr(strrchr($user->email, "@"), 1), ['unah.hn', 'unah.edu.hn'])) {
@@ -33,30 +34,22 @@ class MicrosoftController extends Controller
                     ->body('Inicie sesion con un correo de la UNAH. :(')
                     ->danger()
                     ->send();
-                return redirect()->route('login');
+                return redirect()
+                    ->route('login');
             }
 
             // buscar el user en la base de datos  por medio del id de microsoft
             $testUser = User::where('microsoft_id', $user->id)->first();
 
 
-
-
-
             // Si el usuario no existe, crearlo con los datos de Microsoft y ademas es un empleado 
             if (!$testUser) {
-
-                $numero = $user->employeeId;
-
 
 
                 $user = User::updateOrCreate(
                     ['email' => $user->email],
                     [
                         'name' => $user->displayName,
-                        'microsoft_id' => $user->id,
-                        'given_name' => $user->givenName,
-                        'surname' => $user->surname,
                     ]
                 );
 
@@ -64,16 +57,15 @@ class MicrosoftController extends Controller
                 if (substr(strrchr($user->email, "@"), 1) == 'unah.edu.hn') {
                     // crear un perfil de empleado
                     $user->empleado()->updateOrCreate(
-                        ['numero_empleado' => $numero,],
+                        ['user_id' => $user->id],
                         [
                             'nombre_completo' => $user->name,
-
                         ]
                     );
                 } else if (substr(strrchr($user->email, "@"), 1) == 'unah.hn') {
                     // crear un perfil de estudiante
                     $user->estudiante()->updateOrCreate(
-                        ['cuenta' => $numero,],
+                        ['user_id' => $user->id],
                         [
                             'nombre' => $user->name,
                         ]
