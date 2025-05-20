@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\SendEmailJob;
+use App\Livewire\Docente\Proyectos\HistorialProyecto;
 use App\Livewire\User\Roles;
 use App\Livewire\User\Users;
 use App\Livewire\Login\Login;
@@ -61,7 +62,7 @@ use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
 use App\Models\Slide\Slide;
 use App\Livewire\Personal\Contacto\ListContactos;
 
-Route::get('/', function () {
+Route::get('/acercade', function () {
     $slides = Slide::where('estado', true)
                     ->get();
 
@@ -90,7 +91,7 @@ Route::get('/logout', function () {
         return redirect('/'); // Redirige al inicio
     }
 
-    return redirect()->route('login'); // Si no está autenticado, redirige a la página de login
+    return redirect()->route('/'); // Si no está autenticado, redirige a la página de login
 })->name('logout');
 
 // Rutas para redireccionar a los usuario autenticados
@@ -103,7 +104,7 @@ Route::middleware(['guest'])->group(function () {
         ->name('auth.microsoft.callback');
 
   
-    Route::get('/login', Login::class)
+    Route::get('/', Login::class)
         ->name('login')
         ->middleware('guest');
     // Rutas para restablecimiento de contraseña olvidada
@@ -302,6 +303,10 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
     Route::middleware(['auth'])->group(function () {
         Route::get('proyectosDocente',  ProyectosDocenteList::class)
             ->name('proyectosDocente')
+            ->middleware('can:docente-admin-proyectos');
+
+        Route::get('historialproyecto/{proyecto}', HistorialProyecto::class)
+            ->name('historialproyecto')
             ->middleware('can:docente-admin-proyectos');
 
         Route::get('SolicitudProyectosDocente', ProyectosPorFirmar::class)

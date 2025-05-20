@@ -3,14 +3,14 @@
 <div class="md:max-w-5xl bg-white max-w-screen-xl mx-auto px-4 border border-gray-300 dark:border-gray-800 rounded-bl-lg rounded-br-lg rounded-tl-none rounded-tr-none dark:bg-gray-900">
         <div class="flex items-center justify-between h-16 my-2">
             <div class="flex items-center gap-8 md:gap-16">
-                <a href="{{ route('home') }}" class="flex items-center">
+                <a href="{{ route('login') }}" class="flex items-center">
                     <x-logo size="sm"  displayText="true" displayIsotipo="true"/>
                 </a>
                 <!-- Desktop Links -->
                 <div class="hidden md:flex items-center space-x-8">
                   
                     <a href="{{route('verificacion_constancia')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Validar Constancia</a>
-                    <a href="{{route('login')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Iniciar Sesion</a>
+                    <a href="{{route('home')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Acerca de</a>
                 </div>
             </div>
 
@@ -34,6 +34,7 @@
             <div class="flex flex-col space-y-4">
                 <a href="{{route('verificacion_constancia')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Validar Constancia</a>
                 <a href="{{route('login')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Iniciar Sesion</a>
+                <a href="{{route('home')}}" class="text-black dark:text-white hover:text-blue-600 dark:hover:text-yellow-400">Acerca de</a>
             </div>
         </div>
     </div>

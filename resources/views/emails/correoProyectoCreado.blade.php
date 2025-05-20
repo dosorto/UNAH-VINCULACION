@@ -3,32 +3,30 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Notificación - {{ $subject }}</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f9f9f9;
             margin: 0;
-            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #ddb206;
+            padding: 20px;
         }
 
-        .email-container {
+        .container {
             max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: auto;
+            background-color: #fff;
+            border-radius: 8px;
             overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
 
         .header {
-            background: linear-gradient(135deg, #003366, #0074d9);
-            /* Gradiente azul */
-            color: #ffffff;
-            text-align: center;
-            padding: 20px;
+            background: linear-gradient(to right, #1c1c38, #0b0b8b);
+            color: white;
+            padding: 30px 20px;
+            text-align: left;
         }
 
         .header img {
@@ -37,19 +35,26 @@
         }
 
         .header h1 {
-            font-size: 24px;
-            font-weight: bold;
             margin: 0;
+            font-size: 22px;
+        }
+
+        .header p {
+            margin: 5px 0 0;
+            font-size: 14px;
+            opacity: 0.8;
         }
 
         .content {
-            padding: 20px;
-            line-height: 1.6;
-            color: #333333;
+            padding: 30px 20px;
+            font-size: 15px;
+            color: #333;
         }
 
-        .content p {
-            margin: 10px 0;
+        .download-link {
+            color: #f6a400;
+            font-size: 14px;
+            text-decoration: none;
         }
 
         .button {
@@ -87,25 +92,23 @@
 </head>
 
 <body>
-    <div class="email-container">
-        <!-- Header -->
+    <div class="container">
         <div class="header">
             <img src="{{ $logoUrl }}" alt="NEXO">
             <h1>{{ $appName }}</h1>
+            <p>Conectando la academia con la sociedad para el desarrollo integral de Honduras a través de proyectos de impacto social, investigación aplicada y transferencia de conocimiento.</p>
         </div>
-
-        <!-- Contenido -->
         <div class="content">
-            <p>Estimado/a <strong>{{ $empleadoNombre }},</strong>,</p>
+            <p>Estimado/a <strong>{{ $empleadoNombre }}</strong>,</p>
             <p>{{ $mensaje }}</p>
             <p>Este proyecto ya está disponible para su revisión y seguimiento. 
                 Si desea más detalles, puede acceder al apartado correspondiente haciendo clic en el siguiente enlace:</p>
-            <a href="{{ $actionUrl }}" class="button">Ir a NEXO</a>
-        </div>
+            <a href="{{ $actionUrl }}" class="button">Ir al apartado</a>
 
-        <!-- Footer -->
+            <p>UNAH-NEXO<br><a href="notificacionespoa@unah.edu.hn">notificacionespoa@unah.edu.hn</a></p>
+        </div>
         <div class="footer">
-            <p>&copy; {{ date('Y') }} {{ $appName }}. Todos los derechos reservados.</p>
+            <p>&copy; {{ date('Y') }} {{ $appName }}.</p>
         </div>
     </div>
 </body>

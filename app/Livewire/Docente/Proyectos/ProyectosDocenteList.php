@@ -69,6 +69,11 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                     ->where('empleado_proyecto.empleado_id', $this->docente->id)
                     ->distinct()
             )
+            ->recordUrl(
+                function (Proyecto $record) {
+                    return route('historialproyecto', $record);
+                }
+            )
             ->columns([
 
                 Tables\Columns\TextColumn::make('nombre_proyecto')
