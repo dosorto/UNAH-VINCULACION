@@ -4,9 +4,9 @@
         <link rel="stylesheet" href="{{ asset('css/app/fichaHistorial.css') }}">
     @endpush
     @php
-use Carbon\Carbon;
-$diasTranscurridos = intval(Carbon::parse($proyecto->created_at)->diffInDays(now()));
-$projectStartDate = Carbon::parse($proyecto->created_at);
+        use Carbon\Carbon;
+        $diasTranscurridos = intval(Carbon::parse($proyecto->created_at)->diffInDays(now()));
+        $projectStartDate = Carbon::parse($proyecto->created_at);
     @endphp
     <div class="w-full md:w-3/5 lg:w-2/3">
         <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
@@ -1109,7 +1109,7 @@ $projectStartDate = Carbon::parse($proyecto->created_at);
     <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
         Historial de movimientos
     </h1>
-    <p class="text-gray-700 mb-2">
+    <p class="text-gray-600 mb-2">
             Días desde la creación del proyecto: <span class="font-bold">{{ $diasTranscurridos }}</span>
         </p>
     @if(count($estados) > 0)
