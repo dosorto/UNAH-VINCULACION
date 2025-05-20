@@ -59,7 +59,7 @@ use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
 use App\Models\Slide\Slide;
 use App\Livewire\Personal\Contacto\ListContactos;
 
-Route::get('/', function () {
+Route::get('/acercade', function () {
     $slides = Slide::where('estado', true)
                     ->get();
 
@@ -88,7 +88,7 @@ Route::get('/logout', function () {
         return redirect('/'); // Redirige al inicio
     }
 
-    return redirect()->route('login'); // Si no está autenticado, redirige a la página de login
+    return redirect()->route('/'); // Si no está autenticado, redirige a la página de login
 })->name('logout');
 
 // Rutas para redireccionar a los usuario autenticados
@@ -101,7 +101,7 @@ Route::middleware(['guest'])->group(function () {
         ->name('auth.microsoft.callback');
 
   
-    Route::get('/login', Login::class)
+    Route::get('/', Login::class)
         ->name('login')
         ->middleware('guest');
     // Rutas para restablecimiento de contraseña olvidada

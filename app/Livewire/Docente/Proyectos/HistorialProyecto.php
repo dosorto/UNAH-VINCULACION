@@ -3,6 +3,7 @@
 namespace App\Livewire\Docente\Proyectos;
 
 use App\Models\Estado\EstadoProyecto;
+use App\Models\Proyecto\EmpleadoProyecto;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\DocumentoProyecto;
 use Livewire\Component;
@@ -17,6 +18,8 @@ class HistorialProyecto extends Component
     public function mount(Proyecto $proyecto)
     {
         $this->proyecto = $proyecto;
+        $empleadoProyecto = EmpleadoProyecto::where('proyecto_id', $proyecto->id)->firstOrFail();
+        $this->authorize('view', $empleadoProyecto);
         
         // Obtener todos los logs relacionados con este proyecto
         $this->logs = Activity::where(function($query) use ($proyecto) {
