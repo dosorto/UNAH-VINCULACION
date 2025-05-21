@@ -184,7 +184,7 @@
                                    
                                     <div
     x-bind:style="'transform: scale(' + scale + ') translate(' + translateX + 'px,' + translateY + 'px); transform-origin: center;'"
-    class="bg-white w-full w-full flex justify-center items-center py-8 transition-transform duration-300 cursor-grab"
+    class="bg-white w-full flex justify-center items-center py-8 transition-transform duration-300 cursor-grab"
    
 >
                                         @include('app.docente.constancias.constancia_finalizado')

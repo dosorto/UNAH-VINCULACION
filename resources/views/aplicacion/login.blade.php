@@ -83,10 +83,10 @@
         </header>
 
         <!-- Main Content -->
-        <main class="  p-4  h-[calc(50vh)] p-2">
+        <main class="p-4 h-[calc(50vh)]">
             <!-- Login Form -->
             <div class="w-full  md:w-3/4  mx-auto flex flex-col md:flex-row h-full ">
-                <div class="bg-white dark:bg-gray-800  rounded-lg shadow-lg max-w-md w-full mx-auto h-full shadow-lg">
+                <div class="bg-white dark:bg-gray-800  rounded-lg max-w-md w-full mx-auto h-full shadow-lg">
                     <div class="px-4 py-2 bg-gray-100 dark:bg-gray-700">
                         <h3 class="text-xl font-bold text-gray-900 dark:text-white ">Iniciar sesión</h3>
                     </div>
