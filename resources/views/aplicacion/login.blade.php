@@ -64,23 +64,26 @@
     @vite('resources/js/app.js')
 
         <!-- Header -->
-        <div class="bg-amber-500  h-2 p-2 w-full dark:bg-gray-900">
+        <div class="bg-amber-500 h-2 p-2 w-full dark:bg-gray-900"></div>
+
+<header class="shadow-lg p-2 bg-white dark:bg-gray-800">
+    <div class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-5">
+        <div class="flex items-center flex-wrap justify-center">
+            <img src="{{ asset('images/Image/Imagen2.png') }}" alt="UNAH Logo"
+                class="block dark:hidden max-w-full h-auto md:w-[65%]">
+                
+            <img src="{{ asset('images/Image/image3.png') }}" alt="UNAH Logo Dark"
+                class="hidden dark:block max-w-full h-auto md:w-[65%]">
         </div>
-        <header class="shadow-lg p-2 bg-white dark:bg-gray-800">
 
-            <div class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-5 ">
-                <div class="flex items-center flex-wrap justify-center">
-                    <img src="{{ asset('images/Image/Imagen2.png') }}" alt="UNAH Logo"
-                        class="max-w-full h-auto  md:w-[65%]">
-                </div>
+        <button id="darkModeToggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+            </svg>
+        </button>
+    </div>
+</header>
 
-                <button id="darkModeToggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-                    </svg>
-                </button>
-            </div>
-        </header>
 
         <!-- Main Content -->
         <main class="  p-4  h-[calc(50vh)] p-2">
