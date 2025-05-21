@@ -26,13 +26,13 @@ use App\Models\Demografia\Municipio;
 use App\Models\Demografia\Departamento;
 use App\Models\Demografia\Ciudad;
 use App\Models\Demografia\Aldea;
-
+use App\Models\Estudiante\TipoParticipacion;
 use App\Models\Presupuesto\Presupuesto;
 use App\Models\Proyecto\Superavit;
 use App\Models\Proyecto\Categoria;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\FirmaProyecto;
-
+use App\Models\Estudiante\Estudiante;
 use App\Models\Estado\EstadoProyecto;
 use App\Models\Proyecto\DocumentoProyecto;
 
@@ -52,7 +52,7 @@ class Proyecto extends Model
         'modalidad_id',
         'municipio_id',
         'departamento_id',
-        'ciudad_id',
+        
         'aldea',
         'resumen',
         'objetivo_general',
@@ -176,7 +176,29 @@ class Proyecto extends Model
             ->where('tipo_documento', 'Informe Intermedio')
             ->first();
     }
+   
+    public function estudiantes()
+    {
+        return $this->belongsToMany(Estudiante::class, 'estudiante_proyecto', 'proyecto_id', 'estudiante_id')
+                    ->using(EstudianteProyecto::class)
+                    ->withPivot('tipo_participacion_id')
+                    ->withTimestamps();
+    }
 
+    
+    public function tipoParticipaciones()
+    {
+        return $this->belongsToMany(TipoParticipacion::class, 'estudiante_proyecto', 'proyecto_id', 'tipo_participacion_id')
+                    ->withPivot('estudiante_id');
+    }
+
+
+    public function participacionesEstudiantes()
+    {
+        return $this->hasMany(EstudianteProyecto::class, 'proyecto_id')
+                    ->with(['estudiante', 'tipoParticipacion']);
+    }
+    
     public function documento_final()
     {
         return $this->documentos()
@@ -474,5 +496,13 @@ class Proyecto extends Model
             ->where('estado_proyecto.estadoable_type', self::class)
             ->where('estado_proyecto.es_actual', true);
     }
+
+    public function estudianteProyecto()
+    {
+        return $this->hasMany(EstudianteProyecto::class, 'proyecto_id');
+    }
+    
+    
+
     protected $table = 'proyecto';
 }

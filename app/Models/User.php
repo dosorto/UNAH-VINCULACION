@@ -110,7 +110,7 @@ class User extends Authenticatable
     // relacion uno a uno con el estudiante
     public function estudiante()
     {
-        return $this->hasOne(Estudiante::class);
+        return $this->hasOne(Estudiante::class, 'user_id');
     }
 
 

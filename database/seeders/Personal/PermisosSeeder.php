@@ -44,6 +44,8 @@ class PermisosSeeder extends Seeder
         // modulo de inicio
         $permission14 = Permission::create(['name' => 'inicio-admin-inicio']);
         $permission15 = Permission::create(['name' => 'inicio-docente-inicio']);
+        $permission15 = Permission::create(['name' => 'inicio-estudiante-inicio']);
+
 
         // modulo de constancias 
         $permission15 = Permission::create(['name' => 'constancia-admin-constancias']);
@@ -77,7 +79,9 @@ class PermisosSeeder extends Seeder
         $permission32 = Permission::create(['name' => 'ver-dashboard-estudiante']);
         $permission33 = Permission::create(['name' => 'ver-dashboard-admin-centro-facultad']);
         $permission34 = Permission::create(['name' => 'configuracion-admin-contactanos']);
-
+        $permission35 = Permission::create(['name' => 'estudiante-admin-estudiante']);
+        $permission36 = Permission::create(['name' => 'tickets-ver-modulo']);
+        $permission37 = Permission::create(['name' => 'admin-tickets-administrar-tickets']);
 
         // crear un rol de administrador con todos los permisos anteriores
         $role = Role::create(['name' => 'admin']);
@@ -113,9 +117,11 @@ class PermisosSeeder extends Seeder
             'unidad-academica-admin-departamento',
             'unidad-academica-admin-facultad',
             'global-set-role',
+            'estudiante-admin-estudiante',
             'constancia-admin-constancias',
-            'configuracion-admin-contactanos'
-            
+            'configuracion-admin-contactanos',
+            'tickets-ver-modulo',
+            'admin-tickets-administrar-tickets'
             
         ])->save();
 
@@ -126,6 +132,7 @@ class PermisosSeeder extends Seeder
             'configuracion-admin-mi-perfil',
             'ver-dashboard-docente',
             'global-set-role',
+            'tickets-ver-modulo',
         ])->save();
 
         $roleAdminCentroFacultad->givePermissionTo([
@@ -133,6 +140,13 @@ class PermisosSeeder extends Seeder
             'inicio-admin-inicio',
             'global-set-role',
             'ver-dashboard-admin-centro-facultad',
+            
+        ])->save();
+
+        $rolEstudiante->givePermissionTo([
+            'inicio-estudiante-inicio',
+            'global-set-role',    
+            'ver-dashboard-estudiante',
         ])->save();
     }
 }
