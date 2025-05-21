@@ -198,6 +198,17 @@ return [
                 'parametro' => null,
                 'can' => null,
             ],
+             [
+                'titulo' => 'Ticket',
+                'route' => 'listarTicket',
+                'routes' => ['listarTicket'],
+                'permisos' => ['inicio-admin-inicio','ver-dashboard-admin', 'ver-dashboard-docente'],
+                'icono' => 'heroicon-o-ticket',
+                'children' => [],
+                'funcion' => null,
+                'parametro' => null,
+                'can' => null,
+            ],
 
             
             
