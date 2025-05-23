@@ -9,7 +9,7 @@ return [
                 'titulo' => 'Inicio',
                 'route' => 'inicio',
                 'routes' => ['inicio'],
-                'permisos' => ['inicio-admin-inicio', 'ver-dashboard-admin', 'ver-dashboard-docente'],
+                'permisos' => ['inicio-admin-inicio', 'ver-dashboard-admin', 'ver-dashboard-docente', 'ver-dashboard-estudiante'],
                 'icono' => 'heroicon-o-home',
                 'children' => [],
                 'funcion' => null,
@@ -86,6 +86,20 @@ return [
                 'children' => [
                     ['texto' => 'Empleados', 'route' => 'ListarEmpleados', 'permiso' => 'empleados-admin-empleados'],
                     ['texto' => 'Crear Empleado', 'route' => 'crearEmpleado', 'permiso' => 'empleados-admin-empleados'],
+                ],
+                'funcion' => null,
+                'parametro' => null,
+                'can' => null,
+            ],
+            [
+                'titulo' => 'Estudiantes',
+                'route' => 'listarEstudiante',
+                'routes' => ['listarEstudiante', 'crearEstudiante'],
+                'permisos' => ['inicio-admin-inicio', 'ver-dashboard-admin'],
+                'icono' => 'heroicon-c-book-open',
+                'children' => [
+                    ['texto' => 'Estudiantes', 'route' => 'listarEstudiante', 'permiso' => 'estudiante-admin-estudiante'],
+                    ['texto' => 'Crear Estudiante', 'route' => 'crearEstudiante', 'permiso' => 'estudiante-admin-estudiante'],
                 ],
                 'funcion' => null,
                 'parametro' => null,
@@ -204,13 +218,14 @@ return [
                 'routes' => ['listarTicket'],
                 'permisos' => ['inicio-admin-inicio','ver-dashboard-admin', 'ver-dashboard-docente'],
                 'icono' => 'heroicon-o-ticket',
-                'children' => [],
+                'children' => [
+                    ['texto' => 'Tickets', 'route' => 'listarTicket', 'permiso' => 'tickets-ver-modulo'],
+                     ['texto' => 'Historial de Tickets', 'route' => 'historialTicket', 'permiso' => 'tickets-ver-modulo'],
+                ],
                 'funcion' => null,
                 'parametro' => null,
                 'can' => null,
             ],
-
-            
             
         ],
     ],

@@ -5,7 +5,7 @@
                 Estudiantes
             </p>
             <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm mt-0">
-                Proyectos asignados a Estudiantes 
+                Listado de estudiantes asignados a proyectos: 
             </p>
         </div>
 
