@@ -95,7 +95,7 @@ return [
                 'titulo' => 'Estudiantes',
                 'route' => 'listarEstudiante',
                 'routes' => ['listarEstudiante', 'crearEstudiante'],
-                'permisos' => ['inicio-admin-inicio', 'ver-dashboard-admin'],
+                'permisos' => ['ver-dashboard-admin'],
                 'icono' => 'heroicon-c-book-open',
                 'children' => [
                     ['texto' => 'Estudiantes', 'route' => 'listarEstudiante', 'permiso' => 'estudiante-admin-estudiante'],
@@ -216,7 +216,7 @@ return [
                 'titulo' => 'Ticket',
                 'route' => 'listarTicket',
                 'routes' => ['listarTicket'],
-                'permisos' => ['inicio-admin-inicio','ver-dashboard-admin', 'ver-dashboard-docente', 'tickets-ver-modulo'],
+                'permisos' => ['ver-dashboard-admin', 'ver-dashboard-docente', 'tickets-ver-modulo'],
                 'icono' => 'heroicon-o-ticket',
                 'children' => [
                     ['texto' => 'Tickets', 'route' => 'listarTicket', 'permiso' => 'tickets-ver-modulo'],
