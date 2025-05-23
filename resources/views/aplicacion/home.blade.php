@@ -289,7 +289,7 @@
                         name="Acxel Aplicano"
                         role="Diseñador UI/UX"
                         image="https://avatars.githubusercontent.com/u/132090869?v=4"
-                        github="https://github.com/vanesszambrano9"
+                        github="https://github.com/acxelaplicano01"
                         linkedin="#"
                         instagram="#"
                     />

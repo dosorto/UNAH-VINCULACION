@@ -26,11 +26,14 @@ use App\Http\Controllers\Auth\MicrosoftController;
 use App\Livewire\Personal\Empleado\CreateEmpleado;
 use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Livewire\Demografia\Municipio\CreateMunicipio;
-
 use App\Livewire\Demografia\Municipio\ListaMunicipios;
 use App\Livewire\Docente\Proyectos\ProyectosAprobados;
 use App\Livewire\Docente\Proyectos\ProyectosRechazados;
 use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
+use App\Livewire\Estudiante\CreateEstudiante;
+use App\Livewire\Estudiante\ListarEstudiante;
+use App\Livewire\Ticket\HistorialTicket;
+use App\Livewire\Ticket\ListarTicket;
 
 use App\Livewire\Demografia\Departamento\ListDepartamentos;
 use App\Livewire\Demografia\Departamento\CreateDepartamento;
@@ -187,6 +190,9 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         Route::get('crearMunicipio', CreateMunicipio::class)
             ->name('crearMunicipio')
             ->middleware('can:demografia-admin-municipio');
+
+
+
     });
 
 
@@ -313,4 +319,36 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('RechazadoProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
     });
+
+    // rutas para el modulo de Estudiante
+    Route::middleware(['auth'])->group(function () {
+
+        Route::get('listarEstudiante', ListarEstudiante::class)
+            ->name('listarEstudiante')
+            ->middleware('can:estudiante-admin-estudiante');
+
+        Route::get('crearEstudiante', CreateEstudiante::class)
+            ->name('crearEstudiante')
+            ->middleware('can:estudiante-admin-estudiante');
+    });
+
+    // rutas para el modulo de Tickets
+
+        Route::middleware(['auth'])->group(function () {
+
+            Route::get('listarTicket', ListarTicket::class)
+                ->name('listarTicket')
+                ->middleware('can:tickets-ver-modulo');
+
+            Route::get('historialTicket', HistorialTicket::class)
+                ->name('historialTicket')
+                ->middleware('can:tickets-ver-modulo');
+
+        });
+
+ 
+
+
+
+    
 });

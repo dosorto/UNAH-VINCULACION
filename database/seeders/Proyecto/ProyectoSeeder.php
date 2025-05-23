@@ -33,6 +33,34 @@ class ProyectoSeeder extends Seeder
             ]);
         });
 
+        $proyectos = [
+            [
+                'nombre_proyecto' => 'Proyecto de Educación Comunitaria',
+                'modalidad_id' => Modalidad::firstOrCreate(['nombre' => 'Multidisciplinar'])->id,
+                'resumen' => 'Proyecto para mejorar la educación en comunidades rurales',
+                'objetivo_general' => 'Mejorar los índices de educación en comunidades marginadas',
+                'fecha_inicio' => '2023-01-15',
+                'fecha_finalizacion' => '2023-12-15',
+                'modalidad_ejecucion' => 'Bimodal',
+                'fecha_registro' => now(),
+            ],
+
+            [
+                'nombre_proyecto' => 'Proyecto de Salud Preventiva',
+                'modalidad_id' => Modalidad::firstOrCreate(['nombre' => 'Multidisciplinar'])->id, 
+                'resumen' => 'Iniciativa para promover la salud preventiva en zonas urbanas',
+                'objetivo_general' => 'Reducir la incidencia de enfermedades prevenibles',
+                'fecha_inicio' => '2023-03-01',
+                'fecha_finalizacion' => '2023-11-30',
+                'modalidad_ejecucion' => 'Presencial',
+                'fecha_registro' => now(),
+            ],
+        ];
+    
+        foreach ($proyectos as $proyecto) {
+            Proyecto::create($proyecto);
+        }
+
 
         // crear los tipos de estado para el proyecto
         $estadosProyecto = collect(config('nexo.estados_proyecto'));
@@ -78,44 +106,46 @@ class ProyectoSeeder extends Seeder
         //Artísticos-culturales
         //Otras áreas
 
-        Categoria::insert([
-            ['nombre' => 'Educación No Formal y/o Continua'],
-            ['nombre' => 'APS'],
-            ['nombre' => 'Desarrollo Regional'],
-            ['nombre' => 'Desarrollo local'],
-            ['nombre' => 'Investigación-acción-participación'],
-            ['nombre' => 'Asesoría técnico-científica'],
-            ['nombre' => 'Artísticos-culturales'],
-            ['nombre' => 'Otras áreas'],
-        ]);
-
+        $categorias = [
+            'Educación No Formal y/o Continua',
+            'APS',
+            'Desarrollo Regional',
+            'Desarrollo local',
+            'Investigación-acción-participación',
+            'Asesoría técnico-científica',
+            'Artísticos-culturales',
+            'Otras áreas'
+        ];
+    
+        foreach ($categorias as $categoria) {
+            Categoria::firstOrCreate(['nombre' => $categoria]);
+        }
         /*
             ODS en el que se enmarca el proyecto: Utilizar el documento Agenda 20/45 y objetivos de desarrollo sostenible.
         */
 
-        Od::insert([
-            ['nombre' => '1. Fin de la pobreza'],
-            ['nombre' => '2. Hambre cero'],
-            ['nombre' => '3. Salud y bienestar'],
-            ['nombre' => '4. Educación de calidad'],
-            ['nombre' => '5. Igualdad de género'],
-            ['nombre' => '6. Agua limpia y saneamiento'],
-            ['nombre' => '7. Energía asequible y no contaminante'],
-            ['nombre' => '8. Trabajo decente y crecimiento económico'],
-            ['nombre' => '9. Industria, innovación e infraestructura'],
-            ['nombre' => '10. Reducción de las desigualdades'],
-            ['nombre' => '11. Ciudades y comunidades sostenibles'],
-            ['nombre' => '12, Producción y consumo responsables'],
-            ['nombre' => '13. Acción por el clima'],
-            ['nombre' => '14. Vida submarina'],
-            ['nombre' => '15. Vida de ecosistemas terrestres'],
-            ['nombre' => '16. Paz, justicia e instituciones sólidas'],
-            ['nombre' => '17. Alianzas para lograr los objetivos'],
-        ]);
-
-        TipoConstancia::insert([
-            ['nombre' =>'Inscripcion', 'descripcion' => 'Se emite cuando un proyecto alcanza el estado en curso'],
-            ['nombre' =>'Finalizacion', 'descripcion' => 'Se emite cuando un proyecto alcanza el estado Finalizado'],
-        ]);
+        $objetivos = [
+            '1. Fin de la pobreza',
+            '2. Hambre cero',
+            '3. Salud y bienestar',
+            '4. Educación de calidad',
+            '5. Igualdad de género',
+            '6. Agua limpia y saneamiento',
+            '7. Energía asequible y no contaminante',
+            '8. Trabajo decente y crecimiento económico',
+            '9. Industria, innovación e infraestructura',
+            '10. Reducción de las desigualdades',
+            '11. Ciudades y comunidades sostenibles',
+            '12. Producción y consumo responsables', // Corregida la coma
+            '13. Acción por el clima',
+            '14. Vida submarina',
+            '15. Vida de ecosistemas terrestres',
+            '16. Paz, justicia e instituciones sólidas',
+            '17. Alianzas para lograr los objetivos',
+        ];
+    
+        foreach ($objetivos as $objetivo) {
+            Od::firstOrCreate(['nombre' => $objetivo]);
+        }
     }
 }
