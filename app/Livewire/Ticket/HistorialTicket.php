@@ -13,7 +13,9 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Support\Enums\IconPosition;
-use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
 
 class HistorialTicket extends Component implements HasForms, HasTable
@@ -58,16 +60,25 @@ class HistorialTicket extends Component implements HasForms, HasTable
                     ->dateTime('d/m/Y H:i')
                     ->toggleable(),
             ])
-   ->filters([
-    SelectFilter::make('tipo_ticket')
-        ->label('Tipo de Ticket')
-        ->options([
-            'Soporte Tecnico' => 'Soporte Técnico',
-            'Sugerencia' => 'Sugerencia',
-            'Consulta General' => 'Consulta General',
-            'Otro' => 'Otro',
-        ])
-])
+            ->filters([
+                Filter::make('filtrar_tipo_ticket')
+                    ->form([
+                        Select::make('tipo_ticket')
+                            ->label('Tipo de Ticket')
+                            ->options([
+                                'Soporte Tecnico' => 'Soporte Técnico',
+                                'Sugerencia' => 'Sugerencia',
+                                'Consulta General' => 'Consulta General',
+                                'Otro' => 'Otro',
+                            ])
+                    ])
+                    ->query(function ($query, array $data) {
+                        if (!empty($data['tipo_ticket'])) {
+                            $query->where('tipo_ticket', $data['tipo_ticket']);
+                        }
+                        return $query;
+                    }),
+            ], layout: FiltersLayout::AboveContent)
 
             ->actions([
                 Action::make('ver_mensaje')
