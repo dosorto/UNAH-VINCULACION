@@ -90,15 +90,10 @@ class User extends Authenticatable
      */
     public function getInitials(): string
     {
-        $name = explode(' ', $this->name);
-        $initials = '';
-        foreach ($name as $n) {
-            if (empty($n)) {
-                continue;
-            }
-            $initials .= $n[0];
-        }
-        return $initials;
+        $words = array_values(array_filter(explode(' ', trim($this->name))));
+        $inicial_nombre = isset($words[0]) ? mb_substr($words[0], 0, 1) : '';
+        $inicial_segundo = isset($words[1]) ? mb_substr($words[1], 0, 1) : '';
+        return $inicial_nombre . $inicial_segundo;
     }
 
     // relacion uno a uno con el empleado

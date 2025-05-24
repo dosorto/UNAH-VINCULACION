@@ -197,7 +197,7 @@
                                         @endif
                                     @endforeach
                                 </select>
-                                <a href="#"
+                                <!-- <a href="#"
                                     class="uppercase text-sm font-semibold inline-flex items-center rounded-lg text-blue-600 hover:text-blue-700 dark:hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700 px-3 py-2">
                                     Reporte de Proyectos
                                     <svg class="w-2.5 h-2.5 ms-1.5 rtl:rotate-180" aria-hidden="true"
@@ -205,7 +205,7 @@
                                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
                                             stroke-width="2" d="m1 9 4-4-4-4" />
                                     </svg>
-                                </a>
+                                </a> -->
                             </div>
                         </div>
                     </div>
@@ -401,9 +401,7 @@
                                 <div class="flex items-center pr-2">
                                     <div
                                         class="flex w-10 h-10 mr-3 items-center justify-center bg-gray-200 dark:bg-gray-700 text-blue-600 dark:text-blue-400 rounded-full">
-                                        <img src="https://ui-avatars.com/api/?name={{ $empleado->nombre_completo }}&amp;color=FFFFFF&amp;background=2563EB"
-                                            class="fi-avatar object-cover object-center fi-circular rounded-full h-10 w-10 fi-user-avatar"
-                                            alt="Dropbox" />
+                                            <div class="rounded-full h-10 w-10 bg-blue-700 p-2 text-gray-100">{{ $empleado->getInitials() }}</div>
                                     </div>
                                     <div>
                                         <h5 class="text-sm text-gray-900 dark:text-white font-medium mb-1">
@@ -461,7 +459,11 @@
                                             {{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->isoFormat('D [de] MMMM YYYY') }}
                                         </td>
                                         <td class="px-6 py-4">
-                                            Categoría
+                                            @forelse($proyecto->categoria as $cat)
+                                                <span>{{ $cat->nombre }}</span>@if(!$loop->last), @endif
+                                            @empty
+                                                <span>Sin categoría</span>
+                                            @endforelse
                                         </td>
                                     </tr>
                                 @empty
@@ -475,6 +477,9 @@
                                 @endforelse
                             </tbody>
                         </table>
+                         <div class="flex items-center justify-end px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                                {{$proyectosTable->links()}}
+                            </div>
                     </div>
                 </div>
             </div>

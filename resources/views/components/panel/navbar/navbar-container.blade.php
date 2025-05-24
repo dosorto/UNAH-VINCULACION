@@ -92,9 +92,7 @@
                     class="bg-white rounded-lg p-2 border border-gray-300 dark:bg-white/5 dark:border-gray-700">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-3">
-                            <img class="fi-avatar object-cover object-center fi-circular rounded-full h-9 w-9 fi-user-avatar"
-                                src="https://ui-avatars.com/api/?name={{ Auth::user()->getInitials() }}&amp;color=FFFFFF&amp;background=2563EB"
-                                alt="Avatar of Demo User">
+                            <div class="rounded-full bg-blue-700 w-10 h-10 p-2 text-gray-100">{{ Auth::user()->getInitials() }}</div>
                             <div>
                                 <p
                                     class="text-sm font-medium text-gray-700 dark:text-gray-200

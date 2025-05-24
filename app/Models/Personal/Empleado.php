@@ -204,5 +204,17 @@ class Empleado extends Model
         return $proyectos;
     }
 
+    /**
+     * Get Inicials of User
+     * 
+     * @return string
+     */
+    public function getInitials(): string
+{
+    $nombre_completo = explode(' ', trim($this->nombre_completo));
+    $inicial_nombre = isset($nombre_completo[0]) ? mb_substr($nombre_completo[0], 0, 1) : '';
+    $inicial_segundo_nombre = isset($nombre_completo[1]) ? mb_substr($nombre_completo[1], 0, 1) : '';
+    return $inicial_nombre . $inicial_segundo_nombre;
+}
     protected $table = 'empleado';
 }
