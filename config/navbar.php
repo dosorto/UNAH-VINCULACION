@@ -216,7 +216,7 @@ return [
                 'titulo' => 'Ticket',
                 'route' => 'listarTicket',
                 'routes' => ['listarTicket'],
-                'permisos' => ['ver-dashboard-admin', 'ver-dashboard-docente','ver-dashboard-admin-centro-facultad', 'ver-dashboard', 'tickets-ver-modulo'],
+                'permisos' => ['ver-dashboard-admin', 'ver-dashboard-docente','ver-dashboard-admin-centro-facultad', 'ver-dashboard-estudiante', 'tickets-ver-modulo'],
                 'icono' => 'heroicon-o-ticket',
                 'children' => [
                     ['texto' => 'Tickets', 'route' => 'listarTicket', 'permiso' => 'tickets-ver-modulo'],
