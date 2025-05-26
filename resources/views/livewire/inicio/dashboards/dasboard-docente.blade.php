@@ -432,7 +432,11 @@
                                                 {{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->isoFormat('D [de] MMMM YYYY') }}
                                             </td>
                                             <td class="px-6 py-4">
-                                                Categoría
+                                                @forelse($proyecto->categoria as $cat)
+                                                    <span>{{ $cat->nombre }}</span>@if(!$loop->last), @endif
+                                                @empty
+                                                    <span>Sin categoría</span>
+                                                @endforelse
                                             </td>
                                         </tr>
                                     @empty
