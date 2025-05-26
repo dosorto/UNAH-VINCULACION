@@ -172,11 +172,9 @@ class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/3
             <div class="container mx-auto">
                 <h4 class="font-bold mb-2">En caso de no poder ingresar:</h4>
                 <ol class="list-decimal list-inside ">
-                    <li>Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod
-                        tincidunt ut laoreet dolore magna aliquam erat volutpat.</li>
-                    <li>Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper.</li>
-                    <li>Suscipit lobortis nisl ut aliquip ex ea commodo consequat. Duis autem vel eum iriure dolor in
-                        hendrerit in vulputate velit esse molestie consequat.</li>
+                    <li>Ingresar a el servicio de correo electrónico de la UNAH <a href= "https://mail.unah.edu.hn/"> https://mail.unah.edu.hn </a></li>
+                    <li>Seleccionar: Recuperar contraseña.</li>
+                    
                 </ol>
             </div>
         </div>
