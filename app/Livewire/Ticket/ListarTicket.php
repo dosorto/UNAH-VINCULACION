@@ -35,21 +35,22 @@ class ListarTicket extends Component implements HasForms, HasTable
     public function table(Table $table): Table
     {
         return $table
-            ->query(function () {
-                $user = auth()->user();
+             ->query(function () {
+            $query = Ticket::query()
+                ->with('mensajes')
+                ->where('estado', '!=', 'cerrado')
+                ->orderByRaw("FIELD(estado, 'en proceso', 'abierto', 'cerrado')")
+                ->latest();
 
-                $query = Ticket::query()
-                    ->with('mensajes')
-                    ->where('estado', '!=', 'cerrado')
-                    ->orderByRaw("FIELD(estado, 'en proceso', 'abierto', 'cerrado')")
-                    ->latest();
+            $user = auth()->user();
 
-                if ($user && $user->empleado && $user->empleado->tipo_empleado === 'docente') {
-                    $query->where('user_id', $user->id);
-                }
+            if (!$user->can('admin-tickets-administrar-tickets')) {
+                $query->where('user_id', $user->id);
+            }
 
-                return $query;
-            })
+            return $query;
+        })
+            
             ->columns([
                 TextColumn::make('tipo_ticket')
                     ->label('Tipo de Ticket')

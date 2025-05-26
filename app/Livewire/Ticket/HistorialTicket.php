@@ -96,11 +96,7 @@ class HistorialTicket extends Component implements HasForms, HasTable
                     ])),
             ])
             ->headerActions([
-                Action::make('regresar')
-                    ->label('Regresar')
-                    ->icon('heroicon-o-arrow-left')
-                    ->color('success')
-                    ->url(route('listarTicket')),
+                
             ]);
     }
 

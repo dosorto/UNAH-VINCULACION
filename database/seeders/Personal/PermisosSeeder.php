@@ -140,13 +140,14 @@ class PermisosSeeder extends Seeder
             'inicio-admin-inicio',
             'global-set-role',
             'ver-dashboard-admin-centro-facultad',
-            
+            'tickets-ver-modulo',            
         ])->save();
 
         $rolEstudiante->givePermissionTo([
             'inicio-estudiante-inicio',
             'global-set-role',    
             'ver-dashboard-estudiante',
+            'tickets-ver-modulo',
         ])->save();
     }
 }
