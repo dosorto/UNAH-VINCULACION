@@ -184,26 +184,31 @@ class Dashboard extends Component
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function getProjectsByState($stateName)
-    {
-        // Obtiene el objeto TipoEstado según el nombre
-        $tipoEstado = TipoEstado::where('nombre', $stateName)->first();
-        if (!$tipoEstado) {
-            // Retornamos un paginador de colección vacía
-            return collect()->paginate($this->perPage);
-        }
-
-        // Consulta los proyectos que tienen asignado ese estado actual y los pagina
-        return Proyecto::query()
-            ->whereIn('id', function ($query) use ($tipoEstado) {
-                $query->select('estadoable_id')
-                    ->from('estado_proyecto')
-                    ->where('estadoable_type', Proyecto::class)
-                    ->where('tipo_estado_id', $tipoEstado->id)
-                    ->where('es_actual', true);
-            })
-            ->orderBy('id', 'asc')
-            ->paginate($this->perPage);
+{
+    // Obtiene el objeto TipoEstado según el nombre
+    $tipoEstado = TipoEstado::where('nombre', $stateName)->first();
+    if (!$tipoEstado) {
+        // Create an empty paginator instead of trying to paginate a collection
+        return new \Illuminate\Pagination\LengthAwarePaginator(
+            [], // Empty array of items
+            0,  // Total items (0 since there are none)
+            $this->perPage, // Items per page
+            1   // Current page
+        );
     }
+
+    // Consulta los proyectos que tienen asignado ese estado actual y los pagina
+    return Proyecto::query()
+        ->whereIn('id', function ($query) use ($tipoEstado) {
+            $query->select('estadoable_id')
+                ->from('estado_proyecto')
+                ->where('estadoable_type', Proyecto::class)
+                ->where('tipo_estado_id', $tipoEstado->id)
+                ->where('es_actual', true);
+        })
+        ->orderBy('id', 'asc')
+        ->paginate($this->perPage);
+}
 
     /**
      * Obtiene proyectos cuyos estados se encuentren en la lista de nombres y los pagina.
@@ -299,41 +304,57 @@ class Dashboard extends Component
         $activities = $this->getLatestActivities();
         $activitiesUser = $this->getLatestActivitiesUser();
         // ADMIN DASHBOARD (consultas generales)
-        $finalizados = Proyecto::query()
-            ->whereIn('id', function ($query) {
-                $query->select('estadoable_id')
-                    ->from('estado_proyecto')
-                    ->where('estadoable_type', Proyecto::class)
-                    ->where('tipo_estado_id', TipoEstado::where('nombre', 'Finalizado')->first()->id)
-                    ->where('es_actual', true);
-            })->get();
+$finalizados = collect();  // Default empty collection
+$tipoEstadoFinalizado = TipoEstado::where('nombre', 'Finalizado')->first();
+if ($tipoEstadoFinalizado) {
+    $finalizados = Proyecto::query()
+        ->whereIn('id', function ($query) use ($tipoEstadoFinalizado) {
+            $query->select('estadoable_id')
+                ->from('estado_proyecto')
+                ->where('estadoable_type', Proyecto::class)
+                ->where('tipo_estado_id', $tipoEstadoFinalizado->id)
+                ->where('es_actual', true);
+        })->get();
+}
 
-        $subsanacion = Proyecto::query()
-            ->whereIn('id', function ($query) {
-                $query->select('estadoable_id')
-                    ->from('estado_proyecto')
-                    ->where('estadoable_type', Proyecto::class)
-                    ->where('tipo_estado_id', TipoEstado::where('nombre', 'Subsanacion')->first()->id)
-                    ->where('es_actual', true);
-            })->get();
+$subsanacion = collect();  // Default empty collection
+$tipoEstadoSubsanacion = TipoEstado::where('nombre', 'Subsanacion')->first();
+if ($tipoEstadoSubsanacion) {
+    $subsanacion = Proyecto::query()
+        ->whereIn('id', function ($query) use ($tipoEstadoSubsanacion) {
+            $query->select('estadoable_id')
+                ->from('estado_proyecto')
+                ->where('estadoable_type', Proyecto::class)
+                ->where('tipo_estado_id', $tipoEstadoSubsanacion->id)
+                ->where('es_actual', true);
+        })->get();
+}
 
-        $ejecucion = Proyecto::query()
-            ->whereIn('id', function ($query) {
-                $query->select('estadoable_id')
-                    ->from('estado_proyecto')
-                    ->where('estadoable_type', Proyecto::class)
-                    ->where('tipo_estado_id', TipoEstado::where('nombre', 'En curso')->first()->id)
-                    ->where('es_actual', true);
-            })->get();
+$ejecucion = collect();  // Default empty collection
+$tipoEstadoEnCurso = TipoEstado::where('nombre', 'En curso')->first();
+if ($tipoEstadoEnCurso) {
+    $ejecucion = Proyecto::query()
+        ->whereIn('id', function ($query) use ($tipoEstadoEnCurso) {
+            $query->select('estadoable_id')
+                ->from('estado_proyecto')
+                ->where('estadoable_type', Proyecto::class)
+                ->where('tipo_estado_id', $tipoEstadoEnCurso->id)
+                ->where('es_actual', true);
+        })->get();
+}
 
-        $borrador = Proyecto::query()
-            ->whereIn('id', function ($query) {
-                $query->select('estadoable_id')
-                    ->from('estado_proyecto')
-                    ->where('estadoable_type', Proyecto::class)
-                    ->where('tipo_estado_id', TipoEstado::where('nombre', 'Borrador')->first()->id)
-                    ->where('es_actual', true);
-            })->get();
+$borrador = collect();  // Default empty collection
+$tipoEstadoBorrador = TipoEstado::where('nombre', 'Borrador')->first();
+if ($tipoEstadoBorrador) {
+    $borrador = Proyecto::query()
+        ->whereIn('id', function ($query) use ($tipoEstadoBorrador) {
+            $query->select('estadoable_id')
+                ->from('estado_proyecto')
+                ->where('estadoable_type', Proyecto::class)
+                ->where('tipo_estado_id', $tipoEstadoBorrador->id)
+                ->where('es_actual', true);
+        })->get();
+}
 
         $proyectos = Proyecto::query()
             ->whereIn('id', function ($query) {
@@ -355,59 +376,69 @@ class Dashboard extends Component
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        // USER DASHBOARD (filtrado por usuario autenticado con la tabla pivote empleado_proyecto)
-        $userId = auth()->user()->empleado->id;
 
-        // Obtén el id del estado "Finalizado"
-        $finalizadoEstadoId = TipoEstado::where('nombre', 'Finalizado')->first()->id;
+// USER DASHBOARD (filtrado por usuario autenticado con la tabla pivote empleado_proyecto)
+$userId = auth()->user()->empleado->id;
 
-        $finalizadosUser = Proyecto::query()
-            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
-            ->join('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
-            ->where('empleado_proyecto.empleado_id', $userId)
-            ->where('estado_proyecto.estadoable_type', Proyecto::class)
-            ->where('estado_proyecto.tipo_estado_id', $finalizadoEstadoId)
-            ->where('estado_proyecto.es_actual', true)
-            ->distinct()
-            ->get();
+// Obtén el id del estado "Finalizado"
+$finalizadosUser = collect();  // Default empty collection
+$tipoEstadoFinalizado = TipoEstado::where('nombre', 'Finalizado')->first();
+if ($tipoEstadoFinalizado) {
+    $finalizadosUser = Proyecto::query()
+        ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+        ->join('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
+        ->where('empleado_proyecto.empleado_id', $userId)
+        ->where('estado_proyecto.estadoable_type', Proyecto::class)
+        ->where('estado_proyecto.tipo_estado_id', $tipoEstadoFinalizado->id)
+        ->where('estado_proyecto.es_actual', true)
+        ->distinct()
+        ->get();
+}
 
-        // Para el estado "Subsanacion"
-        $subsanacionEstadoId = TipoEstado::where('nombre', 'Subsanacion')->first()->id;
+// Para el estado "Subsanacion"
+$subsanacionUser = collect();  // Default empty collection
+$tipoEstadoSubsanacion = TipoEstado::where('nombre', 'Subsanacion')->first();
+if ($tipoEstadoSubsanacion) {
+    $subsanacionUser = Proyecto::query()
+        ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+        ->join('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
+        ->where('empleado_proyecto.empleado_id', $userId)
+        ->where('estado_proyecto.estadoable_type', Proyecto::class)
+        ->where('estado_proyecto.tipo_estado_id', $tipoEstadoSubsanacion->id)
+        ->where('estado_proyecto.es_actual', true)
+        ->distinct()
+        ->get();
+}
 
-        $subsanacionUser = Proyecto::query()
-            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
-            ->join('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
-            ->where('empleado_proyecto.empleado_id', $userId)
-            ->where('estado_proyecto.estadoable_type', Proyecto::class)
-            ->where('estado_proyecto.tipo_estado_id', $subsanacionEstadoId)
-            ->where('estado_proyecto.es_actual', true)
-            ->distinct()
-            ->get();
+// Para el estado "Borrador"
+$borradorUser = collect();  // Default empty collection
+$tipoEstadoBorrador = TipoEstado::where('nombre', 'Borrador')->first();
+if ($tipoEstadoBorrador) {
+    $borradorUser = Proyecto::query()
+        ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+        ->join('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
+        ->where('empleado_proyecto.empleado_id', $userId)
+        ->where('estado_proyecto.estadoable_type', Proyecto::class)
+        ->where('estado_proyecto.tipo_estado_id', $tipoEstadoBorrador->id)
+        ->where('estado_proyecto.es_actual', true)
+        ->distinct()
+        ->get();
+}
 
-        // Para el estado "Borrador"
-        $borradorEstadoId = TipoEstado::where('nombre', 'Borrador')->first()->id;
-
-        $borradorUser = Proyecto::query()
-            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
-            ->join('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
-            ->where('empleado_proyecto.empleado_id', $userId)
-            ->where('estado_proyecto.estadoable_type', Proyecto::class)
-            ->where('estado_proyecto.tipo_estado_id', $borradorEstadoId)
-            ->where('estado_proyecto.es_actual', true)
-            ->distinct()
-            ->get();
-
-        // Para el estado "En curso"
-        $ejecucionEstadoId = TipoEstado::where('nombre', 'En curso')->first()->id;
-        $ejecucionUser = Proyecto::query()
-            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
-            ->join('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
-            ->where('empleado_proyecto.empleado_id', $userId)
-            ->where('estado_proyecto.estadoable_type', Proyecto::class)
-            ->where('estado_proyecto.tipo_estado_id', $ejecucionEstadoId)
-            ->where('estado_proyecto.es_actual', true)
-            ->distinct()
-            ->get();
+// Para el estado "En curso"
+$ejecucionUser = collect();  // Default empty collection
+$tipoEstadoEnCurso = TipoEstado::where('nombre', 'En curso')->first();
+if ($tipoEstadoEnCurso) {
+    $ejecucionUser = Proyecto::query()
+        ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+        ->join('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
+        ->where('empleado_proyecto.empleado_id', $userId)
+        ->where('estado_proyecto.estadoable_type', Proyecto::class)
+        ->where('estado_proyecto.tipo_estado_id', $tipoEstadoEnCurso->id)
+        ->where('estado_proyecto.es_actual', true)
+        ->distinct()
+        ->get();
+}
 
         // Si necesitas obtener todos los proyectos asociados al usuario sin filtrar por estado:
         $proyectosUser = Proyecto::query()
