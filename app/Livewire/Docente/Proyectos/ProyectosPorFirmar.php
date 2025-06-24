@@ -184,7 +184,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                                         'empleado_id' => auth()->user()->empleado->id,
                                         'tipo_estado_id' => $firma_proyecto->cargo_firma->estado_siguiente_id,
                                         'fecha' => now(),
-                                        'comentario' => 'Proyecto creado',
+                                        'comentario' => 'Proyecto firmado y aprobado en este estado',
                                     ]);
                                 } else {
                                     $firma_proyecto->update([
@@ -198,7 +198,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
                                         'empleado_id' => $this->docente->id,
                                         'tipo_estado_id' => $firma_proyecto->cargo_firma->estado_siguiente_id,
                                         'fecha' => now(),
-                                        'comentario' => 'Proyecto creado',
+                                        'comentario' => 'Proyecto firmado y aprobado en este estado',
                                     ]);
                                 }
 

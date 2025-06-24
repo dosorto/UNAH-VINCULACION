@@ -207,7 +207,7 @@ class EditProyectoVinculacionForm extends Component implements HasForms
             'empleado_id' => auth()->user()->empleado->id,
             'tipo_estado_id' => $firmaP->cargo_firma->estado_siguiente_id,
             'fecha' => now(),
-            'comentario' => 'Proyecto creado',
+            'comentario' => 'Se ha creado el proyecto y se ha enviado a firmar',
         ]);
 
         Notification::make()

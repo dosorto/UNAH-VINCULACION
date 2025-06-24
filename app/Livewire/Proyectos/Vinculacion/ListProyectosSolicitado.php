@@ -271,7 +271,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                     'empleado_id' => Auth::user()->empleado->id,
                                     'tipo_estado_id' => TipoEstado::where('nombre', 'En revision final')->first()->id,
                                     'fecha' => now(),
-                                    'comentario' => 'El proyecto ha sido aprobado correctamente',
+                                    'comentario' => 'El proyecto ha sido enviado a revisión final.',
                                 ]);
                                 
                                 $proyecto->firma_proyecto()->updateOrCreate(

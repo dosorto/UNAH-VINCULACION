@@ -157,7 +157,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 'empleado_id' => auth()->user()->empleado->id,
                 'tipo_estado_id' => $firmaP->cargo_firma->estado_siguiente_id,
                 'fecha' => now(),
-                'comentario' => 'Proyecto creado',
+                'comentario' => 'Proyecto creado exitosamente y enviado a firmar',
             ]);
             // Enviar el correo al usuario que creó el proyecto
             // Obtener el nombre del estado al que cambió el proyecto
@@ -242,7 +242,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 'empleado_id' => auth()->user()->empleado->id,
                 'tipo_estado_id' => TipoEstado::where('nombre', 'Borrador')->first()->id,
                 'fecha' => now(),
-                'comentario' => 'Proyecto creado',
+                'comentario' => 'Proyecto creado en borrador',
             ]);
         } catch (\Exception $e) {
             // Eliminar el proyecto en caso de error
