@@ -5,6 +5,7 @@ namespace App\Livewire\Inicio\Dashboards;
 use App\Models\Estado\TipoEstado;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Personal\Empleado;
+use App\Models\Proyecto\DocumentoProyecto; 
 use Livewire\Component;
 use Carbon\Carbon;
 use Spatie\Activitylog\Models\Activity;
@@ -147,17 +148,56 @@ class Dashboard extends Component
     }
 
     /**
-     * Obtiene las últimas actividades del sistema.
+     * Obtiene los últimos cambios de estado de todos los proyectos.
      *
      * @param int $limit
      * @return \Illuminate\Support\Collection
      */
-    public function getLatestActivities($limit = 4)
+    public function getLatestActivities($limit = 3)
     {
-        return Activity::query()
-            ->latest()
+        // Primero obtenemos todos los proyectos
+        $proyectosIds = Proyecto::pluck('id')->toArray();
+        
+        // Luego obtenemos los documentos de esos proyectos
+        $documentosIds = DocumentoProyecto::whereIn('proyecto_id', $proyectosIds)
+            ->pluck('id')
+            ->toArray();
+        
+        // Obtener todos los estados asociados a los proyectos y sus documentos
+        return \App\Models\Estado\EstadoProyecto::where(function ($query) use ($proyectosIds, $documentosIds) {
+                // Estados de los proyectos
+                $query->where(function ($q) use ($proyectosIds) {
+                    $q->where('estadoable_type', \App\Models\Proyecto\Proyecto::class)
+                    ->whereIn('estadoable_id', $proyectosIds);
+                });
+                
+                // Estados de los documentos (si existen)
+                if (!empty($documentosIds)) {
+                    $query->orWhere(function ($q) use ($documentosIds) {
+                        $q->where('estadoable_type', \App\Models\Proyecto\DocumentoProyecto::class)
+                        ->whereIn('estadoable_id', $documentosIds);
+                    });
+                }
+            })
+            ->with(['tipoestado', 'estadoable']) // Cargar relaciones para evitar múltiples consultas
+            ->orderByDesc('created_at')
             ->limit($limit)
-            ->get();
+            ->get()
+            ->map(function ($estado) {
+                // Añadir información útil para la vista
+                $estado->fecha_cambio = $estado->created_at->format('d/m/Y H:i');
+                
+                // Determinar el nombre del elemento (proyecto o documento)
+                if ($estado->estadoable_type === \App\Models\Proyecto\Proyecto::class) {
+                    $estado->nombre_elemento = $estado->estadoable->nombre_proyecto ?? 'Proyecto';
+                    $estado->tipo_elemento = 'Proyecto';
+                } else {
+                    $estado->nombre_elemento = $estado->estadoable->nombre ?? 'Documento';
+                    $estado->tipo_elemento = 'Documento';
+                }
+                
+                return $estado;
+            });
     }
 
     /**

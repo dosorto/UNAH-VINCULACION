@@ -95,7 +95,13 @@ class EstadoProyecto extends Model
 
         return $this->belongsTo(Proyecto::class, 'estadoable_id');
     }
-
+/**
+     * Obtiene el modelo relacionado al que pertenece este estado (polimórfico).
+     */
+    public function estadoable()
+    {
+        return $this->morphTo();
+    }
 
     public function tipoestado()
     {
