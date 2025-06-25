@@ -33,10 +33,10 @@ class DatabaseSeeder extends Seeder
         $this->call(DepartamentoSeeder::class);
         $this->call(MunicipioSeeder::class);
         $this->call(UnidadAcademicaSeeder::class);
-        //$this->call(ProyectoSeeder::class);
+        $this->call(ProyectoSeeder::class);
         $this->call(PermisosSeeder::class);
         $this->call(PersonalSeeder::class);
-        $this->call(ProyectoSeeder::class);
+       
 
        // $this->call(DataProyectoSeeder::class);
         //$this->call(EmpleadoProyectoSeeder::class);
