@@ -308,7 +308,7 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
                                     ]
                                 );
 
-                                $proyecto->user_director_id = Auth::user()->empleado->id;
+                               // $proyecto->user_director_id = Auth::user()->empleado->id;
                                 $proyecto->save();
                                 $proyecto->update($data);
                                 
