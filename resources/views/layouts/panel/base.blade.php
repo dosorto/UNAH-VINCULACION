@@ -20,8 +20,7 @@
 
     <title>{{ config('app.name') }}</title>
     <link rel="icon" href="{{ asset('images/Image/logo_nexo.png') }}" type="image/png">
-    @vite('resources/js/apexcharts.min.js')
-    @vite('resources/js/flowbite.min.js')
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.46.0/dist/apexcharts.min.js"></script>
 
     <style>
         [x-cloak] {
