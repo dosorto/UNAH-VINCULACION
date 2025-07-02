@@ -1,4 +1,4 @@
-
+import './apexcharts.min.js';
 
 document.addEventListener('livewire:navigated', () => {
     const themeToggleBtn = document.getElementById('theme-toggle');
