@@ -17,7 +17,7 @@ contentPosition="beside"
 :backgroundImage="true"
 :fullpage="true"
 >
-<div class="w-full  max-w-md mx-auto bg-white dark:bg-gray-800 rounded-xl  overflow-hidden md:max-w-2xl ">
+<div class="w-full  max-w-md mx-auto bg-white dark:bg-gray-800 rounded-xl  overflow-hidden md:max-w-2xl md:h-[900px]">
     <div class="p-8">
        
         

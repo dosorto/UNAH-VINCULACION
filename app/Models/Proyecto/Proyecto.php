@@ -44,8 +44,6 @@ class Proyecto extends Model
     use SoftDeletes;
     use LogsActivity;
 
-
-
     protected static $logAttributes = [
         'nombre_proyecto',
         // 'coordinador_id',
@@ -86,7 +84,6 @@ class Proyecto extends Model
                 'fecha_finalizacion',
                 'evaluacion_intermedia',
                 'evaluacion_final',
-                // 'coordinador_id',
                 'modalidad_id',
                 'municipio_id',
                 'departamento_id',
@@ -121,10 +118,7 @@ class Proyecto extends Model
 
     protected $fillable = [
         'nombre_proyecto',
-        // 'coordinador_id',
         'modalidad_id',
-        // 'municipio_id',
-        // 'departamento_id',
         'ciudad_id',
         'aldea',
         'resumen',
@@ -139,13 +133,11 @@ class Proyecto extends Model
         'resultados_esperados',
         'indicadores_medicion_resultados',
         'fecha_registro',
-        // 'responsable_revision_id',
         'fecha_aprobacion',
         'numero_libro',
         'numero_tomo',
         'numero_folio',
         'numero_dictamen',
-        //'user_director_id'
 
 
     ];
@@ -207,10 +199,6 @@ class Proyecto extends Model
     }
 
 
-    // public function coordinador()
-    // {
-    //     return $this->belongsTo(Empleado::class, 'coordinador_id',);
-    // }
 
     public function responsable_revision()
     {
@@ -298,11 +286,7 @@ class Proyecto extends Model
         return $this->coordinador_proyecto->first()->empleado;
     }
 
-    public function director_proyecto()
-    {
-        return $this->belongsTo(Empleado::class, 'user_director_id');
-    }
-
+   
 
     // realacion uno a muchos con el modelo estudiante_proyecto
     public function estudiante_proyecto()

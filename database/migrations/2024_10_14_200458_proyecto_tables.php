@@ -67,11 +67,7 @@ return new class extends Migration
         Schema::create('proyecto', function (Blueprint $table) {
             $table->id();
             $table->string('nombre_proyecto')->nullable();
-            // $table->foreignId('coordinador_id')->constrained('empleado');
             $table->foreignId('modalidad_id')->nullable()->constrained('modalidad');
-            // $table->foreignId('municipio_id')->nullable()->constrained('municipio');
-            // $table->foreignId('departamento_id')->nullable()->constrained('departamento');
-            //$table->foreignId('ciudad_id')->nullable()->constrained('ciudad');
             $table->longText('aldea')->nullable();
             $table->longText('resumen')->nullable();
             $table->longText('objetivo_general')->nullable();
