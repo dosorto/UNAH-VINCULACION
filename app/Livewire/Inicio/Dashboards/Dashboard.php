@@ -38,7 +38,7 @@ class Dashboard extends Component
     }
 
     // año fijo de inicio
-    public $chartStartYear = 2020;
+    public $chartStartYear = 2025;
     // Nuevo: determina si se muestra el rango completo o solo los últimos 4 años (por defecto se muestran solo los últimos 4)
     public $chartFullRange = false;
 
