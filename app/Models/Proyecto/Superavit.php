@@ -9,8 +9,6 @@ use Illuminate\Database\Eloquent\Model;
 class Superavit extends Model
 {
     use HasFactory;
-
-
     protected $table = 'superavit_proyecto';
 
     protected $fillable = [
