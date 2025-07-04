@@ -1,6 +1,6 @@
 <div id="mobile-menu"
-    class="fixed inset-0 bg-white shadow-lg transition-transform transform -translate-x-full sm:translate-x-0 sm:shadow-none  sm:flex h-screen flex-col justify-between py-4 pr-2 pl-4 w-3/4 sm:w-1/4 h-[100vh] sm:sticky top-0 sm:bg-gray-100 dark:bg-gray-950"
-    style="z-index: 40; height: 100dvh;">
+    class="fixed inset-0 bg-white shadow-lg barra dark:barra transition-transform transform -translate-x-full sm:translate-x-0 sm:shadow-none  sm:flex h-screen flex-col justify-between py-4 pr-2 pl-4 w-3/4 sm:w-1/4 h-[100vh] sm:sticky top-0 sm:bg-gray-100 dark:bg-gray-950"
+    style="z-index: 40; height: 100dvh;"> 
     <div id="fondoimagen" class="flex justify-between  flex-col h-full       flex-direction: column;">
         <div>
 
@@ -85,9 +85,6 @@
 
         <div>
             <div class=" ">
-
-               
-
                 <div
                     class="bg-white rounded-lg p-2 border border-gray-300 dark:bg-white/5 dark:border-gray-700">
                     <div class="flex items-center justify-between">

@@ -1,3 +1,58 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    /* Estilos globales para barras de desplazamiento */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        @apply bg-zinc-300;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        @apply bg-zinc-400;
+    }
+
+    ::-webkit-scrollbar-track {
+        @apply bg-white;
+        border-radius: 10px;
+    }
+
+    * {
+        scrollbar-width: thin;
+        @apply scrollbar-color-light;
+    }
+
+    .dark ::-webkit-scrollbar-thumb {
+        @apply bg-zinc-600;
+    }
+
+    .dark ::-webkit-scrollbar-track {
+        @apply bg-zinc-800;
+    }
+
+    .dark * {
+        @apply scrollbar-color-dark;
+    }
+}
+
+@layer utilities {
+    .scrollbar-color-light {
+        scrollbar-color: theme('colors.zinc.300') theme('colors.white');
+    }
+    
+    .scrollbar-color-dark {
+        scrollbar-color: theme('colors.zinc.600') theme('colors.zinc.800');
+    }
+    
+
+}
+@custom-variant dark (&:where(.dark, .dark *));
+[x-cloak] {
+    display: none;
+}
