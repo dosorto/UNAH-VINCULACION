@@ -86,7 +86,7 @@ return [
                 'children' => [
                     ['texto' => 'Empleados', 'route' => 'ListarEmpleados', 'permiso' => 'empleados-admin-empleados'],
                     ['texto' => 'Crear Empleado', 'route' => 'crearEmpleado', 'permiso' => 'empleados-admin-empleados'],
-                    ['texto' => 'Códigos de Investigación', 'route' => 'codigosInvestigacionAdmin', 'permiso' => 'empleados-admin-empleados'],
+                    ['texto' => 'Validar Códigos de Proyectos', 'route' => 'codigosInvestigacionAdmin', 'permiso' => 'empleados-admin-empleados'],
                 ],
                 'funcion' => null,
                 'parametro' => null,
