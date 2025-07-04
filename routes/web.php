@@ -227,6 +227,10 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('ListarEmpleados')
             ->middleware('can:empleados-admin-empleados');
 
+        Route::get('codigos-investigacion-admin', \App\Livewire\Personal\CodigosInvestigacionAdmin::class)
+            ->name('codigosInvestigacionAdmin')
+            ->middleware('can:empleados-admin-empleados');
+
         Route::get('mi_perfil', EditPerfil::class)
             ->name('mi_perfil')
             ->middleware('can:configuracion-admin-mi-perfil');
