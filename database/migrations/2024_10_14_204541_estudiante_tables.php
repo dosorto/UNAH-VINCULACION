@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('nombre')->nullable();
             $table->string('apellido')->nullable();
             $table->string('cuenta')->nullable();
+            $table->enum('sexo', ['Masculino', 'Femenino'])->nullable();
             $table->foreignId('centro_facultad_id')->nullable()->constrained('centro_facultad');
             $table->foreignId('carrera_id')->nullable()->constrained('carrera');
             $table->softDeletes();

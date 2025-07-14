@@ -62,11 +62,90 @@ class CuartaParte
                 ])
                 ->columnSpanFull()
                 ->label('Fechas'),
-            TextInput::make('poblacion_participante')
-                ->label('Población participante')
-                ->numeric()
-                ->columnSpan(1)
-                ->required(),
+
+
+            Fieldset::make('Beneficiarios')
+                ->columns(2)
+                ->schema([
+                    TextInput::make('poblacion_participante')
+                        ->label('Población participante (número aproximado)')
+                        ->numeric()
+                        ->columnSpan(1)
+                        ->required(),
+                    TextInput::make('hombres')
+                        ->label('Hombres')
+                        ->numeric()
+                        ->columnSpan(1)
+                        ->required(),
+                    TextInput::make('mujeres')
+                        ->label('Mujeres')
+                        ->numeric()
+                        ->columnSpan(1)
+                        ->required(),
+                    TextInput::make('otros')
+                        ->label('Otros (Indicar número)')
+                        ->numeric()
+                        ->columnSpan(1)
+                        ->required(),
+                    
+                    Fieldset::make('Distribución por etnia')
+                        ->columns(3)
+                        ->schema([
+                            // Indígenas
+                            Fieldset::make('Indígenas')
+                                ->columns(2)
+                                ->schema([
+                                    TextInput::make('indigenas_hombres')
+                                        ->label('Hombres')
+                                        ->numeric()
+                                        ->default(0)
+                                        ->columnSpan(1),
+                                    TextInput::make('indigenas_mujeres')
+                                        ->label('Mujeres')
+                                        ->numeric()
+                                        ->default(0)
+                                        ->columnSpan(1),
+                                ])
+                                ->columnSpan(1),
+                            
+                            // Afroamericanos
+                            Fieldset::make('Afroamericanos')
+                                ->columns(2)
+                                ->schema([
+                                    TextInput::make('afroamericanos_hombres')
+                                        ->label('Hombres')
+                                        ->numeric()
+                                        ->default(0)
+                                        ->columnSpan(1),
+                                    TextInput::make('afroamericanos_mujeres')
+                                        ->label('Mujeres')
+                                        ->numeric()
+                                        ->default(0)
+                                        ->columnSpan(1),
+                                ])
+                                ->columnSpan(1),
+                            
+                            // Mestizos
+                            Fieldset::make('Mestizos')
+                                ->columns(2)
+                                ->schema([
+                                    TextInput::make('mestizos_hombres')
+                                        ->label('Hombres')
+                                        ->numeric()
+                                        ->default(0)
+                                        ->columnSpan(1),
+                                    TextInput::make('mestizos_mujeres')
+                                        ->label('Mujeres')
+                                        ->numeric()
+                                        ->default(0)
+                                        ->columnSpan(1),
+                                ])
+                                ->columnSpan(1),
+                        ])
+                        ->columnSpanFull(),
+                ])
+                ->columnSpanFull()
+                ->label('Beneficiarios directos (número aproximado)'),
 
 
             Select::make('modalidad_ejecucion')
@@ -80,6 +159,39 @@ class CuartaParte
                 ->required()
                 ->live()
                 ->columnSpan(1),
+
+            Select::make('pais')
+                ->label('País')
+                ->searchable()
+                ->multiple()
+                ->options([
+                    'Honduras' => 'Honduras',
+                    'Guatemala' => 'Guatemala',
+                    'El Salvador' => 'El Salvador',
+                    'Nicaragua' => 'Nicaragua',
+                    'Costa Rica' => 'Costa Rica',
+                    'Panama' => 'Panamá',
+                    'Belice' => 'Belice',
+                    'Mexico' => 'México',
+                    'Estados Unidos' => 'Estados Unidos',
+                    'Otro' => 'Otro',
+                ])
+                ->default(['Honduras'])
+                ->placeholder('Seleccione uno o más países'),
+
+            Select::make('region')
+                ->label('Región')
+                ->searchable()
+                ->multiple()
+                ->options([
+                    'Region Central' => 'Región Central',
+                    'Region Norte' => 'Región Norte', 
+                    'Region Sur' => 'Región Sur',
+                    'Region Oriental' => 'Región Oriental',
+                    'Region Occidental' => 'Región Occidental',
+                    'Region Atlantida' => 'Región Atlántida',
+                ])
+                ->placeholder('Seleccione una o más regiones'),
 
             Select::make('departamento')
                 ->label('Departamento')
@@ -106,6 +218,26 @@ class CuartaParte
                 )
                 ->live()
                 ->preload(),
+
+            Select::make('caserio')
+                ->label('Caserío')
+                ->searchable()
+                ->multiple()
+                ->options([
+                    'La Esperanza' => 'La Esperanza',
+                    'San Juan' => 'San Juan',
+                    'Santa Cruz' => 'Santa Cruz',
+                    'San Pedro' => 'San Pedro',
+                ])
+                ->placeholder('Seleccione uno o más caseríos'),
+
+            Forms\Components\Textarea::make('aldea')
+                ->rows(10)
+                ->cols(30)
+                ->label('Barrio/Aldea (opcional)')
+                ->columnSpanFull(),
+
+            
 
             // Select::make('ciudad_id')
             //     ->label('Ciudad')
@@ -137,15 +269,6 @@ class CuartaParte
             //     ])
             //     ->preload(),
 
-            Forms\Components\Textarea::make('aldea')
-                ->rows(10)
-                ->cols(30)
-                ->label('Barrio/Aldea (opcional)')
-                ->columnSpanFull(),
-            // ->visible(fn(Get $get): bool
-            // => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial'),
-
-
             Forms\Components\Textarea::make('resultados_esperados')
                 ->cols(30)
                 ->rows(4)
@@ -157,7 +280,7 @@ class CuartaParte
                 ->label('Indicadores de medición de resultados')
                 ->required(),
 
-            Fieldset::make('Presupuesto')
+            Fieldset::make('Presupuesto del proyecto (indicado en lempiras)')
                 ->schema([
                     TextInput::make('aporte_estudiantes')
                         ->label('Aporte de estudiantes')
@@ -166,6 +289,16 @@ class CuartaParte
 
                     TextInput::make('aporte_profesores')
                         ->label('Aporte de profesores')
+                        ->numeric()
+                        ->required(),
+
+                    TextInput::make('aporte_internacionales')
+                        ->label('Aporte fondos internacionales')
+                        ->numeric()
+                        ->required(),
+
+                    TextInput::make('aporte_otras_universidades')
+                        ->label('Aporte otras universidades')
                         ->numeric()
                         ->required(),
 
@@ -190,7 +323,7 @@ class CuartaParte
                         ->required(),
 
                     TextInput::make('aporte_comunidad')
-                        ->label('Aporte de comunidad')
+                        ->label('Aporte de beneficiarios')
                         ->numeric()
                         ->required(),
                 ])

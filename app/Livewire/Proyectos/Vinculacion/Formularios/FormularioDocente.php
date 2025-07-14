@@ -30,6 +30,16 @@ class FormularioDocente
 
             Forms\Components\TextInput::make('nombre_completo')->minLength(2)->maxLength(255)->label('Nombre completo')->required(),
 
+            Select::make('sexo')
+                ->label('Sexo')
+                ->searchable()
+                ->required()
+                ->options( [
+                    'Masculino' => 'Masculino',
+                    'Femenino' => 'Femenino',
+                    'Otro' => 'Otro',
+                ]),
+
             Forms\Components\TextInput::make('numero_empleado')->minLength(2)->maxLength(255)->label('Número de empleado')->unique('empleado', 'numero_empleado')->required(),
 
             Select::make('categoria_id')->label('Categoría')->relationship(name: 'categoria', titleAttribute: 'nombre')->required()->preload(),

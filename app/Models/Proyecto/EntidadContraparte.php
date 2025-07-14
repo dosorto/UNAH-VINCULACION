@@ -14,7 +14,7 @@ class EntidadContraparte extends Model
     use SoftDeletes;
     use LogsActivity;
 
-    protected static $logAttributes = ['id', 'proyecto_id', 'nombre', 'telefono', 'correo', 'nombre_contacto', 'es_internacional',
+    protected static $logAttributes = ['id', 'proyecto_id', 'nombre', 'telefono', 'correo', 'nombre_contacto', 'tipo_entidad',
             'aporte'];
 
     protected static $logName = 'EntidadContraparte';
@@ -22,7 +22,7 @@ class EntidadContraparte extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-        ->logOnly(['id', 'proyecto_id', 'nombre', 'telefono', 'correo', 'nombre_contacto', 'es_internacional',
+        ->logOnly(['id', 'proyecto_id', 'nombre', 'telefono', 'correo', 'nombre_contacto', 'tipo_entidad',
             'aporte'])
         ->setDescriptionForEvent(fn (string $eventName) => "El registro {$this->nombre} ha sido {$eventName}");
     }
@@ -31,10 +31,11 @@ class EntidadContraparte extends Model
         'id',
         'proyecto_id',
         'nombre',
+        'cargo_contacto',
         'telefono',
         'correo', 
         'nombre_contacto', 
-        'es_internacional',
+        'tipo_entidad',
         'aporte', 
         // 'instrumento_formalizacion'
     ];

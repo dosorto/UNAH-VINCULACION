@@ -4,12 +4,14 @@ namespace App\Livewire\Proyectos\Vinculacion\Secciones;
 
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioDocente;
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioEstudiante;
+use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioIntegranteInternacional;
 
 use Filament\Forms;
 use App\Models\User;
 use Filament\Forms\Get;
 
 use App\Models\Personal\Empleado;
+use App\Models\Proyecto\IntegranteInternacional;
 
 use App\Models\Estudiante\Estudiante;
 use App\Models\UnidadAcademica\FacultadCentro;
@@ -17,6 +19,7 @@ use Faker\Provider\ar_EG\Text;
 use Filament\Forms\Components\Hidden;
 
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
@@ -66,126 +69,6 @@ class PrimeraParte
                 ->live()
                 ->required()
                 ->preload(),
-            Repeater::make('coordinador_proyecto')
-                ->label('Coordinador')
-                ->schema([
-                    Select::make('empleado_id')
-                    ->label('')
-                    ->required()
-                    ->searchable(['nombre_completo', 'numero_empleado'])
-                    ->relationship(name: 'empleado', titleAttribute: 'nombre_completo')
-                    ->default(fn() => optional(Empleado::where('user_id', auth()->id())->first())->id)
-                        ->disabled(),
-                    Hidden::make('rol')
-                        ->default('Coordinador'),
-                    Hidden::make('empleado_id')
-
-                ])
-                ->columnSpanFull()
-                ->relationship()
-                ->minItems(1)
-                ->maxItems(1)
-                ->deletable(false)
-                ->defaultItems(1),
-            Repeater::make('empleado_proyecto')
-                ->label('Integrantes ')
-                ->schema([
-                    Select::make('empleado_id')
-                        ->label('Integrante')
-                        ->distinct()
-                        ->searchable(['nombre_completo', 'numero_empleado'])
-                        ->relationship(
-                            name: 'empleado',
-                            titleAttribute: 'nombre_completo',
-                            // QUITAR EL ID DEL USUARIO LOGUEADO DE LA LISTA DE EMPLEADOS
-                            modifyQueryUsing: fn(Builder $query) =>  $query->where('user_id', '!=', auth()->id())
-                        )
-
-                        ->createOptionForm(
-                            FormularioDocente::form()
-                        )
-                        ->required()
-                        ->createOptionUsing(function (array $data) {
-                            $user = User::create([
-                                'email' => $data['email'],
-                                'name' => $data['nombre_completo']
-                            ]);
-                            $user->empleado()->create([
-                                'user_id' => $user->id,
-                                'nombre_completo' => $data['nombre_completo'],
-                                'numero_empleado' => $data['numero_empleado'],
-                                'celular' => $data['celular'],
-                                'categoria_id' => $data['categoria_id'],
-                                'departamento_academico_id' => $data['departamento_academico_id'],
-
-                            ]);
-                        }),
-
-                    TextInput::make('rol')
-                        ->label('Rol')
-                        ->disabled()
-                        ->required()
-                        ->default('Integrante'),
-                    Hidden::make('rol')
-                        ->default('Integrante'),
-                    //->required,
-
-                ])
-                ->relationship()
-                ->columnSpanFull()
-                ->defaultItems(0)
-                ->itemLabel('Empleado')
-                ->addActionLabel('Agregar empleado')
-                ->grid(2),
-            Repeater::make('estudiante_proyecto')
-                ->schema([
-                    Select::make('estudiante_id')
-                        ->label('Estudiante')
-                        ->required()
-                        ->searchable(['cuenta'])
-                        ->relationship(
-                            name: 'estudiante',
-                            titleAttribute: 'cuenta'
-                        )
-                        ->createOptionForm(
-                            FormularioEstudiante::form()
-                        )
-                        ->required()
-                        ->createOptionUsing(function (array $data) {
-                            $user = User::create([
-                                'email' => $data['email'],
-                                'name' => $data['nombre'] . ' ' . $data['apellido']
-                            ]);
-                            $user->estudiante()->create([
-                                'user_id' => $user->id,
-                                'nombre' => $data['nombre'],
-                                'apellido' => $data['apellido'],
-                                'cuenta' => $data['cuenta'],
-                                'centro_facultad_id' => $data['centro_facultad_id'],
-                                'carrera_id' => $data['carrera_id'],
-
-
-                            ]);
-                        })
-                        ->required(),
-                    Select::make('tipo_participacion_estudiante')
-                        ->label('Tipo de participación')
-                        ->required()
-                        ->label('Tipo de participación')
-                        ->options([
-                            'Servicio Social Universitario' => 'Servicio Social Universitario',
-                            'Practica Profesional' => 'Practica Profesional',
-                            'Voluntariado' => 'Voluntariado',
-                            'Practica de Clase' => 'Practica de Clase',
-                        ])
-                        ->required(),
-                ])
-                ->label('Estudiantes')
-                ->relationship()
-                ->defaultItems(0)
-                ->columnSpanFull()
-                ->grid(2)
-                ->addActionLabel('Agregar estudiante'),
             // actividades
         ];
     }

@@ -26,6 +26,7 @@ use App\Livewire\Proyectos\Vinculacion\Secciones\PrimeraParte;
 // use App\Mail\Correos\CorreoParticipacion;
 use App\Livewire\Proyectos\Vinculacion\Secciones\SegundaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\TerceraParte;
+use App\Livewire\Proyectos\Vinculacion\Secciones\EquipoEjecutor;
 
 class CreateProyectoVinculacion extends Component implements HasForms
 {
@@ -50,6 +51,11 @@ class CreateProyectoVinculacion extends Component implements HasForms
                         )
                         ->columns(2),
                     Wizard\Step::make('II.')
+                        ->description('EQUIPO EJECUTOR DEL PROYECTO')
+                        ->schema(
+                            EquipoEjecutor::form(),
+                        ),
+                    Wizard\Step::make('III.')
                         ->description('INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (en caso de contar con una contraparte).')
                         ->schema(
                             SegundaParte::form(),

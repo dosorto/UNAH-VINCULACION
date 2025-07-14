@@ -32,6 +32,8 @@ use App\Models\Proyecto\Superavit;
 use App\Models\Proyecto\Categoria;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\FirmaProyecto;
+use App\Models\Proyecto\IntegranteInternacional;
+use App\Models\Proyecto\IntegranteInternacionalProyecto;
 use App\Models\Estudiante\Estudiante;
 use App\Models\Estado\EstadoProyecto;
 use App\Models\Proyecto\DocumentoProyecto;
@@ -292,6 +294,31 @@ class Proyecto extends Model
     public function estudiante_proyecto()
     {
         return $this->hasMany(EstudianteProyecto::class, 'proyecto_id');
+    }
+
+    // relacion muchos a muchos con integrantes internacionales
+    public function integrante_internacional_proyecto()
+    {
+        return $this->hasMany(IntegranteInternacionalProyecto::class, 'proyecto_id');
+    }
+
+    public function integrantesInternacionales()
+    {
+        return $this->belongsToMany(
+            IntegranteInternacional::class,
+            'integrante_internacional_proyecto',
+            'proyecto_id',
+            'integrante_internacional_id'
+        )->withPivot([
+            'rol',
+            'responsabilidades',
+            'fecha_inicio',
+            'fecha_fin',
+            'tipo_participacion',
+            'horas_asignadas',
+            'modalidad_participacion',
+            'observaciones'
+        ])->withTimestamps();
     }
 
     // relacion uno a muchos con el modelo entidad contraparte

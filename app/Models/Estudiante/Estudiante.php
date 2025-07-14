@@ -32,6 +32,7 @@ class Estudiante extends Model
         'nombre', 
         'apellido', 
         'cuenta',
+        'sexo',
         'user_id',
         'centro_facultad_id',
         'departamento_academico_id',
