@@ -19,10 +19,13 @@ class Presupuesto extends Model
         'proyecto_id',
         'aporte_estudiantes',
         'aporte_profesores',
+        'aporte_internacionales',
+        'aporte_otras_universidades',
         'aporte_academico_unah',
         'aporte_transporte_unah',
         'aporte_contraparte',
         'aporte_comunidad',
+        'otros_aportes',
     ];
 
     protected static $logName = 'Presupuesto';
@@ -39,6 +42,8 @@ class Presupuesto extends Model
         'proyecto_id',
         'aporte_estudiantes',
         'aporte_profesores',
+        'aporte_internacionales',
+        'aporte_otras_universidades',
         'aporte_academico_unah',
         'aporte_transporte_unah',
         'aporte_contraparte',

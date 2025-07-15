@@ -27,6 +27,7 @@ use App\Livewire\Proyectos\Vinculacion\Secciones\PrimeraParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\SegundaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\TerceraParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\EquipoEjecutor;
+use App\Livewire\Proyectos\Vinculacion\Secciones\MarcoLogico;
 
 class CreateProyectoVinculacion extends Component implements HasForms
 {
@@ -60,24 +61,30 @@ class CreateProyectoVinculacion extends Component implements HasForms
                         ->schema(
                             SegundaParte::form(),
                         ),
-                    Wizard\Step::make('III.')
+                    Wizard\Step::make('IV.')
                         ->description('Cronograma de actividades.')
                         
                         ->schema(
                             TerceraParte::form(),
                         ),
-                    Wizard\Step::make('IV.')
+                    Wizard\Step::make('V.')
                         ->description('DATOS DEL PROYECTO')
                         ->schema(
                             CuartaParte::form(),
                         )
                         ->columns(2),
-                    Wizard\Step::make('V.')
+                        Wizard\Step::make('VI.')
+                        ->description('RESUMEN MARCO LÓGICO DEL PROYECTO')
+                        ->schema(
+                            MarcoLogico::form(),
+                        )
+                        ->columns(2),
+                    Wizard\Step::make('VII.')
                         ->description('Anexos')
                         ->schema(
                             QuintaParte::form(),
                         ),
-                    Wizard\Step::make('VI.')
+                    Wizard\Step::make('VIII.')
                         ->description('Firmas')
                         ->schema(
                             SextaParte::form(),

@@ -22,19 +22,19 @@ class CuartaParte
     {
         return [
             Forms\Components\Textarea::make('resumen')
-                ->label('Resumen')
+                ->label('Descripción del proyecto: (Explicar brevemente en qué consiste el proyecto, los antecedentes que dieron su origen y la importancia que tiene para los objetivos estratégicos de la UNAH)')
                 ->rows(10)
                 ->cols(30)
                 ->required()
                 ->columnSpanFull(),
-            Forms\Components\Textarea::make('objetivo_general')
-                ->label('Objetivo general')
+            Forms\Components\Textarea::make('descripcion_participantes')
+                ->label('Descripción de las participantes del proyecto (Descripción breve de las unidades académicas participantes y su alineamiento con la estrategia de vinculación de la unidad. También se realizará una breve descripción de las contrapartes participantes, a qué se dedican y cómo se alinea el proyecto a los planes estratégicos)')
                 ->rows(10)
                 ->cols(30)
                 ->required()
                 ->columnSpanFull(),
-            Forms\Components\Textarea::make('objetivos_especificos')
-                ->label('Objetivos específicos')
+            Forms\Components\Textarea::make('definicion_problema')
+                ->label('Definición del problema:  Breve descripción del problema que se desea resolver, indicando línea base que se tendrá en consideración para la definición de los resultados del proyecto')
                 ->rows(10)
                 ->cols(30)
                 ->required()
@@ -269,15 +269,20 @@ class CuartaParte
             //     ])
             //     ->preload(),
 
-            Forms\Components\Textarea::make('resultados_esperados')
+            Forms\Components\Textarea::make('impacto_deseado')
                 ->cols(30)
                 ->rows(4)
-                ->label('Resultados esperados')
+                ->label('Impacto que se desea generar en el proyecto ')
                 ->required(),
-            Forms\Components\Textarea::make('indicadores_medicion_resultados')
+            Forms\Components\Textarea::make('metodologia')
                 ->cols(30)
                 ->rows(4)
-                ->label('Indicadores de medición de resultados')
+                ->label('Metodología')
+                ->required(),
+            Forms\Components\Textarea::make('bibliografia')
+                ->cols(30)
+                ->rows(4)
+                ->label('Bibliografía')
                 ->required(),
 
             Fieldset::make('Presupuesto del proyecto (indicado en lempiras)')

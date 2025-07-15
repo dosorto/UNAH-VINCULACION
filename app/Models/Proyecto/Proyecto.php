@@ -37,6 +37,8 @@ use App\Models\Proyecto\IntegranteInternacionalProyecto;
 use App\Models\Estudiante\Estudiante;
 use App\Models\Estado\EstadoProyecto;
 use App\Models\Proyecto\DocumentoProyecto;
+use App\Models\Proyecto\ObjetivoEspecifico;
+use App\Models\Proyecto\ResultadoEsperado;
 
 
 
@@ -55,6 +57,8 @@ class Proyecto extends Model
         
         'aldea',
         'resumen',
+        'descripcion_participantes',
+        'definicion_problema',
         'objetivo_general',
         'objetivos_especificos',
         'fecha_inicio',
@@ -62,9 +66,24 @@ class Proyecto extends Model
         'evaluacion_intermedia',
         'evaluacion_final',
         'poblacion_participante',
+        'hombres',
+        'mujeres',
+        'otros',
+        'indigenas_hombres',
+        'indigenas_mujeres',
+        'afroamericanos_hombres',
+        'afroamericanos_mujeres',
+        'mestizos_hombres',
+        'mestizos_mujeres',
         'modalidad_ejecucion',
+        'pais',
+        'region',
+        'caserio',
         'resultados_esperados',
         'indicadores_medicion_resultados',
+        'impacto_deseado',
+        'metodologia',
+        'bibliografia',
         'fecha_registro',
         'responsable_revision_id',
         'fecha_aprobacion',
@@ -124,6 +143,8 @@ class Proyecto extends Model
         'ciudad_id',
         'aldea',
         'resumen',
+        'descripcion_participantes',
+        'definicion_problema',
         'objetivo_general',
         'objetivos_especificos',
         'fecha_inicio',
@@ -131,17 +152,42 @@ class Proyecto extends Model
         'evaluacion_intermedia',
         'evaluacion_final',
         'poblacion_participante',
+        'hombres',
+        'mujeres',
+        'otros',
+        'indigenas_hombres',
+        'indigenas_mujeres',
+        'afroamericanos_hombres',
+        'afroamericanos_mujeres',
+        'mestizos_hombres',
+        'mestizos_mujeres',
         'modalidad_ejecucion',
+        'pais',
+        'region',
+        'caserio',
         'resultados_esperados',
         'indicadores_medicion_resultados',
+        'impacto_deseado',
+        'metodologia',
+        'bibliografia',
         'fecha_registro',
         'fecha_aprobacion',
         'numero_libro',
         'numero_tomo',
         'numero_folio',
         'numero_dictamen',
+    ];
 
-
+    protected $casts = [
+        'fecha_inicio' => 'date',
+        'fecha_finalizacion' => 'date',
+        'evaluacion_intermedia' => 'date',
+        'evaluacion_final' => 'date',
+        'fecha_registro' => 'date',
+        'fecha_aprobacion' => 'date',
+        'pais' => 'array',
+        'region' => 'array',
+        'caserio' => 'array',
     ];
 
     public function getDocumentoIntermedioAttribute()
@@ -511,6 +557,12 @@ class Proyecto extends Model
     public function estudianteProyecto()
     {
         return $this->hasMany(EstudianteProyecto::class, 'proyecto_id');
+    }
+
+    // Relaciones del Marco Lógico
+    public function objetivosEspecificos()
+    {
+        return $this->hasMany(ObjetivoEspecifico::class)->orderBy('orden');
     }
     
     

@@ -27,6 +27,13 @@ class SegundaParte
                         ->label('Nombre de la entidad')
                         ->columnSpan(1)
                         ->required(),
+                        Forms\Components\TextInput::make('aporte')
+                        ->minLength(2)
+                        ->maxLength(255)
+                        ->label('Aporte')
+                        ->columnSpan(1)
+                        ->required()
+                        ->default(0),
                     Forms\Components\Radio::make('tipo_entidad')
                         ->label('Tipo de Contraparte')
                         ->options([
@@ -98,21 +105,13 @@ class SegundaParte
                         ->columns(2)
                         ->defaultItems(0)
                         ->addActionLabel('Agregar documento'),
-                    Forms\Components\TextInput::make('aporte')
-                        ->minLength(2)
-                        ->maxLength(255)
-                        ->label('Aporte')
-                        ->columnSpan(1)
-                        ->required()
-                        ->default(0),
-
 
                 ])
                 ->label('Entidades contraparte')
                 ->relationship()
                 ->itemLabel('Entidad contraparte')
                 ->columns(2)
-                ->defaultItems(0)
+                ->defaultItems(1)
                 ->addActionLabel('Agregar entidad contraparte')
         ];
     }
