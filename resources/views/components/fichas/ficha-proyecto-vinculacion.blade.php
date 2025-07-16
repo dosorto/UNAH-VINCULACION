@@ -59,7 +59,7 @@
                     <div class="section-title">I. INFORMACIÓN GENERAL DEL PROYECTO </div>
                     <table class="table_datos1">
                         <tr>
-                            <th class="full-width1">Nombre del Proyecto:</th>
+                            <th class="full-width1">1. Nombre del Proyecto:</th>
                             <td class="full-width" colspan="5">
 
                                 <input disabled type="text" class="input-field"
@@ -69,7 +69,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <th class="full-width1" rowspan="2">Unidad Académica:</th>
+                            <th class="full-width1" rowspan="4">2. Unidad Académica:</th>
                             <td class="sub-header" colspan="1">Facultad/Campus Universitario</td>
                             <td class="full-width" colspan="4">
                                 <ul>
@@ -90,7 +90,27 @@
                             </td>
                         </tr>
                         <tr>
-                            <th class="full-width1" rowspan="1">Modalidad</th>
+                            <td class="sub-header" colspan="1">Programa al que pertenece </td>
+                            <td class="full-width" colspan="4">
+                                <ul>
+                                    @foreach ($proyecto->departamentos_academicos as $departamento)
+                                        <li>{{ $departamento->nombre }}</li>
+                                    @endforeach
+                                </ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="1">Líneas de investigación de la unidad académica</td>
+                            <td class="full-width" colspan="4">
+                                <ul>
+                                    @foreach ($proyecto->departamentos_academicos as $departamento)
+                                        <li>{{ $departamento->nombre }}</li>
+                                    @endforeach
+                                </ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="full-width1" rowspan="1">3. Modalidad</th>
                             <td class="sub-header1" colspan="1">Unidisciplinar <br>
                                 <input disabled type="checkbox" class="No"
                                     @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>
@@ -108,6 +128,27 @@
                                     @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>
                             </td>
                         </tr>
+                        <tr>
+                            <th class="full-width1" rowspan="1">4. Alineamiento con ejes prioritarios de la UNAH</th>
+                            <td class="sub-header1" colspan="1">Desarrollo económico y social <br>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>
+                            </td>
+                            <td class="sub-header1" colspan="1">Democracia y gobernabilidad<br>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Multidisciplinar') checked @endif>
+                            </td>
+                            <td class="sub-header1" colspan="1">Población y condiciones de vida <br>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Interdisciplinar') checked @endif>
+                            </td>
+                            <td class="sub-header1" colspan="1">Ambiente, biodiversidad y desarrollo<br>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>
+                            </td>
+                        </tr>
+
+<!--
                         <tr>
                             <th class="full-width1" rowspan="3">Coordinador/a del Proyecto:</th>
                             <td class="sub-header">Nombre Completo:</td>
@@ -150,7 +191,50 @@
                                     placeholder="Ingrese el número de celular"
                                     value="{{ $proyecto->coordinador->departamento_academico->nombre }}" disabled>
                             </td>
+                        </tr> -->
+                        
+                        <tr>
+                            <th class="full-width1" rowspan="2">5. Categoría del proyecto:</th>
+                            <td class="sub-header1" colspan="1">Desarrollo Local <br>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>
+                            </td>
+                            <td class="sub-header1" colspan="1">Desarrollo Regional<br>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Multidisciplinar') checked @endif>
+                            </td>
+                            <td class="sub-header1" colspan="1">Volunt. Académico<br>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Interdisciplinar') checked @endif>
+                            </td>
+                            <td class="sub-header1" colspan="1">Seguim. a egresados<br>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>
+                            </td>
                         </tr>
+                        <tr>
+                           <td class="sub-header1" colspan="1">I + D + i <br>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>
+                            </td>
+                            <td class="sub-header1" colspan="1">Cultural<br>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Multidisciplinar') checked @endif>
+                            </td>
+                            <td class="sub-header1" colspan="1">Comunicac<br>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Interdisciplinar') checked @endif>
+                            </td>
+                            <td class="sub-header1" colspan="1">APS<br>
+                                <input disabled type="checkbox" class="No"
+                                    @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>
+                            </td>
+                        </tr>
+                        
+                        
+                        
+                       
+                        
                         <tr>
                             <th class="header" colspan="6">Integrantes del equipo universitario (Agregar o quitar
                                 líneas de ser necesario)</th>

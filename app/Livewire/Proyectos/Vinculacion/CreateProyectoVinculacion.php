@@ -28,6 +28,7 @@ use App\Livewire\Proyectos\Vinculacion\Secciones\SegundaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\TerceraParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\EquipoEjecutor;
 use App\Livewire\Proyectos\Vinculacion\Secciones\MarcoLogico;
+use App\Livewire\Proyectos\Vinculacion\Secciones\Presupuesto;
 
 class CreateProyectoVinculacion extends Component implements HasForms
 {
@@ -62,7 +63,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                             SegundaParte::form(),
                         ),
                     Wizard\Step::make('IV.')
-                        ->description('Cronograma de actividades.')
+                        ->description('CRONOGRAMA DE ACTIVIDADES.')
                         
                         ->schema(
                             TerceraParte::form(),
@@ -80,12 +81,18 @@ class CreateProyectoVinculacion extends Component implements HasForms
                         )
                         ->columns(2),
                     Wizard\Step::make('VII.')
-                        ->description('Anexos')
+                        ->description('DETALLES DEL PRESUPUESTO')
+                        ->schema(
+                            Presupuesto::form(),
+                        )
+                        ->columns(2),
+                    Wizard\Step::make('VIII.')
+                        ->description('ANEXOS')
                         ->schema(
                             QuintaParte::form(),
                         ),
-                    Wizard\Step::make('VIII.')
-                        ->description('Firmas')
+                    Wizard\Step::make('IX.')
+                        ->description('FIRMAS')
                         ->schema(
                             SextaParte::form(),
                         ),

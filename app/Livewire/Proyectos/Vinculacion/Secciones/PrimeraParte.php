@@ -45,6 +45,19 @@ class PrimeraParte
                 ->relationship(name: 'modalidad', titleAttribute: 'nombre')
                 ->required()
                 ->preload(),
+
+           /* Forms\Components\Radio::make('ejes_prioritarios')
+                ->label('Alineamiento con ejes prioritarios de la UNAH')
+                ->options([
+                            'Desarrollo_económico_social' => 'Desarrollo económico y social',
+                            'Democracia_gobernabilidad' => 'Democracia y gobernabilidad',
+                            'Población_condiciones_de_vida' => 'Población y condiciones de vida',
+                            'Ambiente_biodiversidad_desarrollo' => 'Ambiente, biodiversidad y desarrollo',
+                        ])
+                        ->inline()
+                        ->required()
+                        ->columnSpanFull(),    */   
+
             Select::make('facultades_centros')
                 ->label('Facultades o Centros')
                 ->searchable()
@@ -69,6 +82,21 @@ class PrimeraParte
                 ->live()
                 ->required()
                 ->preload(),
+
+            Forms\Components\TextArea::make('programa_pertenece')
+                ->label('Programa al que pertenece')
+                ->minLength(2)
+                ->maxLength(255)
+                ->columnSpan(1)
+                ->required(),
+
+            Forms\Components\TextArea::make('Líneas_investigación_académica')
+                ->label('Líneas de investigación de la unidad académica')
+                ->minLength(2)
+                ->maxLength(255)
+                ->columnSpanFull()
+                ->required(),
+               
             // actividades
         ];
     }

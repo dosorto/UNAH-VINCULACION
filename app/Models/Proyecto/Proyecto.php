@@ -39,6 +39,7 @@ use App\Models\Estado\EstadoProyecto;
 use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\ObjetivoEspecifico;
 use App\Models\Proyecto\ResultadoEsperado;
+use App\Models\Proyecto\AporteInstitucional;
 
 
 
@@ -170,6 +171,7 @@ class Proyecto extends Model
         'impacto_deseado',
         'metodologia',
         'bibliografia',
+        'total_aporte_institucional',
         'fecha_registro',
         'fecha_aprobacion',
         'numero_libro',
@@ -563,6 +565,12 @@ class Proyecto extends Model
     public function objetivosEspecificos()
     {
         return $this->hasMany(ObjetivoEspecifico::class)->orderBy('orden');
+    }
+
+    // Relación con Aporte Institucional
+    public function aporteInstitucional()
+    {
+        return $this->hasMany(AporteInstitucional::class);
     }
     
     
