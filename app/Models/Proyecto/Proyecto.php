@@ -55,7 +55,8 @@ class Proyecto extends Model
         'modalidad_id',
         'municipio_id',
         'departamento_id',
-        
+        'líneas_investigación_académica',
+        'programa_pertenece',
         'aldea',
         'resumen',
         'descripcion_participantes',

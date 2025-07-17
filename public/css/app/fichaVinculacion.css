@@ -162,6 +162,42 @@ p {
     font-family: Arial, sans-serif;
 }
 
+/* Estilos para campos de fecha divididos */
+.date-container {
+    display: flex;
+    width: 100%;
+}
+
+.date-part {
+    flex: 1;
+    min-width: 25px;
+    text-align: center;
+    border-right: 1px solid #000;
+}
+
+.date-part:last-child {
+    border-right: none;
+}
+
+.date-part .date-label {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 2px;
+    display: block;
+    font-family: Arial, sans-serif;
+}
+
+.date-part input {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 14px;
+    padding: 4px;
+    border: none;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: transparent;
+}
+
 
 /*Tabla de Datos 2*/
 

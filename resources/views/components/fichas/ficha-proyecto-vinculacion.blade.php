@@ -92,21 +92,17 @@
                         <tr>
                             <td class="sub-header" colspan="1">Programa al que pertenece </td>
                             <td class="full-width" colspan="4">
-                                <ul>
-                                    @foreach ($proyecto->departamentos_academicos as $departamento)
-                                        <li>{{ $departamento->nombre }}</li>
-                                    @endforeach
-                                </ul>
+                                 <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el programa al que pertenece"
+                                    value="{{ $proyecto->programa_pertenece }}" disabled>
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-header" colspan="1">Líneas de investigación de la unidad académica</td>
                             <td class="full-width" colspan="4">
-                                <ul>
-                                    @foreach ($proyecto->departamentos_academicos as $departamento)
-                                        <li>{{ $departamento->nombre }}</li>
-                                    @endforeach
-                                </ul>
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el programa al que pertenece"
+                                    value="{{ $proyecto->líneas_investigación_académica }}" disabled>
                             </td>
                         </tr>
                         <tr>
@@ -197,44 +193,208 @@
                             <th class="full-width1" rowspan="2">5. Categoría del proyecto:</th>
                             <td class="sub-header1" colspan="1">Desarrollo Local <br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>
+                                    @if ($proyecto->categoria->contains('nombre', 'Desarrollo Local')) checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Desarrollo Regional<br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Multidisciplinar') checked @endif>
+                                    @if ($proyecto->categoria->contains('nombre', 'Desarrollo Regional')) checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Volunt. Académico<br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Interdisciplinar') checked @endif>
+                                    @if ($proyecto->categoria->contains('nombre', 'Volunt. Académico')) checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Seguim. a egresados<br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>
+                                    @if ($proyecto->categoria->contains('nombre', 'Seguim. a egresados')) checked @endif>
                             </td>
                         </tr>
                         <tr>
                            <td class="sub-header1" colspan="1">I + D + i <br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>
+                                    @if ($proyecto->categoria->contains('nombre', 'I + D + i')) checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Cultural<br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Multidisciplinar') checked @endif>
+                                    @if ($proyecto->categoria->contains('nombre', 'Cultural')) checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Comunicac<br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Interdisciplinar') checked @endif>
+                                    @if ($proyecto->categoria->contains('nombre', 'Comunicac')) checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">APS<br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>
+                                    @if ($proyecto->categoria->contains('nombre', 'APS')) checked @endif>
                             </td>
                         </tr>
                         
                         
-                        
-                       
-                        
+                        <!-- FECHAS DE EJECUCION  -->
+                        <tr>
+                            <th class="full-width1" rowspan="1">6. Fechas de ejecución del proyecto:</th>
+                            <td class="sub-header" colspan="1">Fecha de inicio:</td>   
+                            <td class="full-width" colspan="1">
+                                <div class="date-container">
+                                    <div class="date-part">
+                                        <span class="date-label">Día</span>
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_inicio ? $proyecto->fecha_inicio->format('d') : '' }}">
+                                    </div>
+                                    <div class="date-part">
+                                        <span class="date-label">Mes</span>
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_inicio ? $proyecto->fecha_inicio->format('m') : '' }}">
+                                    </div>
+                                    <div class="date-part">
+                                        <span class="date-label">Año</span>
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_inicio ? $proyecto->fecha_inicio->format('Y') : '' }}">
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="sub-header" colspan="1">Fecha de finalización:</td> 
+                            <td class="full-width" colspan="1">
+                                <div class="date-container">
+                                    <div class="date-part">
+                                        <span class="date-label">Día</span>
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_finalizacion ? $proyecto->fecha_finalizacion->format('d') : '' }}">
+                                    </div>
+                                    <div class="date-part">
+                                        <span class="date-label">Mes</span>
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_finalizacion ? $proyecto->fecha_finalizacion->format('m') : '' }}">
+                                    </div>
+                                    <div class="date-part">
+                                        <span class="date-label">Año</span>
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_finalizacion ? $proyecto->fecha_finalizacion->format('Y') : '' }}">
+                                    </div>
+                                </div>
+                            </td>
+                        </tr> 
+                   
+                        <!-- TABLA DE BENEFICIARIOS DIRECTOS -->
+                        <tr>
+                            <th class="full-width1" rowspan="5" colspan="1">7. Beneficiarios directos (número aproximado)</th>
+                           <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="full-width" colspan="4">
+                               <input type="text" class="input-field" placeholder="0"
+                                    value="{{ $proyecto->beneficiarios_directos_hombres }}" disabled>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                            <td class="full-width" colspan="4">
+                               <input type="text" class="input-field" placeholder="0"
+                                    value="{{ $proyecto->beneficiarios_directos_hombres }}" disabled>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="1">Otros (ndicar número y tipo)</td>
+                            <td class="full-width" colspan="4">
+                               <input type="text" class="input-field" placeholder="0"
+                                    value="{{ $proyecto->beneficiarios_directos_hombres }}" disabled>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" rowspan="2" colspan="1">Indicar tipo de etnia</td>
+                            <td class="sub-header" colspan="1">Indígena</td>
+                            <td class="sub-header" colspan="1">Afrodescendiente</td>
+                            <td class="sub-header" colspan="1">Mestizo</td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="1">
+                                <div class="date-container">
+                                    <div class="date-part">
+                                        <span class="date-label">Hombres</span>
+                                        <input disabled type="text" class="input-field" placeholder="0">
+                                    </div>
+                                    <div class="date-part">
+                                        <span class="date-label">Mujeres</span>
+                                        <input disabled type="text" class="input-field" placeholder="0">
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <div class="date-container">
+                                    <div class="date-part">
+                                        <span class="date-label">Hombres</span>
+                                        <input disabled type="text" class="input-field" placeholder="0">
+                                    </div>
+                                    <div class="date-part">
+                                        <span class="date-label">Mujeres</span>
+                                        <input disabled type="text" class="input-field" placeholder="0">
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <div class="date-container">
+                                    <div class="date-part">
+                                        <span class="date-label">Hombres</span>
+                                        <input disabled type="text" class="input-field" placeholder="0">
+                                    </div>
+                                    <div class="date-part">
+                                        <span class="date-label">Mujeres</span>
+                                        <input disabled type="text" class="input-field" placeholder="0">
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+        
+                    <!-- Sitio de ejecución del proyecto --> 
+                    <tr>
+                        <th class="full-width1" colspan="6">8. Sitio de ejecución del proyecto</th>
+                    </tr>
+                    <tr>
+                        <td class="sub-header" colspan="1">Departamento</td>
+                        <td class="full-width" colspan="1">
+                            @forelse ($proyecto->municipio as $municipio)
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el nombre de la entidad"
+                                        value="{{ $municipio->nombre }}" disabled>
+                                @empty
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el nombre de la entidad" value="No hay municipios"
+                                        disabled>
+                                @endforelse
+                        </td>
+                        <td class="sub-header" colspan="1">Aldea (incluye ciudad)</td>
+                        <td class="full-width" colspan="2">
+                            <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el nombre de la entidad" value="{{ $proyecto->aldea }}"
+                                    disabled>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="sub-header" colspan="1">Municipio</td>
+                        <td class="full-width" colspan="1">
+                            @forelse ($proyecto->municipio as $municipio)
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el nombre de la entidad"
+                                        value="{{ $municipio->nombre }}" disabled>
+                                @empty
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el nombre de la entidad" value="No hay municipios"
+                                        disabled>
+                                @endforelse
+                        </td>
+                        <td class="sub-header" colspan="1">Caserío</td>
+                        <td class="full-width" colspan="2">
+                             <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el caserío" value="{{ is_array($proyecto->caserio) ? implode(', ', $proyecto->caserio) : ($proyecto->caserio ?? '') }}"
+                                    disabled>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="sub-header" colspan="1">Región</td>
+                        <td class="full-width" colspan="1">
+                             <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese la región" value="{{ is_array($proyecto->region) ? implode(', ', $proyecto->region) : ($proyecto->region ?? '') }}"
+                                    disabled>
+                        </td>
+                        <td class="sub-header" colspan="1">País</td>
+                        <td class="full-width" colspan="2">
+                             <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el país" value="{{ is_array($proyecto->pais) ? implode(', ', $proyecto->pais) : ($proyecto->pais ?? '') }}"
+                                    disabled>
+                        </td>
+                    </tr>
+
+                    <!-- TABLA DE INTEGRANTES DEL EQUIPO UNIVERSITARIO -->
                         <tr>
                             <th class="header" colspan="6">Integrantes del equipo universitario (Agregar o quitar
                                 líneas de ser necesario)</th>
@@ -249,7 +409,6 @@
                             <td class="sub-header">Categoria:</td>
                             <td class="sub-header">Departamento:</td>
                         </tr>
-
                         @forelse ($proyecto->integrantes as $integrante)
                             <tr>
                                 <td class="full-width" colspan="1">
@@ -493,94 +652,7 @@
                                 </textarea>
                             </td>
                         </tr>
-                        <tr>
-                            <th class="header" colspan="9" rowspan="2"> 5. Fecha de ejecución
-                            </th>
-                            <td class="sub-header" colspan="2" rowspan="2"> Fecha de inicio </td>
-                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el día"
-                                    value="{{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->format('d') }}"
-                                    disabled>
-                            </td>
-                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el mes"
-                                    value="{{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->format('m') }}"
-                                    disabled>
-                            </td>
-                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el día"
-                                    value="{{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->format('Y') }}"
-                                    disabled>
-                            </td>
-                            <td class="sub-header" colspan="2" rowspan="2"> Fecha de Finalización</td>
-                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el día"
-                                    value="{{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->format('d') }}"
-                                    disabled>
-                            </td>
-                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el mes"
-                                    value="{{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->format('m') }}"
-                                    disabled>
-                            </td>
-                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el día"
-                                    value="{{ \Carbon\Carbon::parse($proyecto->fecha_finalizacion)->format('Y') }}"
-                                    disabled>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="full-width" colspan="1">Día</td>
-                            <td class="full-width" colspan="1">Mes</td>
-                            <td class="full-width" colspan="1">Año</td>
-                            <td class="full-width" colspan="1">Día</td>
-                            <td class="full-width" colspan="1">Mes</td>
-                            <td class="full-width" colspan="1">Año</td>
-                        </tr>
-                        <tr>
-                            <th class="header" colspan="9" rowspan="2"> 6. Fecha de evaluación
-                            </th>
-                            <td class="sub-header" colspan="2" rowspan="2"> Evaluación intermedia </td>
-                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el día"
-                                    value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_intermedia)->format('d') }}"
-                                    disabled>
-                            </td>
-                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el mes"
-                                    value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_intermedia)->format('m') }}"
-                                    disabled>
-                            </td>
-                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el día"
-                                    value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_intermedia)->format('Y') }}"
-                                    disabled>
-                            </td>
-                            <td class="sub-header" colspan="2" rowspan="2"> Evaluación Final</td>
-                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el día"
-                                    value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_final)->format('d') }}"
-                                    disabled>
-                            </td>
-                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el mes"
-                                    value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_final)->format('m') }}"
-                                    disabled>
-                            </td>
-                            <td class="full-width" colspan="1"><input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el día"
-                                    value="{{ \Carbon\Carbon::parse($proyecto->evaluacion_final)->format('Y') }}"
-                                    disabled>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="full-width" colspan="1">Día</td>
-                            <td class="full-width" colspan="1">Mes</td>
-                            <td class="full-width" colspan="1">Año</td>
-                            <td class="full-width" colspan="1">Día</td>
-                            <td class="full-width" colspan="1">Mes</td>
-                            <td class="full-width" colspan="1">Año</td>
-                        </tr>
+                        
                         <tr>
                             <td class="sub-header" colspan="13">7. Población beneficiada (número aproximado) </td>
                             <td class="full-width" colspan="6">
