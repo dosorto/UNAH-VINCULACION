@@ -144,50 +144,7 @@
                             </td>
                         </tr>
 
-<!--
-                        <tr>
-                            <th class="full-width1" rowspan="3">Coordinador/a del Proyecto:</th>
-                            <td class="sub-header">Nombre Completo:</td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el nombre completo"
-                                    value="{{ $proyecto->coordinador->nombre_completo }}" disabled>
-                            </td>
-                            <td class="sub-header">No. de empleado:</td>
-                            <td class="full-width" colspan="">
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el número de empleado"
-                                    value="{{ $proyecto->coordinador->numero_empleado }}" disabled>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header">Correo electrónico:</td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el correo electrónico"
-                                    value="{{ $proyecto->coordinador->user->email }}" disabled>
-                            </td>
-                            <td class="sub-header">Celular:</td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="email" class="input-field"
-                                    placeholder="Ingrese el número de celular"
-                                    value="{{ $proyecto->coordinador->celular }}" disabled>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header">Categoria:</td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="email" class="input-field"
-                                    placeholder="Ingrese el número de celular"
-                                    value="{{ $proyecto->coordinador->categoria->nombre }}" disabled>
-                            </td>
-                            <td class="sub-header">Departamento:</td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="email" class="input-field"
-                                    placeholder="Ingrese el número de celular"
-                                    value="{{ $proyecto->coordinador->departamento_academico->nombre }}" disabled>
-                            </td>
-                        </tr> -->
+
                         
                         <tr>
                             <th class="full-width1" rowspan="2">5. Categoría del proyecto:</th>
@@ -334,11 +291,37 @@
                                 </div>
                             </td>
                         </tr>
+                         <tr>
+                            <td class="sub-header" colspan="2">7. Población beneficiada (número aproximado) </td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" placeholder="Ingrese el día"
+                                    value="{{ floor($proyecto->poblacion_participante) }}" disabled>
+                            </td>
+                        </tr>
         
                     <!-- Sitio de ejecución del proyecto --> 
                     <tr>
                         <th class="full-width1" colspan="6">8. Sitio de ejecución del proyecto</th>
                     </tr>
+                    <tr>
+                            <td class="sub-header" colspan="2">Modalidad de ejecución (marcar con una X)</td>
+                            <td class="full-width" colspan="1">
+                                Distancia <br>
+                                <input disabled type="checkbox" class="no"
+                                    @if ($proyecto->modalidad_ejecucion == 'Distancia') checked @endif>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                Presencial <br>
+                                <input disabled type="checkbox" class="no"
+                                    @if ($proyecto->modalidad_ejecucion == 'Presencial') checked @endif>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                Bimodal <br>
+                                <input disabled type="checkbox" class="no"
+                                    @if ($proyecto->modalidad_ejecucion == 'Bimodal') checked @endif>
+                            </td>
+
+                        </tr>
                     <tr>
                         <td class="sub-header" colspan="1">Departamento</td>
                         <td class="full-width" colspan="1">
@@ -374,33 +357,230 @@
                         </td>
                         <td class="sub-header" colspan="1">Caserío</td>
                         <td class="full-width" colspan="2">
-                             <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el caserío" value="{{ is_array($proyecto->caserio) ? implode(', ', $proyecto->caserio) : ($proyecto->caserio ?? '') }}"
-                                    disabled>
+                            @if(is_array($proyecto->caserio) && count($proyecto->caserio) > 0)
+                                @foreach($proyecto->caserio as $caserio)
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el caserío" value="{{ $caserio }}" disabled>
+                                @endforeach
+                            @else
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el caserío" value="{{ $proyecto->caserio ?? '' }}" disabled>
+                            @endif
                         </td>
                     </tr>
                     <tr>
                         <td class="sub-header" colspan="1">Región</td>
                         <td class="full-width" colspan="1">
-                             <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese la región" value="{{ is_array($proyecto->region) ? implode(', ', $proyecto->region) : ($proyecto->region ?? '') }}"
-                                    disabled>
+                            @if(is_array($proyecto->region) && count($proyecto->region) > 0)
+                                @foreach($proyecto->region as $region)
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese la región" value="{{ $region }}" disabled>
+                                @endforeach
+                            @else
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese la región" value="{{ $proyecto->region ?? '' }}" disabled>
+                            @endif
                         </td>
                         <td class="sub-header" colspan="1">País</td>
                         <td class="full-width" colspan="2">
-                             <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el país" value="{{ is_array($proyecto->pais) ? implode(', ', $proyecto->pais) : ($proyecto->pais ?? '') }}"
-                                    disabled>
+                            @if(is_array($proyecto->pais) && count($proyecto->pais) > 0)
+                                @foreach($proyecto->pais as $pais)
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el país" value="{{ $pais }}" disabled>
+                                @endforeach
+                            @else
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el país" value="{{ $proyecto->pais ?? '' }}" disabled>
+                            @endif
                         </td>
                     </tr>
 
-                    <!-- TABLA DE INTEGRANTES DEL EQUIPO UNIVERSITARIO -->
-                        <tr>
-                            <th class="header" colspan="6">Integrantes del equipo universitario (Agregar o quitar
-                                líneas de ser necesario)</th>
+                    <!-- TABLA DE PRESUPUESTO DEL PROYECTO -->
+                     <tr>
+                            <th class="full-width1" colspan="19"> 13. Presupuesto del Proyecto</th>
                         </tr>
                         <tr>
-                            <th class="header" colspan="6">Docentes</th>
+                            <td class="sub-header" colspan="2">Aportes de estudiantes:</td>
+                            <td class="full-width" colspan="6">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_estudiantes }}"
+                                    placeholder="Ingrese el nombre de la entidad">
+                            </td>
+                        <tr>
+                            <td class="sub-header" colspan="2">Aportes de profesores:</td>
+                            <td class="full-width" colspan="6">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_profesores }}"
+                                    placeholder="Ingrese el nombre de la entidad">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="2">Aporte académico de la UNAH:</td>
+                            <td class="full-width" colspan="6">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_academico_unah }}"
+                                    placeholder="Ingrese el nombre de la entidad">
+                            </td>
+                        <tr>
+                            <td class="sub-header" colspan="2">Aporte transporte UNAH:</td>
+                            <td class="full-width" colspan="6">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_transporte_unah }}"
+                                    placeholder="Ingrese el nombre de la entidad">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="2">Otros Aportes:</td>
+                            <td class="full-width" colspan="6">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->otros_aportes }}"
+                                    placeholder="Ingrese el nombre de la entidad">
+                            </td>
+                        <tr>
+                            <td class="sub-header4" colspan="2">TOTAL UNAH:</td>
+                            <td class="full-width" colspan="6">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_estudiantes +
+                                        $proyecto->presupuesto->aporte_profesores +
+                                        $proyecto->presupuesto->aporte_academico_unah +
+                                        $proyecto->presupuesto->aporte_transporte_unah +
+                                        $proyecto->presupuesto->otros_aportes }}"
+                                    placeholder="Ingrese el nombre de la entidad">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="2">Aporte de la contraparte:</td>
+                            <td class="full-width" colspan="6">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_contraparte }}"
+                                    placeholder="Ingrese el nombre de la entidad">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="2">Aporte de la comunidad:</td>
+                            <td class="full-width" colspan="6">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_comunidad }}"
+                                    placeholder="Ingrese el nombre de la entidad">
+                            </td>
+                        <tr>
+                        <tr>
+                            <td class="sub-header4" colspan="2">TOTAL CONTRAPARTE:</td>
+                            <td class="full-width" colspan="6">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_contraparte + $proyecto->presupuesto->aporte_comunidad }}"
+                                    placeholder="Ingrese el nombre de la entidad">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header4" colspan="2">MONTO TOTAL DEL PROYECTO:</td>
+                            <td class="full-width" colspan="6">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $proyecto->presupuesto->aporte_estudiantes +
+                                        $proyecto->presupuesto->aporte_profesores +
+                                        $proyecto->presupuesto->aporte_academico_unah +
+                                        $proyecto->presupuesto->aporte_transporte_unah +
+                                        $proyecto->presupuesto->otros_aportes +
+                                        $proyecto->presupuesto->aporte_contraparte +
+                                        $proyecto->presupuesto->aporte_comunidad }}"
+                                    placeholder="Ingrese el nombre de la entidad">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="full-width1" colspan="19"> En caso de superávit o rentabilidad en el proyecto,
+                                haga un
+                                desglose detallado
+                                en que se va a invertir el superávit según las normas de ejecución presupuestaria de la
+                                UNAH
+                            </th>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="3">Inversión:</td>
+                            <td class="sub-header" colspan="2">Monto:</td>
+                        </tr>
+
+                        @forelse ($proyecto->superavit as $superavit)
+                            <tr>
+                                <td class="full-width
+                                " colspan="14">
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento" value="{{ $superavit->inversion }}"
+                                        disabled>
+                                </td>
+                                <td class="full-width
+                                " colspan="5">
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento" value="{{ $superavit->monto }}"
+                                        disabled>
+                                </td>
+
+                            </tr>
+
+                        @empty
+                            <tr>
+                                <td class="full-width
+                            " colspan="19">
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento" value="No hay superavit" disabled>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </table>
+                </div>
+
+                <div class="section2">
+                    <div class="section-title">II. EQUIPO EJECUTOR DEL PROYECTO. </div>
+                    <table class="table_datos1">
+                        <!-- TABLA COORDINADOR DEL PROYECTO -->
+                        <tr>
+                            <th class="full-width1" rowspan="3">Coordinador/a del Proyecto:</th>
+                            <td class="sub-header">Nombre Completo:</td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el nombre completo"
+                                    value="{{ $proyecto->coordinador->nombre_completo }}" disabled>
+                            </td>
+                            <td class="sub-header">No. de empleado:</td>
+                            <td class="full-width" colspan="">
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el número de empleado"
+                                    value="{{ $proyecto->coordinador->numero_empleado }}" disabled>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header">Correo electrónico:</td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el correo electrónico"
+                                    value="{{ $proyecto->coordinador->user->email }}" disabled>
+                            </td>
+                            <td class="sub-header">Celular:</td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="email" class="input-field"
+                                    placeholder="Ingrese el número de celular"
+                                    value="{{ $proyecto->coordinador->celular }}" disabled>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header">Categoria:</td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="email" class="input-field"
+                                    placeholder="Ingrese el número de celular"
+                                    value="{{ $proyecto->coordinador->categoria->nombre }}" disabled>
+                            </td>
+                            <td class="sub-header">Departamento:</td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="email" class="input-field"
+                                    placeholder="Ingrese el número de celular"
+                                    value="{{ $proyecto->coordinador->departamento_academico->nombre }}" disabled>
+                            </td>
+                        </tr>
+
+
+                    <!-- TABLA DE INTEGRANTES DEL EQUIPO UNIVERSITARIO -->
+                        <tr>
+                            <th class="full-width1" colspan="6">Integrantes del equipo docente permanente tiempo completo
+                                (Agregar más líneas de ser necesario)</th>
                         </tr>
                         <tr>
                             <td class="sub-header">Nombre Completo:</td>
@@ -491,81 +671,322 @@
                                 </td>
                             </tr>
                         @endforelse
+                        <tr>
+                            <th class="full-width1" colspan="6">Integrantes del equipo de cooperación internacional
+                                (Agregar más líneas de ser necesario)</th>
+                        </tr>
+                        <tr>
+                            <td class="sub-header">Nombre Completo:</td>
+                            <td class="sub-header">Pasaporte:</td>
+                            <td class="sub-header">Correo electrónico:</td>
+                            <td class="sub-header">País:</td>
+                            <td class="sub-header">Universidad/Institucion:</td>
+                        </tr>
+                        @forelse ($proyecto->integrantes as $integrante)
+                            <tr>
+                                <td class="full-width" colspan="1">
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el nombre completo"
+                                        value="{{ $integrante->nombre_completo }}" disabled>
+                                </td>
+                                <td class="full-width" colspan="1">
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el número de empleado"
+                                        value="{{ $integrante->numero_empleado }}" disabled>
+                                </td>
+                                <td class="full-width" colspan="1">
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el correo electrónico"
+                                        value="{{ $integrante->user->email }}" disabled>
+                                </td>
+                                <td class="full-width" colspan="1">
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese la categoría"
+                                        value="{{ $integrante->categoria->nombre }}" disabled>
+                                </td>
+                                <td class="full-width" colspan="1">
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento"
+                                        value="{{ $integrante->departamento_academico->nombre }}" disabled>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td class="full-width
+                                " colspan="6">
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento" value="No hay docentes" disabled>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </table>
+
+                </div>
+
+                <!-- SECCIÓN DE CUANTIFICACIÓN DEL TRABAJO VOLUNTARIO -->
+                <div class="section3">
+                    <div class="section-title">III. CUANTIFICACIÓN TRABAJO VOLUNTARIO </div>
+                    <table class="table_datos1">
+                        <!-- PARTICIPACIÓN DE ESTUDIANTES -->
+                        <tr>
+                            <th class="full-width1" rowspan="5">Participación de estudiantes</th>
+                            <td class="sub-header" colspan="1">TOTAL</td>
+                            <td class="sub-header" colspan="6">Desglose del tipo de participación de estudiantes:</td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="2" rowspan="2">Práctica de asignatura</td>
+                            <td class="sub-header" colspan="2" rowspan="2">Servicio Social o PPS</td>
+                            <td class="sub-header" colspan="2" rowspan="2">Voluntariado</td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                        </tr>
+
+                        <!-- PARTICIPACIÓN DE PERSONAL DOCENTE -->
+                        <tr>
+                            <th class="full-width1" rowspan="5">Participación de personal docente</th>
+                            <td class="sub-header" colspan="1">TOTAL</td>
+                            <td class="sub-header" colspan="6">Desglose del tipo de participación de personal docente:</td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="2" rowspan="2">Profesores x hora</td>
+                            <td class="sub-header" colspan="2" rowspan="2">Profesores horarios</td>
+                            <td class="sub-header" colspan="2" rowspan="2">Profesores permanentes</td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                        </tr>
+
+                        <!-- PARTICIPACIÓN DE PERSONAL ADMINISTRATIVO -->
+                        <tr>
+                            <th class="full-width1" rowspan="5">Participación de personal administrativo</th>
+                            <td class="sub-header" colspan="1">TOTAL</td>
+                            <td class="sub-header" colspan="6">Desglose del tipo de participación de personal administrativo:</td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="2" rowspan="2">Administrativo</td>
+                            <td class="sub-header" colspan="2" rowspan="2">Servicios</td>
+                            <td class="sub-header" colspan="2" rowspan="2">Asistentes técnicos laboratorios / Instructores</td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                            </td>
+                        </tr>
                     </table>
                 </div>
-                <div class="section2">
-                    <div class="section-title">II. INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (en caso de
-                        contar
-                        con una contraparte). </div>
-                    <table class="table_datos1">
+                <!-- TABLA DE ENTIDAD CONTRAPARTE -->
+                <div class="section4">
+                    <div class="section-title">IV. ENTIDAD CONTRAPARTE</div>
+                    <table class="table_datos2">
                         <tr>
-                            <th class="header" colspan="5">En caso de que la contraparte sea nacional (añadir una
+                            <th class="header" colspan="7">En caso de que la contraparte sea nacional (añadir una
                                 tabla
                                 de información por cada una de las contrapartes)</th>
                         </tr>
                         @forelse ($proyecto->entidad_contraparte as $entidad)
                             <tr>
-                                <td class="header
-                                " colspan="5">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento" value="# Entidad Contraparte" disabled>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="sub-header">Nombre de la entidad:</td>
-                                <td class="full-width" colspan="4">
+                                <td class="sub-header">Nombre de la contraparte:</td>
+                                <td class="full-width" colspan="6">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre de la entidad" value="{{ $entidad->nombre }}"
                                         disabled>
                                 </td>
                             </tr>
                             <tr>
-                                <td class="sub-header" rowspan="2">Nombre del contacto directo</td>
-                                <td class="full-width" colspan="1" rowspan="2">
+                                <td class="sub-header" rowspan="1">Tipo de contraparte:</td>
+                                <td class="sub-header1" colspan="1">Gobierno Nacional <br>
+                                    <input disabled type="checkbox" class="No"
+                                        @if ($entidad->tipo_contraparte == 'Gobierno Nacional') checked @endif>
+                                </td>
+                                <td class="sub-header1" colspan="1">Gobierno Municipal<br>
+                                    <input disabled type="checkbox" class="No"
+                                        @if ($entidad->tipo_contraparte == 'Gobierno Municipal') checked @endif>
+                                </td>
+                                <td class="sub-header1" colspan="1">ONG<br>
+                                    <input disabled type="checkbox" class="No"
+                                        @if ($entidad->tipo_contraparte == 'ONG') checked @endif>
+                                </td>
+                                <td class="sub-header1" colspan="1">Sociedad Civil Organizada<br>
+                                    <input disabled type="checkbox" class="No"
+                                        @if ($entidad->tipo_contraparte == 'Sociedad Civil Organizada') checked @endif>
+                                </td>
+                                <td class="sub-header1" colspan="1">Sector Privado<br>
+                                    <input disabled type="checkbox" class="No"
+                                        @if ($entidad->tipo_contraparte == 'Sector Privado') checked @endif>
+                                </td>
+                                <td class="sub-header1" colspan="1">Internacional<br>
+                                    <input disabled type="checkbox" class="No"
+                                        @if ($entidad->tipo_contraparte == 'Internacional') checked @endif>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="sub-header" rowspan="1">Nombre del contacto directo</td>
+                                <td class="full-width" colspan="3">
                                     <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad"
+                                        placeholder="Ingrese el nombre del contacto"
                                         value="{{ $entidad->nombre_contacto }}" disabled>
                                 </td>
-                                <td class="sub-header" rowspan="1">Correo electrónico:</td>
-                                <td class="full-width" colspan="1">
+                                <td class="sub-header" colspan="1">Correo Electrónico</td>
+                                <td class="full-width" colspan="2">
                                     <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad" value="{{ $entidad->correo }}"
+                                        placeholder="Ingrese el correo electrónico" value="{{ $entidad->correo }}"
                                         disabled>
                                 </td>
+                            </tr>
                             <tr>
-                                <td class="sub-header" rowspan="1">Teléfono:</td>
-                                <td class="full-width" colspan="1">
+                                <td class="sub-header" colspan="1">Cargo del contacto del proyecto</td>
+                                <td class="full-width" colspan="3">
                                     <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad"
+                                        placeholder="Ingrese el cargo del contacto" value="{{ $entidad->cargo_contacto ?? '' }}"
+                                        disabled>
+                                </td>
+                                <td class="sub-header" colspan="1">Teléfono</td>
+                                <td class="full-width" colspan="2">
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el teléfono"
                                         value="{{ $entidad->telefono }}" disabled>
                                 </td>
                             </tr>
-                            </tr>
                             <tr>
-                                <td class="sub-header">Rol o aporte en el proyecto:</td>
-                                <td class="full-width" colspan="3">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad" value="{{ $entidad->aporte }}"
-                                        disabled>
+                                <td class="sub-header" colspan="1">Tipo de instrumento que da lugar a la alianza</td>
+                                <td class="sub-header1" colspan="2">Carta formal de solicitud a la unidad académica <br>
+                                    <input disabled type="checkbox" class="No"
+                                        @if ($entidad->tipo_instrumento == 'Carta formal de solicitud a la unidad académica') checked @endif>
                                 </td>
-
-
+                                <td class="sub-header1" colspan="2">Carta de intenciones con la UNAH<br>
+                                    <input disabled type="checkbox" class="No"
+                                        @if ($entidad->tipo_instrumento == 'Carta de intenciones con la UNAH') checked @endif>
+                                </td>
+                                <td class="sub-header1" colspan="2">Convenio marco con la UNAH<br>
+                                    <input disabled type="checkbox" class="No"
+                                        @if ($entidad->tipo_instrumento == 'Convenio marco con la UNAH') checked @endif>
+                                </td>
                             </tr>
                             <tr>
-                                <td class="sub-header" colspan="5">Instrumentos de formalización de alianza (Si
+                                <td class="sub-header" colspan="1">Breve descripción de los compromisos asumidos por la contraparte</td>
+                                <td class="full-width" colspan="6">
+                                    <textarea disabled class="input-field" rows="3" placeholder="Describa los compromisos">{{ $entidad->compromisos ?? '' }}</textarea>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="sub-header" colspan="7">Instrumentos de formalización de alianza (Si
                                     hubiese):</td>
                             </tr>
                             <tr>
                                 @forelse ($entidad->instrumento_formalizacion as $instrumento)
                             <tr>
                                 <td class="full-width
-                                    " colspan="3">
+                                    " colspan="4">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el departamento" value="Documento de formalización"
                                         disabled>
                                 </td>
                                 <td class="full-width
-                                    " colspan="2">
+                                    " colspan="3">
                                     <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
                                         <x-slot name="heading">
                                             Documento de formalización
@@ -592,7 +1013,7 @@
                             </tr>
                         @empty
                             <td class="full-width
-                                    " colspan="5">
+                                    " colspan="7">
                                 <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el departamento" value="No hay instrumentos de formalización"
                                     disabled>
@@ -602,7 +1023,7 @@
                     @empty
                         <tr>
                             <td class="full-width
-                                " colspan="5">
+                                " colspan="7">
                                 <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el departamento" value="No hay entidades contraparte"
                                     disabled>
@@ -610,16 +1031,15 @@
                         </tr>
                         @endforelse
                     </table>
-
                 </div>
+
+
                 <div class="section2">
                     <div class="section-title">III. DATOS DEL PROYECTO. </div>
                     <table class="table_datos3">
                         <tr>
-                            <th class="header" colspan="19">1. Resumen del proyecto: (Enunciar un breve resumen
-                                descriptivo con los antecedentes del problema de intervención,
-                                justificación y que se pretende cambiar con relación a dicho problema de intervención a
-                                través del proyecto) De 150 a 250 palabras</th>
+                            <th class="header" colspan="19">1. Descripción del proyecto: (Explicar brevemente en qué consiste el proyecto, 
+                                los antecedentes que dieron su origen y la importancia que tiene para los objetivos estratégicos de la UNAH) De 150 a 250 palabras</th>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
@@ -630,9 +1050,31 @@
 
                         </tr>
                         <tr>
-                            <th class="header" colspan="19">2. Objetivo General (El objetivo debe de responder al
-                                para
-                                qué se va a desarrollar el proyecto teniendo como objetivo la población meta)</th>
+                            <th class="header" colspan="19">2. Descripción de las participantes del proyecto (Descripción breve de las unidades académicas participantes y su alineamiento con la estrategia de 
+                                vinculación de la unidad. También se realizará una breve descripción de las contrapartes participantes, a qué se dedican y cómo se alinea el proyecto a los planes estratégicos)</th>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="19">
+                                <textarea disabled id="resumen" name="resumen" cols="30" rows="6" class="input-field"
+                                    placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->resumen) }}</textarea>
+                            </td>
+                        </tr>
+
+                        </tr>
+                        <tr>
+                            <th class="header" colspan="19">3. Definición del problema:  Breve descripción del problema que se desea resolver, indicando línea base que se tendrá en 
+                                consideración para la definición de los resultados del proyecto</th>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="19">
+                                <textarea disabled id="resumen" name="resumen" cols="30" rows="6" class="input-field"
+                                    placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->resumen) }}</textarea>
+                            </td>
+                        </tr>
+
+                        </tr>
+                        <tr>
+                            <th class="header" colspan="19">4. Objetivo General (El objetivo debe estar basado en la población participante del proyecto)</th>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
@@ -641,10 +1083,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="header" colspan="19">3. Objetivos Específicos (Los objetivos específicos
-                                deben
-                                estar
-                                relacionados con los resultados que esperan obtener en el proyecto)</th>
+                            <td class="header" colspan="19">5. Objetivos Específicos (Los objetivos específicos deben estar relacionados con los resultados que esperan obtener en el proyecto)</th>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
@@ -652,83 +1091,80 @@
                                 </textarea>
                             </td>
                         </tr>
+                        <tr>
+                            <td class="header" colspan="19">6. Resultados del proyecto. Debe de plantearse resultados para cada objetivo específico</th>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="19">
+                                <textarea disabled cols="30" rows="6" class="input-field" placeholder="Ingrese el resumen"> {{ old('objetivos_especificos', $proyecto->objetivos_especificos) }}
+                                </textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="header" colspan="19">7. Indicadores de resultado. El indicador de resultado es una medida específica y observable que permite evaluar el 
+                                grado de cumplimiento de los resultados que se han planteado. Sirven para evaluar en qué medida y calidad se lograron los objetivos del proyecto.</th>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="19">
+                                <textarea disabled cols="30" rows="6" class="input-field" placeholder="Ingrese el resumen"> {{ old('objetivos_especificos', $proyecto->objetivos_especificos) }}
+                                </textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="header" colspan="19">8. Impacto que se desea generar en el proyecto</th>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="19">
+                                <textarea disabled cols="30" rows="6" class="input-field" placeholder="Ingrese el resumen"> {{ old('objetivos_especificos', $proyecto->objetivos_especificos) }}
+                                </textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="header" colspan="19">9. Objetivos de Desarrollo Sostenible (ODS) a los que se contribuye: Indicar el o los 
+                                ODS a los que pretende contribuir el proyecto y las metas correspondientes. Para esta descripción deberá basarse en el documento de ODS 
+                                que puede consultar en el siguiente enlace: <a style="" href="https://www.un.org/sustainabledevelopment/es/objetivos-de-desarrollo-sostenible/">Objetivos y metas de desarrollo sostenible - Desarrollo Sostenible </a></th>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="19">
+                                <textarea disabled cols="30" rows="6" class="input-field" placeholder="Ingrese el resumen"> {{ old('objetivos_especificos', $proyecto->objetivos_especificos) }}
+                                </textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="header" colspan="19">10. Alineamiento con lo esencial de la reforma de la UNAH (detalle brevemente cómo se alinean los ejes de lo esencial de la reforma en la ejecución de este proyecto)</th>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="19">
+                                <textarea disabled cols="30" rows="6" class="input-field" placeholder="Ingrese el resumen"> {{ old('objetivos_especificos', $proyecto->objetivos_especificos) }}
+                                </textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="header" colspan="19">11. Metodología</th>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="19">
+                                <textarea disabled cols="30" rows="6" class="input-field" placeholder="Ingrese el resumen"> {{ old('objetivos_especificos', $proyecto->objetivos_especificos) }}
+                                </textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="header" colspan="19">12. Bibliografía</th>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="19">
+                                <textarea disabled cols="30" rows="6" class="input-field" placeholder="Ingrese el resumen"> {{ old('objetivos_especificos', $proyecto->objetivos_especificos) }}
+                                </textarea>
+                            </td>
+                        </tr>
+
+                        <!-- SECCIÓN DE MARCO LOGICO DEL PROYECTO -->
                         
-                        <tr>
-                            <td class="sub-header" colspan="13">7. Población beneficiada (número aproximado) </td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field" placeholder="Ingrese el día"
-                                    value="{{ floor($proyecto->poblacion_participante) }}" disabled>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="12">8. Modalidad de ejecución (marcar con una X)</td>
-                            <td class="full-width" colspan="3">
-                                Distancia <br>
-                                <input disabled type="checkbox" class="no"
-                                    @if ($proyecto->modalidad_ejecucion == 'Distancia') checked @endif>
-                            </td>
-                            <td class="full-width" colspan="2">
-                                Presencial <br>
-                                <input disabled type="checkbox" class="no"
-                                    @if ($proyecto->modalidad_ejecucion == 'Presencial') checked @endif>
-                            </td>
-                            <td class="full-width" colspan="3">
-                                Bimodal <br>
-                                <input disabled type="checkbox" class="no"
-                                    @if ($proyecto->modalidad_ejecucion == 'Bimodal') checked @endif>
-                            </td>
-
-                        </tr>
-                        <tr>
-                            <th class="header" colspan="19">9. En caso de proyectos presenciales, indicar el lugar
-                                donde
-                                se ejecuta: </th>
-                        </tr>
-
-                        <tr>
-
-                            <td class="sub-header" colspan="4">Departamentos</td>
-                            <td class="full-width" colspan="15" rowspan="1">
-                                @forelse ($proyecto->departamento as $departamento)
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad"
-                                        value="{{ $departamento->nombre }}" disabled>
-
-                                @empty
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad" value="No hay departamentos"
-                                        disabled>
-                                @endforelse
-                            </td>
-
-                        </tr>
-
-                        <tr>
-                            <td class="sub-header" colspan="4">Municipios:</td>
-                            <td class="full-width" colspan="15">
-
-                                @forelse ($proyecto->municipio as $municipio)
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad"
-                                        value="{{ $municipio->nombre }}" disabled>
-                                @empty
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad" value="No hay municipios"
-                                        disabled>
-                                @endforelse
-                            </td>
 
 
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="4">Aldea/caserío/<br>barrio/colonia:</td>
-                            <td class="full-width" colspan="15">
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el nombre de la entidad" value="{{ $proyecto->aldea }}"
-                                    disabled>
-                            </td>
-                        </tr>
-                        </tr>
+
+
+                        <!-- CRONOGRAMA DE ACTIVIDADES -->
                         <tr>
                             <th class="header" colspan="19">10. Descripción de actividades del proyecto (Descripción
                                 de
@@ -836,96 +1272,7 @@
                                     placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->indicadores_medicion_resultados) }}</textarea>
                             </td>
                         </tr>
-                        <tr>
-                            <th class="header" colspan="19"> 13. Presupuesto del Proyecto</th>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="13">Aportes de estudiantes:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ $proyecto->presupuesto->aporte_estudiantes }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        <tr>
-                            <td class="sub-header" colspan="13">Aportes de profesores:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ $proyecto->presupuesto->aporte_profesores }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="13">Aporte académico de la UNAH:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ $proyecto->presupuesto->aporte_academico_unah }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        <tr>
-                            <td class="sub-header" colspan="13">Aporte transporte UNAH:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ $proyecto->presupuesto->aporte_transporte_unah }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="13">Otros Aportes:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ $proyecto->presupuesto->otros_aportes }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        <tr>
-                            <td class="sub-header4" colspan="13">TOTAL UNAH:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ $proyecto->presupuesto->aporte_estudiantes +
-                                        $proyecto->presupuesto->aporte_profesores +
-                                        $proyecto->presupuesto->aporte_academico_unah +
-                                        $proyecto->presupuesto->aporte_transporte_unah +
-                                        $proyecto->presupuesto->otros_aportes }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="13">Aporte de la contraparte:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ $proyecto->presupuesto->aporte_contraparte }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="13">Aporte de la comunidad:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ $proyecto->presupuesto->aporte_comunidad }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        <tr>
-                        <tr>
-                            <td class="sub-header4" colspan="13">TOTAL CONTRAPARTE:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ $proyecto->presupuesto->aporte_contraparte + $proyecto->presupuesto->aporte_comunidad }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header4" colspan="13">MONTO TOTAL DEL PROYECTO:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ $proyecto->presupuesto->aporte_estudiantes +
-                                        $proyecto->presupuesto->aporte_profesores +
-                                        $proyecto->presupuesto->aporte_academico_unah +
-                                        $proyecto->presupuesto->aporte_transporte_unah +
-                                        $proyecto->presupuesto->otros_aportes +
-                                        $proyecto->presupuesto->aporte_contraparte +
-                                        $proyecto->presupuesto->aporte_comunidad }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        </tr>
+                        
                         <tr>
                             <th class="header" colspan="19"> En caso de superávit o rentabilidad en el proyecto,
                                 haga un
