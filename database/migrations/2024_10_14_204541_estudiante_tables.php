@@ -32,10 +32,9 @@ return new class extends Migration
             $table->foreignId('estudiante_id')->constrained('estudiante');
             $table->foreignId('proyecto_id')->constrained('proyecto');
             $table->enum('tipo_participacion_estudiante', [
-                'Servicio Social Universitario',
+                'Servicio Social o PPS',
                 'Practica Profesional',
                 'Voluntariado',
-                'Practica de Clase',
             ]);
             $table->softDeletes();
             $table->timestamps();

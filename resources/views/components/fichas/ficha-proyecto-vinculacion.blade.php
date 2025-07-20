@@ -102,7 +102,7 @@
                             <td class="full-width" colspan="4">
                                 <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el programa al que pertenece"
-                                    value="{{ $proyecto->líneas_investigación_académica }}" disabled>
+                                    value="{{ $proyecto->lineas_investigacion_academica }}" disabled>
                             </td>
                         </tr>
                         <tr>
@@ -128,19 +128,19 @@
                             <th class="full-width1" rowspan="1">4. Alineamiento con ejes prioritarios de la UNAH</th>
                             <td class="sub-header1" colspan="1">Desarrollo económico y social <br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>
+                                    @if ($proyecto->modalidad?->nombre == 'Desarrollo económico y social') checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Democracia y gobernabilidad<br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Multidisciplinar') checked @endif>
+                                    @if ($proyecto->modalidad?->nombre == 'Democracia y gobernabilidad') checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Población y condiciones de vida <br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Interdisciplinar') checked @endif>
+                                    @if ($proyecto->modalidad?->nombre == 'Población y condiciones de vida') checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Ambiente, biodiversidad y desarrollo<br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>
+                                    @if ($proyecto->modalidad?->nombre == 'Ambiente, biodiversidad y desarrollo') checked @endif>
                             </td>
                         </tr>
 
@@ -230,21 +230,21 @@
                            <td class="sub-header" colspan="1">Hombres</td>
                             <td class="full-width" colspan="4">
                                <input type="text" class="input-field" placeholder="0"
-                                    value="{{ $proyecto->beneficiarios_directos_hombres }}" disabled>
+                                    value="{{ $proyecto->hombres }}" disabled>
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-header" colspan="1">Mujeres</td>
                             <td class="full-width" colspan="4">
                                <input type="text" class="input-field" placeholder="0"
-                                    value="{{ $proyecto->beneficiarios_directos_hombres }}" disabled>
+                                    value="{{ $proyecto->mujeres }}" disabled>
                             </td>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="1">Otros (ndicar número y tipo)</td>
+                            <td class="sub-header" colspan="1">Otros (indicar número y tipo)</td>
                             <td class="full-width" colspan="4">
                                <input type="text" class="input-field" placeholder="0"
-                                    value="{{ $proyecto->beneficiarios_directos_hombres }}" disabled>
+                                    value="{{ $proyecto->otros }}" disabled>
                             </td>
                         </tr>
                         <tr>
@@ -258,11 +258,11 @@
                                 <div class="date-container">
                                     <div class="date-part">
                                         <span class="date-label">Hombres</span>
-                                        <input disabled type="text" class="input-field" placeholder="0">
+                                        <input disabled type="text" class="input-field" value="{{$proyecto->indigenas_hombres}}" placeholder="0">
                                     </div>
                                     <div class="date-part">
                                         <span class="date-label">Mujeres</span>
-                                        <input disabled type="text" class="input-field" placeholder="0">
+                                        <input disabled type="text" class="input-field" value="{{$proyecto->indigenas_mujeres}}" placeholder="0">
                                     </div>
                                 </div>
                             </td>
@@ -270,11 +270,11 @@
                                 <div class="date-container">
                                     <div class="date-part">
                                         <span class="date-label">Hombres</span>
-                                        <input disabled type="text" class="input-field" placeholder="0">
+                                        <input disabled type="text" class="input-field" value="{{$proyecto->afroamericanos_hombres}}" placeholder="0">
                                     </div>
                                     <div class="date-part">
                                         <span class="date-label">Mujeres</span>
-                                        <input disabled type="text" class="input-field" placeholder="0">
+                                        <input disabled type="text" class="input-field" value="{{$proyecto->afroamericanos_mujeres}}" placeholder="0">
                                     </div>
                                 </div>
                             </td>
@@ -282,11 +282,11 @@
                                 <div class="date-container">
                                     <div class="date-part">
                                         <span class="date-label">Hombres</span>
-                                        <input disabled type="text" class="input-field" placeholder="0">
+                                        <input disabled type="text" class="input-field" value="{{$proyecto->mestizos_hombres}}" placeholder="0">
                                     </div>
                                     <div class="date-part">
                                         <span class="date-label">Mujeres</span>
-                                        <input disabled type="text" class="input-field" placeholder="0">
+                                        <input disabled type="text" class="input-field" value="{{$proyecto->mestizos_mujeres}}" placeholder="0">
                                     </div>
                                 </div>
                             </td>
@@ -741,7 +741,7 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiantes_hombres }}" disabled>
                             </td>
                         </tr>
                         <tr>
@@ -755,25 +755,25 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiantes_mujeres }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Practica de asignatura', 'Masculino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Practica de asignatura', 'Femenino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Servicio Social o PPS', 'Masculino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Servicio Social o PPS', 'Femenino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Voluntariado', 'Masculino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Voluntariado', 'Femenino') }}" disabled>
                             </td>
                         </tr>
 
@@ -791,7 +791,7 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->docentes_hombres }}" disabled>
                             </td>
                         </tr>
                         <tr>
@@ -805,25 +805,25 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->docentes_mujeres }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getDocentesPorCategoria('Profesores x hora', 'Masculino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getDocentesPorCategoria('Profesores x hora', 'Femenino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getDocentesPorCategoria('Profesores horarios', 'Masculino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getDocentesPorCategoria('Profesores horarios', 'Femenino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getDocentesPorCategoria('permanente', 'Masculino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getDocentesPorCategoria('permanente', 'Femenino') }}" disabled>
                             </td>
                         </tr>
 
@@ -841,7 +841,7 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->administrativos_hombres }}" disabled>
                             </td>
                         </tr>
                         <tr>
@@ -855,25 +855,25 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->administrativas_mujeres }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Administrativo', 'Masculino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Administrativo', 'Femenino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Servicios', 'Masculino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Servicios', 'Femenino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Asistentes técnicos laboratorios / Instructores', 'Masculino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" placeholder="0" value="" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Asistentes técnicos laboratorios / Instructores', 'Femenino') }}" disabled>
                             </td>
                         </tr>
                     </table>

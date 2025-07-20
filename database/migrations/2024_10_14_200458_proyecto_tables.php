@@ -70,7 +70,7 @@ return new class extends Migration
             $table->foreignId('modalidad_id')->nullable()->constrained('modalidad');
             $table->longText('aldea')->nullable();
             $table->longText('programa_pertenece')->nullable();
-            $table->longText('líneas_investigación_académica')->nullable();
+            $table->longText('lineas_investigacion_academica')->nullable();
             $table->longText('resumen')->nullable();
             $table->longText('descripcion_participantes')->nullable();
             $table->longText('definicion_problema')->nullable();

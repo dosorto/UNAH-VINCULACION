@@ -55,7 +55,7 @@ class Proyecto extends Model
         'modalidad_id',
         'municipio_id',
         'departamento_id',
-        'líneas_investigación_académica',
+        'lineas_investigacion_academica',
         'programa_pertenece',
         'aldea',
         'resumen',
@@ -142,6 +142,8 @@ class Proyecto extends Model
     protected $fillable = [
         'nombre_proyecto',
         'modalidad_id',
+        'municipio_id',
+        'departamento_id',
         'ciudad_id',
         'aldea',
         'resumen',
@@ -179,6 +181,9 @@ class Proyecto extends Model
         'numero_tomo',
         'numero_folio',
         'numero_dictamen',
+        'programa_pertenece',
+        'lineas_investigacion_academica',
+        'responsable_revision_id',
     ];
 
     protected $casts = [
@@ -404,6 +409,121 @@ class Proyecto extends Model
     public function cantidad_estudiantes()
     {
         return $this->estudiante_proyecto()->count();
+    }
+
+    // Métodos para cuantificación de trabajo voluntario
+
+    // Estudiantes por género
+    public function getEstudiantesHombresAttribute()
+    {
+        return $this->estudiante_proyecto()
+            ->join('estudiante', 'estudiante_proyecto.estudiante_id', '=', 'estudiante.id')
+            ->where('estudiante.sexo', 'Masculino')
+            ->count();
+    }
+
+    public function getEstudiantesMujeresAttribute()
+    {
+        return $this->estudiante_proyecto()
+            ->join('estudiante', 'estudiante_proyecto.estudiante_id', '=', 'estudiante.id')
+            ->where('estudiante.sexo', 'Femenino')
+            ->count();
+    }
+
+    // Estudiantes por tipo de participación y género
+    public function getEstudiantesPorTipo($tipo, $genero = null)
+    {
+        $query = $this->estudiante_proyecto()
+            ->join('estudiante', 'estudiante_proyecto.estudiante_id', '=', 'estudiante.id')
+            ->where('estudiante_proyecto.tipo_participacion_estudiante', $tipo);
+
+        if ($genero) {
+            $query->where('estudiante.sexo', $genero);
+        }
+
+        return $query->count();
+    }
+
+    // Personal docente por género
+    public function getDocentesHombresAttribute()
+    {
+        return $this->empleado_proyecto()
+            ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+            ->where('empleado.sexo', 'Masculino')
+            ->where('empleado.tipo_empleado', 'docente')
+            ->count();
+    }
+
+    public function getDocentesMujeresAttribute()
+    {
+        return $this->empleado_proyecto()
+            ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+            ->where('empleado.sexo', 'Femenino')
+            ->where('empleado.tipo_empleado', 'docente')
+            ->count();
+    }
+
+    // Personal docente por categoría y género
+    public function getDocentesPorCategoria($categoria, $genero = null)
+    {
+        $query = $this->empleado_proyecto()
+            ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+            ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
+            ->where('empleado.tipo_empleado', 'docente');
+
+        // Si busca "permanente", incluir todas las categorías Titular
+        if (strtolower($categoria) === 'permanente') {
+            $query->where(function($q) {
+                $q->where('categoria.nombre', 'LIKE', '%Titular I%')
+                  ->orWhere('categoria.nombre', 'LIKE', '%Titular II%')
+                  ->orWhere('categoria.nombre', 'LIKE', '%Titular III%')
+                  ->orWhere('categoria.nombre', 'LIKE', '%Titular IV%')
+                  ->orWhere('categoria.nombre', 'LIKE', '%Titular V%');
+            });
+        } else {
+            $query->where('categoria.nombre', 'LIKE', '%' . $categoria . '%');
+        }
+
+        if ($genero) {
+            $query->where('empleado.sexo', $genero);
+        }
+
+        return $query->count();
+    }
+
+    // Personal administrativo por género
+    public function getAdministrativosHombresAttribute()
+    {
+        return $this->empleado_proyecto()
+            ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+            ->where('empleado.sexo', 'Masculino')
+            ->where('empleado.tipo_empleado', 'administrativo')
+            ->count();
+    }
+
+    public function getAdministrativasMujeresAttribute()
+    {
+        return $this->empleado_proyecto()
+            ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+            ->where('empleado.sexo', 'Femenino')
+            ->where('empleado.tipo_empleado', 'administrativo')
+            ->count();
+    }
+
+    // Personal administrativo por tipo y género
+    public function getAdministrativosPorTipo($tipo, $genero = null)
+    {
+        $query = $this->empleado_proyecto()
+            ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+            ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
+            ->where('empleado.tipo_empleado', 'administrativo')
+            ->where('categoria.nombre', 'LIKE', '%' . $tipo . '%');
+
+        if ($genero) {
+            $query->where('empleado.sexo', $genero);
+        }
+
+        return $query->count();
     }
 
     // 

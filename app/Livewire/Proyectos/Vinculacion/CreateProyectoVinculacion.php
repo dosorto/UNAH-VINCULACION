@@ -123,16 +123,19 @@ class CreateProyectoVinculacion extends Component implements HasForms
     public function create(): void
     {
         $data = $this->form->getState();
+        $record = null;
+        
         try {
             // Intentar obtener el estado del formulario y crear el proyecto
             $data['fecha_registro'] = now();
             $record = Proyecto::create($data);
             $this->form->model($record)->saveRelationships();
         } catch (\Exception $e) {
-            // Notificación de error si ocurre al crear el proyecto y eliminar el registro
-
-
-            $record->delete();
+            // Notificación de error si ocurre al crear el proyecto
+            // Solo eliminar el registro si fue creado exitosamente
+            if ($record) {
+                $record->delete();
+            }
 
             Notification::make()
                 ->title('Error')
@@ -160,18 +163,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                     'fecha_firma' => now(),
                 ]
             );
-        } catch (\Exception $e) {
-            // Eliminar el proyecto en caso de error en la firma
-            $record->delete();
-            Notification::make()
-                ->title('Error')
-                ->body('Error al agregar la firma: ' . $e->getMessage())
-                ->danger()
-                ->send();
-            return;
-        }
-
-        try {
+            
             // Intentar agregar el estado del proyecto
             $record->estado_proyecto()->create([
                 'empleado_id' => auth()->user()->empleado->id,
@@ -179,6 +171,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 'fecha' => now(),
                 'comentario' => 'Proyecto creado exitosamente y enviado a firmar',
             ]);
+            
             // Enviar el correo al usuario que creó el proyecto
             // Obtener el nombre del estado al que cambió el proyecto
             $estado = TipoEstado::find($firmaP->cargo_firma->estado_siguiente_id);
@@ -192,11 +185,11 @@ class CreateProyectoVinculacion extends Component implements HasForms
            // SendEmailJob::dispatch($creadorEmail, 'correoEstado', $estadoNombre, $nombreProyecto, $empleadoNombre);
             
         } catch (\Exception $e) {
-            // Eliminar el proyecto en caso de error al agregar el estado
+            // Eliminar el proyecto en caso de error
             $record->delete();
             Notification::make()
                 ->title('Error')
-                ->body('Error al agregar el estado del proyecto: ' . $e->getMessage())
+                ->body('Error al procesar el proyecto: ' . $e->getMessage())
                 ->danger()
                 ->send();
             return;

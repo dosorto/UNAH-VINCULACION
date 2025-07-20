@@ -90,7 +90,7 @@ class PrimeraParte
                 ->columnSpan(1)
                 ->required(),
 
-            Forms\Components\TextArea::make('líneas_investigación_académica')
+            Forms\Components\TextArea::make('lineas_investigacion_academica')
                 ->label('Líneas de investigación de la unidad académica')
                 ->minLength(2)
                 ->maxLength(255)
