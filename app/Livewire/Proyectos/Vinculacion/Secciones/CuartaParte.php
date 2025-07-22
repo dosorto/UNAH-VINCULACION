@@ -268,6 +268,11 @@ class CuartaParte
             //             ->required()
             //     ])
             //     ->preload(),
+            Forms\Components\Textarea::make('alineamiento_reforma')
+                ->cols(30)
+                ->rows(4)
+                ->label('Alineamiento con lo esencial de la reforma de la UNAH')
+                ->required(),
 
             Forms\Components\Textarea::make('impacto_deseado')
                 ->cols(30)

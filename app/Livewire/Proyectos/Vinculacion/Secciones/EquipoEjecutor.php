@@ -139,12 +139,10 @@ class EquipoEjecutor
                     Select::make('tipo_participacion_estudiante')
                         ->label('Tipo de participación')
                         ->required()
-                        ->label('Tipo de participación')
                         ->options([
-                            'Servicio Social Universitario' => 'Servicio Social Universitario',
-                            'Practica Profesional' => 'Practica Profesional',
+                            'Practica Profesional' => 'Práctica Profesional',
+                            'Servicio Social o PPS' => 'Servicio Social o PPS',
                             'Voluntariado' => 'Voluntariado',
-                            'Practica de Clase' => 'Practica de Clase',
                         ])
                         ->required(),
                 ])

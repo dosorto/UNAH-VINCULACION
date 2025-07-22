@@ -97,6 +97,7 @@ return new class extends Migration
             $table->longText('resultados_esperados')->nullable();
             $table->longText('indicadores_medicion_resultados')->nullable();
             $table->longText('impacto_deseado')->nullable();
+            $table->longText('alineamiento_reforma')->nullable();
             $table->longText('metodologia')->nullable();
             $table->longText('bibliografia')->nullable();
             $table->date('fecha_aprobacion')->nullable();
@@ -127,6 +128,7 @@ return new class extends Migration
             $table->string('correo');
             $table->string('telefono');
             $table->boolean('es_internacional')->default(false);
+            $table->string('descripcion_acuerdos')->nullable();
             $table->string('aporte');
             // $table->string('instrumento_formalizacion');
             $table->softDeletes();

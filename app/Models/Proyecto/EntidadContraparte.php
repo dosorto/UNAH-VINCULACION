@@ -36,6 +36,7 @@ class EntidadContraparte extends Model
         'correo', 
         'nombre_contacto', 
         'tipo_entidad',
+        'descripcion_acuerdos',
         'aporte', 
         // 'instrumento_formalizacion'
     ];
