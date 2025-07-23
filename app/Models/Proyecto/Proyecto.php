@@ -367,13 +367,6 @@ class Proyecto extends Model
             'integrante_internacional_id'
         )->withPivot([
             'rol',
-            'responsabilidades',
-            'fecha_inicio',
-            'fecha_fin',
-            'tipo_participacion',
-            'horas_asignadas',
-            'modalidad_participacion',
-            'observaciones'
         ])->withTimestamps();
     }
 
@@ -465,7 +458,6 @@ class Proyecto extends Model
             ->count();
     }
 
-    // Personal docente por categoría y género
     public function getDocentesPorCategoria($categoria, $genero = null)
     {
         $query = $this->empleado_proyecto()
@@ -473,17 +465,16 @@ class Proyecto extends Model
             ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
             ->where('empleado.tipo_empleado', 'docente');
 
-        // Si busca "permanente", incluir todas las categorías Titular
         if (strtolower($categoria) === 'permanente') {
             $query->where(function($q) {
-                $q->where('categoria.nombre', 'LIKE', '%Titular I%')
-                  ->orWhere('categoria.nombre', 'LIKE', '%Titular II%')
-                  ->orWhere('categoria.nombre', 'LIKE', '%Titular III%')
-                  ->orWhere('categoria.nombre', 'LIKE', '%Titular IV%')
-                  ->orWhere('categoria.nombre', 'LIKE', '%Titular V%');
+                $q->whereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular i%'])
+                ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular ii%'])
+                ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular iii%'])
+                ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular iv%'])
+                ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular v%']);
             });
         } else {
-            $query->where('categoria.nombre', 'LIKE', '%' . $categoria . '%');
+            $query->whereRaw('LOWER(categoria.nombre) LIKE ?', ['%' . strtolower($categoria) . '%']);
         }
 
         if ($genero) {

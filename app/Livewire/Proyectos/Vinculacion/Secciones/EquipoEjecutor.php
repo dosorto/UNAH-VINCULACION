@@ -109,7 +109,7 @@ class EquipoEjecutor
                     Select::make('estudiante_id')
                         ->label('Estudiante')
                         ->required()
-                        ->searchable(['cuenta'])
+                        ->searchable(['cuenta', 'nombre', 'apellido'])
                         ->relationship(
                             name: 'estudiante',
                             titleAttribute: 'cuenta'
@@ -153,7 +153,7 @@ class EquipoEjecutor
                 ->grid(2)
                 ->addActionLabel('Agregar estudiante'),
 
-                Repeater::make('integrante_internacional_proyecto')
+            Repeater::make('integrante_internacional_proyecto')
                 ->label('Integrantes de cooperación internacional')
                 ->schema([
                     Select::make('integrante_internacional_id')
@@ -173,6 +173,12 @@ class EquipoEjecutor
                             return IntegranteInternacional::create($data);
                         }),
 
+    
+                    TextInput::make('rol')
+                        ->label('Rol')
+                        ->disabled()
+                        ->required()
+                        ->default('Cooperante Internacional'),
                     Hidden::make('rol')
                         ->default('Cooperante Internacional'),
                 ])

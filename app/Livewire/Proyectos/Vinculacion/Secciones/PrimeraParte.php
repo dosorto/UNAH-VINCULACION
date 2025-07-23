@@ -23,6 +23,8 @@ use Filament\Forms\Components\Textarea;
 
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\DatePicker;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Set;
 
@@ -97,6 +99,28 @@ class PrimeraParte
                 ->columnSpan(1)
                 ->required(),
                
+                Fieldset::make('Fechas')
+                ->columns(2)
+                ->schema([
+                    DatePicker::make('fecha_inicio')
+                        ->label('Fecha de inicio')
+                        ->columnSpan(1)
+                        ->required(),
+                    DatePicker::make('fecha_finalizacion')
+                        ->label('Fecha de finalización')
+                        ->columnSpan(1)
+                        ->required(),
+                    DatePicker::make('evaluacion_intermedia')
+                        ->label('Evaluación intermedia')
+                        ->columnSpan(1)
+                        ->required(),
+                    DatePicker::make('evaluacion_final')
+                        ->label('Evaluación final')
+                        ->columnSpan(1)
+                        ->required(),
+                ])
+                ->columnSpanFull()
+                ->label('Fechas'),
             // actividades
         ];
     }

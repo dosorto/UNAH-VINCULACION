@@ -129,6 +129,8 @@ p {
 
 .table_datos1 .full-width1 {
     background-color: #020b70;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #fff;
     color: white;
     font-weight: bold;
     text-align: center;
@@ -214,6 +216,8 @@ p {
 }
 .table_datos2 .header {
     background-color: #020b70;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #fff;
     color: white;
     font-weight: bold;
     text-align: center;
@@ -255,6 +259,8 @@ p {
 }
 .table_datos3 .header {
     background-color: #020b70;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #fff;
     color: white;
     font-weight: bold;
     text-align: left;
@@ -336,6 +342,8 @@ p {
 }
 .table_datos4 .header {
     background-color: #020b70;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #fff;
     color: white;
     font-weight: bold;
     text-align: center;
@@ -387,6 +395,8 @@ p {
 }
 .table_datos5 .header {
     background-color: #020b70;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #fff;
     color: white;
     font-weight: bold;
     text-align: center;
@@ -437,6 +447,8 @@ p {
 }
 .table_datos7 .header {
     background-color: #020b70;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #fff;
     color: white;
     font-weight: bold;
     text-align: center;

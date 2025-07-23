@@ -87,7 +87,7 @@ class ProyectoSeeder extends Seeder
             ['nombre' => 'Seguim. a egresados'],
             ['nombre' => 'I + D + i'],
             ['nombre' => 'Cultural'],
-            ['nombre' => 'Comunicac'],
+            ['nombre' => 'Comunicación'],
             ['nombre' => 'Investigación-acción-participación'],
             ['nombre' => 'Asesoría técnico-científica'],
             ['nombre' => 'Artísticos-culturales'],

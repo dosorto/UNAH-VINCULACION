@@ -669,7 +669,7 @@
                             <td class="sub-header">País:</td>
                             <td class="sub-header">Universidad/Institucion:</td>
                         </tr>
-                        @forelse ($proyecto->integrantes as $integrante)
+                        @forelse ($proyecto->integrantesInternacionales as $integrante)
                             <tr>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
@@ -679,22 +679,22 @@
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el número de empleado"
-                                        value="{{ $integrante->numero_empleado }}" disabled>
+                                        value="{{ $integrante->documento_identidad }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el correo electrónico"
-                                        value="{{ $integrante->user->email }}" disabled>
+                                        value="{{ $integrante->email }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese la categoría"
-                                        value="{{ $integrante->categoria->nombre }}" disabled>
+                                        value="{{ $integrante->pais }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->departamento_academico->nombre }}" disabled>
+                                        value="{{ $integrante->institucion }}" disabled>
                                 </td>
                             </tr>
                         @empty
@@ -702,7 +702,7 @@
                                 <td class="full-width
                                 " colspan="6">
                                     <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento" value="No hay docentes" disabled>
+                                        placeholder="Aqui van los integrantes internacionales" value="No hay integrantes" disabled>
                                 </td>
                             </tr>
                         @endforelse

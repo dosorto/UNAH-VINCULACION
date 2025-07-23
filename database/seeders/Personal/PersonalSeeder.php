@@ -110,7 +110,7 @@ class PersonalSeeder extends Seeder
         if (app()->environment('local')) {
 
             $user2 = User::create([
-                'name' => 'Ernesto Moncada',
+                'name' => 'Usuario Ejemplo',
                 'email' => 'ernesto.moncada@unah.hn',
                 'password' => bcrypt('123'),
                 'surname' => 'Ernesto',
@@ -118,7 +118,7 @@ class PersonalSeeder extends Seeder
             ]);
 
             Empleado::create([
-                'nombre_completo' => 'Ernesto Noe Moncada Valladarez',
+                'nombre_completo' => 'Usuario Ejemplo',
                 'numero_empleado' => '1228asdfasdf0',
                 'celular' => '99999999',
                 'sexo' => 'Masculino',
