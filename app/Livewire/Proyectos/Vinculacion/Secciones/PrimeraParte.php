@@ -48,6 +48,14 @@ class PrimeraParte
                 ->required()
                 ->preload(),
 
+            Select::make('ejes_prioritarios_unah')
+                ->label('Alineamiento con ejes prioritarios de la UNAH')
+                ->multiple()
+                ->searchable()
+                ->relationship('ejes_prioritarios_unah', 'nombre')
+                ->required()
+                ->preload(),
+
            /* Forms\Components\Radio::make('ejes_prioritarios')
                 ->label('Alineamiento con ejes prioritarios de la UNAH')
                 ->options([

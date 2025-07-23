@@ -1,3 +1,9 @@
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+}
 .container {
     /* width: 810px; /* Ancho basado en 8.5 pulgadas */
     /* height: 1056px; Alto basado en 11 pulgadas */
@@ -19,7 +25,6 @@
     align-items: center;
     margin-bottom: 20px;
 }
-
 a {
     color: inherit; /* Hereda el color del texto circundante */
     text-decoration: none; /* Elimina el subrayado */
@@ -123,7 +128,10 @@ p {
 }
 
 .table_datos1 .full-width1 {
-    background-color: #acd2ff;
+    background-color: #020b70;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+    color: white;
     font-weight: bold;
     text-align: center;
     width: 20%;
@@ -132,7 +140,7 @@ p {
     width: 60%;
 }
 .table_datos1 .sub-header {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
 }
 .table_datos1 td, .table_datos1 .sub-header {
@@ -157,6 +165,42 @@ p {
     font-family: Arial, sans-serif;
 }
 
+/* Estilos para campos de fecha divididos */
+.date-container {
+    display: flex;
+    width: 100%;
+}
+
+.date-part {
+    flex: 1;
+    min-width: 25px;
+    text-align: center;
+    border-right: 1px solid #000;
+}
+
+.date-part:last-child {
+    border-right: none;
+}
+
+.date-part .date-label {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 2px;
+    display: block;
+    font-family: Arial, sans-serif;
+}
+
+.date-part input {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 14px;
+    padding: 4px;
+    border: none;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: transparent;
+}
+
 
 /*Tabla de Datos 2*/
 
@@ -171,12 +215,15 @@ p {
     text-align: left;
 }
 .table_datos2 .header {
-    background-color: #acd2ff;
+    background-color: #020b70;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+    color: white;
     font-weight: bold;
     text-align: center;
 }
 .table_datos2 .sub-header {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
 }
 .table_datos2 .full-width {
@@ -211,23 +258,42 @@ p {
     text-align: left;
 }
 .table_datos3 .header {
-    background-color: #acd2ff;
+    background-color: #020b70;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+    color: white;
     font-weight: bold;
     text-align: left;
 }
 .table_datos3 .sub-header {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
 }
 
+.table_datos3 .sub-headert {
+    background-color: #ebeeef;
+    font-style: italic;
+    color: black;
+    font-weight: bold;
+    text-align: right;
+}
+
+.table_datos3 .sub-headeri {
+    background-color: rgb(203, 206, 207);
+    font-style: italic;
+    color: black;
+    font-weight: bold;
+    text-align: right;
+}
+
 .table_datos3 .sub-header3 {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
     text-align: center;
 }
 
 .table_datos3 .sub-header4 {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
     text-align: right;
 }
@@ -275,12 +341,15 @@ p {
     text-align: left;
 }
 .table_datos4 .header {
-    background-color: #acd2ff;
+    background-color: #020b70;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+    color: white;
     font-weight: bold;
     text-align: center;
 }
 .table_datos4 .sub-header {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
     text-align: center;
 }
@@ -325,12 +394,15 @@ p {
     text-align: left;
 }
 .table_datos5 .header {
-    background-color: #acd2ff;
+    background-color: #020b70;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+    color: white;
     font-weight: bold;
     text-align: center;
 }
 .table_datos5 .sub-header {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
     text-align: center;
 }
@@ -374,12 +446,15 @@ p {
     text-align: left;
 }
 .table_datos7 .header {
-    background-color: #acd2ff;
+    background-color: #020b70;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+    color: white;
     font-weight: bold;
     text-align: center;
 }
 .table_datos7 .sub-header {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
     text-align: center;
 }
@@ -410,6 +485,56 @@ p {
     text-align: center;
     margin-top: 0px;
 }
+
+/* Estilos para el modal */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1000; 
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    justify-content: center;
+    align-items: center;
+}
+
+/* Contenedor del contenido del modal */
+.modal-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 90%;
+    max-height: 90%;
+    text-align: center;
+    overflow: auto;
+    position: relative;
+}
+
+/* Botón para cerrar el modal */
+.close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+/* Botón para abrir el modal */
+.btn-ver {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.btn-ver:hover {
+    background-color: #0056b3;
+}
+
 
 .activity-container {
     background: white;

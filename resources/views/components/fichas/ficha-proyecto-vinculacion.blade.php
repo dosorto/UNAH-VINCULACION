@@ -128,19 +128,19 @@
                             <th class="full-width1" rowspan="1">4. Alineamiento con ejes prioritarios de la UNAH</th>
                             <td class="sub-header1" colspan="1">Desarrollo económico y social <br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Desarrollo económico y social') checked @endif>
+                                    checked >
                             </td>
                             <td class="sub-header1" colspan="1">Democracia y gobernabilidad<br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Democracia y gobernabilidad') checked @endif>
+                                    @if ($proyecto->ejesPrioritarios?->nombre == 'Democracia y gobernabilidad') checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Población y condiciones de vida <br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Población y condiciones de vida') checked @endif>
+                                    @if ($proyecto->ejesPrioritarios?->nombre == 'Población y condiciones de vida') checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Ambiente, biodiversidad y desarrollo<br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Ambiente, biodiversidad y desarrollo') checked @endif>
+                                    @if ($proyecto->ejesPrioritarios?->nombre == 'Ambiente, biodiversidad y desarrollo') checked @endif>
                             </td>
                         </tr>
 

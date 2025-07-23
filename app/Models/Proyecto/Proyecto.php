@@ -687,7 +687,15 @@ class Proyecto extends Model
         return $this->hasMany(AporteInstitucional::class);
     }
     
-    
+    public function ejes_prioritarios_unah()
+    {
+        return $this->belongsToMany(
+            \App\Models\Proyecto\EjesPrioritariosUnah::class,
+            'eje_prioritario_proyecto',
+            'proyecto_id',
+            'ejes_prioritarios_unah_id'
+        );
+    }
 
     protected $table = 'proyecto';
 }
