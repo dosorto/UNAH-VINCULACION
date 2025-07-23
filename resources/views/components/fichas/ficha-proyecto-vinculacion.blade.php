@@ -942,15 +942,15 @@
                                 <td class="sub-header" colspan="1">Tipo de instrumento que da lugar a la alianza</td>
                                 <td class="sub-header1" colspan="2">Carta formal de solicitud a la unidad académica <br>
                                     <input disabled type="checkbox" class="No"
-                                        @if ($entidad->tipo_instrumento == 'Carta formal de solicitud a la unidad académica') checked @endif>
+                                        @if ($entidad->instrumento_formalizacion->contains('tipo_documento', 'carta_formal_solicitud')) checked @endif>
                                 </td>
                                 <td class="sub-header1" colspan="2">Carta de intenciones con la UNAH<br>
                                     <input disabled type="checkbox" class="No"
-                                        @if ($entidad->tipo_instrumento == 'Carta de intenciones con la UNAH') checked @endif>
+                                        @if ($entidad->instrumento_formalizacion->contains('tipo_documento', 'carta_intenciones')) checked @endif>
                                 </td>
                                 <td class="sub-header1" colspan="2">Convenio marco con la UNAH<br>
                                     <input disabled type="checkbox" class="No"
-                                        @if ($entidad->tipo_instrumento == 'Convenio marco con la UNAH') checked @endif>
+                                        @if ($entidad->instrumento_formalizacion->contains('tipo_documento', 'convenio_marco')) checked @endif>
                                 </td>
                             </tr>
                             <tr>
@@ -1204,7 +1204,293 @@
                     </table>
                 </div>
 
-                <!-- SECCIÓN DE DATOS DEL PROYECTO -->
+                <!-- SECCIÓN DE MARCO LOGICO DEL PROYECTO -->
+                    <div class="section2">
+                    <div class="section-title">I. RESUMEN MARCO LÓGICO DEL PROYECTO. </div>
+                    <table class="table_datos3">
+                        {{-- Fila del Objetivo General --}}
+                        <tr>
+                            <td class="header" colspan="4">Objetivo general:</td>
+                            <td class="full-width" colspan="15">
+                                <textarea disabled cols="30" rows="3" class="input-field">{{ $proyecto->objetivo_general ?? 'Sin objetivo general especificado' }}</textarea>
+                            </td>
+                        </tr>
+                        {{-- Fila de headers --}}
+                        <tr>
+                            <td class="header" colspan="4">Objetivo específico</td>
+                            <td class="header" colspan="5">Resultado</td>
+                            <td class="header" colspan="5">Indicador de resultado</td>
+                            <td class="header" colspan="5">Medio de verificación</td>
+                        </tr>
+                        {{-- Filas de datos --}}
+                        @if($proyecto->objetivosEspecificos->count() > 0)
+                            @foreach($proyecto->objetivosEspecificos as $indexObj => $objetivo)
+                                @if($objetivo->resultados->count() > 0)
+                                    @foreach($objetivo->resultados as $indexRes => $resultado)
+                                        <tr>
+                                            {{-- Objetivo específico solo en la primera fila de cada objetivo --}}
+                                            @if($indexRes == 0)
+                                                <td class="full-width" colspan="4" rowspan="{{ $objetivo->resultados->count() }}">
+                                                    <textarea disabled cols="30" rows="{{ max(3, $objetivo->resultados->count() * 2) }}" class="input-field">{{ $objetivo->descripcion }}</textarea>
+                                                </td>
+                                            @endif
+                                            
+                                            {{-- Resultado, indicador y medio de verificación en cada fila --}}
+                                            <td class="full-width" colspan="5">
+                                                <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_resultado ?? 'Sin resultado especificado' }}</textarea>
+                                            </td>
+                                            <td class="full-width" colspan="5">
+                                                <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_indicador ?? 'Sin indicador especificado' }}</textarea>
+                                            </td>
+                                            <td class="full-width" colspan="5">
+                                                <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_medio_verificacion ?? 'Sin medio de verificación especificado' }}</textarea>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @else
+                                    {{-- Objetivo sin resultados --}}
+                                    <tr>
+                                        <td class="full-width" colspan="4">
+                                            <textarea disabled cols="30" rows="3" class="input-field">{{ $objetivo->descripcion }}</textarea>
+                                        </td>
+                                        <td class="full-width" colspan="5">
+                                            <textarea disabled cols="30" rows="3" class="input-field">Sin resultados registrados</textarea>
+                                        </td>
+                                        <td class="full-width" colspan="5">
+                                            <textarea disabled cols="30" rows="3" class="input-field">Sin indicadores registrados</textarea>
+                                        </td>
+                                        <td class="full-width" colspan="5">
+                                            <textarea disabled cols="30" rows="3" class="input-field">Sin medios de verificación registrados</textarea>
+                                        </td>
+                                    </tr>
+                                @endif
+                            @endforeach
+                        @else
+                            {{-- Sin objetivos específicos --}}
+                            <tr>
+                                <td class="full-width" colspan="4">
+                                    <textarea disabled cols="30" rows="4" class="input-field">Sin objetivos específicos registrados</textarea>
+                                </td>
+                                <td class="full-width" colspan="5">
+                                    <textarea disabled cols="30" rows="3" class="input-field">Sin resultados registrados</textarea>
+                                </td>
+                                <td class="full-width" colspan="5">
+                                    <textarea disabled cols="30" rows="3" class="input-field">Sin indicadores registrados</textarea>
+                                </td>
+                                <td class="full-width" colspan="5">
+                                    <textarea disabled cols="30" rows="3" class="input-field">Sin medios de verificación registrados</textarea>
+                                </td>
+                            </tr>
+                        @endif
+                    </table>
+                </div>
+
+                <!-- SECCIÓN DE DETALLE DEL PRESUPUESTO -->
+                <div class="section2">
+                    <div class="section-title">II. DETALLE DEL PRESUPUESTO</div>
+                    <table class="table_datos3">
+                        <tr>
+                            <td class="header" colspan="19">6.1. Aporte institucional (manifestado en lempiras)</td>
+                        </tr>
+                        <tr>
+                            <td class="header" colspan="7">Concepto</td>
+                            <td class="header" colspan="3">Unidad</td>
+                            <td class="header" colspan="3">Cantidad</td>
+                            <td class="header" colspan="3">Costo Unitario</td>
+                            <td class="header" colspan="3">Costo Total</td>
+                        </tr>
+                        
+                        @php
+                            // Crear un array asociativo para fácil acceso a los conceptos
+                            $conceptos = collect($proyecto->aporteInstitucional)->keyBy('concepto');
+                        @endphp
+                        
+                        <!-- Horas de trabajo docentes -->
+                        <tr>
+                            <td class="sub-header" colspan="7">a) Horas de trabajo docentes</td>
+                            <td class="sub-header" colspan="3">Hra/profesores</td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['horas_trabajo_docentes']?->cantidad ?? '' }}">
+                            </td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['horas_trabajo_docentes']?->costo_unitario ?? '' }}">
+                            </td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['horas_trabajo_docentes']?->costo_total ?? '' }}">
+                            </td>
+                        </tr>
+                        
+                        <!-- Horas de trabajo estudiantes -->
+                        <tr>
+                            <td class="sub-header" colspan="7">b) Horas de trabajo estudiantes</td>
+                            <td class="sub-header" colspan="3">Hra/estudiantes</td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['horas_trabajo_estudiantes']?->cantidad ?? '' }}">
+                            </td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? '' }}">
+                            </td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['horas_trabajo_estudiantes']?->costo_total ?? '' }}">
+                            </td>
+                        </tr>
+                        
+                        <!-- Gastos de movilización -->
+                        <tr>
+                            <td class="sub-header" colspan="7">c) Gastos de movilización</td>
+                            <td class="sub-header" colspan="3">Global</td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['gastos_movilizacion']?->cantidad ?? '' }}">
+                            </td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['gastos_movilizacion']?->costo_unitario ?? '' }}">
+                            </td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['gastos_movilizacion']?->costo_total ?? '' }}">
+                            </td>
+                        </tr>
+                        
+                        <!-- Útiles y materiales de oficina -->
+                        <tr>
+                            <td class="sub-header" colspan="7">d) Útiles y materiales de oficina</td>
+                            <td class="sub-header" colspan="3">Global</td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['utiles_materiales_oficina']?->cantidad ?? '' }}">
+                            </td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['utiles_materiales_oficina']?->costo_unitario ?? '' }}">
+                            </td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['utiles_materiales_oficina']?->costo_total ?? '' }}">
+                            </td>
+                        </tr>
+                        
+                        <!-- Gastos de impresión -->
+                        <tr>
+                            <td class="sub-header" colspan="7">e) Gastos de impresión</td>
+                            <td class="sub-header" colspan="3">Global</td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['gastos_impresion']?->cantidad ?? '' }}">
+                            </td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['gastos_impresion']?->costo_unitario ?? '' }}">
+                            </td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['gastos_impresion']?->costo_total ?? '' }}">
+                            </td>
+                        </tr>
+                        
+                        <!-- Costos indirectos por infraestructura -->
+                        <tr>
+                            <td class="sub-header" colspan="7">f) Costos indirectos por infraestructura universidad (depreciación de equipo, calculado sobre la sumatoria de los conceptos a – e)</td>
+                            <td class="sub-header" colspan="3">%</td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['costos_indirectos_infraestructura']?->cantidad ?? '' }}">
+                            </td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['costos_indirectos_infraestructura']?->costo_unitario ?? '' }}">
+                            </td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['costos_indirectos_infraestructura']?->costo_total ?? '' }}">
+                            </td>
+                        </tr>
+                        
+                        <!-- Costos indirectos por servicios públicos -->
+                        <tr>
+                            <td class="sub-header" colspan="7">g) Costos indirectos por servicios públicos (internet, electricidad, otros, calculado sobre la sumatoria de los conceptos a – e)</td>
+                            <td class="sub-header" colspan="3">%</td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['costos_indirectos_servicios']?->cantidad ?? '' }}">
+                            </td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['costos_indirectos_servicios']?->costo_unitario ?? '' }}">
+                            </td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ $conceptos['costos_indirectos_servicios']?->costo_total ?? '' }}">
+                            </td>
+                        </tr>
+                        
+                        <!-- Fila de totales y aportes -->
+                        <tr>
+                            <td class="sub-headeri" colspan="16">Total aporte institucional</td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ number_format($proyecto->total_aporte_institucional ?? 0, 2, '.', ',') }}">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-headert" colspan="16">Aporte de la contraparte</td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ number_format($proyecto->presupuesto?->aporte_contraparte ?? 0, 2, '.', ',') }}">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-headert" colspan="16">Aporte fondos internacionales</td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ number_format($proyecto->presupuesto?->aporte_internacionales ?? 0, 2, '.', ',') }}">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-headert" colspan="16">Aporte de otras universidades</td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ number_format($proyecto->presupuesto?->aporte_otras_universidades ?? 0, 2, '.', ',') }}">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-headert" colspan="16">Aporte de los beneficiarios (comunidad)</td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ number_format($proyecto->presupuesto?->aporte_comunidad ?? 0, 2, '.', ',') }}">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-headert" colspan="16">Otros aportes</td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                    value="{{ number_format($proyecto->presupuesto?->otros_aportes ?? 0, 2, '.', ',') }}">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-headeri" colspan="16">Total del presupuesto del proyecto</td>
+                            <td class="full-width" colspan="3">
+                                <input disabled type="text" class="input-field" 
+                                     value="{{ number_format(
+                                        ($proyecto->presupuesto->aporte_internacionales ?? 0) +
+                                        ($proyecto->total_aporte_institucional ?? 0) +
+                                        ($proyecto->presupuesto->aporte_otras_universidades ?? 0) +
+                                        ($proyecto->presupuesto->otros_aportes ?? 0) +
+                                        ($proyecto->presupuesto->aporte_contraparte ?? 0) +
+                                        ($proyecto->presupuesto->aporte_comunidad ?? 0), 2, '.', ','
+                                    ) }}">
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
                 <div class="section2">
                     <div class="section-title">III. CRONOGRAMA DE LAS ACTIVIDADES DEL PROYECTO</div>
                     <table class="table_datos3">
@@ -1286,282 +1572,6 @@
                         </tr>
                     </table>
                 </div>  
-                
-
-                <!-- SECCIÓN DE MARCO LOGICO DEL PROYECTO -->
-                    <div class="section2">
-                    <div class="section-title">I. RESUMEN MARCO LÓGICO DEL PROYECTO. </div>
-                    <table class="table_datos3">
-                        {{-- Fila del Objetivo General --}}
-                        <tr>
-                            <td class="sub-header" colspan="4">Objetivo general:</td>
-                            <td class="full-width" colspan="15">
-                                <textarea disabled cols="30" rows="3" class="input-field">{{ $proyecto->objetivo_general ?? 'Sin objetivo general especificado' }}</textarea>
-                            </td>
-                        </tr>
-                        {{-- Fila de headers --}}
-                        <tr>
-                            <td class="sub-header" colspan="4">Objetivo específico</td>
-                            <td class="sub-header" colspan="5">Resultado</td>
-                            <td class="sub-header" colspan="5">Indicador de resultado</td>
-                            <td class="sub-header" colspan="5">Medio de verificación</td>
-                        </tr>
-                        {{-- Filas de datos --}}
-                        @if($proyecto->objetivosEspecificos->count() > 0)
-                            @foreach($proyecto->objetivosEspecificos as $indexObj => $objetivo)
-                                @if($objetivo->resultados->count() > 0)
-                                    @foreach($objetivo->resultados as $indexRes => $resultado)
-                                        <tr>
-                                            {{-- Objetivo específico solo en la primera fila de cada objetivo --}}
-                                            @if($indexRes == 0)
-                                                <td class="full-width" colspan="4" rowspan="{{ $objetivo->resultados->count() }}">
-                                                    <textarea disabled cols="30" rows="{{ max(3, $objetivo->resultados->count() * 2) }}" class="input-field">{{ $objetivo->descripcion }}</textarea>
-                                                </td>
-                                            @endif
-                                            
-                                            {{-- Resultado, indicador y medio de verificación en cada fila --}}
-                                            <td class="full-width" colspan="5">
-                                                <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_resultado ?? 'Sin resultado especificado' }}</textarea>
-                                            </td>
-                                            <td class="full-width" colspan="5">
-                                                <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_indicador ?? 'Sin indicador especificado' }}</textarea>
-                                            </td>
-                                            <td class="full-width" colspan="5">
-                                                <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_medio_verificacion ?? 'Sin medio de verificación especificado' }}</textarea>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                @else
-                                    {{-- Objetivo sin resultados --}}
-                                    <tr>
-                                        <td class="full-width" colspan="4">
-                                            <textarea disabled cols="30" rows="3" class="input-field">{{ $objetivo->descripcion }}</textarea>
-                                        </td>
-                                        <td class="full-width" colspan="5">
-                                            <textarea disabled cols="30" rows="3" class="input-field">Sin resultados registrados</textarea>
-                                        </td>
-                                        <td class="full-width" colspan="5">
-                                            <textarea disabled cols="30" rows="3" class="input-field">Sin indicadores registrados</textarea>
-                                        </td>
-                                        <td class="full-width" colspan="5">
-                                            <textarea disabled cols="30" rows="3" class="input-field">Sin medios de verificación registrados</textarea>
-                                        </td>
-                                    </tr>
-                                @endif
-                            @endforeach
-                        @else
-                            {{-- Sin objetivos específicos --}}
-                            <tr>
-                                <td class="full-width" colspan="4">
-                                    <textarea disabled cols="30" rows="4" class="input-field">Sin objetivos específicos registrados</textarea>
-                                </td>
-                                <td class="full-width" colspan="5">
-                                    <textarea disabled cols="30" rows="3" class="input-field">Sin resultados registrados</textarea>
-                                </td>
-                                <td class="full-width" colspan="5">
-                                    <textarea disabled cols="30" rows="3" class="input-field">Sin indicadores registrados</textarea>
-                                </td>
-                                <td class="full-width" colspan="5">
-                                    <textarea disabled cols="30" rows="3" class="input-field">Sin medios de verificación registrados</textarea>
-                                </td>
-                            </tr>
-                        @endif
-                    </table>
-                </div>
-
-                <!-- SECCIÓN DE DETALLE DEL PRESUPUESTO -->
-                <div class="section2">
-                    <div class="section-title">II. DETALLE DEL PRESUPUESTO</div>
-                    <table class="table_datos3">
-                        <tr>
-                            <td class="header" colspan="19">6.1. Aporte institucional (manifestado en lempiras)</td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="7">Concepto</td>
-                            <td class="sub-header" colspan="3">Unidad</td>
-                            <td class="sub-header" colspan="3">Cantidad</td>
-                            <td class="sub-header" colspan="3">Costo Unitario</td>
-                            <td class="sub-header" colspan="3">Costo Total</td>
-                        </tr>
-                        
-                        @php
-                            // Crear un array asociativo para fácil acceso a los conceptos
-                            $conceptos = collect($proyecto->aporteInstitucional)->keyBy('concepto');
-                        @endphp
-                        
-                        <!-- Horas de trabajo docentes -->
-                        <tr>
-                            <td class="full-width" colspan="7">a) Horas de trabajo docentes</td>
-                            <td class="full-width" colspan="3">Hra/profesores</td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_docentes']?->cantidad ?? '' }}">
-                            </td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_docentes']?->costo_unitario ?? '' }}">
-                            </td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_docentes']?->costo_total ?? '' }}">
-                            </td>
-                        </tr>
-                        
-                        <!-- Horas de trabajo estudiantes -->
-                        <tr>
-                            <td class="full-width" colspan="7">b) Horas de trabajo estudiantes</td>
-                            <td class="full-width" colspan="3">Hra/estudiantes</td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_estudiantes']?->cantidad ?? '' }}">
-                            </td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? '' }}">
-                            </td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_estudiantes']?->costo_total ?? '' }}">
-                            </td>
-                        </tr>
-                        
-                        <!-- Gastos de movilización -->
-                        <tr>
-                            <td class="full-width" colspan="7">c) Gastos de movilización</td>
-                            <td class="full-width" colspan="3">Global</td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_movilizacion']?->cantidad ?? '' }}">
-                            </td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_movilizacion']?->costo_unitario ?? '' }}">
-                            </td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_movilizacion']?->costo_total ?? '' }}">
-                            </td>
-                        </tr>
-                        
-                        <!-- Útiles y materiales de oficina -->
-                        <tr>
-                            <td class="full-width" colspan="7">d) Útiles y materiales de oficina</td>
-                            <td class="full-width" colspan="3">Global</td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['utiles_materiales_oficina']?->cantidad ?? '' }}">
-                            </td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['utiles_materiales_oficina']?->costo_unitario ?? '' }}">
-                            </td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['utiles_materiales_oficina']?->costo_total ?? '' }}">
-                            </td>
-                        </tr>
-                        
-                        <!-- Gastos de impresión -->
-                        <tr>
-                            <td class="full-width" colspan="7">e) Gastos de impresión</td>
-                            <td class="full-width" colspan="3">Global</td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_impresion']?->cantidad ?? '' }}">
-                            </td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_impresion']?->costo_unitario ?? '' }}">
-                            </td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_impresion']?->costo_total ?? '' }}">
-                            </td>
-                        </tr>
-                        
-                        <!-- Costos indirectos por infraestructura -->
-                        <tr>
-                            <td class="full-width" colspan="7">f) Costos indirectos por infraestructura universidad (depreciación de equipo, calculado sobre la sumatoria de los conceptos a – e)</td>
-                            <td class="full-width" colspan="3">%</td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_infraestructura']?->cantidad ?? '' }}">
-                            </td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_infraestructura']?->costo_unitario ?? '' }}">
-                            </td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_infraestructura']?->costo_total ?? '' }}">
-                            </td>
-                        </tr>
-                        
-                        <!-- Costos indirectos por servicios públicos -->
-                        <tr>
-                            <td class="full-width" colspan="7">g) Costos indirectos por servicios públicos (internet, electricidad, otros, calculado sobre la sumatoria de los conceptos a – e)</td>
-                            <td class="full-width" colspan="3">%</td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_servicios']?->cantidad ?? '' }}">
-                            </td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_servicios']?->costo_unitario ?? '' }}">
-                            </td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_servicios']?->costo_total ?? '' }}">
-                            </td>
-                        </tr>
-                        
-                        <!-- Fila de totales y aportes -->
-                        <tr>
-                            <td class="header" colspan="16">Total aporte institucional</td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->total_aporte_institucional ?? 0, 2, '.', ',') }}">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="16">Aporte de la contraparte</td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_contraparte ?? 0, 2, '.', ',') }}">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="16">Aporte fondos internacionales</td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_internacionales ?? 0, 2, '.', ',') }}">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="16">Aporte de otras universidades</td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_otras_universidades ?? 0, 2, '.', ',') }}">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="16">Aporte de los beneficiarios (comunidad)</td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_comunidad ?? 0, 2, '.', ',') }}">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="16">Otros aportes</td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->presupuesto?->otros_aportes ?? 0, 2, '.', ',') }}">
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-
-                
 
                 <!-- SECCIÓN DE FIRMAS -->
                 <div class="section3">

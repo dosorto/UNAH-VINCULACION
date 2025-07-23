@@ -128,7 +128,8 @@ p {
 }
 
 .table_datos1 .full-width1 {
-    background-color: #acd2ff;
+    background-color: #020b70;
+    color: white;
     font-weight: bold;
     text-align: center;
     width: 20%;
@@ -137,7 +138,7 @@ p {
     width: 60%;
 }
 .table_datos1 .sub-header {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
 }
 .table_datos1 td, .table_datos1 .sub-header {
@@ -212,12 +213,13 @@ p {
     text-align: left;
 }
 .table_datos2 .header {
-    background-color: #acd2ff;
+    background-color: #020b70;
+    color: white;
     font-weight: bold;
     text-align: center;
 }
 .table_datos2 .sub-header {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
 }
 .table_datos2 .full-width {
@@ -252,23 +254,40 @@ p {
     text-align: left;
 }
 .table_datos3 .header {
-    background-color: #acd2ff;
+    background-color: #020b70;
+    color: white;
     font-weight: bold;
     text-align: left;
 }
 .table_datos3 .sub-header {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
 }
 
+.table_datos3 .sub-headert {
+    background-color: #ebeeef;
+    font-style: italic;
+    color: black;
+    font-weight: bold;
+    text-align: right;
+}
+
+.table_datos3 .sub-headeri {
+    background-color: rgb(203, 206, 207);
+    font-style: italic;
+    color: black;
+    font-weight: bold;
+    text-align: right;
+}
+
 .table_datos3 .sub-header3 {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
     text-align: center;
 }
 
 .table_datos3 .sub-header4 {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
     text-align: right;
 }
@@ -316,12 +335,13 @@ p {
     text-align: left;
 }
 .table_datos4 .header {
-    background-color: #acd2ff;
+    background-color: #020b70;
+    color: white;
     font-weight: bold;
     text-align: center;
 }
 .table_datos4 .sub-header {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
     text-align: center;
 }
@@ -366,12 +386,13 @@ p {
     text-align: left;
 }
 .table_datos5 .header {
-    background-color: #acd2ff;
+    background-color: #020b70;
+    color: white;
     font-weight: bold;
     text-align: center;
 }
 .table_datos5 .sub-header {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
     text-align: center;
 }
@@ -415,12 +436,13 @@ p {
     text-align: left;
 }
 .table_datos7 .header {
-    background-color: #acd2ff;
+    background-color: #020b70;
+    color: white;
     font-weight: bold;
     text-align: center;
 }
 .table_datos7 .sub-header {
-    background-color: #d7e9fe;
+    background-color: #ebeeef;
     font-style: italic;
     text-align: center;
 }

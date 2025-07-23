@@ -70,7 +70,8 @@ class SegundaParte
                         ->maxLength(255)
                         ->label('Correo de contacto')
                         ->columnSpan(1)
-                        ->required(),
+                        ->required()
+                        ->email(),
                     
                     Forms\Components\TextArea::make('descripcion_acuerdos')
                         ->minLength(2)
