@@ -554,7 +554,7 @@
                         <!-- Tarjeta de tarea -->
                         @forelse($enBorrador as $proyecto)
                             <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200"
-                                href="#">
+                                href="{{ route('historialproyecto', $proyecto->id) }}">
                                 <h4 class="text-gray-900 dark:text-white font-semibold leading-6 mb-1">
                                     {{ $proyecto->nombre_proyecto }}</h4>
                                 <div class="flex items-center mb-4">
@@ -639,7 +639,7 @@
                         <!-- Tarjeta de tarea -->
                         @forelse($enRevision as $proyecto)
                             <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200"
-                                href="#">
+                                href="{{ route('historialproyecto', $proyecto->id) }}">
                                 <h4 class="text-gray-900 dark:text-white font-semibold leading-6 mb-1">
                                     {{ $proyecto->nombre_proyecto }}</h4>
                                 <div class="flex items-center mb-4">
@@ -721,7 +721,7 @@
                         <!-- Tarjeta de tarea -->
                         @forelse($enEjecucion as $proyecto)
                             <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200"
-                                href="#">
+                                hhref="{{ route('historialproyecto', $proyecto->id) }}">
                                 <h4 class="text-gray-900 dark:text-white font-semibold leading-6 mb-1">
                                     {{ $proyecto->nombre_proyecto }}</h4>
                                 <div class="flex items-center mb-4">
@@ -805,7 +805,7 @@
                         <!-- Tarjeta de tarea -->
                         @forelse($enFinalizados as $proyecto)
                             <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200"
-                                href="#">
+                                href="{{ route('historialproyecto', $proyecto->id) }}">
                                 <h4 class="text-gray-900 dark:text-white font-semibold leading-6 mb-1">
                                     {{ $proyecto->nombre_proyecto }}</h4>
                                 <div class="flex items-center mb-4">

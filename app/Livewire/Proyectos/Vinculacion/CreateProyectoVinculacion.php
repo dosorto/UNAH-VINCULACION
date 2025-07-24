@@ -26,6 +26,9 @@ use App\Livewire\Proyectos\Vinculacion\Secciones\PrimeraParte;
 // use App\Mail\Correos\CorreoParticipacion;
 use App\Livewire\Proyectos\Vinculacion\Secciones\SegundaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\TerceraParte;
+use App\Livewire\Proyectos\Vinculacion\Secciones\EquipoEjecutor;
+use App\Livewire\Proyectos\Vinculacion\Secciones\MarcoLogico;
+use App\Livewire\Proyectos\Vinculacion\Secciones\Presupuesto;
 
 class CreateProyectoVinculacion extends Component implements HasForms
 {
@@ -50,29 +53,46 @@ class CreateProyectoVinculacion extends Component implements HasForms
                         )
                         ->columns(2),
                     Wizard\Step::make('II.')
+                        ->description('EQUIPO EJECUTOR DEL PROYECTO')
+                        ->schema(
+                            EquipoEjecutor::form(),
+                        ),
+                    Wizard\Step::make('III.')
                         ->description('INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (en caso de contar con una contraparte).')
                         ->schema(
                             SegundaParte::form(),
                         ),
-                    Wizard\Step::make('III.')
-                        ->description('Cronograma de actividades.')
+                    Wizard\Step::make('IV.')
+                        ->description('CRONOGRAMA DE ACTIVIDADES.')
                         
                         ->schema(
                             TerceraParte::form(),
                         ),
-                    Wizard\Step::make('IV.')
+                    Wizard\Step::make('V.')
                         ->description('DATOS DEL PROYECTO')
                         ->schema(
                             CuartaParte::form(),
                         )
                         ->columns(2),
-                    Wizard\Step::make('V.')
-                        ->description('Anexos')
+                        Wizard\Step::make('VI.')
+                        ->description('RESUMEN MARCO LÓGICO DEL PROYECTO')
+                        ->schema(
+                            MarcoLogico::form(),
+                        )
+                        ->columns(2),
+                    Wizard\Step::make('VII.')
+                        ->description('DETALLES DEL PRESUPUESTO')
+                        ->schema(
+                            Presupuesto::form(),
+                        )
+                        ->columns(2),
+                    Wizard\Step::make('VIII.')
+                        ->description('ANEXOS')
                         ->schema(
                             QuintaParte::form(),
                         ),
-                    Wizard\Step::make('VI.')
-                        ->description('Firmas')
+                    Wizard\Step::make('IX.')
+                        ->description('FIRMAS')
                         ->schema(
                             SextaParte::form(),
                         ),
@@ -103,16 +123,19 @@ class CreateProyectoVinculacion extends Component implements HasForms
     public function create(): void
     {
         $data = $this->form->getState();
+        $record = null;
+        
         try {
             // Intentar obtener el estado del formulario y crear el proyecto
             $data['fecha_registro'] = now();
             $record = Proyecto::create($data);
             $this->form->model($record)->saveRelationships();
         } catch (\Exception $e) {
-            // Notificación de error si ocurre al crear el proyecto y eliminar el registro
-
-
-            $record->delete();
+            // Notificación de error si ocurre al crear el proyecto
+            // Solo eliminar el registro si fue creado exitosamente
+            if ($record) {
+                $record->delete();
+            }
 
             Notification::make()
                 ->title('Error')
@@ -140,18 +163,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                     'fecha_firma' => now(),
                 ]
             );
-        } catch (\Exception $e) {
-            // Eliminar el proyecto en caso de error en la firma
-            $record->delete();
-            Notification::make()
-                ->title('Error')
-                ->body('Error al agregar la firma: ' . $e->getMessage())
-                ->danger()
-                ->send();
-            return;
-        }
-
-        try {
+            
             // Intentar agregar el estado del proyecto
             $record->estado_proyecto()->create([
                 'empleado_id' => auth()->user()->empleado->id,
@@ -159,6 +171,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 'fecha' => now(),
                 'comentario' => 'Proyecto creado exitosamente y enviado a firmar',
             ]);
+            
             // Enviar el correo al usuario que creó el proyecto
             // Obtener el nombre del estado al que cambió el proyecto
             $estado = TipoEstado::find($firmaP->cargo_firma->estado_siguiente_id);
@@ -172,11 +185,11 @@ class CreateProyectoVinculacion extends Component implements HasForms
            // SendEmailJob::dispatch($creadorEmail, 'correoEstado', $estadoNombre, $nombreProyecto, $empleadoNombre);
             
         } catch (\Exception $e) {
-            // Eliminar el proyecto en caso de error al agregar el estado
+            // Eliminar el proyecto en caso de error
             $record->delete();
             Notification::make()
                 ->title('Error')
-                ->body('Error al agregar el estado del proyecto: ' . $e->getMessage())
+                ->body('Error al procesar el proyecto: ' . $e->getMessage())
                 ->danger()
                 ->send();
             return;

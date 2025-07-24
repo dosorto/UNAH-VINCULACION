@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('nombre')->nullable();
             $table->string('apellido')->nullable();
             $table->string('cuenta')->nullable();
+            $table->enum('sexo', ['Masculino', 'Femenino'])->nullable();
             $table->foreignId('centro_facultad_id')->nullable()->constrained('centro_facultad');
             $table->foreignId('carrera_id')->nullable()->constrained('carrera');
             $table->softDeletes();
@@ -31,10 +32,9 @@ return new class extends Migration
             $table->foreignId('estudiante_id')->constrained('estudiante');
             $table->foreignId('proyecto_id')->constrained('proyecto');
             $table->enum('tipo_participacion_estudiante', [
-                'Servicio Social Universitario',
+                'Servicio Social o PPS',
                 'Practica Profesional',
                 'Voluntariado',
-                'Practica de Clase',
             ]);
             $table->softDeletes();
             $table->timestamps();

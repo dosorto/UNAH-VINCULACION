@@ -60,6 +60,10 @@ use App\Livewire\Proyectos\Vinculacion\Secciones\QuintaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\PrimeraParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\SegundaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\TerceraParte;
+use App\Livewire\Proyectos\Vinculacion\Secciones\MarcoLogico;
+use App\Livewire\Proyectos\Vinculacion\Secciones\Presupuesto;
+use App\Livewire\Proyectos\Vinculacion\Secciones\EquipoEjecutor;
+
 
 class EditProyectoVinculacionForm extends Component implements HasForms
 {
@@ -86,6 +90,20 @@ class EditProyectoVinculacionForm extends Component implements HasForms
         if (in_array($this->record->obtenerUltimoEstado()
             ->tipo_estado_id, TipoEstado::whereIn('nombre', ['Borrador', 'Subsanacion'])
             ->pluck('id')->toArray())) {
+            // Cargar las relaciones necesarias para el formulario
+            $this->record->load([
+                'objetivosEspecificos.resultados',
+                'integrantes',
+                'estudiante_proyecto',
+                'entidad_contraparte.instrumento_formalizacion',
+                'actividades.empleados',
+                'presupuesto',
+                'superavit',
+                'ods',
+                'anexos',
+                'coordinador_proyecto.empleado'
+            ]);
+            
             $this->form->fill($this->record->attributesToArray());
         } else {
             Notification::make()
@@ -107,33 +125,50 @@ class EditProyectoVinculacionForm extends Component implements HasForms
                     Wizard\Step::make('I.')
                         ->description('Información general del proyecto')
                         ->schema(
-                            PrimeraParte::form()
-                            // CuartaParte::form(),
+                            PrimeraParte::form(),
                         )
                         ->columns(2),
                     Wizard\Step::make('II.')
+                        ->description('EQUIPO EJECUTOR DEL PROYECTO')
+                        ->schema(
+                            EquipoEjecutor::form(),
+                        ),
+                    Wizard\Step::make('III.')
                         ->description('INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (en caso de contar con una contraparte).')
                         ->schema(
                             SegundaParte::form(),
                         ),
-                    Wizard\Step::make('III.')
-                        ->description('Cronograma de actividades.')
+                    Wizard\Step::make('IV.')
+                        ->description('CRONOGRAMA DE ACTIVIDADES.')
+                        
                         ->schema(
                             TerceraParte::form(),
                         ),
-                    Wizard\Step::make('IV.')
+                    Wizard\Step::make('V.')
                         ->description('DATOS DEL PROYECTO')
                         ->schema(
                             CuartaParte::form(),
                         )
                         ->columns(2),
-                    Wizard\Step::make('V.')
-                        ->description('Anexos')
+                        Wizard\Step::make('VI.')
+                        ->description('RESUMEN MARCO LÓGICO DEL PROYECTO')
+                        ->schema(
+                            MarcoLogico::form(),
+                        )
+                        ->columns(2),
+                    Wizard\Step::make('VII.')
+                        ->description('DETALLES DEL PRESUPUESTO')
+                        ->schema(
+                            Presupuesto::form(),
+                        )
+                        ->columns(2),
+                    Wizard\Step::make('VIII.')
+                        ->description('ANEXOS')
                         ->schema(
                             QuintaParte::form(),
                         ),
-                    Wizard\Step::make('VI.')
-                        ->description('Firmas')
+                    Wizard\Step::make('IX.')
+                        ->description('FIRMAS')
                         ->schema(
                             SextaParte::form(),
                         ),

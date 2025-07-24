@@ -140,7 +140,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                     ->modalContent(
                         fn(Proyecto $proyecto) =>  view(
                             'components.fichas.ficha-proyecto-vinculacion',
-                            ['proyecto' => $proyecto]
+                            ['proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto'])]
                         )
 
                     )
@@ -224,8 +224,8 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                             ->label('ODS')
                                             ->multiple()
                                             ->relationship('ods', 'nombre')
-                                            ->visible(fn(Proyecto $record): bool
-                                            => $record->estado->tipoestado->nombre === 'En revision')
+                                            ->visible(fn(?Proyecto $record) 
+                                            => $record && $record->estado && $record->estado->tipoestado && $record->estado->tipoestado->nombre === 'En revision')
                                             ->columnSpanFull()
                                             ->preload()
                                             ->required(),

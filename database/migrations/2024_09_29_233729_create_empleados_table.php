@@ -26,6 +26,7 @@ return new class extends Migration
             $table->string('nombre_completo')->nullable(); // Nombre completo del empleado
             $table->string('numero_empleado')->unique()->nullable(); // Número de empleado
             $table->string('celular')->nullable(); // Número de celular
+            $table->enum('sexo', ['Masculino', 'Femenino'])->nullable(); // Sexo del empleado
 
             // 
             $table->enum('tipo_empleado', ['docente', 'administrativo'])->default("docente"); // Tipo de empleado (docente o administrativo)

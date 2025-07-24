@@ -32,6 +32,7 @@ class Empleado extends Model
     protected static $logAttributes = [
         'nombre_completo',
         'numero_empleado',
+        'sexo',
         'celular',
         'categoria',
         'user_id',
@@ -53,11 +54,13 @@ class Empleado extends Model
         'nombre_completo',
         'numero_empleado',
         'celular',
+        'sexo',
         'categoria_id',
         'user_id',
         'centro_facultad_id',
         'departamento_academico_id',
-        'tipo_empleado'
+        'tipo_empleado',
+        'tipo_participacion_docente'
     ];
 
 

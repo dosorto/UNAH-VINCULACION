@@ -69,7 +69,11 @@ return new class extends Migration
             $table->string('nombre_proyecto')->nullable();
             $table->foreignId('modalidad_id')->nullable()->constrained('modalidad');
             $table->longText('aldea')->nullable();
+            $table->longText('programa_pertenece')->nullable();
+            $table->longText('lineas_investigacion_academica')->nullable();
             $table->longText('resumen')->nullable();
+            $table->longText('descripcion_participantes')->nullable();
+            $table->longText('definicion_problema')->nullable();
             $table->longText('objetivo_general')->nullable();
             $table->longText('objetivos_especificos')->nullable();
             $table->date('fecha_inicio')->nullable();
@@ -77,15 +81,32 @@ return new class extends Migration
             $table->date('evaluacion_intermedia')->nullable();
             $table->date('evaluacion_final')->nullable();
             $table->decimal('poblacion_participante', 8, 2)->nullable();
+            $table->integer('hombres')->nullable();
+            $table->integer('mujeres')->nullable();
+            $table->integer('otros')->nullable();
+            $table->integer('indigenas_hombres')->default(0);
+            $table->integer('indigenas_mujeres')->default(0);
+            $table->integer('afroamericanos_hombres')->default(0);
+            $table->integer('afroamericanos_mujeres')->default(0);
+            $table->integer('mestizos_hombres')->default(0);
+            $table->integer('mestizos_mujeres')->default(0);
             $table->enum('modalidad_ejecucion', ['Distancia', 'Presencial', 'Bimodal'])->nullable();
+            $table->json('pais')->nullable();
+            $table->json('region')->nullable();
+            $table->json('caserio')->nullable();
             $table->longText('resultados_esperados')->nullable();
             $table->longText('indicadores_medicion_resultados')->nullable();
+            $table->longText('impacto_deseado')->nullable();
+            $table->longText('alineamiento_reforma')->nullable();
+            $table->longText('metodologia')->nullable();
+            $table->longText('bibliografia')->nullable();
             $table->date('fecha_aprobacion')->nullable();
             $table->date('fecha_registro')->nullable();
             $table->string('numero_libro')->nullable();
             $table->string('numero_tomo')->nullable();
             $table->string('numero_folio')->nullable();
             $table->string('numero_dictamen')->nullable();
+            
         
             $table->softDeletes();
             $table->timestamps();
@@ -108,6 +129,7 @@ return new class extends Migration
             $table->string('correo');
             $table->string('telefono');
             $table->boolean('es_internacional')->default(false);
+            $table->string('descripcion_acuerdos')->nullable();
             $table->string('aporte');
             // $table->string('instrumento_formalizacion');
             $table->softDeletes();
