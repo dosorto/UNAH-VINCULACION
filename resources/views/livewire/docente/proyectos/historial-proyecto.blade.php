@@ -1546,7 +1546,6 @@
                                                 <div class="column"><strong>Fecha de Inicio:</strong>
                                                     {{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</div>
                                             </div>
-                                            <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}</div>
                                             <div class="highlight"><strong>Responsables:</strong>
                                                 @forelse ($actividad->empleados as $responsable)
                                                     <div>

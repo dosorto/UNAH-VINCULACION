@@ -129,7 +129,7 @@ p {
 
 .table_datos1 .full-width1 {
     background-color: #020b70;
-    border-top: 1px solid #fff;
+    border-right: 1px solid #fff;
     border-bottom: 1px solid #fff;
     color: white;
     font-weight: bold;
@@ -216,7 +216,7 @@ p {
 }
 .table_datos2 .header {
     background-color: #020b70;
-    border-top: 1px solid #fff;
+    border-right: 1px solid #fff;
     border-bottom: 1px solid #fff;
     color: white;
     font-weight: bold;
@@ -259,7 +259,7 @@ p {
 }
 .table_datos3 .header {
     background-color: #020b70;
-    border-top: 1px solid #fff;
+    border-right: 1px solid #fff;
     border-bottom: 1px solid #fff;
     color: white;
     font-weight: bold;
@@ -342,7 +342,7 @@ p {
 }
 .table_datos4 .header {
     background-color: #020b70;
-    border-top: 1px solid #fff;
+    border-right: 1px solid #fff;
     border-bottom: 1px solid #fff;
     color: white;
     font-weight: bold;
@@ -395,7 +395,7 @@ p {
 }
 .table_datos5 .header {
     background-color: #020b70;
-    border-top: 1px solid #fff;
+    border-right: 1px solid #fff;
     border-bottom: 1px solid #fff;
     color: white;
     font-weight: bold;
@@ -447,7 +447,7 @@ p {
 }
 .table_datos7 .header {
     background-color: #020b70;
-    border-top: 1px solid #fff;
+    border-right: 1px solid #fff;
     border-bottom: 1px solid #fff;
     color: white;
     font-weight: bold;
@@ -569,6 +569,10 @@ p {
 .highlight {
     background: #dff0d8;
     border-left: 5px solid #4CAF50;
+    flex: 1;
+    padding: 12px;
+    border-radius: 5px;
+    font-size: 16px;
 }
 .large-box {
     padding: 20px;

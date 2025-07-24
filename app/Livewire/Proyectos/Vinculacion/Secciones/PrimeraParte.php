@@ -93,6 +93,17 @@ class PrimeraParte
                 ->required()
                 ->preload(),
 
+            Select::make('carreras')
+                ->label('Carreras')
+                ->multiple()
+                ->searchable()
+                ->relationship(
+                    name: 'carreras',
+                    titleAttribute: 'nombre'
+                )
+                ->required()
+                ->preload(),
+
             Forms\Components\TextArea::make('programa_pertenece')
                 ->label('Programa al que pertenece')
                 ->minLength(2)
