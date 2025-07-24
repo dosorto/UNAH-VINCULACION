@@ -288,7 +288,7 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
                                     'empleado_id' => Auth::user()->empleado->id,
                                     'tipo_estado_id' => TipoEstado::where('nombre', 'En curso')->first()->id,
                                     'fecha' => now(),
-                                    'comentario' => 'El proyecto ha sido aprobado correctamente',
+                                    'comentario' => 'El proyecto ha cambiado de estado a En curso',
                                 ]);
 
                                 $proyecto->firma_proyecto()->updateOrCreate(

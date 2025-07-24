@@ -1132,11 +1132,11 @@
                         </span>
                     </div>
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-200 mt-2">
-                        {{ $estado->tipoestado->nombre ?? 'Cambio de estado' }}
+                       Estado: {{ $estado->tipoestado->nombre ?? 'Cambio de estado' }}
                     </h3>
                     <p class="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">
                         @if($estado->empleado)
-                            {{ $estado->empleado->nombre_completo }} 
+                            Realizado por: {{ $estado->empleado->nombre_completo }} 
                         @endif
                         {{ $estado->comentario ? '— ' . $estado->comentario : '' }}
                     </p>

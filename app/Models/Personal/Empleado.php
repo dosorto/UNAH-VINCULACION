@@ -11,6 +11,7 @@ use App\Models\Proyecto\FirmaProyecto;
 use App\Models\UnidadAcademica\Campus;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Personal\CategoriaEmpleado;
+use App\Models\Personal\EmpleadoCodigoInvestigacion;
 
 use App\Models\Proyecto\EmpleadoActividad;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -149,6 +150,11 @@ class Empleado extends Model
         //->withTimestamps();
     }
 
+    // relacion uno a muchos con códigos de investigación
+    public function codigosInvestigacion()
+    {
+        return $this->hasMany(EmpleadoCodigoInvestigacion::class, 'empleado_id');
+    }
 
     public function firmaProyectoPendientes()
     {

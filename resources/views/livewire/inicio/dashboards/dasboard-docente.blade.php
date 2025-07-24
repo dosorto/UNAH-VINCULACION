@@ -329,33 +329,80 @@
                     <div>
                         <div
                             class="py-6 px-5 sm:px-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                            <h4 class="text-lg text-gray-900 dark:text-white font-semibold mb-6">Mis actividades recientes </h4>
-                            @forelse($activitiesUser as $activity)
-                                <a class="flex p-4 items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition duration-150"
-                                    href="#">
-                                    <div class="flex items-center pr-2">
-                                        <div
-                                            class="flex w-6 h-6 mr-3 items-center justify-center bg-gray-200 dark:bg-gray-700 text-blue-600 dark:text-blue-400 rounded-xl">
-                                            <svg class="w-6 h-6 text-yellow-500 dark:text-yellow-600" aria-hidden="true"
-                                                xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                                fill="currentColor" viewBox="0 0 24 24">
-                                                <path
-                                                    d="M17.133 12.632v-1.8a5.406 5.406 0 0 0-4.154-5.262.955.955 0 0 0 .021-.106V3.1a1 1 0 0 0-2 0v2.364a.955.955 0 0 0 .021.106 5.406 5.406 0 0 0-4.154 5.262v1.8C6.867 15.018 5 15.614 5 16.807 5 17.4 5 18 5.538 18h12.924C19 18 19 17.4 19 16.807c0-1.193-1.867-1.789-1.867-4.175ZM6 6a1 1 0 0 1-.707-.293l-1-1a1 1 0 0 1 1.414-1.414l1 1A1 1 0 0 1 6 6Zm-2 4H3a1 1 0 0 1 0-2h1a1 1 0 1 1 0 2Zm14-4a1 1 0 0 1-.707-1.707l1-1a1 1 0 1 1 1.414 1.414l-1 1A1 1 0 0 1 18 6Zm3 4h-1a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2ZM8.823 19a3.453 3.453 0 0 0 6.354 0H8.823Z" />
-                                            </svg>
+                            <h4 class="text-lg text-gray-900 dark:text-white font-semibold mb-6">Actividades recientes </h4>
+                            @if($activitiesUser->count() > 0)
+                                <div class="timeline relative pl-6 mt-4">
+                                    @foreach($activitiesUser as $estado)
+                                        <div class="timeline-item mb-6 relative pb-4">
+                                            <!-- Línea vertical continua -->
+                                            <div class="absolute top-0 left-0 h-full w-0.5 bg-gray-200 dark:bg-gray-600 -ml-3"></div>
+                                            
+                                            <!-- Badge/Círculo del timeline -->
+                                            <div class="timeline-badge absolute -left-6 w-6 h-6 rounded-full flex items-center justify-center 
+                                                {{ $estado->es_actual 
+                                                    ? 'bg-blue-500 dark:bg-blue-600' 
+                                                    : 'bg-gray-400 dark:bg-gray-500' }}">
+                                                <div class="w-3 h-3 bg-white dark:bg-gray-800 rounded-full"></div>
+                                            </div>
+                                            
+                                            <!-- Contenido del elemento del timeline -->
+                                            <div class="timeline-content bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+                                                <!-- Encabezado -->
+                                                <h6 class="timeline-header text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center mb-2">
+                                                    @if($estado->tipo_elemento === 'Proyecto')
+                                                        <svg class="w- h-4 text-blue-600 dark:text-blue-600" aria-hidden="true"
+                                                            xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                            fill="currentColor" viewBox="0 0 24 24">
+                                                            <path
+                                                                d="M12.4472 4.10557c-.2815-.14076-.6129-.14076-.8944 0L2.76981 8.49706l9.21949 4.39024L21 8.38195l-8.5528-4.27638Z" />
+                                                            <path
+                                                                d="M5 17.2222v-5.448l6.5701 3.1286c.278.1325.6016.1293.8771-.0084L19 11.618v5.6042c0 .2857-.1229.5583-.3364.7481l-.0025.0022-.0041.0036-.0103.009-.0119.0101-.0181.0152c-.024.02-.0562.0462-.0965.0776-.0807.0627-.1942.1465-.3405.2441-.2926.195-.7171.4455-1.2736.6928C15.7905 19.5208 14.1527 20 12 20c-2.15265 0-3.79045-.4792-4.90614-.9751-.5565-.2473-.98098-.4978-1.27356-.6928-.14631-.0976-.2598-.1814-.34049-.2441-.04036-.0314-.07254-.0576-.09656-.0776-.01201-.01-.02198-.0185-.02991-.0253l-.01038-.009-.00404-.0036-.00174-.0015-.0008-.0007s-.00004 0 .00978-.0112l-.00009-.0012-.01043.0117C5.12215 17.7799 5 17.5079 5 17.2222Zm-3-6.8765 2 .9523V17c0 .5523-.44772 1-1 1s-1-.4477-1-1v-6.6543Z" />
+                                                        </svg>
+                                                    @else
+                                                        <svg class="w-4 h-4 mr-1.5 text-yellow-600 dark:text-yellow-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"/>
+                                                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8m-8 4h4"/>
+                                                        </svg>
+                                                    @endif
+                                                    <span>{{ $estado->tipo_elemento }}: <span class="text-blue-600 dark:text-blue-400">{{ $estado->nombre_elemento }}</span></span>
+                                                </h6>
+                                                
+                                                <!-- Cuerpo -->
+                                                <div class="timeline-body mb-3">
+                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+                                                        {{ $estado->es_actual 
+                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' 
+                                                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' }}">
+                                                        {{ $estado->tipoestado->nombre }}
+                                                    </span>
+                                                    
+                                                    @if($estado->comentario)
+                                                        <div class="mt-3 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 p-3 rounded-md border-l-2 border-gray-300 dark:border-gray-500 italic">
+                                                            "{{ $estado->comentario }}"
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                                
+                                                <!-- Pie -->
+                                                <div class="timeline-footer text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                                                    <svg class="w-3.5 h-3.5 mr-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                                                    </svg>
+                                                    {{ $estado->fecha_cambio }}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h5 class="text-sm text-gray-900 dark:text-white font-medium mb-1">
-                                                {{ $activity->description }}
-                                                {{ $activity->subject->nombre_proyecto ?? '' }} –
-                                                por {{ $activity->causer->name ?? 'Sistema' }}</h5>
-                                            <p class="text-xs text-gray-600 dark:text-gray-400 font-semibold">
-                                                {{ $activity->created_at->diffForHumans() }}</p>
-                                        </div>
-                                    </div>
-                                </a>
-                            @empty
-                                <li class="p-4 text-gray-600 dark:text-gray-400">No hay actividades registradas</li>
-                            @endforelse
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="flex flex-col items-center justify-center py-6 text-gray-500 dark:text-gray-400">
+                                    <svg class="w-12 h-12 mb-3 opacity-50" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 8h10M9 12h10M9 16h10M5 8h0M5 12h0M5 16h0"/>
+                                    </svg>
+                                    <p class="font-medium">No hay actividad reciente para mostrar.</p>
+                                    <p class="text-sm mt-1">Las actualizaciones de estado aparecerán aquí.</p>
+                                </div>
+                            @endif
                         </div>
                     </div>
                     <!-- tabla proyectos por empleados -->

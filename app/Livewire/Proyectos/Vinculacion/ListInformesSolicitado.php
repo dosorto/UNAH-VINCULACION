@@ -135,7 +135,7 @@ class ListInformesSolicitado extends Component implements HasForms, HasTable
                                         'empleado_id' => Auth::user()->empleado->id,
                                         'tipo_estado_id' => TipoEstado::where('nombre', 'Finalizado')->first()->id,
                                         'fecha' => now(),
-                                        'comentario' => 'El proyecto ha sido aprobado correctamente',
+                                        'comentario' => 'El informe ha sido aprobado correctamente',
                                     ]);
 
 

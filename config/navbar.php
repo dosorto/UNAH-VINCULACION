@@ -80,12 +80,13 @@ return [
             [
                 'titulo' => 'Empleado',
                 'route' => 'ListarEmpleados',
-                'routes' => ['ListarEmpleados', 'crearEmpleado'],
+                'routes' => ['ListarEmpleados', 'crearEmpleado', 'codigosInvestigacionAdmin'],
                 'icono' => 'heroicon-c-cube',
                 'permisos' => ['empleados-admin-empleados'],
                 'children' => [
                     ['texto' => 'Empleados', 'route' => 'ListarEmpleados', 'permiso' => 'empleados-admin-empleados'],
                     ['texto' => 'Crear Empleado', 'route' => 'crearEmpleado', 'permiso' => 'empleados-admin-empleados'],
+                    ['texto' => 'Códigos de Investigación', 'route' => 'codigosInvestigacionAdmin', 'permiso' => 'empleados-admin-empleados'],
                 ],
                 'funcion' => null,
                 'parametro' => null,
