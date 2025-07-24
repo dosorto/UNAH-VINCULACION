@@ -1518,7 +1518,7 @@
                         <tr>
                             <td class="sub-header3" colspan="4"> Actividades</td>
                             <td class="sub-header3" colspan="4"> Fecha de ejecución</td>
-                            <td class="sub-header3" colspan="5"> responsables</td>
+                            <td class="sub-header3" colspan="5"> Responsables</td>
                             <td class="sub-header3" colspan="5"> Accion</td>
                         </tr>
                         <tr>
@@ -1554,6 +1554,7 @@
                                                 <div class="column"><strong>Fecha de Inicio:</strong>
                                                     {{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</div>
                                             </div>
+                                            <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}</div>
                                             <div class="highlight"><strong>Responsables:</strong>
                                                 @forelse ($actividad->empleados as $responsable)
                                                     <div>

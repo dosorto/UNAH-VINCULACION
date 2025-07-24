@@ -71,7 +71,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <th class="full-width1" rowspan="4">2. Unidad Académica:</th>
+                            <th class="full-width1" rowspan="5">2. Unidad Académica:</th>
                             <td class="sub-header" colspan="1">Facultad/Campus Universitario</td>
                             <td class="full-width" colspan="4">
                                 <ul>
@@ -87,6 +87,16 @@
                                 <ul>
                                     @foreach ($proyecto->departamentos_academicos as $departamento)
                                         <li>{{ $departamento->nombre }}</li>
+                                    @endforeach
+                                </ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="1">Carreras</td>
+                            <td class="full-width" colspan="4">
+                                <ul>
+                                    @foreach ($proyecto->carreras as $carrera)
+                                        <li>{{ $carrera->nombre }}</li>
                                     @endforeach
                                 </ul>
                             </td>
@@ -130,19 +140,19 @@
                             <th class="full-width1" rowspan="1">4. Alineamiento con ejes prioritarios de la UNAH</th>
                             <td class="sub-header1" colspan="1">Desarrollo económico y social <br>
                                 <input disabled type="checkbox" class="No"
-                                    checked >
+                                    @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Desarrollo económico y social')) checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Democracia y gobernabilidad<br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->ejesPrioritarios?->nombre == 'Democracia y gobernabilidad') checked @endif>
+                                    @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Democracia y gobernabilidad')) checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Población y condiciones de vida <br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->ejesPrioritarios?->nombre == 'Población y condiciones de vida') checked @endif>
+                                    @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Población y condiciones de vida')) checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Ambiente, biodiversidad y desarrollo<br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->ejesPrioritarios?->nombre == 'Ambiente, biodiversidad y desarrollo') checked @endif>
+                                    @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Ambiente, biodiversidad y desarrollo')) checked @endif>
                             </td>
                         </tr>
 
@@ -1510,7 +1520,7 @@
                         <tr>
                             <td class="sub-header3" colspan="4"> Actividades</td>
                             <td class="sub-header3" colspan="4"> Fecha de ejecución</td>
-                            <td class="sub-header3" colspan="5"> responsables</td>
+                            <td class="sub-header3" colspan="5"> Responsables</td>
                             <td class="sub-header3" colspan="5"> Accion</td>
                         </tr>
                         <tr>
@@ -1546,6 +1556,7 @@
                                                 <div class="column"><strong>Fecha de Inicio:</strong>
                                                     {{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</div>
                                             </div>
+                                            <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}</div>
                                             <div class="highlight"><strong>Responsables:</strong>
                                                 @forelse ($actividad->empleados as $responsable)
                                                     <div>
@@ -1703,7 +1714,7 @@
                     </table>
                 </div>
 
-                <!-- SECCIÓN DE DOCUMENTOS ADJUNTOS A LA FICHA -->
+                <!-- SECCIÓN DE DOCUMENTOS ADJUNTOS A LA FICHA 
                 <div class="section4">
                     <div class="section-title">V. DOCUMENTOS ADJUNTOS A LA FICHA. </div>
                     <table class="table_datos5">
@@ -1760,7 +1771,7 @@
                         <p>- El documento 1 / documento 2 (cualquiera de los dos) es obligatorio</p>
                         <p>- El documento 3 es obligatorio</p>
                     </div>
-                </div>
+                </div> -->
 
                 <!-- SECCIÓN DE ANEXOS Y DATOS DE REGISTRO -->
                 <div class="section4">
@@ -1809,8 +1820,8 @@
                         </tr>
                     </table>
 
-
-                    <div class="section-title" style="margin-top: 20px;">VII. DATOS DE REGISTRO. </div>
+                    <!-- DATOS DE REGISTRO 
+                <div class="section-title" style="margin-top: 20px;">VII. DATOS DE REGISTRO. </div>
                     <table class="table_datos5">
                         <tr>
                             <td class="sub-header" colspan="1">Responsable de revisión</td>
@@ -1867,7 +1878,7 @@
                             value="{{ $proyecto->numero_dictamen }}" placeholder="Ingrese No. dictamen de Proyecto">
                         <p class="header-text">No. dictamen de Proyecto</p>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
     </x-filament::section>

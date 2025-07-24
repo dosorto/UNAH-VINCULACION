@@ -79,6 +79,12 @@ class TerceraParte
                         ->label('Fecha de Finalizacion')
                         ->required()
                         ->columnSpan(1),
+                    Forms\Components\TextInput::make('horas')
+                        ->label('Horas')
+                        ->minLength(1)
+                        ->maxLength(255)
+                        ->required()
+                        ->numeric(),
                 ])
                 ->label('Descripción de actividades del proyecto (Descripción de todas las actividades enmarcadas en el proyecto, las cuales pueden ser, entre otras, la negociación inicial, la organización de los equipos de trabajo, la planificación, el desarrollo de actividades de capacitación y fortalecimiento, presentación de informe intermedio o parciales, presentación del informe final, proceso de evaluación, proceso de sistematización, publicación de artículo, otras acciones de divulgación)')
                 ->defaultItems(0)
