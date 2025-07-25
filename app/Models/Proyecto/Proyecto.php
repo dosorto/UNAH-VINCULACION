@@ -444,8 +444,17 @@ class Proyecto extends Model
     {
         return $this->empleado_proyecto()
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+            ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
             ->where('empleado.sexo', 'Masculino')
-            ->where('empleado.tipo_empleado', 'docente')
+            ->where(function($q) {
+                $q->whereRaw("LOWER(categoria.nombre) LIKE '%profesores x hora%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%profesores horarios%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular i%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular ii%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iii%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iv%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular v%'");
+            })
             ->count();
     }
 
@@ -453,8 +462,17 @@ class Proyecto extends Model
     {
         return $this->empleado_proyecto()
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+            ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
             ->where('empleado.sexo', 'Femenino')
-            ->where('empleado.tipo_empleado', 'docente')
+            ->where(function($q) {
+                $q->whereRaw("LOWER(categoria.nombre) LIKE '%profesores x hora%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%profesores horarios%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular i%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular ii%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iii%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iv%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular v%'");
+            })
             ->count();
     }
 
@@ -463,7 +481,7 @@ class Proyecto extends Model
         $query = $this->empleado_proyecto()
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
             ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
-            ->where('empleado.tipo_empleado', 'docente');
+            ->where('empleado.tipo_empleado', 'Docente');
 
         if (strtolower($categoria) === 'permanente') {
             $query->where(function($q) {
@@ -489,8 +507,14 @@ class Proyecto extends Model
     {
         return $this->empleado_proyecto()
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+            ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
             ->where('empleado.sexo', 'Masculino')
-            ->where('empleado.tipo_empleado', 'administrativo')
+            ->where(function($q) {
+                $q->whereRaw("LOWER(categoria.nombre) LIKE '%administrativo%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%servicio%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%tecnico%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%instructor%'");
+            })
             ->count();
     }
 
@@ -498,8 +522,14 @@ class Proyecto extends Model
     {
         return $this->empleado_proyecto()
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+            ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
             ->where('empleado.sexo', 'Femenino')
-            ->where('empleado.tipo_empleado', 'administrativo')
+            ->where(function($q) {
+                $q->whereRaw("LOWER(categoria.nombre) LIKE '%administrativo%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%servicio%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%tecnico%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%instructor%'");
+            })
             ->count();
     }
 
@@ -509,7 +539,6 @@ class Proyecto extends Model
         $query = $this->empleado_proyecto()
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
             ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
-            ->where('empleado.tipo_empleado', 'administrativo')
             ->where('categoria.nombre', 'LIKE', '%' . $tipo . '%');
 
         if ($genero) {

@@ -10,6 +10,7 @@ use Database\Seeders\Proyecto\ProyectoSeeder;
 use Database\Seeders\Personal\PersonalSeeder;
 use Database\Seeders\Demografia\MunicipioSeeder;
 use Database\Seeders\Personal\PermisosSeeder;
+use Database\Seeders\EjesPrioritariosUnahSeeder;
 
 
 
@@ -28,5 +29,6 @@ class DatabaseSeeder extends Seeder
         $this->call(ProyectoSeeder::class);
         $this->call(PermisosSeeder::class);
         $this->call(PersonalSeeder::class);
+        $this->call(EjesPrioritariosUnahSeeder::class);
     }
 }
