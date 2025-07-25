@@ -330,6 +330,21 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         ])
                         ->modalSubmitAction(false),
 
+                    Action::make('actualizacion')
+                        ->label('Ficha de Actualización')
+                        ->icon('heroicon-o-eye')
+                        ->color('primary')
+                        ->stickyModalFooter()
+                        ->stickyModalHeader()
+                        ->modalContent(
+                            fn(Proyecto $proyecto): View =>
+                            view(
+                                'components.fichas.ficha-actualizacion-proyecto-vinculacion',
+                                ['proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto'])]
+                            )
+                        ),
+
+
                     Action::make('subsanacion')
                         ->label(
                             fn(Proyecto $proyecto): string =>

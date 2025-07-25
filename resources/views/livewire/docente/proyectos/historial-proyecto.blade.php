@@ -1885,11 +1885,25 @@
     </div>
    {{-- filepath: c:\Users\acxel\Desktop\Desarrollo\Git Repos\UNAH-VINCULACION\resources\views\livewire\docente\proyectos\historial-proyecto.blade.php --}}
 
-<div class="w-full md:w-2/5 lg:w-1/3">
-    <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
-        Historial de movimientos
-    </h1>
-    <p class="text-gray-600 mb-2">
+    <div class="w-full md:w-2/5 lg:w-1/3">
+        <div class="flex flex-row space-x-4 items-start p-4 bg-white dark:bg-gray-800 shadow rounded-lg">
+            <x-filament::button>
+                <a href=""
+                    style="text-decoration: none; color: inherit;">
+                    Crear ficha de actualización
+                </a>
+            </x-filament::button>
+            <x-filament::button>
+                <a href=""
+                    style="text-decoration: none; color: inherit;">
+                    Ver fichas de actualización
+                </a>
+            </x-filament::button>
+        </div>
+        <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
+            Historial de movimientos
+        </h1>
+        <p class="text-gray-600 mb-2">
             Días desde la creación del proyecto: <span class="font-bold">{{ $diasTranscurridos }}</span>
         </p>
     @if(count($estados) > 0)
