@@ -342,7 +342,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 'components.fichas.ficha-actualizacion-proyecto-vinculacion',
                                 ['proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto'])]
                             )
-                        ),
+                        )->modalWidth(MaxWidth::SevenExtraLarge),
 
 
                     Action::make('subsanacion')

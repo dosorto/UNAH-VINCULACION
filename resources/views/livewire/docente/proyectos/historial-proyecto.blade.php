@@ -43,7 +43,7 @@
             Ficha del proyecto
         </x-slot>
 
-        <div style="display: flex; justify-content: center; margin-top: 20px; background-color: white;">
+        <div style="display: flex; justify-content: center; margin-top: 20px; background-color: white; max-height: 80vh; overflow-y: auto;">
             <div class="container">
                 <div class="header">
                     <div class="logo-space">
@@ -1907,9 +1907,9 @@
             Días desde la creación del proyecto: <span class="font-bold">{{ $diasTranscurridos }}</span>
         </p>
     @if(count($estados) > 0)
-        <ol class="relative border-s border-yellow-600">
+        <ol class="relative border-s border-yellow-600"> 
             @foreach($estados as $index => $estado)
-                <li class="{{ $index < count($estados) - 1 ? 'mb-10' : '' }} ms-4">
+                <li class="{{ $index < count($estados) - 1 ? 'mb-10' : '' }} ms-4" style="max-height: 80vh; overflow-y: auto;">
                     <div class="absolute w-3 h-3 bg-yellow-600 rounded-full mt-1.5 -start-1.5 border border-white"></div>
                     <div class="flex items-center">
                         <time class="text-sm font-normal leading-none text-yellow-600">
