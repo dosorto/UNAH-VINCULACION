@@ -1887,12 +1887,11 @@
 
     <div class="w-full md:w-2/5 lg:w-1/3">
         <div class="flex flex-row space-x-4 items-start p-4 bg-white dark:bg-gray-800 shadow rounded-lg">
-            <x-filament::button>
-                <a href=""
-                    style="text-decoration: none; color: inherit;">
+            <a href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}">
+                <x-filament::button>
                     Crear ficha de actualización
-                </a>
-            </x-filament::button>
+                </x-filament::button>
+            </a>
             <x-filament::button>
                 <a href=""
                     style="text-decoration: none; color: inherit;">

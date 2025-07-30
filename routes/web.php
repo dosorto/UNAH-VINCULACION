@@ -43,6 +43,7 @@ use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
 
 use App\Livewire\Docente\Proyectos\SolicitudProyectosDocenteList;
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
+use App\Livewire\Proyectos\Actualizacion\CreateProyectoActualizacion;
 use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
 use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController;
 
@@ -313,9 +314,13 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('historialproyecto')
             ->middleware('can:docente-admin-proyectos');
 
+        Route::get('/proyectos/{proyecto}/ficha-actualizacion', CreateProyectoActualizacion::class)
+            ->name('ficha-actualizacion');
+
         Route::get('SolicitudProyectosDocente', ProyectosPorFirmar::class)
             ->name('SolicitudProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
+
         Route::get('AprobadoProyectosDocente', ProyectosAprobados::class)
             ->name('AprobadoProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
