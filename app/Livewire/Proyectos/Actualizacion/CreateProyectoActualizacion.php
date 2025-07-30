@@ -78,16 +78,16 @@ class CreateProyectoActualizacion extends Component implements HasForms
 
     public function form(Form $form): Form
     {
+        $primeraParte = app(\App\Livewire\Proyectos\Actualizacion\Secciones\PrimeraParte::class, ['proyecto_id' => $this->record->id]);
         return $form
             ->schema([
                 Wizard::make([
                     Wizard\Step::make('I.')
                         ->description('ACTUALIZACIÓN DEL EQUIPO EJECUTOR')
                         ->schema(
-                            PrimeraParte::form(),
+                            $primeraParte->form(),
                         )
                         ->columns(2),
-                    
                 ])->submitAction(new HtmlString(Blade::render(<<<BLADE
             <x-filament::button
                 type="submit"
@@ -97,8 +97,6 @@ class CreateProyectoActualizacion extends Component implements HasForms
              Enviar a Firmar
             </x-filament::button>
         BLADE))),
-
-
             ])
             ->statePath('data')
             ->model($this->record);

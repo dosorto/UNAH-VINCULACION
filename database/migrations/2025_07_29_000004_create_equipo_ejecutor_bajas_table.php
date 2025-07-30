@@ -8,7 +8,7 @@ return new class extends Migration {
     {
         Schema::create('equipo_ejecutor_bajas', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('proyecto_id')->constrained();
+            $table->foreignId('proyecto_id')->constrained('proyecto');
             $table->string('tipo_integrante'); // empleado, estudiante, internacional
             $table->unsignedBigInteger('integrante_id');
             $table->date('fecha_baja');
