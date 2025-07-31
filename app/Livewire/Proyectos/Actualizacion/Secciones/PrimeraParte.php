@@ -81,22 +81,7 @@ class PrimeraParte extends Component implements Forms\Contracts\HasForms
                         ->createOptionForm(
                             FormularioDocente::form()
                         )
-                        ->required()
-                        ->createOptionUsing(function (array $data) {
-                            $user = User::create([
-                                'email' => $data['email'],
-                                'name' => $data['nombre_completo']
-                            ]);
-                            $user->empleado()->create([
-                                'user_id' => $user->id,
-                                'nombre_completo' => $data['nombre_completo'],
-                                'numero_empleado' => $data['numero_empleado'],
-                                'celular' => $data['celular'],
-                                'sexo' => $data['sexo'],
-                                'categoria_id' => $data['categoria_id'],
-                                'departamento_academico_id' => $data['departamento_academico_id'],
-                            ]);
-                        }),
+                        ->required(),
                     TextInput::make('rol')
                         ->label('Rol')
                         ->disabled()
@@ -110,22 +95,7 @@ class PrimeraParte extends Component implements Forms\Contracts\HasForms
                 ->defaultItems(0)
                 ->itemLabel('Empleado')
                 ->addActionLabel('Agregar empleado')
-                ->grid(2)
-                ->afterStateUpdated(function ($state, $livewire, $set) {
-                    $original = $livewire->data['empleado_proyecto_original'] ?? [];
-                    $actual = $state ?? [];
-                    $bajas = collect($original)->pluck('empleado_id')->diff(collect($actual)->pluck('empleado_id'));
-                    foreach ($bajas as $id) {
-                        \App\Models\Proyecto\EquipoEjecutorBaja::create([
-                            'proyecto_id' => $livewire->proyecto_id,
-                            'tipo_integrante' => 'empleado',
-                            'integrante_id' => $id,
-                            'fecha_baja' => now(),
-                            'motivo_baja' => 'Eliminado desde el formulario',
-                        ]);
-                    }
-                    $set('empleado_proyecto_original', $actual);
-                }),
+                ->grid(2),
             Repeater::make('estudiante_proyecto')
                 ->schema([
                     Select::make('estudiante_id')
@@ -171,22 +141,7 @@ class PrimeraParte extends Component implements Forms\Contracts\HasForms
                 ->defaultItems(0)
                 ->columnSpanFull()
                 ->grid(2)
-                ->addActionLabel('Agregar estudiante')
-                ->afterStateUpdated(function ($state, $livewire, $set) {
-                    $original = $livewire->data['estudiante_proyecto_original'] ?? [];
-                    $actual = $state ?? [];
-                    $bajas = collect($original)->pluck('estudiante_id')->diff(collect($actual)->pluck('estudiante_id'));
-                    foreach ($bajas as $id) {
-                        \App\Models\Proyecto\EquipoEjecutorBaja::create([
-                            'proyecto_id' => $livewire->proyecto_id,
-                            'tipo_integrante' => 'estudiante',
-                            'integrante_id' => $id,
-                            'fecha_baja' => now(),
-                            'motivo_baja' => 'Eliminado desde el formulario',
-                        ]);
-                    }
-                    $set('estudiante_proyecto_original', $actual);
-                }),
+                ->addActionLabel('Agregar estudiante'),
             Repeater::make('integrante_internacional_proyecto')
                 ->label('Integrantes de cooperación internacional')
                 ->schema([
@@ -219,22 +174,7 @@ class PrimeraParte extends Component implements Forms\Contracts\HasForms
                 ->defaultItems(0)
                 ->itemLabel('Integrante Internacional')
                 ->addActionLabel('Agregar integrante internacional')
-                ->grid(2)
-                ->afterStateUpdated(function ($state, $livewire, $set) {
-                    $original = $livewire->data['integrante_internacional_proyecto_original'] ?? [];
-                    $actual = $state ?? [];
-                    $bajas = collect($original)->pluck('integrante_internacional_id')->diff(collect($actual)->pluck('integrante_internacional_id'));
-                    foreach ($bajas as $id) {
-                        \App\Models\Proyecto\EquipoEjecutorBaja::create([
-                            'proyecto_id' => $livewire->proyecto_id,
-                            'tipo_integrante' => 'internacional',
-                            'integrante_id' => $id,
-                            'fecha_baja' => now(),
-                            'motivo_baja' => 'Eliminado desde el formulario',
-                        ]);
-                    }
-                    $set('integrante_internacional_proyecto_original', $actual);
-                }),
+                ->grid(2),
             // actividades
         ];
     }

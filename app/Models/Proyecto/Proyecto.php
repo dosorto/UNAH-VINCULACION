@@ -40,6 +40,7 @@ use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\ObjetivoEspecifico;
 use App\Models\Proyecto\ResultadoEsperado;
 use App\Models\Proyecto\AporteInstitucional;
+use App\Models\Proyecto\FichaActualizacion;
 
 
 
@@ -596,6 +597,11 @@ class Proyecto extends Model
 
 
 
+    // Relación uno a muchos con ficha_actualizacion
+    public function ficha_actualizacion()
+    {
+        return $this->hasMany(FichaActualizacion::class, 'proyecto_id');
+    }
 
 
 
