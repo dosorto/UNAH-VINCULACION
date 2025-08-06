@@ -104,6 +104,8 @@ class PrimeraParte
                 ->required()
                 ->preload(),
 
+
+
             Forms\Components\TextArea::make('programa_pertenece')
                 ->label('Programa al que pertenece')
                 ->minLength(2)
@@ -117,6 +119,42 @@ class PrimeraParte
                 ->maxLength(255)
                 ->columnSpan(1)
                 ->required(),
+
+            // Sección de ODS y Metas
+            Fieldset::make('Objetivos de Desarrollo Sostenible (ODS)')
+                ->columns(1)
+                ->schema([
+                    Select::make('ods')
+                        ->label('Objetivos de Desarrollo Sostenible')
+                        ->multiple()
+                        ->searchable()
+                        ->relationship('ods', 'nombre')
+                        ->live()
+                        ->afterStateUpdated(function (Set $set, $state) {
+                            // Limpiar las metas cuando cambien los ODS
+                            $set('metasContribuye', []);
+                        })
+                        ->preload()
+                        ->helperText('Seleccione los ODS a los que contribuye el proyecto'),
+
+                    Select::make('metasContribuye')
+                        ->label('Metas de ODS')
+                        ->multiple()
+                        ->searchable()
+                        ->relationship(
+                            name: 'metasContribuye',
+                            titleAttribute: 'descripcion',
+                            modifyQueryUsing: fn($query, Get $get) => $query
+                                ->whereIn('ods_id', $get('ods') ?? [])
+                                ->orderBy('ods_id')
+                                ->orderBy('numero_meta')
+                        )
+                        ->getOptionLabelFromRecordUsing(fn($record) => "Meta {$record->numero_meta}: {$record->descripcion}")
+                        ->visible(fn(Get $get) => !empty($get('ods')))
+                        ->preload()
+                        ->helperText('Seleccione las metas específicas de los ODS que el proyecto abordará'),
+                ])
+                ->columnSpanFull(),
                
                 Fieldset::make('Fechas')
                 ->columns(2)

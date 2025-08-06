@@ -157,7 +157,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                             fn(Proyecto $proyecto): View =>
                             view(
                                 'components.fichas.ficha-proyecto-vinculacion',
-                                ['proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto'])]
+                                ['proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye'])]
                             )
                         )
                         // ->stickyModalHeader()

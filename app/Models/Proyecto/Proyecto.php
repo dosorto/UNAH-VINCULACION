@@ -41,6 +41,7 @@ use App\Models\Proyecto\ObjetivoEspecifico;
 use App\Models\Proyecto\ResultadoEsperado;
 use App\Models\Proyecto\AporteInstitucional;
 use App\Models\Proyecto\FichaActualizacion;
+use App\Models\Proyecto\MetaContribuye;
 
 
 
@@ -393,6 +394,12 @@ class Proyecto extends Model
     public function ods()
     {
         return $this->belongsToMany(Od::class, 'proyecto_ods', 'proyecto_id', 'ods_id');
+    }
+
+    // relacion muchos a muchos con las metas de ODS
+    public function metasContribuye()
+    {
+        return $this->belongsToMany(MetaContribuye::class, 'proyecto_meta_contribuye', 'proyecto_id', 'meta_contribuye_id');
     }
 
     // relacion muchos a muchos con el modelo categoria

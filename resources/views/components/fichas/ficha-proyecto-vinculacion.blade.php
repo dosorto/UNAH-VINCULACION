@@ -59,6 +59,37 @@
                     <div class="section-title">I. INFORMACIÓN GENERAL DEL PROYECTO </div>
                     <table class="table_datos1">
                         <tr>
+                            <th class="full-width1" rowspan="2">Fecha de solicitud de registro:</th> 
+                            <td class="full-width1" colspan="4">
+                                <div class="date-container">
+                                    <div class="date-part">
+                                        <span class="date-label">Día</span>
+                                         </div>
+                                    <div class="date-part">
+                                        <span class="date-label">Mes</span>
+                                    </div>
+                                    <div class="date-part">
+                                        <span class="date-label">Año</span>
+                                      </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="4">
+                                <div class="date-container">
+                                    <div class="date-part">
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_registro ? $proyecto->fecha_registro->format('d') : '' }}">
+                                    </div>
+                                    <div class="date-part">
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_registro ? $proyecto->fecha_registro->format('m') : '' }}">
+                                    </div>
+                                    <div class="date-part">
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_registro ? $proyecto->fecha_registro->format('Y') : '' }}">
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
                             <th class="full-width1">1. Nombre del Proyecto:</th>
                             <td class="full-width" colspan="5">
 
@@ -70,7 +101,7 @@
                         </tr>
                         <tr>
                             <th class="full-width1" rowspan="5">2. Unidad Académica:</th>
-                            <td class="sub-header" colspan="1">Facultad/Campus Universitario</td>
+                            <td class="sub-header" colspan="1">Facultad /Centro Universitario Regional/Instituto Tecnológico</td>
                             <td class="full-width" colspan="4">
                                 <ul>
                                     @foreach ($proyecto->facultades_centros as $centro)
@@ -80,7 +111,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="1">Departamento</td>
+                            <td class="sub-header" colspan="1">Escuela, Departamento Académico, Técnicos Universitarios, Instituto de Investigación, Observatorio, Consultorio</td>
                             <td class="full-width" colspan="4">
                                 <ul>
                                     @foreach ($proyecto->departamentos_academicos as $departamento)
@@ -573,11 +604,19 @@
                             </td>
                         </tr>
 
-
                     <!-- TABLA DE INTEGRANTES DEL EQUIPO UNIVERSITARIO -->
                         <tr>
                             <th class="full-width1" colspan="6">Integrantes del equipo docente permanente tiempo completo
                                 (Agregar más líneas de ser necesario)</th>
+                        </tr>
+                        <tr>
+                            <th class="full-width1" colspan="2">Cantidad de integrantes empleados:</th>
+                            <td class="full-width" colspan="4">
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el número de empleados"
+                                    value="{{ $proyecto->integrantes->count() }}" disabled>
+                               
+                            </td>
                         </tr>
                         <tr>
                             <td class="sub-header">Nombre Completo:</td>
@@ -1067,92 +1106,7 @@
                                     placeholder="Definición del problema">{{ $proyecto->definicion_problema ?? '' }}</textarea>
                             </td>
                         </tr>
-                        <tr>
-                            <th class="header" colspan="19">4. Objetivo General (El objetivo debe estar basado en la población participante del proyecto)</th>
-                        </tr>
-                        <tr>
-                            <td class="full-width" colspan="19">
-                                <textarea disabled cols="30" rows="6" class="input-field" placeholder="Ingrese el resumen"> {{ old('objetivo_general', $proyecto->objetivo_general) }}
-                                </textarea>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="header" colspan="19">5. Objetivos Específicos (Los objetivos específicos deben estar relacionados con los resultados que esperan obtener en el proyecto)</th>
-                        </tr>
-                        @forelse ($proyecto->objetivosEspecificos as $index => $objetivo)
-                            <tr>
-                                <td class="sub-header" colspan="2">Objetivo Específico {{ $index + 1 }}:</td>
-                                <td class="full-width" colspan="17">
-                                    <textarea disabled cols="30" rows="3" class="input-field" 
-                                        placeholder="Objetivo específico">{{ $objetivo->descripcion }}</textarea>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td class="full-width" colspan="19">
-                                    <textarea disabled cols="30" rows="6" class="input-field" 
-                                        placeholder="No hay objetivos específicos registrados">{{ $proyecto->objetivos_especificos ?? '' }}</textarea>
-                                </td>
-                            </tr>
-                        @endforelse
-                        <tr>
-                            <td class="header" colspan="19">6. Resultados del proyecto. Debe de plantearse resultados para cada objetivo específico</th>
-                        </tr>
-                        @forelse ($proyecto->objetivosEspecificos as $indexObj => $objetivo)
-                            @if ($objetivo->resultados->count() > 0)
-                                <tr>
-                                    <td class="sub-header" colspan="19">Resultados para Objetivo Específico {{ $indexObj + 1 }}</td>
-                                </tr>
-                                @foreach ($objetivo->resultados as $indexRes => $resultado)
-                                    <tr>
-                                        <td class="sub-header" colspan="2">Resultado {{ $indexRes + 1 }}:</td>
-                                        <td class="full-width" colspan="17">
-                                            <textarea disabled cols="30" rows="2" class="input-field" 
-                                                placeholder="Resultado">{{ $resultado->nombre_resultado }}</textarea>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            @endif
-                        @empty
-                            <tr>
-                                <td class="full-width" colspan="19">
-                                    <textarea disabled cols="30" rows="6" class="input-field" 
-                                        placeholder="No hay resultados registrados">No hay resultados específicos registrados</textarea>
-                                </td>
-                            </tr>
-                        @endforelse
-                        <tr>
-                            <td class="header" colspan="19">7. Indicadores de resultado. El indicador de resultado es una medida específica y observable que permite evaluar el 
-                                grado de cumplimiento de los resultados que se han planteado. Sirven para evaluar en qué medida y calidad se lograron los objetivos del proyecto.</th>
-                        </tr>
-                        @forelse ($proyecto->objetivosEspecificos as $indexObj => $objetivo)
-                            @if ($objetivo->resultados->count() > 0)
-                                <tr>
-                                    <td class="sub-header" colspan="19">Indicadores para Objetivo Específico {{ $indexObj + 1 }}</td>
-                                </tr>
-                                @foreach ($objetivo->resultados as $indexRes => $resultado)
-                                    <tr>
-                                        <td class="sub-header" colspan="2">Indicador {{ $indexRes + 1 }}:</td>
-                                        <td class="full-width" colspan="8">
-                                            <textarea disabled cols="30" rows="2" class="input-field" 
-                                                placeholder="Indicador">{{ $resultado->nombre_indicador }}</textarea>
-                                        </td>
-                                        <td class="sub-header" colspan="2">Medio de Verificación:</td>
-                                        <td class="full-width" colspan="7">
-                                            <textarea disabled cols="30" rows="2" class="input-field" 
-                                                placeholder="Medio de verificación">{{ $resultado->nombre_medio_verificacion }}</textarea>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            @endif
-                        @empty
-                            <tr>
-                                <td class="full-width" colspan="19">
-                                    <textarea disabled cols="30" rows="6" class="input-field" 
-                                        placeholder="No hay indicadores registrados">No hay indicadores específicos registrados</textarea>
-                                </td>
-                            </tr>
-                        @endforelse
+                        
                         <tr>
                             <td class="header" colspan="19">8. Impacto que se desea generar en el proyecto</th>
                         </tr>
@@ -1167,12 +1121,20 @@
                                 ODS a los que pretende contribuir el proyecto y las metas correspondientes. Para esta descripción deberá basarse en el documento de ODS 
                                 que puede consultar en el siguiente enlace: <a style="" href="https://www.un.org/sustainabledevelopment/es/objetivos-de-desarrollo-sostenible/">Objetivos y metas de desarrollo sostenible - Desarrollo Sostenible </a></th>
                         </tr>
+                        <tr>
+                            <td class="sub-header" colspan="3">Cantidad ODS:</td>
+                             <td class="sub-header" colspan="3">Descripción de ODS (Nombre y número):</td>
+                              <td class="sub-header" colspan="3">Metas a las que contribuye:</td>
+                        </tr>
                         @forelse ($proyecto->ods as $ods)
                             <tr>
                                 <td class="sub-header" colspan="3">ODS {{ $loop->iteration }}:</td>
-                                <td class="full-width" colspan="16">
+                                <td class="full-width" colspan="3">
                                     <input disabled type="text" class="input-field" 
                                         value="{{ $ods->nombre }}" placeholder="ODS">
+                                </td>
+                                <td class="full-width" colspan="3">
+                                    <textarea disabled class="input-field" rows="2" placeholder="Metas a las que contribuye">{{ $proyecto->metasContribuye->where('ods_id', $ods->id)->count() > 0 ? $proyecto->metasContribuye->where('ods_id', $ods->id)->map(function($meta) { return 'Meta ' . $meta->numero_meta . ': ' . $meta->descripcion; })->implode("\n") : 'Sin metas específicas registradas' }}</textarea>
                                 </td>
                             </tr>
                         @empty

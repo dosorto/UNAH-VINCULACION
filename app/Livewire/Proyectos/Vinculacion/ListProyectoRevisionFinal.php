@@ -186,7 +186,7 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
                     ->modalContent(
                         fn(Proyecto $proyecto) =>  view(
                             'components.fichas.ficha-proyecto-vinculacion',
-                            ['proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto'])]
+                            ['proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye'])]
                         )
 
                     )
