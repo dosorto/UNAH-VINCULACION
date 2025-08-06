@@ -28,5 +28,6 @@ class DatabaseSeeder extends Seeder
         $this->call(ProyectoSeeder::class);
         $this->call(PermisosSeeder::class);
         $this->call(PersonalSeeder::class);
+        $this->call(EjesPrioritariosUnahSeeder::class);
     }
 }

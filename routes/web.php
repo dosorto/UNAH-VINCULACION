@@ -62,6 +62,8 @@ use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
 use App\Models\Slide\Slide;
 use App\Livewire\Personal\Contacto\ListContactos;
 
+use App\Livewire\ServicioTecnologico\CreateServicioTecnologico;
+
 Route::get('/acercade', function () {
     $slides = Slide::where('estado', true)
                     ->get();
@@ -350,8 +352,13 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
         });
 
- 
+        // Servicios Tecnologicos
+        Route::middleware(['auth'])->group(function () {
 
+            Route::get('createServicioTecnologico', CreateServicioTecnologico::class)
+                ->name('createServicioTecnologico');
+
+        });
 
 
     
