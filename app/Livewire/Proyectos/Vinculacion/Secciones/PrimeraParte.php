@@ -100,11 +100,14 @@ class PrimeraParte
                 ->label('Carreras')
                 ->multiple()
                 ->searchable()
+                ->live()
                 ->relationship(
                     name: 'carreras',
                     titleAttribute: 'nombre',
                     modifyQueryUsing: function ($query, Get $get) {
                         $departamentosSeleccionados = $get('departamentos_academicos');
+                        $facultadesSeleccionadas = $get('facultades_centros');
+                        
                         if (!empty($departamentosSeleccionados)) {
                             // Filtrar carreras que pertenecen a los departamentos seleccionados
                             return $query->whereHas('departamentosAcademicos', function ($subQuery) use ($departamentosSeleccionados) {
@@ -113,7 +116,6 @@ class PrimeraParte
                         }
                         
                         // Si no hay departamentos seleccionados, mostrar todas las carreras de las facultades seleccionadas
-                        $facultadesSeleccionadas = $get('facultades_centros');
                         if (!empty($facultadesSeleccionadas)) {
                             return $query->whereIn('facultad_centro_id', $facultadesSeleccionadas);
                         }
@@ -121,7 +123,7 @@ class PrimeraParte
                         return $query;
                     }
                 )
-                ->visible(fn(Get $get) => !empty($get('departamentos_academicos')) || !empty($get('facultades_centros')))
+                ->visible(fn(Get $get) => !empty($get('departamentos_academicos')))
                 ->required()
                 ->preload(),
 

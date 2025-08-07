@@ -17,7 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('meta_contribuye_id');
             $table->timestamps();
 
-            $table->foreign('proyecto_id')->references('id')->on('proyectos')->onDelete('cascade');
+            $table->foreign('proyecto_id')->references('id')->on('proyecto')->onDelete('cascade');
             $table->foreign('meta_contribuye_id')->references('id')->on('metas_contribuye')->onDelete('cascade');
             
             $table->unique(['proyecto_id', 'meta_contribuye_id']);

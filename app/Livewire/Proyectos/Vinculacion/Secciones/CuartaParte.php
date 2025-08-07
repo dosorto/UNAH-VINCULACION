@@ -23,19 +23,19 @@ class CuartaParte
         return [
             Forms\Components\Textarea::make('resumen')
                 ->label('Descripción del proyecto: (Explicar brevemente en qué consiste el proyecto, los antecedentes que dieron su origen y la importancia que tiene para los objetivos estratégicos de la UNAH)')
-                ->rows(10)
+                ->rows(7)
                 ->cols(30)
                 ->required()
                 ->columnSpanFull(),
             Forms\Components\Textarea::make('descripcion_participantes')
                 ->label('Descripción de las participantes del proyecto (Descripción breve de las unidades académicas participantes y su alineamiento con la estrategia de vinculación de la unidad. También se realizará una breve descripción de las contrapartes participantes, a qué se dedican y cómo se alinea el proyecto a los planes estratégicos)')
-                ->rows(10)
+                ->rows(7)
                 ->cols(30)
                 ->required()
                 ->columnSpanFull(),
             Forms\Components\Textarea::make('definicion_problema')
                 ->label('Definición del problema:  Breve descripción del problema que se desea resolver, indicando línea base que se tendrá en consideración para la definición de los resultados del proyecto')
-                ->rows(10)
+                ->rows(7)
                 ->cols(30)
                 ->required()
                 ->columnSpanFull(),
@@ -58,12 +58,12 @@ class CuartaParte
                         ->numeric()
                         ->columnSpan(1)
                         ->required(),
-                    TextInput::make('otros')
+                   /* TextInput::make('otros')
                         ->label('Otros (Indicar número)')
                         ->numeric()
                         ->columnSpan(1)
                         ->required(),
-                    
+                    */
                     Fieldset::make('Distribución por etnia')
                         ->columns(3)
                         ->schema([
@@ -208,7 +208,7 @@ class CuartaParte
                 ->placeholder('Seleccione uno o más caseríos'),
 
             Forms\Components\Textarea::make('aldea')
-                ->rows(10)
+                ->rows(4)
                 ->cols(30)
                 ->label('Barrio/Aldea (opcional)')
                 ->columnSpanFull(),
@@ -248,23 +248,27 @@ class CuartaParte
                 ->cols(30)
                 ->rows(4)
                 ->label('Alineamiento con lo esencial de la reforma de la UNAH')
-                ->required(),
+                ->required()
+                ->columnSpanFull(),
 
             Forms\Components\Textarea::make('impacto_deseado')
                 ->cols(30)
                 ->rows(4)
                 ->label('Impacto que se desea generar en el proyecto ')
-                ->required(),
+                ->required()
+                ->columnSpanFull(),
             Forms\Components\Textarea::make('metodologia')
                 ->cols(30)
                 ->rows(4)
                 ->label('Metodología')
-                ->required(),
+                ->required()
+                ->columnSpanFull(),
             Forms\Components\Textarea::make('bibliografia')
                 ->cols(30)
                 ->rows(4)
                 ->label('Bibliografía')
-                ->required(),
+                ->required()
+                ->columnSpanFull(),
         ];
     }
 }

@@ -52,7 +52,7 @@
                             Tel. 2216-7070 Ext. 110576
                         </div>
                     </div>
-                    <h1>FORMULARIO DE REGISTRO DE PROYECTO DE VINCULACIÓN</h1>
+                    <h1>FORMULARIO DE REGISTRO DE PROYECTO DE VINCULACIÓN CON CONTRAPARTE</h1>
                 </div>
 
                 <div class="section1">
@@ -281,13 +281,13 @@
                                     value="{{ $proyecto->mujeres }}" disabled>
                             </td>
                         </tr>
-                        <tr>
+                      <!--  <tr>
                             <td class="sub-header" colspan="1">Otros (indicar número y tipo)</td>
                             <td class="full-width" colspan="4">
                                <input type="text" class="input-field" placeholder="0"
                                     value="{{ $proyecto->otros }}" disabled>
                             </td>
-                        </tr>
+                        </tr> -->
                         <tr>
                             <td class="sub-header" rowspan="2" colspan="1">Indicar tipo de etnia</td>
                             <td class="sub-header" colspan="1">Indígena</td>
@@ -1151,8 +1151,8 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
-                                <textarea disabled cols="30" rows="6" class="input-field" value="{{ $proyecto->alineamiento_reforma ?? '' }}"
-                                    placeholder="Alineamiento con la reforma">No hay información específica registrada para este campo</textarea>
+                                <textarea disabled cols="30" rows="6" class="input-field" 
+                                    placeholder="Alineamiento con la reforma">{{ $proyecto->alineamiento_reforma ?? 'No hay información específica registrada para este campo' }}</textarea>
                             </td>
                         </tr>
                         <tr>
