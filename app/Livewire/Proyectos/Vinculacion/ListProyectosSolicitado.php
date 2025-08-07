@@ -205,16 +205,29 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                         TextInput::make('numero_dictamen')
                                             ->label('Numero de dictamen')
                                             ->disabled()
-                                            ->columnSpanFull()
+                                            ->columnSpan(1)
                                             ->default(function (Proyecto $proyecto) {
-                                                $prefix = 'VRA';
+                                                $prefix = 'DIT-VRA-DVUS';
                                                 $year = date('Y'); // Obtiene el año actual
                                                 $nextId = $proyecto ? $proyecto->id + 1 : 1; // Incrementa el ID o lo inicia en 1
                                                 $formattedId = str_pad($nextId, 3, '0', STR_PAD_LEFT); // Formatea el ID a 3 dígitos
 
                                                 return "{$prefix}-{$year}-{$formattedId}";
                                             }),
-                                        Select::make('categoria_id')
+
+                                        TextInput::make('codigo_proyecto')
+                                            ->label('Código del Proyecto')
+                                            ->disabled()
+                                            ->columnSpan(1)
+                                            ->default(function (Proyecto $proyecto) {
+                                                $prefix = 'P-VRA-DVUS'. '-' . $proyecto->coordinador->departamento_academico->nombre;
+                                                $year = date('Y'); // Obtiene el año actual
+                                                $nextId = $proyecto ? $proyecto->id + 1 : 1; // Incrementa el ID o lo inicia en 1
+                                                $formattedId = str_pad($nextId, 3, '0', STR_PAD_LEFT); // Formatea el ID a 3 dígitos
+
+                                                return "{$prefix}-{$year}-{$formattedId}";
+                                            }),
+                                        /*Select::make('categoria_id')
                                             ->label('Categoría')
                                             ->multiple()
                                             ->relationship(name: 'categoria', titleAttribute: 'nombre')
@@ -241,10 +254,20 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                             ->numeric(),
                                         TextInput::make('numero_folio')
                                             ->label('Número de folio.')
-                                            ->numeric(),
+                                            ->numeric(), */
                                         Hidden::make('numero_dictamen')
                                             ->default(function (Proyecto $proyecto) {
-                                                $prefix = 'VRA';
+                                                $prefix = 'DIT-VRA-DVUS';
+                                                $year = date('Y'); // Obtiene el año actual
+                                                $nextId = $proyecto ? $proyecto->id + 1 : 1; // Incrementa el ID o lo inicia en 1
+                                                $formattedId = str_pad($nextId, 3, '0', STR_PAD_LEFT); // Formatea el ID a 3 dígitos
+
+                                                return "{$prefix}-{$year}-{$formattedId}";
+                                            }),
+
+                                        Hidden::make('codigo_proyecto')
+                                            ->default(function (Proyecto $proyecto) {
+                                                $prefix = 'P-VRA-DVUS';
                                                 $year = date('Y'); // Obtiene el año actual
                                                 $nextId = $proyecto ? $proyecto->id + 1 : 1; // Incrementa el ID o lo inicia en 1
                                                 $formattedId = str_pad($nextId, 3, '0', STR_PAD_LEFT); // Formatea el ID a 3 dígitos
