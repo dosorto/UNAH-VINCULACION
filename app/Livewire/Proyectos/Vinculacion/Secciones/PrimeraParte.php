@@ -44,7 +44,16 @@ class PrimeraParte
             Select::make('modalidad_id')
                 ->label('Modalidad')
                 ->columnSpanFull()
-                ->relationship(name: 'modalidad', titleAttribute: 'nombre')
+                ->relationship('modalidad','nombre')
+                ->required()
+                ->preload(),
+            //categoria del proyecto
+            Select::make('categoria')
+                ->label('Categoría del Proyecto')
+                ->multiple()
+                ->searchable()
+                ->columnSpanFull()
+                ->relationship('categoria', 'nombre')
                 ->required()
                 ->preload(),
 
@@ -190,14 +199,14 @@ class PrimeraParte
                         ->label('Fecha de finalización')
                         ->columnSpan(1)
                         ->required(),
-                    DatePicker::make('evaluacion_intermedia')
+                  /*  DatePicker::make('evaluacion_intermedia')
                         ->label('Evaluación intermedia')
                         ->columnSpan(1)
                         ->required(),
                     DatePicker::make('evaluacion_final')
                         ->label('Evaluación final')
                         ->columnSpan(1)
-                        ->required(),
+                        ->required(),*/
                 ])
                 ->columnSpanFull()
                 ->label('Fechas'),
