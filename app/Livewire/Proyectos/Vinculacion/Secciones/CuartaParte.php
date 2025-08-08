@@ -195,18 +195,10 @@ class CuartaParte
                 ->live()
                 ->preload(),
 
-            Select::make('caserio')
-                ->label('Caserío')
-                ->searchable()
-                ->multiple()
-                ->options([
-                    'La Esperanza' => 'La Esperanza',
-                    'San Juan' => 'San Juan',
-                    'Santa Cruz' => 'Santa Cruz',
-                    'San Pedro' => 'San Pedro',
-                ])
-                ->placeholder('Seleccione uno o más caseríos'),
-
+            Forms\Components\Textarea::make('caserio')
+                ->rows(4)
+                ->cols(20)
+                ->label('Caserío'),
             Forms\Components\Textarea::make('aldea')
                 ->rows(4)
                 ->cols(30)
