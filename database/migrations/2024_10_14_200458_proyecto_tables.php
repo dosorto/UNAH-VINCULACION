@@ -66,6 +66,7 @@ return new class extends Migration
         // tabla proyecto
         Schema::create('proyecto', function (Blueprint $table) {
             $table->id();
+            $table->string('codigo_proyecto')->unique()->nullable();
             $table->string('nombre_proyecto')->nullable();
             $table->foreignId('modalidad_id')->nullable()->constrained('modalidad');
             $table->longText('aldea')->nullable();

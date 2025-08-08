@@ -53,6 +53,7 @@ class Proyecto extends Model
 
     protected static $logAttributes = [
         'nombre_proyecto',
+        'codigo_proyecto',
         // 'coordinador_id',
         'modalidad_id',
         'municipio_id',
@@ -105,6 +106,7 @@ class Proyecto extends Model
         return LogOptions::defaults()
             ->logOnly([
                 'nombre_proyecto',
+                'codigo_proyecto',
                 'descripcion',
                 'fecha_inicio',
                 'fecha_finalizacion',
@@ -144,6 +146,7 @@ class Proyecto extends Model
 
     protected $fillable = [
         'nombre_proyecto',
+        'codigo_proyecto',
         'modalidad_id',
         'municipio_id',
         'departamento_id',

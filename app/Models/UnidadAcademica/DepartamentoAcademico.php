@@ -22,7 +22,7 @@ class DepartamentoAcademico extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['nombre', 'centro_facultad_id'])
+            ->logOnly(['nombre', 'siglas', 'centro_facultad_id'])
             ->setDescriptionForEvent(fn(string $eventName) => "El registro {$this->nombre} ha sido {$eventName}");
     }
 
@@ -31,6 +31,7 @@ class DepartamentoAcademico extends Model
 
     protected $fillable = [
         'nombre',
+        'siglas',
         'centro_facultad_id',
     ];
 

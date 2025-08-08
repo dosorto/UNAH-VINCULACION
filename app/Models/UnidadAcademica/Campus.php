@@ -18,7 +18,7 @@ class Campus extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-        ->logOnly(['nombre_campus', 'direccion', 'telefono', 'url'])
+        ->logOnly(['nombre_campus', 'siglas', 'direccion', 'telefono', 'url'])
         ->setDescriptionForEvent(fn (string $eventName) => "El registro {$this->nombre_campus} ha sido {$eventName}");
     }
 
@@ -26,6 +26,7 @@ class Campus extends Model
 
     protected $fillable = [
         'nombre_campus',
+        'siglas',
         'direccion',
         'telefono',
         'url'

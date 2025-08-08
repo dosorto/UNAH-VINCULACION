@@ -120,18 +120,65 @@ class CodigosInvestigacionAdmin extends Component implements HasForms, HasTable
                             ->rows(3),
                     ])
                     ->action(function (EmpleadoCodigoInvestigacion $record, array $data): void {
-                        $record->update([
-                            'estado_verificacion' => 'verificado',
-                            'observaciones_admin' => $data['observaciones_admin'] ?? null,
-                            'verificado_por' => auth()->user()->empleado->id,
-                            'fecha_verificacion' => now(),
-                        ]);
+                        // Verificar si el código ya existe en la tabla proyecto
+                        $proyectoExistente = \App\Models\Proyecto\Proyecto::where('codigo_proyecto', $record->codigo_proyecto)->first();
+                        
+                        if ($proyectoExistente) {
+                            // Si el código ya existe, verificar si el empleado ya está registrado en ese proyecto
+                            $empleadoYaRegistrado = \App\Models\Personal\EmpleadoProyecto::where('empleado_id', $record->empleado_id)
+                                ->where('proyecto_id', $proyectoExistente->id)
+                                ->exists();
+                            
+                            if (!$empleadoYaRegistrado) {
+                                // Registrar al empleado en el proyecto existente
+                                \App\Models\Personal\EmpleadoProyecto::create([
+                                    'empleado_id' => $record->empleado_id,
+                                    'proyecto_id' => $proyectoExistente->id,
+                                    'rol' => $record->rol_docente === 'coordinador' ? 'Coordinador' : 'Integrante',
+                                    'hash' => \Illuminate\Support\Str::random(32),
+                                ]);
+                                
+                                $record->update([
+                                    'estado_verificacion' => 'verificado',
+                                    'observaciones_admin' => $data['observaciones_admin'] ?? null,
+                                    'verificado_por' => auth()->user()->empleado->id,
+                                    'fecha_verificacion' => now(),
+                                ]);
 
-                        Notification::make()
-                            ->title('Código verificado')
-                            ->body("El código {$record->codigo_proyecto} ha sido verificado exitosamente.")
-                            ->success()
-                            ->send();
+                                Notification::make()
+                                    ->title('Código verificado')
+                                    ->body("El código {$record->codigo_proyecto} ha sido verificado exitosamente y el docente ha sido registrado en el proyecto existente.")
+                                    ->success()
+                                    ->send();
+                            } else {
+                                $record->update([
+                                    'estado_verificacion' => 'verificado',
+                                    'observaciones_admin' => $data['observaciones_admin'] ?? null,
+                                    'verificado_por' => auth()->user()->empleado->id,
+                                    'fecha_verificacion' => now(),
+                                ]);
+
+                                Notification::make()
+                                    ->title('Código verificado')
+                                    ->body("El código {$record->codigo_proyecto} ha sido verificado exitosamente. El docente ya estaba registrado en este proyecto.")
+                                    ->success()
+                                    ->send();
+                            }
+                        } else {
+                            // El proyecto no existe, solo verificar el código
+                            $record->update([
+                                'estado_verificacion' => 'verificado',
+                                'observaciones_admin' => $data['observaciones_admin'] ?? null,
+                                'verificado_por' => auth()->user()->empleado->id,
+                                'fecha_verificacion' => now(),
+                            ]);
+
+                            Notification::make()
+                                ->title('Código verificado')
+                                ->body("El código {$record->codigo_proyecto} ha sido verificado exitosamente.")
+                                ->success()
+                                ->send();
+                        }
                     }),
                 Action::make('rechazar')
                     ->label('Rechazar')

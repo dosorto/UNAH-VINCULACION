@@ -81,6 +81,18 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
             )
             ->columns([
 
+                Tables\Columns\TextColumn::make('codigo_proyecto')
+                    ->label('Código')
+                    ->searchable()
+                    ->toggleable()
+                    ->getStateUsing(fn($record) => $record->codigo_proyecto ?: '-')
+                    ->placeholder('-'),
+                Tables\Columns\TextColumn::make('numero_dictamen')
+                    ->label('N° Dictamen')
+                    ->searchable()
+                    ->toggleable()
+                    ->getStateUsing(fn($record) => $record->numero_dictamen ?: '-')
+                    ->placeholder('-'),
                 Tables\Columns\TextColumn::make('nombre_proyecto')
                     ->limit(30)
                     ->searchable(),
@@ -220,7 +232,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                             ->disabled()
                                             ->columnSpan(1)
                                             ->default(function (Proyecto $proyecto) {
-                                                $prefix = 'P-VRA-DVUS'. '-' . $proyecto->coordinador->departamento_academico->nombre;
+                                                $prefix = 'VRA-DVUS'. '-' . $proyecto->coordinador->departamento_academico->siglas;
                                                 $year = date('Y'); // Obtiene el año actual
                                                 $nextId = $proyecto ? $proyecto->id + 1 : 1; // Incrementa el ID o lo inicia en 1
                                                 $formattedId = str_pad($nextId, 3, '0', STR_PAD_LEFT); // Formatea el ID a 3 dígitos

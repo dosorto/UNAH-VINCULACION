@@ -96,6 +96,18 @@ class ListProyectos extends Component implements HasForms, HasTable
             )
             ->columns([
 
+                Tables\Columns\TextColumn::make('codigo_proyecto')
+                    ->label('Código')
+                    ->searchable()
+                    ->toggleable()
+                    ->getStateUsing(fn($record) => $record->codigo_proyecto ?: '-')
+                    ->placeholder('-'),
+                Tables\Columns\TextColumn::make('numero_dictamen')
+                    ->label('N° Dictamen')
+                    ->searchable()
+                    ->toggleable()
+                    ->getStateUsing(fn($record) => $record->numero_dictamen ?: '-')
+                    ->placeholder('-'),
                 Tables\Columns\TextColumn::make('nombre_proyecto')
                     ->limit(30)
                     ->searchable(),
