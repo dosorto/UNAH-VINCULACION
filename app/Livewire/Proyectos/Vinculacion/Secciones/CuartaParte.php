@@ -22,51 +22,106 @@ class CuartaParte
     {
         return [
             Forms\Components\Textarea::make('resumen')
-                ->label('Resumen')
-                ->rows(10)
+                ->label('Descripción del proyecto: (Explicar brevemente en qué consiste el proyecto, los antecedentes que dieron su origen y la importancia que tiene para los objetivos estratégicos de la UNAH)')
+                ->rows(7)
                 ->cols(30)
                 ->required()
                 ->columnSpanFull(),
-            Forms\Components\Textarea::make('objetivo_general')
-                ->label('Objetivo general')
-                ->rows(10)
+            Forms\Components\Textarea::make('descripcion_participantes')
+                ->label('Descripción de las participantes del proyecto (Descripción breve de las unidades académicas participantes y su alineamiento con la estrategia de vinculación de la unidad. También se realizará una breve descripción de las contrapartes participantes, a qué se dedican y cómo se alinea el proyecto a los planes estratégicos)')
+                ->rows(7)
                 ->cols(30)
                 ->required()
                 ->columnSpanFull(),
-            Forms\Components\Textarea::make('objetivos_especificos')
-                ->label('Objetivos específicos')
-                ->rows(10)
+            Forms\Components\Textarea::make('definicion_problema')
+                ->label('Definición del problema:  Breve descripción del problema que se desea resolver, indicando línea base que se tendrá en consideración para la definición de los resultados del proyecto')
+                ->rows(7)
                 ->cols(30)
                 ->required()
                 ->columnSpanFull(),
-
-            Fieldset::make('Fechas')
+                
+            Fieldset::make('Beneficiarios')
                 ->columns(2)
                 ->schema([
-                    DatePicker::make('fecha_inicio')
-                        ->label('Fecha de inicio')
+                    TextInput::make('poblacion_participante')
+                        ->label('Población participante (número aproximado)')
+                        ->numeric()
                         ->columnSpan(1)
                         ->required(),
-                    DatePicker::make('fecha_finalizacion')
-                        ->label('Fecha de finalización')
+                    TextInput::make('hombres')
+                        ->label('Hombres')
+                        ->numeric()
                         ->columnSpan(1)
                         ->required(),
-                    DatePicker::make('evaluacion_intermedia')
-                        ->label('Evaluación intermedia')
+                    TextInput::make('mujeres')
+                        ->label('Mujeres')
+                        ->numeric()
                         ->columnSpan(1)
                         ->required(),
-                    DatePicker::make('evaluacion_final')
-                        ->label('Evaluación final')
+                   /* TextInput::make('otros')
+                        ->label('Otros (Indicar número)')
+                        ->numeric()
                         ->columnSpan(1)
                         ->required(),
+                    */
+                    Fieldset::make('Distribución por etnia')
+                        ->columns(3)
+                        ->schema([
+                            // Indígenas
+                            Fieldset::make('Indígenas')
+                                ->columns(2)
+                                ->schema([
+                                    TextInput::make('indigenas_hombres')
+                                        ->label('Hombres')
+                                        ->numeric()
+                                        ->default(0)
+                                        ->columnSpan(1),
+                                    TextInput::make('indigenas_mujeres')
+                                        ->label('Mujeres')
+                                        ->numeric()
+                                        ->default(0)
+                                        ->columnSpan(1),
+                                ])
+                                ->columnSpan(1),
+                            
+                            // Afroamericanos
+                            Fieldset::make('Afroamericanos')
+                                ->columns(2)
+                                ->schema([
+                                    TextInput::make('afroamericanos_hombres')
+                                        ->label('Hombres')
+                                        ->numeric()
+                                        ->default(0)
+                                        ->columnSpan(1),
+                                    TextInput::make('afroamericanos_mujeres')
+                                        ->label('Mujeres')
+                                        ->numeric()
+                                        ->default(0)
+                                        ->columnSpan(1),
+                                ])
+                                ->columnSpan(1),
+                            
+                            // Mestizos
+                            Fieldset::make('Mestizos')
+                                ->columns(2)
+                                ->schema([
+                                    TextInput::make('mestizos_hombres')
+                                        ->label('Hombres')
+                                        ->numeric()
+                                        ->default(0)
+                                        ->columnSpan(1),
+                                    TextInput::make('mestizos_mujeres')
+                                        ->label('Mujeres')
+                                        ->numeric()
+                                        ->default(0)
+                                        ->columnSpan(1),
+                                ])
+                                ->columnSpan(1),
+                        ])
+                        ->columnSpanFull(),
                 ])
                 ->columnSpanFull()
-                ->label('Fechas'),
-            TextInput::make('poblacion_participante')
-                ->label('Población participante')
-                ->numeric()
-                ->columnSpan(1)
-                ->required(),
+                ->label('Beneficiarios directos (número aproximado)'),
 
 
             Select::make('modalidad_ejecucion')
@@ -80,6 +135,39 @@ class CuartaParte
                 ->required()
                 ->live()
                 ->columnSpan(1),
+
+            Select::make('pais')
+                ->label('País')
+                ->searchable()
+                ->multiple()
+                ->options([
+                    'Honduras' => 'Honduras',
+                    'Guatemala' => 'Guatemala',
+                    'El Salvador' => 'El Salvador',
+                    'Nicaragua' => 'Nicaragua',
+                    'Costa Rica' => 'Costa Rica',
+                    'Panama' => 'Panamá',
+                    'Belice' => 'Belice',
+                    'Mexico' => 'México',
+                    'Estados Unidos' => 'Estados Unidos',
+                    'Otro' => 'Otro',
+                ])
+                ->default(['Honduras'])
+                ->placeholder('Seleccione uno o más países'),
+
+            Select::make('region')
+                ->label('Región')
+                ->searchable()
+                ->multiple()
+                ->options([
+                    'Region Central' => 'Región Central',
+                    'Region Norte' => 'Región Norte', 
+                    'Region Sur' => 'Región Sur',
+                    'Region Oriental' => 'Región Oriental',
+                    'Region Occidental' => 'Región Occidental',
+                    'Region Atlantida' => 'Región Atlántida',
+                ])
+                ->placeholder('Seleccione una o más regiones'),
 
             Select::make('departamento')
                 ->label('Departamento')
@@ -106,6 +194,18 @@ class CuartaParte
                 )
                 ->live()
                 ->preload(),
+
+            Forms\Components\Textarea::make('caserio')
+                ->rows(4)
+                ->cols(20)
+                ->label('Caserío'),
+            Forms\Components\Textarea::make('aldea')
+                ->rows(4)
+                ->cols(30)
+                ->label('Barrio/Aldea (opcional)')
+                ->columnSpanFull(),
+
+            
 
             // Select::make('ciudad_id')
             //     ->label('Ciudad')
@@ -136,86 +236,31 @@ class CuartaParte
             //             ->required()
             //     ])
             //     ->preload(),
-
-            Forms\Components\Textarea::make('aldea')
-                ->rows(10)
+            Forms\Components\Textarea::make('alineamiento_reforma')
                 ->cols(30)
-                ->label('Barrio/Aldea (opcional)')
+                ->rows(4)
+                ->label('Alineamiento con lo esencial de la reforma de la UNAH')
+                ->required()
                 ->columnSpanFull(),
-            // ->visible(fn(Get $get): bool
-            // => $get('modalidad_ejecucion') === 'Bimodal' || $get('modalidad_ejecucion') === 'Presencial'),
 
-
-            Forms\Components\Textarea::make('resultados_esperados')
+            Forms\Components\Textarea::make('impacto_deseado')
                 ->cols(30)
                 ->rows(4)
-                ->label('Resultados esperados')
-                ->required(),
-            Forms\Components\Textarea::make('indicadores_medicion_resultados')
+                ->label('Impacto que se desea generar en el proyecto ')
+                ->required()
+                ->columnSpanFull(),
+            Forms\Components\Textarea::make('metodologia')
                 ->cols(30)
                 ->rows(4)
-                ->label('Indicadores de medición de resultados')
-                ->required(),
-
-            Fieldset::make('Presupuesto')
-                ->schema([
-                    TextInput::make('aporte_estudiantes')
-                        ->label('Aporte de estudiantes')
-                        ->numeric()
-                        ->required(),
-
-                    TextInput::make('aporte_profesores')
-                        ->label('Aporte de profesores')
-                        ->numeric()
-                        ->required(),
-
-                    TextInput::make('aporte_academico_unah')
-                        ->label('Aporte académico UNAH')
-                        ->numeric()
-                        ->required(),
-
-                    TextInput::make('aporte_transporte_unah')
-                        ->label('Aporte de transporte UNAH')
-                        ->numeric()
-                        ->required(),
-
-                    TextInput::make('otros_aportes')
-                        ->label('Otros aportes')
-                        ->numeric()
-                        ->required(),
-
-                    TextInput::make('aporte_contraparte')
-                        ->label('Aporte de contraparte')
-                        ->numeric()
-                        ->required(),
-
-                    TextInput::make('aporte_comunidad')
-                        ->label('Aporte de comunidad')
-                        ->numeric()
-                        ->required(),
-                ])
-                ->relationship('presupuesto') // Relación hasOne
-                ->columnSpanFull()
-                ->columns(2),
-
-            Repeater::make('superavit')
-                ->label('Superávit (En caso de existir)')
-                ->schema([
-                    Forms\Components\TextInput::make('inversion')
-                        ->label('Inversión (Descripción de la inversión realizada)')
-                        ->maxLength(255)
-                        ->columnSpan(1)
-                        ->required(),
-                    Forms\Components\TextInput::make('monto')
-                        ->label('Monto')
-                        ->numeric()
-                        ->columnSpan(1)
-                        ->required(),
-                ])
-                ->label('Superávit')
-                ->columnSpanFull()
-                ->defaultItems(0)
-                ->relationship(),
+                ->label('Metodología')
+                ->required()
+                ->columnSpanFull(),
+            Forms\Components\Textarea::make('bibliografia')
+                ->cols(30)
+                ->rows(4)
+                ->label('Bibliografía')
+                ->required()
+                ->columnSpanFull(),
         ];
     }
 }

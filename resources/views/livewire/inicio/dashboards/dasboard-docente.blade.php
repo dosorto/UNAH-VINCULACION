@@ -519,7 +519,7 @@
                     
                             <!-- Tarjeta de tarea -->
                             @forelse($enBorradorUser as $proyecto)
-                            <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200" href="#">
+                            <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200" href="{{ route('historialproyecto', $proyecto->id) }}">
                                 <h4 class="text-gray-900 dark:text-white font-semibold leading-6 mb-1">{{$proyecto->nombre_proyecto}}</h4>
                                 <div class="flex items-center mb-4">
                                     <span class="h-2 w-2 mr-1 bg-purple-500 dark:bg-purple-400 rounded-full"></span>
@@ -603,7 +603,7 @@
                     
                             <!-- Tarjeta de tarea -->
                            @forelse($enRevisionUser as $proyecto)
-                            <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200" href="#">
+                            <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200" href="{{ route('historialproyecto', $proyecto->id) }}">
                                 <h4 class="text-gray-900 dark:text-white font-semibold leading-6 mb-1">{{$proyecto->nombre_proyecto}}</h4>
                                 <div class="flex items-center mb-4">
                                     <span class="h-2 w-2 mr-1 bg-yellow-500 dark:bg-yellow-400 rounded-full"></span>
@@ -687,7 +687,7 @@
                     
                              <!-- Tarjeta de tarea -->
                              @forelse($enEjecucionUser as $proyecto)
-                             <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200" href="#">
+                             <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200" href="{{ route('historialproyecto', $proyecto->id) }}">
                                  <h4 class="text-gray-900 dark:text-white font-semibold leading-6 mb-1">{{$proyecto->nombre_proyecto}}</h4>
                                  <div class="flex items-center mb-4">
                                      <span class="h-2 w-2 mr-1 bg-blue-500 dark:bg-blue-400 rounded-full"></span>
@@ -771,7 +771,7 @@
                     
                              <!-- Tarjeta de tarea -->
                              @forelse($enFinalizadosUser as $proyecto)
-                             <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200" href="#">
+                             <a class="block p-4 mb-4 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition duration-200" href="{{ route('historialproyecto', $proyecto->id) }}">
                                  <h4 class="text-gray-900 dark:text-white font-semibold leading-6 mb-1">{{$proyecto->nombre_proyecto}}</h4>
                                  <div class="flex items-center mb-4">
                                      <span class="h-2 w-2 mr-1 bg-green-500 dark:bg-green-400 rounded-full"></span>

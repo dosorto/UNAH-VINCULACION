@@ -15,8 +15,23 @@ class InstrumenFormalizacion extends Model
     protected $fillable = [
         'id',
         'entidad_contraparte_id',
+        'tipo_documento',
         'documento_url',
     ];
+
+    /**
+     * Get the display text for the tipo_documento field
+     */
+    public function getTipoDocumentoDisplayAttribute()
+    {
+        $tipos = [
+            'carta_formal_solicitud' => 'Carta formal de solicitud a la unidad académica',
+            'carta_intenciones' => 'Carta de intenciones con la UNAH',
+            'convenio_marco' => 'Convenio marco con la UNAH',
+        ];
+
+        return $tipos[$this->tipo_documento] ?? $this->tipo_documento;
+    }
 
     public function entidadContraparte()
     {

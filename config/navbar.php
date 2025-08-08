@@ -80,12 +80,13 @@ return [
             [
                 'titulo' => 'Empleado',
                 'route' => 'ListarEmpleados',
-                'routes' => ['ListarEmpleados', 'crearEmpleado'],
+                'routes' => ['ListarEmpleados', 'crearEmpleado', 'codigosInvestigacionAdmin'],
                 'icono' => 'heroicon-c-cube',
                 'permisos' => ['empleados-admin-empleados'],
                 'children' => [
                     ['texto' => 'Empleados', 'route' => 'ListarEmpleados', 'permiso' => 'empleados-admin-empleados'],
                     ['texto' => 'Crear Empleado', 'route' => 'crearEmpleado', 'permiso' => 'empleados-admin-empleados'],
+                    ['texto' => 'Validar Códigos de Proyectos', 'route' => 'codigosInvestigacionAdmin', 'permiso' => 'empleados-admin-empleados'],
                 ],
                 'funcion' => null,
                 'parametro' => null,
@@ -192,6 +193,7 @@ return [
                 'children' => [
                     ['texto' => 'Proyectos', 'route' => 'proyectosDocente', 'permiso' => 'docente-admin-proyectos'],
                     ['texto' => 'Crear Proyecto', 'route' => 'crearProyectoVinculacion', 'permiso' => 'docente-admin-proyectos'],
+                    ['texto' => 'Proyectos Antes del Sistema', 'route' => 'proyectosAntesDelSistema', 'permiso' => 'docente-admin-proyectos'],
                 ],
                 'funcion' => null,
                 'parametro' => null,

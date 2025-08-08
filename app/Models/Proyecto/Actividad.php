@@ -33,8 +33,6 @@ class Actividad extends Model
         'descripcion',
         'fecha_inicio',
         'fecha_finalizacion',
-        'objetivos',
-        'resultados',
         'horas',
         'proyecto_id',
     ];

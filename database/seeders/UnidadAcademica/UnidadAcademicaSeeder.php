@@ -55,6 +55,12 @@ class UnidadAcademicaSeeder extends Seeder
         $centroCuroc = FacultadCentro::create(['nombre' => 'UNAH COPÁN', 'es_facultad' => false, 'siglas' => 'CUROC', 'campus_id' => $UNAH_COPAN->id]);
         $centroAguan = FacultadCentro::create(['nombre' => 'UNAH YORO', 'es_facultad' => false, 'siglas' => 'UNAH-TEC Aguán', 'campus_id' => $UNAH_YORO->id]);
 
+        $noAdscrita = FacultadCentro::create([
+            'nombre' => 'No Adscrita',
+            'es_facultad' => false, // o true si quieres tratarla como facultad
+            'siglas' => 'NA',
+            'campus_id' => $UNAH_CU->id, // o el campus adecuado
+        ]);
 
 
         //Departamentos de la Facultad de Ciencias Sociales
@@ -143,12 +149,107 @@ class UnidadAcademicaSeeder extends Seeder
         $departamentoLenguasExtranjeras = DepartamentoAcademico::create(['nombre' => 'Lenguas Extranjeras Choluteca', 'centro_facultad_id' => $centroCurlP->id]);
         $departamentoCulturaFisicaDeportes = DepartamentoAcademico::create(['nombre' => 'Cultura Física y Deportes Choluteca', 'centro_facultad_id' => $centroCurlP->id]);
 
+        // seeder de carreras
 
-        Carrera::create(
-            [
-                'nombre' => 'Ingenieria en sistemas',
-                'facultad_centro_id' =>  $facultadIngenieria->id,
-            ]
-        );
+        Carrera::create(['nombre' => 'Licenciatura en Ciencias Jurídicas', 'facultad_centro_id' => $facultadCienciasJuridicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Administración de Empresas', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Contaduría y Finanzas', 'facultad_centro_id' => $facultadCienciasSociales->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Administración de Empresas', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Contaduría Pública y Finanzas', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Economía', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Emergencias Médicas', 'facultad_centro_id' => $facultadCienciasMedicas->id]);
+        Carrera::create(['nombre' => 'Química y Farmacia', 'facultad_centro_id' => $facultadQuimicaFarmacia->id]);
+        Carrera::create(['nombre' => 'Cirujano Dentista', 'facultad_centro_id' => $facultadOdontologia->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Imágenes Biomédicas', 'facultad_centro_id' => $facultadCienciasMedicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Microbiología y Salud Pública', 'facultad_centro_id' => $facultadCiencias->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Trabajo Social', 'facultad_centro_id' => $facultadCienciasSociales->id]);
+        Carrera::create(['nombre' => 'Ingeniería Agronómica', 'facultad_centro_id' => $facultadIngenieria->id]);
+        Carrera::create(['nombre' => 'Ingeniería Civil', 'facultad_centro_id' => $facultadIngenieria->id]);
+        Carrera::create(['nombre' => 'Ingeniería Eléctrica', 'facultad_centro_id' => $facultadIngenieria->id]);
+        Carrera::create(['nombre' => 'Ingeniería en Sistemas', 'facultad_centro_id' => $facultadIngenieria->id]);
+        Carrera::create(['nombre' => 'Ingeniería Mecánica Industrial', 'facultad_centro_id' => $facultadIngenieria->id]);
+        Carrera::create(['nombre' => 'Ingeniería Química', 'facultad_centro_id' => $facultadIngenieria->id]);
+        Carrera::create(['nombre' => 'Ingeniería Textil', 'facultad_centro_id' => $facultadIngenieria->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Artes Plásticas', 'facultad_centro_id' => $facultadHumanidadesArtes->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Biología', 'facultad_centro_id' => $facultadCiencias->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Física', 'facultad_centro_id' => $facultadCiencias->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Matemática', 'facultad_centro_id' => $facultadCiencias->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Pedagogía y Ciencias de la Educación', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Música', 'facultad_centro_id' => $facultadHumanidadesArtes->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Psicología', 'facultad_centro_id' => $facultadCienciasSociales->id]);
+        Carrera::create(['nombre' => 'Profesorado en Ciencias Naturales', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Profesorado en Educación Física', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Profesorado en Educación Musical', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Profesorado en Educación Primaria', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Profesorado en Educación Prebásica', 'facultad_centro_id' => $facultadCienciasSociales->id]);
+        Carrera::create(['nombre' => 'Profesorado en Filosofía con Orientación en Ciencias Sociales', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Profesorado en Letras con Orientación en Literatura Hispanoamericana', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Artes Gráficas', 'facultad_centro_id' => $facultadHumanidadesArtes->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Diseño Gráfico', 'facultad_centro_id' => $facultadHumanidadesArtes->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Electrónica', 'facultad_centro_id' => $facultadIngenieria->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Finanzas', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Producción Gráfica', 'facultad_centro_id' => $facultadHumanidadesArtes->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Tributación', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Ventas', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Banca y Finanzas', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Administración Pública', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Administración Aduanera', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Administración de Recursos Humanos', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Antropología', 'facultad_centro_id' => $facultadCienciasSociales->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Contabilidad Pública', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Estadística', 'facultad_centro_id' => $facultadCiencias->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Fotografía', 'facultad_centro_id' => $facultadHumanidadesArtes->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Producción Audiovisual', 'facultad_centro_id' => $facultadHumanidadesArtes->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Publicidad', 'facultad_centro_id' => $facultadHumanidadesArtes->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Química Industrial', 'facultad_centro_id' => $facultadCiencias->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Secretariado Ejecutivo', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Seguridad Industrial', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Supervisión Bancaria', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Topografía', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Comercio Internacional', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Estadística Aplicada', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Ingeniería Forestal', 'facultad_centro_id' => $facultadIngenieria->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Química', 'facultad_centro_id' => $facultadCiencias->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Microbiología', 'facultad_centro_id' => $facultadCiencias->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Enfermería', 'facultad_centro_id' => $facultadCienciasMedicas->id]);
+        Carrera::create(['nombre' => 'Medicina y Cirugía', 'facultad_centro_id' => $facultadCienciasMedicas->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Teatro', 'facultad_centro_id' => $facultadHumanidadesArtes->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Archivística', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Música', 'facultad_centro_id' => $facultadHumanidadesArtes->id]);
+        Carrera::create(['nombre' => 'Ingeniería Industrial', 'facultad_centro_id' => $facultadIngenieria->id]);
+        Carrera::create(['nombre' => 'Profesorado en Educación Comercial', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Profesorado en Educación Artística', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Finanzas', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Estadística', 'facultad_centro_id' => $facultadCiencias->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Comercio Internacional', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Bibliotecología', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Profesorado en Educación Media en Ciencias Sociales', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Desarrollo Empresarial', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Terapia Funcional', 'facultad_centro_id' => $facultadCienciasMedicas->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Sociología', 'facultad_centro_id' => $facultadCienciasSociales->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Geografía', 'facultad_centro_id' => $facultadCienciasEspaciales->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Geografía', 'facultad_centro_id' => $facultadCiencias->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Antropología', 'facultad_centro_id' => $facultadCienciasSociales->id]);
+        Carrera::create(['nombre' => 'Ingeniería en Agrimensura', 'facultad_centro_id' => $facultadCienciasEspaciales->id]);
+        Carrera::create(['nombre' => 'Ingeniería en Geomática', 'facultad_centro_id' => $facultadCienciasEspaciales->id]);
+        Carrera::create(['nombre' => 'Ingeniería en Ordenamiento Territorial', 'facultad_centro_id' => $facultadCienciasEspaciales->id]);
+        Carrera::create(['nombre' => 'Técnico Universitario en Mercadotecnia', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Fisioterapia', 'facultad_centro_id' => $facultadCienciasMedicas->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Marketing', 'facultad_centro_id' => $facultadCienciasEconomicas->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Meteorología', 'facultad_centro_id' => $facultadCienciasEspaciales->id]);
+        Carrera::create(['nombre' => 'Profesorado en Educación Básica', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Profesorado en Inglés', 'facultad_centro_id' => $noAdscrita->id]);
+        Carrera::create(['nombre' => 'Profesorado en Educación Media en Lengua y Literatura', 'facultad_centro_id' =>$noAdscrita->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Química Industrial', 'facultad_centro_id' => $facultadCiencias->id]);
+
+        // Carreras específicas para UNAH Choluteca
+        Carrera::create(['nombre' => 'Licenciatura en Administración de Empresas Choluteca', 'facultad_centro_id' => $centroCurlP->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Comercio Internacional Choluteca', 'facultad_centro_id' => $centroCurlP->id]);
+        Carrera::create(['nombre' => 'Ingeniería en Sistemas Choluteca', 'facultad_centro_id' => $centroCurlP->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Biología Choluteca', 'facultad_centro_id' => $centroCurlP->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Química Choluteca', 'facultad_centro_id' => $centroCurlP->id]);
+        Carrera::create(['nombre' => 'Técnico en Acuicultura', 'facultad_centro_id' => $centroCurlP->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Ciencias Sociales Choluteca', 'facultad_centro_id' => $centroCurlP->id]);
+
     }
 }

@@ -21,6 +21,15 @@ class FormularioEstudiante
                 ->unique('users', 'email')->email()->required(),
             TextInput::make('nombre')->label('Nombre ')->required(),
             TextInput::make('apellido')->label('Apellidos del Estudiante')->required(),
+            Select::make('sexo')
+                ->label('Sexo')
+                ->searchable()
+                ->required()
+                ->options( [
+                    'Masculino' => 'Masculino',
+                    'Femenino' => 'Femenino',
+                    'Otro' => 'Otro',
+                ]),
             Select::make('centro_facultad_id')
                 ->label('Facultad o Centro')
                 ->searchable()

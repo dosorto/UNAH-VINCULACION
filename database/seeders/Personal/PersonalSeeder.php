@@ -49,6 +49,32 @@ class PersonalSeeder extends Seeder
             'descripcion' => 'Titular 5 de la universidad'
         ]);
 
+        CategoriaEmpleado::create([
+            'nombre' => 'Profesores x hora',
+            'descripcion' => 'Profesores x hora'
+        ]);
+
+        CategoriaEmpleado::create([
+            'nombre' => 'Profesores horarios',
+            'descripcion' => 'Profesores horarios'
+        ]);
+
+        CategoriaEmpleado::create([
+            'nombre' => 'Administrativo',
+            'descripcion' => 'Administrativo'
+        ]);
+
+        CategoriaEmpleado::create([
+            'nombre' => 'Servicios',
+            'descripcion' => 'Servicios'
+        ]);
+
+        CategoriaEmpleado::create([
+            'nombre' => 'Asistentes técnicos laboratorios / Instructores',
+            'descripcion' => 'Asistentes técnicos laboratorios / Instructores'
+        ]);
+
+
         $user = User::create([
             'name' => 'NOTIFICACIONES  POA',
             'email' => 'notificacionespoa@unah.edu.hn',
@@ -63,6 +89,7 @@ class PersonalSeeder extends Seeder
             'nombre_completo' => 'NOTIFICACIONES POA',
             'numero_empleado' => '12280',
             'celular' => '99999999',
+            'sexo' => 'Masculino',
             'user_id' => $user->id,
             'centro_facultad_id' => 4,
             'departamento_academico_id' => 9,
@@ -84,17 +111,18 @@ class PersonalSeeder extends Seeder
         if (app()->environment('local')) {
 
             $user2 = User::create([
-                'name' => 'Ernesto Moncada',
-                'email' => 'ernesto.moncada@unah.hn',
+                'name' => 'Usuario Ejemplo',
+                'email' => 'usuario.ejemplo@unah.hn',
                 'password' => bcrypt('123'),
                 'surname' => 'Ernesto',
                 'given_name' => 'Moncada Valladares',
             ]);
 
             Empleado::create([
-                'nombre_completo' => 'Ernesto Noe Moncada Valladarez',
+                'nombre_completo' => 'Usuario Ejemplo',
                 'numero_empleado' => '1228asdfasdf0',
                 'celular' => '99999999',
+                'sexo' => 'Masculino',
                 'user_id' => $user2->id,
                 'centro_facultad_id' => 4,
                 'departamento_academico_id' => 9,
@@ -105,7 +133,7 @@ class PersonalSeeder extends Seeder
             $user2->givePermissionTo('configuracion-admin-mi-perfil');
 
             $user3 = User::create([
-                'name' => 'NOTIFICACIONES  POA',
+                'name' => 'Estudiante  POA',
                 'email' => 'estudiante@unah.hn',
                 'password' => bcrypt('123'),
                 'surname' => 'POA',
@@ -115,7 +143,9 @@ class PersonalSeeder extends Seeder
             $user3 = Estudiante::create([
                 'cuenta' => '123123',
                 'user_id' => $user3->id,
-                'nombre' => 'nombre'
+                'nombre' => 'nombre',
+                'apellido' => 'apellido',
+                'sexo' => 'Masculino',
             ]);
 
             $user3->user->givePermissionTo('cambiar-datos-personales');

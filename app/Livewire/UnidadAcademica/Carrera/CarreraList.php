@@ -53,6 +53,10 @@ class CarreraList extends Component implements HasForms, HasTable
                         TextInput::make('nombre')
                             ->label('Nombre')
                             ->required(),
+                        TextInput::make('siglas')
+                            ->label('Siglas')
+                            ->maxLength(10)
+                            ->required(),
                         Select::make('facultad_centro_id')
                             ->required()
                             ->label('Facultad a la que pertenece')
@@ -104,6 +108,8 @@ class CarreraList extends Component implements HasForms, HasTable
             ->columns([
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('siglas')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('facultadcentro.nombre')
                     ->label('Facultad')
                     ->searchable(),
@@ -126,6 +132,10 @@ class CarreraList extends Component implements HasForms, HasTable
                     ->form([
                         TextInput::make('nombre')
                             ->label('Nombre')
+                            ->required(),
+                        TextInput::make('siglas')
+                            ->label('Siglas')
+                            ->maxLength(10)
                             ->required(),
                         Select::make('facultad_centro_id')
                             ->required()

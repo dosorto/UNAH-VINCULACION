@@ -11,6 +11,7 @@ use App\Models\Proyecto\FirmaProyecto;
 use App\Models\UnidadAcademica\Campus;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Personal\CategoriaEmpleado;
+use App\Models\Personal\EmpleadoCodigoInvestigacion;
 
 use App\Models\Proyecto\EmpleadoActividad;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -31,6 +32,7 @@ class Empleado extends Model
     protected static $logAttributes = [
         'nombre_completo',
         'numero_empleado',
+        'sexo',
         'celular',
         'categoria',
         'user_id',
@@ -52,11 +54,13 @@ class Empleado extends Model
         'nombre_completo',
         'numero_empleado',
         'celular',
+        'sexo',
         'categoria_id',
         'user_id',
         'centro_facultad_id',
         'departamento_academico_id',
-        'tipo_empleado'
+        'tipo_empleado',
+        'tipo_participacion_docente'
     ];
 
 
@@ -149,6 +153,11 @@ class Empleado extends Model
         //->withTimestamps();
     }
 
+    // relacion uno a muchos con códigos de investigación
+    public function codigosInvestigacion()
+    {
+        return $this->hasMany(EmpleadoCodigoInvestigacion::class, 'empleado_id');
+    }
 
     public function firmaProyectoPendientes()
     {

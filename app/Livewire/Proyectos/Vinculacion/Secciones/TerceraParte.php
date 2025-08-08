@@ -25,16 +25,6 @@ class TerceraParte
                         ->required()
                         ->rows(5)
                         ->columnSpanFull(),
-                    Forms\Components\Textarea::make('objetivos')
-                        ->label('Objetivos de la actividad')
-                        ->required()
-                        ->rows(5)
-                        ->columnSpanFull(),
-                    Forms\Components\Textarea::make('resultados')
-                        ->label('Resultados de la actividad')
-                        ->required()
-                        ->rows(5)
-                        ->columnSpanFull(),
                     Select::make('empleados')
                         ->label('Responsables')
                         ->relationship(
@@ -96,7 +86,7 @@ class TerceraParte
                         ->required()
                         ->numeric(),
                 ])
-                ->label('Actividades')
+                ->label('Descripción de actividades del proyecto (Descripción de todas las actividades enmarcadas en el proyecto, las cuales pueden ser, entre otras, la negociación inicial, la organización de los equipos de trabajo, la planificación, el desarrollo de actividades de capacitación y fortalecimiento, presentación de informe intermedio o parciales, presentación del informe final, proceso de evaluación, proceso de sistematización, publicación de artículo, otras acciones de divulgación)')
                 ->defaultItems(0)
                 ->itemLabel('Actividad')
                 ->addActionLabel('Agregar actividad')
