@@ -715,6 +715,15 @@ class Proyecto extends Model
             ->where('estado_proyecto.es_actual', true);
     }
 
+    /**
+     * Accessor para obtener el estado actual del proyecto
+     * Retorna el TipoEstado actual del proyecto
+     */
+    public function getEstadoActualAttribute()
+    {
+        return $this->tipo_estado;
+    }
+
     public function estudianteProyecto()
     {
         return $this->hasMany(EstudianteProyecto::class, 'proyecto_id');

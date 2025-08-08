@@ -30,6 +30,8 @@ use App\Livewire\Demografia\Municipio\ListaMunicipios;
 use App\Livewire\Docente\Proyectos\ProyectosAprobados;
 use App\Livewire\Docente\Proyectos\ProyectosRechazados;
 use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
+use App\Livewire\Docente\Proyectos\ProyectosAntesDelSistema;
+use App\Livewire\Docente\Proyectos\EditProyectoAntesDelSistema;
 use App\Livewire\Estudiante\CreateEstudiante;
 use App\Livewire\Estudiante\ListarEstudiante;
 use App\Livewire\Ticket\HistorialTicket;
@@ -326,6 +328,15 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->middleware('can:docente-admin-proyectos');
         Route::get('PendientesProyectosDocente', ProyectosRechazados::class)
             ->name('RechazadoProyectosDocente')
+            ->middleware('can:docente-admin-proyectos');
+
+        // Rutas para proyectos creados desde códigos de investigación
+        Route::get('proyectosAntesDelSistema', ProyectosAntesDelSistema::class)
+            ->name('proyectosAntesDelSistema')
+            ->middleware('can:docente-admin-proyectos');
+
+        Route::get('editarProyectoAntesDelSistema/{proyecto}', EditProyectoAntesDelSistema::class)
+            ->name('editarProyectoAntesDelSistema')
             ->middleware('can:docente-admin-proyectos');
     });
 

@@ -452,7 +452,7 @@
                             <td class="sub-header" colspan="2">Aporte de la contraparte:</td>
                             <td class="full-width" colspan="6">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto->aporte_contraparte, 2, '.', ',') }}"
+                                    value="{{ number_format($proyecto->presupuesto?->aporte_contraparte ?? 0, 2, '.', ',') }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -460,7 +460,7 @@
                             <td class="sub-header" colspan="2">Aporte de la comunidad:</td>
                             <td class="full-width" colspan="6">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto->aporte_comunidad, 2, '.', ',') }}"
+                                    value="{{ number_format($proyecto->presupuesto?->aporte_comunidad ?? 0, 2, '.', ',') }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -469,14 +469,14 @@
                             <td class="sub-header" colspan="2">Aporte fondos internacionales</td>
                             <td class="full-width" colspan="6">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto->aporte_internacionales, 2, '.', ',') }}"
+                                    value="{{ number_format($proyecto->presupuesto?->aporte_internacionales ?? 0, 2, '.', ',') }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         <tr>
                             <td class="sub-header" colspan="2">Aportes de otras universidades:</td>
                             <td class="full-width" colspan="6">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto->aporte_otras_universidades, 2, '.', ',') }}"
+                                    value="{{ number_format($proyecto->presupuesto?->aporte_otras_universidades ?? 0, 2, '.', ',') }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -485,7 +485,7 @@
                             <td class="sub-header" colspan="2">Otros Aportes:</td>
                             <td class="full-width" colspan="6">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto->otros_aportes, 2, '.', ',') }}"
+                                    value="{{ number_format($proyecto->presupuesto?->otros_aportes ?? 0, 2, '.', ',') }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -495,7 +495,7 @@
                             <td class="sub-header4" colspan="2">TOTAL CONTRAPARTE:</td>
                             <td class="full-width" colspan="6">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto->aporte_contraparte + $proyecto->presupuesto->aporte_comunidad, 2, '.', ',') }}"
+                                    value="{{ number_format(($proyecto->presupuesto?->aporte_contraparte ?? 0) + ($proyecto->presupuesto?->aporte_comunidad ?? 0), 2, '.', ',') }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -504,12 +504,12 @@
                             <td class="full-width" colspan="6">
                                 <input disabled type="text" class="input-field"
                                     value="{{ number_format(
-                                        ($proyecto->presupuesto->aporte_internacionales ?? 0) +
+                                        ($proyecto->presupuesto?->aporte_internacionales ?? 0) +
                                         ($proyecto->total_aporte_institucional ?? 0) +
-                                        ($proyecto->presupuesto->aporte_otras_universidades ?? 0) +
-                                        ($proyecto->presupuesto->otros_aportes ?? 0) +
-                                        ($proyecto->presupuesto->aporte_contraparte ?? 0) +
-                                        ($proyecto->presupuesto->aporte_comunidad ?? 0), 2, '.', ','
+                                        ($proyecto->presupuesto?->aporte_otras_universidades ?? 0) +
+                                        ($proyecto->presupuesto?->otros_aportes ?? 0) +
+                                        ($proyecto->presupuesto?->aporte_contraparte ?? 0) +
+                                        ($proyecto->presupuesto?->aporte_comunidad ?? 0), 2, '.', ','
                                     ) }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>

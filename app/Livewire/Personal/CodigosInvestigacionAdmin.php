@@ -12,11 +12,16 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use App\Models\Personal\EmpleadoCodigoInvestigacion;
+use App\Models\Personal\EmpleadoProyecto;
+use App\Models\Proyecto\Proyecto;
+use App\Models\Estado\TipoEstado;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class CodigosInvestigacionAdmin extends Component implements HasForms, HasTable
 {
@@ -114,6 +119,10 @@ class CodigosInvestigacionAdmin extends Component implements HasForms, HasTable
                     ->color('success')
                     ->visible(fn (EmpleadoCodigoInvestigacion $record): bool => $record->estado_verificacion === 'pendiente')
                     ->form([
+                        TextInput::make('numero_dictamen')
+                                ->label('Número de Dictamen')
+                                ->placeholder('Agregar número de dictamen...')
+                                ->required(),
                         Textarea::make('observaciones_admin')
                             ->label('Observaciones (Opcional)')
                             ->placeholder('Agregar observaciones sobre la verificación...')
@@ -165,19 +174,73 @@ class CodigosInvestigacionAdmin extends Component implements HasForms, HasTable
                                     ->send();
                             }
                         } else {
-                            // El proyecto no existe, solo verificar el código
-                            $record->update([
-                                'estado_verificacion' => 'verificado',
-                                'observaciones_admin' => $data['observaciones_admin'] ?? null,
-                                'verificado_por' => auth()->user()->empleado->id,
-                                'fecha_verificacion' => now(),
-                            ]);
+                            // El proyecto no existe, crear un nuevo proyecto con los datos del código
+                            try {
+                                $nuevoProyecto = Proyecto::create([
+                                    'nombre_proyecto' => $record->nombre_proyecto,
+                                    'codigo_proyecto' => $record->codigo_proyecto,
+                                    'resumen' => $record->descripcion ?? 'Proyecto registrado mediante código de investigación',
+                                    'descripcion_participantes' => 'Proyecto verificado administrativamente',
+                                    'definicion_problema' => 'Por definir',
+                                    'objetivo_general' => 'Por definir',
+                                    'fecha_inicio' => now(),
+                                    'fecha_finalizacion' => now()->addYear(),
+                                    'evaluacion_intermedia' => now()->addMonths(6),
+                                    'evaluacion_final' => now()->addYear(),
+                                    'poblacion_participante' => 0,
+                                    'hombres' => 0,
+                                    'mujeres' => 0,
+                                    'otros' => 0,
+                                    'modalidad_id' => 1, // Asumir modalidad por defecto
+                                    'fecha_registro' => now(),
+                                ]);
 
-                            Notification::make()
-                                ->title('Código verificado')
-                                ->body("El código {$record->codigo_proyecto} ha sido verificado exitosamente.")
-                                ->success()
-                                ->send();
+                                // Registrar al empleado en el nuevo proyecto
+                                EmpleadoProyecto::create([
+                                    'empleado_id' => $record->empleado_id,
+                                    'proyecto_id' => $nuevoProyecto->id,
+                                    'rol' => $record->rol_docente === 'coordinador' ? 'Coordinador' : 'Integrante',
+                                    'hash' => Str::random(32),
+                                ]);
+
+                                // Crear estado inicial del proyecto
+                                $tipoEstadoPendiente = TipoEstado::where('nombre', 'PendienteInformacion')->first();
+                                if (!$tipoEstadoPendiente) {
+                                    // Si no existe, crearlo
+                                    $tipoEstadoPendiente = TipoEstado::create([
+                                        'nombre' => 'PendienteInformacion',
+                                        'descripcion' => 'Estado para proyectos creados automáticamente que requieren completar información'
+                                    ]);
+                                }
+                                
+                                $nuevoProyecto->estado_proyecto()->create([
+                                    'empleado_id' => auth()->user()->empleado->id,
+                                    'tipo_estado_id' => $tipoEstadoPendiente->id,
+                                    'fecha' => now(),
+                                    'comentario' => 'Proyecto creado automáticamente al verificar código de investigación',
+                                    'numero_dictamen' => $record->numero_dictamen ?? null,
+                                ]);
+
+                                $record->update([
+                                    'estado_verificacion' => 'verificado',
+                                    'observaciones_admin' => $data['observaciones_admin'] ?? 'Proyecto creado automáticamente al verificar código',
+                                    'verificado_por' => auth()->user()->empleado->id,
+                                    'fecha_verificacion' => now(),
+                                ]);
+
+                                Notification::make()
+                                    ->title('Código verificado y proyecto creado')
+                                    ->body("El código {$record->codigo_proyecto} ha sido verificado exitosamente. Se ha creado un nuevo proyecto y el docente ha sido registrado.")
+                                    ->success()
+                                    ->send();
+
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Error al crear proyecto')
+                                    ->body("Error al crear el proyecto: " . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
                         }
                     }),
                 Action::make('rechazar')
