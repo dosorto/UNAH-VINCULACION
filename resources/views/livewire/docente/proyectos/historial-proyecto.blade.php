@@ -1860,48 +1860,50 @@
                     Fichas de actualización
                 </a>
             </x-filament::button>
-        </div>
+        </div class="over">
         <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
             Historial de movimientos
         </h1>
         <p class="text-gray-600 mb-2">
             Días desde la creación del proyecto: <span class="font-bold">{{ $diasTranscurridos }}</span>
         </p>
-    @if(count($estados) > 0)
-        <ol class="relative border-s border-yellow-600"> 
-            @foreach($estados as $index => $estado)
-                <li class="{{ $index < count($estados) - 1 ? 'mb-10' : '' }} ms-4" style="max-height: 80vh; overflow-y: auto;">
-                    <div class="absolute w-3 h-3 bg-yellow-600 rounded-full mt-1.5 -start-1.5 border border-white"></div>
-                    <div class="flex items-center">
-                        <time class="text-sm font-normal leading-none text-yellow-600">
-                            {{ Carbon::parse($estado->created_at)->format('d') }} de {{ Carbon::parse($estado->created_at)->translatedFormat('F') }} del {{ Carbon::parse($estado->created_at)->format('Y') }}
-                        </time>
-                        <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full {{ $estado->estadoable_type === \App\Models\Proyecto\Proyecto::class ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' }}">
-                            @if($estado->estadoable_type === \App\Models\Proyecto\Proyecto::class)
-                                Proyecto
-                            @elseif($estado->estadoable_type === \App\Models\Proyecto\DocumentoProyecto::class)
-                                Informe/Documento
-                            @else
-                                Otro
-                            @endif
-                        </span>
+        <div class="overflow-y-auto max-h-[77vh] dark:bg-gray-800 bg-white p-4 rounded-lg shadow">
+            @if(count($estados) > 0)
+                    <ol class="relative border-s border-yellow-600"> 
+                        @foreach($estados as $index => $estado)
+                            <li class="{{ $index < count($estados) - 1 ? 'mb-10' : '' }} ms-4">
+                                <div class="absolute w-3 h-3 bg-yellow-600 rounded-full mt-1.5 -start-1.5 border border-white"></div>
+                                <div class="flex items-center">
+                                    <time class="text-sm font-normal leading-none text-yellow-600">
+                                        {{ Carbon::parse($estado->created_at)->format('d') }} de {{ Carbon::parse($estado->created_at)->translatedFormat('F') }} del {{ Carbon::parse($estado->created_at)->format('Y') }}
+                                    </time>
+                                    <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full {{ $estado->estadoable_type === \App\Models\Proyecto\Proyecto::class ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' }}">
+                                        @if($estado->estadoable_type === \App\Models\Proyecto\Proyecto::class)
+                                            Proyecto
+                                        @elseif($estado->estadoable_type === \App\Models\Proyecto\DocumentoProyecto::class)
+                                            Informe/Documento
+                                        @else
+                                            Otro
+                                        @endif
+                                    </span>
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-200 mt-2">
+                                Estado: {{ $estado->tipoestado->nombre ?? 'Cambio de estado' }}
+                                </h3>
+                                <p class="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">
+                                    @if($estado->empleado)
+                                        Realizado por: {{ $estado->empleado->nombre_completo }} 
+                                    @endif
+                                    {{ $estado->comentario ? '— ' . $estado->comentario : '' }}
+                                </p>
+                            </li>
+                        @endforeach
+                    </ol>
+                @else
+                    <div class="flex items-center justify-center h-full">
+                        <p class="text-gray-500">No hay movimientos registrados para este proyecto.</p>
                     </div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-200 mt-2">
-                       Estado: {{ $estado->tipoestado->nombre ?? 'Cambio de estado' }}
-                    </h3>
-                    <p class="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">
-                        @if($estado->empleado)
-                            Realizado por: {{ $estado->empleado->nombre_completo }} 
-                        @endif
-                        {{ $estado->comentario ? '— ' . $estado->comentario : '' }}
-                    </p>
-                </li>
-            @endforeach
-        </ol>
-    @else
-        <div class="flex items-center justify-center h-full">
-            <p class="text-gray-500">No hay movimientos registrados para este proyecto.</p>
+                @endif
         </div>
-    @endif
-</div>
+    </div>
 </div>
