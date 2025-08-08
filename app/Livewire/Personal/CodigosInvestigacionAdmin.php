@@ -85,14 +85,21 @@ class CodigosInvestigacionAdmin extends Component implements HasForms, HasTable
                 TextColumn::make('verificadoPor.nombre_completo')
                     ->label('Verificado por')
                     ->placeholder('—'),
-                TextColumn::make('fecha_verificacion')
-                    ->label('Fecha de Verificación')
-                    ->dateTime('d/m/Y H:i')
-                    ->placeholder('—'),
-                TextColumn::make('created_at')
-                    ->label('Fecha de Registro')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable(),
+                TextColumn::make('numero_dictamen')
+                    ->label('Número de Dictamen')
+                    ->getStateUsing(function (EmpleadoCodigoInvestigacion $record) {
+                        // Buscar el proyecto con el mismo código
+                        $proyecto = Proyecto::where('codigo_proyecto', $record->codigo_proyecto)->first();
+                        
+                        // Debug: mostrar si existe proyecto y su dictamen
+                        if (!$proyecto) {
+                            return 'Sin proyecto';
+                        }
+                        
+                        return $proyecto->numero_dictamen ?: 'Sin dictamen';
+                    })
+                    ->placeholder('—')
+                    ->sortable(false),
             ])
             ->filters([
                 SelectFilter::make('estado_verificacion')
@@ -130,28 +137,33 @@ class CodigosInvestigacionAdmin extends Component implements HasForms, HasTable
                     ])
                     ->action(function (EmpleadoCodigoInvestigacion $record, array $data): void {
                         // Verificar si el código ya existe en la tabla proyecto
-                        $proyectoExistente = \App\Models\Proyecto\Proyecto::where('codigo_proyecto', $record->codigo_proyecto)->first();
+                        $proyectoExistente = Proyecto::where('codigo_proyecto', $record->codigo_proyecto)->first();
                         
                         if ($proyectoExistente) {
                             // Si el código ya existe, verificar si el empleado ya está registrado en ese proyecto
-                            $empleadoYaRegistrado = \App\Models\Personal\EmpleadoProyecto::where('empleado_id', $record->empleado_id)
+                            $empleadoYaRegistrado = EmpleadoProyecto::where('empleado_id', $record->empleado_id)
                                 ->where('proyecto_id', $proyectoExistente->id)
                                 ->exists();
                             
                             if (!$empleadoYaRegistrado) {
                                 // Registrar al empleado en el proyecto existente
-                                \App\Models\Personal\EmpleadoProyecto::create([
+                                EmpleadoProyecto::create([
                                     'empleado_id' => $record->empleado_id,
                                     'proyecto_id' => $proyectoExistente->id,
                                     'rol' => $record->rol_docente === 'coordinador' ? 'Coordinador' : 'Integrante',
-                                    'hash' => \Illuminate\Support\Str::random(32),
+                                    'hash' => Str::random(32),
                                 ]);
                                 
                                 $record->update([
                                     'estado_verificacion' => 'verificado',
-                                    'observaciones_admin' => $data['observaciones_admin'] ?? null,
+                                    'observaciones_admin' => ($data['observaciones_admin'] ?? 'Docente registrado en proyecto existente') . ' | Dictamen: ' . ($data['numero_dictamen'] ?? 'Sin dictamen'),
                                     'verificado_por' => auth()->user()->empleado->id,
                                     'fecha_verificacion' => now(),
+                                ]);
+
+                                // Actualizar el dictamen en el proyecto existente
+                                $proyectoExistente->update([
+                                    'numero_dictamen' => $data['numero_dictamen']
                                 ]);
 
                                 Notification::make()
@@ -162,9 +174,14 @@ class CodigosInvestigacionAdmin extends Component implements HasForms, HasTable
                             } else {
                                 $record->update([
                                     'estado_verificacion' => 'verificado',
-                                    'observaciones_admin' => $data['observaciones_admin'] ?? null,
+                                    'observaciones_admin' => ($data['observaciones_admin']),
                                     'verificado_por' => auth()->user()->empleado->id,
                                     'fecha_verificacion' => now(),
+                                ]);
+
+                                // Actualizar el dictamen en el proyecto existente
+                                $proyectoExistente->update([
+                                    'numero_dictamen' => $data['numero_dictamen']
                                 ]);
 
                                 Notification::make()
@@ -193,6 +210,7 @@ class CodigosInvestigacionAdmin extends Component implements HasForms, HasTable
                                     'otros' => 0,
                                     'modalidad_id' => 1, // Asumir modalidad por defecto
                                     'fecha_registro' => now(),
+                                    'numero_dictamen' => $data['numero_dictamen'] ?? null, // Guardar el dictamen en el proyecto
                                 ]);
 
                                 // Registrar al empleado en el nuevo proyecto
@@ -217,20 +235,19 @@ class CodigosInvestigacionAdmin extends Component implements HasForms, HasTable
                                     'empleado_id' => auth()->user()->empleado->id,
                                     'tipo_estado_id' => $tipoEstadoPendiente->id,
                                     'fecha' => now(),
-                                    'comentario' => 'Proyecto creado automáticamente al verificar código de investigación',
-                                    'numero_dictamen' => $record->numero_dictamen ?? null,
+                                    'comentario' => 'Proyecto creado automáticamente al verificar código de investigación. Dictamen: ' . ($data['numero_dictamen'] ?? 'Sin dictamen'),
                                 ]);
 
                                 $record->update([
                                     'estado_verificacion' => 'verificado',
-                                    'observaciones_admin' => $data['observaciones_admin'] ?? 'Proyecto creado automáticamente al verificar código',
+                                    'observaciones_admin' => ($data['observaciones_admin'] ?? 'Proyecto creado automáticamente al verificar código') . ' | Dictamen: ' . ($data['numero_dictamen'] ?? 'Sin dictamen'),
                                     'verificado_por' => auth()->user()->empleado->id,
                                     'fecha_verificacion' => now(),
                                 ]);
 
                                 Notification::make()
                                     ->title('Código verificado y proyecto creado')
-                                    ->body("El código {$record->codigo_proyecto} ha sido verificado exitosamente. Se ha creado un nuevo proyecto y el docente ha sido registrado.")
+                                    ->body("El código {$record->codigo_proyecto} ha sido verificado exitosamente con dictamen {$data['numero_dictamen']}. Se ha creado un nuevo proyecto y el docente ha sido registrado.")
                                     ->success()
                                     ->send();
 
