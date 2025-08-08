@@ -9,10 +9,6 @@
             </p>
         </div>
         <div class="flex gap-2">
-            <x-filament::button color="warning" icon="heroicon-o-clock"
-                href="{{ route('proyectosAntesDelSistema') }}" tag="a" wire:navigate>
-                Proyectos Antes del Sistema
-            </x-filament::button>
             <x-filament::button color="info" icon="heroicon-o-document-arrow-up"
                 href="{{ route('crearProyectoVinculacion') }}" tag="a" wire:navigate>
                 Nuevo
