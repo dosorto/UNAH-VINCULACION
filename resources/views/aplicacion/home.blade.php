@@ -225,40 +225,53 @@
             <!-- Grid contenedor -->
             <div class="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         
-<x-aplicacion.dev-card 
-    name="Dorian Osorto"
-    role="Project Manager"
-    image="https://avatars.githubusercontent.com/u/107946194?v=4"
-    github="https://github.com/dosorto"
-    linkedin="#"
-    instagram="#"
-/>
-
-<!-- Devs visibles al inicio -->
-<x-aplicacion.dev-card 
-    name="Francisco Paz"
-    role="Desarrollador Full Stack"
-    image="https://avatars.githubusercontent.com/u/95550123?v=4"
-    github="https://github.com/Franciscopaz199"
-    linkedin="#"
-    instagram="#"
-/>
-
-<x-aplicacion.dev-card 
-    name="Ernesto Moncada"
-    role="Desarrollador Backend"
-    image="https://avatars.githubusercontent.com/u/123714290?v=4"
-    github="https://github.com/ernestomoncada14"
-    linkedin="#"
-    instagram="#"
-/>
-
-                
+                <x-aplicacion.dev-card 
+                    name="Dorian Osorto"
+                    role="Project Manager"
+                    image="https://avatars.githubusercontent.com/u/107946194?v=4"
+                    github="https://github.com/dosorto"
+                    linkedin="#"
+                    instagram="#"
+                />
+                <x-aplicacion.dev-card 
+                    name="Acxel Aplicano"
+                    role="Desarrollador Full Stack"
+                    image="https://avatars.githubusercontent.com/u/132090869?v=4"
+                    github="https://github.com/acxelaplicano01"
+                    linkedin="#"
+                    instagram="#"
+                />
+                    
+                <x-aplicacion.dev-card 
+                    name="Vanessa Zambrano"
+                    role="Desarrolladora Backend"
+                    image="https://avatars.githubusercontent.com/u/133082159?v=4"
+                    github="https://github.com/vanesszambrano9"
+                    linkedin="#"
+                    instagram="#"
+                />
         
                 <!-- Devs ocultos hasta hacer clic -->
                 <template x-if="showAll">
                     <div class="contents"> <!-- Mantiene el grid layout -->
-                        <x-aplicacion.dev-card 
+                    <x-aplicacion.dev-card 
+                        name="Francisco Paz"
+                        role="Desarrollador Full Stack"
+                        image="https://avatars.githubusercontent.com/u/95550123?v=4"
+                        github="https://github.com/Franciscopaz199"
+                        linkedin="#"
+                        instagram="#"
+                    />
+
+                    <x-aplicacion.dev-card 
+                        name="Ernesto Moncada"
+                        role="Desarrollador Backend"
+                        image="https://avatars.githubusercontent.com/u/123714290?v=4"
+                        github="https://github.com/ernestomoncada14"
+                        linkedin="#"
+                        instagram="#"
+                    />
+                    <x-aplicacion.dev-card 
                         name="Daniel Henríquez"
                         role="Colaborador"
                         image="https://avatars.githubusercontent.com/u/181374385?v=4"
@@ -284,26 +297,6 @@
                         linkedin="#"
                         instagram="#"
                     />
-                    
-                    <x-aplicacion.dev-card 
-                        name="Acxel Aplicano"
-                        role="Diseñador UI/UX"
-                        image="https://avatars.githubusercontent.com/u/132090869?v=4"
-                        github="https://github.com/acxelaplicano01"
-                        linkedin="#"
-                        instagram="#"
-                    />
-                    
-                    <x-aplicacion.dev-card 
-                        name="Vanessa Zambrano"
-                        role="Desarrolladora Backend"
-                        image="https://avatars.githubusercontent.com/u/133082159?v=4"
-                        github="https://github.com/vanesszambrano9"
-                        linkedin="#"
-                        instagram="#"
-                    />
-                    
-
                     </div>
                 </template>
             </div>

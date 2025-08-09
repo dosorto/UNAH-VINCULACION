@@ -16,11 +16,18 @@ use App\Models\Personal\EmpleadoProyecto;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Personal\Empleado;
 
 class ProyectosAntesDelSistema extends Component implements HasForms, HasTable
 {
     use InteractsWithForms, InteractsWithTable;
+    public Empleado $docente;
 
+    public function mount($docente = null): void
+    {
+        $this->docente = $docente ?? Auth::user()->empleado;
+    }
     public function table(Table $table): Table
     {
         $empleadoId = auth()->user()->empleado->id;
@@ -45,6 +52,10 @@ class ProyectosAntesDelSistema extends Component implements HasForms, HasTable
                     ->label('Código')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('numero_dictamen')
+                    ->label('Número de Dictamen')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('nombre_proyecto')
                     ->label('Nombre del Proyecto')
                     ->searchable()
@@ -56,17 +67,16 @@ class ProyectosAntesDelSistema extends Component implements HasForms, HasTable
                         }
                         return $state;
                     }),
-                TextColumn::make('fecha_inicio')
-                    ->label('Fecha Inicio')
-                    ->date('d/m/Y')
-                    ->sortable(),
-                TextColumn::make('fecha_finalizacion')
-                    ->label('Fecha Finalización')
-                    ->date('d/m/Y')
-                    ->sortable(),
-                TextColumn::make('modalidad.nombre')
-                    ->label('Modalidad')
-                    ->placeholder('—'),
+                    //rol del empleado en el proyecto 
+                TextColumn::make('docentes_proyecto.rol')
+                    ->label('Rol')
+                    ->formatStateUsing(
+                        function (Proyecto $record) {
+                            return $record->docentes_proyecto()
+                                ->where('empleado_id', $this->docente->id)
+                                ->first()->rol;
+                        }
+                    ),
                 TextColumn::make('tipo_estado.nombre')
                     ->label('Estado')
                     ->badge()
@@ -78,16 +88,16 @@ class ProyectosAntesDelSistema extends Component implements HasForms, HasTable
                             default => 'gray'
                         };
                     }),
-                TextColumn::make('created_at')
-                    ->label('Fecha Creación')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable(),
             ])
             ->actions([
                 Action::make('editar')
                     ->label(function (Proyecto $record) {
                         $estado = $record->tipo_estado?->nombre;
                         return $estado === 'Finalizado' ? 'Editar Proyecto' : 'Completar Información';
+                    })
+                    ->visible(function (Proyecto $record) {
+                        $estado = $record->tipo_estado?->nombre;
+                        return in_array($estado, ['PendienteInformacion']);
                     })
                     ->icon('heroicon-o-pencil-square')
                     ->color('primary')

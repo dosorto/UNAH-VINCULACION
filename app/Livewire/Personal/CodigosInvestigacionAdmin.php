@@ -93,7 +93,7 @@ class CodigosInvestigacionAdmin extends Component implements HasForms, HasTable
                         
                         // Debug: mostrar si existe proyecto y su dictamen
                         if (!$proyecto) {
-                            return 'Sin proyecto';
+                            return 'Pendiente...';
                         }
                         
                         return $proyecto->numero_dictamen ?: 'Sin dictamen';
@@ -301,6 +301,14 @@ class CodigosInvestigacionAdmin extends Component implements HasForms, HasTable
                             'verificado_por' => null,
                             'fecha_verificacion' => null,
                         ]);
+
+                        // Eliminar el dictamen del proyecto si existe
+                        $proyecto = Proyecto::where('codigo_proyecto', $record->codigo_proyecto)->first();
+                        if ($proyecto) {
+                            $proyecto->update([
+                                'numero_dictamen' => null,
+                            ]);
+                        }
 
                         Notification::make()
                             ->title('Estado revertido')

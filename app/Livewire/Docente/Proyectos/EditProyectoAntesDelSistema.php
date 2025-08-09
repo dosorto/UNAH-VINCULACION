@@ -2,31 +2,75 @@
 
 namespace App\Livewire\Docente\Proyectos;
 
+use Filament\Forms;
+use App\Models\User;
+use Filament\Forms\Get;
 use Livewire\Component;
 use Filament\Forms\Form;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Notifications\Notification;
-use App\Models\Proyecto\Proyecto;
+use App\Models\Demografia\Aldea;
+use App\Models\Demografia\Ciudad;
+
+
 use App\Models\Estado\TipoEstado;
-use Filament\Forms\Components\Wizard;
+use App\Models\Personal\Empleado;
+use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\Modalidad;
 use Illuminate\Support\HtmlString;
+
+use App\Models\Proyecto\CargoFirma;
+use Illuminate\Contracts\View\View;
+use App\Models\Demografia\Municipio;
+
+
+use App\Models\Estudiante\Estudiante;
+
+use Filament\Forms\Components\Hidden;
+
+use Filament\Forms\Components\Select;
+
+use Filament\Forms\Components\Toggle;
+
+use Filament\Forms\Components\Wizard;
 use Illuminate\Support\Facades\Blade;
+use Filament\Forms\Components\Builder;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Contracts\HasForms;
+use App\Models\Demografia\Departamento;
+
+use App\Models\UnidadAcademica\Carrera;
+
+use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+
+use App\Models\Personal\EmpleadoProyecto;
+
+use Filament\Forms\Components\DatePicker;
+
+use Filament\Forms\Components\FileUpload;
+use App\Models\UnidadAcademica\FacultadCentro;
+use Filament\Forms\Concerns\InteractsWithForms;
+use App\Models\UnidadAcademica\EntidadAcademica;
+
+use App\Models\UnidadAcademica\DepartamentoAcademico;
+use App\Livewire\Proyectos\Vinculacion\Secciones\SextaParte;
+use App\Livewire\Proyectos\Vinculacion\Secciones\CuartaParte;
+use App\Livewire\Proyectos\Vinculacion\Secciones\QuintaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\PrimeraParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\SegundaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\TerceraParte;
-use App\Livewire\Proyectos\Vinculacion\Secciones\CuartaParte;
-use App\Livewire\Proyectos\Vinculacion\Secciones\QuintaParte;
-use App\Livewire\Proyectos\Vinculacion\Secciones\EquipoEjecutor;
 use App\Livewire\Proyectos\Vinculacion\Secciones\MarcoLogico;
 use App\Livewire\Proyectos\Vinculacion\Secciones\Presupuesto;
-use Illuminate\Contracts\View\View;
+use App\Livewire\Proyectos\Vinculacion\Secciones\EquipoEjecutor;
 
-class EditProyectoAntesDelSistema extends Component implements HasForms
+
+class editProyectoAntesDelSistema extends Component implements HasForms
 {
     use InteractsWithForms;
 
     public ?array $data = [];
+
     public Proyecto $record;
 
     public function mount(Proyecto $proyecto): void
@@ -128,6 +172,7 @@ class EditProyectoAntesDelSistema extends Component implements HasForms
                         ),
                     Wizard\Step::make('IV.')
                         ->description('CRONOGRAMA DE ACTIVIDADES.')
+                        
                         ->schema(
                             TerceraParte::form(),
                         ),
@@ -137,7 +182,7 @@ class EditProyectoAntesDelSistema extends Component implements HasForms
                             CuartaParte::form(),
                         )
                         ->columns(2),
-                    Wizard\Step::make('VI.')
+                        Wizard\Step::make('VI.')
                         ->description('RESUMEN MARCO LÓGICO DEL PROYECTO')
                         ->schema(
                             MarcoLogico::form(),
@@ -153,6 +198,11 @@ class EditProyectoAntesDelSistema extends Component implements HasForms
                         ->description('ANEXOS')
                         ->schema(
                             QuintaParte::form(),
+                        ),
+                    Wizard\Step::make('IX.')
+                        ->description('FIRMAS')
+                        ->schema(
+                            SextaParte::form(),
                         ),
                 ])->submitAction(new HtmlString(Blade::render(<<<BLADE
                 <x-filament::button
@@ -171,7 +221,7 @@ class EditProyectoAntesDelSistema extends Component implements HasForms
             ->model($this->record);
     }
 
-    public function save(): void
+   public function save(): void
     {
         $data = $this->form->getState();
 

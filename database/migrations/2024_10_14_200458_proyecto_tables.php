@@ -106,9 +106,8 @@ return new class extends Migration
             $table->string('numero_libro')->nullable();
             $table->string('numero_tomo')->nullable();
             $table->string('numero_folio')->nullable();
-            $table->string('numero_dictamen')->nullable();
-            
-        
+            $table->string('numero_dictamen')->unique()->nullable();
+
             $table->softDeletes();
             $table->timestamps();
         });

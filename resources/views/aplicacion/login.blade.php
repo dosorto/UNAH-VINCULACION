@@ -194,6 +194,10 @@
                     <span class="w-6">✉️</span>
                     vinculacion.sociedad@unah.edu.hn
                 </p>
+                <p class="flex items-center gap-2">
+                    <span class="w-6">💼</span>
+                   <a href="/acercade">Acerca de</a>
+                </p>
             </div>
             <div class="text-navy-900 dark:text-gray-900">
                 <p class="text-justify dark:text-gray-200">

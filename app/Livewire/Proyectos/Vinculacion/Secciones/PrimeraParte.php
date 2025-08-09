@@ -167,7 +167,8 @@ class PrimeraParte
                             $set('metasContribuye', []);
                         })
                         ->preload()
-                        ->helperText('Seleccione los ODS a los que contribuye el proyecto'),
+                        ->helperText('Seleccione los ODS a los que contribuye el proyecto')
+                        ->required(),
 
                     Select::make('metasContribuye')
                         ->label('Metas de ODS')
@@ -184,7 +185,8 @@ class PrimeraParte
                         ->getOptionLabelFromRecordUsing(fn($record) => "Meta {$record->numero_meta}: {$record->descripcion}")
                         ->visible(fn(Get $get) => !empty($get('ods')))
                         ->preload()
-                        ->helperText('Seleccione las metas específicas de los ODS que el proyecto abordará'),
+                        ->helperText('Seleccione las metas específicas de los ODS que el proyecto abordará')
+                        ->required(),
                 ])
                 ->columnSpanFull(),
                
