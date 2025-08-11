@@ -199,11 +199,6 @@ class editProyectoAntesDelSistema extends Component implements HasForms
                         ->schema(
                             QuintaParte::form(),
                         ),
-                    Wizard\Step::make('IX.')
-                        ->description('FIRMAS')
-                        ->schema(
-                            SextaParte::form(),
-                        ),
                 ])->submitAction(new HtmlString(Blade::render(<<<BLADE
                 <x-filament::button
                     type="submit"
