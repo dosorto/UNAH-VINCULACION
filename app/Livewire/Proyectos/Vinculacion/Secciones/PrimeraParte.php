@@ -138,14 +138,14 @@ class PrimeraParte
 
 
 
-            Forms\Components\TextArea::make('programa_pertenece')
+            Forms\Components\Textarea::make('programa_pertenece')
                 ->label('Programa al que pertenece')
                 ->minLength(2)
                 ->maxLength(255)
                 ->columnSpan(1)
                 ->required(),
 
-            Forms\Components\TextArea::make('lineas_investigacion_academica')
+            Forms\Components\Textarea::make('lineas_investigacion_academica')
                 ->label('Líneas de investigación de la unidad académica')
                 ->minLength(2)
                 ->maxLength(255)
@@ -167,7 +167,8 @@ class PrimeraParte
                             $set('metasContribuye', []);
                         })
                         ->preload()
-                        ->helperText('Seleccione los ODS a los que contribuye el proyecto'),
+                        ->helperText('Seleccione los ODS a los que contribuye el proyecto')
+                        ->required(),
 
                     Select::make('metasContribuye')
                         ->label('Metas de ODS')
@@ -184,7 +185,8 @@ class PrimeraParte
                         ->getOptionLabelFromRecordUsing(fn($record) => "Meta {$record->numero_meta}: {$record->descripcion}")
                         ->visible(fn(Get $get) => !empty($get('ods')))
                         ->preload()
-                        ->helperText('Seleccione las metas específicas de los ODS que el proyecto abordará'),
+                        ->helperText('Seleccione las metas específicas de los ODS que el proyecto abordará')
+                        ->required(),
                 ])
                 ->columnSpanFull(),
                

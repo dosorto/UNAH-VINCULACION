@@ -1576,12 +1576,28 @@
                                     alt="" width="200px">
                                 <img src="{{ Storage::url(optional(optional($proyecto->firma_coodinador_proyecto()->first())->firma)->ruta_storage) }}"
                                     alt="" width="200px">
+                                     <br>
+                                    <p>
+                                        {{ optional($proyecto->firma_coodinador_proyecto->first())->fecha_firma
+                                            ? \Carbon\Carbon::parse(optional($proyecto->firma_coodinador_proyecto->first())->fecha_firma)->translatedFormat(
+                                                'l d F Y h:i:s A',
+                                            )
+                                            : '' }}
+                                    </p>
                             </td>
                             <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
                                 <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_jefe()->first())->sello)->ruta_storage) }}"
                                     alt="" width="200px">
                                 <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_jefe()->first())->firma)->ruta_storage) }}"
                                     alt="" width="200px">
+                                     <br>
+                                    <p>
+                                        {{ optional($proyecto->firma_proyecto_jefe->first())->fecha_firma
+                                            ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_jefe->first())->fecha_firma)->translatedFormat(
+                                                'l d F Y h:i:s A',
+                                            )
+                                            : '' }}
+                                    </p>
                             </td>
                         </tr>
 
@@ -1636,12 +1652,28 @@
                                     alt="" width="200px">
                                 <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_enlace()->first())->firma)->ruta_storage) }}"
                                     alt="" width="200px">
+                                     <br>
+                                    <p>
+                                        {{ optional($proyecto->firma_proyecto_enlace->first())->fecha_firma
+                                            ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_enlace->first())->fecha_firma)->translatedFormat(
+                                                'l d F Y h:i:s A',
+                                            )
+                                            : '' }}
+                                    </p>
                             </td>
                             <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
                                 <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_decano()->first())->sello)->ruta_storage) }}"
                                     alt="" width="200px">
                                 <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_decano()->first())->firma)->ruta_storage) }}"
                                     alt="" width="200px">
+                                     <br>
+                                    <p>
+                                        {{ optional($proyecto->firma_proyecto_decano->first())->fecha_firma
+                                            ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_decano->first())->fecha_firma)->translatedFormat(
+                                                'l d F Y h:i:s A',
+                                            )
+                                            : '' }}
+                                    </p>
                             </td>
                         </tr>
 

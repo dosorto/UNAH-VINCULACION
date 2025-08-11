@@ -33,7 +33,8 @@ class Login extends Component implements HasForms
                 TextInput::make('email')
                     ->label('Correo institucional')
                     ->required(),
-                TextInput::make('Contraseña')
+                TextInput::make('password')
+                    ->label('Contraseña')
                     ->revealable()
                     ->password()
                     ->required()
@@ -46,7 +47,7 @@ class Login extends Component implements HasForms
     {
         $data = $this->form->getState();
 
-        if (Auth::attempt(['email' => $data['email'], 'password' => $data['Contraseña']])) {
+        if (Auth::attempt(['email' => $data['email'], 'password' => $data['password']])) {
             return redirect(route('inicio'));
         }
 

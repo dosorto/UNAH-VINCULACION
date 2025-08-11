@@ -1,6 +1,6 @@
 <div>
     <form wire:submit="create" class="md:h-[250px]">
-        @if (config('app.env') == 'local')
+        @if (config('app.env') == 'local' || config('app.env') == 'test')
             {{ $this->form }}
             <br>
             <button type="submit"
