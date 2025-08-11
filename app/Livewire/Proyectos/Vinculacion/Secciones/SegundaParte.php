@@ -7,6 +7,7 @@ use Filament\Forms;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 
 use Filament\Forms\Components\Repeater;
 
@@ -73,7 +74,7 @@ class SegundaParte
                         ->required()
                         ->email(),
                     
-                    Forms\Components\TextArea::make('descripcion_acuerdos')
+                    Forms\Components\Textarea::make('descripcion_acuerdos')
                         ->minLength(2)
                         ->maxLength(255)
                         ->label('Breve descripción de los compromisos asumidos por la contraparte')
