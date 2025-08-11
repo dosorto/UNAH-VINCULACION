@@ -23,6 +23,7 @@ use App\Livewire\Proyectos\Vinculacion\Secciones\QuintaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\PrimeraParte;
 
 // Para enviar Emails
+use App\Mail\ProyectoCreado;
 // use App\Mail\Correos\CorreoParticipacion;
 use App\Livewire\Proyectos\Vinculacion\Secciones\SegundaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\TerceraParte;
@@ -178,11 +179,12 @@ class CreateProyectoVinculacion extends Component implements HasForms
             $estadoNombre = $estado ? $estado->nombre : 'Desconocido';
 
             // Enviar el correo al usuario que creó el proyecto
-            $creadorEmail = auth()->user()->email; //  usuario autenticado quien crea el proyecto
-            $nombreProyecto = $record->nombre_proyecto; // Nombre del proyecto
-            $empleadoNombre = auth()->user()->empleado->nombre_completo;  // Nombre del usuario
-           // $empleadoCorreo = auth()->user()->email;  // Correo del usuario 
-           // SendEmailJob::dispatch($creadorEmail, 'correoEstado', $estadoNombre, $nombreProyecto, $empleadoNombre);
+            try {
+                Mail::to(auth()->user()->email)->send(new ProyectoCreado($record, auth()->user()));
+            } catch (\Exception $emailException) {
+                // Log del error pero no fallar la creación del proyecto
+                \Log::warning('Error al enviar correo de proyecto creado: ' . $emailException->getMessage());
+            }
             
         } catch (\Exception $e) {
             // Eliminar el proyecto en caso de error
@@ -257,6 +259,15 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 'fecha' => now(),
                 'comentario' => 'Proyecto creado en borrador',
             ]);
+            
+            // Enviar el correo al usuario que creó el proyecto
+            try {
+                Mail::to(auth()->user()->email)->send(new ProyectoCreado($record, auth()->user()));
+            } catch (\Exception $emailException) {
+                // Log del error pero no fallar la creación del proyecto
+                \Log::warning('Error al enviar correo de proyecto creado en borrador: ' . $emailException->getMessage());
+            }
+            
         } catch (\Exception $e) {
             // Eliminar el proyecto en caso de error
             $record->delete();
