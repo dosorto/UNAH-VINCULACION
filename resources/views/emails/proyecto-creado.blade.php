@@ -9,7 +9,7 @@
             font-family: 'Times New Roman', Times, serif;
             line-height: 1.8;
             color: #2c3e50;
-            max-width: 700px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f8f9fa;
@@ -230,7 +230,7 @@
             font-style: italic;
             margin: 5px 0;
         }
-        @media (max-width: 600px) {
+        @media (max-width: 900px) {
             body {
                 padding: 10px;
             }
@@ -278,7 +278,7 @@
             
             <div class="official-notice">
                 <div class="stamp">✓ REGISTRO OFICIAL</div>
-                <p><strong>Su proyecto ha sido ingresado al sistema institucional</strong></p>
+                <p><strong>Su proyecto ha sido ingresado al sistema NEXO-UNAH</strong></p>
             </div>
             
             <div class="project-info">
@@ -286,12 +286,8 @@
                 
                 <div class="project-details">
                     <div class="detail-item">
-                        <span class="detail-label">Código Institucional:</span>
+                        <span class="detail-label">Código de proyecto:</span>
                         <span class="detail-value">{{ $proyecto->codigo_proyecto ?: 'En proceso de asignación' }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Estado Actual:</span>
-                        <span class="detail-value">En proceso de revisión institucional</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Fecha de Registro:</span>
@@ -316,7 +312,7 @@
 
             <p style="text-align: justify; margin: 25px 0;">
                 <strong>Importante:</strong> Este documento constituye la confirmación oficial del registro 
-                de su proyecto en el sistema institucional. Conserve este correo para sus registros académicos.
+                de su proyecto en el sistema institucional NEXO-UNAH. Conserve este correo para sus registros académicos.
             </p>
             
             <div class="action-section">

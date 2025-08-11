@@ -49,15 +49,13 @@ class ProyectoCreado extends Mailable implements ShouldQueue
             with: [
                 'proyecto' => $this->proyecto,
                 'usuario' => $this->usuario,
-                'nombreCompleto' => $this->usuario->empleado ? 
-                    $this->usuario->empleado->primer_nombre . ' ' . $this->usuario->empleado->primer_apellido : 
-                    $this->usuario->name,
+                'nombreCompleto' => $this->usuario->nombre . ' ' . $this->usuario->apellido,
                 'fechaCreacion' => $this->proyecto->created_at->format('d/m/Y H:i'),
                 'logoUrl' => asset('images/Image/logo_nexo.png'),
                 'appName' => env('APP_NAME', 'NEXO'),
-                'actionUrl' => route('inicio'), // O la ruta específica del proyecto
+                'actionUrl' => route('https://nexo.unah.edu.hn/'), // O la ruta específica del proyecto
             ]
-        );
+        ); 
     }
 
     /**
