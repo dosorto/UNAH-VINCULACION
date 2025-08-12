@@ -43,20 +43,36 @@ class CuartaParte
             Fieldset::make('Beneficiarios')
                 ->columns(2)
                 ->schema([
-                    TextInput::make('poblacion_participante')
-                        ->label('Población participante (número aproximado)')
-                        ->numeric()
-                        ->columnSpan(1)
-                        ->required(),
                     TextInput::make('hombres')
                         ->label('Hombres')
                         ->numeric()
                         ->columnSpan(1)
-                        ->required(),
+                        ->required()
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                            $hombres = floatval($state ?? 0);
+                            $mujeres = floatval($get('mujeres') ?? 0);
+                            $total = $hombres + $mujeres;
+                            $set('poblacion_participante', $total);
+                        }),
                     TextInput::make('mujeres')
                         ->label('Mujeres')
                         ->numeric()
                         ->columnSpan(1)
+                        ->required()
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                            $mujeres = floatval($state ?? 0);
+                            $hombres = floatval($get('hombres') ?? 0);
+                            $total = $hombres + $mujeres;
+                            $set('poblacion_participante', $total);
+                        }),
+                    TextInput::make('poblacion_participante')
+                        ->label('Población participante (número aproximado)')
+                        ->numeric()
+                        ->columnSpan(1)
+                        ->disabled()
+                        ->dehydrated()
                         ->required(),
                    /* TextInput::make('otros')
                         ->label('Otros (Indicar número)')
