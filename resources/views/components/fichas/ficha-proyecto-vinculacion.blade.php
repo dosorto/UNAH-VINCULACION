@@ -1182,7 +1182,7 @@
                     <table class="table_datos3">
                         {{-- Fila del Objetivo General --}}
                         <tr>
-                            <td class="header" colspan="4">Objetivo general:</td>
+                            <td class="header" colspan="5">Objetivo general:</td>
                             <td class="full-width" colspan="15">
                                 <textarea disabled cols="30" rows="3" class="input-field">{{ $proyecto->objetivo_general ?? 'Sin objetivo general especificado' }}</textarea>
                             </td>
@@ -1193,6 +1193,7 @@
                             <td class="header" colspan="5">Resultado</td>
                             <td class="header" colspan="5">Indicador de resultado</td>
                             <td class="header" colspan="5">Medio de verificación</td>
+                            <td class="header" colspan="5">Plazo</td>
                         </tr>
                         {{-- Filas de datos --}}
                         @if($proyecto->objetivosEspecificos->count() > 0)
@@ -1216,6 +1217,9 @@
                                             </td>
                                             <td class="full-width" colspan="5">
                                                 <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_medio_verificacion ?? 'Sin medio de verificación especificado' }}</textarea>
+                                            </td>
+                                            <td class="full-width" colspan="5">
+                                                <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->plazo_formateado }}</textarea>
                                             </td>
                                         </tr>
                                     @endforeach

@@ -25,6 +25,15 @@ class ResultadoEsperado extends Model
         'orden' => 'integer'
     ];
 
+    public function getPlazoFormateadoAttribute(): string
+    {
+        return match($this->plazo) {
+            'corto_plazo' => 'Corto plazo',
+            'largo_plazo' => 'Largo plazo',
+            default => 'Sin plazo especificado'
+        };
+    }
+
     public function objetivoEspecifico(): BelongsTo
     {
         return $this->belongsTo(ObjetivoEspecifico::class);
