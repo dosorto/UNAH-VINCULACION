@@ -49,12 +49,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 Wizard::make([
                     
                     
-                        Wizard\Step::make('VI.')
-                        ->description('RESUMEN MARCO LÓGICO DEL PROYECTO')
-                        ->schema(
-                            MarcoLogico::form(),
-                        )
-                        ->columns(2),
+                      
                     Wizard\Step::make('VII.')
                         ->description('DETALLES DEL PRESUPUESTO')
                         ->schema(

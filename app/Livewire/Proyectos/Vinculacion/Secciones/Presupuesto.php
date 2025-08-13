@@ -43,17 +43,19 @@ class Presupuesto
                             TextInput::make('concepto_label')
                                 ->label('Concepto')
                                 ->disabled()
-                                ->columnSpan(2),
+                                ->columnSpan(2)
+                                ->default(0),
                                 
                             TextInput::make('unidad_label')
                                 ->label('Unidad')
                                 ->disabled()
-                                ->columnSpan(1),
+                                ->columnSpan(1)
+                                ->default(0),
                                 
                             TextInput::make('cantidad')
                                 ->label('Cantidad')
                                 ->numeric()
-                                ->live()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function (Get $get, Set $set, $state) {
                                     $costoUnitario = floatval($get('costo_unitario') ?? 0);
                                     $cantidad = floatval($state ?? 0);
@@ -63,13 +65,14 @@ class Presupuesto
                                     // Calcular total usando una función helper
                                     self::calcularTotalAporteInstitucional($get, $set);
                                 })
-                                ->columnSpan(1),
+                                ->columnSpan(1)
+                                ->default(0),
                                 
                             TextInput::make('costo_unitario')
                                 ->label('Costo unitario')
                                 ->numeric()
                                 ->prefix('L.')
-                                ->live()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function (Get $get, Set $set, $state) {
                                     $cantidad = floatval($get('cantidad') ?? 0);
                                     $costoUnitario = floatval($state ?? 0);
@@ -79,15 +82,16 @@ class Presupuesto
                                     // Calcular total usando una función helper
                                     self::calcularTotalAporteInstitucional($get, $set);
                                 })
-                                ->columnSpan(1),
-                                
+                                ->columnSpan(1)
+                                ->default(0),
+
                             TextInput::make('costo_total')
                                 ->label('Costo Total')
                                 ->numeric()
                                 ->prefix('L.')
                                 ->disabled()
                                 ->dehydrated()
-                                ->live()
+                                ->live(onBlur: true)
                                 ->columnSpan(1),
                         ])
                         ->label('Conceptos del Aporte Institucional')
@@ -96,7 +100,7 @@ class Presupuesto
                         ->deletable(false)
                         ->reorderable(false)
                         ->columns(6)
-                        ->live()
+                        ->live(onBlur: true)
                         ->afterStateUpdated(function (Get $get, Set $set, $state) {
                             // Calcular el total del aporte institucional
                             $total = 0;
@@ -113,63 +117,48 @@ class Presupuesto
                                 'concepto_label' => 'a) Horas de trabajo docentes',
                                 'unidad' => 'hra_profes',
                                 'unidad_label' => 'Hra/profes',
-                                'cantidad' => 0,
-                                'costo_unitario' => 0,
-                                'costo_total' => 0,
                             ],
                             [
                                 'concepto' => 'horas_trabajo_estudiantes',
                                 'concepto_label' => 'b) Horas de trabajo estudiantes',
                                 'unidad' => 'hra_estud',
                                 'unidad_label' => 'Hra/estud',
-                                'cantidad' => 0,
-                                'costo_unitario' => 0,
-                                'costo_total' => 0,
+                               
                             ],
                             [
                                 'concepto' => 'gastos_movilizacion',
                                 'concepto_label' => 'c) Gastos de movilización',
                                 'unidad' => 'global',
                                 'unidad_label' => 'Global',
-                                'cantidad' => 0,
-                                'costo_unitario' => 0,
-                                'costo_total' => 0,
+                                
                             ],
                             [
                                 'concepto' => 'utiles_materiales_oficina',
                                 'concepto_label' => 'd) Útiles y materiales de oficina',
                                 'unidad' => 'global',
                                 'unidad_label' => 'Global',
-                                'cantidad' => 0,
-                                'costo_unitario' => 0,
-                                'costo_total' => 0,
+                                
                             ],
                             [
                                 'concepto' => 'gastos_impresion',
                                 'concepto_label' => 'e) Gastos de impresión',
                                 'unidad' => 'global',
                                 'unidad_label' => 'Global',
-                                'cantidad' => 0,
-                                'costo_unitario' => 0,
-                                'costo_total' => 0,
+                                
                             ],
                             [
                                 'concepto' => 'costos_indirectos_infraestructura',
                                 'concepto_label' => 'f) Costos indirectos por infraestructura universidad',
                                 'unidad' => 'porcentaje',
                                 'unidad_label' => '%',
-                                'cantidad' => 0,
-                                'costo_unitario' => 0,
-                                'costo_total' => 0,
+                                
                             ],
                             [
                                 'concepto' => 'costos_indirectos_servicios',
                                 'concepto_label' => 'g) Costos indirectos por servicios públicos',
                                 'unidad' => 'porcentaje',
                                 'unidad_label' => '%',
-                                'cantidad' => 0,
-                                'costo_unitario' => 0,
-                                'costo_total' => 0,
+                            
                             ],
                         ])
                         ->relationship('aporteInstitucional')
