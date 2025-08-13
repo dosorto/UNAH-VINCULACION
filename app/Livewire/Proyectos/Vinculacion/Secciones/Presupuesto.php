@@ -61,7 +61,6 @@ class Presupuesto
                                     $cantidad = floatval($state ?? 0);
                                     $costoTotal = $cantidad * $costoUnitario;
                                     $set('costo_total', number_format($costoTotal, 2, '.', ''));
-                                    
                                     // Calcular total usando una función helper
                                     self::calcularTotalAporteInstitucional($get, $set);
                                 })
@@ -78,7 +77,6 @@ class Presupuesto
                                     $costoUnitario = floatval($state ?? 0);
                                     $costoTotal = $cantidad * $costoUnitario;
                                     $set('costo_total', number_format($costoTotal, 2, '.', ''));
-                                    
                                     // Calcular total usando una función helper
                                     self::calcularTotalAporteInstitucional($get, $set);
                                 })
@@ -123,42 +121,43 @@ class Presupuesto
                                 'concepto_label' => 'b) Horas de trabajo estudiantes',
                                 'unidad' => 'hra_estud',
                                 'unidad_label' => 'Hra/estud',
-                               
                             ],
                             [
                                 'concepto' => 'gastos_movilizacion',
                                 'concepto_label' => 'c) Gastos de movilización',
                                 'unidad' => 'global',
                                 'unidad_label' => 'Global',
-                                
                             ],
                             [
                                 'concepto' => 'utiles_materiales_oficina',
                                 'concepto_label' => 'd) Útiles y materiales de oficina',
                                 'unidad' => 'global',
                                 'unidad_label' => 'Global',
-                                
                             ],
                             [
                                 'concepto' => 'gastos_impresion',
                                 'concepto_label' => 'e) Gastos de impresión',
                                 'unidad' => 'global',
                                 'unidad_label' => 'Global',
-                                
                             ],
                             [
                                 'concepto' => 'costos_indirectos_infraestructura',
                                 'concepto_label' => 'f) Costos indirectos por infraestructura universidad',
                                 'unidad' => 'porcentaje',
                                 'unidad_label' => '%',
-                                
+                                'cantidad' => 0,
+                                'costo_unitario' => 0,
+                                'costo_total' => 0,
+
                             ],
                             [
                                 'concepto' => 'costos_indirectos_servicios',
                                 'concepto_label' => 'g) Costos indirectos por servicios públicos',
                                 'unidad' => 'porcentaje',
                                 'unidad_label' => '%',
-                            
+                                'cantidad' => 0,
+                                'costo_unitario' => 0,
+                                'costo_total' => 0,
                             ],
                         ])
                         ->relationship('aporteInstitucional')
