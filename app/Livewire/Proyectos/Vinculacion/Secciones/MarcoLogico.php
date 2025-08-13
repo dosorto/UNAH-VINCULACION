@@ -6,6 +6,7 @@ use Filament\Forms;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Select;
 
 class MarcoLogico
 {
@@ -44,16 +45,26 @@ class MarcoLogico
                                 ->required()
                                 ->label('Medio de Verificación')
                                 ->columnSpan(1),
+                                
+                            Select::make('plazo')
+                                ->required()
+                                ->label('Plazo del resultado')
+                                ->options([
+                                    'corto_plazo' => 'Corto plazo',
+                                    'largo_plazo' => 'Largo plazo',
+                                ])
+                                ->placeholder('Seleccione el plazo')
+                                ->columnSpan(1),
                         ])
-                        ->label('Resultados, Indicadores y Medios de Verificación')
+                        ->label('Resultados, Indicadores, Medios de Verificación y Plazo')
                         ->relationship('resultados')
                         ->itemLabel(fn (array $state): ?string => 
                             $state['nombre_resultado'] ?? 'Resultado'
                         )
                         ->defaultItems(1)
                         ->minItems(1)
-                        ->addActionLabel('Agregar Resultado (con Indicador y Medio)')
-                        ->columns(3)
+                        ->addActionLabel('Agregar Resultado (con Indicador, Medio y Plazo)')
+                        ->columns(4)
                         ->columnSpanFull(),
                 ])
                 ->label('Objetivos Específicos del Marco Lógico')

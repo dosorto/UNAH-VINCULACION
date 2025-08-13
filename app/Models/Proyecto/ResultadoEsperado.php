@@ -17,6 +17,7 @@ class ResultadoEsperado extends Model
         'nombre_resultado',
         'nombre_indicador',
         'nombre_medio_verificacion',
+        'plazo',
         'orden'
     ];
 
