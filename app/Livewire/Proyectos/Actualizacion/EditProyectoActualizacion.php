@@ -7,10 +7,12 @@ use Filament\Forms\Form;
 use App\Jobs\SendEmailJob;
 use App\Models\Estado\TipoEstado;
 use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\FichaActualizacion;
 use Illuminate\Support\HtmlString;
 use App\Models\Proyecto\CargoFirma;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Filament\Forms\Components\Wizard;
 use Illuminate\Support\Facades\Blade;
 use Filament\Forms\Contracts\HasForms;
@@ -22,6 +24,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 // Para enviar Emails
 // use App\Mail\Correos\CorreoParticipacion;
 use App\Livewire\Proyectos\Actualizacion\Secciones\PrimeraParte;
+use App\Livewire\Proyectos\Actualizacion\Secciones\SegundaParte;
 
 
 class EditProyectoActualizacion extends Component implements HasForms
@@ -31,6 +34,7 @@ class EditProyectoActualizacion extends Component implements HasForms
     public ?array $data = [];
 
     public Proyecto $record;
+    public Proyecto $proyecto;
 
     public function mount(Proyecto $proyecto)
     {
@@ -47,27 +51,41 @@ class EditProyectoActualizacion extends Component implements HasForms
 
 
         if (in_array($this->record->obtenerUltimoEstado()
-            ->tipo_estado_id, TipoEstado::whereIn('nombre', ['Borrador', 'Subsanacion', 'Enlace Vinculacion', 'En Revision', 'Finalizado', 'En Curso', 'Director Centro'])
+            ->tipo_estado_id, TipoEstado::whereIn('nombre', ['En Curso'])
             ->pluck('id')->toArray())) {
-            // Cargar las relaciones necesarias para el formulario
-            $this->record->load([
-                'objetivosEspecificos.resultados',
-                'integrantes',
-                'estudiante_proyecto',
-                'entidad_contraparte.instrumento_formalizacion',
-                'actividades.empleados',
-                'presupuesto',
-                'superavit',
-                'ods',
-                'anexos',
-                'coordinador_proyecto.empleado'
-            ]);
+        // Cargar el proyecto con todas las relaciones necesarias
+        $this->proyecto = Proyecto::with([
+            'coordinador_proyecto',
+            'empleado_proyecto',
+            'estudiante_proyecto',
+            'integrante_internacional_proyecto',
+            'equipoEjecutorBajas',
+            'metasContribuye',
+            'carreras',
+            'entidad_contraparte',
+            'actividades.empleados',
+            'presupuesto',
+            'superavit',
+            'odss',
+            'anexos',
+            'coordinador_proyecto.empleado'
+        ])->find($this->record->id);            // Llenar el formulario manualmente con los datos del proyecto y campos adicionales
+            $formData = $this->record->attributesToArray();
             
-            $this->form->fill($this->record->attributesToArray());
+            // Agregar campos de extensión de tiempo si existen fichas previas
+            $ultimaFicha = \App\Models\Proyecto\FichaActualizacion::where('proyecto_id', $this->record->id)->latest()->first();
+            if ($ultimaFicha) {
+                $formData['fecha_ampliacion'] = $ultimaFicha->fecha_ampliacion;
+                $formData['motivo_ampliacion'] = $ultimaFicha->motivo_ampliacion;
+                $formData['motivo_responsabilidades_nuevos'] = $ultimaFicha->motivo_responsabilidades_nuevos;
+                $formData['motivo_razones_cambio'] = $ultimaFicha->motivo_razones_cambio;
+            }
+            
+            $this->form->fill($formData);
         } else {
             Notification::make()
                 ->title('¡Error!')
-                ->body('El proyecto no se encuentra en estado de Borrador o Subsanación')
+                ->body('El proyecto no se encuentra en estado de "En Curso" para poder actualizar su equipo ejecutor.')
                 ->danger()
                 ->send();
             return redirect()->route('proyectosDocente');
@@ -80,6 +98,7 @@ class EditProyectoActualizacion extends Component implements HasForms
     {
        // $primeraParte = app(\App\Livewire\Proyectos\Actualizacion\Secciones\PrimeraParte::class, ['proyecto_id' => $this->record->id]);
         return $form
+            ->model(null) // Evitar que Filament maneje automáticamente las relaciones
             ->schema([
                 Wizard::make([
                     Wizard\Step::make('I.')
@@ -89,13 +108,20 @@ class EditProyectoActualizacion extends Component implements HasForms
                            PrimeraParte::form(),
                         )
                         ->columns(2),
+
+                    Wizard\Step::make('II.')
+                        ->description('EXTENSIÓN DE TIEMPO DEL PROYECTO')
+                        ->schema(
+                            SegundaParte::form()
+                        )
+                        ->columns(2),
                 ])->submitAction(new HtmlString(Blade::render(<<<BLADE
             <x-filament::button
                 type="submit"
-                size="sm"
+                size="md"
                 color="info"
             >
-             Enviar a Firmar
+             Enviar a Firmar Actualización
             </x-filament::button>
         BLADE))),
             ])
@@ -107,54 +133,89 @@ class EditProyectoActualizacion extends Component implements HasForms
     {
         $data = $this->form->getState();
 
-        $this->record->update($data);
-
-        // $firmaP = $this->record->firma_proyecto()->create([
-        //     'empleado_id' => auth()->user()->empleado->id,
-        //     'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-        //         ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
-        //         ->where('cargo_firma.descripcion', 'Proyecto')
-        //         ->first()->id,
-        //     'estado_revision' => 'Aprobado',
-        //     'firma_id' => auth()->user()->empleado->firma->id,
-        //     'sello_id' => auth()->user()->empleado->sello->id,
-        //     'hash' => 'hash'
-        // ]);
-
-        $firmaP = $this->record->firma_proyecto()->updateOrCreate(
-            // Condiciones para buscar un registro existente
-            [
-                'empleado_id' => auth()->user()->empleado->id,
-                'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                    ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
-                    ->where('cargo_firma.descripcion', 'Proyecto')
-                    ->first()->id,
-            ],
-            // Valores para actualizar o crear
-            [
-                'empleado_id' => auth()->user()->empleado->id,
-                'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                    ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
-                    ->where('cargo_firma.descripcion', 'Proyecto')
-                    ->first()->id,
-                'estado_revision' => 'Aprobado',
-                'firma_id' => auth()->user()?->empleado?->firma?->id,
-                'sello_id' => auth()->user()?->empleado?->sello?->id,
-                'hash' => 'hash',
-                'fecha_firma' => now(),
-            ]
-        );
-
-        $this->record->estado_proyecto()->create([
-            'empleado_id' => auth()->user()->empleado->id,
-            'tipo_estado_id' => $firmaP->cargo_firma->estado_siguiente_id,
-            'fecha' => now(),
-            'comentario' => 'Se ha creado el proyecto y se ha enviado a firmar',
+        // Excluir las relaciones del proceso de actualización automática
+        // porque las manejamos manualmente con los botones de dar de baja/reincorporar
+        $dataToUpdate = array_diff_key($data, [
+            'coordinador_proyecto' => '',
+            'empleado_proyecto' => '',
+            'estudiante_proyecto' => '',
+            'integrante_internacional_proyecto' => '',
+            'equipo_ejecutor_bajas' => '',
+            'motivo_responsabilidades_nuevos' => '',
+            'motivo_razones_cambio' => '',
         ]);
+
+        // Actualizar solo los campos del proyecto, no las relaciones
+        $this->record->update($dataToUpdate);
+
+        // Crear la ficha de actualización
+        $fichaActualizacion = FichaActualizacion::create([
+            'fecha_registro' => now(),
+            'empleado_id' => auth()->user()->empleado->id,
+            'proyecto_id' => $this->record->id,
+            'integrantes_baja' => [], // Se llenará con los integrantes dados de baja
+            'motivo_baja' => 'Actualización del equipo ejecutor',
+            'fecha_baja' => now(),
+            'fecha_ampliacion' => $data['fecha_ampliacion'] ?? null,
+            'motivo_ampliacion' => $data['motivo_ampliacion'] ?? null,
+            'motivo_responsabilidades_nuevos' => $data['motivo_responsabilidades_nuevos'] ?? null,
+            'motivo_razones_cambio' => $data['motivo_razones_cambio'] ?? null,
+        ]);
+
+        // Crear TODAS las firmas necesarias para la ficha de actualización (copiando del proyecto original)
+        $firmasProyectoOriginal = $this->record->firma_proyecto()
+            ->where('firmable_type', Proyecto::class)
+            ->get();
+        
+        foreach ($firmasProyectoOriginal as $firmaOriginal) {
+            $estadoRevision = 'Pendiente';
+            $firmaId = null;
+            $selloId = null;
+            $fechaFirma = null;
+            
+            // Si es el coordinador del proyecto (quien envía), auto-aprobar su firma
+            if ($firmaOriginal->cargo_firma->tipoCargoFirma->nombre === 'Coordinador Proyecto') {
+                $estadoRevision = 'Aprobado';
+                $firmaId = auth()->user()?->empleado?->firma?->id;
+                $selloId = auth()->user()?->empleado?->sello?->id;
+                $fechaFirma = now();
+            }
+            
+            $fichaActualizacion->firma_proyecto()->create([
+                'empleado_id' => $firmaOriginal->empleado_id,
+                'cargo_firma_id' => $firmaOriginal->cargo_firma_id,
+                'estado_revision' => $estadoRevision,
+                'firma_id' => $firmaId,
+                'sello_id' => $selloId,
+                'hash' => 'hash',
+                'fecha_firma' => $fechaFirma,
+            ]);
+        }
+
+        // Crear el estado inicial para la FICHA DE ACTUALIZACIÓN
+        $primerCargoFirma = CargoFirma::where('descripcion', 'Proyecto')
+            ->join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+            ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+            ->first();
+
+        $fichaActualizacion->estado_proyecto()->create([
+            'empleado_id' => auth()->user()->empleado->id,
+            'tipo_estado_id' => $primerCargoFirma->estado_siguiente_id,
+            'fecha' => now(),
+            'comentario' => 'Ficha de actualización del proyecto enviada a firmar',
+        ]);
+
+        // Enviar correo de notificación
+        try {
+            \Illuminate\Support\Facades\Mail::to(auth()->user()->email)->send(new \App\Mail\FichaActualizacionCreada($fichaActualizacion, auth()->user()));
+        } catch (\Exception $emailException) {
+            // Log del error pero no fallar el proceso
+            Log::warning('Error al enviar correo de ficha de actualización enviada: ' . $emailException->getMessage());
+        }
 
         Notification::make()
             ->title('¡Éxito!')
-            ->body('El proyecto ha sido enviado a firmar exitosamente')
+            ->body('La ficha de actualización del proyecto ha sido enviada a firmar exitosamente')
             ->success()
             ->send();
         return redirect()->route('proyectosDocente');
@@ -209,20 +270,16 @@ class EditProyectoActualizacion extends Component implements HasForms
                 'empleado_id' => auth()->user()->empleado->id,
                 'tipo_estado_id' => $firmaP->cargo_firma->estado_siguiente_id,
                 'fecha' => now(),
-                'comentario' => 'Proyecto creado exitosamente y enviado a firmar',
+                'comentario' => 'Proyecto de actualización creado exitosamente y enviado a firmar',
             ]);
             
-            // Enviar el correo al usuario que creó el proyecto
-            // Obtener el nombre del estado al que cambió el proyecto
-            $estado = TipoEstado::find($firmaP->cargo_firma->estado_siguiente_id);
-            $estadoNombre = $estado ? $estado->nombre : 'Desconocido';
-
-            // Enviar el correo al usuario que creó el proyecto
-            $creadorEmail = auth()->user()->email; //  usuario autenticado quien crea el proyecto
-            $nombreProyecto = $record->nombre_proyecto; // Nombre del proyecto
-            $empleadoNombre = auth()->user()->empleado->nombre_completo;  // Nombre del usuario
-           // $empleadoCorreo = auth()->user()->email;  // Correo del usuario 
-           // SendEmailJob::dispatch($creadorEmail, 'correoEstado', $estadoNombre, $nombreProyecto, $empleadoNombre);
+            // Enviar correo de notificación
+            try {
+                \Illuminate\Support\Facades\Mail::to(auth()->user()->email)->send(new \App\Mail\ProyectoCreado($record, auth()->user()));
+            } catch (\Exception $emailException) {
+                // Log del error pero no fallar la creación del proyecto
+                \Log::warning('Error al enviar correo de proyecto de actualización creado: ' . $emailException->getMessage());
+            }
             
         } catch (\Exception $e) {
             // Eliminar el proyecto en caso de error
@@ -250,8 +307,17 @@ class EditProyectoActualizacion extends Component implements HasForms
     {
         $data = $this->form->getState();
 
+        // Excluir las relaciones del proceso de actualización automática
+        $dataToUpdate = array_diff_key($data, [
+            'coordinador_proyecto' => '',
+            'empleado_proyecto' => '',
+            'estudiante_proyecto' => '',
+            'integrante_internacional_proyecto' => '',
+            'equipo_ejecutor_bajas' => ''
+        ]);
+
         // dd($data);
-        $this->record->update($data);
+        $this->record->update($dataToUpdate);
         $this->record->save();
         // dd($this->record->presupuesto);
         Notification::make()

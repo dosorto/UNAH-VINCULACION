@@ -62,6 +62,8 @@ use App\Http\Controllers\PDFController;
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
 use App\Livewire\Constancia\ListConstancias;
 use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
+use App\Livewire\Docente\Proyectos\FichasActualizacionPorFirmar;
+use App\Livewire\Docente\Proyectos\FichasActualizacionDocente;
 use App\Models\Slide\Slide;
 use App\Livewire\Personal\Contacto\ListContactos;
 
@@ -321,6 +323,14 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
         Route::get('SolicitudProyectosDocente', ProyectosPorFirmar::class)
             ->name('SolicitudProyectosDocente')
+            ->middleware('can:docente-admin-proyectos');
+
+        Route::get('FichasActualizacionPorFirmar', FichasActualizacionPorFirmar::class)
+            ->name('FichasActualizacionPorFirmar')
+            ->middleware('can:docente-admin-proyectos');
+
+        Route::get('FichasActualizacionDocente', FichasActualizacionDocente::class)
+            ->name('FichasActualizacionDocente')
             ->middleware('can:docente-admin-proyectos');
 
         Route::get('AprobadoProyectosDocente', ProyectosAprobados::class)

@@ -55,6 +55,11 @@ class FirmaProyecto extends Model
         return $this->belongsTo(DocumentoProyecto::class, 'firmable_id');
     }
 
+    public function ficha_actualizacion()
+    {
+        return $this->belongsTo(FichaActualizacion::class, 'firmable_id');
+    }
+
 
     public function empleado()
     {

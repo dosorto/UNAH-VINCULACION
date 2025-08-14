@@ -20,6 +20,8 @@ class FichaActualizacion extends Model
         'fecha_baja',
         'fecha_ampliacion',
         'motivo_ampliacion',
+        'motivo_responsabilidades_nuevos',
+        'motivo_razones_cambio',
     ];
 
     protected $casts = [
@@ -31,11 +33,44 @@ class FichaActualizacion extends Model
 
     public function empleado()
     {
-        return $this->belongsTo(\App\Models\Empleado::class, 'empleado_id');
+        return $this->belongsTo(\App\Models\Personal\Empleado::class, 'empleado_id');
     }
 
     public function proyecto()
     {
         return $this->belongsTo(Proyecto::class, 'proyecto_id');
+    }
+
+    // Relación morfológica con estados
+    public function estado_proyecto()
+    {
+        return $this->morphMany(\App\Models\Estado\EstadoProyecto::class, 'estadoable');
+    }
+
+    // Relación morfológica con firmas
+    public function firma_proyecto()
+    {
+        return $this->morphMany(FirmaProyecto::class, 'firmable');
+    }
+
+    // Obtener el último estado
+    public function obtenerUltimoEstado()
+    {
+        return $this->estado_proyecto()->orderBy('created_at', 'desc')->first();
+    }
+
+    // Obtener el estado actual
+    public function estado()
+    {
+        return $this->hasOneThrough(
+            \App\Models\Estado\EstadoProyecto::class,
+            FichaActualizacion::class,
+            'id',
+            'estadoable_id',
+            'id',
+            'id'
+        )->where('estadoable_type', FichaActualizacion::class)
+         ->where('es_actual', true)
+         ->latest('fecha');
     }
 }

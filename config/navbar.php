@@ -202,11 +202,12 @@ return [
             [
                 'titulo' => 'Firmas',
                 'route' => 'SolicitudProyectosDocente',
-                'routes' => ['SolicitudProyectosDocente', 'AprobadoProyectosDocente', 'RechazadoProyectosDocente'],
+                'routes' => ['SolicitudProyectosDocente', 'AprobadoProyectosDocente', 'RechazadoProyectosDocente', 'FichasActualizacionPorFirmar'],
                 'icono' => 'heroicon-o-document-text',
                 'permisos' => ['docente-admin-proyectos', 'docente-admin-solicitados'],
                 'children' => [
-                    ['texto' => 'Solicitud de Firma', 'route' => 'SolicitudProyectosDocente', 'permiso' => 'docente-admin-proyectos', 'funcion' => 'obtenerCantidadProyectosPorFirmar'],
+                    ['texto' => 'Proyectos por Firmar', 'route' => 'SolicitudProyectosDocente', 'permiso' => 'docente-admin-proyectos', 'funcion' => 'obtenerCantidadProyectosPorFirmar'],
+                    ['texto' => 'Fichas de Actualización', 'route' => 'FichasActualizacionPorFirmar', 'permiso' => 'docente-admin-proyectos', 'funcion' => 'obtenerCantidadFichasPorFirmar'],
                     ['texto' => 'Firmas Aprobadas', 'route' => 'AprobadoProyectosDocente', 'permiso' => 'docente-admin-proyectos'],
                     ['texto' => 'Firmas Proximas', 'route' => 'RechazadoProyectosDocente', 'permiso' => 'docente-admin-proyectos'],
                 ],
