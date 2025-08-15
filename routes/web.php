@@ -56,6 +56,7 @@ use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
 use App\Http\Controllers\DirectorCentro\Proyectos\ListProyectosCentro;
 use App\Http\Controllers\PDFController;
+
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
 use App\Livewire\Constancia\ListConstancias;
 use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
@@ -63,6 +64,8 @@ use App\Models\Slide\Slide;
 use App\Livewire\Personal\Contacto\ListContactos;
 
 use App\Livewire\ServicioTecnologico\CreateServicioTecnologico;
+
+use App\Services\Constancia\BuilderConstancia;
 
 Route::get('/acercade', function () {
     $slides = Slide::where('estado', true)
@@ -359,6 +362,15 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
                 ->name('createServicioTecnologico');
 
         });
+        
+
+        Route::get('/descargar-pdf', [PDFController::class, 'generatePDF']);
+        Route::get('/ver-pdf', [PDFController::class, 'verVista']);
+
+
+
+        Route::get('/constancia/{constancia:hash}/pdf', [PDFController::class, 'generatePDF'])
+    ->name('constancia.pdf');
 
 
     

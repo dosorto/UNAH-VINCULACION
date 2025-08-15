@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ $title }}</title>
+
+    <style>
+        @page {
+            margin: 3cm 0cm 0.5cm 0cm;
+            /* Elimina márgenes por defecto */
+        }
+
+        /* Estilo general */
+
+        /* Contenedor del header */
+        .header {
+            position: fixed;
+            top: -3cm;
+            left: 0;
+            width: 100%;
+            height: 3cm;
+            display: flex;
+            align-items: flex-start;
+            /* alinea arriba */
+            justify-content: space-between;
+        }
+
+        /* Logo en la parte derecha */
+        .imgHeader {
+            float: left;
+            width: 3cm;
+        }
+
+        .imgHeader img {
+            width: 10cm;
+            /* tamaño del logo */
+            height: auto;
+        }
+
+        /* Información del header en la parte izquierda */
+        .infoHeader {
+            text-align: right;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: nowrap;
+            margin-right: 35px;
+            /* separa del cuadro amarillo */
+        }
+
+        .infoHeader p {
+            margin: 0;
+            line-height: 1.4;
+            white-space: nowrap;
+            font-family: Calibri, sans-serif;
+            font-weight: bold;
+            color: rgb(4, 4, 94);
+            line-height: 1.4;
+        }
+
+        .header-yellow-box {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 25px;
+            height: 100px;
+            background-color: #f8d50f;
+            /* Amarillo */
+        }
+
+        /* Footer general */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 0 0.2in;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+            
+        }
+
+        /* Parte superior del footer: logo y año académico 
+        .footer-top {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            margin-bottom: -1cm;
+
+        }*/
+
+        .footer-logo img {  
+            position: relative;    
+            margin-top: 0px; 
+            margin-bottom: -50px;                     
+        }
+
+        .footer-year {
+            text-align: right;
+            font-size: 13px;
+            line-height: 1.2;
+            color: #032e5c;
+            margin-bottom: 35px;
+            margin-right: 65px;
+        }
+
+        /* Parte inferior del footer: línea y texto */
+        .footer-bottom {
+            text-align: justify;
+        }
+
+        .footer-bottom hr {
+            border: none;
+            border-top: 1px dashed #063363;
+            margin: -15px;
+        }
+
+        .footer-bottom p {
+            font-size: 12px;
+            color: #053972;
+            margin: 0;
+            text-align: justify;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Estilo para el cuadro azul en la esquina inferior derecha */
+        .footer-blue-box {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 80px;
+            height: 60px;
+            background-color: #05186b;
+            /* Amarillo */
+            left: 20cm; /* ahora a la izquierda */
+            margin-bottom: 1000px;
+        }
+
+        body::before {
+            content: '';
+            position: fixed; /* Para que se mantenga en toda la página */
+            bottom: 0;
+            right: 0;
+            width: 290px;
+            height: 550px;
+            background-image: url('{{ $lucenLogo }}');
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0.9; /* Lo suficientemente tenue para que no tape el texto */
+            pointer-events: none;
+            z-index: -1; /* Detrás del contenido */
+            box-shadow: none; /* Forzar sin sombra */
+            filter: none; /* Elimina posibles efectos */
+        }
+
+
+    </style>
+</head>
+
+<body>
+    <!-- Contenedor del header -->
+    <div class="header">
+        <div class="imgHeader"">
+            <img src="{{ $headerLogo }}">
+        </div>
+        <div class="infoHeader">
+            <p>Tel. 2216-6100 &nbsp; Ext. 110576</p>
+            <p>Correo Electrónico:</p>
+            <p>vinculacion.sociedad@unah.edu.hn</p>
+        </div>
+
+        <div class="header-yellow-box"></div>
+
+    </div>
+
+    <!-- FOOTER FIJO -->
+    <div class="footer">
+        <!-- Logo a la izquierda y Año Académico a la derecha -->
+        
+            <div class="footer-logo">
+                <img src="{{ $footerLogo }}" alt="logo" style="height: 70px;">
+            </div>
+
+            <div class="footer-year">
+                Año Académico <strong>“José Dionisio de Herrera”</strong><br>
+                <span>“La Educación es la primera necesidad de la República”</span>
+            </div>
+        
+
+        <!-- Línea de guiones y texto de la universidad -->
+        <div class="footer-bottom">
+            <hr>
+            <p>Universidad Nacional Autónoma de Honduras | CIUDAD UNIVERSITARIA | Tegucigalpa M.D.C. Honduras C.A |
+                www.unah.edu.hn</p>
+        </div>
+
+        <!-- Cuadro azul en la esquina inferior derecha -->
+        <div class="footer-blue-box"></div>
+
+</body>
+
+</html>

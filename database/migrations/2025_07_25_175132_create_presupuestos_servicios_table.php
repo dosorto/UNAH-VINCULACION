@@ -12,46 +12,48 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('presupuesto_servicio', function (Blueprint $table) {
-        $table->id();
-        $table->text('descripcion_excedente')->nullable(); // Breve descripción del excedente
-        $table->decimal('total_ingresos', 12, 2)->default(0);
-        $table->decimal('total_egresos', 12, 2)->default(0);
-        $table->decimal('excedente', 12, 2)->default(0);
-        $table->decimal('total_aporte_unah', 12, 2)->default(0);
-        $table->timestamps();
+            $table->id();
+            $table->foreignId('servicio_tecnologico_id')->constrained('servicios_tecnologicos')->onDelete('cascade'); // Relación añadida
+            $table->text('descripcion_excedente')->nullable(); 
+            $table->decimal('total_ingresos', 12, 2)->default(0);
+            $table->decimal('total_egresos', 12, 2)->default(0);
+            $table->decimal('excedente', 12, 2)->default(0);
+            $table->decimal('total_aporte_unah', 12, 2)->default(0);
+            $table->timestamps();
         });
 
+
         Schema::create('ingresos', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('presupuesto_id')->constrained('presupuesto_servicio')->onDelete('cascade');
-        $table->string('descripcion');
-        $table->string('unidad');
-        $table->integer('cantidad');
-        $table->decimal('costo_unitario', 12, 2);
-        $table->decimal('costo_total', 12, 2);
-        $table->timestamps();
+            $table->id();
+            $table->foreignId('presupuesto_servicio_id')->constrained('presupuesto_servicio')->onDelete('cascade');
+            $table->string('descripcion');
+            $table->string('unidad');
+            $table->integer('cantidad');
+            $table->decimal('costo_unitario', 12, 2);
+            $table->decimal('costo_total', 12, 2);
+            $table->timestamps();
         });
 
         Schema::create('egresos', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('presupuesto_id')->constrained('presupuesto_servicio')->onDelete('cascade');
-        $table->string('descripcion');
-        $table->string('unidad');
-        $table->integer('cantidad');
-        $table->decimal('costo_unitario', 12, 2);
-        $table->decimal('costo_total', 12, 2);
-        $table->timestamps();
+            $table->id();
+            $table->foreignId('presupuesto_servicio_id')->constrained('presupuesto_servicio')->onDelete('cascade');
+            $table->string('descripcion');
+            $table->string('unidad');
+            $table->integer('cantidad');
+            $table->decimal('costo_unitario', 12, 2);
+            $table->decimal('costo_total', 12, 2);
+            $table->timestamps();
         });
 
         Schema::create('aportes_unah', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('presupuesto_id')->constrained('presupuesto_servicio')->onDelete('cascade');
-        $table->string('descripcion');
-        $table->string('unidad');
-        $table->integer('cantidad');
-        $table->decimal('costo_unitario', 12, 2);
-        $table->decimal('costo_total', 12, 2);
-        $table->timestamps();
+            $table->id();
+            $table->foreignId('presupuesto_servicio_id')->constrained('presupuesto_servicio')->onDelete('cascade');
+            $table->string('descripcion');
+            $table->string('unidad');
+            $table->integer('cantidad');
+            $table->decimal('costo_unitario', 12, 2);
+            $table->decimal('costo_total', 12, 2);
+            $table->timestamps();
         });
    
     }

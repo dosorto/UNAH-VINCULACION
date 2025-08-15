@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $title }}</title>
+    <title></title>
 
     <style>
         @page {
@@ -173,7 +173,7 @@
         .footer-logo img {  
             position: relative;    
             margin-top: 0px; 
-            margin-bottom: -50px;                     
+            margin-bottom: -40px;                     
         }
 
         .footer-year {
@@ -254,22 +254,78 @@
 
     </div>
 
-    <div style="font-family: Arial, sans-serif; font-size: 1.3em; font-weight: bold; margin-bottom: 2px; text-align: center; line-height: 1.2;">
-    {!! str_replace('REGISTRO ', 'REGISTRO<br>', $title) !!}
-</div>
+        <!-- Código de verificación y QR arriba -->
+        <table style="
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: -40px;      /* pequeño margen bajo el header */
+            margin-left: 0;
+            padding-left: 0;
+        ">
+            <tr>
+                <!-- Celda izquierda: Código de verificación -->
+                <td style="
+                    width: 40%;
+                    text-align: left;         /* Alineado a la izquierda */
+                    vertical-align: top;      /* Alinea arriba */
+                    padding-left: 400px;       /* Ajusta según necesites */
+                    padding-top: -80px;
+                ">
+                    <div style="
+                        border: 2px solid #000;
+                        padding: 8px 12px;
+                        display: inline-block;
+                        font-size: 16px;
+                        font-weight: bold;
+                        background-color: #ffffff;
+                    ">
+                        Código de Verificación: <br>
+                        <span style="font-size: 18px; color: #00060c;">
+                            {{ $codigoVerificacion ?? 'N/A' }}
+                        </span>
+                    </div>
+                </td>
 
-<div class="constancia-texto">
-                <p>
-                    El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace
-                    <strong>CONSTAR</strong> que <strong>UNAH Campus Atlántida</strong> ha registrado el proyecto de
-                    vinculación denominado <strong>Evaluación de Medio Término y Final del Proyecto de Fortalecimiento
-                        del Enfoque de Salvaguarda Infantil y Juvenil de Aldeas SOS</strong> el cual se ejecuta en
-                    Choluteca, Santa Rosa de Copán, Tela, Tegucigalpa / Departamentos de Choluteca, Copán, Atlántida y
-                    Francisco Morazán durante el período <strong>10 febrero de 2025</strong> hasta el <strong>30 enero
-                        de 2026</strong>, el cual fue registrado en esta dirección con el número
-                    <strong>DVUS-VRA-083-2025</strong>. El equipo docente responsable de la ejecución de este proyecto
-                    es el siguiente:
-                </p>
+                <!-- Celda derecha: QR -->
+                <td style="
+                    width: 40%;
+                    text-align: right;        /* QR a la derecha */
+                    vertical-align: top;      /* Arriba */
+                    padding-right: 80px;      /* Ajusta si necesitas más espacio */
+                    padding-top: -80px;
+                ">
+                    <img src="{{ $qrCode }}" width="100" height="100" style="border: 1px solid #ddd;" />
+                </td>
+            </tr>
+        </table>
+
+    <!-- Correlativo y Título -->
+        <div style="
+            font-family: Arial, sans-serif;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 2px;
+            text-align: center;
+            line-height: 1.4;
+        ">
+            {{ $correlativo }}
+        </div>
+
+        <div style="
+            font-family: Arial, sans-serif;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+            line-height: 1.4;
+        ">
+            {!! str_replace('REGISTRO ', 'REGISTRO<br>', $titulo) !!}
+        </div>
+
+    <div class="constancia-texto">
+                    <p>
+                        {!! $texto !!}
+                    </p>
 
                 <!-- Tabla de responsables -->
                 <table class="tabla-responsables">
@@ -286,16 +342,12 @@
                     <tbody>
                         <tr>
                             <td>1.</td>
-                            <td>Dunia Guadalupe Salgado Meza</td>
-                            <td>10291</td>
-                            <td>Titular I</td>
-                            <td>Humanidades y Artes</td>
-                            <td>Coordinadora</td>
+                            <td>{{ $nombreEmpleado }}</td>
+                            <td>{{ $numeroEmpleado }} </td>
+                            <td>{{ $categoria }}</td>
+                            <td>{{ $nombreDepartamento }}</td>
+                            <td>{{ $rol }}</td>
                         </tr>
-                        
-                        
-
-
                     </tbody>
                 </table>
 
@@ -325,17 +377,22 @@
 
          <!-- Firma -->
             <div class="firma" style="text-align: center; margin-top: 100px;">
-                <img src="  https://unah.edu.hn/images/firma.png  " alt="Firma del Director" width="200">
+                <img src="{{$firmaDirector}}" alt="Firma del Director" width="200">
                 <br>
-                <img src="https://unah.edu.hn/images/sello.png  " alt="Sello de la UNAH" width="120">
+                <img src="{{$selloDirector}}" alt="Sello de la UNAH" width="120">
             </div>
+            
+            <br>
 
             <!-- Nombre del firmante -->
             <div class="nombre-firma">
-                Arq. Edler Ricardo Castellanos Rivera<br>
+                {{$nombreDirector}}<br>
                 Director de Vinculación Universidad – Sociedad<br>
                 VRA-UNAH
             </div>
+            <br>
+
+            <br>
 
             <!-- Observación -->
             <div class="observacion">
@@ -355,8 +412,7 @@
             </div>
 
             <div class="footer-year">
-                Año Académico <strong>“José Dionisio de Herrera”</strong><br>
-                <span>“La Educación es la primera necesidad de la República”</span>
+                {{ $anioAcademico }}
             </div>
         
 

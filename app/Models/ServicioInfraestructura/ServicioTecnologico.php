@@ -11,8 +11,11 @@ use App\Models\Demografia\Departamento;
 use App\Models\Demografia\Municipio;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\FacultadCentro;
+use App\Models\UnidadAcademica\Carrera;
 use App\Models\Personal\Empleado;
 use App\Models\Estudiante\EstudianteServicio;
+use App\Models\PresupuestoServicio\PresupuestoServicio;
+
 
 use App\Models\ServicioInfraestructura\ObjetivoEspecificoServicio;
 
@@ -85,6 +88,11 @@ class ServicioTecnologico extends Model
     public function departamento()
     {
         return $this->belongsToMany(Departamento::class, 'servicio_departamento', 'servicio_tecnologico_id', 'departamento_id');
+    }
+
+    public function carreras()
+    {
+        return $this->belongsToMany(Carrera::class, 'servicio_carrera', 'servicio_tecnologico_id', 'carrera_id');
     }
 
     //  Relación con Municipios
@@ -160,5 +168,10 @@ class ServicioTecnologico extends Model
     public function objetivosEspecificos()
     {
         return $this->hasMany(ObjetivoEspecificoServicio::class, 'servicio_tecnologico_id');
+    }
+
+    public function presupuesto()
+    {
+        return $this->hasOne(PresupuestoServicio::class, 'servicio_tecnologico_id');
     }
 }

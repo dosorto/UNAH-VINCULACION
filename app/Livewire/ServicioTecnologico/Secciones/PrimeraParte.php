@@ -73,6 +73,18 @@ class PrimeraParte
                 ->live()
                 ->required()
                 ->preload(),
+
+            Select::make('carreras')
+                ->label('Carreras')
+                ->multiple()
+                ->searchable()
+                ->relationship(
+                    name: 'carreras',
+                    titleAttribute: 'nombre'
+                )
+                ->required()
+                ->preload(),
+                
             Select::make('modalidad_id')
                 ->label('Modalidad')
                 ->columnSpanFull()

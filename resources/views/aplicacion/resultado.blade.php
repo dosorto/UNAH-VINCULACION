@@ -187,7 +187,7 @@
     class="bg-white w-full flex justify-center items-center py-8 transition-transform duration-300 cursor-grab"
    
 >
-                                        @include('app.docente.constancias.constancia_finalizado')
+                                        @include('app.docente.constancias.constancia_registro')
                                     </div>
                             
                                     {{-- Footer con botones que usan Alpine --}}

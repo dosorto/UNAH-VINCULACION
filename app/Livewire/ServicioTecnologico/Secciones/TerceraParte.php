@@ -27,33 +27,27 @@ class TerceraParte
         return [
             Forms\Components\Textarea::make('descripción_servicio')
                 ->label('Descripción del servicio: (Explicar brevemente en qué consiste el proyecto, los antecedentes que dieron su origen y la importancia que tiene para los objetivos estratégicos de la UNAH)')
-                ->rows(10)
-                ->cols(30)
+                ->rows(5)
+                ->cols(20)
                 ->required()
                 ->columnSpanFull(),
             Forms\Components\Textarea::make('descripcion_problema')
                 ->label('Descripción del problema / necesidad identificada al que responde el servicio que se brindará')
-                ->rows(10)
-                ->cols(30)
+                ->rows(5)
+                ->cols(20)
                 ->required()
                 ->columnSpanFull(),
             Forms\Components\Textarea::make('descripcion_participante')
                 ->label('Descripción de las participantes del proyecto (Descripción breve de las unidades académicas participantes y su alineamiento con la estrategia de vinculación de la unidad)')
-                ->rows(10)
-                ->cols(30)
+                ->rows(5)
+                ->cols(20)
                 ->required()
                 ->columnSpanFull(),
             Forms\Components\Textarea::make('objetivo_general')
                 ->label('Objetivo General (El objetivo debe estar basado en la población participante de la acción)')
-                ->rows(10)
-                ->cols(30)
-                ->required()
-                ->columnSpanFull(),
-            Forms\Components\Textarea::make('objetivo_general')
                 ->rows(5)
-                ->cols(30)
+                ->cols(20)
                 ->required()
-                ->label('Objetivo General del Proyecto')
                 ->columnSpanFull(),
 
             Repeater::make('objetivosEspecificos')
@@ -200,8 +194,8 @@ class TerceraParte
                 ->preload(),
 
             Forms\Components\Textarea::make('aldeas')
-                ->rows(10)
-                ->cols(30)
+                ->rows(5)
+                ->cols(20)
                 ->label('Barrio/Aldea (opcional)')
                 ->columnSpanFull(),
             

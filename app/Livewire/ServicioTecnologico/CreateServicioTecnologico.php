@@ -17,6 +17,8 @@ use App\Livewire\ServicioTecnologico\Secciones\PrimeraParte;
 use App\Livewire\ServicioTecnologico\Secciones\EquipoEjecutor;
 use App\Livewire\ServicioTecnologico\Secciones\SegundaParte;
 use App\Livewire\ServicioTecnologico\Secciones\TerceraParte;
+use App\Livewire\ServicioTecnologico\Secciones\CuartaParte;
+use App\Livewire\ServicioTecnologico\Secciones\Presupuesto;
 
 
 class CreateServicioTecnologico extends Component implements HasForms
@@ -37,7 +39,7 @@ class CreateServicioTecnologico extends Component implements HasForms
                 Wizard::make([
                     Wizard\Step::make('I.')
                         ->description('INFORMACIÓN GENERAL')
-                        ->schema(PrimeraParte::form())
+                        ->schema(Presupuesto::form())
                         ->columns(2),
 
                     Wizard\Step::make('II.')
@@ -54,6 +56,15 @@ class CreateServicioTecnologico extends Component implements HasForms
                         ->description('INFORMACIÓN DEL SERVICIO')
                         ->schema(TerceraParte::form())
                         ->columns(2),
+                    Wizard\Step::make('V.')
+                        ->description('DETALLE DE LOS SERVICIOS/INFRAESTRUCTURA ')
+                        ->schema(CuartaParte::form())
+                        ->columns(2),
+                    Wizard\Step::make('VI.')
+                        ->description('DETALLE DE PRESUPUESTO')
+                        ->schema(Presupuesto::form())
+                        ->columns(2),
+
                 ])
                 ->submitAction(new HtmlString(Blade::render(<<<BLADE
                     <x-filament::button

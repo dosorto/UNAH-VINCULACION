@@ -89,6 +89,14 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
         });
+        
+             //tabla para servico carrera
+        Schema::create('servicio_carrera', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('servicio_id')->constrained('servicios_tecnologicos')->onDelete('cascade');
+            $table->foreignId('carrera_id')->constrained('carrera')->onDelete('cascade');
+            $table->timestamps();
+        });
 
         Schema::create('servicio_departamento', function (Blueprint $table) {
             $table->id();
