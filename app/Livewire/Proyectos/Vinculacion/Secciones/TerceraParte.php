@@ -87,7 +87,8 @@ class TerceraParte
                         ->numeric(),
                 ])
                 ->label('Descripción de actividades del proyecto (Descripción de todas las actividades enmarcadas en el proyecto, las cuales pueden ser, entre otras, la negociación inicial, la organización de los equipos de trabajo, la planificación, el desarrollo de actividades de capacitación y fortalecimiento, presentación de informe intermedio o parciales, presentación del informe final, proceso de evaluación, proceso de sistematización, publicación de artículo, otras acciones de divulgación)')
-                ->defaultItems(0)
+                ->defaultItems(1)
+                ->deletable(false)
                 ->itemLabel('Actividad')
                 ->addActionLabel('Agregar actividad')
                 ->grid(2)

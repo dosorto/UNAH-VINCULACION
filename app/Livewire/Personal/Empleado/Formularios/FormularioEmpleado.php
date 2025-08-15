@@ -32,7 +32,7 @@ final class FormularioEmpleado
                 ->columnSpanFull(),
             Section::make('Empleado')
                 ->schema([
-                    Select::make('tipo_empleado')
+                   /* Select::make('tipo_empleado')
                         ->label('Tipo Empleado')
                         ->options([
                             'administrativo' => 'Administrativo',
@@ -40,7 +40,7 @@ final class FormularioEmpleado
                         ])
                         ->live()
                         ->disabled($disableTipoEmpleado)
-                        ->required(),
+                        ->required(),*/
                     TextInput::make('nombre_completo')
                         ->label('Nombre Completo')
                         ->required()
