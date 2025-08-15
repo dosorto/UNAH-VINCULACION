@@ -86,7 +86,7 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
 
                             return view(
                                 'components.fichas.ficha-proyecto-vinculacion',
-                                ['proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto'])]
+                                ['proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye'])]
                             );
                         }
                     )

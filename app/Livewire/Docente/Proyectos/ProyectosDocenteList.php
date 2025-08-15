@@ -65,8 +65,21 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
 
                 Proyecto::query()
                     ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+                    ->join('estado_proyecto', function($join) {
+                        $join->on('estado_proyecto.estadoable_id', '=', 'proyecto.id')
+                             ->where('estado_proyecto.estadoable_type', '=', 'App\Models\Proyecto\Proyecto')
+                             ->where('estado_proyecto.es_actual', '=', true);
+                    })
+                    ->join('tipo_estado', 'estado_proyecto.tipo_estado_id', '=', 'tipo_estado.id')
                     ->select('proyecto.*')
                     ->where('empleado_proyecto.empleado_id', $this->docente->id)
+                    ->where('tipo_estado.nombre', '!=', 'PendienteInformacion')
+                    ->whereNotExists(function($query) {
+                        $query->select('*')
+                              ->from('empleado_codigos_investigacion')
+                              ->whereRaw('empleado_codigos_investigacion.codigo_proyecto = proyecto.codigo_proyecto')
+                              ->where('tipo_estado.nombre', '=', 'Finalizado');
+                    })
                     ->distinct()
             )
             ->recordUrl(
@@ -76,8 +89,20 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
             )
             ->columns([
 
+                Tables\Columns\TextColumn::make('codigo_proyecto')
+                    ->label('Código')
+                    ->searchable()
+                    ->toggleable()
+                    ->getStateUsing(fn($record) => $record->codigo_proyecto ?: '-')
+                    ->placeholder('-'),
+                Tables\Columns\TextColumn::make('numero_dictamen')
+                    ->label('N° Dictamen')
+                    ->searchable()
+                    ->toggleable()
+                    ->getStateUsing(fn($record) => $record->numero_dictamen ?: '-')
+                    ->placeholder('-'),
                 Tables\Columns\TextColumn::make('nombre_proyecto')
-                    ->limit(30)
+                    ->limit(60)
                     ->wrap()
                     ->searchable(),
 
@@ -157,7 +182,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                             fn(Proyecto $proyecto): View =>
                             view(
                                 'components.fichas.ficha-proyecto-vinculacion',
-                                ['proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto'])]
+                                ['proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye'])]
                             )
                         )
                         // ->stickyModalHeader()

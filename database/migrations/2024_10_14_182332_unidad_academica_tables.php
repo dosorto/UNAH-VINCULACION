@@ -18,6 +18,7 @@ return new class extends Migration
         Schema::create('campus', function (Blueprint $table) {
             $table->id();
             $table->string('nombre_campus');
+            $table->string('siglas')->nullable();
             $table->string('direccion');
             $table->string('telefono');
             $table->string('url');
@@ -52,6 +53,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('centro_facultad_id')->constrained('centro_facultad');
             $table->string('nombre');
+            $table->string('siglas')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });
@@ -61,6 +63,7 @@ return new class extends Migration
         Schema::create('carrera', function (Blueprint $table) {
             $table->id();
             $table->string('nombre');
+            $table->string('siglas')->nullable();
             $table->foreignId('facultad_centro_id')->constrained('centro_facultad');
             $table->softDeletes();
             $table->timestamps();

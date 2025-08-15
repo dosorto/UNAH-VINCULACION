@@ -89,6 +89,7 @@ class PersonalSeeder extends Seeder
             'nombre_completo' => 'NOTIFICACIONES POA',
             'numero_empleado' => '12280',
             'celular' => '99999999',
+            'sexo' => 'Masculino',
             'user_id' => $user->id,
             'centro_facultad_id' => 4,
             'departamento_academico_id' => 9,
@@ -111,7 +112,7 @@ class PersonalSeeder extends Seeder
 
             $user2 = User::create([
                 'name' => 'Usuario Ejemplo',
-                'email' => 'ernesto.moncada@unah.hn',
+                'email' => 'usuario.ejemplo@unah.hn',
                 'password' => bcrypt('123'),
                 'surname' => 'Ernesto',
                 'given_name' => 'Moncada Valladares',
@@ -132,7 +133,7 @@ class PersonalSeeder extends Seeder
             $user2->givePermissionTo('configuracion-admin-mi-perfil');
 
             $user3 = User::create([
-                'name' => 'NOTIFICACIONES  POA',
+                'name' => 'Estudiante  POA',
                 'email' => 'estudiante@unah.hn',
                 'password' => bcrypt('123'),
                 'surname' => 'POA',

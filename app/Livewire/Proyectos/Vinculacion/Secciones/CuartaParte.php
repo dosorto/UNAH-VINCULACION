@@ -23,19 +23,19 @@ class CuartaParte
         return [
             Forms\Components\Textarea::make('resumen')
                 ->label('Descripción del proyecto: (Explicar brevemente en qué consiste el proyecto, los antecedentes que dieron su origen y la importancia que tiene para los objetivos estratégicos de la UNAH)')
-                ->rows(10)
+                ->rows(7)
                 ->cols(30)
                 ->required()
                 ->columnSpanFull(),
             Forms\Components\Textarea::make('descripcion_participantes')
                 ->label('Descripción de las participantes del proyecto (Descripción breve de las unidades académicas participantes y su alineamiento con la estrategia de vinculación de la unidad. También se realizará una breve descripción de las contrapartes participantes, a qué se dedican y cómo se alinea el proyecto a los planes estratégicos)')
-                ->rows(10)
+                ->rows(7)
                 ->cols(30)
                 ->required()
                 ->columnSpanFull(),
             Forms\Components\Textarea::make('definicion_problema')
                 ->label('Definición del problema:  Breve descripción del problema que se desea resolver, indicando línea base que se tendrá en consideración para la definición de los resultados del proyecto')
-                ->rows(10)
+                ->rows(7)
                 ->cols(30)
                 ->required()
                 ->columnSpanFull(),
@@ -43,27 +43,6 @@ class CuartaParte
             Fieldset::make('Beneficiarios')
                 ->columns(2)
                 ->schema([
-                    TextInput::make('poblacion_participante')
-                        ->label('Población participante (número aproximado)')
-                        ->numeric()
-                        ->columnSpan(1)
-                        ->required(),
-                    TextInput::make('hombres')
-                        ->label('Hombres')
-                        ->numeric()
-                        ->columnSpan(1)
-                        ->required(),
-                    TextInput::make('mujeres')
-                        ->label('Mujeres')
-                        ->numeric()
-                        ->columnSpan(1)
-                        ->required(),
-                    TextInput::make('otros')
-                        ->label('Otros (Indicar número)')
-                        ->numeric()
-                        ->columnSpan(1)
-                        ->required(),
-                    
                     Fieldset::make('Distribución por etnia')
                         ->columns(3)
                         ->schema([
@@ -75,12 +54,20 @@ class CuartaParte
                                         ->label('Hombres')
                                         ->numeric()
                                         ->default(0)
-                                        ->columnSpan(1),
+                                        ->columnSpan(1)
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                            self::calcularTotales($get, $set);
+                                        }),
                                     TextInput::make('indigenas_mujeres')
                                         ->label('Mujeres')
                                         ->numeric()
                                         ->default(0)
-                                        ->columnSpan(1),
+                                        ->columnSpan(1)
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                            self::calcularTotales($get, $set);
+                                        }),
                                 ])
                                 ->columnSpan(1),
                             
@@ -92,12 +79,20 @@ class CuartaParte
                                         ->label('Hombres')
                                         ->numeric()
                                         ->default(0)
-                                        ->columnSpan(1),
+                                        ->columnSpan(1)
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                            self::calcularTotales($get, $set);
+                                        }),
                                     TextInput::make('afroamericanos_mujeres')
                                         ->label('Mujeres')
                                         ->numeric()
                                         ->default(0)
-                                        ->columnSpan(1),
+                                        ->columnSpan(1)
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                            self::calcularTotales($get, $set);
+                                        }),
                                 ])
                                 ->columnSpan(1),
                             
@@ -109,16 +104,51 @@ class CuartaParte
                                         ->label('Hombres')
                                         ->numeric()
                                         ->default(0)
-                                        ->columnSpan(1),
+                                        ->columnSpan(1)
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                            self::calcularTotales($get, $set);
+                                        }),
                                     TextInput::make('mestizos_mujeres')
                                         ->label('Mujeres')
                                         ->numeric()
                                         ->default(0)
-                                        ->columnSpan(1),
+                                        ->columnSpan(1)
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                            self::calcularTotales($get, $set);
+                                        }),
                                 ])
                                 ->columnSpan(1),
                         ])
                         ->columnSpanFull(),
+                    TextInput::make('hombres')
+                        ->label('Hombres')
+                        ->numeric()
+                        ->columnSpan(1)
+                        ->disabled()
+                        ->dehydrated()
+                        ->required(),
+                    TextInput::make('mujeres')
+                        ->label('Mujeres')
+                        ->numeric()
+                        ->columnSpan(1)
+                        ->disabled()
+                        ->dehydrated()
+                        ->required(),
+                    TextInput::make('poblacion_participante')
+                        ->label('Población participante (número aproximado)')
+                        ->numeric()
+                        ->columnSpan(1)
+                        ->disabled()
+                        ->dehydrated()
+                        ->required(),
+                   /* TextInput::make('otros')
+                        ->label('Otros (Indicar número)')
+                        ->numeric()
+                        ->columnSpan(1)
+                        ->required(),
+                    */
                 ])
                 ->columnSpanFull()
                 ->label('Beneficiarios directos (número aproximado)'),
@@ -195,20 +225,12 @@ class CuartaParte
                 ->live()
                 ->preload(),
 
-            Select::make('caserio')
-                ->label('Caserío')
-                ->searchable()
-                ->multiple()
-                ->options([
-                    'La Esperanza' => 'La Esperanza',
-                    'San Juan' => 'San Juan',
-                    'Santa Cruz' => 'Santa Cruz',
-                    'San Pedro' => 'San Pedro',
-                ])
-                ->placeholder('Seleccione uno o más caseríos'),
-
+            Forms\Components\Textarea::make('caserio')
+                ->rows(4)
+                ->cols(20)
+                ->label('Caserío'),
             Forms\Components\Textarea::make('aldea')
-                ->rows(10)
+                ->rows(4)
                 ->cols(30)
                 ->label('Barrio/Aldea (opcional)')
                 ->columnSpanFull(),
@@ -248,23 +270,50 @@ class CuartaParte
                 ->cols(30)
                 ->rows(4)
                 ->label('Alineamiento con lo esencial de la reforma de la UNAH')
-                ->required(),
+                ->required()
+                ->columnSpanFull(),
 
             Forms\Components\Textarea::make('impacto_deseado')
                 ->cols(30)
                 ->rows(4)
                 ->label('Impacto que se desea generar en el proyecto ')
-                ->required(),
+                ->required()
+                ->columnSpanFull(),
             Forms\Components\Textarea::make('metodologia')
                 ->cols(30)
                 ->rows(4)
                 ->label('Metodología')
-                ->required(),
+                ->required()
+                ->columnSpanFull(),
             Forms\Components\Textarea::make('bibliografia')
                 ->cols(30)
                 ->rows(4)
                 ->label('Bibliografía')
-                ->required(),
+                ->required()
+                ->columnSpanFull(),
         ];
+    }
+
+    private static function calcularTotales(Get $get, Set $set): void
+    {
+        // Sumar todos los hombres por etnia
+        $totalHombres = 
+            floatval($get('indigenas_hombres') ?? 0) +
+            floatval($get('afroamericanos_hombres') ?? 0) +
+            floatval($get('mestizos_hombres') ?? 0);
+
+        // Sumar todas las mujeres por etnia
+        $totalMujeres = 
+            floatval($get('indigenas_mujeres') ?? 0) +
+            floatval($get('afroamericanos_mujeres') ?? 0) +
+            floatval($get('mestizos_mujeres') ?? 0);
+
+        // Calcular población total
+        $poblacionTotal = $totalHombres + $totalMujeres;
+
+        // Actualizar los campos principales
+        $set('hombres', $totalHombres);
+        $set('mujeres', $totalMujeres);
+        $set('poblacion_participante', $poblacionTotal);
     }
 }

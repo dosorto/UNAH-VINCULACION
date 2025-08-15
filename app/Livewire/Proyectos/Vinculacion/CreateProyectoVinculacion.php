@@ -23,6 +23,7 @@ use App\Livewire\Proyectos\Vinculacion\Secciones\QuintaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\PrimeraParte;
 
 // Para enviar Emails
+use App\Mail\ProyectoCreado;
 // use App\Mail\Correos\CorreoParticipacion;
 use App\Livewire\Proyectos\Vinculacion\Secciones\SegundaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\TerceraParte;
@@ -46,40 +47,9 @@ class CreateProyectoVinculacion extends Component implements HasForms
         return $form
             ->schema([
                 Wizard::make([
-                    Wizard\Step::make('I.')
-                        ->description('Información general del proyecto')
-                        ->schema(
-                            PrimeraParte::form(),
-                        )
-                        ->columns(2),
-                    Wizard\Step::make('II.')
-                        ->description('EQUIPO EJECUTOR DEL PROYECTO')
-                        ->schema(
-                            EquipoEjecutor::form(),
-                        ),
-                    Wizard\Step::make('III.')
-                        ->description('INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (en caso de contar con una contraparte).')
-                        ->schema(
-                            SegundaParte::form(),
-                        ),
-                    Wizard\Step::make('IV.')
-                        ->description('CRONOGRAMA DE ACTIVIDADES.')
-                        
-                        ->schema(
-                            TerceraParte::form(),
-                        ),
-                    Wizard\Step::make('V.')
-                        ->description('DATOS DEL PROYECTO')
-                        ->schema(
-                            CuartaParte::form(),
-                        )
-                        ->columns(2),
-                        Wizard\Step::make('VI.')
-                        ->description('RESUMEN MARCO LÓGICO DEL PROYECTO')
-                        ->schema(
-                            MarcoLogico::form(),
-                        )
-                        ->columns(2),
+                    
+                    
+                      
                     Wizard\Step::make('VII.')
                         ->description('DETALLES DEL PRESUPUESTO')
                         ->schema(
@@ -178,11 +148,12 @@ class CreateProyectoVinculacion extends Component implements HasForms
             $estadoNombre = $estado ? $estado->nombre : 'Desconocido';
 
             // Enviar el correo al usuario que creó el proyecto
-            $creadorEmail = auth()->user()->email; //  usuario autenticado quien crea el proyecto
-            $nombreProyecto = $record->nombre_proyecto; // Nombre del proyecto
-            $empleadoNombre = auth()->user()->empleado->nombre_completo;  // Nombre del usuario
-           // $empleadoCorreo = auth()->user()->email;  // Correo del usuario 
-           // SendEmailJob::dispatch($creadorEmail, 'correoEstado', $estadoNombre, $nombreProyecto, $empleadoNombre);
+            try {
+                Mail::to(auth()->user()->email)->send(new ProyectoCreado($record, auth()->user()));
+            } catch (\Exception $emailException) {
+                // Log del error pero no fallar la creación del proyecto
+                \Log::warning('Error al enviar correo de proyecto creado: ' . $emailException->getMessage());
+            }
             
         } catch (\Exception $e) {
             // Eliminar el proyecto en caso de error
@@ -257,6 +228,15 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 'fecha' => now(),
                 'comentario' => 'Proyecto creado en borrador',
             ]);
+            
+            // Enviar el correo al usuario que creó el proyecto
+            try {
+                Mail::to(auth()->user()->email)->send(new ProyectoCreado($record, auth()->user()));
+            } catch (\Exception $emailException) {
+                // Log del error pero no fallar la creación del proyecto
+                \Log::warning('Error al enviar correo de proyecto creado en borrador: ' . $emailException->getMessage());
+            }
+            
         } catch (\Exception $e) {
             // Eliminar el proyecto en caso de error
             $record->delete();

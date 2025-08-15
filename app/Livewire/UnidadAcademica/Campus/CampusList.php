@@ -49,8 +49,11 @@ class CampusList extends Component implements HasForms, HasTable
                     ->form([
                         TextInput::make('nombre_campus')
                             ->label('Nombre')
-
                             ->maxLength(255)
+                            ->required(),
+                        TextInput::make('siglas')
+                            ->label('Siglas')
+                            ->maxLength(10)
                             ->required(),
                         TextInput::make('direccion')
                             ->label('Dirección')
@@ -94,6 +97,9 @@ class CampusList extends Component implements HasForms, HasTable
                 Tables\Columns\TextColumn::make('nombre_campus')
                     ->limit(30)
                     ->searchable(),
+                Tables\Columns\TextColumn::make('siglas')
+                    ->limit(10)
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('direccion')
                     ->limit(30)
                     ->searchable(),
@@ -125,8 +131,11 @@ class CampusList extends Component implements HasForms, HasTable
                     ->form([
                         TextInput::make('nombre_campus')
                             ->label('Nombre')
-
                             ->maxLength(255)
+                            ->required(),
+                        TextInput::make('siglas')
+                            ->label('Siglas')
+                            ->maxLength(10)
                             ->required(),
                         TextInput::make('direccion')
                             ->label('Dirección')

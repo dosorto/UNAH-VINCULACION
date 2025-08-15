@@ -242,5 +242,14 @@ class UnidadAcademicaSeeder extends Seeder
         Carrera::create(['nombre' => 'Profesorado en Educación Media en Lengua y Literatura', 'facultad_centro_id' =>$noAdscrita->id]);
         Carrera::create(['nombre' => 'Licenciatura en Química Industrial', 'facultad_centro_id' => $facultadCiencias->id]);
 
+        // Carreras específicas para UNAH Choluteca
+        Carrera::create(['nombre' => 'Licenciatura en Administración de Empresas Choluteca', 'facultad_centro_id' => $centroCurlP->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Comercio Internacional Choluteca', 'facultad_centro_id' => $centroCurlP->id]);
+        Carrera::create(['nombre' => 'Ingeniería en Sistemas Choluteca', 'facultad_centro_id' => $centroCurlP->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Biología Choluteca', 'facultad_centro_id' => $centroCurlP->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Química Choluteca', 'facultad_centro_id' => $centroCurlP->id]);
+        Carrera::create(['nombre' => 'Técnico en Acuicultura', 'facultad_centro_id' => $centroCurlP->id]);
+        Carrera::create(['nombre' => 'Licenciatura en Ciencias Sociales Choluteca', 'facultad_centro_id' => $centroCurlP->id]);
+
     }
 }

@@ -43,7 +43,7 @@
             Ficha del proyecto
         </x-slot>
 
-        <div style="display: flex; justify-content: center; margin-top: 20px; background-color: white;">
+        <div style="display: flex; justify-content: center; margin-top: 20px; background-color: white; max-height: 80vh; overflow-y: auto;">
             <div class="container">
                 <div class="header">
                     <div class="logo-space">
@@ -54,12 +54,43 @@
                             Tel. 2216-7070 Ext. 110576
                         </div>
                     </div>
-                    <h1>FORMULARIO DE REGISTRO DE PROYECTO DE VINCULACIÓN</h1>
+                    <h1>FORMULARIO DE REGISTRO DE PROYECTO DE VINCULACIÓN CON CONTRAPARTE</h1>
                 </div>
 
                 <div class="section1">
                     <div class="section-title">I. INFORMACIÓN GENERAL DEL PROYECTO </div>
                     <table class="table_datos1">
+                        <tr>
+                            <th class="full-width1" rowspan="2">Fecha de solicitud de registro:</th> 
+                            <td class="full-width1" colspan="4">
+                                <div class="date-container">
+                                    <div class="date-part">
+                                        <span class="date-label">Día</span>
+                                         </div>
+                                    <div class="date-part">
+                                        <span class="date-label">Mes</span>
+                                    </div>
+                                    <div class="date-part">
+                                        <span class="date-label">Año</span>
+                                      </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="4">
+                                <div class="date-container">
+                                    <div class="date-part">
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_registro ? $proyecto->fecha_registro->format('d') : '' }}">
+                                    </div>
+                                    <div class="date-part">
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_registro ? $proyecto->fecha_registro->format('m') : '' }}">
+                                    </div>
+                                    <div class="date-part">
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_registro ? $proyecto->fecha_registro->format('Y') : '' }}">
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
                         <tr>
                             <th class="full-width1">1. Nombre del Proyecto:</th>
                             <td class="full-width" colspan="5">
@@ -71,8 +102,8 @@
                             </td>
                         </tr>
                         <tr>
-                            <th class="full-width1" rowspan="4">2. Unidad Académica:</th>
-                            <td class="sub-header" colspan="1">Facultad/Campus Universitario</td>
+                            <th class="full-width1" rowspan="5">2. Unidad Académica:</th>
+                            <td class="sub-header" colspan="1">Facultad /Centro Universitario Regional/Instituto Tecnológico</td>
                             <td class="full-width" colspan="4">
                                 <ul>
                                     @foreach ($proyecto->facultades_centros as $centro)
@@ -82,11 +113,21 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="1">Departamento</td>
+                            <td class="sub-header" colspan="1">Escuela, Departamento Académico, Técnicos Universitarios, Instituto de Investigación, Observatorio, Consultorio</td>
                             <td class="full-width" colspan="4">
                                 <ul>
                                     @foreach ($proyecto->departamentos_academicos as $departamento)
                                         <li>{{ $departamento->nombre }}</li>
+                                    @endforeach
+                                </ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="1">Carreras</td>
+                            <td class="full-width" colspan="4">
+                                <ul>
+                                    @foreach ($proyecto->carreras as $carrera)
+                                        <li>{{ $carrera->nombre }}</li>
                                     @endforeach
                                 </ul>
                             </td>
@@ -130,19 +171,19 @@
                             <th class="full-width1" rowspan="1">4. Alineamiento con ejes prioritarios de la UNAH</th>
                             <td class="sub-header1" colspan="1">Desarrollo económico y social <br>
                                 <input disabled type="checkbox" class="No"
-                                    checked >
+                                    @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Desarrollo económico y social')) checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Democracia y gobernabilidad<br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->ejesPrioritarios?->nombre == 'Democracia y gobernabilidad') checked @endif>
+                                    @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Democracia y gobernabilidad')) checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Población y condiciones de vida <br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->ejesPrioritarios?->nombre == 'Población y condiciones de vida') checked @endif>
+                                    @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Población y condiciones de vida')) checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Ambiente, biodiversidad y desarrollo<br>
                                 <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->ejesPrioritarios?->nombre == 'Ambiente, biodiversidad y desarrollo') checked @endif>
+                                    @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Ambiente, biodiversidad y desarrollo')) checked @endif>
                             </td>
                         </tr>
 
@@ -242,13 +283,13 @@
                                     value="{{ $proyecto->mujeres }}" disabled>
                             </td>
                         </tr>
-                        <tr>
+                      <!--  <tr>
                             <td class="sub-header" colspan="1">Otros (indicar número y tipo)</td>
                             <td class="full-width" colspan="4">
                                <input type="text" class="input-field" placeholder="0"
                                     value="{{ $proyecto->otros }}" disabled>
                             </td>
-                        </tr>
+                        </tr> -->
                         <tr>
                             <td class="sub-header" rowspan="2" colspan="1">Indicar tipo de etnia</td>
                             <td class="sub-header" colspan="1">Indígena</td>
@@ -413,7 +454,7 @@
                             <td class="sub-header" colspan="2">Aporte de la contraparte:</td>
                             <td class="full-width" colspan="6">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto->aporte_contraparte, 2, '.', ',') }}"
+                                    value="{{ number_format($proyecto->presupuesto?->aporte_contraparte ?? 0, 2, '.', ',') }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -421,7 +462,7 @@
                             <td class="sub-header" colspan="2">Aporte de la comunidad:</td>
                             <td class="full-width" colspan="6">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto->aporte_comunidad, 2, '.', ',') }}"
+                                    value="{{ number_format($proyecto->presupuesto?->aporte_comunidad ?? 0, 2, '.', ',') }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -430,14 +471,14 @@
                             <td class="sub-header" colspan="2">Aporte fondos internacionales</td>
                             <td class="full-width" colspan="6">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto->aporte_internacionales, 2, '.', ',') }}"
+                                    value="{{ number_format($proyecto->presupuesto?->aporte_internacionales ?? 0, 2, '.', ',') }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         <tr>
                             <td class="sub-header" colspan="2">Aportes de otras universidades:</td>
                             <td class="full-width" colspan="6">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto->aporte_otras_universidades, 2, '.', ',') }}"
+                                    value="{{ number_format($proyecto->presupuesto?->aporte_otras_universidades ?? 0, 2, '.', ',') }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -446,7 +487,7 @@
                             <td class="sub-header" colspan="2">Otros Aportes:</td>
                             <td class="full-width" colspan="6">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto->otros_aportes, 2, '.', ',') }}"
+                                    value="{{ number_format($proyecto->presupuesto?->otros_aportes ?? 0, 2, '.', ',') }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -456,7 +497,7 @@
                             <td class="sub-header4" colspan="2">TOTAL CONTRAPARTE:</td>
                             <td class="full-width" colspan="6">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto->aporte_contraparte + $proyecto->presupuesto->aporte_comunidad, 2, '.', ',') }}"
+                                    value="{{ number_format(($proyecto->presupuesto?->aporte_contraparte ?? 0) + ($proyecto->presupuesto?->aporte_comunidad ?? 0), 2, '.', ',') }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
@@ -465,12 +506,12 @@
                             <td class="full-width" colspan="6">
                                 <input disabled type="text" class="input-field"
                                     value="{{ number_format(
-                                        ($proyecto->presupuesto->aporte_internacionales ?? 0) +
+                                        ($proyecto->presupuesto?->aporte_internacionales ?? 0) +
                                         ($proyecto->total_aporte_institucional ?? 0) +
-                                        ($proyecto->presupuesto->aporte_otras_universidades ?? 0) +
-                                        ($proyecto->presupuesto->otros_aportes ?? 0) +
-                                        ($proyecto->presupuesto->aporte_contraparte ?? 0) +
-                                        ($proyecto->presupuesto->aporte_comunidad ?? 0), 2, '.', ','
+                                        ($proyecto->presupuesto?->aporte_otras_universidades ?? 0) +
+                                        ($proyecto->presupuesto?->otros_aportes ?? 0) +
+                                        ($proyecto->presupuesto?->aporte_contraparte ?? 0) +
+                                        ($proyecto->presupuesto?->aporte_comunidad ?? 0), 2, '.', ','
                                     ) }}"
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
@@ -565,11 +606,19 @@
                             </td>
                         </tr>
 
-
                     <!-- TABLA DE INTEGRANTES DEL EQUIPO UNIVERSITARIO -->
                         <tr>
                             <th class="full-width1" colspan="6">Integrantes del equipo docente permanente tiempo completo
                                 (Agregar más líneas de ser necesario)</th>
+                        </tr>
+                        <tr>
+                            <th class="full-width1" colspan="2">Cantidad de integrantes empleados:</th>
+                            <td class="full-width" colspan="4">
+                                <input disabled type="text" class="input-field"
+                                    placeholder="Ingrese el número de empleados"
+                                    value="{{ $proyecto->integrantes->count() }}" disabled>
+                               
+                            </td>
                         </tr>
                         <tr>
                             <td class="sub-header">Nombre Completo:</td>
@@ -1059,92 +1108,7 @@
                                     placeholder="Definición del problema">{{ $proyecto->definicion_problema ?? '' }}</textarea>
                             </td>
                         </tr>
-                        <tr>
-                            <th class="header" colspan="19">4. Objetivo General (El objetivo debe estar basado en la población participante del proyecto)</th>
-                        </tr>
-                        <tr>
-                            <td class="full-width" colspan="19">
-                                <textarea disabled cols="30" rows="6" class="input-field" placeholder="Ingrese el resumen"> {{ old('objetivo_general', $proyecto->objetivo_general) }}
-                                </textarea>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="header" colspan="19">5. Objetivos Específicos (Los objetivos específicos deben estar relacionados con los resultados que esperan obtener en el proyecto)</th>
-                        </tr>
-                        @forelse ($proyecto->objetivosEspecificos as $index => $objetivo)
-                            <tr>
-                                <td class="sub-header" colspan="2">Objetivo Específico {{ $index + 1 }}:</td>
-                                <td class="full-width" colspan="17">
-                                    <textarea disabled cols="30" rows="3" class="input-field" 
-                                        placeholder="Objetivo específico">{{ $objetivo->descripcion }}</textarea>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td class="full-width" colspan="19">
-                                    <textarea disabled cols="30" rows="6" class="input-field" 
-                                        placeholder="No hay objetivos específicos registrados">{{ $proyecto->objetivos_especificos ?? '' }}</textarea>
-                                </td>
-                            </tr>
-                        @endforelse
-                        <tr>
-                            <td class="header" colspan="19">6. Resultados del proyecto. Debe de plantearse resultados para cada objetivo específico</th>
-                        </tr>
-                        @forelse ($proyecto->objetivosEspecificos as $indexObj => $objetivo)
-                            @if ($objetivo->resultados->count() > 0)
-                                <tr>
-                                    <td class="sub-header" colspan="19">Resultados para Objetivo Específico {{ $indexObj + 1 }}</td>
-                                </tr>
-                                @foreach ($objetivo->resultados as $indexRes => $resultado)
-                                    <tr>
-                                        <td class="sub-header" colspan="2">Resultado {{ $indexRes + 1 }}:</td>
-                                        <td class="full-width" colspan="17">
-                                            <textarea disabled cols="30" rows="2" class="input-field" 
-                                                placeholder="Resultado">{{ $resultado->nombre_resultado }}</textarea>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            @endif
-                        @empty
-                            <tr>
-                                <td class="full-width" colspan="19">
-                                    <textarea disabled cols="30" rows="6" class="input-field" 
-                                        placeholder="No hay resultados registrados">No hay resultados específicos registrados</textarea>
-                                </td>
-                            </tr>
-                        @endforelse
-                        <tr>
-                            <td class="header" colspan="19">7. Indicadores de resultado. El indicador de resultado es una medida específica y observable que permite evaluar el 
-                                grado de cumplimiento de los resultados que se han planteado. Sirven para evaluar en qué medida y calidad se lograron los objetivos del proyecto.</th>
-                        </tr>
-                        @forelse ($proyecto->objetivosEspecificos as $indexObj => $objetivo)
-                            @if ($objetivo->resultados->count() > 0)
-                                <tr>
-                                    <td class="sub-header" colspan="19">Indicadores para Objetivo Específico {{ $indexObj + 1 }}</td>
-                                </tr>
-                                @foreach ($objetivo->resultados as $indexRes => $resultado)
-                                    <tr>
-                                        <td class="sub-header" colspan="2">Indicador {{ $indexRes + 1 }}:</td>
-                                        <td class="full-width" colspan="8">
-                                            <textarea disabled cols="30" rows="2" class="input-field" 
-                                                placeholder="Indicador">{{ $resultado->nombre_indicador }}</textarea>
-                                        </td>
-                                        <td class="sub-header" colspan="2">Medio de Verificación:</td>
-                                        <td class="full-width" colspan="7">
-                                            <textarea disabled cols="30" rows="2" class="input-field" 
-                                                placeholder="Medio de verificación">{{ $resultado->nombre_medio_verificacion }}</textarea>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            @endif
-                        @empty
-                            <tr>
-                                <td class="full-width" colspan="19">
-                                    <textarea disabled cols="30" rows="6" class="input-field" 
-                                        placeholder="No hay indicadores registrados">No hay indicadores específicos registrados</textarea>
-                                </td>
-                            </tr>
-                        @endforelse
+                        
                         <tr>
                             <td class="header" colspan="19">8. Impacto que se desea generar en el proyecto</th>
                         </tr>
@@ -1159,12 +1123,20 @@
                                 ODS a los que pretende contribuir el proyecto y las metas correspondientes. Para esta descripción deberá basarse en el documento de ODS 
                                 que puede consultar en el siguiente enlace: <a style="" href="https://www.un.org/sustainabledevelopment/es/objetivos-de-desarrollo-sostenible/">Objetivos y metas de desarrollo sostenible - Desarrollo Sostenible </a></th>
                         </tr>
+                        <tr>
+                            <td class="sub-header" colspan="3">Cantidad ODS:</td>
+                             <td class="sub-header" colspan="3">Descripción de ODS (Nombre y número):</td>
+                              <td class="sub-header" colspan="3">Metas a las que contribuye:</td>
+                        </tr>
                         @forelse ($proyecto->ods as $ods)
                             <tr>
                                 <td class="sub-header" colspan="3">ODS {{ $loop->iteration }}:</td>
-                                <td class="full-width" colspan="16">
+                                <td class="full-width" colspan="3">
                                     <input disabled type="text" class="input-field" 
                                         value="{{ $ods->nombre }}" placeholder="ODS">
+                                </td>
+                                <td class="full-width" colspan="3">
+                                    <textarea disabled class="input-field" rows="2" placeholder="Metas a las que contribuye">{{ $proyecto->metasContribuye->where('ods_id', $ods->id)->count() > 0 ? $proyecto->metasContribuye->where('ods_id', $ods->id)->map(function($meta) { return 'Meta ' . $meta->numero_meta . ': ' . $meta->descripcion; })->implode("\n") : 'Sin metas específicas registradas' }}</textarea>
                                 </td>
                             </tr>
                         @empty
@@ -1181,8 +1153,8 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
-                                <textarea disabled cols="30" rows="6" class="input-field" value="{{ $proyecto->alineamiento_reforma ?? '' }}"
-                                    placeholder="Alineamiento con la reforma">No hay información específica registrada para este campo</textarea>
+                                <textarea disabled cols="30" rows="6" class="input-field" 
+                                    placeholder="Alineamiento con la reforma">{{ $proyecto->alineamiento_reforma ?? 'No hay información específica registrada para este campo' }}</textarea>
                             </td>
                         </tr>
                         <tr>
@@ -1510,7 +1482,7 @@
                         <tr>
                             <td class="sub-header3" colspan="4"> Actividades</td>
                             <td class="sub-header3" colspan="4"> Fecha de ejecución</td>
-                            <td class="sub-header3" colspan="5"> responsables</td>
+                            <td class="sub-header3" colspan="5"> Responsables</td>
                             <td class="sub-header3" colspan="5"> Accion</td>
                         </tr>
                         <tr>
@@ -1546,6 +1518,7 @@
                                                 <div class="column"><strong>Fecha de Inicio:</strong>
                                                     {{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</div>
                                             </div>
+                                            <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}</div>
                                             <div class="highlight"><strong>Responsables:</strong>
                                                 @forelse ($actividad->empleados as $responsable)
                                                     <div>
@@ -1703,7 +1676,7 @@
                     </table>
                 </div>
 
-                <!-- SECCIÓN DE DOCUMENTOS ADJUNTOS A LA FICHA -->
+                <!-- SECCIÓN DE DOCUMENTOS ADJUNTOS A LA FICHA 
                 <div class="section4">
                     <div class="section-title">V. DOCUMENTOS ADJUNTOS A LA FICHA. </div>
                     <table class="table_datos5">
@@ -1760,7 +1733,7 @@
                         <p>- El documento 1 / documento 2 (cualquiera de los dos) es obligatorio</p>
                         <p>- El documento 3 es obligatorio</p>
                     </div>
-                </div>
+                </div> -->
 
                 <!-- SECCIÓN DE ANEXOS Y DATOS DE REGISTRO -->
                 <div class="section4">
@@ -1809,8 +1782,8 @@
                         </tr>
                     </table>
 
-
-                    <div class="section-title" style="margin-top: 20px;">VII. DATOS DE REGISTRO. </div>
+                    <!-- DATOS DE REGISTRO 
+                <div class="section-title" style="margin-top: 20px;">VII. DATOS DE REGISTRO. </div>
                     <table class="table_datos5">
                         <tr>
                             <td class="sub-header" colspan="1">Responsable de revisión</td>
@@ -1867,55 +1840,70 @@
                             value="{{ $proyecto->numero_dictamen }}" placeholder="Ingrese No. dictamen de Proyecto">
                         <p class="header-text">No. dictamen de Proyecto</p>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
     </x-filament::section>
     </div>
    {{-- filepath: c:\Users\acxel\Desktop\Desarrollo\Git Repos\UNAH-VINCULACION\resources\views\livewire\docente\proyectos\historial-proyecto.blade.php --}}
 
-<div class="w-full md:w-2/5 lg:w-1/3">
-    <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
-        Historial de movimientos
-    </h1>
-    <p class="text-gray-600 mb-2">
+    <div class="w-full md:w-2/5 lg:w-1/3">
+        <div class="flex flex-row space-x-4 items-start p-4 bg-white dark:bg-gray-800 shadow rounded-lg">
+            <a href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}">
+                <x-filament::button>
+                    Crear actualización
+                </x-filament::button>
+            </a>
+            <x-filament::button>
+                <a href=""
+                    style="text-decoration: none; color: inherit;">
+                    Fichas de actualización
+                </a>
+            </x-filament::button>
+        </div class="over">
+        <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
+            Historial de movimientos
+        </h1>
+        <p class="text-gray-600 mb-2">
             Días desde la creación del proyecto: <span class="font-bold">{{ $diasTranscurridos }}</span>
         </p>
-    @if(count($estados) > 0)
-        <ol class="relative border-s border-yellow-600">
-            @foreach($estados as $index => $estado)
-                <li class="{{ $index < count($estados) - 1 ? 'mb-10' : '' }} ms-4">
-                    <div class="absolute w-3 h-3 bg-yellow-600 rounded-full mt-1.5 -start-1.5 border border-white"></div>
-                    <div class="flex items-center">
-                        <time class="text-sm font-normal leading-none text-yellow-600">
-                            {{ Carbon::parse($estado->created_at)->format('d') }} de {{ Carbon::parse($estado->created_at)->translatedFormat('F') }} del {{ Carbon::parse($estado->created_at)->format('Y') }}
-                        </time>
-                        <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full {{ $estado->estadoable_type === \App\Models\Proyecto\Proyecto::class ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' }}">
-                            @if($estado->estadoable_type === \App\Models\Proyecto\Proyecto::class)
-                                Proyecto
-                            @elseif($estado->estadoable_type === \App\Models\Proyecto\DocumentoProyecto::class)
-                                Informe/Documento
-                            @else
-                                Otro
-                            @endif
-                        </span>
+        <div class="overflow-y-auto max-h-[77vh] dark:bg-gray-800 bg-white p-4 rounded-lg shadow">
+            @if(count($estados) > 0)
+                    <ol class="relative border-s border-yellow-600"> 
+                        @foreach($estados as $index => $estado)
+                            <li class="{{ $index < count($estados) - 1 ? 'mb-10' : '' }} ms-4">
+                                <div class="absolute w-3 h-3 bg-yellow-600 rounded-full mt-1.5 -start-1.5 border border-white"></div>
+                                <div class="flex items-center">
+                                    <time class="text-sm font-normal leading-none text-yellow-600">
+                                        {{ Carbon::parse($estado->created_at)->format('d') }} de {{ Carbon::parse($estado->created_at)->translatedFormat('F') }} del {{ Carbon::parse($estado->created_at)->format('Y') }}
+                                    </time>
+                                    <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full {{ $estado->estadoable_type === \App\Models\Proyecto\Proyecto::class ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' }}">
+                                        @if($estado->estadoable_type === \App\Models\Proyecto\Proyecto::class)
+                                            Proyecto
+                                        @elseif($estado->estadoable_type === \App\Models\Proyecto\DocumentoProyecto::class)
+                                            Informe/Documento
+                                        @else
+                                            Otro
+                                        @endif
+                                    </span>
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-200 mt-2">
+                                Estado: {{ $estado->tipoestado->nombre ?? 'Cambio de estado' }}
+                                </h3>
+                                <p class="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">
+                                    @if($estado->empleado)
+                                        Realizado por: {{ $estado->empleado->nombre_completo }} 
+                                    @endif
+                                    {{ $estado->comentario ? '— ' . $estado->comentario : '' }}
+                                </p>
+                            </li>
+                        @endforeach
+                    </ol>
+                @else
+                    <div class="flex items-center justify-center h-full">
+                        <p class="text-gray-500">No hay movimientos registrados para este proyecto.</p>
                     </div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-200 mt-2">
-                       Estado: {{ $estado->tipoestado->nombre ?? 'Cambio de estado' }}
-                    </h3>
-                    <p class="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">
-                        @if($estado->empleado)
-                            Realizado por: {{ $estado->empleado->nombre_completo }} 
-                        @endif
-                        {{ $estado->comentario ? '— ' . $estado->comentario : '' }}
-                    </p>
-                </li>
-            @endforeach
-        </ol>
-    @else
-        <div class="flex items-center justify-center h-full">
-            <p class="text-gray-500">No hay movimientos registrados para este proyecto.</p>
+                @endif
         </div>
-    @endif
-</div>
+    </div>
 </div>

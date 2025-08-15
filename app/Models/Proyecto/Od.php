@@ -31,4 +31,9 @@ class Od extends Model
     ];
 
     protected $table = 'ods';
+
+    public function metas()
+    {
+        return $this->hasMany(MetaContribuye::class, 'ods_id');
+    }
 }

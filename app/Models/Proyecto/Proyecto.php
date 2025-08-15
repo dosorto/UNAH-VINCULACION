@@ -40,6 +40,8 @@ use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\ObjetivoEspecifico;
 use App\Models\Proyecto\ResultadoEsperado;
 use App\Models\Proyecto\AporteInstitucional;
+use App\Models\Proyecto\FichaActualizacion;
+use App\Models\Proyecto\MetaContribuye;
 
 
 
@@ -51,6 +53,7 @@ class Proyecto extends Model
 
     protected static $logAttributes = [
         'nombre_proyecto',
+        'codigo_proyecto',
         // 'coordinador_id',
         'modalidad_id',
         'municipio_id',
@@ -103,6 +106,7 @@ class Proyecto extends Model
         return LogOptions::defaults()
             ->logOnly([
                 'nombre_proyecto',
+                'codigo_proyecto',
                 'descripcion',
                 'fecha_inicio',
                 'fecha_finalizacion',
@@ -142,6 +146,7 @@ class Proyecto extends Model
 
     protected $fillable = [
         'nombre_proyecto',
+        'codigo_proyecto',
         'modalidad_id',
         'municipio_id',
         'departamento_id',
@@ -394,6 +399,12 @@ class Proyecto extends Model
         return $this->belongsToMany(Od::class, 'proyecto_ods', 'proyecto_id', 'ods_id');
     }
 
+    // relacion muchos a muchos con las metas de ODS
+    public function metasContribuye()
+    {
+        return $this->belongsToMany(MetaContribuye::class, 'proyecto_meta_contribuye', 'proyecto_id', 'meta_contribuye_id');
+    }
+
     // relacion muchos a muchos con el modelo categoria
     public function categoria()
     {
@@ -444,8 +455,17 @@ class Proyecto extends Model
     {
         return $this->empleado_proyecto()
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+            ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
             ->where('empleado.sexo', 'Masculino')
-            ->where('empleado.tipo_empleado', 'docente')
+            ->where(function($q) {
+                $q->whereRaw("LOWER(categoria.nombre) LIKE '%profesores x hora%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%profesores horarios%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular i%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular ii%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iii%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iv%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular v%'");
+            })
             ->count();
     }
 
@@ -453,8 +473,17 @@ class Proyecto extends Model
     {
         return $this->empleado_proyecto()
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+            ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
             ->where('empleado.sexo', 'Femenino')
-            ->where('empleado.tipo_empleado', 'docente')
+            ->where(function($q) {
+                $q->whereRaw("LOWER(categoria.nombre) LIKE '%profesores x hora%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%profesores horarios%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular i%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular ii%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iii%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iv%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular v%'");
+            })
             ->count();
     }
 
@@ -463,7 +492,7 @@ class Proyecto extends Model
         $query = $this->empleado_proyecto()
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
             ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
-            ->where('empleado.tipo_empleado', 'docente');
+            ->where('empleado.tipo_empleado', 'Docente');
 
         if (strtolower($categoria) === 'permanente') {
             $query->where(function($q) {
@@ -489,8 +518,14 @@ class Proyecto extends Model
     {
         return $this->empleado_proyecto()
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+            ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
             ->where('empleado.sexo', 'Masculino')
-            ->where('empleado.tipo_empleado', 'administrativo')
+            ->where(function($q) {
+                $q->whereRaw("LOWER(categoria.nombre) LIKE '%administrativo%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%servicio%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%tecnico%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%instructor%'");
+            })
             ->count();
     }
 
@@ -498,8 +533,14 @@ class Proyecto extends Model
     {
         return $this->empleado_proyecto()
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
+            ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
             ->where('empleado.sexo', 'Femenino')
-            ->where('empleado.tipo_empleado', 'administrativo')
+            ->where(function($q) {
+                $q->whereRaw("LOWER(categoria.nombre) LIKE '%administrativo%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%servicio%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%tecnico%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%instructor%'");
+            })
             ->count();
     }
 
@@ -509,7 +550,6 @@ class Proyecto extends Model
         $query = $this->empleado_proyecto()
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
             ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
-            ->where('empleado.tipo_empleado', 'administrativo')
             ->where('categoria.nombre', 'LIKE', '%' . $tipo . '%');
 
         if ($genero) {
@@ -567,6 +607,11 @@ class Proyecto extends Model
 
 
 
+    // Relación uno a muchos con ficha_actualizacion
+    public function ficha_actualizacion()
+    {
+        return $this->hasMany(FichaActualizacion::class, 'proyecto_id');
+    }
 
 
 
@@ -668,6 +713,15 @@ class Proyecto extends Model
         )
             ->where('estado_proyecto.estadoable_type', self::class)
             ->where('estado_proyecto.es_actual', true);
+    }
+
+    /**
+     * Accessor para obtener el estado actual del proyecto
+     * Retorna el TipoEstado actual del proyecto
+     */
+    public function getEstadoActualAttribute()
+    {
+        return $this->tipo_estado;
     }
 
     public function estudianteProyecto()

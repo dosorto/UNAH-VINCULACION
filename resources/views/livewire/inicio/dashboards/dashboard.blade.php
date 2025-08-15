@@ -4,13 +4,13 @@
             <section class="col-span-2 self-start">
                 <div class="container mx-auto">
                     <div class="mb-6">
-                        <div class="p-6 bg-yellow-500 dark:bg-yellow-500 rounded-xl">
+                        <div class="p-6 bg-yellow-500 dark:bg-yellow-700 rounded-xl">
                             <div class="container px-4 mx-auto">
                                 <div class="relative overflow-hidden">
-                                    <div class="relative max-w-sm mx-auto lg:mx-0 mb-2 lg:mb-0">
-                                        <h3 class="text-3xl font-bold text-white">Bienvenido a su Dashboard
+                                    <div class="relative max-w-md mx-auto lg:mx-0 mb-2 lg:mb-0">
+                                        <h3 class="text-2xl font-bold text-white">Bienvenido a su panel estadístico
                                         </h3>
-                                        <p class="font-medium text-blue-200">Aquí podrá gestionar los proyectos.</p>
+                                        <p class="font-medium text-blue-200">Aquí podrás gestionar los proyectos.</p>
                                     </div>
                                 </div>
                             </div>
@@ -127,7 +127,7 @@
                                         </div>
                                         <div class="ml-5">
                                             <p class="text-base font-medium text-gray-600 dark:text-gray-400">
-                                                Vincualción
+                                                Vinculación
                                             </p>
                                             <h4 class="text-2xl font-bold text-gray-900 dark:text-white">
                                                 {{ $empleadosVinculacion }}</h4>

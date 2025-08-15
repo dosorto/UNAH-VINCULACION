@@ -52,6 +52,10 @@ class DepartamentoAcademicoList extends Component implements HasForms, HasTable
                         TextInput::make('nombre')
                             ->label('Nombre')
                             ->required(),
+                        TextInput::make('siglas')
+                            ->label('Siglas')
+                            ->maxLength(10)
+                            ->required(),
                         Select::make('centro_facultad_id')
                             ->required()
                             ->label('Centro/Facultad')
@@ -82,6 +86,8 @@ class DepartamentoAcademicoList extends Component implements HasForms, HasTable
             ->columns([
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('siglas')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('centroFacultad.nombre')
                     ->numeric()
                     ->sortable(),
@@ -111,6 +117,10 @@ class DepartamentoAcademicoList extends Component implements HasForms, HasTable
                     ->form([
                         TextInput::make('nombre')
                             ->label('Nombre')
+                            ->required(),
+                        TextInput::make('siglas')
+                            ->label('Siglas')
+                            ->maxLength(10)
                             ->required(),
                         Select::make('centro_facultad_id')
                             ->required()

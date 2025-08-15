@@ -30,6 +30,8 @@ use App\Livewire\Demografia\Municipio\ListaMunicipios;
 use App\Livewire\Docente\Proyectos\ProyectosAprobados;
 use App\Livewire\Docente\Proyectos\ProyectosRechazados;
 use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
+use App\Livewire\Docente\Proyectos\ProyectosAntesDelSistema;
+use App\Livewire\Docente\Proyectos\EditProyectoAntesDelSistema;
 use App\Livewire\Estudiante\CreateEstudiante;
 use App\Livewire\Estudiante\ListarEstudiante;
 use App\Livewire\Ticket\HistorialTicket;
@@ -43,6 +45,7 @@ use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
 
 use App\Livewire\Docente\Proyectos\SolicitudProyectosDocenteList;
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
+use App\Livewire\Proyectos\Actualizacion\EditProyectoActualizacion;
 use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
 use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController;
 
@@ -318,14 +321,27 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('historialproyecto')
             ->middleware('can:docente-admin-proyectos');
 
+        Route::get('/proyectos/{proyecto}/ficha-actualizacion', EditProyectoActualizacion::class)
+            ->name('ficha-actualizacion');
+
         Route::get('SolicitudProyectosDocente', ProyectosPorFirmar::class)
             ->name('SolicitudProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
+
         Route::get('AprobadoProyectosDocente', ProyectosAprobados::class)
             ->name('AprobadoProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
         Route::get('PendientesProyectosDocente', ProyectosRechazados::class)
             ->name('RechazadoProyectosDocente')
+            ->middleware('can:docente-admin-proyectos');
+
+        // Rutas para proyectos creados desde códigos de investigación
+        Route::get('proyectosAntesDelSistema', ProyectosAntesDelSistema::class)
+            ->name('proyectosAntesDelSistema')
+            ->middleware('can:docente-admin-proyectos');
+
+        Route::get('editarProyectoAntesDelSistema/{proyecto}', EditProyectoAntesDelSistema::class)
+            ->name('editarProyectoAntesDelSistema')
             ->middleware('can:docente-admin-proyectos');
     });
 

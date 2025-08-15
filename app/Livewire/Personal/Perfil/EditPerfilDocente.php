@@ -202,6 +202,31 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
                                     ->required(),
                             ])
                             ->action(function (array $data) {
+                                // Verificar si el código ya existe en la tabla proyecto
+                                $proyectoExistente = \App\Models\Proyecto\Proyecto::where('codigo_proyecto', $data['codigo_proyecto'])->first();
+                                
+                                if ($proyectoExistente) {
+                                    // Verificar si el empleado ya está registrado en ese proyecto
+                                    $empleadoYaRegistrado = \App\Models\Personal\EmpleadoProyecto::where('empleado_id', $this->record->empleado->id)
+                                        ->where('proyecto_id', $proyectoExistente->id)
+                                        ->exists();
+                                    
+                                    if ($empleadoYaRegistrado) {
+                                        Notification::make()
+                                            ->title('Código ya registrado')
+                                            ->body('Este código de proyecto ya está registrado y usted ya participa en él. No es necesario agregarlo nuevamente.')
+                                            ->warning()
+                                            ->send();
+                                        return;
+                                    } else {
+                                        Notification::make()
+                                            ->title('Código de proyecto existente')
+                                            ->body('Este código corresponde a un proyecto existente en la base de datos. Su solicitud será verificada para confirmar su participación.')
+                                            ->info()
+                                            ->send();
+                                    }
+                                }
+                                
                                 try {
                                     $this->record->empleado->codigosInvestigacion()->create([
                                         'codigo_proyecto' => $data['codigo_proyecto'],
