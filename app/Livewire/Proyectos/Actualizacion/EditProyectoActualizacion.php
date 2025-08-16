@@ -162,38 +162,49 @@ class EditProyectoActualizacion extends Component implements HasForms
             'motivo_razones_cambio' => $data['motivo_razones_cambio'] ?? null,
         ]);
 
-        // Crear TODAS las firmas necesarias para la ficha de actualización (copiando del proyecto original)
-        $firmasProyectoOriginal = $this->record->firma_proyecto()
-            ->where('firmable_type', Proyecto::class)
-            ->get();
+        // Crear TODAS las firmas necesarias para la ficha de actualización usando los cargos específicos
+        $cargosFirmaActualizacion = CargoFirma::where('descripcion', 'Ficha_actualizacion')->get();
         
-        foreach ($firmasProyectoOriginal as $firmaOriginal) {
+        foreach ($cargosFirmaActualizacion as $cargoFirma) {
             $estadoRevision = 'Pendiente';
             $firmaId = null;
             $selloId = null;
             $fechaFirma = null;
+            $empleadoId = null;
             
-            // Si es el coordinador del proyecto (quien envía), auto-aprobar su firma
-            if ($firmaOriginal->cargo_firma->tipoCargoFirma->nombre === 'Coordinador Proyecto') {
-                $estadoRevision = 'Aprobado';
-                $firmaId = auth()->user()?->empleado?->firma?->id;
-                $selloId = auth()->user()?->empleado?->sello?->id;
-                $fechaFirma = now();
+            // Buscar el empleado correspondiente del proyecto original para este tipo de cargo
+            $firmaOriginal = $this->record->firma_proyecto()
+                ->whereHas('cargo_firma.tipoCargoFirma', function($query) use ($cargoFirma) {
+                    $query->where('nombre', $cargoFirma->tipoCargoFirma->nombre);
+                })
+                ->where('firmable_type', Proyecto::class)
+                ->first();
+            
+            if ($firmaOriginal) {
+                $empleadoId = $firmaOriginal->empleado_id;
+                
+                // Si es el coordinador del proyecto (quien envía), auto-aprobar su firma
+                if ($cargoFirma->tipoCargoFirma->nombre === 'Coordinador Proyecto') {
+                    $estadoRevision = 'Aprobado';
+                    $firmaId = auth()->user()?->empleado?->firma?->id;
+                    $selloId = auth()->user()?->empleado?->sello?->id;
+                    $fechaFirma = now();
+                }
+                
+                $fichaActualizacion->firma_proyecto()->create([
+                    'empleado_id' => $empleadoId,
+                    'cargo_firma_id' => $cargoFirma->id,
+                    'estado_revision' => $estadoRevision,
+                    'firma_id' => $firmaId,
+                    'sello_id' => $selloId,
+                    'hash' => 'hash',
+                    'fecha_firma' => $fechaFirma,
+                ]);
             }
-            
-            $fichaActualizacion->firma_proyecto()->create([
-                'empleado_id' => $firmaOriginal->empleado_id,
-                'cargo_firma_id' => $firmaOriginal->cargo_firma_id,
-                'estado_revision' => $estadoRevision,
-                'firma_id' => $firmaId,
-                'sello_id' => $selloId,
-                'hash' => 'hash',
-                'fecha_firma' => $fechaFirma,
-            ]);
         }
 
         // Crear el estado inicial para la FICHA DE ACTUALIZACIÓN
-        $primerCargoFirma = CargoFirma::where('descripcion', 'Proyecto')
+        $primerCargoFirma = CargoFirma::where('descripcion', 'Ficha_actualizacion')
             ->join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
             ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
             ->first();

@@ -50,6 +50,7 @@ use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
 use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController;
 
 use App\Livewire\Proyectos\Vinculacion\ListProyectoRevisionFinal;
+use App\Livewire\Proyectos\Vinculacion\ListFichasActualizacionVinculacion;
 use App\Livewire\Slide\SlideConfig;
 
 use App\Http\Controllers\SetRoleController;
@@ -244,12 +245,6 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->middleware('can:estudiante-cambiar-datos-personales');
     });
 
-    Route::get('pruebacorreo', function () {
-        Mail::to('acxel.aplicano@unah.hn')
-            ->send(new correoProyectoCreado());
-        return 'Correo enviado';
-    })->name('pruebacorreo');
-
     // rutas agrupadas para el modulo de Proyectos
     Route::middleware(['auth'])->group(function () {
 
@@ -281,6 +276,10 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
         Route::get('listarProyectoRevisionFinal', ListProyectoRevisionFinal::class)
             ->name('listarProyectoRevisionFinal')
+            ->middleware('can:proyectos-admin-revision-final');
+
+        Route::get('fichasActualizacionVinculacion', ListFichasActualizacionVinculacion::class)
+            ->name('fichasActualizacionVinculacion')
             ->middleware('can:proyectos-admin-revision-final');
     });
 

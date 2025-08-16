@@ -60,30 +60,11 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
                         if (!$estado) return 'gray';
                         
                         return match($estado->tipoestado->nombre) {
-                            'En curso' => 'success',
+                        'Actualización Realizada' => 'success',
                         'Subsanacion' => 'danger',
                         'Borrador' => 'warning',
-                        'Finalizado' => 'info',
                         default => 'primary',
                         };
-                    }),
-
-                TextColumn::make('firmas_pendientes')
-                    ->label('Firmas')
-                    ->badge()
-                    ->formatStateUsing(function (FichaActualizacion $record): string {
-                        $firmasTotal = $record->firma_proyecto()->count();
-                        $firmasAprobadas = $record->firma_proyecto()->where('estado', 'aprobado')->count();
-                        return "{$firmasAprobadas}/{$firmasTotal}";
-                    })
-                    ->color(function (FichaActualizacion $record): string {
-                        $firmasTotal = $record->firma_proyecto()->count();
-                        $firmasAprobadas = $record->firma_proyecto()->where('estado', 'aprobado')->count();
-                        
-                        if ($firmasTotal == 0) return 'gray';
-                        if ($firmasAprobadas == $firmasTotal) return 'success';
-                        if ($firmasAprobadas > 0) return 'warning';
-                        return 'danger';
                     }),
             ])
             ->defaultSort('created_at', 'desc')

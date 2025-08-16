@@ -73,4 +73,50 @@ class FichaActualizacion extends Model
          ->where('es_actual', true)
          ->latest('fecha');
     }
+
+    // Relaciones específicas de firmas para fichas de actualización
+    public function firma_coordinador_proyecto()
+    {
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+            ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+            ->where('cargo_firma.descripcion', 'Ficha_actualizacion');
+    }
+
+    public function firma_enlace_vinculacion()
+    {
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+            ->where('tipo_cargo_firma.nombre', 'Enlace Vinculacion')
+            ->where('cargo_firma.descripcion', 'Ficha_actualizacion');
+    }
+
+    public function firma_jefe_departamento()
+    {
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+            ->where('tipo_cargo_firma.nombre', 'Jefe Departamento')
+            ->where('cargo_firma.descripcion', 'Ficha_actualizacion');
+    }
+
+    public function firma_director_centro()
+    {
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+            ->where('tipo_cargo_firma.nombre', 'Director centro')
+            ->where('cargo_firma.descripcion', 'Ficha_actualizacion');
+    }
+
+    public function firma_revisor_vinculacion()
+    {
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+            ->where('tipo_cargo_firma.nombre', 'Revisor Vinculacion')
+            ->where('cargo_firma.descripcion', 'Ficha_actualizacion');
+    }
 }
