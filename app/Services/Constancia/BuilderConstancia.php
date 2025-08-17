@@ -89,8 +89,13 @@ class BuilderConstancia
 
     public function getConstancia()
     {
+        $layout = match ($this->tipo) {
+            'actualizacion' => 'app.docente.constancias.constancia_actualizacion',
+            default => 'app.docente.constancias.constancia_registro',
+        };
+
         return MakeConstancia::make($this->constancia)
-            ->setLayout("app.docente.constancias.constancia_registro")
+            ->setLayout($layout)
             ->setData($this->data)
             ->generate()
             ->downloadPDF();
@@ -164,7 +169,27 @@ class BuilderConstancia
     $solLogo    = env('PDF_SOL_LOGO');
     $lucenLogo  = env('PDF_LUCEN_LOGO');
 
-    // Si estamos generando PDF, convertir rutas a file:// para DomPDF
+
+    $integrantes = $this->proyecto->docentes_proyecto()
+        ->with([
+            'empleado.departamento_academico',
+            'empleado.categoria'
+        ])
+        ->get()
+        ->map(function ($empleadoProyecto, $index) {
+            $emp = $empleadoProyecto->empleado;
+
+            return [
+                'no' => $index + 1,
+                'nombre_completo' => $emp->nombre_completo,
+                'numero_empleado' => $emp->numero_empleado,
+                'categoria' => $emp->categoria?->nombre ?? 'No asignada',
+                'departamento' => $emp->departamento_academico?->nombre ?? 'No asignado',
+                'rol' => $empleadoProyecto->rol ?? 'No especificado',
+            ];
+        })->toArray();
+
+    // Si estamos generando PDF, convertir rutas a file:// 
     if ($this->pdf) {
         $headerLogo = 'file://' . public_path($headerLogo);
         $footerLogo = 'file://' . public_path($footerLogo);
@@ -189,6 +214,7 @@ class BuilderConstancia
         'codigoProyecto' => $codigoProyecto,
         'departamentos' => $departamentos,
         'municipios' => $municipios,
+        'integrantes' => $integrantes,
 
         'tipo' => $this->tipo,
         'horas' => 0,
@@ -205,7 +231,8 @@ class BuilderConstancia
             $rol,
             $codigoProyecto,
             $departamentos,
-            $municipios
+            $municipios,
+            $integrantes
 
         ),
         'nombreDepartamento' => $nombreDepartamento,
@@ -227,6 +254,7 @@ class BuilderConstancia
         return match ($this->tipo) {
             'inscripcion' => 'CONSTANCIA DE REGISTRO DE PROYECTO DE VINCULACIÓN',
             'finalizacion' => 'CONSTANCIA DE FINALIZACIÓN DE ACTIVIDAD DE VINCULACIÓN',
+            'actualizacion' => 'CONSTANCIA DE ACTUALIZACIÓN DE PROYECTO DE VINCULACIÓN',
             default => 'N/D',
         };
     }
@@ -245,7 +273,8 @@ class BuilderConstancia
     $rolDocente,
     $codigoProyecto,
     $departamentos,
-    $municipios
+    $municipios,
+    $integrantes
 ): string {
     // se usa heredoc para evitar problemas con comillas
     return match ($this->tipo) {
@@ -270,21 +299,38 @@ class BuilderConstancia
             'codigoProyecto'
         )),
 
+        'actualizacion' => Blade::render(<<<BLADE
+            <p style="text-align: justify; line-height: 1.6; margin: 10px 0; font-size: 14px; font-family: 'Times New Roman', serif;">
+                El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace CONSTAR que 
+                <strong>UNAH Campus Atlántida</strong> ha registrado el proyecto de vinculación denominado 
+                <strong>{{ \$nombreProyecto }}</strong>, el cual se ejecuta en los municipios de 
+                <strong>{{ \$municipios }}</strong> durante el período 
+                <strong>{{ \$fechaInicio }}</strong> hasta el <strong>{{ \$fechaFinal }}</strong>, 
+                el cual fue registrado en esta dirección con el número 
+                <strong>{{ \$codigoProyecto }}</strong>. A la fecha, el equipo docente responsable de la ejecución de este proyecto es el siguiente:
+            </p>
+
+           
+        BLADE
+        , compact(
+            'nombreProyecto',
+            'municipios',
+            'fechaInicio',
+            'fechaFinal',
+            'codigoProyecto',
+            'integrantes' 
+        )),
+
         'finalizacion' => Blade::render(<<<BLADE
             <p>
-                El suscrito Director de Vinculación, <strong>{{ \$director }}</strong>, hace constar que el empleado 
-                <strong>{{ \$empleado }}</strong>, con número de empleado <strong>{{ \$numeroEmpleado }}</strong>, ha concluido satisfactoriamente 
-                su participación en la actividad de vinculación <strong>{{ \$nombreProyecto }}</strong> desarrollada 
-                del <strong>{{ \$fechaInicio }}</strong> al <strong>{{ \$fechaFinal }}</strong>.
+                El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace <strong>CONSTAR</strong> que el proyecto
+                de vinculación denominado: <strong>{{ \$nombreProyecto }}</strong>, con código de registro <strong>{{ \$codigoProyecto }}</strong> 
+                ha presentado el informe final que detalla los siguientes datos:
             </p>
         BLADE
         , [
-            'empleado' => $empleado,
-            'numeroEmpleado' => $numeroEmpleado,
+            'codigoProyecto' => $codigoProyecto,
             'nombreProyecto' => $nombreProyecto,
-            'fechaInicio' => $fechaInicio,
-            'fechaFinal' => $fechaFinal,
-            'director' => $director,
         ]),
 
         default => '<p>N/D</p>',

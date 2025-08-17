@@ -1851,13 +1851,13 @@
         <div class="flex flex-row space-x-4 items-start p-4 bg-white dark:bg-gray-800 shadow rounded-lg">
             <a href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}">
                 <x-filament::button>
-                    Crear actualización
+                    Actualizar Equipo ejecutor
                 </x-filament::button>
             </a>
             <x-filament::button>
-                <a href=""
+                <a href="{{ route('FichasActualizacionDocente') }}"
                     style="text-decoration: none; color: inherit;">
-                    Fichas de actualización
+                    Mis Fichas de actualización
                 </a>
             </x-filament::button>
         </div class="over">

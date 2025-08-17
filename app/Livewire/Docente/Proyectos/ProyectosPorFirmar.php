@@ -39,10 +39,12 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
 
     public function table(Table $table): Table
     {
-
         return $table
             ->query(
-                $this->docente->firmaProyectoPendientes()
+                // Solo las firmas de proyectos normales (excluir fichas de actualización)
+                $this->docente->firmaProyecto()
+                    ->where('firmable_type', '!=', \App\Models\Proyecto\FichaActualizacion::class)
+                    ->whereIn('id', $this->docente->getIdValidos())
                     ->getQuery()
             )
             ->columns([

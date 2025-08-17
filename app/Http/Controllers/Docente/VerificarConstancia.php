@@ -127,6 +127,11 @@ class VerificarConstancia extends Controller
         return self::CrearPdf($empleadoProyecto, 'finalizacion');
     }
 
+    public static function CrearPdfActualizacion(EmpleadoProyecto $empleadoProyecto)
+    {
+        return self::CrearPdf($empleadoProyecto, 'actualizacion');
+    }
+
     public static function CrearPdf(EmpleadoProyecto $empleadoProyecto, $tipo)
     {
         // validar si el empleado del proyecto se puede generar constancia o no

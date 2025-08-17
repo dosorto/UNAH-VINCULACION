@@ -272,15 +272,15 @@
                     padding-top: -80px;
                 ">
                     <div style="
-                        border: 2px solid #000;
-                        padding: 8px 12px;
+                        border: 1.5px solid #000;
+                        padding: 8px 10px;
                         display: inline-block;
-                        font-size: 16px;
+                        font-size: 14px;
                         font-weight: bold;
                         background-color: #ffffff;
                     ">
-                        Código de Verificación: <br>
-                        <span style="font-size: 18px; color: #00060c;">
+                        Código Verificación: <br>
+                        <span style="font-size: 14px; color: #00060c;">
                             {{ $codigoVerificacion ?? 'N/A' }}
                         </span>
                     </div>
@@ -291,7 +291,7 @@
                     width: 40%;
                     text-align: right;        /* QR a la derecha */
                     vertical-align: top;      /* Arriba */
-                    padding-right: 80px;      /* Ajusta si necesitas más espacio */
+                    padding-right: 65px;      /* Ajusta si necesitas más espacio */
                     padding-top: -80px;
                 ">
                     <img src="{{ $qrCode }}" width="100" height="100" style="border: 1px solid #ddd;" />
@@ -319,7 +319,7 @@
             text-align: center;
             line-height: 1.4;
         ">
-            {!! str_replace('REGISTRO ', 'REGISTRO<br>', $titulo) !!}
+            {!! str_replace('ACTUALIZACIÓN', 'ACTUALIZACIÓN<br>', $titulo) !!}
         </div>
 
     <div class="constancia-texto">
@@ -329,27 +329,30 @@
 
                 <!-- Tabla de responsables -->
                 <table class="tabla-responsables">
-                    <thead>
+                     <!-- Tabla de integrantes -->
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Nombre completo</th>
+                        <th>No. Empleado</th>
+                        <th>Categoría</th>
+                        <th>Departamento</th>
+                        <th>Rol</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($integrantes as $item)
                         <tr>
-                            <th>No</th>
-                            <th>Nombre completo</th>
-                            <th>No. Empleado</th>
-                            <th>Categoría</th>
-                            <th>Departamento</th>
-                            <th>Rol</th>
+                            <td>{{ $item['no'] }}.</td>
+                            <td>{{ $item['nombre_completo'] }}</td>
+                            <td>{{ $item['numero_empleado'] }}</td>
+                            <td>{{ $item['categoria'] }}</td>
+                            <td>{{ $item['departamento'] }}</td>
+                            <td>{{ $item['rol'] }}</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>1.</td>
-                            <td>{{ $nombreEmpleado }}</td>
-                            <td>{{ $numeroEmpleado }} </td>
-                            <td>{{ $categoria }}</td>
-                            <td>{{ $nombreDepartamento }}</td>
-                            <td>{{ $rol }}</td>
-                        </tr>
-                    </tbody>
-                </table>
+                    @endforeach
+                </tbody>
+            </table>
 
 
                 @php
@@ -381,8 +384,7 @@
                 <br>
                 <img src="{{$selloDirector}}" alt="Sello de la UNAH" width="120">
             </div>
-            
-            <br>
+         
 
             <!-- Nombre del firmante -->
             <div class="nombre-firma">
@@ -390,8 +392,6 @@
                 Director de Vinculación Universidad – Sociedad<br>
                 VRA-UNAH
             </div>
-            <br>
-
             <br>
 
             <!-- Observación -->

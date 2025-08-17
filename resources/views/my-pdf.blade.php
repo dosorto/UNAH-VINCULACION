@@ -8,7 +8,7 @@
 
     <style>
         @page {
-            margin: 3cm 0cm 0.5cm 0cm;
+            margin: 3cm 0cm 3cm 0.5cm;
             /* Elimina márgenes por defecto */
         }
 
@@ -143,10 +143,13 @@
             font-size: 13px;
             max-width: 9in;
 
-            /* evita que la observación se corte en el footer */
-            page-break-inside: avoid;
-            page-break-before: auto; /* inicia en la página actual si hay espacio */
-            min-height: 150px; /* altura mínima de observación */
+
+             /* Mejor: permite el corte si es necesario */
+    page-break-inside: auto;
+
+    /* Ajusta min-height si es demasiado */
+    min-height: 80px; /* en vez de 150px */
+
         }
 
         /* Footer general */
@@ -156,8 +159,13 @@
             left: 0;
             width: 100%;
             padding: 0 0.2in;
-            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
             font-family: Arial, sans-serif;
+            /* Empuja todo el contenido 3cm hacia abajo (fuera del viewport) */
+            transform: translateY(3cm);
+            /* O alternativamente, usa margin-top negativo si transform no funciona en impresión */
             
         }
 
@@ -173,7 +181,7 @@
         .footer-logo img {  
             position: relative;    
             margin-top: 0px; 
-            margin-bottom: -50px;                     
+            margin-bottom: -20px;    /* menos para subir */             
         }
 
         .footer-year {
@@ -181,19 +189,21 @@
             font-size: 13px;
             line-height: 1.2;
             color: #032e5c;
-            margin-bottom: 35px;
-            margin-right: 65px;
+            margin-bottom: 45px; /* mas para subir */
+            margin-right: 85px;
         }
 
         /* Parte inferior del footer: línea y texto */
         .footer-bottom {
             text-align: justify;
+            margin-bottom: 10px;
         }
 
         .footer-bottom hr {
             border: none;
             border-top: 1px dashed #063363;
-            margin: -15px;
+            margin: -35px;
+            margin-bottom: 15px;
         }
 
         .footer-bottom p {
@@ -202,19 +212,18 @@
             margin: 0;
             text-align: justify;
             font-family: Arial, sans-serif;
+            padding-bottom: -40px;
         }
 
         /* Estilo para el cuadro azul en la esquina inferior derecha */
         .footer-blue-box {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 80px;
-            height: 60px;
-            background-color: #05186b;
-            /* Amarillo */
-            left: 20cm; /* ahora a la izquierda */
-            margin-bottom: 1000px;
+            position: fixed;
+            padding: 0px;
+            margin-left: 710px;
+            margin-top: -70px;
+            width: 50px;           /* Pequeño cuadrado */
+            height: 50px;          /* Tamaño manejable */
+            background-color: #061761;
         }
 
         body::before {
@@ -232,6 +241,7 @@
             z-index: -1; /* Detrás del contenido */
             box-shadow: none; /* Forzar sin sombra */
             filter: none; /* Elimina posibles efectos */
+            padding-bottom: 3cm;
         }
 
 
@@ -258,7 +268,7 @@
     {!! str_replace('REGISTRO ', 'REGISTRO<br>', $title) !!}
 </div>
 
-<div class="constancia-texto">
+    <div class="constancia-texto">
                 <p>
                     El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace
                     <strong>CONSTAR</strong> que <strong>UNAH Campus Atlántida</strong> ha registrado el proyecto de
@@ -270,7 +280,6 @@
                     <strong>DVUS-VRA-083-2025</strong>. El equipo docente responsable de la ejecución de este proyecto
                     es el siguiente:
                 </p>
-
                 <!-- Tabla de responsables -->
                 <table class="tabla-responsables">
                     <thead>
@@ -292,10 +301,23 @@
                             <td>Humanidades y Artes</td>
                             <td>Coordinadora</td>
                         </tr>
+                        <tr>
+                            <td>2.</td>
+                            <td>Dunia Guadalupe Salgado Meza</td>
+                            <td>10291</td>
+                            <td>Titular I</td>
+                            <td>Humanidades y Artes</td>
+                            <td>Coordinadora</td>
+                        </tr>
+                        <tr>
+                            <td>3.</td>
+                            <td>Dunia Guadalupe Salgado Meza</td>
+                            <td>10291</td>
+                            <td>Titular I</td>
+                            <td>Humanidades y Artes</td>
+                            <td>Coordinadora</td>
+                        </tr>
                         
-                        
-
-
                     </tbody>
                 </table>
 
@@ -321,6 +343,7 @@
         <p id="fecha-automatica">
             Dado en Ciudad Universitaria José Trinidad Reyes, a los {{ $diaLetras }} días del mes de {{ $mes }} de {{ $anio }}.
         </p>
+    
 
 
          <!-- Firma -->
@@ -344,8 +367,9 @@
                 registro de la función de vinculación en la asignación académica, según Artículo 277 de las Normas
                 Académicas.
             </div>
+    
 
-
+    </div>
     <!-- FOOTER FIJO -->
     <div class="footer">
         <!-- Logo a la izquierda y Año Académico a la derecha -->
@@ -355,8 +379,7 @@
             </div>
 
             <div class="footer-year">
-                Año Académico <strong>“José Dionisio de Herrera”</strong><br>
-                <span>“La Educación es la primera necesidad de la República”</span>
+                Año Académico <strong>“José Dionisio de Herrera”</strong>
             </div>
         
 
@@ -364,11 +387,12 @@
         <div class="footer-bottom">
             <hr>
             <p>Universidad Nacional Autónoma de Honduras | CIUDAD UNIVERSITARIA | Tegucigalpa M.D.C. Honduras C.A |
-                www.unah.edu.hn</p>
+                <a href="www.unah.edu.hn">www.unah.edu.hn</a></p>
         </div>
 
         <!-- Cuadro azul en la esquina inferior derecha -->
         <div class="footer-blue-box"></div>
+    </div>
 
 </body>
 

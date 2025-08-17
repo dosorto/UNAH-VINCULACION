@@ -10,32 +10,6 @@
 </head>
 
 <body style="background-color: #f2f2f2; ">
-    @if ($proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
-        <x-filament::section collapsible collapsed persist-collapsed id="user-details">
-            <x-slot name="heading">
-                Informe Intermedio, Estado: {{ $proyecto->documento_intermedio()->estado->tipoestado->nombre }}
-            </x-slot>
-            <x-slot name="description">
-                {{ $proyecto->documento_intermedio()->estado->comentario }}
-            </x-slot>
-            <embed src="{{ asset('storage/' . $proyecto->documento_intermedio()->documento_url) }}"
-                type="application/pdf" width="100%" height="600px" />
-        </x-filament::section>
-    @endif
-    @if ($proyecto->documento_final() && $proyecto->documento_final()->documento_url != null)
-        <x-filament::section collapsible collapsed persist-collapsed id="user-details">
-            <x-slot name="heading">
-                Informe Final, Estado: {{ $proyecto->documento_final()->estado->tipoestado->nombre }}
-            </x-slot>
-            <x-slot name="description">
-                {{ $proyecto->documento_final()->estado->comentario }}
-            </x-slot>
-            <h1>Visualizador de PDF</h1>
-            <embed src="{{ asset('storage/' . $proyecto->documento_final()->documento_url) }}" type="application/pdf"
-                width="100%" height="600px" />
-        </x-filament::section>
-    @endif
-
     <x-filament::section collapsible collapsed persist-collapsed id="user-details">
         <x-slot name="heading">
             Ficha de actualización
@@ -121,24 +95,64 @@
                     <table class="table_datos1">
                     <!-- TABLA DE INTEGRANTES DEL EQUIPO UNIVERSITARIO -->
                         <tr>
-                            <th class="full-width1" colspan="6">Integrantes del equipo universitario que se unieron al proyecto, posterior a la fecha de registro (Agregue más líneas que sean necesarias)</th>
+                            <th class="full-width1" colspan="7">Integrantes actuales del equipo universitario (incluye originales y agregados posterior a la fecha de registro)</th>
                         </tr>
                         <tr>
-                            <th class="full-width2" colspan="6">Empleados</th>
+                            <th class="full-width2" colspan="7">Empleados</th>
                         </tr>
                         <tr>
-                            <td class="sub-header">Nombre Completo:</td>
+                            <td class="sub-header" colspan="2">Nombre Completo:</td>
                             <td class="sub-header">No. de empleado/a:</td>
                             <td class="sub-header">Correo electrónico:</td>
                             <td class="sub-header">Categoria:</td>
                             <td class="sub-header">Departamento:</td>
                         </tr>
-                        @forelse ($proyecto->integrantes as $integrante)
-                            <tr>
-                                <td class="full-width" colspan="1">
+                        @php
+                            // Obtener integrantes que se dieron de baja de la tabla equipoEjecutorBajas
+                            $integrantesBaja = $proyecto->equipoEjecutorBajas
+                                ->where('tipo_integrante', 'empleado')
+                                ->pluck('integrante_id');
+                                
+                            // Filtrar integrantes actuales: los que NO se dieron de baja
+                            // Incluye tanto los originales como los que se agregaron después
+                            $integrantesActuales = $proyecto->integrantes->filter(function ($integrante) use ($integrantesBaja) {
+                                return !$integrantesBaja->contains($integrante->id);
+                            });
+                            
+                            // Separar entre originales y agregados después
+                            $integrantesOriginales = $integrantesActuales->filter(function ($integrante) use ($proyecto) {
+                                $fechaRegistro = $proyecto->fecha_registro;
+                                $fechaIncorporacion = $integrante->pivot->created_at ?? null;
+                                
+                                if (!$fechaRegistro || !$fechaIncorporacion) {
+                                    return true; // Si no hay fecha, asumimos que es original
+                                }
+                                
+                                return $fechaIncorporacion->lte($fechaRegistro);
+                            });
+                            
+                            $integrantesPosteriores = $integrantesActuales->filter(function ($integrante) use ($proyecto) {
+                                $fechaRegistro = $proyecto->fecha_registro;
+                                $fechaIncorporacion = $integrante->pivot->created_at ?? null;
+                                
+                                if (!$fechaRegistro || !$fechaIncorporacion) {
+                                    return false;
+                                }
+                                
+                                return $fechaIncorporacion->gt($fechaRegistro);
+                            });
+                        @endphp
+
+                        @forelse ($integrantesActuales as $integrante)
+                            @php
+                                $esNuevo = $integrantesPosteriores->contains('id', $integrante->id);
+                                $fechaIncorporacion = $integrante->pivot->created_at;
+                            @endphp
+                            <tr style="{{ $esNuevo ? 'background-color: #e8f5e8;' : '' }}">
+                                <td class="full-width" colspan="2">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre completo"
-                                        value="{{ $integrante->nombre_completo }}" disabled>
+                                        value="{{ $integrante->nombre_completo }}{{ $esNuevo ? ' (NUEVO)' : '' }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
@@ -163,44 +177,68 @@
                             </tr>
                         @empty
                             <tr>
-                                <td class="full-width
-                                " colspan="6">
+                                <td class="full-width" colspan="7">
                                     <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento" value="No hay docentes" disabled>
+                                        placeholder="Ingrese el departamento" value="No hay integrantes activos en el equipo" disabled>
                                 </td>
                             </tr>
                         @endforelse
                         <tr>
-                            <th class="full-width2" colspan="6">Estudiantes</th>
+                            <th class="full-width2" colspan="7">Estudiantes</th>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="2">Nombre Completo:</td>
+                            <td class="sub-header" colspan="3">Nombre Completo:</td>
                             <td class="sub-header">No. de cuenta</td>
                             <td class="sub-header">Correo electrónico</td>
                             <td class="sub-header">Tipo participacion:</td>
                         </tr>
-                        @forelse ($proyecto->estudiante_proyecto as $integrante)
-                            <tr>
-                                <td class="full-width" colspan="2">
+                        @php
+                            // Obtener estudiantes que se dieron de baja de la tabla equipoEjecutorBajas
+                            $estudiantesBaja = $proyecto->equipoEjecutorBajas
+                                ->where('tipo_integrante', 'estudiante')
+                                ->pluck('integrante_id');
+                                
+                            // Filtrar estudiantes actuales: los que NO se dieron de baja
+                            $estudiantesActuales = $proyecto->estudiante_proyecto->filter(function ($integrante) use ($estudiantesBaja) {
+                                return !$estudiantesBaja->contains($integrante->estudiante_id);
+                            });
+                            
+                            // Separar entre originales y agregados después
+                            $estudiantesPosteriores = $estudiantesActuales->filter(function ($integrante) use ($proyecto) {
+                                $fechaRegistro = $proyecto->fecha_registro;
+                                $fechaIncorporacion = $integrante->created_at ?? null;
+                                
+                                if (!$fechaRegistro || !$fechaIncorporacion) {
+                                    return false;
+                                }
+                                
+                                return $fechaIncorporacion->gt($fechaRegistro);
+                            });
+                        @endphp
+
+                        @forelse ($estudiantesActuales as $integrante)
+                            @php
+                                $esNuevo = $estudiantesPosteriores->contains('id', $integrante->id);
+                                $fechaIncorporacion = $integrante->created_at;
+                            @endphp
+                            <tr style="{{ $esNuevo ? 'background-color: #e8f5e8;' : '' }}">
+                                <td class="full-width" colspan="3">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->estudiante->user->name }}" disabled>
+                                        value="{{ $integrante->estudiante->user->name }}{{ $esNuevo ? ' (NUEVO)' : '' }}" disabled>
                                 </td>
 
-                                <td class="full-width
-                                " colspan="1">
+                                <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el departamento"
                                         value="{{ $integrante->estudiante->cuenta }}" disabled>
                                 </td>
-                                <td class="full-width
-                                " colspan="1">
+                                <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el departamento"
                                         value="{{ $integrante->estudiante->user->email }}" disabled>
                                 </td>
-                                <td class="full-width
-                                " colspan="1">
+                                <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el departamento"
                                         value="{{ $integrante->tipo_participacion_estudiante }}" disabled>
@@ -208,29 +246,56 @@
                             </tr>
                         @empty
                             <tr>
-                                <td class="full-width
-                                " colspan="6">
+                                <td class="full-width" colspan="7">
                                     <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento" value="No hay estudiantes" disabled>
+                                        placeholder="Ingrese el departamento" value="No hay estudiantes activos en el equipo" disabled>
                                 </td>
                             </tr>
                         @endforelse
                         <tr>
-                            <th class="full-width2" colspan="6">Integrantes Internacionales</th>
+                            <th class="full-width2" colspan="7">Integrantes Internacionales</th>
                         </tr>
                         <tr>
-                            <td class="sub-header">Nombre Completo:</td>
+                            <td class="sub-header" colspan="2">Nombre Completo:</td>
                             <td class="sub-header">Pasaporte:</td>
                             <td class="sub-header">Correo electrónico:</td>
                             <td class="sub-header">País:</td>
                             <td class="sub-header">Universidad/Institucion:</td>
                         </tr>
-                        @forelse ($proyecto->integrantesInternacionales as $integrante)
-                            <tr>
-                                <td class="full-width" colspan="1">
+                        @php
+                            // Obtener integrantes internacionales que se dieron de baja de la tabla equipoEjecutorBajas
+                            $integrantesInternacionalesBaja = $proyecto->equipoEjecutorBajas
+                                ->where('tipo_integrante', 'integrante_internacional')
+                                ->pluck('integrante_id');
+                                
+                            // Filtrar integrantes internacionales actuales: los que NO se dieron de baja
+                            $integrantesInternacionalesActuales = $proyecto->integrantesInternacionales->filter(function ($integrante) use ($integrantesInternacionalesBaja) {
+                                return !$integrantesInternacionalesBaja->contains($integrante->id);
+                            });
+                            
+                            // Separar entre originales y agregados después
+                            $integrantesInternacionalesPosteriores = $integrantesInternacionalesActuales->filter(function ($integrante) use ($proyecto) {
+                                $fechaRegistro = $proyecto->fecha_registro;
+                                $fechaIncorporacion = $integrante->pivot->created_at ?? null;
+                                
+                                if (!$fechaRegistro || !$fechaIncorporacion) {
+                                    return false;
+                                }
+                                
+                                return $fechaIncorporacion->gt($fechaRegistro);
+                            });
+                        @endphp
+
+                        @forelse ($integrantesInternacionalesActuales as $integrante)
+                            @php
+                                $esNuevo = $integrantesInternacionalesPosteriores->contains('id', $integrante->id);
+                                $fechaIncorporacion = $integrante->pivot->created_at;
+                            @endphp
+                            <tr style="{{ $esNuevo ? 'background-color: #e8f5e8;' : '' }}">
+                                <td class="full-width" colspan="2">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre completo"
-                                        value="{{ $integrante->nombre_completo }}" disabled>
+                                        value="{{ $integrante->nombre_completo }}{{ $esNuevo ? ' (NUEVO)' : '' }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
@@ -255,15 +320,15 @@
                             </tr>
                         @empty
                             <tr>
-                                <td class="full-width
-                                " colspan="6">
+                                <td class="full-width" colspan="7">
                                     <input disabled type="text" class="input-field"
-                                        placeholder="Aqui van los integrantes internacionales" value="No hay integrantes" disabled>
+                                        placeholder="Aqui van los integrantes internacionales" value="No hay integrantes internacionales activos en el equipo" disabled>
                                 </td>
                             </tr>
                         @endforelse
+
                         <tr>
-                            <th class="full-width2" colspan="2" rowspan="1">Fecha de incorporación del proyecto</th> 
+                            <th class="full-width2" colspan="3" rowspan="1">Fecha de incorporación del proyecto</th> 
                             <td class="full-width" colspan="3">
                                 <div class="date-container">
                                     <div class="date-part">
@@ -301,10 +366,16 @@
 
                 <div class="section2">
                     <table class="table_datos1">
-                    <!-- TABLA DE INTEGRANTES DEL EQUIPO UNIVERSITARIO -->
+                    <!-- TABLA DE INTEGRANTES DADOS DE BAJA -->
                         <tr>
-                            <th class="full-width1" colspan="6">Escriba el nombre de los integrantes del equipo universitario que se dieron de baja, posterior a fecha de registro  (Agregue las líneas que sean necesarias)</th>
+                            <th class="full-width1" colspan="6">Integrantes del equipo que se dieron de baja posterior a la fecha de registro</th>
                         </tr>
+                        
+                        <!-- EMPLEADOS DADOS DE BAJA -->
+                        @php
+                            $empleadosBaja = $proyecto->equipoEjecutorBajas->where('tipo_integrante', 'empleado');
+                        @endphp
+                        
                         <tr>
                             <th class="full-width2" colspan="6">Empleados</th>
                         </tr>
@@ -313,90 +384,94 @@
                             <td class="sub-header">No. de empleado/a:</td>
                             <td class="sub-header">Correo electrónico:</td>
                             <td class="sub-header">Categoria:</td>
-                            <td class="sub-header">Departamento:</td>
+                            <td class="sub-header">Motivo de Baja:</td>
                         </tr>
-                        @forelse ($proyecto->integrantes as $integrante)
-                            <tr>
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre completo"
-                                        value="{{ $integrante->nombre_completo }}" disabled>
-                                </td>
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el número de empleado"
-                                        value="{{ $integrante->numero_empleado }}" disabled>
-                                </td>
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el correo electrónico"
-                                        value="{{ $integrante->user->email }}" disabled>
-                                </td>
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese la categoría"
-                                        value="{{ $integrante->categoria->nombre }}" disabled>
-                                </td>
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->departamento_academico->nombre }}" disabled>
-                                </td>
-                            </tr>
+
+                        @forelse($empleadosBaja as $integranteBaja)
+                        <tr style="background-color: #ffe6e6;">
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $integranteBaja->empleado?->nombre_completo ?? 'N/A' }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $integranteBaja->empleado?->numero_empleado ?? 'N/A' }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $integranteBaja->empleado?->user?->email ?? 'N/A' }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $integranteBaja->empleado?->categoria?->nombre ?? 'N/A' }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $integranteBaja->motivo_baja ?? 'N/A' }}" disabled>
+                            </td>
+                        </tr>
                         @empty
-                            <tr>
-                                <td class="full-width
-                                " colspan="6">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento" value="No hay docentes" disabled>
-                                </td>
-                            </tr>
+                        <tr>
+                            <td class="full-width" colspan="6">
+                                <input disabled type="text" class="input-field"
+                                    placeholder="No hay empleados dados de baja" value="No hay empleados dados de baja" disabled>
+                            </td>
+                        </tr>
                         @endforelse
+
+                        <!-- ESTUDIANTES DADOS DE BAJA -->
+                        @php
+                            $estudiantesBaja = $proyecto->equipoEjecutorBajas->where('tipo_integrante', 'estudiante');
+                        @endphp
+
                         <tr>
                             <th class="full-width2" colspan="6">Estudiantes</th>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="2">Nombre Completo:</td>
+                            <td class="sub-header">Nombre Completo:</td>
                             <td class="sub-header">No. de cuenta</td>
                             <td class="sub-header">Correo electrónico</td>
                             <td class="sub-header">Tipo participacion:</td>
+                            <td class="sub-header">Motivo de Baja:</td>
                         </tr>
-                        @forelse ($proyecto->estudiante_proyecto as $integrante)
-                            <tr>
-                                <td class="full-width" colspan="2">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->estudiante->user->name }}" disabled>
-                                </td>
 
-                                <td class="full-width
-                                " colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->estudiante->cuenta }}" disabled>
-                                </td>
-                                <td class="full-width
-                                " colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->estudiante->user->email }}" disabled>
-                                </td>
-                                <td class="full-width
-                                " colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->tipo_participacion_estudiante }}" disabled>
-                                </td>
-                            </tr>
+                        @forelse($estudiantesBaja as $integranteBaja)
+                        <tr style="background-color: #ffe6e6;">
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $integranteBaja->estudiante?->user?->name ?? 'N/A' }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $integranteBaja->estudiante?->cuenta ?? 'N/A' }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $integranteBaja->estudiante?->user?->email ?? 'N/A' }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $integranteBaja->rol_anterior ?? 'N/A' }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $integranteBaja->motivo_baja ?? 'N/A' }}" disabled>
+                            </td> 
+                        </tr>
                         @empty
-                            <tr>
-                                <td class="full-width
-                                " colspan="6">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento" value="No hay estudiantes" disabled>
-                                </td>
-                            </tr>
+                        <tr>
+                            <td class="full-width" colspan="6">
+                                <input disabled type="text" class="input-field"
+                                    placeholder="No hay estudiantes dados de baja" value="No hay estudiantes dados de baja" disabled>
+                            </td>
+                        </tr>
                         @endforelse
+
+                        <!-- INTEGRANTES INTERNACIONALES DADOS DE BAJA -->
+                        @php
+                            $internacionalesBaja = $proyecto->equipoEjecutorBajas->where('tipo_integrante', 'integrante_internacional');
+                        @endphp
+
                         <tr>
                             <th class="full-width2" colspan="6">Integrantes Internacionales</th>
                         </tr>
@@ -405,45 +480,42 @@
                             <td class="sub-header">Pasaporte:</td>
                             <td class="sub-header">Correo electrónico:</td>
                             <td class="sub-header">País:</td>
-                            <td class="sub-header">Universidad/Institucion:</td>
+                            <td class="sub-header">Motivo de Baja:</td>
                         </tr>
-                        @forelse ($proyecto->integrantesInternacionales as $integrante)
-                            <tr>
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre completo"
-                                        value="{{ $integrante->nombre_completo }}" disabled>
-                                </td>
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el número de empleado"
-                                        value="{{ $integrante->documento_identidad }}" disabled>
-                                </td>
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el correo electrónico"
-                                        value="{{ $integrante->email }}" disabled>
-                                </td>
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese la categoría"
-                                        value="{{ $integrante->pais }}" disabled>
-                                </td>
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->institucion }}" disabled>
-                                </td>
-                            </tr>
+
+                        @forelse($internacionalesBaja as $integranteBaja)
+                        <tr style="background-color: #ffe6e6;">
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $integranteBaja->integranteInternacional?->nombre_completo ?? 'N/A' }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $integranteBaja->integranteInternacional?->documento_identidad ?? 'N/A' }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $integranteBaja->integranteInternacional?->email ?? 'N/A' }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $integranteBaja->integranteInternacional?->pais ?? 'N/A' }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $integranteBaja->motivo_baja ?? 'N/A' }}" disabled>
+                            </td>
+                          
+                        </tr>
                         @empty
-                            <tr>
-                                <td class="full-width
-                                " colspan="6">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Aqui van los integrantes internacionales" value="No hay integrantes" disabled>
-                                </td>
-                            </tr>
+                        <tr>
+                            <td class="full-width" colspan="6">
+                                <input disabled type="text" class="input-field"
+                                    placeholder="No hay integrantes internacionales dados de baja" value="No hay integrantes internacionales dados de baja" disabled>
+                            </td>
+                        </tr>
                         @endforelse
+                        
                         <tr>
                             <th class="full-width2" colspan="2" rowspan="1">Fecha de retiro del proyecto</th> 
                             <td class="full-width" colspan="3">
@@ -531,15 +603,15 @@
                                 <div class="date-container">
                                     <div class="date-part">
                                         <span class="date-label">Día</span>
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_inicio ? $proyecto->fecha_inicio->format('d') : '' }}">
+                                        <input disabled type="text" class="input-field" value="{{ $fichaActualizacion->fecha_ampliacion ? \Carbon\Carbon::parse($fichaActualizacion->fecha_ampliacion)->format('d') : '' }}">
                                     </div>
                                     <div class="date-part">
                                         <span class="date-label">Mes</span>
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_inicio ? $proyecto->fecha_inicio->format('m') : '' }}">
+                                        <input disabled type="text" class="input-field" value="{{ $fichaActualizacion->fecha_ampliacion ? \Carbon\Carbon::parse($fichaActualizacion->fecha_ampliacion)->format('m') : '' }}">
                                     </div>
                                     <div class="date-part">
                                         <span class="date-label">Año</span>
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_inicio ? $proyecto->fecha_inicio->format('Y') : '' }}">
+                                        <input disabled type="text" class="input-field" value="{{ $fichaActualizacion->fecha_ampliacion ? \Carbon\Carbon::parse($fichaActualizacion->fecha_ampliacion)->format('Y') : '' }}">
                                     </div>
                                 </div>
                             </td>
@@ -549,8 +621,33 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
-                                <textarea disabled id="resumen" name="resumen" cols="30" rows="6" class="input-field"
-                                    placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->resumen) }}</textarea>
+                                <textarea disabled id="motivo_ampliacion" name="motivo_ampliacion" cols="30" rows="6" class="input-field"
+                                    placeholder="Motivos por los cuales se extiende la fecha de ejecución del proyecto">{{ $fichaActualizacion->motivo_ampliacion ?? '' }}</textarea>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- SECCIÓN DE MOTIVOS DE CAMBIOS EN EL EQUIPO -->
+                <div class="section3">
+                    <div class="section-title">III. MOTIVOS DE CAMBIOS EN EL EQUIPO EJECUTOR.</div>
+                    <table class="table_datos3">
+                        <tr>
+                            <th class="motivos" colspan="19">Describa las responsabilidades de los nuevos miembros</th>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="19">
+                                <textarea disabled id="motivo_responsabilidades_nuevos" name="motivo_responsabilidades_nuevos" cols="30" rows="6" class="input-field"
+                                    placeholder="Describa las responsabilidades específicas que tendrán los nuevos miembros del equipo">{{ $fichaActualizacion->motivo_responsabilidades_nuevos ?? '' }}</textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="motivos" colspan="19">Describa las razones por las cuales se cambia al equipo</th>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="19">
+                                <textarea disabled id="motivo_razones_cambio" name="motivo_razones_cambio" cols="30" rows="6" class="input-field"
+                                    placeholder="Explique las razones que justifican los cambios en la composición del equipo ejecutor">{{ $fichaActualizacion->motivo_razones_cambio ?? '' }}</textarea>
                             </td>
                         </tr>
                     </table>
@@ -788,6 +885,47 @@
                                 value="No hay anexos registrados en este momento" disabled>
                         </td>
                         @endforelse
+                        </tr>
+                    </table>
+
+                    <!-- SECCIÓN DE ESTADO DE LA FICHA DE ACTUALIZACIÓN -->
+                    <div class="section-title">ESTADO ACTUAL DE LA FICHA DE ACTUALIZACIÓN</div>
+                    <table class="table_datos1">
+                        <tr>
+                            <th class="full-width1">Estado Actual:</th>
+                            <td class="full-width" colspan="2">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $fichaActualizacion->obtenerUltimoEstado() ? $fichaActualizacion->obtenerUltimoEstado()->tipoestado->nombre : 'Sin estado definido' }}" 
+                                    style="background-color: {{ $fichaActualizacion->obtenerUltimoEstado() && $fichaActualizacion->obtenerUltimoEstado()->tipoestado->nombre == 'Aprobado' ? '#d4edda' : ($fichaActualizacion->obtenerUltimoEstado() && $fichaActualizacion->obtenerUltimoEstado()->tipoestado->nombre == 'Rechazado' ? '#f8d7da' : '#fff3cd') }}" 
+                                    disabled>
+                            </td>
+                            <th class="full-width1">Fecha del Estado:</th>
+                            <td class="full-width" colspan="2">
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $fichaActualizacion->obtenerUltimoEstado() ? $fichaActualizacion->obtenerUltimoEstado()->created_at->format('d/m/Y H:i') : 'N/A' }}" disabled>
+                            </td>
+                        </tr>
+                        @if($fichaActualizacion->obtenerUltimoEstado() && $fichaActualizacion->obtenerUltimoEstado()->comentario)
+                        <tr>
+                            <th class="full-width1">Comentarios del Estado:</th>
+                            <td class="full-width" colspan="5">
+                                <textarea disabled class="input-field" rows="3">{{ $fichaActualizacion->obtenerUltimoEstado()->comentario }}</textarea>
+                            </td>
+                        </tr>
+                        @endif
+                        <tr>
+                            <th class="full-width1">Progreso de Firmas:</th>
+                            <td class="full-width" colspan="5">
+                                @php
+                                    $firmasTotal = $fichaActualizacion->firma_proyecto()->count();
+                                    $firmasAprobadas = $fichaActualizacion->firma_proyecto()->where('estado_revision', 'Aprobado')->count();
+                                    $porcentaje = $firmasTotal > 0 ? round(($firmasAprobadas / $firmasTotal) * 100) : 0;
+                                @endphp
+                                <input disabled type="text" class="input-field"
+                                    value="{{ $firmasAprobadas }}/{{ $firmasTotal }} firmas aprobadas ({{ $porcentaje }}%)" 
+                                    style="background-color: {{ $porcentaje == 100 ? '#d4edda' : ($porcentaje > 50 ? '#fff3cd' : '#f8d7da') }}"
+                                    disabled>
+                            </td>
                         </tr>
                     </table>
             </div>

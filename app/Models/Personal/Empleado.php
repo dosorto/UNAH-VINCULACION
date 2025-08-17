@@ -210,16 +210,28 @@ class Empleado extends Model
 
     public function getIdValidos()
     {
-        // Mapear las firmas de los proyectos
-
+        // Mapear las firmas de los proyectos y fichas de actualización
         $proyectos = $this->firmaProyecto->map(function ($firma) {
+            // Firmas de proyectos normales
             if (
                 $firma->firmable_type == Proyecto::class &&
                 ($firma->cargo_firma->tipo_estado_id == $firma->proyecto->estado->tipo_estado_id)
             ) {
                 return $firma->id;
-            } else if (
-                ($firma->firmable_type != Proyecto::class &&
+            } 
+            // Firmas de fichas de actualización
+            else if (
+                $firma->firmable_type == \App\Models\Proyecto\FichaActualizacion::class &&
+                $firma->ficha_actualizacion &&
+                $firma->ficha_actualizacion->obtenerUltimoEstado() &&
+                ($firma->cargo_firma->tipo_estado_id == $firma->ficha_actualizacion->obtenerUltimoEstado()->tipo_estado_id)
+            ) {
+                return $firma->id;
+            }
+            // Firmas de documentos (informes, etc.)
+            else if (
+                ($firma->firmable_type != Proyecto::class && 
+                 $firma->firmable_type != \App\Models\Proyecto\FichaActualizacion::class &&
                     ($firma->cargo_firma->tipo_estado_id == $firma->documento_proyecto->estado->tipoestado->id))
                 && ($firma->cargo_firma->tipoCargoFirma->nombre !== "Revisor Vinculacion")
             ) {

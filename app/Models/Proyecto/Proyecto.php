@@ -42,6 +42,7 @@ use App\Models\Proyecto\ResultadoEsperado;
 use App\Models\Proyecto\AporteInstitucional;
 use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Proyecto\MetaContribuye;
+use App\Models\Proyecto\EquipoEjecutorBaja;
 
 
 
@@ -749,6 +750,13 @@ class Proyecto extends Model
             'proyecto_id',
             'ejes_prioritarios_unah_id'
         );
+    }
+
+    // Relación con integrantes dados de baja
+    public function equipoEjecutorBajas()
+    {
+        return $this->hasMany(EquipoEjecutorBaja::class, 'proyecto_id')
+                    ->with(['empleado', 'estudiante', 'integranteInternacional']);
     }
 
     protected $table = 'proyecto';

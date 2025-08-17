@@ -188,6 +188,7 @@
    
 >
                                         @include('app.docente.constancias.constancia_registro')
+                                        @include('app.docente.constancias.constancia_actualizacion')
                                     </div>
                             
                                     {{-- Footer con botones que usan Alpine --}}

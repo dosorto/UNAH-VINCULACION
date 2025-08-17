@@ -3,6 +3,7 @@
 namespace App\Clases;
 
 use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Proyecto\ProyectoEstado;
 use App\Models\Estado\TipoEstado;
 use App\Models\Proyecto\DocumentoProyecto;
@@ -89,9 +90,16 @@ public static function obtenerCantidadInformesSolicitados()
     // metodo para obtener la cantidad de proyectos del usuario logueado
     public static function obtenerCantidadProyectosPorFirmar()
     {
-
         return auth()->user()->empleado->firmaProyectoPendientes()
-            ->getQuery()
+            ->where('firmable_type', '!=', FichaActualizacion::class)
+            ->count();
+    }
+
+    // metodo para obtener la cantidad de fichas de actualización por firmar del usuario logueado
+    public static function obtenerCantidadFichasPorFirmar()
+    {
+        return auth()->user()->empleado->firmaProyectoPendientes()
+            ->where('firmable_type', FichaActualizacion::class)
             ->count();
     }
 }

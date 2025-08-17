@@ -8,7 +8,7 @@
 
     <style>
         @page {
-            margin: 3cm 0cm 0.5cm 0cm;
+            margin: 3cm 0cm 0.9cm 0.5cm;
             /* Elimina márgenes por defecto */
         }
 
@@ -149,10 +149,10 @@
             min-height: 150px; /* altura mínima de observación */
         }
 
-        /* Footer general */
+         /* Footer general */
         .footer {
             position: fixed;
-            bottom: 0;
+            bottom: -0.9cm;
             left: 0;
             width: 100%;
             padding: 0 0.2in;
@@ -173,7 +173,7 @@
         .footer-logo img {  
             position: relative;    
             margin-top: 0px; 
-            margin-bottom: -40px;                     
+            margin-bottom: -20px;    /* menos para subir */                 
         }
 
         .footer-year {
@@ -181,19 +181,21 @@
             font-size: 13px;
             line-height: 1.2;
             color: #032e5c;
-            margin-bottom: 35px;
-            margin-right: 65px;
+            margin-bottom: 45px; /* mas para subir */
+            margin-right: 85px;
         }
 
         /* Parte inferior del footer: línea y texto */
         .footer-bottom {
             text-align: justify;
+            margin-bottom: 10px;
         }
 
         .footer-bottom hr {
             border: none;
             border-top: 1px dashed #063363;
-            margin: -15px;
+            margin: -35px;
+            margin-bottom: 15px;
         }
 
         .footer-bottom p {
@@ -202,19 +204,18 @@
             margin: 0;
             text-align: justify;
             font-family: Arial, sans-serif;
+            padding-bottom: -40px;
         }
 
         /* Estilo para el cuadro azul en la esquina inferior derecha */
         .footer-blue-box {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 80px;
-            height: 60px;
-            background-color: #05186b;
-            /* Amarillo */
-            left: 20cm; /* ahora a la izquierda */
-            margin-bottom: 1000px;
+            position: fixed;
+            padding: 0px;
+            margin-left: 710px;
+            margin-top: -70px;
+            width: 50px;           /* Pequeño cuadrado */
+            height: 50px;          /* Tamaño manejable */
+            background-color: #061761;
         }
 
         body::before {
@@ -255,6 +256,7 @@
     </div>
 
         <!-- Código de verificación y QR arriba -->
+         <!-- Código de verificación y QR arriba -->
         <table style="
             width: 100%;
             border-collapse: collapse;
@@ -272,15 +274,15 @@
                     padding-top: -80px;
                 ">
                     <div style="
-                        border: 2px solid #000;
-                        padding: 8px 12px;
+                        border: 1.5px solid #000;
+                        padding: 8px 10px;
                         display: inline-block;
-                        font-size: 16px;
+                        font-size: 14px;
                         font-weight: bold;
                         background-color: #ffffff;
                     ">
-                        Código de Verificación: <br>
-                        <span style="font-size: 18px; color: #00060c;">
+                        Código Verificación: <br>
+                        <span style="font-size: 14px; color: #00060c;">
                             {{ $codigoVerificacion ?? 'N/A' }}
                         </span>
                     </div>
@@ -291,7 +293,7 @@
                     width: 40%;
                     text-align: right;        /* QR a la derecha */
                     vertical-align: top;      /* Arriba */
-                    padding-right: 80px;      /* Ajusta si necesitas más espacio */
+                    padding-right: 65px;      /* Ajusta si necesitas más espacio */
                     padding-top: -80px;
                 ">
                     <img src="{{ $qrCode }}" width="100" height="100" style="border: 1px solid #ddd;" />
@@ -425,6 +427,7 @@
 
         <!-- Cuadro azul en la esquina inferior derecha -->
         <div class="footer-blue-box"></div>
+    </div>
 
 </body>
 
