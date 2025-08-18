@@ -209,9 +209,17 @@ class ListFichasActualizacionVinculacion extends Component implements HasForms, 
                                         'comentario' => 'Ficha de actualización aprobada por Revisor de Vinculación. Actualización completada exitosamente.',
                                     ]);
 
+                                    // PROCESAR LAS BAJAS PENDIENTES - APLICAR LOS CAMBIOS AL EQUIPO EJECUTOR
+                                    $bajasProcesadas = $fichaActualizacion->procesarBajasPendientes();
+
+                                    $mensaje = 'Ficha de Actualización Aprobada. Estado cambiado a "Actualización realizada".';
+                                    if ($bajasProcesadas > 0) {
+                                        $mensaje .= " Se han aplicado {$bajasProcesadas} baja(s) al equipo ejecutor.";
+                                    }
+
                                     Notification::make()
                                         ->title('¡Realizado!')
-                                        ->body('Ficha de Actualización Aprobada. Estado cambiado a "Actualización realizada".')
+                                        ->body($mensaje)
                                         ->success()
                                         ->send();
                                 }

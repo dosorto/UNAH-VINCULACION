@@ -169,7 +169,7 @@ class PrimeraParte
                                     return;
                                 }
                                 
-                                // Crear registro en tabla de bajas con información completa
+                                // Crear registro de baja PENDIENTE (NO eliminar del equipo aún)
                                 EquipoEjecutorBaja::create([
                                     'proyecto_id' => $proyectoId,
                                     'integrante_id' => $empleadoId,
@@ -179,15 +179,16 @@ class PrimeraParte
                                     'motivo_baja' => $data['motivo_baja'],
                                     'fecha_baja' => now(),
                                     'usuario_baja_id' => auth()->id(),
+                                    'estado_baja' => 'pendiente',
+                                    'ficha_actualizacion_id' => null, // Se asignará cuando se cree la ficha
                                 ]);
                                 
-                                // Eliminar de la tabla de equipo ejecutor
-                                $empleadoProyecto->delete();
+                                // NO eliminar del equipo ejecutor aquí - se hará cuando se apruebe la ficha
                                 
                                 // Notificación
                                 Notification::make()
-                                    ->title('Integrante dado de baja')
-                                    ->body('El integrante ha sido trasladado a la tabla de bajas.')
+                                    ->title('Solicitud de baja registrada')
+                                    ->body('La solicitud de baja ha sido registrada. Se aplicará cuando la ficha de actualización sea aprobada.')
                                     ->success()
                                     ->send();
                                     
@@ -308,7 +309,7 @@ class PrimeraParte
                                     return;
                                 }
                                 
-                                // Crear registro en tabla de bajas con información completa
+                                // Crear registro de baja PENDIENTE (NO eliminar del equipo aún)
                                 EquipoEjecutorBaja::create([
                                     'proyecto_id' => $proyectoId,
                                     'integrante_id' => $estudianteId,
@@ -318,14 +319,15 @@ class PrimeraParte
                                     'motivo_baja' => $data['motivo_baja'],
                                     'fecha_baja' => now(),
                                     'usuario_baja_id' => auth()->id(),
+                                    'estado_baja' => 'pendiente',
+                                    'ficha_actualizacion_id' => null, // Se asignará cuando se cree la ficha
                                 ]);
                                 
-                                // Eliminar de la tabla de equipo ejecutor
-                                $estudianteProyecto->delete();
+                                // NO eliminar del equipo ejecutor aquí - se hará cuando se apruebe la ficha
 
                                 Notification::make()
-                                    ->title('Estudiante dado de baja')
-                                    ->body('El estudiante ha sido trasladado a la tabla de bajas.')
+                                    ->title('Solicitud de baja registrada')
+                                    ->body('La solicitud de baja del estudiante ha sido registrada. Se aplicará cuando la ficha de actualización sea aprobada.')
                                     ->success()
                                     ->send();
                                     
@@ -433,7 +435,7 @@ class PrimeraParte
                                     return;
                                 }
                                 
-                                // Crear registro en tabla de bajas con información completa
+                                // Crear registro de baja PENDIENTE (NO eliminar del equipo aún)
                                 EquipoEjecutorBaja::create([
                                     'proyecto_id' => $proyectoId,
                                     'integrante_id' => $integranteInternacionalId,
@@ -443,14 +445,15 @@ class PrimeraParte
                                     'motivo_baja' => $data['motivo_baja'],
                                     'fecha_baja' => now(),
                                     'usuario_baja_id' => auth()->id(),
+                                    'estado_baja' => 'pendiente',
+                                    'ficha_actualizacion_id' => null, // Se asignará cuando se cree la ficha
                                 ]);
                                 
-                                // Eliminar de la tabla de equipo ejecutor
-                                $integranteProyecto->delete();
+                                // NO eliminar del equipo ejecutor aquí - se hará cuando se apruebe la ficha
 
                                 Notification::make()
-                                    ->title('Integrante internacional dado de baja')
-                                    ->body('El integrante internacional ha sido trasladado a la tabla de bajas.')
+                                    ->title('Solicitud de baja registrada')
+                                    ->body('La solicitud de baja del integrante internacional ha sido registrada. Se aplicará cuando la ficha de actualización sea aprobada.')
                                     ->success()
                                     ->send();
                                     

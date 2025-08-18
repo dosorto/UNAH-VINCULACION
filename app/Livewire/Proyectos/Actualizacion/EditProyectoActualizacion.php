@@ -162,6 +162,16 @@ class EditProyectoActualizacion extends Component implements HasForms
             'motivo_razones_cambio' => $data['motivo_razones_cambio'] ?? null,
         ]);
 
+        // Asociar las bajas pendientes con esta ficha de actualización
+        $bajasPendientes = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $this->record->id)
+            ->where('estado_baja', 'pendiente')
+            ->whereNull('ficha_actualizacion_id')
+            ->get();
+            
+        foreach ($bajasPendientes as $baja) {
+            $baja->update(['ficha_actualizacion_id' => $fichaActualizacion->id]);
+        }
+
         // Crear TODAS las firmas necesarias para la ficha de actualización usando los cargos específicos
         $cargosFirmaActualizacion = CargoFirma::where('descripcion', 'Ficha_actualizacion')->get();
         
@@ -276,6 +286,7 @@ class EditProyectoActualizacion extends Component implements HasForms
                 ]
             );
             
+            // Intentar agregar el estado del proyecto
             // Intentar agregar el estado del proyecto
             $record->estado_proyecto()->create([
                 'empleado_id' => auth()->user()->empleado->id,

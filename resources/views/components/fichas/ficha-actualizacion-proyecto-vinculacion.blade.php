@@ -109,7 +109,8 @@
                         </tr>
                         @php
                             // Obtener integrantes que se dieron de baja de la tabla equipoEjecutorBajas
-                            $integrantesBaja = $proyecto->equipoEjecutorBajas
+                            // SOLO las bajas asociadas a ESTA ficha específica
+                            $integrantesBaja = $fichaActualizacion->equipoEjecutorBajas
                                 ->where('tipo_integrante', 'empleado')
                                 ->pluck('integrante_id');
                                 
@@ -194,7 +195,8 @@
                         </tr>
                         @php
                             // Obtener estudiantes que se dieron de baja de la tabla equipoEjecutorBajas
-                            $estudiantesBaja = $proyecto->equipoEjecutorBajas
+                            // SOLO las bajas asociadas a ESTA ficha específica
+                            $estudiantesBaja = $fichaActualizacion->equipoEjecutorBajas
                                 ->where('tipo_integrante', 'estudiante')
                                 ->pluck('integrante_id');
                                 
@@ -264,7 +266,8 @@
                         </tr>
                         @php
                             // Obtener integrantes internacionales que se dieron de baja de la tabla equipoEjecutorBajas
-                            $integrantesInternacionalesBaja = $proyecto->equipoEjecutorBajas
+                            // SOLO las bajas asociadas a ESTA ficha específica
+                            $integrantesInternacionalesBaja = $fichaActualizacion->equipoEjecutorBajas
                                 ->where('tipo_integrante', 'integrante_internacional')
                                 ->pluck('integrante_id');
                                 
@@ -358,7 +361,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 <textarea disabled id="resumen" name="resumen" cols="30" rows="6" class="input-field"
-                                    placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->resumen) }}</textarea>
+                                    placeholder="Ingrese el resumen">{{ $fichaActualizacion->motivo_responsabilidades_nuevos ?? '' }}</textarea>
                             </td>
                         </tr>
                     </table>
@@ -373,7 +376,8 @@
                         
                         <!-- EMPLEADOS DADOS DE BAJA -->
                         @php
-                            $empleadosBaja = $proyecto->equipoEjecutorBajas->where('tipo_integrante', 'empleado');
+                            // SOLO las bajas de empleados asociadas a ESTA ficha específica
+                            $empleadosBaja = $fichaActualizacion->equipoEjecutorBajas->where('tipo_integrante', 'empleado');
                         @endphp
                         
                         <tr>
@@ -421,7 +425,8 @@
 
                         <!-- ESTUDIANTES DADOS DE BAJA -->
                         @php
-                            $estudiantesBaja = $proyecto->equipoEjecutorBajas->where('tipo_integrante', 'estudiante');
+                            // SOLO las bajas de estudiantes asociadas a ESTA ficha específica
+                            $estudiantesBaja = $fichaActualizacion->equipoEjecutorBajas->where('tipo_integrante', 'estudiante');
                         @endphp
 
                         <tr>
@@ -469,7 +474,8 @@
 
                         <!-- INTEGRANTES INTERNACIONALES DADOS DE BAJA -->
                         @php
-                            $internacionalesBaja = $proyecto->equipoEjecutorBajas->where('tipo_integrante', 'integrante_internacional');
+                            // SOLO las bajas de integrantes internacionales asociadas a ESTA ficha específica
+                            $internacionalesBaja = $fichaActualizacion->equipoEjecutorBajas->where('tipo_integrante', 'integrante_internacional');
                         @endphp
 
                         <tr>
@@ -547,7 +553,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 <textarea disabled id="resumen" name="resumen" cols="30" rows="6" class="input-field"
-                                    placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->resumen) }}</textarea>
+                                    placeholder="Ingrese el resumen">{{ $fichaActualizacion->motivo_razones_cambio ?? '' }}</textarea>
                             </td>
                         </tr>
                     </table>
@@ -628,30 +634,7 @@
                     </table>
                 </div>
 
-                <!-- SECCIÓN DE MOTIVOS DE CAMBIOS EN EL EQUIPO -->
-                <div class="section3">
-                    <div class="section-title">III. MOTIVOS DE CAMBIOS EN EL EQUIPO EJECUTOR.</div>
-                    <table class="table_datos3">
-                        <tr>
-                            <th class="motivos" colspan="19">Describa las responsabilidades de los nuevos miembros</th>
-                        </tr>
-                        <tr>
-                            <td class="full-width" colspan="19">
-                                <textarea disabled id="motivo_responsabilidades_nuevos" name="motivo_responsabilidades_nuevos" cols="30" rows="6" class="input-field"
-                                    placeholder="Describa las responsabilidades específicas que tendrán los nuevos miembros del equipo">{{ $fichaActualizacion->motivo_responsabilidades_nuevos ?? '' }}</textarea>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th class="motivos" colspan="19">Describa las razones por las cuales se cambia al equipo</th>
-                        </tr>
-                        <tr>
-                            <td class="full-width" colspan="19">
-                                <textarea disabled id="motivo_razones_cambio" name="motivo_razones_cambio" cols="30" rows="6" class="input-field"
-                                    placeholder="Explique las razones que justifican los cambios en la composición del equipo ejecutor">{{ $fichaActualizacion->motivo_razones_cambio ?? '' }}</textarea>
-                            </td>
-                        </tr>
-                    </table>
-                </div>  
+                
 
                 <!-- SECCIÓN DE FIRMAS -->
                 <div class="section3">
