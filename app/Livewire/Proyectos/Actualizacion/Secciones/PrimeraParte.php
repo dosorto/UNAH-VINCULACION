@@ -6,6 +6,7 @@ use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioDocente;
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioEstudiante;
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioIntegranteInternacional;
 use App\Models\Proyecto\EquipoEjecutorBaja;
+use App\Models\Proyecto\EquipoEjecutorNuevo;
 
 use Filament\Forms;
 use App\Models\User;
@@ -31,6 +32,7 @@ use Filament\Forms\Set;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Actions;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Hash;
 
 class PrimeraParte
 {
@@ -71,31 +73,7 @@ class PrimeraParte
                             // QUITAR EL ID DEL USUARIO LOGUEADO DE LA LISTA DE EMPLEADOS
                             modifyQueryUsing: fn(Builder $query) =>  $query->where('user_id', '!=', auth()->id())
                         )
-                        ->createOptionForm(
-                            FormularioDocente::form()
-                        )
-                        ->createOptionUsing(function (array $data) {
-                            // Crear el usuario primero
-                            $user = User::create([
-                                'email' => $data['email'] ?? 'temp_' . uniqid() . '@temp.com',
-                                'name' => $data['nombre_completo'],
-                                'password' => \Illuminate\Support\Facades\Hash::make('password123'), // Contraseña temporal
-                            ]);
-
-                            // Crear el empleado asociado al usuario
-                            $empleado = \App\Models\Personal\Empleado::create([
-                                'user_id' => $user->id,
-                                'centro_facultad_id' => $data['centro_facultad_id'],
-                                'departamento_academico_id' => $data['departamento_academico_id'],
-                                'nombre_completo' => $data['nombre_completo'],
-                                'sexo' => $data['sexo'],
-                                'numero_empleado' => $data['numero_empleado'],
-                                'categoria_id' => $data['categoria_id'],
-                                'celular' => $data['celular'] ?? null,
-                            ]);
-
-                            return $empleado;
-                        })
+                        ->disabled()
                         ->required(),
                     TextInput::make('rol')
                         ->label('Rol')
@@ -200,10 +178,99 @@ class PrimeraParte
                 ->relationship()
                 ->columnSpanFull()
                 ->deletable(false)
-                ->defaultItems(0)
+                ->addable(false)
+                ->defaultItems(fn($livewire) => $livewire->record ? $livewire->record->empleado_proyecto->count() : 0)
                 ->itemLabel('Empleado')
-                ->addActionLabel('Agregar empleado')
-                ->grid(2),
+                ->grid(2)
+                ->live(),
+                
+            // Botón para solicitar nuevo empleado
+            Actions::make([
+                Action::make('solicitar_empleado')
+                    ->label('Agregar Nuevo Empleado')
+                    ->icon('heroicon-o-user-plus')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Agregar Nuevo Empleado')
+                    ->modalDescription('Complete la información para agregar un nuevo empleado al proyecto.')
+                    ->modalSubmitActionLabel('Agregar')
+                    ->form([
+                        Select::make('empleado_id')
+                            ->label('Empleado')
+                            ->required()
+                            ->searchable(['nombre_completo', 'numero_empleado'])
+                            ->options(function ($livewire) {
+                                $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
+                                
+                                // Obtener IDs de empleados que ya están en el proyecto
+                                $empleadosEnProyecto = \App\Models\Personal\EmpleadoProyecto::where('proyecto_id', $proyectoId)
+                                    ->pluck('empleado_id')
+                                    ->toArray();
+                                
+                                return \App\Models\Personal\Empleado::where('user_id', '!=', auth()->id())
+                                    ->whereNotIn('id', $empleadosEnProyecto)
+                                    ->pluck('nombre_completo', 'id');
+                            })
+                            ->getSearchResultsUsing(function (string $search, $livewire) {
+                                $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
+                                
+                                // Obtener IDs de empleados que ya están en el proyecto
+                                $empleadosEnProyecto = \App\Models\Personal\EmpleadoProyecto::where('proyecto_id', $proyectoId)
+                                    ->pluck('empleado_id')
+                                    ->toArray();
+                                
+                                return \App\Models\Personal\Empleado::where('user_id', '!=', auth()->id())
+                                    ->whereNotIn('id', $empleadosEnProyecto)
+                                    ->where(function ($query) use ($search) {
+                                        $query->where('nombre_completo', 'like', "%{$search}%")
+                                              ->orWhere('numero_empleado', 'like', "%{$search}%");
+                                    })
+                                    ->limit(50)
+                                    ->pluck('nombre_completo', 'id');
+                            })
+                            ->helperText('Si no encuentra el empleado en la lista, puede pedirle a ese empleado crear su cuenta en NEXO'),
+                        TextInput::make('rol')
+                            ->label('Rol')
+                            ->disabled()
+                            ->required()
+                            ->default('Integrante'),
+                        Hidden::make('rol')
+                        ->default('Integrante'),
+                        Textarea::make('motivo_incorporacion')
+                            ->label('Motivo de incorporación')
+                            ->required()
+                            ->placeholder('Describa las razones y responsabilidades del nuevo integrante...')
+                            ->rows(3),
+                    ])
+                    ->action(function (array $data, $component) {
+                        $livewire = $component->getLivewire();
+                        $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
+                        
+                        // Obtener información del empleado
+                        $empleado = \App\Models\Personal\Empleado::find($data['empleado_id']);
+                        
+                        // Crear solicitud pendiente
+                        EquipoEjecutorNuevo::create([
+                            'proyecto_id' => $proyectoId,
+                            'integrante_id' => $data['empleado_id'],
+                            'tipo_integrante' => 'empleado',
+                            'nombre_integrante' => $empleado->nombre_completo,
+                            'rol_nuevo' => $data['rol'],
+                            'motivo_incorporacion' => $data['motivo_incorporacion'],
+                            'fecha_solicitud' => now(),
+                            'usuario_solicitud_id' => auth()->id(),
+                            'estado_incorporacion' => 'pendiente',
+                        ]);
+                        
+                        Notification::make()
+                            ->title('Solicitud enviada')
+                            ->body('La solicitud de incorporación del empleado ha sido registrada. Se aplicará cuando la ficha de actualización sea aprobada.')
+                            ->success()
+                            ->send();
+                            
+                        $livewire->dispatch('refresh-form');
+                    }),
+            ])->columnSpanFull(),
                 
             Repeater::make('estudiante_proyecto')
                 ->schema([
@@ -215,25 +282,7 @@ class PrimeraParte
                             name: 'estudiante',
                             titleAttribute: 'cuenta'
                         )
-                        ->createOptionForm(
-                            FormularioEstudiante::form()
-                        )
-                        ->required()
-                        ->createOptionUsing(function (array $data) {
-                            $user = User::create([
-                                'email' => $data['email'],
-                                'name' => $data['nombre'] . ' ' . $data['apellido']
-                            ]);
-                            $user->estudiante()->create([
-                                'user_id' => $user->id,
-                                'nombre' => $data['nombre'],
-                                'apellido' => $data['apellido'],
-                                'cuenta' => $data['cuenta'],
-                                'sexo' => $data['sexo'],
-                                'centro_facultad_id' => $data['centro_facultad_id'],
-                                'carrera_id' => $data['carrera_id'],
-                            ]);
-                        })
+                        ->disabled()
                         ->required(),
                     Select::make('tipo_participacion_estudiante')
                         ->label('Tipo de participación')
@@ -243,6 +292,7 @@ class PrimeraParte
                             'Servicio Social o PPS' => 'Servicio Social o PPS',
                             'Voluntariado' => 'Voluntariado',
                         ])
+                        ->disabled()
                         ->required(),
                     Actions::make([
                         Action::make('dar_baja_estudiante')
@@ -339,37 +389,173 @@ class PrimeraParte
                 ->label('Estudiantes')
                 ->relationship()
                 ->deletable(false)
-                ->defaultItems(0)
+                ->addable(false)
+                ->defaultItems(fn($livewire) => $livewire->record ? $livewire->record->estudiante_proyecto->count() : 0)
                 ->columnSpanFull()
                 ->grid(2)
-                ->addActionLabel('Agregar estudiante'),
+                ->live(),
+                
+            // Botón para solicitar nuevo estudiante
+            Actions::make([
+                Action::make('solicitar_estudiante')
+                    ->label('Agregar Nuevo Estudiante')
+                    ->icon('heroicon-o-user-plus')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Agregar Nuevo Estudiante')
+                    ->modalDescription('Complete la información para agregar un nuevo estudiante al proyecto.')
+                    ->modalSubmitActionLabel('Agregar')
+                    ->form([
+                        Select::make('estudiante_id')
+                            ->label('Estudiante')
+                            ->required()
+                            ->searchable(['cuenta', 'nombre', 'apellido'])
+                            ->options(function ($livewire) {
+                                $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
+                                
+                                // Obtener IDs de estudiantes que ya están en el proyecto
+                                $estudiantesEnProyecto = \App\Models\Estudiante\EstudianteProyecto::where('proyecto_id', $proyectoId)
+                                    ->pluck('estudiante_id')
+                                    ->toArray();
+                                
+                                $estudiantes = \App\Models\Estudiante\Estudiante::whereNotIn('id', $estudiantesEnProyecto)->get();
+                                
+                                $opciones = [];
+                                foreach ($estudiantes as $estudiante) {
+                                    $opciones[$estudiante->id] = $estudiante->cuenta . ' - ' . $estudiante->nombre . ' ' . $estudiante->apellido;
+                                }
+                                
+                                return $opciones;
+                            })
+                            ->getSearchResultsUsing(function (string $search, $livewire) {
+                                $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
+                                
+                                // Obtener IDs de estudiantes que ya están en el proyecto
+                                $estudiantesEnProyecto = \App\Models\Estudiante\EstudianteProyecto::where('proyecto_id', $proyectoId)
+                                    ->pluck('estudiante_id')
+                                    ->toArray();
+                                
+                                $estudiantes = \App\Models\Estudiante\Estudiante::whereNotIn('id', $estudiantesEnProyecto)
+                                    ->where(function ($query) use ($search) {
+                                        $query->where('cuenta', 'like', "%{$search}%")
+                                              ->orWhere('nombre', 'like', "%{$search}%")
+                                              ->orWhere('apellido', 'like', "%{$search}%");
+                                    })
+                                    ->limit(50)
+                                    ->get();
+                                
+                                $opciones = [];
+                                foreach ($estudiantes as $estudiante) {
+                                    $opciones[$estudiante->id] = $estudiante->cuenta . ' - ' . $estudiante->nombre . ' ' . $estudiante->apellido;
+                                }
+                                
+                                return $opciones;
+                            })
+                            ->createOptionForm(
+                                FormularioEstudiante::form()
+                            )
+                            ->createOptionUsing(function (array $data) {
+                                // Crear estudiante, opcionalmente con user_id
+                                $estudianteData = $data;
+                                
+                                // Si se proporciona email, crear usuario asociado
+                                if (isset($data['email']) && !empty($data['email'])) {
+                                    $user = \App\Models\User::create([
+                                        'name' => $data['nombre'] . ' ' . $data['apellido'],
+                                        'email' => $data['email'],
+                                        'password' => Hash::make('password123'), // Password temporal
+                                        'email_verified_at' => now(),
+                                    ]);
+                                    
+                                    // Asignar rol de estudiante
+                                    $user->assignRole('Estudiante');
+                                    
+                                    $estudianteData['user_id'] = $user->id;
+                                }
+                                
+                                // Remover email del array ya que no va en la tabla estudiante
+                                unset($estudianteData['email']);
+                                
+                                return \App\Models\Estudiante\Estudiante::create($estudianteData);
+                            })
+                            ->helperText('Si no encuentra el estudiante en la lista, puede crear uno nuevo usando el botón "+"'),
+                        Select::make('tipo_participacion_estudiante')
+                            ->label('Tipo de participación')
+                            ->required()
+                            ->options([
+                                'Practica Profesional' => 'Práctica Profesional',
+                                'Servicio Social o PPS' => 'Servicio Social o PPS',
+                                'Voluntariado' => 'Voluntariado',
+                            ])
+                            ->default('Voluntariado'),
+                        Textarea::make('motivo_incorporacion')
+                            ->label('Motivo de incorporación')
+                            ->required()
+                            ->placeholder('Describa las razones y responsabilidades del nuevo estudiante...')
+                            ->rows(3),
+                    ])
+                    ->action(function (array $data, $component) {
+                        $livewire = $component->getLivewire();
+                        $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
+                        
+                        // Obtener información del estudiante
+                        $estudiante = \App\Models\Estudiante\Estudiante::find($data['estudiante_id']);
+                        
+                        if (!$estudiante) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('No se pudo encontrar el estudiante seleccionado.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+                        
+                        // Crear solicitud pendiente
+                        EquipoEjecutorNuevo::create([
+                            'proyecto_id' => $proyectoId,
+                            'integrante_id' => $data['estudiante_id'],
+                            'tipo_integrante' => 'estudiante',
+                            'nombre_integrante' => $estudiante->nombre . ' ' . $estudiante->apellido,
+                            'rol_nuevo' => $data['tipo_participacion_estudiante'],
+                            'motivo_incorporacion' => $data['motivo_incorporacion'],
+                            'fecha_solicitud' => now(),
+                            'usuario_solicitud_id' => auth()->id(),
+                            'estado_incorporacion' => 'pendiente',
+                        ]);
+                        
+                        Notification::make()
+                            ->title('Solicitud enviada')
+                            ->body('La solicitud de incorporación del estudiante ha sido registrada. Se aplicará cuando la ficha de actualización sea aprobada.')
+                            ->success()
+                            ->send();
+                            
+                        $livewire->dispatch('refresh-form');
+                    }),
+            ])->columnSpanFull(),
                 
             Repeater::make('integrante_internacional_proyecto')
                 ->label('Integrantes de cooperación internacional')
                 ->schema([
                     Select::make('integrante_internacional_id')
                         ->label('Integrante Internacional')
-                        ->distinct()
+                        ->disabled()
                         ->searchable(['nombre_completo', 'pais', 'institucion'])
-                        ->relationship(
-                            name: 'integranteInternacional',
-                            titleAttribute: 'nombre_completo'
-                        )
-                        ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->nombre_completo} ({$record->pais} - {$record->institucion})")
-                        ->createOptionForm(
-                            FormularioIntegranteInternacional::form()
-                        )
-                        ->required()
-                        ->createOptionUsing(function (array $data) {
-                            return IntegranteInternacional::create($data);
-                        }),
+                        ->options(function ($state, $livewire) {
+                            if (!$state) return [];
+                            
+                            $integrante = \App\Models\Proyecto\IntegranteInternacional::find($state);
+                            if (!$integrante) return [];
+                            
+                            return [$integrante->id => "{$integrante->nombre_completo} ({$integrante->pais} - {$integrante->institucion})"];
+                        })
+                        ->required(),
                     TextInput::make('rol')
                         ->label('Rol')
                         ->disabled()
                         ->required()
-                        ->default('Cooperante Internacional'),
+                        ->default('Integrante Internacional'),
                     Hidden::make('rol')
-                        ->default('Cooperante Internacional'),
+                        ->default('Integrante Internacional'),
                     Actions::make([
                         Action::make('dar_baja_internacional')
                             ->label('Dar de Baja')
@@ -441,7 +627,7 @@ class PrimeraParte
                                     'integrante_id' => $integranteInternacionalId,
                                     'tipo_integrante' => 'integrante_internacional',
                                     'nombre_integrante' => $integranteProyecto->integranteInternacional->nombre_completo,
-                                    'rol_anterior' => $integranteProyecto->rol ?? 'Cooperante Internacional',
+                                    'rol_anterior' => $integranteProyecto->rol ?? 'Integrante Internacional',
                                     'motivo_baja' => $data['motivo_baja'],
                                     'fecha_baja' => now(),
                                     'usuario_baja_id' => auth()->id(),
@@ -462,13 +648,204 @@ class PrimeraParte
                             }),
                     ])->columnSpanFull(),
                 ])
+                ->label('Integrantes de cooperación internacional')
                 ->relationship()
                 ->columnSpanFull()
                 ->deletable(false)
-                ->defaultItems(0)
-                ->itemLabel('Integrante Internacional')
-                ->addActionLabel('Agregar integrante internacional')
-                ->grid(2),
+                ->addable(false)
+                ->defaultItems(fn($livewire) => $livewire->record ? $livewire->record->integrante_internacional_proyecto->count() : 0)
+                ->grid(2)
+                ->live(),
+                
+            // Botón para solicitar nuevo integrante internacional
+            Actions::make([
+                Action::make('solicitar_internacional')
+                    ->label('Agregar Nuevo Integrante Internacional')
+                    ->icon('heroicon-o-user-plus')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Agregar Nuevo Integrante Internacional')
+                    ->modalDescription('Complete la información para agregar un nuevo integrante internacional al proyecto.')
+                    ->modalSubmitActionLabel('Agregar')
+                    ->form([
+                        Select::make('integrante_internacional_id')
+                            ->label('Integrante Internacional')
+                            ->required()
+                            ->searchable(['nombre_completo', 'pais', 'institucion'])
+                            ->options(function ($livewire) {
+                                $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
+                                
+                                // Obtener IDs de integrantes internacionales que ya están en el proyecto
+                                $internacionalesEnProyecto = \App\Models\Proyecto\IntegranteInternacionalProyecto::where('proyecto_id', $proyectoId)
+                                    ->pluck('integrante_internacional_id')
+                                    ->toArray();
+                                
+                                $integrantes = \App\Models\Proyecto\IntegranteInternacional::whereNotIn('id', $internacionalesEnProyecto)->get();
+                                
+                                $opciones = [];
+                                foreach ($integrantes as $integrante) {
+                                    $opciones[$integrante->id] = "{$integrante->nombre_completo} ({$integrante->pais} - {$integrante->institucion})";
+                                }
+                                
+                                return $opciones;
+                            })
+                            ->getSearchResultsUsing(function (string $search, $livewire) {
+                                $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
+                                
+                                // Obtener IDs de integrantes internacionales que ya están en el proyecto
+                                $internacionalesEnProyecto = \App\Models\Proyecto\IntegranteInternacionalProyecto::where('proyecto_id', $proyectoId)
+                                    ->pluck('integrante_internacional_id')
+                                    ->toArray();
+                                
+                                $integrantes = \App\Models\Proyecto\IntegranteInternacional::whereNotIn('id', $internacionalesEnProyecto)
+                                    ->where(function ($query) use ($search) {
+                                        $query->where('nombre_completo', 'like', "%{$search}%")
+                                              ->orWhere('pais', 'like', "%{$search}%")
+                                              ->orWhere('institucion', 'like', "%{$search}%");
+                                    })
+                                    ->limit(50)
+                                    ->get();
+                                
+                                $opciones = [];
+                                foreach ($integrantes as $integrante) {
+                                    $opciones[$integrante->id] = "{$integrante->nombre_completo} ({$integrante->pais} - {$integrante->institucion})";
+                                }
+                                
+                                return $opciones;
+                            })
+                            ->createOptionForm(
+                                FormularioIntegranteInternacional::form()
+                            )
+                            ->createOptionUsing(function (array $data) {
+                                return \App\Models\Proyecto\IntegranteInternacional::create($data);
+                            })
+                            ->helperText('Si no encuentra el integrante en la lista, puede crear uno nuevo usando el botón "+"'),
+                        Textarea::make('motivo_incorporacion')
+                            ->label('Motivo de incorporación')
+                            ->required()
+                            ->placeholder('Describa las razones y responsabilidades del nuevo integrante internacional...')
+                            ->rows(3),
+                    ])
+                    ->action(function (array $data, $component) {
+                        $livewire = $component->getLivewire();
+                        $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
+                        
+                        // Obtener información del integrante internacional
+                        $integrante = \App\Models\Proyecto\IntegranteInternacional::find($data['integrante_internacional_id']);
+                        
+                        if (!$integrante) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('No se pudo encontrar el integrante internacional seleccionado.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+                        
+                        // Crear solicitud pendiente
+                        EquipoEjecutorNuevo::create([
+                            'proyecto_id' => $proyectoId,
+                            'integrante_id' => $data['integrante_internacional_id'],
+                            'tipo_integrante' => 'integrante_internacional',
+                            'nombre_integrante' => $integrante->nombre_completo,
+                            'rol_nuevo' => 'Integrante Internacional',
+                            'motivo_incorporacion' => $data['motivo_incorporacion'],
+                            'fecha_solicitud' => now(),
+                            'usuario_solicitud_id' => auth()->id(),
+                            'estado_incorporacion' => 'pendiente',
+                        ]);
+                        
+                        Notification::make()
+                            ->title('Solicitud enviada')
+                            ->body('La solicitud de incorporación del integrante internacional ha sido registrada. Se aplicará cuando la ficha de actualización sea aprobada.')
+                            ->success()
+                            ->send();
+                            
+                        $livewire->dispatch('refresh-form');
+                    }),
+            ])->columnSpanFull(),
+
+            // Sección de nuevos integrantes pendientes
+            Fieldset::make('Solicitudes de Nuevos Integrantes')
+                ->schema([
+                    Repeater::make('equipo_ejecutor_nuevos')
+                        ->label('Nuevos integrantes pendientes de aprobación')
+                        ->schema([
+                            TextInput::make('id')
+                                ->label('Nombre del Integrante')
+                                ->disabled()
+                                ->formatStateUsing(function ($record, $state) {
+                                    if (!$record) return '';
+                                    return $record->nombre_integrante;
+                                })
+                                ->columnSpan(2),
+                                
+                            TextInput::make('tipo_integrante')
+                                ->label('Tipo')
+                                ->disabled()
+                                ->formatStateUsing(function ($state) {
+                                    return match($state) {
+                                        'empleado' => 'Empleado',
+                                        'estudiante' => 'Estudiante',
+                                        'integrante_internacional' => 'Integrante Internacional',
+                                        default => 'N/A'
+                                    };
+                                })
+                                ->columnSpan(1),
+                                
+                            TextInput::make('rol_nuevo')
+                                ->label('Rol Propuesto')
+                                ->disabled()
+                                ->columnSpan(1),
+                                
+                            Textarea::make('motivo_incorporacion')
+                                ->label('Motivo de Incorporación')
+                                ->disabled()
+                                ->rows(2)
+                                ->columnSpan(2),
+                                
+                            TextInput::make('fecha_solicitud')
+                                ->label('Fecha de Solicitud')
+                                ->disabled()
+                                ->formatStateUsing(fn ($state) => $state ? \Carbon\Carbon::parse($state)->format('d/m/Y H:i') : '')
+                                ->columnSpan(1),
+                                
+                            Actions::make([
+                                Action::make('cancelar_solicitud')
+                                    ->label('Cancelar Solicitud')
+                                    ->icon('heroicon-o-x-mark')
+                                    ->color('danger')
+                                    ->requiresConfirmation()
+                                    ->modalHeading('¿Cancelar solicitud de incorporación?')
+                                    ->modalDescription('Esta acción eliminará la solicitud de incorporación del nuevo integrante.')
+                                    ->modalSubmitActionLabel('Cancelar Solicitud')
+                                    ->action(function ($record, $component) {
+                                        $livewire = $component->getLivewire();
+                                        
+                                        // Eliminar el registro de solicitud
+                                        $record->delete();
+                                        
+                                        Notification::make()
+                                            ->title('Solicitud cancelada')
+                                            ->body('La solicitud de incorporación ha sido cancelada.')
+                                            ->success()
+                                            ->send();
+                                            
+                                        // Refrescar el formulario
+                                        $livewire->dispatch('refresh-form');
+                                    }),
+                            ])->columnSpanFull(),
+                        ])
+                        ->relationship('equipoEjecutorNuevos')
+                        ->addable(false)
+                        ->deletable(false)
+                        ->reorderable(false)
+                        ->columns(4)
+                        ->columnSpanFull()
+                        ->defaultItems(0)
+                        ->live(),
+                ])
+                ->columnSpanFull(),
 
             
             // Motivos generales de cambios en el equipo
@@ -478,15 +855,73 @@ class PrimeraParte
                         ->label('Motivos del cambio de integrantes de equipo (Describa las responsabilidades de los nuevos miembros)')
                         ->placeholder('Describa las responsabilidades específicas que tendrán los nuevos miembros del equipo...')
                         ->rows(4)
-                        ->columnSpanFull(),
+                        ->columnSpanFull()
+                        ->visible(function (Get $get, $livewire) {
+                            // Mostrar solo si se han agregado nuevos integrantes durante la edición
+                            $empleados = $get('empleado_proyecto') ?? [];
+                            $estudiantes = $get('estudiante_proyecto') ?? [];
+                            $internacionales = $get('integrante_internacional_proyecto') ?? [];
+                            
+                            // Contar integrantes agregados en esta sesión
+                            $totalActual = count($empleados) + count($estudiantes) + count($internacionales);
+                            
+                            // Obtener los integrantes originales del proyecto
+                            if (isset($livewire->record)) {
+                                $empleadosOriginales = $livewire->record->empleado_proyecto->count();
+                                $estudiantesOriginales = $livewire->record->estudiante_proyecto->count();
+                                $internacionalesOriginales = $livewire->record->integrante_internacional_proyecto->count();
+                                $totalOriginal = $empleadosOriginales + $estudiantesOriginales + $internacionalesOriginales;
+                                
+                                return $totalActual > $totalOriginal;
+                            }
+                            
+                            return $totalActual > 0;
+                        }),
                     
                     Textarea::make('motivo_razones_cambio')
                         ->label('Motivos del cambio de integrantes de equipo (Describa las razones por las cuales se cambia al equipo)')
                         ->placeholder('Explique las razones que justifican los cambios en la composición del equipo ejecutor...')
                         ->rows(4)
-                        ->columnSpanFull(),
+                        ->columnSpanFull()
+                        ->visible(function (Get $get, $livewire) {
+                            // Mostrar solo si hay integrantes dados de baja pendientes
+                            if (isset($livewire->record)) {
+                                $bajasPendientes = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $livewire->record->id)
+                                    ->where('estado_baja', 'pendiente')
+                                    ->count();
+                                return $bajasPendientes > 0;
+                            }
+                            return false;
+                        }),
                 ])
-                ->columnSpanFull(),
+                ->columnSpanFull()
+                ->visible(function (Get $get, $livewire) {
+                    // Mostrar el fieldset solo si hay cambios (nuevos o bajas)
+                    $empleados = $get('empleado_proyecto') ?? [];
+                    $estudiantes = $get('estudiante_proyecto') ?? [];
+                    $internacionales = $get('integrante_internacional_proyecto') ?? [];
+                    
+                    $totalActual = count($empleados) + count($estudiantes) + count($internacionales);
+                    
+                    // Verificar si hay bajas pendientes
+                    $hayBajas = false;
+                    if (isset($livewire->record)) {
+                        $bajasPendientes = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $livewire->record->id)
+                            ->where('estado_baja', 'pendiente')
+                            ->count();
+                        $hayBajas = $bajasPendientes > 0;
+                        
+                        // Verificar si hay nuevos integrantes
+                        $empleadosOriginales = $livewire->record->empleado_proyecto->count();
+                        $estudiantesOriginales = $livewire->record->estudiante_proyecto->count();
+                        $internacionalesOriginales = $livewire->record->integrante_internacional_proyecto->count();
+                        $totalOriginal = $empleadosOriginales + $estudiantesOriginales + $internacionalesOriginales;
+                        
+                        return ($totalActual > $totalOriginal) || $hayBajas;
+                    }
+                    
+                    return $totalActual > 0;
+                }),
 
             // Sección de equipo dado de baja
             Fieldset::make('Equipo dado de baja')
@@ -567,7 +1002,7 @@ class PrimeraParte
                                             \App\Models\Proyecto\IntegranteInternacionalProyecto::create([
                                                 'proyecto_id' => $proyectoId,
                                                 'integrante_internacional_id' => $record->integrante_id,
-                                                'rol' => $record->rol_anterior ?? 'Cooperante Internacional',
+                                                'rol' => $record->rol_anterior ?? 'Integrante Internacional',
                                             ]);
                                         }
                                         
@@ -591,7 +1026,8 @@ class PrimeraParte
                         ->reorderable(false)
                         ->columns(4)
                         ->columnSpanFull()
-                        ->defaultItems(0),
+                        ->defaultItems(0)
+                        ->live(),
                 ])
                 ->columnSpanFull(),
         ];

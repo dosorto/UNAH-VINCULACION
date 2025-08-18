@@ -40,11 +40,18 @@ class SegundaParte
             // Sección de extensión de tiempo de ejecución
             Fieldset::make('Extensión de tiempo de ejecución del proyecto')
                 ->schema([
+                    TextInput::make('fecha_finalizacion_actual')
+                        ->label('Fecha de finalización actual del proyecto')
+                        ->disabled()
+                        ->dehydrated(false)
+                        ->helperText('Esta es la fecha actual de finalización registrada en el proyecto')
+                        ->columnSpan(1),
+
                     DatePicker::make('fecha_ampliacion')
                         ->label('Nueva fecha de finalización')
                         ->helperText('Seleccione la nueva fecha de finalización del proyecto')
                         ->displayFormat('d/m/Y')
-                        ->columnSpanFull(),
+                        ->columnSpan(1),
 
                     Textarea::make('motivo_ampliacion')
                         ->label('Motivos por los cuales se extiende la fecha de ejecución del proyecto')

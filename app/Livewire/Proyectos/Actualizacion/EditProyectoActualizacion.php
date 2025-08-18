@@ -72,13 +72,16 @@ class EditProyectoActualizacion extends Component implements HasForms
         ])->find($this->record->id);            // Llenar el formulario manualmente con los datos del proyecto y campos adicionales
             $formData = $this->record->attributesToArray();
             
+            // Agregar fecha de finalización actual para mostrar en el formulario
+            $formData['fecha_finalizacion_actual'] = $this->record->fecha_finalizacion ? 
+                \Carbon\Carbon::parse($this->record->fecha_finalizacion)->format('d/m/Y') : 
+                'No definida';
+            
             // Agregar campos de extensión de tiempo si existen fichas previas
             $ultimaFicha = \App\Models\Proyecto\FichaActualizacion::where('proyecto_id', $this->record->id)->latest()->first();
             if ($ultimaFicha) {
                 $formData['fecha_ampliacion'] = $ultimaFicha->fecha_ampliacion;
                 $formData['motivo_ampliacion'] = $ultimaFicha->motivo_ampliacion;
-                $formData['motivo_responsabilidades_nuevos'] = $ultimaFicha->motivo_responsabilidades_nuevos;
-                $formData['motivo_razones_cambio'] = $ultimaFicha->motivo_razones_cambio;
             }
             
             $this->form->fill($formData);
@@ -143,6 +146,7 @@ class EditProyectoActualizacion extends Component implements HasForms
             'equipo_ejecutor_bajas' => '',
             'motivo_responsabilidades_nuevos' => '',
             'motivo_razones_cambio' => '',
+            'fecha_finalizacion_actual' => '',
         ]);
 
         // Actualizar solo los campos del proyecto, no las relaciones
