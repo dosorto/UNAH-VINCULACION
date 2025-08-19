@@ -47,6 +47,12 @@ class FichaActualizacion extends Model
         return $this->hasMany(EquipoEjecutorBaja::class, 'ficha_actualizacion_id');
     }
 
+    // Relación con los nuevos integrantes asociados a esta ficha
+    public function equipoEjecutorNuevos()
+    {
+        return $this->hasMany(EquipoEjecutorNuevo::class, 'ficha_actualizacion_id');
+    }
+
     // Relación morfológica con estados
     public function estado_proyecto()
     {
@@ -138,10 +144,28 @@ class FichaActualizacion extends Model
         return $bajasPendientes->count();
     }
 
+    // Método para procesar los integrantes nuevos cuando la ficha sea aprobada
+    public function procesarIntegrantesNuevos()
+    {
+        $integrantesNuevos = $this->equipoEjecutorNuevos()->pendientes()->get();
+        
+        foreach ($integrantesNuevos as $nuevo) {
+            $nuevo->aplicarIncorporacion();
+        }
+        
+        return $integrantesNuevos->count();
+    }
+
     // Método para verificar si tiene bajas pendientes
     public function tieneBajasPendientes()
     {
         return $this->equipoEjecutorBajas()->pendientes()->exists();
+    }
+
+    // Método para verificar si tiene integrantes nuevos pendientes
+    public function tieneIntegrantesNuevosPendientes()
+    {
+        return $this->equipoEjecutorNuevos()->pendientes()->exists();
     }
 
     // Método para verificar si todas las firmas están aprobadas

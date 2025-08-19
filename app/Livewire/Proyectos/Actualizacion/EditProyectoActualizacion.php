@@ -176,6 +176,16 @@ class EditProyectoActualizacion extends Component implements HasForms
             $baja->update(['ficha_actualizacion_id' => $fichaActualizacion->id]);
         }
 
+        // Asociar las solicitudes de nuevos integrantes pendientes con esta ficha de actualización
+        $nuevosIntegrantesPendientes = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $this->record->id)
+            ->where('estado_incorporacion', 'pendiente')
+            ->whereNull('ficha_actualizacion_id')
+            ->get();
+            
+        foreach ($nuevosIntegrantesPendientes as $nuevo) {
+            $nuevo->update(['ficha_actualizacion_id' => $fichaActualizacion->id]);
+        }
+
         // Crear TODAS las firmas necesarias para la ficha de actualización usando los cargos específicos
         $cargosFirmaActualizacion = CargoFirma::where('descripcion', 'Ficha_actualizacion')->get();
         
@@ -243,10 +253,10 @@ class EditProyectoActualizacion extends Component implements HasForms
             ->body('La ficha de actualización del proyecto ha sido enviada a firmar exitosamente')
             ->success()
             ->send();
-        return redirect()->route('proyectosDocente');
+        return redirect()->route('FichasActualizacionDocente');
     }
 
-      public function create(): void
+    public function create(): void
     {
         $data = $this->form->getState();
         $record = null;

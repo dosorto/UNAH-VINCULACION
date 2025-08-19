@@ -82,24 +82,6 @@ class ListFichasActualizacionVinculacion extends Component implements HasForms, 
                             default => 'primary',
                         };
                     }),
-
-                Tables\Columns\TextColumn::make('firmas_progreso')
-                    ->label('Progreso Firmas')
-                    ->badge()
-                    ->formatStateUsing(function (FichaActualizacion $record): string {
-                        $firmasTotal = $record->firma_proyecto()->count();
-                        $firmasAprobadas = $record->firma_proyecto()->where('estado_revision', 'Aprobado')->count();
-                        return "{$firmasAprobadas}/{$firmasTotal}";
-                    })
-                    ->color(function (FichaActualizacion $record): string {
-                        $firmasTotal = $record->firma_proyecto()->count();
-                        $firmasAprobadas = $record->firma_proyecto()->where('estado_revision', 'Aprobado')->count();
-                        
-                        if ($firmasTotal == 0) return 'gray';
-                        if ($firmasAprobadas == $firmasTotal) return 'success';
-                        if ($firmasAprobadas > 0) return 'warning';
-                        return 'danger';
-                    }),
             ])
             ->defaultSort('created_at', 'desc')
             ->actions([
@@ -212,9 +194,15 @@ class ListFichasActualizacionVinculacion extends Component implements HasForms, 
                                     // PROCESAR LAS BAJAS PENDIENTES - APLICAR LOS CAMBIOS AL EQUIPO EJECUTOR
                                     $bajasProcesadas = $fichaActualizacion->procesarBajasPendientes();
 
+                                    // PROCESAR LOS INTEGRANTES NUEVOS - INCORPORARLOS AL EQUIPO EJECUTOR
+                                    $integrantesNuevosProcesados = $fichaActualizacion->procesarIntegrantesNuevos();
+
                                     $mensaje = 'Ficha de Actualización Aprobada. Estado cambiado a "Actualización realizada".';
                                     if ($bajasProcesadas > 0) {
                                         $mensaje .= " Se han aplicado {$bajasProcesadas} baja(s) al equipo ejecutor.";
+                                    }
+                                    if ($integrantesNuevosProcesados > 0) {
+                                        $mensaje .= " Se han incorporado {$integrantesNuevosProcesados} nuevo(s) integrante(s) al equipo ejecutor.";
                                     }
 
                                     Notification::make()

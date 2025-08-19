@@ -91,13 +91,6 @@ class PrimeraParte
                             ->modalHeading('¿Dar de baja al integrante?')
                             ->modalDescription('Esta acción trasladará al integrante a la tabla de integrantes dados de baja.')
                             ->modalSubmitActionLabel('Confirmar Baja')
-                            ->form([
-                                Textarea::make('motivo_baja')
-                                    ->label('Motivo de la baja')
-                                    ->required()
-                                    ->placeholder('Describa el motivo por el cual se da de baja al integrante...')
-                                    ->rows(3),
-                            ])
                             ->action(function (array $data, $component) {
                                 $record = $component->getRecord();
                                 
@@ -147,14 +140,22 @@ class PrimeraParte
                                     return;
                                 }
                                 
+                                // Obtener el nombre del empleado de forma segura
+                                $nombreEmpleado = '';
+                                if ($empleadoProyecto->empleado && $empleadoProyecto->empleado->nombre_completo) {
+                                    $nombreEmpleado = $empleadoProyecto->empleado->nombre_completo;
+                                } else {
+                                    $nombreEmpleado = 'Empleado ID: ' . $empleadoId;
+                                }
+                                
                                 // Crear registro de baja PENDIENTE (NO eliminar del equipo aún)
                                 EquipoEjecutorBaja::create([
                                     'proyecto_id' => $proyectoId,
                                     'integrante_id' => $empleadoId,
                                     'tipo_integrante' => 'empleado',
-                                    'nombre_integrante' => $empleadoProyecto->empleado->nombre_completo,
+                                    'nombre_integrante' => $nombreEmpleado,
                                     'rol_anterior' => $empleadoProyecto->rol ?? 'Integrante',
-                                    'motivo_baja' => $data['motivo_baja'],
+                                    'motivo_baja' => 'Baja solicitada durante actualización',
                                     'fecha_baja' => now(),
                                     'usuario_baja_id' => auth()->id(),
                                     'estado_baja' => 'pendiente',
@@ -169,9 +170,10 @@ class PrimeraParte
                                     ->body('La solicitud de baja ha sido registrada. Se aplicará cuando la ficha de actualización sea aprobada.')
                                     ->success()
                                     ->send();
-                                    
-                                // Refrescar el formulario
-                                $livewire->dispatch('refresh-form');
+                            })
+                            ->after(function () {
+                                // Esto refrescará el componente después de la acción
+                                return;
                             }),
                     ])->columnSpanFull(),
                 ])
@@ -207,8 +209,24 @@ class PrimeraParte
                                     ->pluck('empleado_id')
                                     ->toArray();
                                 
+                                // Obtener IDs de empleados dados de baja (incluyendo pendientes y aplicadas)
+                                $empleadosDadosBaja = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                                    ->where('tipo_integrante', 'empleado')
+                                    ->whereIn('estado_baja', ['pendiente', 'aplicada'])
+                                    ->pluck('integrante_id')
+                                    ->toArray();
+                                
+                                // Obtener IDs de empleados con solicitudes pendientes de agregar
+                                $empleadosConSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                                    ->where('tipo_integrante', 'empleado')
+                                    ->where('estado_incorporacion', 'pendiente')
+                                    ->pluck('integrante_id')
+                                    ->toArray();
+                                
                                 return \App\Models\Personal\Empleado::where('user_id', '!=', auth()->id())
                                     ->whereNotIn('id', $empleadosEnProyecto)
+                                    ->whereNotIn('id', $empleadosDadosBaja)
+                                    ->whereNotIn('id', $empleadosConSolicitudPendiente)
                                     ->pluck('nombre_completo', 'id');
                             })
                             ->getSearchResultsUsing(function (string $search, $livewire) {
@@ -219,8 +237,24 @@ class PrimeraParte
                                     ->pluck('empleado_id')
                                     ->toArray();
                                 
+                                // Obtener IDs de empleados dados de baja (incluyendo pendientes y aplicadas)
+                                $empleadosDadosBaja = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                                    ->where('tipo_integrante', 'empleado')
+                                    ->whereIn('estado_baja', ['pendiente', 'aplicada'])
+                                    ->pluck('integrante_id')
+                                    ->toArray();
+                                
+                                // Obtener IDs de empleados con solicitudes pendientes de agregar
+                                $empleadosConSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                                    ->where('tipo_integrante', 'empleado')
+                                    ->where('estado_incorporacion', 'pendiente')
+                                    ->pluck('integrante_id')
+                                    ->toArray();
+                                
                                 return \App\Models\Personal\Empleado::where('user_id', '!=', auth()->id())
                                     ->whereNotIn('id', $empleadosEnProyecto)
+                                    ->whereNotIn('id', $empleadosDadosBaja)
+                                    ->whereNotIn('id', $empleadosConSolicitudPendiente)
                                     ->where(function ($query) use ($search) {
                                         $query->where('nombre_completo', 'like', "%{$search}%")
                                               ->orWhere('numero_empleado', 'like', "%{$search}%");
@@ -236,15 +270,42 @@ class PrimeraParte
                             ->default('Integrante'),
                         Hidden::make('rol')
                         ->default('Integrante'),
-                        Textarea::make('motivo_incorporacion')
-                            ->label('Motivo de incorporación')
-                            ->required()
-                            ->placeholder('Describa las razones y responsabilidades del nuevo integrante...')
-                            ->rows(3),
                     ])
                     ->action(function (array $data, $component) {
                         $livewire = $component->getLivewire();
                         $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
+                        
+                        // Verificar que el empleado no tenga una baja pendiente o aplicada
+                        $tieneBajaPendiente = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                            ->where('tipo_integrante', 'empleado')
+                            ->where('integrante_id', $data['empleado_id'])
+                            ->whereIn('estado_baja', ['pendiente', 'aplicada'])
+                            ->exists();
+
+                        if ($tieneBajaPendiente) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('Este empleado tiene una baja pendiente o ya fue dado de baja. No se puede agregar.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        // Verificar que no haya una solicitud pendiente para este empleado
+                        $tieneSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                            ->where('tipo_integrante', 'empleado')
+                            ->where('integrante_id', $data['empleado_id'])
+                            ->where('estado_incorporacion', 'pendiente')
+                            ->exists();
+
+                        if ($tieneSolicitudPendiente) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('Ya existe una solicitud pendiente para este empleado.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
                         
                         // Obtener información del empleado
                         $empleado = \App\Models\Personal\Empleado::find($data['empleado_id']);
@@ -256,7 +317,7 @@ class PrimeraParte
                             'tipo_integrante' => 'empleado',
                             'nombre_integrante' => $empleado->nombre_completo,
                             'rol_nuevo' => $data['rol'],
-                            'motivo_incorporacion' => $data['motivo_incorporacion'],
+                            'motivo_incorporacion' => 'Incorporación solicitada durante actualización',
                             'fecha_solicitud' => now(),
                             'usuario_solicitud_id' => auth()->id(),
                             'estado_incorporacion' => 'pendiente',
@@ -303,13 +364,6 @@ class PrimeraParte
                             ->modalHeading('¿Dar de baja al estudiante?')
                             ->modalDescription('Esta acción trasladará al estudiante a la tabla de integrantes dados de baja.')
                             ->modalSubmitActionLabel('Confirmar Baja')
-                            ->form([
-                                Textarea::make('motivo_baja')
-                                    ->label('Motivo de la baja')
-                                    ->required()
-                                    ->placeholder('Describa el motivo por el cual se da de baja al estudiante...')
-                                    ->rows(3),
-                            ])
                             ->action(function (array $data, $component) {
                                 $record = $component->getRecord();
                                 
@@ -347,7 +401,7 @@ class PrimeraParte
                                 // Obtener información del estudiante antes de eliminarlo
                                 $estudianteProyecto = \App\Models\Estudiante\EstudianteProyecto::where('proyecto_id', $proyectoId)
                                     ->where('estudiante_id', $estudianteId)
-                                    ->with('estudiante.user')
+                                    ->with('estudiante')
                                     ->first();
                                 
                                 if (!$estudianteProyecto) {
@@ -359,14 +413,28 @@ class PrimeraParte
                                     return;
                                 }
                                 
+                                // Obtener el nombre del estudiante de forma segura
+                                $nombreEstudiante = '';
+                                if ($estudianteProyecto->estudiante) {
+                                    if ($estudianteProyecto->estudiante->nombre && $estudianteProyecto->estudiante->apellido) {
+                                        $nombreEstudiante = $estudianteProyecto->estudiante->nombre . ' ' . $estudianteProyecto->estudiante->apellido;
+                                    } elseif ($estudianteProyecto->estudiante->cuenta) {
+                                        $nombreEstudiante = 'Estudiante ' . $estudianteProyecto->estudiante->cuenta;
+                                    } else {
+                                        $nombreEstudiante = 'Estudiante ID: ' . $estudianteProyecto->estudiante->id;
+                                    }
+                                } else {
+                                    $nombreEstudiante = 'Estudiante ID: ' . $estudianteId;
+                                }
+                                
                                 // Crear registro de baja PENDIENTE (NO eliminar del equipo aún)
                                 EquipoEjecutorBaja::create([
                                     'proyecto_id' => $proyectoId,
                                     'integrante_id' => $estudianteId,
                                     'tipo_integrante' => 'estudiante',
-                                    'nombre_integrante' => $estudianteProyecto->estudiante->user->name ?? $estudianteProyecto->estudiante->nombre . ' ' . $estudianteProyecto->estudiante->apellido,
+                                    'nombre_integrante' => $nombreEstudiante,
                                     'rol_anterior' => $estudianteProyecto->tipo_participacion_estudiante ?? 'Estudiante',
-                                    'motivo_baja' => $data['motivo_baja'],
+                                    'motivo_baja' => 'Baja solicitada durante actualización',
                                     'fecha_baja' => now(),
                                     'usuario_baja_id' => auth()->id(),
                                     'estado_baja' => 'pendiente',
@@ -380,9 +448,10 @@ class PrimeraParte
                                     ->body('La solicitud de baja del estudiante ha sido registrada. Se aplicará cuando la ficha de actualización sea aprobada.')
                                     ->success()
                                     ->send();
-                                    
-                                // Refrescar el formulario
-                                $livewire->dispatch('refresh-form');
+                            })
+                            ->after(function () {
+                                // Esto refrescará el componente después de la acción
+                                return;
                             }),
                     ])->columnSpanFull(),
                 ])
@@ -418,11 +487,31 @@ class PrimeraParte
                                     ->pluck('estudiante_id')
                                     ->toArray();
                                 
-                                $estudiantes = \App\Models\Estudiante\Estudiante::whereNotIn('id', $estudiantesEnProyecto)->get();
+                                // Obtener IDs de estudiantes dados de baja (incluyendo pendientes y aplicadas)
+                                $estudiantesDadosBaja = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                                    ->where('tipo_integrante', 'estudiante')
+                                    ->whereIn('estado_baja', ['pendiente', 'aplicada'])
+                                    ->pluck('integrante_id')
+                                    ->toArray();
+                                
+                                // Obtener IDs de estudiantes con solicitudes pendientes de agregar
+                                $estudiantesConSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                                    ->where('tipo_integrante', 'estudiante')
+                                    ->where('estado_incorporacion', 'pendiente')
+                                    ->pluck('integrante_id')
+                                    ->toArray();
+                                
+                                $estudiantes = \App\Models\Estudiante\Estudiante::whereNotIn('id', $estudiantesEnProyecto)
+                                    ->whereNotIn('id', $estudiantesDadosBaja)
+                                    ->whereNotIn('id', $estudiantesConSolicitudPendiente)
+                                    ->get();
                                 
                                 $opciones = [];
                                 foreach ($estudiantes as $estudiante) {
-                                    $opciones[$estudiante->id] = $estudiante->cuenta . ' - ' . $estudiante->nombre . ' ' . $estudiante->apellido;
+                                    // Verificar que sea un modelo válido
+                                    if (is_object($estudiante) && isset($estudiante->id) && isset($estudiante->cuenta) && isset($estudiante->nombre) && isset($estudiante->apellido)) {
+                                        $opciones[$estudiante->id] = $estudiante->cuenta . ' - ' . $estudiante->nombre . ' ' . $estudiante->apellido;
+                                    }
                                 }
                                 
                                 return $opciones;
@@ -435,7 +524,23 @@ class PrimeraParte
                                     ->pluck('estudiante_id')
                                     ->toArray();
                                 
+                                // Obtener IDs de estudiantes dados de baja (incluyendo pendientes y aplicadas)
+                                $estudiantesDadosBaja = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                                    ->where('tipo_integrante', 'estudiante')
+                                    ->whereIn('estado_baja', ['pendiente', 'aplicada'])
+                                    ->pluck('integrante_id')
+                                    ->toArray();
+                                
+                                // Obtener IDs de estudiantes con solicitudes pendientes de agregar
+                                $estudiantesConSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                                    ->where('tipo_integrante', 'estudiante')
+                                    ->where('estado_incorporacion', 'pendiente')
+                                    ->pluck('integrante_id')
+                                    ->toArray();
+                                
                                 $estudiantes = \App\Models\Estudiante\Estudiante::whereNotIn('id', $estudiantesEnProyecto)
+                                    ->whereNotIn('id', $estudiantesDadosBaja)
+                                    ->whereNotIn('id', $estudiantesConSolicitudPendiente)
                                     ->where(function ($query) use ($search) {
                                         $query->where('cuenta', 'like', "%{$search}%")
                                               ->orWhere('nombre', 'like', "%{$search}%")
@@ -446,7 +551,10 @@ class PrimeraParte
                                 
                                 $opciones = [];
                                 foreach ($estudiantes as $estudiante) {
-                                    $opciones[$estudiante->id] = $estudiante->cuenta . ' - ' . $estudiante->nombre . ' ' . $estudiante->apellido;
+                                    // Verificar que sea un modelo válido
+                                    if (is_object($estudiante) && isset($estudiante->id) && isset($estudiante->cuenta) && isset($estudiante->nombre) && isset($estudiante->apellido)) {
+                                        $opciones[$estudiante->id] = $estudiante->cuenta . ' - ' . $estudiante->nombre . ' ' . $estudiante->apellido;
+                                    }
                                 }
                                 
                                 return $opciones;
@@ -488,15 +596,52 @@ class PrimeraParte
                                 'Voluntariado' => 'Voluntariado',
                             ])
                             ->default('Voluntariado'),
-                        Textarea::make('motivo_incorporacion')
-                            ->label('Motivo de incorporación')
-                            ->required()
-                            ->placeholder('Describa las razones y responsabilidades del nuevo estudiante...')
-                            ->rows(3),
                     ])
                     ->action(function (array $data, $component) {
                         $livewire = $component->getLivewire();
                         $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
+                        
+                        // Validar que se proporcione el ID del estudiante
+                        if (empty($data['estudiante_id'])) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('Debe seleccionar un estudiante.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        // Verificar que el estudiante no tenga una baja pendiente o aplicada
+                        $tieneBajaPendiente = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                            ->where('tipo_integrante', 'estudiante')
+                            ->where('integrante_id', $data['estudiante_id'])
+                            ->whereIn('estado_baja', ['pendiente', 'aplicada'])
+                            ->exists();
+
+                        if ($tieneBajaPendiente) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('Este estudiante tiene una baja pendiente o ya fue dado de baja. No se puede agregar.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        // Verificar que no haya una solicitud pendiente para este estudiante
+                        $tieneSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                            ->where('tipo_integrante', 'estudiante')
+                            ->where('integrante_id', $data['estudiante_id'])
+                            ->where('estado_incorporacion', 'pendiente')
+                            ->exists();
+
+                        if ($tieneSolicitudPendiente) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('Ya existe una solicitud pendiente para este estudiante.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
                         
                         // Obtener información del estudiante
                         $estudiante = \App\Models\Estudiante\Estudiante::find($data['estudiante_id']);
@@ -509,15 +654,35 @@ class PrimeraParte
                                 ->send();
                             return;
                         }
+
+                        // Verificar que sea un modelo individual y no una colección
+                        if (is_array($estudiante) || $estudiante instanceof \Illuminate\Support\Collection) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('Error en la consulta del estudiante. Contacte al administrador.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        // Obtener el nombre del estudiante de forma segura
+                        $nombreCompleto = '';
+                        if (isset($estudiante->nombre) && isset($estudiante->apellido) && $estudiante->nombre && $estudiante->apellido) {
+                            $nombreCompleto = $estudiante->nombre . ' ' . $estudiante->apellido;
+                        } elseif (isset($estudiante->cuenta) && $estudiante->cuenta) {
+                            $nombreCompleto = 'Estudiante ' . $estudiante->cuenta;
+                        } else {
+                            $nombreCompleto = 'Estudiante ID: ' . $estudiante->id;
+                        }
                         
                         // Crear solicitud pendiente
                         EquipoEjecutorNuevo::create([
                             'proyecto_id' => $proyectoId,
                             'integrante_id' => $data['estudiante_id'],
                             'tipo_integrante' => 'estudiante',
-                            'nombre_integrante' => $estudiante->nombre . ' ' . $estudiante->apellido,
+                            'nombre_integrante' => $nombreCompleto,
                             'rol_nuevo' => $data['tipo_participacion_estudiante'],
-                            'motivo_incorporacion' => $data['motivo_incorporacion'],
+                            'motivo_incorporacion' => 'Incorporación solicitada durante actualización',
                             'fecha_solicitud' => now(),
                             'usuario_solicitud_id' => auth()->id(),
                             'estado_incorporacion' => 'pendiente',
@@ -565,13 +730,6 @@ class PrimeraParte
                             ->modalHeading('¿Dar de baja al integrante internacional?')
                             ->modalDescription('Esta acción trasladará al integrante internacional a la tabla de integrantes dados de baja.')
                             ->modalSubmitActionLabel('Confirmar Baja')
-                            ->form([
-                                Textarea::make('motivo_baja')
-                                    ->label('Motivo de la baja')
-                                    ->required()
-                                    ->placeholder('Describa el motivo por el cual se da de baja al integrante internacional...')
-                                    ->rows(3),
-                            ])
                             ->action(function (array $data, $component) {
                                 $record = $component->getRecord();
                                 
@@ -621,14 +779,22 @@ class PrimeraParte
                                     return;
                                 }
                                 
+                                // Obtener el nombre del integrante internacional de forma segura
+                                $nombreInternacional = '';
+                                if ($integranteProyecto->integranteInternacional && $integranteProyecto->integranteInternacional->nombre_completo) {
+                                    $nombreInternacional = $integranteProyecto->integranteInternacional->nombre_completo;
+                                } else {
+                                    $nombreInternacional = 'Integrante Internacional ID: ' . $integranteInternacionalId;
+                                }
+                                
                                 // Crear registro de baja PENDIENTE (NO eliminar del equipo aún)
                                 EquipoEjecutorBaja::create([
                                     'proyecto_id' => $proyectoId,
                                     'integrante_id' => $integranteInternacionalId,
                                     'tipo_integrante' => 'integrante_internacional',
-                                    'nombre_integrante' => $integranteProyecto->integranteInternacional->nombre_completo,
+                                    'nombre_integrante' => $nombreInternacional,
                                     'rol_anterior' => $integranteProyecto->rol ?? 'Integrante Internacional',
-                                    'motivo_baja' => $data['motivo_baja'],
+                                    'motivo_baja' => 'Baja solicitada durante actualización',
                                     'fecha_baja' => now(),
                                     'usuario_baja_id' => auth()->id(),
                                     'estado_baja' => 'pendiente',
@@ -642,9 +808,10 @@ class PrimeraParte
                                     ->body('La solicitud de baja del integrante internacional ha sido registrada. Se aplicará cuando la ficha de actualización sea aprobada.')
                                     ->success()
                                     ->send();
-                                    
-                                // Refrescar el formulario
-                                $livewire->dispatch('refresh-form');
+                            })
+                            ->after(function () {
+                                // Esto refrescará el componente después de la acción
+                                return;
                             }),
                     ])->columnSpanFull(),
                 ])
@@ -680,11 +847,44 @@ class PrimeraParte
                                     ->pluck('integrante_internacional_id')
                                     ->toArray();
                                 
-                                $integrantes = \App\Models\Proyecto\IntegranteInternacional::whereNotIn('id', $internacionalesEnProyecto)->get();
+                                // Obtener IDs de integrantes internacionales dados de baja (incluyendo pendientes y aplicadas)
+                                $internacionalesDadosBaja = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                                    ->where('tipo_integrante', 'integrante_internacional')
+                                    ->whereIn('estado_baja', ['pendiente', 'aplicada'])
+                                    ->pluck('integrante_id')
+                                    ->filter() // Filtrar valores null
+                                    ->toArray();
+                                
+                                // Obtener IDs de integrantes internacionales con solicitudes pendientes de agregar
+                                $internacionalesConSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                                    ->where('tipo_integrante', 'integrante_internacional')
+                                    ->where('estado_incorporacion', 'pendiente')
+                                    ->pluck('integrante_id')
+                                    ->filter() // Filtrar valores null
+                                    ->toArray();
+                                
+                                $query = \App\Models\Proyecto\IntegranteInternacional::query();
+                                
+                                if (!empty($internacionalesEnProyecto)) {
+                                    $query->whereNotIn('id', $internacionalesEnProyecto);
+                                }
+                                
+                                if (!empty($internacionalesDadosBaja)) {
+                                    $query->whereNotIn('id', $internacionalesDadosBaja);
+                                }
+                                
+                                if (!empty($internacionalesConSolicitudPendiente)) {
+                                    $query->whereNotIn('id', $internacionalesConSolicitudPendiente);
+                                }
+                                
+                                $integrantes = $query->get();
                                 
                                 $opciones = [];
                                 foreach ($integrantes as $integrante) {
-                                    $opciones[$integrante->id] = "{$integrante->nombre_completo} ({$integrante->pais} - {$integrante->institucion})";
+                                    // Verificar que el integrante sea un modelo válido
+                                    if (is_object($integrante) && isset($integrante->id) && isset($integrante->nombre_completo)) {
+                                        $opciones[$integrante->id] = "{$integrante->nombre_completo} ({$integrante->pais} - {$integrante->institucion})";
+                                    }
                                 }
                                 
                                 return $opciones;
@@ -697,18 +897,50 @@ class PrimeraParte
                                     ->pluck('integrante_internacional_id')
                                     ->toArray();
                                 
-                                $integrantes = \App\Models\Proyecto\IntegranteInternacional::whereNotIn('id', $internacionalesEnProyecto)
-                                    ->where(function ($query) use ($search) {
-                                        $query->where('nombre_completo', 'like', "%{$search}%")
-                                              ->orWhere('pais', 'like', "%{$search}%")
-                                              ->orWhere('institucion', 'like', "%{$search}%");
-                                    })
-                                    ->limit(50)
-                                    ->get();
+                                // Obtener IDs de integrantes internacionales dados de baja (incluyendo pendientes y aplicadas)
+                                $internacionalesDadosBaja = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                                    ->where('tipo_integrante', 'integrante_internacional')
+                                    ->whereIn('estado_baja', ['pendiente', 'aplicada'])
+                                    ->pluck('integrante_id')
+                                    ->filter() // Filtrar valores null
+                                    ->toArray();
+                                
+                                // Obtener IDs de integrantes internacionales con solicitudes pendientes de agregar
+                                $internacionalesConSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                                    ->where('tipo_integrante', 'integrante_internacional')
+                                    ->where('estado_incorporacion', 'pendiente')
+                                    ->pluck('integrante_id')
+                                    ->filter() // Filtrar valores null
+                                    ->toArray();
+                                
+                                $query = \App\Models\Proyecto\IntegranteInternacional::query();
+                                
+                                if (!empty($internacionalesEnProyecto)) {
+                                    $query->whereNotIn('id', $internacionalesEnProyecto);
+                                }
+                                
+                                if (!empty($internacionalesDadosBaja)) {
+                                    $query->whereNotIn('id', $internacionalesDadosBaja);
+                                }
+                                
+                                if (!empty($internacionalesConSolicitudPendiente)) {
+                                    $query->whereNotIn('id', $internacionalesConSolicitudPendiente);
+                                }
+                                
+                                $query->where(function ($subQuery) use ($search) {
+                                    $subQuery->where('nombre_completo', 'like', "%{$search}%")
+                                          ->orWhere('pais', 'like', "%{$search}%")
+                                          ->orWhere('institucion', 'like', "%{$search}%");
+                                });
+                                
+                                $integrantes = $query->limit(50)->get();
                                 
                                 $opciones = [];
                                 foreach ($integrantes as $integrante) {
-                                    $opciones[$integrante->id] = "{$integrante->nombre_completo} ({$integrante->pais} - {$integrante->institucion})";
+                                    // Verificar que el integrante sea un modelo válido
+                                    if (is_object($integrante) && isset($integrante->id) && isset($integrante->nombre_completo)) {
+                                        $opciones[$integrante->id] = "{$integrante->nombre_completo} ({$integrante->pais} - {$integrante->institucion})";
+                                    }
                                 }
                                 
                                 return $opciones;
@@ -720,15 +952,52 @@ class PrimeraParte
                                 return \App\Models\Proyecto\IntegranteInternacional::create($data);
                             })
                             ->helperText('Si no encuentra el integrante en la lista, puede crear uno nuevo usando el botón "+"'),
-                        Textarea::make('motivo_incorporacion')
-                            ->label('Motivo de incorporación')
-                            ->required()
-                            ->placeholder('Describa las razones y responsabilidades del nuevo integrante internacional...')
-                            ->rows(3),
                     ])
                     ->action(function (array $data, $component) {
                         $livewire = $component->getLivewire();
                         $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
+                        
+                        // Verificar que el integrante internacional no tenga una baja pendiente o aplicada
+                        $tieneBajaPendiente = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                            ->where('tipo_integrante', 'integrante_internacional')
+                            ->where('integrante_id', $data['integrante_internacional_id'])
+                            ->whereIn('estado_baja', ['pendiente', 'aplicada'])
+                            ->exists();
+
+                        if ($tieneBajaPendiente) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('Este integrante internacional tiene una baja pendiente o ya fue dado de baja. No se puede agregar.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        // Verificar que no haya una solicitud pendiente para este integrante internacional
+                        $tieneSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                            ->where('tipo_integrante', 'integrante_internacional')
+                            ->where('integrante_id', $data['integrante_internacional_id'])
+                            ->where('estado_incorporacion', 'pendiente')
+                            ->exists();
+
+                        if ($tieneSolicitudPendiente) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('Ya existe una solicitud pendiente para este integrante internacional.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        // Validar que se proporcione el ID del integrante internacional
+                        if (empty($data['integrante_internacional_id'])) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('Debe seleccionar un integrante internacional.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
                         
                         // Obtener información del integrante internacional
                         $integrante = \App\Models\Proyecto\IntegranteInternacional::find($data['integrante_internacional_id']);
@@ -741,15 +1010,33 @@ class PrimeraParte
                                 ->send();
                             return;
                         }
+
+                        // Verificar que el integrante sea un modelo individual, no una colección
+                        if (is_array($integrante) || $integrante instanceof \Illuminate\Support\Collection) {
+                            Notification::make()
+                                ->title('Error')
+                                ->body('Error en la consulta del integrante internacional. Contacte al administrador.')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+
+                        // Obtener el nombre del integrante de forma segura
+                        $nombreCompleto = '';
+                        if (isset($integrante->nombre_completo) && !empty($integrante->nombre_completo)) {
+                            $nombreCompleto = $integrante->nombre_completo;
+                        } else {
+                            $nombreCompleto = 'Integrante Internacional ID: ' . $integrante->id;
+                        }
                         
                         // Crear solicitud pendiente
                         EquipoEjecutorNuevo::create([
                             'proyecto_id' => $proyectoId,
                             'integrante_id' => $data['integrante_internacional_id'],
                             'tipo_integrante' => 'integrante_internacional',
-                            'nombre_integrante' => $integrante->nombre_completo,
+                            'nombre_integrante' => $nombreCompleto,
                             'rol_nuevo' => 'Integrante Internacional',
-                            'motivo_incorporacion' => $data['motivo_incorporacion'],
+                            'motivo_incorporacion' => 'Incorporación solicitada durante actualización',
                             'fecha_solicitud' => now(),
                             'usuario_solicitud_id' => auth()->id(),
                             'estado_incorporacion' => 'pendiente',
@@ -764,6 +1051,70 @@ class PrimeraParte
                         $livewire->dispatch('refresh-form');
                     }),
             ])->columnSpanFull(),
+
+            // Motivos generales de cambios en el equipo
+            Fieldset::make('Motivos de Cambios en el Equipo')
+                ->schema([
+                    Textarea::make('motivo_responsabilidades_nuevos')
+                        ->label('Motivos del cambio de integrantes de equipo (Describa las responsabilidades de los nuevos miembros)')
+                        ->placeholder('Describa las responsabilidades específicas que tendrán los nuevos miembros del equipo...')
+                        ->rows(4)
+                        ->columnSpanFull()
+                        ->required()
+                        ->visible(function (Get $get, $livewire) {
+                            // Mostrar si hay solicitudes pendientes de nuevos integrantes
+                            if (isset($livewire->record)) {
+                                $nuevosPendientes = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $livewire->record->id)
+                                    ->where('estado_incorporacion', 'pendiente')
+                                    ->whereNull('ficha_actualizacion_id')
+                                    ->count();
+                                return $nuevosPendientes > 0;
+                            }
+                            
+                            return false;
+                        }),
+                    
+                    Textarea::make('motivo_razones_cambio')
+                        ->label('Motivos del cambio de integrantes de equipo (Describa las razones por las cuales se cambia al equipo)')
+                        ->placeholder('Explique las razones que justifican los cambios en la composición del equipo ejecutor...')
+                        ->rows(4)
+                        ->columnSpanFull()
+                        ->required()
+                        ->visible(function (Get $get, $livewire) {
+                            // Mostrar solo si hay integrantes dados de baja pendientes
+                            if (isset($livewire->record)) {
+                                $bajasPendientes = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $livewire->record->id)
+                                    ->where('estado_baja', 'pendiente')
+                                    ->whereNull('ficha_actualizacion_id')
+                                    ->count();
+                                return $bajasPendientes > 0;
+                            }
+                            return false;
+                        }),
+                ])
+                ->columnSpanFull()
+                ->visible(function (Get $get, $livewire) {
+                    // Mostrar el fieldset solo si hay cambios (nuevos o bajas)
+                    if (isset($livewire->record)) {
+                        // Verificar si hay bajas pendientes
+                        $bajasPendientes = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $livewire->record->id)
+                            ->where('estado_baja', 'pendiente')
+                            ->whereNull('ficha_actualizacion_id')
+                            ->count();
+                        
+                        // Verificar si hay nuevos integrantes pendientes
+                        $nuevosPendientes = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $livewire->record->id)
+                            ->where('estado_incorporacion', 'pendiente')
+                            ->whereNull('ficha_actualizacion_id')
+                            ->count();
+                        
+                        return $bajasPendientes > 0 || $nuevosPendientes > 0;
+                    }
+                    
+                    return false;
+                }),
+
+            // Sección de equipo dado de baja
 
             // Sección de nuevos integrantes pendientes
             Fieldset::make('Solicitudes de Nuevos Integrantes')
@@ -798,12 +1149,6 @@ class PrimeraParte
                                 ->disabled()
                                 ->columnSpan(1),
                                 
-                            Textarea::make('motivo_incorporacion')
-                                ->label('Motivo de Incorporación')
-                                ->disabled()
-                                ->rows(2)
-                                ->columnSpan(2),
-                                
                             TextInput::make('fecha_solicitud')
                                 ->label('Fecha de Solicitud')
                                 ->disabled()
@@ -830,17 +1175,22 @@ class PrimeraParte
                                             ->body('La solicitud de incorporación ha sido cancelada.')
                                             ->success()
                                             ->send();
-                                            
-                                        // Refrescar el formulario
-                                        $livewire->dispatch('refresh-form');
+                                    })
+                                    ->after(function () {
+                                        // Esto refrescará el componente después de la acción
+                                        return;
                                     }),
                             ])->columnSpanFull(),
                         ])
-                        ->relationship('equipoEjecutorNuevos')
+                        ->relationship('equipoEjecutorNuevos', function ($query) {
+                            // Solo mostrar las solicitudes pendientes que NO han sido asociadas a una ficha de actualización
+                            return $query->where('estado_incorporacion', 'pendiente')
+                                        ->whereNull('ficha_actualizacion_id');
+                        })
                         ->addable(false)
                         ->deletable(false)
                         ->reorderable(false)
-                        ->columns(4)
+                        ->columns(3)
                         ->columnSpanFull()
                         ->defaultItems(0)
                         ->live(),
@@ -848,82 +1198,6 @@ class PrimeraParte
                 ->columnSpanFull(),
 
             
-            // Motivos generales de cambios en el equipo
-            Fieldset::make('Motivos de Cambios en el Equipo')
-                ->schema([
-                    Textarea::make('motivo_responsabilidades_nuevos')
-                        ->label('Motivos del cambio de integrantes de equipo (Describa las responsabilidades de los nuevos miembros)')
-                        ->placeholder('Describa las responsabilidades específicas que tendrán los nuevos miembros del equipo...')
-                        ->rows(4)
-                        ->columnSpanFull()
-                        ->visible(function (Get $get, $livewire) {
-                            // Mostrar solo si se han agregado nuevos integrantes durante la edición
-                            $empleados = $get('empleado_proyecto') ?? [];
-                            $estudiantes = $get('estudiante_proyecto') ?? [];
-                            $internacionales = $get('integrante_internacional_proyecto') ?? [];
-                            
-                            // Contar integrantes agregados en esta sesión
-                            $totalActual = count($empleados) + count($estudiantes) + count($internacionales);
-                            
-                            // Obtener los integrantes originales del proyecto
-                            if (isset($livewire->record)) {
-                                $empleadosOriginales = $livewire->record->empleado_proyecto->count();
-                                $estudiantesOriginales = $livewire->record->estudiante_proyecto->count();
-                                $internacionalesOriginales = $livewire->record->integrante_internacional_proyecto->count();
-                                $totalOriginal = $empleadosOriginales + $estudiantesOriginales + $internacionalesOriginales;
-                                
-                                return $totalActual > $totalOriginal;
-                            }
-                            
-                            return $totalActual > 0;
-                        }),
-                    
-                    Textarea::make('motivo_razones_cambio')
-                        ->label('Motivos del cambio de integrantes de equipo (Describa las razones por las cuales se cambia al equipo)')
-                        ->placeholder('Explique las razones que justifican los cambios en la composición del equipo ejecutor...')
-                        ->rows(4)
-                        ->columnSpanFull()
-                        ->visible(function (Get $get, $livewire) {
-                            // Mostrar solo si hay integrantes dados de baja pendientes
-                            if (isset($livewire->record)) {
-                                $bajasPendientes = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $livewire->record->id)
-                                    ->where('estado_baja', 'pendiente')
-                                    ->count();
-                                return $bajasPendientes > 0;
-                            }
-                            return false;
-                        }),
-                ])
-                ->columnSpanFull()
-                ->visible(function (Get $get, $livewire) {
-                    // Mostrar el fieldset solo si hay cambios (nuevos o bajas)
-                    $empleados = $get('empleado_proyecto') ?? [];
-                    $estudiantes = $get('estudiante_proyecto') ?? [];
-                    $internacionales = $get('integrante_internacional_proyecto') ?? [];
-                    
-                    $totalActual = count($empleados) + count($estudiantes) + count($internacionales);
-                    
-                    // Verificar si hay bajas pendientes
-                    $hayBajas = false;
-                    if (isset($livewire->record)) {
-                        $bajasPendientes = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $livewire->record->id)
-                            ->where('estado_baja', 'pendiente')
-                            ->count();
-                        $hayBajas = $bajasPendientes > 0;
-                        
-                        // Verificar si hay nuevos integrantes
-                        $empleadosOriginales = $livewire->record->empleado_proyecto->count();
-                        $estudiantesOriginales = $livewire->record->estudiante_proyecto->count();
-                        $internacionalesOriginales = $livewire->record->integrante_internacional_proyecto->count();
-                        $totalOriginal = $empleadosOriginales + $estudiantesOriginales + $internacionalesOriginales;
-                        
-                        return ($totalActual > $totalOriginal) || $hayBajas;
-                    }
-                    
-                    return $totalActual > 0;
-                }),
-
-            // Sección de equipo dado de baja
             Fieldset::make('Equipo dado de baja')
                 ->schema([
                     Repeater::make('equipo_ejecutor_bajas')
@@ -956,12 +1230,6 @@ class PrimeraParte
                                 ->label('Rol Anterior')
                                 ->disabled()
                                 ->columnSpan(1),
-                                
-                            Textarea::make('motivo_baja')
-                                ->label('Motivo de Baja')
-                                ->disabled()
-                                ->rows(2)
-                                ->columnSpan(2),
                                 
                             TextInput::make('fecha_baja')
                                 ->label('Fecha de Baja')
@@ -1014,17 +1282,22 @@ class PrimeraParte
                                             ->body('El integrante ha sido reincorporado al equipo ejecutor.')
                                             ->success()
                                             ->send();
-                                            
-                                        // Refrescar el formulario
-                                        $livewire->dispatch('refresh-form');
+                                    })
+                                    ->after(function () {
+                                        // Esto refrescará el componente después de la acción
+                                        return;
                                     }),
                             ])->columnSpanFull(),
                         ])
-                        ->relationship('equipoEjecutorBajas')
+                        ->relationship('equipoEjecutorBajas', function ($query) {
+                            // Solo mostrar las bajas pendientes que NO han sido asociadas a una ficha de actualización
+                            return $query->where('estado_baja', 'pendiente')
+                                        ->whereNull('ficha_actualizacion_id');
+                        })
                         ->addable(false)
                         ->deletable(false)
                         ->reorderable(false)
-                        ->columns(4)
+                        ->columns(3)
                         ->columnSpanFull()
                         ->defaultItems(0)
                         ->live(),
