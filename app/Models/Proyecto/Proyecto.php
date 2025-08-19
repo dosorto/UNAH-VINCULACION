@@ -742,6 +742,11 @@ class Proyecto extends Model
         return $this->hasMany(AporteInstitucional::class);
     }
     
+    public function aportesInstitucionales()
+    {
+        return $this->hasMany(AporteInstitucional::class, 'proyecto_id');
+    }
+
     public function ejes_prioritarios_unah()
     {
         return $this->belongsToMany(

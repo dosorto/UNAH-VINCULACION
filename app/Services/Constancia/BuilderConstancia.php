@@ -8,11 +8,14 @@ use App\Models\Personal\EmpleadoProyecto;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Personal\EmpleadoCodigoInvestigacion;
+use App\Models\Presupuesto\Presupuesto;
+use App\Models\Proyecto\AporteInstitucional;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Str;
+
 
 Carbon::setLocale('es');
 
@@ -62,35 +65,29 @@ class BuilderConstancia
         return $this->data;
     }
 
-    private function generarCorrelativo(): string
-{
-    $anio = now()->year;
-    $prefijo = 'DVUS-CONST';
+private function generarCorrelativo(): string
+    {
+        $anio = now()->year;
+        $prefijo = 'DVUS-CONST';
+        $maxIntentos = 100;
 
-    // Buscar el último correlativo del año, ignorando mayúsculas y con formato correcto
-    $ultimaConstancia = Constancia::whereRaw('UPPER(correlativo) LIKE ?', ["{$prefijo}-%/{$anio}"])
-        ->orderBy('id', 'desc')
-        ->first();
+        do {
+            $numero = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+            $correlativo = "$prefijo-$numero/$anio";
+            
+            if (!Constancia::where('correlativo', $correlativo)->exists()) {
+                return $correlativo;
+            }
+        } while (--$maxIntentos > 0);
 
-    if ($ultimaConstancia) {
-        // Extraer el número: DVUS-CONST-0068/2025
-        preg_match('/-(\d{4})\/\d+$/', $ultimaConstancia->correlativo, $matches);
-        $ultimoNumero = $matches[1] ?? '0001';
-        $nuevoNumero = intval($ultimoNumero) + 1;
-    } else {
-        $nuevoNumero = 1;
+        throw new \Exception("No se generó correlativo único después de 100 intentos");
     }
-
-    // Formato con 4 dígitos: 0001, 0002, ..., 0068
-    $numeroFormateado = str_pad($nuevoNumero, 4, '0', STR_PAD_LEFT);
-
-    return "$prefijo-$numeroFormateado/$anio";
-}
 
     public function getConstancia()
     {
         $layout = match ($this->tipo) {
             'actualizacion' => 'app.docente.constancias.constancia_actualizacion',
+            'finalizacion' => 'app.docente.constancias.constancia_finalizacion',
             default => 'app.docente.constancias.constancia_registro',
         };
 
@@ -104,23 +101,23 @@ class BuilderConstancia
     private function resolveConstancia(): ?Constancia
     {
         $tipoId = TipoConstancia::where('nombre', $this->tipo)->value('id');
+        if (!$tipoId) return null;
 
-        if (!$tipoId) {
-            return null;
-        }
-
-        $conditions = [
+     
+        $constancia = Constancia::where([
             ['origen_type', Proyecto::class],
             ['origen_id', $this->empleadoProyecto->proyecto_id],
             ['destinatario_type', Empleado::class],
             ['destinatario_id', $this->empleadoProyecto->empleado_id],
-            ['tipo_constancia_id', $tipoId],
-        ];
+            ['tipo_constancia_id', $tipoId] 
+        ])->first();
 
-        // Buscar si ya existe
-        $constancia = Constancia::where($conditions)->first();
+       
+        if ($constancia && empty($constancia->correlativo)) {
+            $constancia->update(['correlativo' => $this->generarCorrelativo()]);
+            $constancia->refresh();
+        }
 
-        // Si no existe, crearla
         if (!$constancia) {
             $constancia = Constancia::create([
                 'origen_type' => Proyecto::class,
@@ -128,132 +125,171 @@ class BuilderConstancia
                 'destinatario_type' => Empleado::class,
                 'destinatario_id' => $this->empleadoProyecto->empleado_id,
                 'tipo_constancia_id' => $tipoId,
-                'status' => 'generada', // o el estado que uses
-                'hash' => Str::random(32),
+                'status' => 'generada',
                 'correlativo' => $this->generarCorrelativo(),
-                'validaciones' => json_encode([]), // si es necesario
+                'hash' => Str::random(32)
             ]);
         }
 
-    return $constancia;
-}
+        return $constancia;
+    }
 
     private function formatFecha(?string $fecha): string
     {
         return $fecha ? Carbon::parse($fecha)->translatedFormat('j \d\e F \d\e Y') : 'Fecha no disponible';
     }
 
+
     private function buildData(): array
-{
-    $empleado = $this->empleado?->nombre_completo ?? 'Nombre del Empleado';
-    $numeroEmpleado = $this->empleado?->numero_empleado ?? 'N° empleado';
-    $nombreCentro = $this->empleado?->centro_facultad->nombre ?? 'Nombre del Centro';
-    $nombreDepartamento = $this->empleado?->departamento_academico->nombre ?? 'Nombre del Departamento';
-    $director = $this->director?->nombre_completo ?? 'Nombre del Director';
-    $nombreProyecto = $this->proyecto?->nombre_proyecto ?? 'Nombre del Proyecto';
-    $categoria = $this->empleado?->categoria?->nombre ?? 'Categoría no asignada';
+    {
+        $empleado = $this->empleado?->nombre_completo ?? 'Nombre del Empleado';
+        $numeroEmpleado = $this->empleado?->numero_empleado ?? 'N° empleado';
+        $nombreCentro = $this->empleado?->centro_facultad->nombre ?? 'Nombre del Centro';
+        $nombreDepartamento = $this->empleado?->departamento_academico->nombre ?? 'Nombre del Departamento';
+        $director = $this->director?->nombre_completo ?? 'Nombre del Director';
+        $nombreProyecto = $this->proyecto?->nombre_proyecto ?? 'Nombre del Proyecto';
+        $categoria = $this->empleado?->categoria?->nombre ?? 'Categoría no asignada';
+        $codigoProyecto = $this->proyecto?->codigo_proyecto ?? 'Código no disponible';
+        $rol = $this->empleadoProyecto->rol ?? 'Rol no asignado';
+        $departamentos = $this->proyecto->departamento->pluck('nombre')->implode(', ') ?: 'No especificado';
+        $municipios = $this->proyecto->municipio->pluck('nombre')->implode(', ') ?: 'No especificado';
 
-    $codigoProyecto = $this->proyecto?->codigo_proyecto ?? 'Código no disponible';
-    $registroInvestigacion = EmpleadoCodigoInvestigacion::where('empleado_id', $this->empleado->id)
-        ->where('codigo_proyecto', $codigoProyecto)
-        ->first();
-    $rol = $this->empleadoProyecto->rol ?? 'Rol no asignado';
-    $departamentos = $this->proyecto->departamento->pluck('nombre')->implode(', ') ?: 'No especificado';
-    $municipios = $this->proyecto->municipio->pluck('nombre')->implode(', ') ?: 'No especificado';
-    
+        // Datos solicitados para la constancia de finalización
+        $unidadAcademica = $this->proyecto?->unidad_academica ?? 'No especificada';
+        $beneficiarios = $this->proyecto?->poblacion_participante ?? 'No especificado';
 
+        // Calcular presupuesto ejecutado (todos los aportes + superávit) ---
+        $presupuesto = $this->proyecto->presupuesto; // relación hasOne
+        $totalAporteInstitucional = $this->proyecto->aportesInstitucionales()->sum('costo_total');
+        $aporteContraparte = floatval($presupuesto->aporte_contraparte ?? 0);
+        $aporteInternacionales = floatval($presupuesto->aporte_internacionales ?? 0);
+        $aporteOtrasUniversidades = floatval($presupuesto->aporte_otras_universidades ?? 0);
+        $aporteComunidad = floatval($presupuesto->aporte_comunidad ?? 0);
+        $otrosAportes = floatval($presupuesto->otros_aportes ?? 0);
 
-    // Obtener rutas desde .env
-    $headerLogo = env('PDF_HEADER_LOGO');
-    $footerLogo = env('PDF_FOOTER_LOGO');
-    $solLogo    = env('PDF_SOL_LOGO');
-    $lucenLogo  = env('PDF_LUCEN_LOGO');
+        // Sumar el superávit (puede ser una relación o un array)
+        $superavitTotal = 0;
+        if (!empty($presupuesto->superavit) && is_iterable($presupuesto->superavit)) {
+            foreach ($presupuesto->superavit as $item) {
+                $superavitTotal += floatval(is_array($item) ? ($item['monto'] ?? 0) : ($item->monto ?? 0));
+            }
+        }
 
+        $presupuestoEjecutado = $totalAporteInstitucional
+            + $aporteContraparte
+            + $aporteInternacionales
+            + $aporteOtrasUniversidades
+            + $aporteComunidad
+            + $otrosAportes
+            + $superavitTotal;
 
-    $integrantes = $this->proyecto->docentes_proyecto()
-        ->with([
-            'empleado.departamento_academico',
-            'empleado.categoria'
-        ])
-        ->get()
-        ->map(function ($empleadoProyecto, $index) {
-            $emp = $empleadoProyecto->empleado;
+        $presupuestoEjecutado = number_format($presupuestoEjecutado, 2, '.', ',');
 
-            return [
-                'no' => $index + 1,
-                'nombre_completo' => $emp->nombre_completo,
-                'numero_empleado' => $emp->numero_empleado,
-                'categoria' => $emp->categoria?->nombre ?? 'No asignada',
-                'departamento' => $emp->departamento_academico?->nombre ?? 'No asignado',
-                'rol' => $empleadoProyecto->rol ?? 'No especificado',
-            ];
-        })->toArray();
+        $fechaInformeIntermedio = optional(
+            $this->proyecto->documentos()->where('tipo_documento', 'Informe Intermedio')->latest()->first()
+        )?->created_at?->format('d \d\e F \d\e Y') ?? 'No disponible';
+        $fechaInformeFinal = optional(
+            $this->proyecto->documentos()->where('tipo_documento', 'Informe Final')->latest()->first()
+        )?->created_at?->format('d \d\e F \d\e Y') ?? 'No disponible';
 
-    // Si estamos generando PDF, convertir rutas a file:// 
-    if ($this->pdf) {
-        $headerLogo = 'file://' . public_path($headerLogo);
-        $footerLogo = 'file://' . public_path($footerLogo);
-        $solLogo    = 'file://' . public_path($solLogo);
-        $lucenLogo  = 'file://' . public_path($lucenLogo);
+        // Obtener rutas desde .env
+        $headerLogo = env('PDF_HEADER_LOGO');
+        $footerLogo = env('PDF_FOOTER_LOGO');
+        $solLogo    = env('PDF_SOL_LOGO');
+        $lucenLogo  = env('PDF_LUCEN_LOGO');
+
+        $integrantes = $this->proyecto->docentes_proyecto()
+            ->with([
+                'empleado.departamento_academico',
+                'empleado.categoria'
+            ])
+            ->get()
+            ->map(function ($empleadoProyecto, $index) {
+                $emp = $empleadoProyecto->empleado;
+
+                return [
+                    'no' => $index + 1,
+                    'nombre_completo' => $emp->nombre_completo,
+                    'numero_empleado' => $emp->numero_empleado,
+                    'categoria' => $emp->categoria?->nombre ?? 'No asignada',
+                    'departamento' => $emp->departamento_academico?->nombre ?? 'No asignado',
+                    'rol' => $empleadoProyecto->rol ?? 'No especificado',
+                ];
+            })->toArray();
+
+        // Si estamos generando PDF, convertir rutas a file:// 
+        if ($this->pdf) {
+            $headerLogo = 'file://' . public_path($headerLogo);
+            $footerLogo = 'file://' . public_path($footerLogo);
+            $solLogo    = 'file://' . public_path($solLogo);
+            $lucenLogo  = 'file://' . public_path($lucenLogo);
+        }
+
+        $fechaInicio = $this->formatFecha($this->proyecto?->fecha_inicio);
+        $fechaFinal = $this->formatFecha($this->proyecto?->fecha_finalizacion);
+
+        $data = [
+            'titulo' => $this->buildTitulo(),
+            'nombreEmpleado' => $empleado,
+            'numeroEmpleado' => $numeroEmpleado,
+            'nombreProyecto' => $nombreProyecto,
+            'headerLogo' => $headerLogo,
+            'footerLogo' => $footerLogo,
+            'solLogo' => $solLogo,
+            'lucenLogo' => $lucenLogo,
+            'categoria' => $categoria,
+            'rol' => $rol,
+            'codigoProyecto' => $codigoProyecto,
+            'departamentos' => $departamentos,
+            'municipios' => $municipios,
+            'integrantes' => $integrantes,
+
+            'tipo' => $this->tipo,
+            'horas' => 0,
+            'texto' => $this->buildTexto(
+                $empleado,
+                $numeroEmpleado,
+                $nombreDepartamento,
+                $nombreCentro,
+                $nombreProyecto,
+                $fechaInicio,
+                $fechaFinal,
+                $director,
+                $categoria,
+                $rol,
+                $codigoProyecto,
+                $departamentos,
+                $municipios,
+                $integrantes
+            ),
+            'nombreDepartamento' => $nombreDepartamento,
+            'nombreDirector' => $director,
+            'firmaDirector' => $this->director?->firma?->ruta_storage ?? '',
+            'selloDirector' => $this->director?->sello?->ruta_storage ?? '',
+            'anioAcademico' => 'Año Académico 2025 "José Dionisio de Herrera"',
+            'codigoVerificacion' => $this->constancia?->hash ?? '',
+            'correlativo' => $this->constancia->correlativo ?? 'DVUS-CONST-0001/2025',
+            'pdf' => $this->pdf,
+            'qrCode' => $this->qrPath,
+
+            // Datos para la tabla de finalización
+            'unidadAcademica' => $unidadAcademica,
+            'beneficiarios' => $beneficiarios,
+            'presupuestoEjecutado' => $presupuestoEjecutado,
+            'fechaInformeIntermedio' => $fechaInformeIntermedio,
+            'fechaInformeFinal' => $fechaInformeFinal,
+            'fechaInicio' => $fechaInicio,
+            'fechaFinal' => $fechaFinal,
+        ];
+
+        return array_merge($data, $this->getImagePaths($data));
     }
-
-    $fechaInicio = $this->formatFecha($this->proyecto?->fecha_inicio);
-    $fechaFinal = $this->formatFecha($this->proyecto?->fecha_finalizacion);
-
-    $data = [
-        'titulo' => $this->buildTitulo(),
-        'nombreEmpleado' => $empleado,
-        'numeroEmpleado' => $numeroEmpleado,
-        'nombreProyecto' => $nombreProyecto,
-        'headerLogo' => $headerLogo,
-        'footerLogo' => $footerLogo,
-        'solLogo' => $solLogo,
-        'lucenLogo' => $lucenLogo,
-        'categoria' => $categoria,
-        'rol' => $rol,
-        'codigoProyecto' => $codigoProyecto,
-        'departamentos' => $departamentos,
-        'municipios' => $municipios,
-        'integrantes' => $integrantes,
-
-        'tipo' => $this->tipo,
-        'horas' => 0,
-        'texto' => $this->buildTexto(
-             $empleado,
-            $numeroEmpleado,
-            $nombreDepartamento,
-            $nombreCentro,
-            $nombreProyecto,
-            $fechaInicio,
-            $fechaFinal,
-            $director,
-            $categoria,
-            $rol,
-            $codigoProyecto,
-            $departamentos,
-            $municipios,
-            $integrantes
-
-        ),
-        'nombreDepartamento' => $nombreDepartamento,
-        'nombreDirector' => $director,
-        'firmaDirector' => $this->director?->firma?->ruta_storage ?? '',
-        'selloDirector' => $this->director?->sello?->ruta_storage ?? '',
-        'anioAcademico' => 'Año Académico 2025 "José Dionisio de Herrera"',
-        'codigoVerificacion' => $this->constancia?->hash ?? '',
-        'correlativo' => $this->constancia->correlativo ?? 'DVUS-CONST-0001/2025',
-        'pdf' => $this->pdf,
-        'qrCode' => $this->qrPath,
-    ];
-
-    return array_merge($data, $this->getImagePaths($data));
-}
 
     private function buildTitulo(): string
     {
         return match ($this->tipo) {
             'inscripcion' => 'CONSTANCIA DE REGISTRO DE PROYECTO DE VINCULACIÓN',
-            'finalizacion' => 'CONSTANCIA DE FINALIZACIÓN DE ACTIVIDAD DE VINCULACIÓN',
+            'finalizacion' => 'CONSTANCIA DE FINALIZACIÓN DE PROYECTO DE VINCULACIÓN',
             'actualizacion' => 'CONSTANCIA DE ACTUALIZACIÓN DE PROYECTO DE VINCULACIÓN',
             default => 'N/D',
         };
@@ -284,7 +320,7 @@ class BuilderConstancia
                 <strong>{{ \$nombreCentro }}</strong> ha registrado el proyecto de vinculación denominado 
                 <strong>{{ \$nombreProyecto }}</strong>, el cual se ejecuta en {{ \$municipios }}, Departamentos 
                 {{ \$departamentos }} durante el período {{ \$fechaInicio }} hasta el 
-                {{ \$fechaFinal }}, y fue registrado en esta dirección con el número 
+                {{ \$fechaFinal }}, el cual fue registrado en esta dirección con el número 
                 <strong>{{ \$codigoProyecto }}</strong>. El equipo docente responsable de la ejecución de este proyecto es el siguiente:
             </p>
             
@@ -309,7 +345,6 @@ class BuilderConstancia
                 el cual fue registrado en esta dirección con el número 
                 <strong>{{ \$codigoProyecto }}</strong>. A la fecha, el equipo docente responsable de la ejecución de este proyecto es el siguiente:
             </p>
-
            
         BLADE
         , compact(
