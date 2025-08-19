@@ -3,6 +3,8 @@
 namespace App\Livewire\Docente\Proyectos;
 
 use App\Models\Proyecto\FichaActualizacion;
+use App\Http\Controllers\Docente\VerificarConstancia;
+use App\Models\Personal\Empleado;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Support\Enums\MaxWidth;
@@ -11,16 +13,22 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
+use Filament\Tables\Actions\ActionGroup;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Auth;
 
 class FichasActualizacionDocente extends Component implements HasForms, HasTable
 {
     use InteractsWithForms;
     use InteractsWithTable;
-
+    public \App\Models\Personal\Empleado $docente;
+    public function mount($docente = null): void
+    {
+        $this->docente = $docente ?? Auth::user()->empleado;
+    }
     public function table(Table $table): Table
     {
         return $table
@@ -72,30 +80,31 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
             ])
             ->defaultSort('created_at', 'desc')
             ->actions([
-                Action::make('ver_ficha')
-                    ->label('Ver Ficha')
-                    ->icon('heroicon-o-eye')
-                    ->modalContent(
-                        function (FichaActualizacion $fichaActualizacion): View {
-                            $proyecto = $fichaActualizacion->proyecto;
+                ActionGroup::make([
+                    Action::make('ver_ficha')
+                        ->label('Ver Ficha')
+                        ->icon('heroicon-o-eye')
+                        ->color('primary')
+                        ->modalContent(
+                            function (FichaActualizacion $fichaActualizacion): View {
+                                $proyecto = $fichaActualizacion->proyecto;
+                                return view(
+                                    'components.fichas.ficha-actualizacion-proyecto-vinculacion',
+                                    [
+                                        'fichaActualizacion' => $fichaActualizacion,
+                                        'proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye'])
+                                    ]
+                                );
+                            }
+                        )
+                        ->closeModalByEscaping(false)
+                        ->stickyModalFooter()
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Cerrar')
+                        ->modal()
+                        ->modalWidth(MaxWidth::SevenExtraLarge),
 
-                            return view(
-                                'components.fichas.ficha-actualizacion-proyecto-vinculacion',
-                                [
-                                    'fichaActualizacion' => $fichaActualizacion,
-                                    'proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye'])
-                                ]
-                            );
-                        }
-                    )
-                    ->closeModalByEscaping(false)
-                    ->stickyModalFooter()
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Cerrar')
-                    ->modal()
-                    ->modalWidth(MaxWidth::SevenExtraLarge),
-
-                Action::make('eliminar_ficha')
+                         Action::make('eliminar_ficha')
                     ->label('Eliminar')
                     ->icon('heroicon-o-trash')
                     ->color('danger')
@@ -142,6 +151,38 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
                                 ->send();
                         }
                     }),
+
+                    Action::make('constancia_actualizacion')
+                        ->label('Constancia de Actualización')
+                        ->icon('heroicon-o-document')
+                        ->color('info')
+                        ->visible(function (FichaActualizacion $fichaActualizacion) {
+                            $empleadoProyecto = $fichaActualizacion->equipoEjecutor()
+                                ->where('empleado_id', $this->docente->id)
+                                ->first();
+                            if (!$empleadoProyecto) {
+                                return false;
+                            }
+                            return VerificarConstancia::validarConstancia($empleadoProyecto, 'actualizacion');
+                        })
+                        ->action(function (FichaActualizacion $fichaActualizacion) {
+                            $empleadoProyecto = $fichaActualizacion->equipoEjecutor()
+                                ->where('empleado_id', $this->docente->id)
+                                ->first();
+                            if (!$empleadoProyecto) {
+                                Notification::make()
+                                    ->title('No se encontró registro de participación')
+                                    ->body('No se puede generar la constancia porque no existe registro de participación para este docente en la ficha.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+                            return VerificarConstancia::CrearPdfActualizacion($empleadoProyecto);
+                        }),
+
+                ])->button()
+                    ->color('primary')
+                    ->label('Acciones'),
             ])
             ->emptyStateHeading('No hay fichas de actualización')
             ->emptyStateDescription('Aún no has creado ninguna ficha de actualización para tus proyectos.')

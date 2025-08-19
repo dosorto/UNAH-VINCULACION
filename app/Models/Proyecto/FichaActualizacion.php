@@ -311,6 +311,12 @@ class FichaActualizacion extends Model
         }
     }
 
+    // Devuelve el equipo ejecutor (todos los EmpleadoProyecto) del proyecto asociado a la ficha
+    public function equipoEjecutor()
+    {
+        return \App\Models\Personal\EmpleadoProyecto::where('proyecto_id', $this->proyecto_id)->get();
+    }
+
     // Método para verificar si tiene solicitudes pendientes que pueden ser canceladas
     public function tieneSolicitudesPendientes()
     {
