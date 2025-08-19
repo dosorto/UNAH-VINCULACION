@@ -114,6 +114,8 @@ class SegundaParte
                 ->itemLabel('Entidad contraparte')
                 ->columns(2)
                 ->defaultItems(1)
+                ->minItems(1)
+                ->deletable(true)
                 ->addActionLabel('Agregar entidad contraparte')
         ];
     }

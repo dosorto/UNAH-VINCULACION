@@ -35,6 +35,7 @@ class Estudiante extends Model
         'sexo',
         'user_id',
         'centro_facultad_id',
+        'carrera_id',
         'departamento_academico_id',
         'tipo_participacion_estudiante',
     ];

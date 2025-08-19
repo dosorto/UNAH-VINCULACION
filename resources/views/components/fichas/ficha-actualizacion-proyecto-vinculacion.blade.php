@@ -108,19 +108,62 @@
                             <td class="sub-header">Departamento:</td>
                         </tr>
                         @php
-                            // Obtener integrantes que se dieron de baja de la tabla equipoEjecutorBajas
-                            $integrantesBaja = $proyecto->equipoEjecutorBajas
+                            // Obtener bajas de ESTA ficha específica
+                            $bajasEstaFicha = $fichaActualizacion->equipoEjecutorBajas
                                 ->where('tipo_integrante', 'empleado')
                                 ->pluck('integrante_id');
                                 
-                            // Filtrar integrantes actuales: los que NO se dieron de baja
-                            // Incluye tanto los originales como los que se agregaron después
-                            $integrantesActuales = $proyecto->integrantes->filter(function ($integrante) use ($integrantesBaja) {
-                                return !$integrantesBaja->contains($integrante->id);
+                            // Obtener bajas que ocurrieron DESPUÉS de esta ficha (fichas posteriores)
+                            $bajasPosteriores = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyecto->id)
+                                ->where('tipo_integrante', 'empleado')
+                                ->whereHas('fichaActualizacion', function($query) use ($fichaActualizacion) {
+                                    $query->where('created_at', '>', $fichaActualizacion->created_at);
+                                })
+                                ->where('estado_baja', 'aplicada')
+                                ->pluck('integrante_id');
+                                
+                            // Los integrantes activos son: todos los actuales + los que se dieron de baja posteriormente 
+                            // pero excluyendo los que se dieron de baja en esta ficha
+                            $integrantesActivosEnEseMomento = $proyecto->integrantes->filter(function ($integrante) use ($bajasEstaFicha) {
+                                return !$bajasEstaFicha->contains($integrante->id);
                             });
                             
+                            // Agregar los que fueron dados de baja en fichas posteriores (estaban activos en esta ficha)
+                            $integrantesDadosBajaPosteriormente = \App\Models\Personal\Empleado::whereIn('id', $bajasPosteriores)->get();
+                            
+                            // Obtener IDs de integrantes actuales para evitar duplicados
+                            $idsIntegrantesActuales = $integrantesActivosEnEseMomento->pluck('id')->toArray();
+                            
+                            // Filtrar solo los que no están ya en la lista actual
+                            $integrantesFaltantes = $integrantesDadosBajaPosteriormente->filter(function($empleado) use ($idsIntegrantesActuales) {
+                                return !in_array($empleado->id, $idsIntegrantesActuales);
+                            });
+                            
+                            // Combinar ambos grupos para obtener el estado completo de esta ficha
+                            // AGREGAR INTEGRANTES NUEVOS DE LA FICHA ACTUAL
+                            $integrantesNuevosFicha = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyecto->id)
+                                ->where('tipo_integrante', 'empleado')
+                                ->where('ficha_actualizacion_id', $fichaActualizacion->id)
+                                ->get()
+                                ->map(function($nuevo) {
+                                    $empleado = \App\Models\Personal\Empleado::find($nuevo->integrante_id);
+                                    if ($empleado) {
+                                        // Crear un mock pivot usando el modelo EmpleadoProyecto
+                                        $mockPivot = new \App\Models\Personal\EmpleadoProyecto();
+                                        $mockPivot->created_at = $nuevo->fecha_solicitud;
+                                        $mockPivot->exists = false;
+                                        $empleado->pivot = $mockPivot;
+                                        return $empleado;
+                                    }
+                                    return null;
+                                })->filter();
+
+                            $todosLosIntegrantesEnEseMomento = $integrantesActivosEnEseMomento
+                                ->merge($integrantesFaltantes)
+                                ->merge($integrantesNuevosFicha);
+                            
                             // Separar entre originales y agregados después
-                            $integrantesOriginales = $integrantesActuales->filter(function ($integrante) use ($proyecto) {
+                            $integrantesOriginales = $todosLosIntegrantesEnEseMomento->filter(function ($integrante) use ($proyecto) {
                                 $fechaRegistro = $proyecto->fecha_registro;
                                 $fechaIncorporacion = $integrante->pivot->created_at ?? null;
                                 
@@ -131,9 +174,9 @@
                                 return $fechaIncorporacion->lte($fechaRegistro);
                             });
                             
-                            $integrantesPosteriores = $integrantesActuales->filter(function ($integrante) use ($proyecto) {
+                            $integrantesPosteriores = $todosLosIntegrantesEnEseMomento->filter(function ($integrante) use ($proyecto) {
                                 $fechaRegistro = $proyecto->fecha_registro;
-                                $fechaIncorporacion = $integrante->pivot->created_at ?? null;
+                                $fechaIncorporacion = isset($integrante->pivot) ? $integrante->pivot->created_at : null;
                                 
                                 if (!$fechaRegistro || !$fechaIncorporacion) {
                                     return false;
@@ -141,14 +184,21 @@
                                 
                                 return $fechaIncorporacion->gt($fechaRegistro);
                             });
+                            
+                            // También marcar como nuevos los empleados de la ficha actual
+                            $idsEmpleadosNuevosFicha = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyecto->id)
+                                ->where('tipo_integrante', 'empleado')
+                                ->where('ficha_actualizacion_id', $fichaActualizacion->id)
+                                ->pluck('integrante_id');
                         @endphp
 
-                        @forelse ($integrantesActuales as $integrante)
+                        @forelse ($todosLosIntegrantesEnEseMomento as $integrante)
                             @php
-                                $esNuevo = $integrantesPosteriores->contains('id', $integrante->id);
-                                $fechaIncorporacion = $integrante->pivot->created_at;
+                                $esNuevo = $integrantesPosteriores->contains('id', $integrante->id) 
+                                    || $idsEmpleadosNuevosFicha->contains($integrante->id);
+                                $fechaIncorporacion = isset($integrante->pivot) ? $integrante->pivot->created_at : null;
                             @endphp
-                            <tr style="{{ $esNuevo ? 'background-color: #e8f5e8;' : '' }}">
+                            <tr style="{{ $esNuevo ? 'background-color: #d4edda; border-left: 4px solid #28a745;' : '' }}">
                                 <td class="full-width" colspan="2">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre completo"
@@ -193,18 +243,72 @@
                             <td class="sub-header">Tipo participacion:</td>
                         </tr>
                         @php
-                            // Obtener estudiantes que se dieron de baja de la tabla equipoEjecutorBajas
-                            $estudiantesBaja = $proyecto->equipoEjecutorBajas
+                            // Obtener bajas de estudiantes de ESTA ficha específica
+                            $estudiantesBajaEstaFicha = $fichaActualizacion->equipoEjecutorBajas
                                 ->where('tipo_integrante', 'estudiante')
                                 ->pluck('integrante_id');
                                 
-                            // Filtrar estudiantes actuales: los que NO se dieron de baja
-                            $estudiantesActuales = $proyecto->estudiante_proyecto->filter(function ($integrante) use ($estudiantesBaja) {
-                                return !$estudiantesBaja->contains($integrante->estudiante_id);
+                            // Obtener bajas de estudiantes que ocurrieron DESPUÉS de esta ficha
+                            $estudiantesBajasPosteriores = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyecto->id)
+                                ->where('tipo_integrante', 'estudiante')
+                                ->whereHas('fichaActualizacion', function($query) use ($fichaActualizacion) {
+                                    $query->where('created_at', '>', $fichaActualizacion->created_at);
+                                })
+                                ->where('estado_baja', 'aplicada')
+                                ->pluck('integrante_id');
+                                
+                            // Estudiantes activos en el momento de esta ficha
+                            $estudiantesActivosEnEseMomento = $proyecto->estudiante_proyecto->filter(function ($integrante) use ($estudiantesBajaEstaFicha) {
+                                return !$estudiantesBajaEstaFicha->contains($integrante->estudiante_id);
                             });
                             
+                            // Agregar estudiantes que fueron dados de baja posteriormente
+                            $estudiantesDadosBajaPosteriormente = \App\Models\Estudiante\Estudiante::with('user')->whereIn('id', $estudiantesBajasPosteriores)->get();
+                            
+                            // Obtener IDs de estudiantes actuales para evitar duplicados
+                            $idsEstudiantesActuales = $estudiantesActivosEnEseMomento->pluck('estudiante_id')->toArray();
+                            
+                            // Crear relaciones pivot simuladas para estudiantes faltantes
+                            $estudiantesFaltantes = $estudiantesDadosBajaPosteriormente->filter(function($estudiante) use ($idsEstudiantesActuales) {
+                                return !in_array($estudiante->id, $idsEstudiantesActuales);
+                            })->map(function($estudiante) {
+                                // Crear un mock object que simule la estructura de EstudianteProyecto
+                                $mockObject = new \App\Models\Estudiante\EstudianteProyecto();
+                                $mockObject->estudiante_id = $estudiante->id;
+                                $mockObject->estudiante = $estudiante;
+                                $mockObject->created_at = null;
+                                $mockObject->tipo_participacion_estudiante = 'Participante';
+                                $mockObject->exists = false; // Indicar que no existe en BD
+                                return $mockObject;
+                            });
+                            
+                            // Combinar para obtener el estado completo en el momento de esta ficha
+                            // AGREGAR ESTUDIANTES NUEVOS DE LA FICHA ACTUAL
+                            $estudiantesNuevosFicha = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyecto->id)
+                                ->where('tipo_integrante', 'estudiante')
+                                ->where('ficha_actualizacion_id', $fichaActualizacion->id)
+                                ->get()
+                                ->map(function($nuevo) {
+                                    $estudiante = \App\Models\Estudiante\Estudiante::with('user')->find($nuevo->integrante_id);
+                                    if ($estudiante) {
+                                        // Crear un mock object que simule la estructura de EstudianteProyecto
+                                        $mockObject = new \App\Models\Estudiante\EstudianteProyecto();
+                                        $mockObject->estudiante_id = $estudiante->id;
+                                        $mockObject->estudiante = $estudiante;
+                                        $mockObject->created_at = $nuevo->fecha_solicitud;
+                                        $mockObject->tipo_participacion_estudiante = $nuevo->rol_nuevo ?? 'Participante';
+                                        $mockObject->exists = false; // Indicar que no existe en BD
+                                        return $mockObject;
+                                    }
+                                    return null;
+                                })->filter();
+
+                            $todosLosEstudiantesEnEseMomento = $estudiantesActivosEnEseMomento
+                                ->merge($estudiantesFaltantes)
+                                ->merge($estudiantesNuevosFicha);
+                            
                             // Separar entre originales y agregados después
-                            $estudiantesPosteriores = $estudiantesActuales->filter(function ($integrante) use ($proyecto) {
+                            $estudiantesPosteriores = $todosLosEstudiantesEnEseMomento->filter(function ($integrante) use ($proyecto) {
                                 $fechaRegistro = $proyecto->fecha_registro;
                                 $fechaIncorporacion = $integrante->created_at ?? null;
                                 
@@ -214,34 +318,42 @@
                                 
                                 return $fechaIncorporacion->gt($fechaRegistro);
                             });
+                            
+                            // También marcar como nuevos los estudiantes de la ficha actual
+                            $idsEstudiantesNuevosFicha = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyecto->id)
+                                ->where('tipo_integrante', 'estudiante')
+                                ->where('ficha_actualizacion_id', $fichaActualizacion->id)
+                                ->pluck('integrante_id');
                         @endphp
 
-                        @forelse ($estudiantesActuales as $integrante)
+                        @forelse ($todosLosEstudiantesEnEseMomento as $integrante)
                             @php
-                                $esNuevo = $estudiantesPosteriores->contains('id', $integrante->id);
-                                $fechaIncorporacion = $integrante->created_at;
+                                $esNuevo = $estudiantesPosteriores->contains('estudiante_id', $integrante->estudiante_id ?? $integrante->id) 
+                                    || $idsEstudiantesNuevosFicha->contains($integrante->estudiante_id ?? $integrante->id);
+                                $fechaIncorporacion = $integrante->created_at ?? null;
+                                $estudiante = $integrante->estudiante ?? $integrante;
                             @endphp
-                            <tr style="{{ $esNuevo ? 'background-color: #e8f5e8;' : '' }}">
+                            <tr style="{{ $esNuevo ? 'background-color: #d4edda; border-left: 4px solid #28a745;' : '' }}">
                                 <td class="full-width" colspan="3">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->estudiante->user->name }}{{ $esNuevo ? ' (NUEVO)' : '' }}" disabled>
+                                        value="{{ $estudiante->user?->name ?? ($estudiante->nombre . ' ' . $estudiante->apellido) }}{{ $esNuevo ? ' (NUEVO)' : '' }}" disabled>
                                 </td>
 
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->estudiante->cuenta }}" disabled>
+                                        value="{{ $estudiante->cuenta }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->estudiante->user->email }}" disabled>
+                                        value="{{ $estudiante->user?->email ?? 'Sin email registrado' }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->tipo_participacion_estudiante }}" disabled>
+                                        value="{{ $integrante->tipo_participacion_estudiante ?? 'Participante' }}" disabled>
                                 </td>
                             </tr>
                         @empty
@@ -263,20 +375,63 @@
                             <td class="sub-header">Universidad/Institucion:</td>
                         </tr>
                         @php
-                            // Obtener integrantes internacionales que se dieron de baja de la tabla equipoEjecutorBajas
-                            $integrantesInternacionalesBaja = $proyecto->equipoEjecutorBajas
+                            // Obtener bajas de integrantes internacionales de ESTA ficha específica
+                            $integrantesInternacionalesBajaEstaFicha = $fichaActualizacion->equipoEjecutorBajas
                                 ->where('tipo_integrante', 'integrante_internacional')
                                 ->pluck('integrante_id');
                                 
-                            // Filtrar integrantes internacionales actuales: los que NO se dieron de baja
-                            $integrantesInternacionalesActuales = $proyecto->integrantesInternacionales->filter(function ($integrante) use ($integrantesInternacionalesBaja) {
-                                return !$integrantesInternacionalesBaja->contains($integrante->id);
+                            // Obtener bajas que ocurrieron DESPUÉS de esta ficha
+                            $integrantesInternacionalesBajasPosteriores = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyecto->id)
+                                ->where('tipo_integrante', 'integrante_internacional')
+                                ->whereHas('fichaActualizacion', function($query) use ($fichaActualizacion) {
+                                    $query->where('created_at', '>', $fichaActualizacion->created_at);
+                                })
+                                ->where('estado_baja', 'aplicada')
+                                ->pluck('integrante_id');
+                                
+                            // Integrantes internacionales activos en el momento de esta ficha
+                            $integrantesInternacionalesActivosEnEseMomento = $proyecto->integrantesInternacionales->filter(function ($integrante) use ($integrantesInternacionalesBajaEstaFicha) {
+                                return !$integrantesInternacionalesBajaEstaFicha->contains($integrante->id);
                             });
                             
+                            // Agregar los que fueron dados de baja posteriormente
+                            $integrantesInternacionalesDadosBajaPosteriormente = \App\Models\Proyecto\IntegranteInternacional::whereIn('id', $integrantesInternacionalesBajasPosteriores)->get();
+                            
+                            // Obtener IDs actuales para evitar duplicados
+                            $idsIntegrantesInternacionalesActuales = $integrantesInternacionalesActivosEnEseMomento->pluck('id')->toArray();
+                            
+                            // Filtrar solo los que no están ya en la lista actual
+                            $integrantesInternacionalesFaltantes = $integrantesInternacionalesDadosBajaPosteriormente->filter(function($integrante) use ($idsIntegrantesInternacionalesActuales) {
+                                return !in_array($integrante->id, $idsIntegrantesInternacionalesActuales);
+                            });
+                            
+                            // Combinar para obtener el estado completo
+                            // AGREGAR INTERNACIONALES NUEVOS DE LA FICHA ACTUAL
+                            $internacionalesNuevosFicha = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyecto->id)
+                                ->where('tipo_integrante', 'integrante_internacional')
+                                ->where('ficha_actualizacion_id', $fichaActualizacion->id)
+                                ->get()
+                                ->map(function($nuevo) {
+                                    $integrante = \App\Models\Proyecto\IntegranteInternacional::find($nuevo->integrante_id);
+                                    if ($integrante) {
+                                        // Crear un mock pivot usando el modelo IntegranteInternacionalProyecto
+                                        $mockPivot = new \App\Models\Proyecto\IntegranteInternacionalProyecto();
+                                        $mockPivot->created_at = $nuevo->fecha_solicitud;
+                                        $mockPivot->exists = false;
+                                        $integrante->pivot = $mockPivot;
+                                        return $integrante;
+                                    }
+                                    return null;
+                                })->filter();
+
+                            $todosLosIntegrantesInternacionalesEnEseMomento = $integrantesInternacionalesActivosEnEseMomento
+                                ->merge($integrantesInternacionalesFaltantes)
+                                ->merge($internacionalesNuevosFicha);
+                            
                             // Separar entre originales y agregados después
-                            $integrantesInternacionalesPosteriores = $integrantesInternacionalesActuales->filter(function ($integrante) use ($proyecto) {
+                            $integrantesInternacionalesPosteriores = $todosLosIntegrantesInternacionalesEnEseMomento->filter(function ($integrante) use ($proyecto) {
                                 $fechaRegistro = $proyecto->fecha_registro;
-                                $fechaIncorporacion = $integrante->pivot->created_at ?? null;
+                                $fechaIncorporacion = isset($integrante->pivot) ? $integrante->pivot->created_at : null;
                                 
                                 if (!$fechaRegistro || !$fechaIncorporacion) {
                                     return false;
@@ -284,14 +439,21 @@
                                 
                                 return $fechaIncorporacion->gt($fechaRegistro);
                             });
+                            
+                            // También marcar como nuevos los internacionales de la ficha actual
+                            $idsInternacionalesNuevosFicha = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyecto->id)
+                                ->where('tipo_integrante', 'integrante_internacional')
+                                ->where('ficha_actualizacion_id', $fichaActualizacion->id)
+                                ->pluck('integrante_id');
                         @endphp
 
-                        @forelse ($integrantesInternacionalesActuales as $integrante)
+                        @forelse ($todosLosIntegrantesInternacionalesEnEseMomento as $integrante)
                             @php
-                                $esNuevo = $integrantesInternacionalesPosteriores->contains('id', $integrante->id);
-                                $fechaIncorporacion = $integrante->pivot->created_at;
+                                $esNuevo = $integrantesInternacionalesPosteriores->contains('id', $integrante->id) 
+                                    || $idsInternacionalesNuevosFicha->contains($integrante->id);
+                                $fechaIncorporacion = isset($integrante->pivot) ? $integrante->pivot->created_at : null;
                             @endphp
-                            <tr style="{{ $esNuevo ? 'background-color: #e8f5e8;' : '' }}">
+                            <tr style="{{ $esNuevo ? 'background-color: #d4edda; border-left: 4px solid #28a745;' : '' }}">
                                 <td class="full-width" colspan="2">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre completo"
@@ -358,7 +520,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 <textarea disabled id="resumen" name="resumen" cols="30" rows="6" class="input-field"
-                                    placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->resumen) }}</textarea>
+                                    placeholder="Ingrese el resumen">{{ $fichaActualizacion->motivo_responsabilidades_nuevos ?? '' }}</textarea>
                             </td>
                         </tr>
                     </table>
@@ -373,7 +535,8 @@
                         
                         <!-- EMPLEADOS DADOS DE BAJA -->
                         @php
-                            $empleadosBaja = $proyecto->equipoEjecutorBajas->where('tipo_integrante', 'empleado');
+                            // SOLO las bajas de empleados asociadas a ESTA ficha específica
+                            $empleadosBaja = $fichaActualizacion->equipoEjecutorBajas->where('tipo_integrante', 'empleado');
                         @endphp
                         
                         <tr>
@@ -388,10 +551,10 @@
                         </tr>
 
                         @forelse($empleadosBaja as $integranteBaja)
-                        <tr style="background-color: #ffe6e6;">
+                        <tr style="background-color: #f8d7da; border-left: 4px solid #dc3545;">
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ $integranteBaja->empleado?->nombre_completo ?? 'N/A' }}" disabled>
+                                    value="{{ $integranteBaja->empleado?->nombre_completo ?? 'N/A' }} (BAJA)" disabled>
                             </td>
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field"
@@ -421,7 +584,8 @@
 
                         <!-- ESTUDIANTES DADOS DE BAJA -->
                         @php
-                            $estudiantesBaja = $proyecto->equipoEjecutorBajas->where('tipo_integrante', 'estudiante');
+                            // SOLO las bajas de estudiantes asociadas a ESTA ficha específica
+                            $estudiantesBaja = $fichaActualizacion->equipoEjecutorBajas->where('tipo_integrante', 'estudiante');
                         @endphp
 
                         <tr>
@@ -436,10 +600,10 @@
                         </tr>
 
                         @forelse($estudiantesBaja as $integranteBaja)
-                        <tr style="background-color: #ffe6e6;">
+                        <tr style="background-color: #f8d7da; border-left: 4px solid #dc3545;">
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ $integranteBaja->estudiante?->user?->name ?? 'N/A' }}" disabled>
+                                    value="{{ $integranteBaja->estudiante?->user?->name ?? 'N/A' }} (BAJA)" disabled>
                             </td>
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field"
@@ -469,7 +633,8 @@
 
                         <!-- INTEGRANTES INTERNACIONALES DADOS DE BAJA -->
                         @php
-                            $internacionalesBaja = $proyecto->equipoEjecutorBajas->where('tipo_integrante', 'integrante_internacional');
+                            // SOLO las bajas de integrantes internacionales asociadas a ESTA ficha específica
+                            $internacionalesBaja = $fichaActualizacion->equipoEjecutorBajas->where('tipo_integrante', 'integrante_internacional');
                         @endphp
 
                         <tr>
@@ -484,10 +649,10 @@
                         </tr>
 
                         @forelse($internacionalesBaja as $integranteBaja)
-                        <tr style="background-color: #ffe6e6;">
+                        <tr style="background-color: #f8d7da; border-left: 4px solid #dc3545;">
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ $integranteBaja->integranteInternacional?->nombre_completo ?? 'N/A' }}" disabled>
+                                    value="{{ $integranteBaja->integranteInternacional?->nombre_completo ?? 'N/A' }} (BAJA)" disabled>
                             </td>
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field"
@@ -547,7 +712,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 <textarea disabled id="resumen" name="resumen" cols="30" rows="6" class="input-field"
-                                    placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->resumen) }}</textarea>
+                                    placeholder="Ingrese el resumen">{{ $fichaActualizacion->motivo_razones_cambio ?? '' }}</textarea>
                             </td>
                         </tr>
                     </table>
@@ -628,30 +793,7 @@
                     </table>
                 </div>
 
-                <!-- SECCIÓN DE MOTIVOS DE CAMBIOS EN EL EQUIPO -->
-                <div class="section3">
-                    <div class="section-title">III. MOTIVOS DE CAMBIOS EN EL EQUIPO EJECUTOR.</div>
-                    <table class="table_datos3">
-                        <tr>
-                            <th class="motivos" colspan="19">Describa las responsabilidades de los nuevos miembros</th>
-                        </tr>
-                        <tr>
-                            <td class="full-width" colspan="19">
-                                <textarea disabled id="motivo_responsabilidades_nuevos" name="motivo_responsabilidades_nuevos" cols="30" rows="6" class="input-field"
-                                    placeholder="Describa las responsabilidades específicas que tendrán los nuevos miembros del equipo">{{ $fichaActualizacion->motivo_responsabilidades_nuevos ?? '' }}</textarea>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th class="motivos" colspan="19">Describa las razones por las cuales se cambia al equipo</th>
-                        </tr>
-                        <tr>
-                            <td class="full-width" colspan="19">
-                                <textarea disabled id="motivo_razones_cambio" name="motivo_razones_cambio" cols="30" rows="6" class="input-field"
-                                    placeholder="Explique las razones que justifican los cambios en la composición del equipo ejecutor">{{ $fichaActualizacion->motivo_razones_cambio ?? '' }}</textarea>
-                            </td>
-                        </tr>
-                    </table>
-                </div>  
+                
 
                 <!-- SECCIÓN DE FIRMAS -->
                 <div class="section3">

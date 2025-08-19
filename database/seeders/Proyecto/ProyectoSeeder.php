@@ -61,10 +61,10 @@ class ProyectoSeeder extends Seeder
 
 
         Modalidad::insert([
-            ['nombre' => 'Unidisciplinar'],
-            ['nombre' => 'Multidisciplinar'],
-            ['nombre' => 'Interdisciplinar'],
             ['nombre' => 'Transdisciplinar'],
+            ['nombre' => 'Interdisciplinar'],
+            ['nombre' => 'Multidisciplinar'],
+            ['nombre' => 'Unidisciplinar'],
         ]);
 
         // crear las categorias para el proyecto
@@ -79,7 +79,6 @@ class ProyectoSeeder extends Seeder
         //Otras áreas
 
         Categoria::insert([
-            ['nombre' => 'Educación No Formal y/o Continua'],
             ['nombre' => 'APS'],
             ['nombre' => 'Desarrollo Regional'],
             ['nombre' => 'Desarrollo Local'],
@@ -88,10 +87,6 @@ class ProyectoSeeder extends Seeder
             ['nombre' => 'I + D + i'],
             ['nombre' => 'Cultural'],
             ['nombre' => 'Comunicación'],
-            ['nombre' => 'Investigación-acción-participación'],
-            ['nombre' => 'Asesoría técnico-científica'],
-            ['nombre' => 'Artísticos-culturales'],
-            ['nombre' => 'Otras áreas'],
         ]);
 
         /*

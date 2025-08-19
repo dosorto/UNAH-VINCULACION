@@ -15,6 +15,8 @@ class EquipoEjecutorBaja extends Model
         'motivo_baja',
         'usuario_baja_id',
         'rol_anterior',
+        'estado_baja',
+        'ficha_actualizacion_id',
     ];
 
     protected $casts = [
@@ -51,6 +53,12 @@ class EquipoEjecutorBaja extends Model
         return $this->belongsTo(\App\Models\User::class, 'usuario_baja_id');
     }
 
+    // Relación con la ficha de actualización
+    public function fichaActualizacion()
+    {
+        return $this->belongsTo(FichaActualizacion::class, 'ficha_actualizacion_id');
+    }
+
     // Método para obtener el nombre del integrante según el tipo
     public function getNombreIntegranteAttribute()
     {
@@ -63,6 +71,55 @@ class EquipoEjecutorBaja extends Model
                 return $this->integranteInternacional?->nombre_completo ?? 'N/A';
             default:
                 return 'N/A';
+        }
+    }
+
+    // Scopes para filtrar por estado
+    public function scopePendientes($query)
+    {
+        return $query->where('estado_baja', 'pendiente');
+    }
+
+    public function scopeAplicadas($query)
+    {
+        return $query->where('estado_baja', 'aplicada');
+    }
+
+    public function scopePorFicha($query, $fichaId)
+    {
+        return $query->where('ficha_actualizacion_id', $fichaId);
+    }
+
+    // Método para marcar la baja como aplicada
+    public function aplicarBaja()
+    {
+        $this->update(['estado_baja' => 'aplicada']);
+        
+        // Aquí es donde realmente eliminamos al integrante del equipo ejecutor
+        $this->eliminarDelEquipoEjecutor();
+    }
+
+    // Método para eliminar al integrante del equipo ejecutor
+    private function eliminarDelEquipoEjecutor()
+    {
+        switch ($this->tipo_integrante) {
+            case 'empleado':
+                \App\Models\Personal\EmpleadoProyecto::where('proyecto_id', $this->proyecto_id)
+                    ->where('empleado_id', $this->integrante_id)
+                    ->delete();
+                break;
+                
+            case 'estudiante':
+                \App\Models\Estudiante\EstudianteProyecto::where('proyecto_id', $this->proyecto_id)
+                    ->where('estudiante_id', $this->integrante_id)
+                    ->delete();
+                break;
+                
+            case 'integrante_internacional':
+                \App\Models\Proyecto\IntegranteInternacionalProyecto::where('proyecto_id', $this->proyecto_id)
+                    ->where('integrante_internacional_id', $this->integrante_id)
+                    ->delete();
+                break;
         }
     }
 }

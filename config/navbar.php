@@ -117,6 +117,7 @@ return [
                     'proyectos-admin-revision-final',
                     'proyectos-admin-informenes',
                     'proyectos-admin-proyectos',
+                    'fichasActualizacionVinculacion',
                 ],
                 'icono' => 'heroicon-m-puzzle-piece',
                 'permisos' => [
@@ -131,6 +132,7 @@ return [
                     ['texto' => 'Solicitud Proyecto', 'route' => 'listarProyectosSolicitado', 'permiso' => 'proyectos-admin-solicitados', 'funcion' => 'obtenerCantidadProyectosEnRevision'],
                     ['texto' => 'Revisión de Informes', 'route' => 'listarInformesSolicitado', 'permiso' => 'proyectos-admin-informenes', 'funcion' => 'obtenerCantidadInformesSolicitados'],
                     ['texto' => 'Revisión Final', 'route' => 'listarProyectoRevisionFinal', 'permiso' => 'proyectos-admin-revision-final', 'funcion' => 'obtenerCantidadProyectosEnRevisionFinal'],
+                    ['texto' => 'Fichas de Actualización', 'route' => 'fichasActualizacionVinculacion', 'permiso' => 'proyectos-admin-revision-final'],
                 ],
                 'funcion' => null,
                 'parametro' => null,
