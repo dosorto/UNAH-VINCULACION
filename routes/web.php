@@ -318,7 +318,8 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->middleware('can:docente-admin-proyectos');
 
         Route::get('/proyectos/{proyecto}/ficha-actualizacion', EditProyectoActualizacion::class)
-            ->name('ficha-actualizacion');
+            ->name('ficha-actualizacion')
+            ->middleware('can:docente-admin-proyectos');
 
         Route::get('SolicitudProyectosDocente', ProyectosPorFirmar::class)
             ->name('SolicitudProyectosDocente')
@@ -326,7 +327,7 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
         Route::get('FichasActualizacionPorFirmar', FichasActualizacionPorFirmar::class)
             ->name('FichasActualizacionPorFirmar')
-            ->middleware('can:docente-admin-proyectos');
+            ->middleware('can:proyectos-admin-proyectos');
 
         Route::get('FichasActualizacionDocente', FichasActualizacionDocente::class)
             ->name('FichasActualizacionDocente')
@@ -335,6 +336,7 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         Route::get('AprobadoProyectosDocente', ProyectosAprobados::class)
             ->name('AprobadoProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
+
         Route::get('PendientesProyectosDocente', ProyectosRechazados::class)
             ->name('RechazadoProyectosDocente')
             ->middleware('can:docente-admin-proyectos');

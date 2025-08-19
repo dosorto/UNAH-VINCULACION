@@ -194,8 +194,8 @@
 
                         @forelse ($todosLosIntegrantesEnEseMomento as $integrante)
                             @php
-                                $esNuevo = $integrantesPosteriores->contains('id', $integrante->id) 
-                                    || $idsEmpleadosNuevosFicha->contains($integrante->id);
+                                // Solo marcar como nuevo si fue agregado específicamente en ESTA ficha de actualización
+                                $esNuevo = $idsEmpleadosNuevosFicha->contains($integrante->id);
                                 $fechaIncorporacion = isset($integrante->pivot) ? $integrante->pivot->created_at : null;
                             @endphp
                             <tr style="{{ $esNuevo ? 'background-color: #d4edda; border-left: 4px solid #28a745;' : '' }}">
@@ -328,8 +328,8 @@
 
                         @forelse ($todosLosEstudiantesEnEseMomento as $integrante)
                             @php
-                                $esNuevo = $estudiantesPosteriores->contains('estudiante_id', $integrante->estudiante_id ?? $integrante->id) 
-                                    || $idsEstudiantesNuevosFicha->contains($integrante->estudiante_id ?? $integrante->id);
+                                // Solo marcar como nuevo si fue agregado específicamente en ESTA ficha de actualización
+                                $esNuevo = $idsEstudiantesNuevosFicha->contains($integrante->estudiante_id ?? $integrante->id);
                                 $fechaIncorporacion = $integrante->created_at ?? null;
                                 $estudiante = $integrante->estudiante ?? $integrante;
                             @endphp
@@ -449,8 +449,8 @@
 
                         @forelse ($todosLosIntegrantesInternacionalesEnEseMomento as $integrante)
                             @php
-                                $esNuevo = $integrantesInternacionalesPosteriores->contains('id', $integrante->id) 
-                                    || $idsInternacionalesNuevosFicha->contains($integrante->id);
+                                // Solo marcar como nuevo si fue agregado específicamente en ESTA ficha de actualización
+                                $esNuevo = $idsInternacionalesNuevosFicha->contains($integrante->id);
                                 $fechaIncorporacion = isset($integrante->pivot) ? $integrante->pivot->created_at : null;
                             @endphp
                             <tr style="{{ $esNuevo ? 'background-color: #d4edda; border-left: 4px solid #28a745;' : '' }}">

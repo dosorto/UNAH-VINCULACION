@@ -77,12 +77,12 @@ class EditProyectoActualizacion extends Component implements HasForms
                 \Carbon\Carbon::parse($this->record->fecha_finalizacion)->format('d/m/Y') : 
                 'No definida';
             
-            // Agregar campos de extensión de tiempo si existen fichas previas
+            /* Agregar campos de extensión de tiempo si existen fichas previas
             $ultimaFicha = \App\Models\Proyecto\FichaActualizacion::where('proyecto_id', $this->record->id)->latest()->first();
             if ($ultimaFicha) {
                 $formData['fecha_ampliacion'] = $ultimaFicha->fecha_ampliacion;
                 $formData['motivo_ampliacion'] = $ultimaFicha->motivo_ampliacion;
-            }
+            }*/
             
             $this->form->fill($formData);
         } else {
@@ -146,7 +146,9 @@ class EditProyectoActualizacion extends Component implements HasForms
             'equipo_ejecutor_bajas' => '',
             'motivo_responsabilidades_nuevos' => '',
             'motivo_razones_cambio' => '',
-            'fecha_finalizacion_actual' => '',
+            'fecha_finalizacion_actual' => '', // Este campo no se actualiza en el proyecto, solo se guarda en la ficha
+            'fecha_ampliacion' => '', // Esta fecha va a la ficha, no al proyecto
+            'motivo_ampliacion' => '', // Este campo va a la ficha, no al proyecto
         ]);
 
         // Actualizar solo los campos del proyecto, no las relaciones
@@ -161,6 +163,7 @@ class EditProyectoActualizacion extends Component implements HasForms
             'motivo_baja' => 'Actualización del equipo ejecutor',
             'fecha_baja' => now(),
             'fecha_ampliacion' => $data['fecha_ampliacion'] ?? null,
+            'fecha_finalizacion_actual' => $this->record->fecha_finalizacion, // Guardar la fecha actual del proyecto
             'motivo_ampliacion' => $data['motivo_ampliacion'] ?? null,
             'motivo_responsabilidades_nuevos' => $data['motivo_responsabilidades_nuevos'] ?? null,
             'motivo_razones_cambio' => $data['motivo_razones_cambio'] ?? null,

@@ -19,6 +19,7 @@ class FichaActualizacion extends Model
         'motivo_baja',
         'fecha_baja',
         'fecha_ampliacion',
+        'fecha_finalizacion_actual',
         'motivo_ampliacion',
         'motivo_responsabilidades_nuevos',
         'motivo_razones_cambio',
@@ -29,6 +30,7 @@ class FichaActualizacion extends Model
         'fecha_registro' => 'datetime',
         'fecha_baja' => 'date',
         'fecha_ampliacion' => 'date',
+        'fecha_finalizacion_actual' => 'date',
     ];
 
     public function empleado()
@@ -182,5 +184,30 @@ class FichaActualizacion extends Model
     {
         $ultimoEstado = $this->obtenerUltimoEstado();
         return $ultimoEstado && $ultimoEstado->tipoestado->nombre === 'Actualizacion realizada';
+    }
+
+    // Método para aplicar la nueva fecha de finalización al proyecto
+    public function aplicarNuevaFechaFinalizacion()
+    {
+        if ($this->fecha_ampliacion && $this->proyecto) {
+            $fechaAnterior = $this->proyecto->fecha_finalizacion;
+            
+            // Actualizar la fecha de finalización del proyecto
+            $this->proyecto->update([
+                'fecha_finalizacion' => $this->fecha_ampliacion
+            ]);
+            
+            return [
+                'fecha_anterior' => $fechaAnterior,
+                'fecha_nueva' => $this->fecha_ampliacion,
+                'fecha_guardada_en_ficha' => $this->fecha_finalizacion_actual, // Fecha que se guardó al crear la ficha
+                'actualizada' => true
+            ];
+        }
+        
+        return [
+            'actualizada' => false,
+            'razon' => 'No hay nueva fecha de finalización especificada o proyecto no encontrado'
+        ];
     }
 }

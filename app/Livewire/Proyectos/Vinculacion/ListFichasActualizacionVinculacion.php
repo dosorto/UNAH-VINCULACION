@@ -63,25 +63,6 @@ class ListFichasActualizacionVinculacion extends Component implements HasForms, 
                     ->label('Fecha Creación Ficha')
                     ->date('d/m/Y')
                     ->sortable(),
-
-                Tables\Columns\TextColumn::make('estado_actual')
-                    ->label('Estado')
-                    ->badge()
-                    ->formatStateUsing(function (FichaActualizacion $record): string {
-                        $estado = $record->obtenerUltimoEstado();
-                        return $estado ? $estado->tipoestado->nombre : 'Sin estado';
-                    })
-                    ->color(function (FichaActualizacion $record): string {
-                        $estado = $record->obtenerUltimoEstado();
-                        if (!$estado) return 'gray';
-                        
-                        return match($estado->tipoestado->nombre) {
-                            'En revision' => 'warning',
-                            'Actualizacion realizada' => 'success',
-                            'Subsanacion' => 'danger',
-                            default => 'primary',
-                        };
-                    }),
             ])
             ->defaultSort('created_at', 'desc')
             ->actions([
@@ -197,12 +178,19 @@ class ListFichasActualizacionVinculacion extends Component implements HasForms, 
                                     // PROCESAR LOS INTEGRANTES NUEVOS - INCORPORARLOS AL EQUIPO EJECUTOR
                                     $integrantesNuevosProcesados = $fichaActualizacion->procesarIntegrantesNuevos();
 
+                                    // APLICAR LA NUEVA FECHA DE FINALIZACIÓN SI SE ESPECIFICÓ
+                                    $fechaActualizada = $fichaActualizacion->aplicarNuevaFechaFinalizacion();
+
                                     $mensaje = 'Ficha de Actualización Aprobada. Estado cambiado a "Actualización realizada".';
                                     if ($bajasProcesadas > 0) {
                                         $mensaje .= " Se han aplicado {$bajasProcesadas} baja(s) al equipo ejecutor.";
                                     }
                                     if ($integrantesNuevosProcesados > 0) {
                                         $mensaje .= " Se han incorporado {$integrantesNuevosProcesados} nuevo(s) integrante(s) al equipo ejecutor.";
+                                    }
+                                    if ($fechaActualizada['actualizada']) {
+                                        $fechaNuevaFormateada = \Carbon\Carbon::parse($fechaActualizada['fecha_nueva'])->format('d/m/Y');
+                                        $mensaje .= " La fecha de finalización del proyecto se ha actualizado al {$fechaNuevaFormateada}.";
                                     }
 
                                     Notification::make()

@@ -207,7 +207,8 @@ class Empleado extends Model
                 $firma->firmable_type == \App\Models\Proyecto\FichaActualizacion::class &&
                 $firma->ficha_actualizacion &&
                 $firma->ficha_actualizacion->obtenerUltimoEstado() &&
-                ($firma->cargo_firma->tipo_estado_id == $firma->ficha_actualizacion->obtenerUltimoEstado()->tipo_estado_id)
+                ($firma->cargo_firma->tipo_estado_id == $firma->ficha_actualizacion->obtenerUltimoEstado()->tipo_estado_id) &&
+                ($firma->cargo_firma->tipoCargoFirma->nombre !== "Revisor Vinculacion")
             ) {
                 return $firma->id;
             }
