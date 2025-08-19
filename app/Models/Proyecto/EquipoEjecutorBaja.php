@@ -12,6 +12,8 @@ class EquipoEjecutorBaja extends Model
         'tipo_integrante',
         'integrante_id',
         'fecha_baja',
+        'fecha_cancelacion',
+        'motivo_cancelacion',
         'motivo_baja',
         'usuario_baja_id',
         'rol_anterior',
@@ -21,6 +23,7 @@ class EquipoEjecutorBaja extends Model
 
     protected $casts = [
         'fecha_baja' => 'datetime',
+        'fecha_cancelacion' => 'datetime',
     ];
 
     // Relación con el proyecto

@@ -64,7 +64,7 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
                         
                         return match($estado->tipoestado->nombre) {
                         'Actualizacion realizada' => 'success',
-                        'Subsanacion' => 'danger',
+                        'Rechazado' => 'danger',
                         'Borrador' => 'warning',
                         default => 'primary',
                         };

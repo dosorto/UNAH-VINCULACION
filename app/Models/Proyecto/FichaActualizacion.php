@@ -274,4 +274,49 @@ class FichaActualizacion extends Model
             'razon' => 'No hay nueva fecha de finalización especificada o proyecto no encontrado'
         ];
     }
+
+    // Método para cancelar solicitudes cuando la ficha es rechazada
+    public function cancelarSolicitudesPorRechazo()
+    {
+        try {
+            // Cancelar solicitudes de nuevos integrantes pendientes
+            $nuevosIntegrantesCancelados = $this->equipoEjecutorNuevos()
+                ->where('estado_incorporacion', 'pendiente')
+                ->update([
+                    'estado_incorporacion' => 'cancelada',
+                    'fecha_cancelacion' => now(),
+                    'motivo_cancelacion' => 'Ficha de actualización rechazada'
+                ]);
+
+            // Cancelar solicitudes de bajas pendientes
+            $bajasCanceladas = $this->equipoEjecutorBajas()
+                ->where('estado_baja', 'pendiente')
+                ->update([
+                    'estado_baja' => 'cancelada',
+                    'fecha_cancelacion' => now(),
+                    'motivo_cancelacion' => 'Ficha de actualización rechazada'
+                ]);
+
+            return [
+                'canceladas' => true,
+                'nuevos_integrantes_cancelados' => $nuevosIntegrantesCancelados,
+                'bajas_canceladas' => $bajasCanceladas,
+                'mensaje' => "Se cancelaron {$nuevosIntegrantesCancelados} solicitudes de nuevos integrantes y {$bajasCanceladas} solicitudes de baja"
+            ];
+        } catch (\Exception $e) {
+            return [
+                'canceladas' => false,
+                'error' => 'Error al cancelar solicitudes: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    // Método para verificar si tiene solicitudes pendientes que pueden ser canceladas
+    public function tieneSolicitudesPendientes()
+    {
+        $nuevosIntegrantes = $this->equipoEjecutorNuevos()->where('estado_incorporacion', 'pendiente')->count();
+        $bajas = $this->equipoEjecutorBajas()->where('estado_baja', 'pendiente')->count();
+        
+        return $nuevosIntegrantes > 0 || $bajas > 0;
+    }
 }

@@ -123,14 +123,22 @@ class ListFichasActualizacionVinculacion extends Component implements HasForms, 
                                     // Crear estado de subsanación para la ficha
                                     $fichaActualizacion->estado_proyecto()->create([
                                         'empleado_id' => auth()->user()->empleado->id,
-                                        'tipo_estado_id' => TipoEstado::where('nombre', 'Subsanacion')->first()->id,
+                                        'tipo_estado_id' => TipoEstado::where('nombre', 'Rechazado')->first()->id,
                                         'fecha' => now(),
                                         'comentario' => $data['comentario'],
                                     ]);
 
+                                    // Cancelar todas las solicitudes pendientes asociadas a la ficha
+                                    $resultadoCancelacion = $fichaActualizacion->cancelarSolicitudesPorRechazo();
+
+                                    $mensaje = 'Ficha de Actualización Rechazada';
+                                    if ($resultadoCancelacion['canceladas']) {
+                                        $mensaje .= '. ' . $resultadoCancelacion['mensaje'];
+                                    }
+
                                     Notification::make()
                                         ->title('¡Realizado!')
-                                        ->body('Ficha de Actualización Rechazada')
+                                        ->body($mensaje)
                                         ->info()
                                         ->send();
                                 }
