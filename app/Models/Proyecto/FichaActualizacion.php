@@ -186,6 +186,70 @@ class FichaActualizacion extends Model
         return $ultimoEstado && $ultimoEstado->tipoestado->nombre === 'Actualizacion realizada';
     }
 
+    // Método para verificar si la ficha puede ser eliminada
+    public function puedeSerEliminada()
+    {
+        // Obtener todas las firmas aprobadas
+        $firmasAprobadas = $this->firma_proyecto()
+            ->where('estado_revision', 'Aprobado')
+            ->with('cargo_firma.tipoCargoFirma')
+            ->get();
+        
+        // Si no tiene ninguna firma aprobada, puede ser eliminada
+        if ($firmasAprobadas->count() === 0) {
+            return true;
+        }
+        
+        // Si solo tiene la firma del coordinador del proyecto aprobada, puede ser eliminada
+        if ($firmasAprobadas->count() === 1) {
+            $primeraFirma = $firmasAprobadas->first();
+            if ($primeraFirma->cargo_firma->tipoCargoFirma->nombre === 'Coordinador Proyecto') {
+                return true;
+            }
+        }
+        
+        // Si tiene más firmas o firmas de otros tipos, no puede ser eliminada
+        return false;
+    }
+
+    // Método para eliminar la ficha de forma segura
+    public function eliminarFichaSiEsSeguro()
+    {
+        if (!$this->puedeSerEliminada()) {
+            return [
+                'eliminada' => false,
+                'razon' => 'La ficha no puede ser eliminada porque ya tiene firmas aprobadas'
+            ];
+        }
+
+        try {
+            // Eliminar solicitudes de nuevos integrantes asociadas
+            $this->equipoEjecutorNuevos()->delete();
+            
+            // Eliminar solicitudes de bajas asociadas
+            $this->equipoEjecutorBajas()->delete();
+            
+            // Eliminar firmas asociadas
+            $this->firma_proyecto()->delete();
+            
+            // Eliminar estados asociados
+            $this->estado_proyecto()->delete();
+            
+            // Eliminar la ficha
+            $this->delete();
+            
+            return [
+                'eliminada' => true,
+                'mensaje' => 'Ficha de actualización eliminada exitosamente'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'eliminada' => false,
+                'razon' => 'Error al eliminar la ficha: ' . $e->getMessage()
+            ];
+        }
+    }
+
     // Método para aplicar la nueva fecha de finalización al proyecto
     public function aplicarNuevaFechaFinalizacion()
     {

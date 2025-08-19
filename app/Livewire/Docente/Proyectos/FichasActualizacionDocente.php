@@ -14,6 +14,7 @@ use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
+use Filament\Notifications\Notification;
 
 class FichasActualizacionDocente extends Component implements HasForms, HasTable
 {
@@ -36,7 +37,9 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
                     ->searchable()
                     ->sortable()
                     ->wrap()
-                    ->description(fn (FichaActualizacion $record): string => 'Código: ' . $record->proyecto->codigo_proyecto),
+                    ->description(fn (FichaActualizacion $record): string => 'Código: ' . $record->proyecto->codigo_proyecto)
+                    ->icon(fn (FichaActualizacion $record): string => $record->puedeSerEliminada() ? 'heroicon-o-trash' : '')
+                    ->iconColor(fn (FichaActualizacion $record): string => $record->puedeSerEliminada() ? 'danger' : ''),
 
                 TextColumn::make('proyecto.coordinador.nombre_completo')
                     ->label('Coordinador')
@@ -91,6 +94,54 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
                     ->modalCancelActionLabel('Cerrar')
                     ->modal()
                     ->modalWidth(MaxWidth::SevenExtraLarge),
+
+                Action::make('eliminar_ficha')
+                    ->label('Eliminar')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('¿Eliminar Ficha de Actualización?')
+                    ->modalDescription(function (FichaActualizacion $record) {
+                        if (!$record->puedeSerEliminada()) {
+                            return 'No se puede eliminar esta ficha porque ya tiene firmas de otros cargos aprobadas.';
+                        }
+                        
+                        $firmasAprobadas = $record->firma_proyecto()
+                            ->where('estado_revision', 'Aprobado')
+                            ->with('cargo_firma.tipoCargoFirma')
+                            ->get();
+                            
+                        if ($firmasAprobadas->count() === 0) {
+                            return 'Esta acción eliminará permanentemente la ficha de actualización y todas sus solicitudes asociadas. Esta acción no se puede deshacer.';
+                        }
+                        
+                        if ($firmasAprobadas->count() === 1 && 
+                            $firmasAprobadas->first()->cargo_firma->tipoCargoFirma->nombre === 'Coordinador Proyecto') {
+                            return 'Esta ficha tiene su firma como coordinador aprobada, pero aún puede ser eliminada. Esta acción eliminará permanentemente la ficha de actualización y todas sus solicitudes asociadas. Esta acción no se puede deshacer.';
+                        }
+                        
+                        return 'Esta acción eliminará permanentemente la ficha de actualización y todas sus solicitudes asociadas. Esta acción no se puede deshacer.';
+                    })
+                    ->modalSubmitActionLabel('Sí, Eliminar')
+                    ->modalCancelActionLabel('Cancelar')
+                    ->visible(fn (FichaActualizacion $record) => $record->puedeSerEliminada())
+                    ->action(function (FichaActualizacion $record) {
+                        $resultado = $record->eliminarFichaSiEsSeguro();
+                        
+                        if ($resultado['eliminada']) {
+                            Notification::make()
+                                ->title('¡Eliminada!')
+                                ->body($resultado['mensaje'])
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Error')
+                                ->body($resultado['razon'])
+                                ->danger()
+                                ->send();
+                        }
+                    }),
             ])
             ->emptyStateHeading('No hay fichas de actualización')
             ->emptyStateDescription('Aún no has creado ninguna ficha de actualización para tus proyectos.')
