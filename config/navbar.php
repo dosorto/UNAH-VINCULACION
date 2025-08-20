@@ -193,8 +193,9 @@ return [
                 'icono' => 'heroicon-o-academic-cap',
                 'permisos' => ['docente-admin-proyectos'],
                 'children' => [
+                    ['texto' => 'Registrar Proyecto', 'route' => 'crearProyectoVinculacion', 'permiso' => 'docente-admin-proyectos'],
                     ['texto' => 'Proyectos', 'route' => 'proyectosDocente', 'permiso' => 'docente-admin-proyectos'],
-                    ['texto' => 'Crear Proyecto', 'route' => 'crearProyectoVinculacion', 'permiso' => 'docente-admin-proyectos'],
+                    ['texto' => 'Mis Fichas de Actualización', 'route' => 'FichasActualizacionDocente', 'permiso' => 'docente-admin-proyectos'],
                     ['texto' => 'Proyectos Antes del Sistema', 'route' => 'proyectosAntesDelSistema', 'permiso' => 'docente-admin-proyectos'],
                 ],
                 'funcion' => null,
