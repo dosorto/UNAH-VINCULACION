@@ -116,6 +116,7 @@ class ProyectoSeeder extends Seeder
         TipoConstancia::insert([
             ['nombre' => 'Inscripcion', 'descripcion' => 'Se emite cuando un proyecto alcanza el estado en curso'],
             ['nombre' => 'Finalizacion', 'descripcion' => 'Se emite cuando un proyecto alcanza el estado Finalizado'],
+            ['nombre' => 'Actualizacion', 'descripcion' => 'Se emite cuando una ficha de actualización alcanza el estado Actualizacion realizada'],
         ]);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Livewire\Docente\Proyectos;
 use App\Models\Proyecto\FichaActualizacion;
 use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Models\Personal\Empleado;
+use App\Models\Proyecto\Proyecto;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Support\Enums\MaxWidth;
@@ -24,7 +25,7 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
 {
     use InteractsWithForms;
     use InteractsWithTable;
-    public \App\Models\Personal\Empleado $docente;
+    public Empleado $docente;
     public function mount($docente = null): void
     {
         $this->docente = $docente ?? Auth::user()->empleado;
@@ -157,27 +158,14 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
                         ->icon('heroicon-o-document')
                         ->color('info')
                         ->visible(function (FichaActualizacion $fichaActualizacion) {
-                            $empleadoProyecto = $fichaActualizacion->equipoEjecutor()
+                            return VerificarConstancia::validarConstanciaActualizacion($fichaActualizacion->equipoEjecutor()
                                 ->where('empleado_id', $this->docente->id)
-                                ->first();
-                            if (!$empleadoProyecto) {
-                                return false;
-                            }
-                            return VerificarConstancia::validarConstancia($empleadoProyecto, 'actualizacion');
+                                ->first(), 'Actualizacion');
                         })
                         ->action(function (FichaActualizacion $fichaActualizacion) {
-                            $empleadoProyecto = $fichaActualizacion->equipoEjecutor()
+                            return VerificarConstancia::CrearPdfActualizacion($fichaActualizacion->equipoEjecutor()
                                 ->where('empleado_id', $this->docente->id)
-                                ->first();
-                            if (!$empleadoProyecto) {
-                                Notification::make()
-                                    ->title('No se encontró registro de participación')
-                                    ->body('No se puede generar la constancia porque no existe registro de participación para este docente en la ficha.')
-                                    ->danger()
-                                    ->send();
-                                return;
-                            }
-                            return VerificarConstancia::CrearPdfActualizacion($empleadoProyecto);
+                                ->first());
                         }),
 
                 ])->button()

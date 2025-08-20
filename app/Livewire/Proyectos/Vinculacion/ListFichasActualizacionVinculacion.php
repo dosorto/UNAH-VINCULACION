@@ -3,6 +3,7 @@
 namespace App\Livewire\Proyectos\Vinculacion;
 
 use App\Models\Estado\TipoEstado;
+use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Proyecto\FirmaProyecto;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -201,6 +202,7 @@ class ListFichasActualizacionVinculacion extends Component implements HasForms, 
                                         $mensaje .= " La fecha de finalización del proyecto se ha actualizado al {$fechaNuevaFormateada}.";
                                     }
 
+                                    VerificarConstancia::makeConstanciasActualizacion($fichaActualizacion);
                                     Notification::make()
                                         ->title('¡Realizado!')
                                         ->body($mensaje)
