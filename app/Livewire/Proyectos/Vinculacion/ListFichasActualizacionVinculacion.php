@@ -3,6 +3,7 @@
 namespace App\Livewire\Proyectos\Vinculacion;
 
 use App\Models\Estado\TipoEstado;
+use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Proyecto\FirmaProyecto;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -63,25 +64,6 @@ class ListFichasActualizacionVinculacion extends Component implements HasForms, 
                     ->label('Fecha Creación Ficha')
                     ->date('d/m/Y')
                     ->sortable(),
-
-                Tables\Columns\TextColumn::make('estado_actual')
-                    ->label('Estado')
-                    ->badge()
-                    ->formatStateUsing(function (FichaActualizacion $record): string {
-                        $estado = $record->obtenerUltimoEstado();
-                        return $estado ? $estado->tipoestado->nombre : 'Sin estado';
-                    })
-                    ->color(function (FichaActualizacion $record): string {
-                        $estado = $record->obtenerUltimoEstado();
-                        if (!$estado) return 'gray';
-                        
-                        return match($estado->tipoestado->nombre) {
-                            'En revision' => 'warning',
-                            'Actualizacion realizada' => 'success',
-                            'Subsanacion' => 'danger',
-                            default => 'primary',
-                        };
-                    }),
             ])
             ->defaultSort('created_at', 'desc')
             ->actions([
@@ -142,14 +124,22 @@ class ListFichasActualizacionVinculacion extends Component implements HasForms, 
                                     // Crear estado de subsanación para la ficha
                                     $fichaActualizacion->estado_proyecto()->create([
                                         'empleado_id' => auth()->user()->empleado->id,
-                                        'tipo_estado_id' => TipoEstado::where('nombre', 'Subsanacion')->first()->id,
+                                        'tipo_estado_id' => TipoEstado::where('nombre', 'Rechazado')->first()->id,
                                         'fecha' => now(),
                                         'comentario' => $data['comentario'],
                                     ]);
 
+                                    // Cancelar todas las solicitudes pendientes asociadas a la ficha
+                                    $resultadoCancelacion = $fichaActualizacion->cancelarSolicitudesPorRechazo();
+
+                                    $mensaje = 'Ficha de Actualización Rechazada';
+                                    if ($resultadoCancelacion['canceladas']) {
+                                        $mensaje .= '. ' . $resultadoCancelacion['mensaje'];
+                                    }
+
                                     Notification::make()
                                         ->title('¡Realizado!')
-                                        ->body('Ficha de Actualización Rechazada')
+                                        ->body($mensaje)
                                         ->info()
                                         ->send();
                                 }
@@ -197,6 +187,9 @@ class ListFichasActualizacionVinculacion extends Component implements HasForms, 
                                     // PROCESAR LOS INTEGRANTES NUEVOS - INCORPORARLOS AL EQUIPO EJECUTOR
                                     $integrantesNuevosProcesados = $fichaActualizacion->procesarIntegrantesNuevos();
 
+                                    // APLICAR LA NUEVA FECHA DE FINALIZACIÓN SI SE ESPECIFICÓ
+                                    $fechaActualizada = $fichaActualizacion->aplicarNuevaFechaFinalizacion();
+
                                     $mensaje = 'Ficha de Actualización Aprobada. Estado cambiado a "Actualización realizada".';
                                     if ($bajasProcesadas > 0) {
                                         $mensaje .= " Se han aplicado {$bajasProcesadas} baja(s) al equipo ejecutor.";
@@ -204,7 +197,12 @@ class ListFichasActualizacionVinculacion extends Component implements HasForms, 
                                     if ($integrantesNuevosProcesados > 0) {
                                         $mensaje .= " Se han incorporado {$integrantesNuevosProcesados} nuevo(s) integrante(s) al equipo ejecutor.";
                                     }
+                                    if ($fechaActualizada['actualizada']) {
+                                        $fechaNuevaFormateada = \Carbon\Carbon::parse($fechaActualizada['fecha_nueva'])->format('d/m/Y');
+                                        $mensaje .= " La fecha de finalización del proyecto se ha actualizado al {$fechaNuevaFormateada}.";
+                                    }
 
+                                    VerificarConstancia::makeConstanciasActualizacion($fichaActualizacion);
                                     Notification::make()
                                         ->title('¡Realizado!')
                                         ->body($mensaje)

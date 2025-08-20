@@ -1195,7 +1195,8 @@ class PrimeraParte
                         ->defaultItems(0)
                         ->live(),
                 ])
-                ->columnSpanFull(),
+                ->columnSpanFull()
+                ->live(),
 
             
             Fieldset::make('Equipo dado de baja')
@@ -1302,7 +1303,8 @@ class PrimeraParte
                         ->defaultItems(0)
                         ->live(),
                 ])
-                ->columnSpanFull(),
+                ->columnSpanFull()
+                ->live(),
         ];
     }
 }

@@ -5,6 +5,9 @@ namespace App\Livewire\Docente\Proyectos;
 use App\Http\Controllers\Docente\VerificarConstancia;
 
 use App\Models\Proyecto\FichaActualizacion;
+use App\Http\Controllers\Docente\VerificarConstancia;
+use App\Models\Personal\Empleado;
+use App\Models\Proyecto\Proyecto;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Support\Enums\MaxWidth;
@@ -13,15 +16,22 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
+use Filament\Tables\Actions\ActionGroup;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Auth;
 
 class FichasActualizacionDocente extends Component implements HasForms, HasTable
 {
     use InteractsWithForms;
     use InteractsWithTable;
-
+    public Empleado $docente;
+    public function mount($docente = null): void
+    {
+        $this->docente = $docente ?? Auth::user()->empleado;
+    }
     public function table(Table $table): Table
     {
         return $table
@@ -38,7 +48,9 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
                     ->searchable()
                     ->sortable()
                     ->wrap()
-                    ->description(fn (FichaActualizacion $record): string => 'Código: ' . $record->proyecto->codigo_proyecto),
+                    ->description(fn (FichaActualizacion $record): string => 'Código: ' . $record->proyecto->codigo_proyecto)
+                    ->icon(fn (FichaActualizacion $record): string => $record->puedeSerEliminada() ? 'heroicon-o-trash' : '')
+                    ->iconColor(fn (FichaActualizacion $record): string => $record->puedeSerEliminada() ? 'danger' : ''),
 
                 TextColumn::make('proyecto.coordinador.nombre_completo')
                     ->label('Coordinador')
@@ -63,7 +75,7 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
                         
                         return match($estado->tipoestado->nombre) {
                         'Actualizacion realizada' => 'success',
-                        'Subsanacion' => 'danger',
+                        'Rechazado' => 'danger',
                         'Borrador' => 'warning',
                         default => 'primary',
                         };
@@ -71,43 +83,96 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
             ])
             ->defaultSort('created_at', 'desc')
             ->actions([
-                Action::make('ver_ficha')
-                    ->label('Ver Ficha')
-                    ->icon('heroicon-o-eye')
-                    ->modalContent(
-                        function (FichaActualizacion $fichaActualizacion): View {
-                            $proyecto = $fichaActualizacion->proyecto;
+                ActionGroup::make([
+                    Action::make('ver_ficha')
+                        ->label('Ver Ficha')
+                        ->icon('heroicon-o-eye')
+                        ->color('primary')
+                        ->modalContent(
+                            function (FichaActualizacion $fichaActualizacion): View {
+                                $proyecto = $fichaActualizacion->proyecto;
+                                return view(
+                                    'components.fichas.ficha-actualizacion-proyecto-vinculacion',
+                                    [
+                                        'fichaActualizacion' => $fichaActualizacion,
+                                        'proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye'])
+                                    ]
+                                );
+                            }
+                        )
+                        ->closeModalByEscaping(false)
+                        ->stickyModalFooter()
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Cerrar')
+                        ->modal()
+                        ->modalWidth(MaxWidth::SevenExtraLarge),
 
-                            return view(
-                                'components.fichas.ficha-actualizacion-proyecto-vinculacion',
-                                [
-                                    'fichaActualizacion' => $fichaActualizacion,
-                                    'proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye'])
-                                ]
-                            );
+                         Action::make('eliminar_ficha')
+                    ->label('Eliminar')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('¿Eliminar Ficha de Actualización?')
+                    ->modalDescription(function (FichaActualizacion $record) {
+                        if (!$record->puedeSerEliminada()) {
+                            return 'No se puede eliminar esta ficha porque ya tiene firmas de otros cargos aprobadas.';
                         }
-                    )
-                    ->closeModalByEscaping(false)
-                    ->stickyModalFooter()
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Cerrar')
-                    ->modal()
-                    ->modalWidth(MaxWidth::SevenExtraLarge),
+                        
+                        $firmasAprobadas = $record->firma_proyecto()
+                            ->where('estado_revision', 'Aprobado')
+                            ->with('cargo_firma.tipoCargoFirma')
+                            ->get();
+                            
+                        if ($firmasAprobadas->count() === 0) {
+                            return 'Esta acción eliminará permanentemente la ficha de actualización y todas sus solicitudes asociadas. Esta acción no se puede deshacer.';
+                        }
+                        
+                        if ($firmasAprobadas->count() === 1 && 
+                            $firmasAprobadas->first()->cargo_firma->tipoCargoFirma->nombre === 'Coordinador Proyecto') {
+                            return 'Esta ficha tiene su firma como coordinador aprobada, pero aún puede ser eliminada. Esta acción eliminará permanentemente la ficha de actualización y todas sus solicitudes asociadas. Esta acción no se puede deshacer.';
+                        }
+                        
+                        return 'Esta acción eliminará permanentemente la ficha de actualización y todas sus solicitudes asociadas. Esta acción no se puede deshacer.';
+                    })
+                    ->modalSubmitActionLabel('Sí, Eliminar')
+                    ->modalCancelActionLabel('Cancelar')
+                    ->visible(fn (FichaActualizacion $record) => $record->puedeSerEliminada())
+                    ->action(function (FichaActualizacion $record) {
+                        $resultado = $record->eliminarFichaSiEsSeguro();
+                        
+                        if ($resultado['eliminada']) {
+                            Notification::make()
+                                ->title('¡Eliminada!')
+                                ->body($resultado['mensaje'])
+                                ->success()
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->title('Error')
+                                ->body($resultado['razon'])
+                                ->danger()
+                                ->send();
+                        }
+                    }),
 
-                Action::make('constancia_actualizacion')
+                    Action::make('constancia_actualizacion')
                         ->label('Constancia de Actualización')
                         ->icon('heroicon-o-document')
                         ->color('info')
-                        ->visible(function (Proyecto $proyecto) {
-                            return VerificarConstancia::validarConstancia($proyecto->docentes_proyecto()
+                        ->visible(function (FichaActualizacion $fichaActualizacion) {
+                            return VerificarConstancia::validarConstanciaActualizacion($fichaActualizacion->equipoEjecutor()
                                 ->where('empleado_id', $this->docente->id)
-                                ->first(), 'actualizacion');
+                                ->first(), 'Actualizacion');
                         })
-                        ->action(function (Proyecto $proyecto) {
-                            return VerificarConstancia::CrearPdfActualizacion($proyecto->docentes_proyecto()
+                        ->action(function (FichaActualizacion $fichaActualizacion) {
+                            return VerificarConstancia::CrearPdfActualizacion($fichaActualizacion->equipoEjecutor()
                                 ->where('empleado_id', $this->docente->id)
                                 ->first());
                         }),
+
+                ])->button()
+                    ->color('primary')
+                    ->label('Acciones'),
             ])
             
             ->emptyStateHeading('No hay fichas de actualización')

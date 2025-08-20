@@ -44,7 +44,18 @@ class SegundaParte
                         ->label('Fecha de finalización actual del proyecto')
                         ->disabled()
                         ->dehydrated(false)
-                        ->helperText('Esta es la fecha actual de finalización registrada en el proyecto')
+                        ->helperText('Esta es la fecha de finalización que tenía el proyecto al momento de crear esta ficha')
+                        ->formatStateUsing(function ($livewire) {
+                            // Si estamos editando una ficha existente, mostrar la fecha guardada
+                            if (isset($livewire->record) && $livewire->record instanceof \App\Models\Proyecto\FichaActualizacion && $livewire->record->fecha_finalizacion_actual) {
+                                return \Carbon\Carbon::parse($livewire->record->fecha_finalizacion_actual)->format('d/m/Y');
+                            }
+                            // Si estamos creando una nueva ficha, mostrar la fecha actual del proyecto
+                            elseif (isset($livewire->record) && $livewire->record instanceof \App\Models\Proyecto\Proyecto && $livewire->record->fecha_finalizacion) {
+                                return \Carbon\Carbon::parse($livewire->record->fecha_finalizacion)->format('d/m/Y');
+                            }
+                            return 'No definida';
+                        })
                         ->columnSpan(1),
 
                     DatePicker::make('fecha_ampliacion')

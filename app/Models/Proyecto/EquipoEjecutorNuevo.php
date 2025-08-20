@@ -17,6 +17,8 @@ class EquipoEjecutorNuevo extends Model
         'rol_nuevo',
         'motivo_incorporacion',
         'fecha_solicitud',
+        'fecha_cancelacion',
+        'motivo_cancelacion',
         'usuario_solicitud_id',
         'estado_incorporacion',
         'ficha_actualizacion_id',
@@ -24,6 +26,7 @@ class EquipoEjecutorNuevo extends Model
 
     protected $casts = [
         'fecha_solicitud' => 'datetime',
+        'fecha_cancelacion' => 'datetime',
         'estado_incorporacion' => 'string',
         'tipo_integrante' => 'string',
     ];

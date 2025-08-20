@@ -1851,7 +1851,7 @@
         <div class="flex flex-row space-x-4 items-start p-4 bg-white dark:bg-gray-800 shadow rounded-lg">
             <a href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}">
                 <x-filament::button>
-                    Actualizar Equipo ejecutor
+                    Actualizar Equipo ejecutor o fechas
                 </x-filament::button>
             </a>
             <x-filament::button>
