@@ -154,13 +154,14 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
                     }),
 
                     Action::make('constancia_actualizacion')
-                        ->label('Constancia de Actualización')
+                        ->label('Constancia Actualización')
                         ->icon('heroicon-o-document')
                         ->color('info')
                         ->visible(function (FichaActualizacion $fichaActualizacion) {
                             return VerificarConstancia::validarConstanciaActualizacion($fichaActualizacion->equipoEjecutor()
                                 ->where('empleado_id', $this->docente->id)
-                                ->first(), 'Actualizacion');
+                                //->where($fichaActualizacion->estado->tipoestado->nombre, 'Actualizacion realizada')
+                                ->first());
                         })
                         ->action(function (FichaActualizacion $fichaActualizacion) {
                             return VerificarConstancia::CrearPdfActualizacion($fichaActualizacion->equipoEjecutor()
