@@ -110,6 +110,7 @@ class VerificarConstancia extends Controller
         if (!self::validarConstanciaEmpleado($empleadoProyecto)) {
             return false;
         }
+        
         // validar que el estado del proyecto sea 'Finalizado'
         if ($empleadoProyecto->proyecto->estado->tipoestado->nombre != 'Finalizado') {
             return false;

@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Docente\Proyectos;
 
+use App\Http\Controllers\Docente\VerificarConstancia;
+
 use App\Models\Proyecto\FichaActualizacion;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -91,7 +93,23 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
                     ->modalCancelActionLabel('Cerrar')
                     ->modal()
                     ->modalWidth(MaxWidth::SevenExtraLarge),
+
+                Action::make('constancia_actualizacion')
+                        ->label('Constancia de Actualización')
+                        ->icon('heroicon-o-document')
+                        ->color('info')
+                        ->visible(function (Proyecto $proyecto) {
+                            return VerificarConstancia::validarConstancia($proyecto->docentes_proyecto()
+                                ->where('empleado_id', $this->docente->id)
+                                ->first(), 'actualizacion');
+                        })
+                        ->action(function (Proyecto $proyecto) {
+                            return VerificarConstancia::CrearPdfActualizacion($proyecto->docentes_proyecto()
+                                ->where('empleado_id', $this->docente->id)
+                                ->first());
+                        }),
             ])
+            
             ->emptyStateHeading('No hay fichas de actualización')
             ->emptyStateDescription('Aún no has creado ninguna ficha de actualización para tus proyectos.')
             ->emptyStateIcon('heroicon-o-document-text');
