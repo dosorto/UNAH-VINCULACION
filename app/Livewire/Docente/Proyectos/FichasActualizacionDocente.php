@@ -5,7 +5,6 @@ namespace App\Livewire\Docente\Proyectos;
 use App\Http\Controllers\Docente\VerificarConstancia;
 
 use App\Models\Proyecto\FichaActualizacion;
-use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Proyecto;
 use Filament\Forms\Concerns\InteractsWithForms;
