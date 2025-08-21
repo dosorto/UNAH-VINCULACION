@@ -4,6 +4,7 @@ namespace App\Livewire\Personal\Empleado\Formularios;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
+use App\Models\UnidadAcademica\Carrera;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Forms\Components\CheckboxList;
@@ -71,7 +72,7 @@ final class FormularioEmpleado
                         ->required()
                         ->preload(),
                     Select::make('empleado.departamento_academico_id')
-                        ->label('Departamentos Académicos')
+                        ->label('Escuela / Departamento Académico / Técnicos Universitarios / Instituto de Investigación / Observatorio / Consultorio')
                         ->searchable()
                         ->relationship(
                             name: 'departamento_academico',
@@ -83,7 +84,29 @@ final class FormularioEmpleado
                         ->live()
                         ->required()
                         ->preload(),
-
+                    //select para carrera si el departamento tiene carrera asignadas
+                    Select::make('empleado.carrera_id')
+                        ->label('Carrera')
+                        ->searchable()
+                        ->relationship(
+                            name: 'carrera',
+                            titleAttribute: 'nombre',
+                            modifyQueryUsing: function ($query, Get $get) {
+                                $departamentoId = $get('empleado.departamento_academico_id');
+                                if ($departamentoId) {
+                                    $query->where('departamento_academico_id', $departamentoId);
+                                } else {
+                                    $query->whereRaw('0 = 1'); // No mostrar opciones si no hay departamento
+                                }
+                            }
+                        )
+                        ->visible(function (Get $get) {
+                            $departamentoId = $get('empleado.departamento_academico_id');
+                            // Solo mostrar si el departamento tiene carreras asignadas
+                            return $departamentoId && Carrera::where('departamento_academico_id', $departamentoId)->exists();
+                        })
+                        ->required(false)
+                        ->preload(),
                 ])
                 ->relationship('empleado')
                 ->columns(2),

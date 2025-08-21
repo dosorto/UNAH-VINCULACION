@@ -31,6 +31,7 @@ class Carrera extends Model
         'nombre',
         'siglas',
         'facultad_centro_id',
+        'departamento_academico_id',
     ];
 
     public function facultadcentro()
@@ -49,7 +50,11 @@ class Carrera extends Model
     {
         return $this->belongsToMany(DepartamentoAcademico::class, 'carrera_departamento_academico', 'carrera_id', 'departamento_academico_id');
     }
-   
+
+    public function departamentoAcademico()
+    {
+        return $this->belongsTo(\App\Models\UnidadAcademica\DepartamentoAcademico::class, 'departamento_academico_id');
+    }
 
     protected $table = 'carrera';
 

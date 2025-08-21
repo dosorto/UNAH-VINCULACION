@@ -81,6 +81,15 @@ class CarreraList extends Component implements HasForms, HasTable
                             )
                             ->preload(),
 
+                        Select::make('departamento_academico_id')
+                            ->label('Departamento académico')
+                            ->required()
+                            ->relationship(
+                                name: 'departamentoAcademico',
+                                titleAttribute: 'nombre'
+                            )
+                            ->preload(),
+
                         // ...
                     ])
                     ->using(function (array $data, string $model): Model {
@@ -112,6 +121,9 @@ class CarreraList extends Component implements HasForms, HasTable
                     ->searchable(),
                 Tables\Columns\TextColumn::make('facultadcentro.nombre')
                     ->label('Facultad')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('departamentoAcademico.nombre')
+                    ->label('Departamento académico')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('facultadCentros.nombre')
                     ->label('Facultad y centro en donde se imparte')
@@ -147,6 +159,14 @@ class CarreraList extends Component implements HasForms, HasTable
                                     return $query->where('es_facultad', 1);
                                 }
                             ),
+                        Select::make('departamento_academico_id')
+                            ->label('Departamento académico')
+                            ->required()
+                            ->relationship(
+                                name: 'departamentoAcademico',
+                                titleAttribute: 'nombre'
+                            )
+                            ->preload(),
                         Select::make('facultades_centros')
                             ->label('Facultades o Centros')
                             ->searchable()
