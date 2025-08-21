@@ -808,6 +808,7 @@ class PrimeraParte
                                     ->body('La solicitud de baja del integrante internacional ha sido registrada. Se aplicará cuando la ficha de actualización sea aprobada.')
                                     ->success()
                                     ->send();
+                                $livewire->dispatch('refresh-form');
                             })
                             ->after(function () {
                                 // Esto refrescará el componente después de la acción
@@ -1186,14 +1187,13 @@ class PrimeraParte
                             // Solo mostrar las solicitudes pendientes que NO han sido asociadas a una ficha de actualización
                             return $query->where('estado_incorporacion', 'pendiente')
                                         ->whereNull('ficha_actualizacion_id');
-                        })
+                        })->live()
                         ->addable(false)
                         ->deletable(false)
                         ->reorderable(false)
                         ->columns(3)
                         ->columnSpanFull()
-                        ->defaultItems(0)
-                        ->live(),
+                        ->defaultItems(0),
                 ])
                 ->columnSpanFull()
                 ->live(),
@@ -1295,13 +1295,13 @@ class PrimeraParte
                             return $query->where('estado_baja', 'pendiente')
                                         ->whereNull('ficha_actualizacion_id');
                         })
+                        ->live()
                         ->addable(false)
                         ->deletable(false)
                         ->reorderable(false)
                         ->columns(3)
                         ->columnSpanFull()
-                        ->defaultItems(0)
-                        ->live(),
+                        ->defaultItems(0),
                 ])
                 ->columnSpanFull()
                 ->live(),

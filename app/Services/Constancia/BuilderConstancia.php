@@ -336,7 +336,7 @@ private function generarCorrelativo(): string
         )),
 
         'actualizacion' => Blade::render(<<<BLADE
-            <p style="text-align: justify; line-height: 1.6; margin: 10px 0; font-size: 14px; font-family: 'Times New Roman', serif;">
+            <p>
                 El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace CONSTAR que 
                 <strong>UNAH Campus Atlántida</strong> ha registrado el proyecto de vinculación denominado 
                 <strong>{{ \$nombreProyecto }}</strong>, el cual se ejecuta en los municipios de 

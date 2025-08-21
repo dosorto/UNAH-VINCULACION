@@ -65,7 +65,7 @@ class VerificarConstancia extends Controller
         // mapear los empleados proyectos y llamar al metodo validarConstanciaEmpleado para ver si puede recibir o no su constancia
         $fichaActualizacion->proyecto->docentes_proyecto->map(function ($empleadoProyecto) use ($nombreEstadoProyecto) {
             // validar si el empleado del proyecto se puede generar constancia o no
-            if (self::validarConstanciaEmpleado($empleadoProyecto)) {
+            if (self::validarConstanciaEmpleadoActualizacion($empleadoProyecto)) {
                 // crear la constancia
                 $Constancia = Constancia::create([
                     'origen_type' => FichaActualizacion::class,
@@ -144,6 +144,30 @@ class VerificarConstancia extends Controller
         return true;
     }
 
+    /*
+        metodo para validar si el empleado del proyecto se puede generar constancia o no
+    */
+    public static function validarConstanciaEmpleadoActualizacion(EmpleadoProyecto $empleadoProyecto)
+    {
+
+        $categoriasValidas = ['Titular I', 'Titular II', 'Titular III', 'Titular IV', 'Titular V'];
+        $estadosValidos = ['Actualizacion realizada'];
+
+        // validar que la ficha actualizacion este en estado de 'Actualizacion realizada'
+        if (!in_array($empleadoProyecto->proyecto->ficha_actualizacion->estado->tipoestado->nombre, $estadosValidos)) {
+            return false;
+        }
+
+
+        // validar que la categoria del empleado sea una de las categorias validas
+        if (!in_array($empleadoProyecto->empleado->categoria->nombre, $categoriasValidas)) {
+            return false;
+        }
+        // otras validaciones
+
+        return true;
+    }
+
     public static function validarConstanciaInscripcion(EmpleadoProyecto $empleadoProyecto)
     {
         if (!self::validarConstanciaEmpleado($empleadoProyecto)) {
@@ -167,11 +191,11 @@ class VerificarConstancia extends Controller
 
     public static function validarConstanciaActualizacionRealizada(EmpleadoProyecto $empleadoProyecto)
     {
-        if (!self::validarConstanciaEmpleado($empleadoProyecto)) {
+        if (!self::validarConstanciaEmpleadoActualizacion($empleadoProyecto)) {
             return false;
         }
         // validar que el estado del proyecto sea 'Actualizacion realizada'
-        if ($empleadoProyecto->proyecto->estado->tipoestado->nombre != 'Actualizacion realizada') {
+        if ($empleadoProyecto->proyecto->ficha_actualizacion->estado->tipoestado->nombre != 'Actualizacion realizada') {
             return false;
         }
         return true;
