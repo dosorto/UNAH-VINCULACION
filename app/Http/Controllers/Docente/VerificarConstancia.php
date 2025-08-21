@@ -212,7 +212,7 @@ class VerificarConstancia extends Controller
 
     public static function CrearPdfActualizacion(EmpleadoProyecto $empleadoProyecto)
     {
-        return self::CrearPdf($empleadoProyecto, 'Actualizacion');
+        return self::CrearPdf($empleadoProyecto, 'actualizacion');
     }
     
     public static function CrearPdf(EmpleadoProyecto $empleadoProyecto, $tipo)
