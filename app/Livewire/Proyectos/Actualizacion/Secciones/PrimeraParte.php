@@ -4,6 +4,7 @@ namespace App\Livewire\Proyectos\Actualizacion\Secciones;
 
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioDocente;
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioEstudiante;
+
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioIntegranteInternacional;
 use App\Models\Proyecto\EquipoEjecutorBaja;
 use App\Models\Proyecto\EquipoEjecutorNuevo;
@@ -13,7 +14,10 @@ use App\Models\User;
 use Filament\Forms\Get;
 
 use App\Models\Personal\Empleado;
+use App\Models\Estudiante\EstudianteProyecto;
+use App\Models\Proyecto\EmpleadoProyecto;
 use App\Models\Proyecto\IntegranteInternacional;
+use App\Models\Proyecto\IntegranteInternacionalProyecto;
 
 use App\Models\Estudiante\Estudiante;
 use App\Models\UnidadAcademica\FacultadCentro;
@@ -1253,26 +1257,41 @@ class PrimeraParte
                                         
                                         // Reincorporar según el tipo de integrante
                                         if ($record->tipo_integrante === 'empleado') {
+                                            $existe = \App\Models\Personal\EmpleadoProyecto::where('proyecto_id', $proyectoId)
+                                                ->where('empleado_id', $record->integrante_id)
+                                                ->exists();
                                             // Crear registro en tabla de empleados
-                                            \App\Models\Personal\EmpleadoProyecto::create([
-                                                'proyecto_id' => $proyectoId,
-                                                'empleado_id' => $record->integrante_id,
-                                                'rol' => $record->rol_anterior ?? 'Integrante',
-                                            ]);
+                                            if (!$existe) {
+                                                \App\Models\Personal\EmpleadoProyecto::create([
+                                                    'proyecto_id' => $proyectoId,
+                                                    'empleado_id' => $record->integrante_id,
+                                                    'rol' => $record->rol_anterior ?? 'Integrante',
+                                                ]);
+                                            }
                                         } elseif ($record->tipo_integrante === 'estudiante') {
+                                            $existe = EstudianteProyecto::where('proyecto_id', $proyectoId)
+                                                ->where('estudiante_id', $record->integrante_id)
+                                                ->exists();
                                             // Crear registro en tabla de estudiantes
-                                            \App\Models\Estudiante\EstudianteProyecto::create([
-                                                'proyecto_id' => $proyectoId,
-                                                'estudiante_id' => $record->integrante_id,
-                                                'tipo_participacion_estudiante' => $record->rol_anterior ?? 'Voluntariado',
-                                            ]);
+                                            if (!$existe) {
+                                                EstudianteProyecto::create([
+                                                    'proyecto_id' => $proyectoId,
+                                                    'estudiante_id' => $record->integrante_id,
+                                                    'tipo_participacion_estudiante' => $record->rol_anterior ?? 'Voluntariado',
+                                                ]);
+                                            }
                                         } elseif ($record->tipo_integrante === 'integrante_internacional') {
+                                            $existe = IntegranteInternacionalProyecto::where('proyecto_id', $proyectoId)
+                                                ->where('integrante_internacional_id', $record->integrante_id)
+                                                ->exists();
                                             // Crear registro en tabla de integrantes internacionales
-                                            \App\Models\Proyecto\IntegranteInternacionalProyecto::create([
-                                                'proyecto_id' => $proyectoId,
-                                                'integrante_internacional_id' => $record->integrante_id,
-                                                'rol' => $record->rol_anterior ?? 'Integrante Internacional',
-                                            ]);
+                                            if (!$existe) {
+                                                IntegranteInternacionalProyecto::create([
+                                                    'proyecto_id' => $proyectoId,
+                                                    'integrante_internacional_id' => $record->integrante_id,
+                                                    'rol' => $record->rol_anterior ?? 'Integrante Internacional',
+                                                ]);
+                                            } 
                                         }
                                         
                                         // Eliminar el registro de bajas
