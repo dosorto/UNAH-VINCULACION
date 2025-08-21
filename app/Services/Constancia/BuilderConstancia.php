@@ -125,7 +125,7 @@ private function generarCorrelativo(): string
                 'destinatario_type' => Empleado::class,
                 'destinatario_id' => $this->empleadoProyecto->empleado_id,
                 'tipo_constancia_id' => $tipoId,
-                'status' => true,
+                'status' => 'generada',
                 'correlativo' => $this->generarCorrelativo(),
                 'hash' => Str::random(32)
             ]);
