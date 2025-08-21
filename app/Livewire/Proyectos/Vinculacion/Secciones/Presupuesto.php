@@ -178,27 +178,32 @@ class Presupuesto
                     TextInput::make('aporte_contraparte')
                         ->label('Aporte de contraparte')
                         ->numeric()
-                        ->required(),
+                        ->required()
+                        ->default(0),
 
                     TextInput::make('aporte_internacionales')
                         ->label('Aporte fondos internacionales')
                         ->numeric()
-                        ->required(),
+                        ->required()
+                        ->default(0),
 
                     TextInput::make('aporte_otras_universidades')
                         ->label('Aporte otras universidades')
                         ->numeric()
-                        ->required(),
+                        ->required()
+                        ->default(0),
 
                     TextInput::make('aporte_comunidad')
                         ->label('Aportes de beneficiarios')
                         ->numeric()
-                        ->required(),
+                        ->required()
+                        ->default(0),
 
                     TextInput::make('otros_aportes')
                         ->label('Otros aportes')
                         ->numeric()
-                        ->required(),
+                        ->required()
+                        ->default(0),
 
                 ])
                 ->relationship('presupuesto') // Relación hasOne

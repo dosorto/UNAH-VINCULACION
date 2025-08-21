@@ -112,7 +112,7 @@ class EquipoEjecutor
                         ->searchable(['cuenta', 'nombre', 'apellido'])
                         ->relationship(
                             name: 'estudiante',
-                            titleAttribute: 'cuenta'
+                            titleAttribute: 'nombre'
                         )
                         ->createOptionForm(
                             FormularioEstudiante::form()
