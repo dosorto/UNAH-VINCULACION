@@ -109,7 +109,7 @@ class SegundaParte
                 ->defaultItems(1)
                 ->minItems(1)
                 ->deletable(true)
-                ->addActionLabel('Agregar entidad contraparte')
+                ->addActionLabel('Agregar otra entidad contraparte')
         ];
     }
 }

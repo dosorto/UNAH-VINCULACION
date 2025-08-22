@@ -28,7 +28,6 @@ class FormularioEstudiante
                 ->options( [
                     'Masculino' => 'Masculino',
                     'Femenino' => 'Femenino',
-                    'Otro' => 'Otro',
                 ]),
             Select::make('centro_facultad_id')
                 ->label('Facultad o Centro')
@@ -43,7 +42,7 @@ class FormularioEstudiante
                 ->options(Carrera::all()->pluck('nombre', 'id'))
                 ->preload(),
             TextInput::make('cuenta')
-                ->maxLength(255)->label('Número de cuenta del Estudiante')
+                ->label('Número de cuenta del Estudiante')
                 ->required()
                 ->unique('estudiante', 'cuenta', ignoreRecord: true)
                 ->numeric()
