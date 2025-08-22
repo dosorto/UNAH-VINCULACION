@@ -28,12 +28,13 @@
                         vinculación con contraparte y enfoque territorial.</p>
                 </div>
             </a>
+
             <!-- Tarjeta Proyecto de Educación No Formal -->
-            <a href="{{ route('crearProyectoVinculacion') }}"
-                class="group relative block bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300">
+            <a href="javascript:void(0)"
+                class="group relative block bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300 pointer-events-none opacity-20">
                 <span
                     class="absolute top-4 right-4 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-3 py-1 rounded-full text-xs font-semibold group-hover:bg-green-200 dark:group-hover:bg-green-800 transition">
-                    Nuevo
+                    Proximamente
                 </span>
                 <div class="flex flex-col items-center">
                     <div
@@ -49,11 +50,11 @@
                 </div>
             </a>
             <!-- Tarjeta Proyecto de Voluntariado -->
-            <a href="{{ route('crearProyectoVinculacion') }}"
-                class="group relative block bg-white dark:bg-gray-800 border border-yellow-200 dark:border-yellow-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300">
+            <a href="javascript:void(0)"
+                class="group relative block bg-white dark:bg-gray-800 border border-yellow-200 dark:border-yellow-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300 pointer-events-none opacity-20"">
                 <span
                     class="absolute top-4 right-4 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 px-3 py-1 rounded-full text-xs font-semibold group-hover:bg-yellow-200 dark:group-hover:bg-yellow-800 transition">
-                    Nuevo
+                    Proximamente
                 </span>
                 <div class="flex flex-col items-center">
                     <div
@@ -69,11 +70,11 @@
                 </div>
             </a>
             <!-- Tarjeta Proyecto de Comunicación -->
-            <a href="{{ route('crearProyectoVinculacion') }}"
-                class="group relative block bg-white dark:bg-gray-800 border border-orange-200 dark:border-orange-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300">
+            <a href="javascript:void(0)"
+                class="group relative block bg-white dark:bg-gray-800 border border-orange-200 dark:border-orange-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300 pointer-events-none opacity-20"">
                 <span
                     class="absolute top-4 right-4 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-full text-xs font-semibold group-hover:bg-orange-200 dark:group-hover:bg-orange-800 transition">
-                    Nuevo
+                    Proximamente
                 </span>
                 <div class="flex flex-col items-center">
                     <div
@@ -89,11 +90,11 @@
                 </div>
             </a>
             <!-- Tarjeta Proyecto de Comunicación -->
-            <a href="{{ route('crearProyectoVinculacion') }}"
-                class="group relative block bg-white dark:bg-gray-800 border border-purple-200 dark:border-purple-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300">
+            <a href="javascript:void(0)"
+                class="group relative block bg-white dark:bg-gray-800 border border-purple-200 dark:border-purple-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300 pointer-events-none opacity-20">
                 <span
                     class="absolute top-4 right-4 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-3 py-1 rounded-full text-xs font-semibold group-hover:bg-purple-200 dark:group-hover:bg-purple-800 transition">
-                    Nuevo
+                    Proximamente
                 </span>
                 <div class="flex flex-col items-center">
                     <div
@@ -109,11 +110,11 @@
                 </div>
             </a>
             <!-- Tarjeta Proyecto de Egresados -->
-            <a href="{{ route('crearProyectoVinculacion') }}"
-                class="group relative block bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300">
+            <a href="javascript:void(0)"
+                class="group relative block bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300 pointer-events-none opacity-20">
                 <span
                     class="absolute top-4 right-4 bg-pink-100 dark:bg-pink-900 text-pink-700 dark:text-pink-300 px-3 py-1 rounded-full text-xs font-semibold group-hover:bg-pink-200 dark:group-hover:bg-pink-800 transition">
-                    Nuevo
+                    Proximamente
                 </span>
                 <div class="flex flex-col items-center">
                     <div
