@@ -60,7 +60,7 @@ class BuilderConstancia
     private function generarCorrelativo(): string
     {
         $anio = now()->year;
-        $prefijo = 'DVUS-CONST';
+        $prefijo = 'VRA-DVUS';
         $maxIntentos = 100;
 
         do {
@@ -115,9 +115,9 @@ class BuilderConstancia
                 'destinatario_type' => Empleado::class,
                 'destinatario_id' => $this->empleadoProyecto->empleado_id,
                 'tipo_constancia_id' => $tipoId,
-                'status' => 'generada',
+                'status' => true,
                 'correlativo' => $this->generarCorrelativo(),
-                'hash' => Str::random(32)
+                'hash' => Str::random(10)
             ]);
         }
 
@@ -343,7 +343,7 @@ class BuilderConstancia
             )),
 
             'actualizacion' => Blade::render(<<<BLADE
-                <p style="text-align: justify; line-height: 1.6; margin: 10px 0; font-size: 14px; font-family: 'Times New Roman', serif;">
+                <p>
                     El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace CONSTAR que 
                     <strong>UNAH Campus Atlántida</strong> ha registrado el proyecto de vinculación denominado 
                     <strong>{{ \$nombreProyecto }}</strong>, el cual se ejecuta en los municipios de 
@@ -395,16 +395,16 @@ class BuilderConstancia
             $qrcodePath = storage_path("app/public/{$qrCodeName}");
 
             QrCode::format('png')
-                ->size(200)
-                ->errorCorrection('H')
+                ->size(150)
+                ->errorCorrection('L')
                 ->generate($enlace, $qrcodePath);
 
             $this->qrPath = 'file://' . $qrcodePath;
         } else {
             $qrBase64 = base64_encode(
                 QrCode::format('png')
-                    ->size(200)
-                    ->errorCorrection('H')
+                    ->size(150)
+                    ->errorCorrection('L')
                     ->generate($enlace)
             );
 

@@ -195,7 +195,7 @@
         .footer-blue-box {
             position: fixed;
             padding: 0px;
-            margin-left: 710px;
+            margin-left: 730px;
             margin-top: -70px;
             width: 50px;
             height: 50px;

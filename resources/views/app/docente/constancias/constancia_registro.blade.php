@@ -170,7 +170,7 @@
         .footer-blue-box {
             position: fixed;
             padding: 0px;
-            margin-left: 710px;
+            margin-left: 730px;
             margin-top: -70px;
             width: 50px;
             height: 50px;
@@ -226,7 +226,7 @@
         <tr>
             <td style="width: 40%; text-align: left; vertical-align: top; padding-left: 400px; padding-top: -80px;">
                 <div style="border: 1.5px solid #000; padding: 8px 10px; display: inline-block; font-size: 14px; font-weight: bold; background-color: #ffffff;">
-                    Código Verificación: <br>
+                    Código Verificación:
                     <span style="font-size: 14px; color: #00060c;">
                         {{ $codigoVerificacion ?? 'N/A' }}
                     </span>
