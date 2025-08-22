@@ -99,18 +99,36 @@
             text-align: justify;
             font-size: 16px;
             margin-top: 10px;
-            margin-bottom: 120px;
+            margin-bottom: 60px;
             line-height: 1.0;
         }
 
-        .firma {
+        .firma-container {
+            position: relative;
             text-align: center;
-            margin-top: 5px;
+            margin-top: 20px;
+            height: 100px;
+        }
+
+        .firma {
+            display: inline-block;
+            position: relative;
+        }
+
+        .firma img {
+            display: block;
+        }
+
+        .sello {
+            position: absolute;
+            top: -25px;
+            right: -40px;
+            z-index: 2;
         }
 
         .nombre-firma {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 2px;
             font-weight: bold;
         }
 
@@ -205,7 +223,6 @@
 
 <body>
 
-    <!-- FOOTER FIJO -->
     <div class="footer">
         <div class="footer-logo">
             <img src="{{ $footerLogo }}" alt="logo" style="height: 70px;">
@@ -214,17 +231,14 @@
         <div class="footer-year">
             {{ $anioAcademico }}
         </div>
-        <!-- Línea de guiones y texto de la universidad -->
         <div class="footer-bottom">
             <hr>
             <p>Universidad Nacional Autónoma de Honduras | CIUDAD UNIVERSITARIA | Tegucigalpa M.D.C. Honduras C.A |
                 www.unah.edu.hn</p>
         </div>
-        <!-- Cuadro azul en la esquina inferior derecha -->
         <div class="footer-blue-box"></div>
     </div>
 
-    <!-- Contenedor del header -->
     <div class="header">
         <div class="imgHeader"">
             <img src="{{ $headerLogo }}">
@@ -238,24 +252,21 @@
         <div class="header-yellow-box"></div>
 
     </div>
-
-    <!-- Código de verificación y QR arriba -->
     <table
         style="
             width: 100%;
             border-collapse: collapse;
-            margin-top: -40px;      /* pequeño margen bajo el header */
+            margin-top: -40px;
             margin-left: 0;
             padding-left: 0;
         ">
         <tr>
-            <!-- Celda izquierda: Código de verificación -->
             <td
                 style="
                     width: 40%;
-                    text-align: left;         /* Alineado a la izquierda */
-                    vertical-align: top;      /* Alinea arriba */
-                    padding-left: 400px;       /* Ajusta según necesites */
+                    text-align: left;
+                    vertical-align: top;
+                    padding-left: 400px;
                     padding-top: -80px;
                 ">
                 <div
@@ -275,13 +286,12 @@
                 </div>
             </td>
 
-            <!-- Celda derecha: QR -->
             <td
                 style="
                     width: 40%;
-                    text-align: right;        /* QR a la derecha */
-                    vertical-align: top;      /* Arriba */
-                    padding-right: 65px;      /* Ajusta si necesitas más espacio */
+                    text-align: right;
+                    vertical-align: top;
+                    padding-right: 65px;
                     padding-top: -80px;
                 ">
                 <img src="{{ $qrCode }}" width="100" height="100" style="border: 1px solid #ddd;" />
@@ -289,7 +299,6 @@
         </tr>
     </table>
 
-    <!-- Correlativo y Título -->
     <div
         style="
             font-family: Arial, sans-serif;
@@ -319,7 +328,6 @@
         {!! $texto !!}
     </p>
 
-    <!-- Tabla de responsables (integrantes) PRIMERO -->
     <table class="tabla-responsables">
             <thead>
                 <tr>
@@ -343,7 +351,6 @@
             </tbody>
         </table>
 
-        <!-- Tabla de datos del proyecto ejecutado DESPUÉS -->
         <table class="tabla-responsables">
         <thead>
             <tr>
@@ -379,20 +386,16 @@
         </tbody>
     </table>
 
-
-
         @php
             $hoy = \Carbon\Carbon::today()->locale('es');
             $diaNum = $hoy->day;
-            $mes = $hoy->translatedFormat('F'); // ej: julio
+            $mes = $hoy->translatedFormat('F');
             $anio = $hoy->year;
 
-            // Día en letras con intl (si tu PHP tiene la extensión intl)
             if (class_exists(\NumberFormatter::class)) {
                 $fmt = new \NumberFormatter('es', \NumberFormatter::SPELLOUT);
-                $diaLetras = $fmt->format($diaNum); // ej: dieciocho
+                $diaLetras = $fmt->format($diaNum);
             } else {
-                // Respaldo simple 1–31
                 $dias = [
                     '',
                     'uno',
@@ -438,28 +441,25 @@
             {{ $diaLetras }} días del mes de {{ $mes }} de {{ $anio }}.
         </p>
 
-
-        <!-- Firma -->
-        <div class="firma" style="text-align: center; margin-top: 100px;">
-            <img src="{{ $firmaDirector }}" alt="Firma del Director" width="200">
-            <br>
-            <img src="{{ $selloDirector }}" alt="Sello de la UNAH" width="120">
+        
+        <div class="firma-container">
+            <div class="firma">
+                <div class="sello">
+                    <img src="{{ $selloDirector }}" alt="Sello de la UNAH" width="120">
+                </div>
+                <img src="{{ $firmaDirector }}" alt="Firma del Director" width="120">
+            </div>
         </div>
 
-
-        <!-- Nombre del firmante -->
         <div class="nombre-firma">
             {{ $nombreDirector }}<br>
             Director de Vinculación Universidad – Sociedad<br>
             VRA-UNAH
         </div>
 
-        <!-- Observación -->
         <div class="observacion">
             <strong>Observación:</strong>Esta constancia tiene validez para efectos de acreditación de méritos al personal docente participante según lo establecido en el Estatuto del Docente Universitario vigente.
         </div>
-
-
     </div>
 
 </body>

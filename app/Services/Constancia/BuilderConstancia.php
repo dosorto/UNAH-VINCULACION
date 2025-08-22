@@ -7,19 +7,14 @@ use App\Models\Constancia\TipoConstancia;
 use App\Models\Personal\EmpleadoProyecto;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Proyecto;
-use App\Models\Personal\EmpleadoCodigoInvestigacion;
 use App\Models\Presupuesto\Presupuesto;
-use App\Models\Proyecto\AporteInstitucional;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Str;
 
-
 Carbon::setLocale('es');
-
-
 
 class BuilderConstancia
 {
@@ -48,10 +43,7 @@ class BuilderConstancia
         $this->director = $this->proyecto->director_vinculacion;
 
         $this->constancia = $this->resolveConstancia();
-
-        // Generar el QR antes de construir los datos
         $this->generateQRCode();
-
         $this->data = $this->buildData();
     }
 
@@ -65,7 +57,7 @@ class BuilderConstancia
         return $this->data;
     }
 
-private function generarCorrelativo(): string
+    private function generarCorrelativo(): string
     {
         $anio = now()->year;
         $prefijo = 'DVUS-CONST';
@@ -103,7 +95,6 @@ private function generarCorrelativo(): string
         $tipoId = TipoConstancia::where('nombre', $this->tipo)->value('id');
         if (!$tipoId) return null;
 
-     
         $constancia = Constancia::where([
             ['origen_type', Proyecto::class],
             ['origen_id', $this->empleadoProyecto->proyecto_id],
@@ -112,7 +103,6 @@ private function generarCorrelativo(): string
             ['tipo_constancia_id', $tipoId] 
         ])->first();
 
-       
         if ($constancia && empty($constancia->correlativo)) {
             $constancia->update(['correlativo' => $this->generarCorrelativo()]);
             $constancia->refresh();
@@ -125,7 +115,7 @@ private function generarCorrelativo(): string
                 'destinatario_type' => Empleado::class,
                 'destinatario_id' => $this->empleadoProyecto->empleado_id,
                 'tipo_constancia_id' => $tipoId,
-                'status' => 'generada',
+                'status' => true,
                 'correlativo' => $this->generarCorrelativo(),
                 'hash' => Str::random(32)
             ]);
@@ -138,7 +128,6 @@ private function generarCorrelativo(): string
     {
         return $fecha ? Carbon::parse($fecha)->translatedFormat('j \d\e F \d\e Y') : 'Fecha no disponible';
     }
-
 
     private function buildData(): array
     {
@@ -154,12 +143,10 @@ private function generarCorrelativo(): string
         $departamentos = $this->proyecto->departamento->pluck('nombre')->implode(', ') ?: 'No especificado';
         $municipios = $this->proyecto->municipio->pluck('nombre')->implode(', ') ?: 'No especificado';
 
-        // Datos solicitados para la constancia de finalización
         $unidadAcademica = $this->proyecto?->unidad_academica ?? 'No especificada';
         $beneficiarios = $this->proyecto?->poblacion_participante ?? 'No especificado';
 
-        // Calcular presupuesto ejecutado (todos los aportes + superávit) ---
-        $presupuesto = $this->proyecto->presupuesto; // relación hasOne
+        $presupuesto = $this->proyecto->presupuesto;
         $totalAporteInstitucional = $this->proyecto->aportesInstitucionales()->sum('costo_total');
         $aporteContraparte = floatval($presupuesto->aporte_contraparte ?? 0);
         $aporteInternacionales = floatval($presupuesto->aporte_internacionales ?? 0);
@@ -167,7 +154,6 @@ private function generarCorrelativo(): string
         $aporteComunidad = floatval($presupuesto->aporte_comunidad ?? 0);
         $otrosAportes = floatval($presupuesto->otros_aportes ?? 0);
 
-        // Sumar el superávit (puede ser una relación o un array)
         $superavitTotal = 0;
         if (!empty($presupuesto->superavit) && is_iterable($presupuesto->superavit)) {
             foreach ($presupuesto->superavit as $item) {
@@ -192,11 +178,10 @@ private function generarCorrelativo(): string
             $this->proyecto->documentos()->where('tipo_documento', 'Informe Final')->latest()->first()
         )?->created_at?->format('d \d\e F \d\e Y') ?? 'No disponible';
 
-        // Obtener rutas desde .env
-        $headerLogo = env('PDF_HEADER_LOGO');
-        $footerLogo = env('PDF_FOOTER_LOGO');
-        $solLogo    = env('PDF_SOL_LOGO');
-        $lucenLogo  = env('PDF_LUCEN_LOGO');
+        $headerLogo = $this->getValidLogoPath(env('PDF_HEADER_LOGO'));
+        $footerLogo = $this->getValidLogoPath(env('PDF_FOOTER_LOGO'));
+        $solLogo = $this->getValidLogoPath(env('PDF_SOL_LOGO'));
+        $lucenLogo = $this->getValidLogoPath(env('PDF_LUCEN_LOGO'));
 
         $integrantes = $this->proyecto->docentes_proyecto()
             ->with([
@@ -217,13 +202,8 @@ private function generarCorrelativo(): string
                 ];
             })->toArray();
 
-        // Si estamos generando PDF, convertir rutas a file:// 
-        if ($this->pdf) {
-            $headerLogo = 'file://' . public_path($headerLogo);
-            $footerLogo = 'file://' . public_path($footerLogo);
-            $solLogo    = 'file://' . public_path($solLogo);
-            $lucenLogo  = 'file://' . public_path($lucenLogo);
-        }
+        $firmaDirector = $this->getValidDirectorAsset($this->director?->firma?->ruta_storage, 'firma');
+        $selloDirector = $this->getValidDirectorAsset($this->director?->sello?->ruta_storage, 'sello');
 
         $fechaInicio = $this->formatFecha($this->proyecto?->fecha_inicio);
         $fechaFinal = $this->formatFecha($this->proyecto?->fecha_finalizacion);
@@ -243,7 +223,6 @@ private function generarCorrelativo(): string
             'departamentos' => $departamentos,
             'municipios' => $municipios,
             'integrantes' => $integrantes,
-
             'tipo' => $this->tipo,
             'horas' => 0,
             'texto' => $this->buildTexto(
@@ -264,15 +243,13 @@ private function generarCorrelativo(): string
             ),
             'nombreDepartamento' => $nombreDepartamento,
             'nombreDirector' => $director,
-            'firmaDirector' => $this->director?->firma?->ruta_storage ?? '',
-            'selloDirector' => $this->director?->sello?->ruta_storage ?? '',
+            'firmaDirector' => $firmaDirector,
+            'selloDirector' => $selloDirector,
             'anioAcademico' => 'Año Académico 2025 "José Dionisio de Herrera"',
             'codigoVerificacion' => $this->constancia?->hash ?? '',
             'correlativo' => $this->constancia->correlativo ?? 'DVUS-CONST-0001/2025',
             'pdf' => $this->pdf,
             'qrCode' => $this->qrPath,
-
-            // Datos para la tabla de finalización
             'unidadAcademica' => $unidadAcademica,
             'beneficiarios' => $beneficiarios,
             'presupuestoEjecutado' => $presupuestoEjecutado,
@@ -282,7 +259,41 @@ private function generarCorrelativo(): string
             'fechaFinal' => $fechaFinal,
         ];
 
-        return array_merge($data, $this->getImagePaths($data));
+        return $data;
+    }
+
+    private function getValidLogoPath(?string $logoPath): string
+    {
+        if (empty($logoPath)) {
+            return $this->pdf ? 'file://' . public_path('images/default-logo.png') : asset('images/default-logo.png');
+        }
+
+        $fullPath = public_path($logoPath);
+        
+        if ($this->pdf) {
+            return 'file://' . $fullPath;
+        }
+        
+        return asset($logoPath);
+    }
+
+    private function getValidDirectorAsset(?string $storagePath, string $type): string
+    {
+        if (empty($storagePath)) {
+            return $this->pdf ? 'file://' . public_path("images/default-{$type}.png") : asset("images/default-{$type}.png");
+        }
+
+        $fullPath = storage_path("app/public/{$storagePath}");
+        
+        if (is_dir($fullPath) || !file_exists($fullPath)) {
+            return $this->pdf ? 'file://' . public_path("images/default-{$type}.png") : asset("images/default-{$type}.png");
+        }
+
+        if ($this->pdf) {
+            return 'file://' . $fullPath;
+        }
+        
+        return Storage::url($storagePath);
     }
 
     private function buildTitulo(): string
@@ -295,114 +306,73 @@ private function generarCorrelativo(): string
         };
     }
 
+    private function buildTexto(
+        $empleado,
+        $numeroEmpleado,
+        $nombreDepartamento,
+        $nombreCentro,
+        $nombreProyecto,
+        $fechaInicio,
+        $fechaFinal,
+        $director,
+        $categoria,
+        $rolDocente,
+        $codigoProyecto,
+        $departamentos,
+        $municipios,
+        $integrantes
+    ): string {
+        return match ($this->tipo) {
+            'inscripcion' => Blade::render(<<<BLADE
+                <p>
+                    El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace CONSTAR que 
+                    <strong>{{ \$nombreCentro }}</strong> ha registrado el proyecto de vinculación denominado 
+                    <strong>{{ \$nombreProyecto }}</strong>, el cual se ejecuta en {{ \$municipios }}, Departamentos 
+                    {{ \$departamentos }} durante el período {{ \$fechaInicio }} hasta el 
+                    {{ \$fechaFinal }}, el cual fue registrado en esta dirección con el número 
+                    <strong>{{ \$codigoProyecto }}</strong>. El equipo docente responsable de la ejecución de este proyecto es el siguiente:
+                </p>
+            BLADE, compact(
+                'nombreCentro',
+                'nombreProyecto',
+                'departamentos',
+                'municipios',
+                'fechaInicio',
+                'fechaFinal',
+                'codigoProyecto'
+            )),
 
-   private function buildTexto(
-    $empleado,
-    $numeroEmpleado,
-    $nombreDepartamento,
-    $nombreCentro,
-    $nombreProyecto,
-    $fechaInicio,
-    $fechaFinal,
-    $director,
-    $categoria,
-    $rolDocente,
-    $codigoProyecto,
-    $departamentos,
-    $municipios,
-    $integrantes
-): string {
-    // se usa heredoc para evitar problemas con comillas
-    return match ($this->tipo) {
-        'inscripcion' => Blade::render(<<<BLADE
-            <p >
-                El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace CONSTAR que 
-                <strong>{{ \$nombreCentro }}</strong> ha registrado el proyecto de vinculación denominado 
-                <strong>{{ \$nombreProyecto }}</strong>, el cual se ejecuta en {{ \$municipios }}, Departamentos 
-                {{ \$departamentos }} durante el período {{ \$fechaInicio }} hasta el 
-                {{ \$fechaFinal }}, el cual fue registrado en esta dirección con el número 
-                <strong>{{ \$codigoProyecto }}</strong>. El equipo docente responsable de la ejecución de este proyecto es el siguiente:
-            </p>
-            
-        BLADE
-        , compact(
-            'nombreCentro',
-            'nombreProyecto',
-            'departamentos',
-            'municipios',
-            'fechaInicio',
-            'fechaFinal',
-            'codigoProyecto'
-        )),
+            'actualizacion' => Blade::render(<<<BLADE
+                <p style="text-align: justify; line-height: 1.6; margin: 10px 0; font-size: 14px; font-family: 'Times New Roman', serif;">
+                    El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace CONSTAR que 
+                    <strong>UNAH Campus Atlántida</strong> ha registrado el proyecto de vinculación denominado 
+                    <strong>{{ \$nombreProyecto }}</strong>, el cual se ejecuta en los municipios de 
+                    <strong>{{ \$municipios }}</strong> durante el período 
+                    <strong>{{ \$fechaInicio }}</strong> hasta el <strong>{{ \$fechaFinal }}</strong>, 
+                    el cual fue registrado en esta dirección con el número 
+                    <strong>{{ \$codigoProyecto }}</strong>. A la fecha, el equipo docente responsable de la ejecución de este proyecto es el siguiente:
+                </p>
+            BLADE, compact(
+                'nombreProyecto',
+                'municipios',
+                'fechaInicio',
+                'fechaFinal',
+                'codigoProyecto'
+            )),
 
-        'actualizacion' => Blade::render(<<<BLADE
-            <p style="text-align: justify; line-height: 1.6; margin: 10px 0; font-size: 14px; font-family: 'Times New Roman', serif;">
-                El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace CONSTAR que 
-                <strong>UNAH Campus Atlántida</strong> ha registrado el proyecto de vinculación denominado 
-                <strong>{{ \$nombreProyecto }}</strong>, el cual se ejecuta en los municipios de 
-                <strong>{{ \$municipios }}</strong> durante el período 
-                <strong>{{ \$fechaInicio }}</strong> hasta el <strong>{{ \$fechaFinal }}</strong>, 
-                el cual fue registrado en esta dirección con el número 
-                <strong>{{ \$codigoProyecto }}</strong>. A la fecha, el equipo docente responsable de la ejecución de este proyecto es el siguiente:
-            </p>
-           
-        BLADE
-        , compact(
-            'nombreProyecto',
-            'municipios',
-            'fechaInicio',
-            'fechaFinal',
-            'codigoProyecto',
-            'integrantes' 
-        )),
+            'finalizacion' => Blade::render(<<<BLADE
+                <p>
+                    El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace <strong>CONSTAR</strong> que el proyecto
+                    de vinculación denominado: <strong>{{ \$nombreProyecto }}</strong>, con código de registro <strong>{{ \$codigoProyecto }}</strong> 
+                    ha presentado el informe final que detalla los siguientes datos:
+                </p>
+            BLADE, [
+                'codigoProyecto' => $codigoProyecto,
+                'nombreProyecto' => $nombreProyecto,
+            ]),
 
-        'finalizacion' => Blade::render(<<<BLADE
-            <p>
-                El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace <strong>CONSTAR</strong> que el proyecto
-                de vinculación denominado: <strong>{{ \$nombreProyecto }}</strong>, con código de registro <strong>{{ \$codigoProyecto }}</strong> 
-                ha presentado el informe final que detalla los siguientes datos:
-            </p>
-        BLADE
-        , [
-            'codigoProyecto' => $codigoProyecto,
-            'nombreProyecto' => $nombreProyecto,
-        ]),
-
-        default => '<p>N/D</p>',
-    };
-}
-    
-    private function getImagePaths(array $data): array
-    {
-        $codigo = $data['codigoVerificacion'] ?? '';
-        $firmaDirector = $data['firmaDirector'] ?? '';
-        $selloDirector = $data['selloDirector'] ?? '';
-
-        $filePrefix = $this->pdf ? 'file://' : '';
-
-        return [
-            'solImage' => $this->pdf
-                ? public_path('/images/Image/Sol.png')
-                : asset('images/Image/Sol.png'),
-
-            'logoImage' => $this->pdf
-                ? $filePrefix . public_path('images/imagenvinculacion.jpg')
-                : asset('images/imagenvinculacion.jpg'),
-
-            'firmaImage' => $this->pdf
-                ? public_path('f.png')
-                : asset('f.png'),
-
-            'qrCode' => $this->qrPath,
-
-            'firmaDirector' => $this->pdf
-                ? $filePrefix . storage_path("app/public/{$firmaDirector}")
-                : Storage::url($firmaDirector),
-
-            'selloDirector' => $this->pdf
-                ? $filePrefix . storage_path("app/public/{$selloDirector}")
-                : Storage::url($selloDirector),
-        ];
+            default => '<p>N/D</p>',
+        };
     }
 
     private function generateQRCode(): void
@@ -411,7 +381,6 @@ private function generarCorrelativo(): string
         $enlace = route('verificacion_constancia', ['hash' => $hash]);
 
         if ($this->pdf) {
-            // Guardar el archivo como imagen
             $qrCodeName = $hash . '.png';
             $qrcodePath = storage_path("app/public/{$qrCodeName}");
 
@@ -422,7 +391,6 @@ private function generarCorrelativo(): string
 
             $this->qrPath = 'file://' . $qrcodePath;
         } else {
-            // Generar base64 para evitar guardar archivo
             $qrBase64 = base64_encode(
                 QrCode::format('png')
                     ->size(200)
