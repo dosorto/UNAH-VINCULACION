@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title></title>
 
-     <style>
+    <style>
         @page {
             margin: 3cm 0cm 3.2cm 0.5cm;
         }
@@ -87,20 +87,35 @@
             text-align: justify;
             font-size: 16px;
             margin-top: 10px;
-            margin-bottom: 120px;
+            margin-bottom: 60px;
             line-height: 1.0;
         }
-        .firma {
+        .firma-container {
+            position: relative;
             text-align: center;
-            margin-top: 5px;
+            margin-top: 20px;
+            height: 100px;
+        }
+        .firma {
+            display: inline-block;
+            position: relative;
+        }
+        .firma img {
+            display: block;
+        }
+        .sello {
+            position: absolute;
+            top: -25px;
+            right: -40px;
+            z-index: 2;
         }
         .nombre-firma {
             text-align: center;
-            margin-top: 30px;
+            margin-top: 2px;
             font-weight: bold;
         }
         .observacion {
-            margin: 5px auto 0;
+            margin: 3px auto 0;
             padding: 10px 15px;
             border-left: 4px solid #ffffff;
             text-align: justify;
@@ -108,7 +123,7 @@
             max-width: 9in;
             page-break-inside: avoid;
             page-break-before: auto;
-            min-height: 150px;
+            min-height: 130px;
         }
         .footer {
             position: fixed;
@@ -178,7 +193,6 @@
             filter: none;
         }
     </style>
-
 </head>
 
 <body>
@@ -275,9 +289,13 @@
             Dado en Ciudad Universitaria José Trinidad Reyes, a los {{ $diaLetras }} días del mes de {{ $mes }} de {{ $anio }}.
         </p>
 
-        <div class="firma" style="text-align: center; margin-top: 100px;">
-            <img src="{{$firmaDirector}}" alt="Firma del Director" width="200"><br>
-            <img src="{{$selloDirector}}" alt="Sello de la UNAH" width="120">
+        <div class="firma-container">
+            <div class="firma">
+                <div class="sello">
+                    <img src="{{$selloDirector}}" alt="Sello de la UNAH" width="120">
+                </div>
+                <img src="{{$firmaDirector}}" alt="Firma del Director" width="120">
+            </div>
         </div>
 
         <div class="nombre-firma">
