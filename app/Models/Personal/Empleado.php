@@ -207,6 +207,7 @@ class Empleado extends Model
     {
         return $this->belongsTo(Carrera::class, 'carrera_id');
     }
+    
         public function actividadesServicio()
     {
         return $this->belongsToMany(ActividadServicio::class,'acti_empleado_srvc','empleado_id','actividad_id'
