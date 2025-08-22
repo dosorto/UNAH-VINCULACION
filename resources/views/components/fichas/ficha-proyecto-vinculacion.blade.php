@@ -344,26 +344,6 @@
                     <tr>
                         <th class="full-width1" colspan="6">8. Sitio de ejecución del proyecto</th>
                     </tr>
-                    <tr>
-                            <td class="sub-header" colspan="2">Modalidad de ejecución (marcar con una X)</td>
-                            <td class="full-width" colspan="1">
-                                Distancia <br>
-                                <input disabled type="checkbox" class="no"
-                                    @if ($proyecto->modalidad_ejecucion == 'Distancia') checked @endif>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                Presencial <br>
-                                <input disabled type="checkbox" class="no"
-                                    @if ($proyecto->modalidad_ejecucion == 'Presencial') checked @endif>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                Bimodal <br>
-                                <input disabled type="checkbox" class="no"
-                                    @if ($proyecto->modalidad_ejecucion == 'Bimodal') checked @endif>
-                            </td>
-
-                        </tr>
-                    <tr>
                         <td class="sub-header" colspan="1">Departamento</td>
                         <td class="full-width" colspan="1">
                             @forelse ($proyecto->municipio as $municipio)
@@ -438,7 +418,7 @@
 
                     <!-- TABLA DE PRESUPUESTO DEL PROYECTO -->
                      <tr>
-                            <th class="full-width1" colspan="19"> 13. Presupuesto del Proyecto</th>
+                            <th class="full-width1" colspan="6"> 9. Presupuesto del Proyecto</th>
                         </tr>
                         <tr>
                             <td class="sub-header" colspan="2">Aporte académico de la UNAH:</td>
@@ -515,7 +495,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <th class="full-width1" colspan="19"> En caso de superávit o rentabilidad en el proyecto,
+                            <th class="full-width1" colspan="6"> En caso de superávit o rentabilidad en el proyecto,
                                 haga un
                                 desglose detallado
                                 en que se va a invertir el superávit según las normas de ejecución presupuestaria de la
@@ -523,20 +503,20 @@
                             </th>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="3">Inversión:</td>
+                            <td class="sub-header" colspan="4">Inversión:</td>
                             <td class="sub-header" colspan="2">Monto:</td>
                         </tr>
 
                         @forelse ($proyecto->superavit as $superavit)
                             <tr>
                                 <td class="full-width
-                                " colspan="14">
+                                " colspan="4">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el departamento" value="{{ $superavit->inversion }}"
                                         disabled>
                                 </td>
                                 <td class="full-width
-                                " colspan="5">
+                                " colspan="2">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el departamento" value="{{ $superavit->monto }}"
                                         disabled>
