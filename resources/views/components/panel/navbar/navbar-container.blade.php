@@ -1,6 +1,6 @@
 <div id="mobile-menu"
-    class="fixed inset-0 bg-white shadow-lg transition-transform transform -translate-x-full sm:translate-x-0 sm:shadow-none  sm:flex h-screen flex-col justify-between py-4 pr-2 pl-4 w-3/4 sm:w-1/4 h-[100vh] sm:sticky top-0 sm:bg-gray-100 dark:bg-gray-950"
-    style="z-index: 40; height: 100dvh;">
+    class="fixed inset-0 bg-white shadow-lg barra dark:barra transition-transform transform -translate-x-full sm:translate-x-0 sm:shadow-none  sm:flex h-screen flex-col justify-between py-4 pr-2 pl-4 w-3/4 sm:w-1/4 h-[100vh] sm:sticky top-0 sm:bg-gray-100 dark:bg-gray-950"
+    style="z-index: 40; height: 100dvh;"> 
     <div id="fondoimagen" class="flex justify-between  flex-col h-full       flex-direction: column;">
         <div>
 
@@ -56,23 +56,28 @@
                                       dark:border-gray-700
                                             dark:bg-gray-900 dark:ring-gray-700 dark:divide-gray-700
                                 ">
-                            @forelse ($roles as $rol)
-                                <div class="py-1">
-                                    <a href="{{ route('setrole', $rol->id) }}"
-                                        class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500">
-                                       
-                                        Cambiar a {{ $rol->name }}
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="ml-auto h-5 w-5 text-gray-400"
-                                            viewBox="0 0 20 20" fill="currentColor">
-                                            <path
-                                                d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                                            <path
-                                                d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                                        </svg>
-                                    </a>
-                                </div>
-                            @empty
-                            @endforelse
+                           @php
+                            // Obtiene el rol actual de la sesión o del usuario autenticado
+                                $rolActual = session('rol_actual_id') ?? Auth::user()->roles->first()->id;
+                            @endphp
+
+  @forelse ($roles as $rol)
+    <div class="py-1">
+        <a href="{{ route('setrole', $rol->id) }}"
+            class="group flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:text-gray-200 dark:focus-visible:bg-gray-800 dark:hover:bg-white/5 dark:focus-visible:bg-white/10 dark:border-gray-700 hover:text-gray-500
+                @if($rol->id == $rolActual) bg-gray-200 dark:bg-gray-800 font-semibold @endif">
+            Cambiar a {{ $rol->name }}
+            <svg xmlns="http://www.w3.org/2000/svg" class="ml-auto h-5 w-5 text-gray-400"
+                viewBox="0 0 20 20" fill="currentColor">
+                <path
+                    d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                <path
+                    d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+            </svg>
+        </a>
+    </div>
+@empty
+@endforelse
 
                         </div>
                     </div>
@@ -85,9 +90,6 @@
 
         <div>
             <div class=" ">
-
-               
-
                 <div
                     class="bg-white rounded-lg p-2 border border-gray-300 dark:bg-white/5 dark:border-gray-700">
                     <div class="flex items-center justify-between">

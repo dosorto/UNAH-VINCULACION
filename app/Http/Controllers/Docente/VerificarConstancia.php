@@ -65,7 +65,7 @@ class VerificarConstancia extends Controller
         // mapear los empleados proyectos y llamar al metodo validarConstanciaEmpleado para ver si puede recibir o no su constancia
         $fichaActualizacion->proyecto->docentes_proyecto->map(function ($empleadoProyecto) use ($nombreEstadoProyecto) {
             // validar si el empleado del proyecto se puede generar constancia o no
-            if (self::validarConstanciaEmpleadoActualizacion($empleadoProyecto)) {
+            if (self::validarConstanciaEmpleado($empleadoProyecto)) {
                 // crear la constancia
                 $Constancia = Constancia::create([
                     'origen_type' => FichaActualizacion::class,
@@ -189,6 +189,7 @@ class VerificarConstancia extends Controller
         if (!self::validarConstanciaEmpleado($empleadoProyecto)) {
             return false;
         }
+        
         // validar que el estado del proyecto sea 'Finalizado'
         if ($empleadoProyecto->proyecto->estado->tipoestado->nombre != 'Finalizado') {
             return false;
@@ -198,11 +199,11 @@ class VerificarConstancia extends Controller
 
     public static function validarConstanciaActualizacionRealizada(EmpleadoProyecto $empleadoProyecto)
     {
-        if (!self::validarConstanciaEmpleadoActualizacion($empleadoProyecto)) {
+        if (!self::validarConstanciaEmpleado($empleadoProyecto)) {
             return false;
         }
         // validar que el estado del proyecto sea 'Actualizacion realizada'
-        if ($empleadoProyecto->proyecto->ficha_actualizacion->estado->tipoestado->nombre != 'Actualizacion realizada') {
+        if ($empleadoProyecto->proyecto->estado->tipoestado->nombre != 'Actualizacion realizada') {
             return false;
         }
         return true;
@@ -222,7 +223,7 @@ class VerificarConstancia extends Controller
     {
         return self::CrearPdf($empleadoProyecto, 'actualizacion');
     }
-    
+
     public static function CrearPdf(EmpleadoProyecto $empleadoProyecto, $tipo)
     {
         // validar si el empleado del proyecto se puede generar constancia o no

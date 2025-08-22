@@ -18,8 +18,7 @@ class Constancia extends Model
         'origen_type', 'origen_id',
         'destinatario_type', 'destinatario_id',
         'tipo_constancia_id', 'status', 'validaciones',
-        'hash',
-        'correlativo'
+        'hash', 'correlativo'
     ];
 
 

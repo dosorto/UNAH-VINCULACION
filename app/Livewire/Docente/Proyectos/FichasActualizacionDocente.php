@@ -2,8 +2,9 @@
 
 namespace App\Livewire\Docente\Proyectos;
 
-use App\Models\Proyecto\FichaActualizacion;
 use App\Http\Controllers\Docente\VerificarConstancia;
+
+use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Proyecto;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -152,20 +153,13 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
                     }),
 
                     Action::make('constancia_actualizacion')
-                        ->label('Constancia Actualización')
+                        ->label('Constancia de Actualización')
                         ->icon('heroicon-o-document')
                         ->color('info')
                         ->visible(function (FichaActualizacion $fichaActualizacion) {
-                            $esEstadoActualizacion = $fichaActualizacion->estado
-                                && $fichaActualizacion->estado->tipoestado
-                                && $fichaActualizacion->estado->tipoestado->nombre === 'Actualizacion realizada';
-
-                            $empleadoProyecto = $fichaActualizacion->equipoEjecutor()
+                            return VerificarConstancia::validarConstanciaActualizacion($fichaActualizacion->equipoEjecutor()
                                 ->where('empleado_id', $this->docente->id)
-                                ->first();
-
-                            return $esEstadoActualizacion
-                                && VerificarConstancia::validarConstanciaActualizacion($empleadoProyecto);
+                                ->first(), 'Actualizacion');
                         })
                         ->action(function (FichaActualizacion $fichaActualizacion) {
                             return VerificarConstancia::CrearPdfActualizacion($fichaActualizacion->equipoEjecutor()
@@ -177,6 +171,7 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
                     ->color('primary')
                     ->label('Acciones'),
             ])
+            
             ->emptyStateHeading('No hay fichas de actualización')
             ->emptyStateDescription('Aún no has creado ninguna ficha de actualización para tus proyectos.')
             ->emptyStateIcon('heroicon-o-document-text');

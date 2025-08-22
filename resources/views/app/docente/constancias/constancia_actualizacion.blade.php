@@ -10,7 +10,6 @@
         @page {
             margin: 3cm 0cm 3.2cm 0.5cm;
         }
-
         .header {
             position: fixed;
             top: -3cm;
@@ -21,17 +20,14 @@
             align-items: flex-start;
             justify-content: space-between;
         }
-
         .imgHeader {
             float: left;
             width: 3cm;
         }
-
         .imgHeader img {
             width: 10cm;
             height: auto;
         }
-
         .infoHeader {
             text-align: right;
             font-size: 12px;
@@ -39,7 +35,6 @@
             white-space: nowrap;
             margin-right: 35px;
         }
-
         .infoHeader p {
             margin: 0;
             line-height: 1.4;
@@ -49,7 +44,6 @@
             color: rgb(4, 4, 94);
             line-height: 1.4;
         }
-
         .header-yellow-box {
             position: absolute;
             top: 0;
@@ -58,14 +52,12 @@
             height: 100px;
             background-color: #f8d50f;
         }
-
         .constancia-texto {
             max-width: 7in;
             margin: 20px auto 0;
             font-family: Arial, sans-serif;
             line-height: 1.0;
         }
-
         .constancia-texto p {
             text-align: justify;
             margin: 10px 0;
@@ -73,47 +65,55 @@
             font-family: Arial, sans-serif;
             line-height: 1.2;
         }
-
         .tabla-responsables {
             width: 100%;
             border-collapse: collapse;
-            margin: 10px auto;
-            font-size: 14px;
+            margin: 20px auto;
+            font-size: 15px;
         }
-
         .tabla-responsables th,
         .tabla-responsables td {
             border: 1px solid #000;
             padding: 3px 5px;
             text-align: left;
         }
-
         .tabla-responsables th {
             background: #0f0258;
             color: #fff;
             font-weight: bold;
         }
-
-        #fecha-automatica {
+        #fecha-automatica { 
             font-family: Arial, sans-serif;
             text-align: justify;
             font-size: 16px;
             margin-top: 10px;
-            margin-bottom: 120px;
+            margin-bottom: 60px;
             line-height: 1.0;
         }
-
-        .firma {
-            text-align: center;
-            margin-top: 5px;
-        }
-
-        .nombre-firma {
+        .firma-container {
+            position: relative;
             text-align: center;
             margin-top: 20px;
+            height: 100px;
+        }
+        .firma {
+            display: inline-block;
+            position: relative;
+        }
+        .firma img {
+            display: block;
+        }
+        .sello {
+            position: absolute;
+            top: -25px;
+            right: -40px;
+            z-index: 2;
+        }
+        .nombre-firma {
+            text-align: center;
+            margin-top: 2px;
             font-weight: bold;
         }
-
         .observacion {
             margin: 3px auto 0;
             padding: 10px 15px;
@@ -125,7 +125,6 @@
             page-break-before: auto;
             min-height: 130px;
         }
-
         .footer {
             position: fixed;
             bottom: -3.2cm;
@@ -137,13 +136,11 @@
             font-family: Arial, sans-serif;
             z-index: 10;
         }
-
-        .footer-logo img {
-            position: relative;
-            margin-top: 0px;
-            margin-bottom: -20px;
+        .footer-logo img {  
+            position: relative;    
+            margin-top: 0px; 
+            margin-bottom: -20px;                 
         }
-
         .footer-year {
             text-align: right;
             font-size: 13px;
@@ -152,19 +149,16 @@
             margin-bottom: 45px;
             margin-right: 85px;
         }
-
         .footer-bottom {
             text-align: justify;
             margin-bottom: 10px;
         }
-
         .footer-bottom hr {
             border: none;
             border-top: 1px dashed #063363;
             margin: -35px;
             margin-bottom: 15px;
         }
-
         .footer-bottom p {
             font-size: 12px;
             color: #053972;
@@ -173,17 +167,15 @@
             font-family: Arial, sans-serif;
             padding-bottom: -40px;
         }
-
         .footer-blue-box {
             position: fixed;
             padding: 0px;
-            margin-left: 710px;
+            margin-left: 730px;
             margin-top: -70px;
             width: 50px;
             height: 50px;
             background-color: #061761;
         }
-
         body::before {
             content: '';
             position: fixed;
@@ -409,12 +401,14 @@
 
 
         <!-- Firma -->
-        <div class="firma" style="text-align: center; margin-top: 100px;">
-            <img src="{{ $firmaDirector }}" alt="Firma del Director" width="200">
-            <br>
-            <img src="{{ $selloDirector }}" alt="Sello de la UNAH" width="120">
+         <div class="firma-container">
+            <div class="firma">
+                <div class="sello">
+                    <img src="{{$selloDirector}}" alt="Sello de la UNAH" width="120">
+                </div>
+                <img src="{{$firmaDirector}}" alt="Firma del Director" width="120">
+            </div>
         </div>
-
 
         <!-- Nombre del firmante -->
         <div class="nombre-firma">

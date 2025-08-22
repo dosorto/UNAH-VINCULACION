@@ -14,6 +14,10 @@ use App\Models\Personal\CategoriaEmpleado;
 use App\Models\UnidadAcademica\Carrera;
 use App\Models\Personal\EmpleadoCodigoInvestigacion;
 
+use App\Models\ServicioInfraestructura\ServicioTecnologico;
+use App\Models\ServicioInfraestructura\EmpleadoServicio;
+use App\Models\ServicioInfraestructura\ActividadServicio;
+
 use App\Models\Proyecto\EmpleadoActividad;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -154,6 +158,14 @@ class Empleado extends Model
         //->withTimestamps();
     }
 
+        // relacion muchos a muchos con el modelo Serviicio tecnologico mediante la tabla intermedia empleado_proyecto
+    public function servicios()
+    {
+        return $this->belongsToMany(ServicioTecbologico::class, 'empleado_servicio', 'empleado_id', 'id_servicio_tecnologico');
+        //  ->withPivot('id', 'fecha_inicio', 'fecha_fin', 'estado', 'horas_semanales', 'horas_totales', 'created_at', 'updated_at')
+        //->withTimestamps();
+    }
+
     // relacion uno a muchos con códigos de investigación
     public function codigosInvestigacion()
     {
@@ -194,6 +206,12 @@ class Empleado extends Model
     public function carrera()
     {
         return $this->belongsTo(Carrera::class, 'carrera_id');
+    }
+    
+        public function actividadesServicio()
+    {
+        return $this->belongsToMany(ActividadServicio::class,'acti_empleado_srvc','empleado_id','actividad_id'
+        );
     }
 
     public function getIdValidos()

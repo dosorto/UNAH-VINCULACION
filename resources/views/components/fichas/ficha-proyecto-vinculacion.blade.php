@@ -96,7 +96,6 @@
                                 <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el nombre del proyecto"
                                     value="{{ $proyecto->nombre_proyecto }}" disabled>
-
                             </td>
                         </tr>
                         <tr>

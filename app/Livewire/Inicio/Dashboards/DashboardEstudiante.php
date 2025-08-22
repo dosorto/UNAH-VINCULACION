@@ -5,58 +5,67 @@ namespace App\Livewire\Inicio\Dashboards;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Estudiante\EstudianteProyecto;
 use Filament\Tables;
-use Filament\Tables\TableComponent;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\TableComponent;
+use Illuminate\Database\Eloquent\Builder;
 
 class DashboardEstudiante extends TableComponent
 {
-    public function table(Table $table): Table
+    use Tables\Concerns\InteractsWithTable;
+
+    protected function getTableQuery(): Builder
     {
-        $estudiante = auth()->user()->estudiante; // Obtén el estudiante asociado al usuario
+        $estudiante = auth()->user()->estudiante;
 
         if (!$estudiante) {
-            return $table->heading('No hay estudiante asociado.');
+            return Proyecto::query()->whereNull('id'); 
         }
 
-        $query = Proyecto::query()
+        return Proyecto::query()
             ->with('estudianteProyecto')
             ->whereHas('estudianteProyecto', function ($query) use ($estudiante) {
                 $query->where('estudiante_id', $estudiante->id);
             });
-
-        return $table
-            ->heading('Mis Proyectos')
-            ->query($query)
-            ->columns([
-                TextColumn::make('nombre_proyecto')
-                    ->label('Nombre del Proyecto')
-                    ->sortable()
-                    ->searchable(),
-                TextColumn::make('estudianteProyecto.tipo_participacion_estudiante')
-                    ->label('Tipo de Participación')
-                    ->sortable()
-                    ->searchable(),
-                TextColumn::make('fecha_inicio')
-                    ->label('Fecha de Inicio')
-                    ->date()
-                    ->sortable(),
-                TextColumn::make('fecha_finalizacion')
-                    ->label('Fecha de Finalización')
-                    ->date()
-                    ->sortable(),
-            ])
-            ->actions([
-                Action::make('Constancia')
-                    ->label('Descargar Constancia')
-                    ->icon('heroicon-o-arrow-down-tray'),
-            ]);
     }
 
-    public function makeFilamentTranslatableContentDriver(): ?\Filament\Support\Contracts\TranslatableContentDriver
+    protected function getTableColumns(): array
     {
-        return null;
+        return [
+            TextColumn::make('nombre_proyecto')
+                ->label('Nombre del Proyecto')
+                ->sortable()
+                ->searchable(),
+            TextColumn::make('estudianteProyecto.tipo_participacion_estudiante')
+                ->label('Tipo de Participación')
+                ->sortable()
+                ->searchable(),
+            TextColumn::make('fecha_inicio')
+                ->label('Fecha de Inicio')
+                ->date()
+                ->sortable(),
+            TextColumn::make('fecha_finalizacion')
+                ->label('Fecha de Finalización')
+                ->date()
+                ->sortable(),
+        ];
+    }
+
+    protected function getTableActions(): array
+    {
+        return [
+            Action::make('Constancia')
+                ->label('Descargar Constancia')
+                ->icon('heroicon-o-arrow-down-tray'),
+        ];
+    }
+
+    protected function getTableHeading(): string
+    {
+        $estudiante = auth()->user()->estudiante;
+        
+        return $estudiante ? 'Mis Proyectos' : 'No hay estudiante asociado.';
     }
 
     public function render()
