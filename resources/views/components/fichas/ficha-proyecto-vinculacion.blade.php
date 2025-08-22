@@ -1555,7 +1555,7 @@
                     <table class="table_datos4">
                         <tr>
                             <td class="sub-header" colspan="2">Coordinador del proyecto por la UNAH</td>
-                            <td class="sub-header" colspan="2">Jeje del Departamento</td>
+                            <td class="sub-header" colspan="2">Jefe del Departamento</td>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="1"> Nombre:</td>

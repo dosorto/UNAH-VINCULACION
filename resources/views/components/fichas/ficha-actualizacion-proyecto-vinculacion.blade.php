@@ -202,7 +202,7 @@
                                 <td class="full-width" colspan="2">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre completo"
-                                        value="{{ $integrante->nombre_completo }}{{ $esNuevo ? ' (NUEVO)' : '' }}" disabled>
+                                        value="{{ $integrante->nombre_completo }}{{ $esNuevo ? ' ' : '' }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
@@ -337,7 +337,7 @@
                                 <td class="full-width" colspan="3">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el departamento"
-                                        value="{{ $estudiante->user?->name ?? ($estudiante->nombre . ' ' . $estudiante->apellido) }}{{ $esNuevo ? ' (NUEVO)' : '' }}" disabled>
+                                        value="{{ $estudiante->user?->name ?? ($estudiante->nombre . ' ' . $estudiante->apellido) }}{{ $esNuevo ? ' ' : '' }}" disabled>
                                 </td>
 
                                 <td class="full-width" colspan="1">
@@ -457,7 +457,7 @@
                                 <td class="full-width" colspan="2">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre completo"
-                                        value="{{ $integrante->nombre_completo }}{{ $esNuevo ? ' (NUEVO)' : '' }}" disabled>
+                                        value="{{ $integrante->nombre_completo }}{{ $esNuevo ? ' ' : '' }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
@@ -554,7 +554,7 @@
                         <tr style="background-color: #f8d7da; border-left: 4px solid #dc3545;">
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ $integranteBaja->empleado?->nombre_completo ?? 'N/A' }} (BAJA)" disabled>
+                                    value="{{ $integranteBaja->empleado?->nombre_completo ?? 'N/A' }} " disabled>
                             </td>
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field"
@@ -603,7 +603,7 @@
                         <tr style="background-color: #f8d7da; border-left: 4px solid #dc3545;">
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ $integranteBaja->estudiante?->user?->name ?? 'N/A' }} (BAJA)" disabled>
+                                    value="{{ $integranteBaja->estudiante?->user?->name ?? 'N/A' }} " disabled>
                             </td>
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field"
@@ -652,7 +652,7 @@
                         <tr style="background-color: #f8d7da; border-left: 4px solid #dc3545;">
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field"
-                                    value="{{ $integranteBaja->integranteInternacional?->nombre_completo ?? 'N/A' }} (BAJA)" disabled>
+                                    value="{{ $integranteBaja->integranteInternacional?->nombre_completo ?? 'N/A' }} " disabled>
                             </td>
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field"
@@ -801,7 +801,7 @@
                     <table class="table_datos4">
                         <tr>
                             <td class="sub-header" colspan="2">Coordinador del proyecto por la UNAH</td>
-                            <td class="sub-header" colspan="2">Jeje del Departamento</td>
+                            <td class="sub-header" colspan="2">Jefe del Departamento</td>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="1"> Nombre:</td>
