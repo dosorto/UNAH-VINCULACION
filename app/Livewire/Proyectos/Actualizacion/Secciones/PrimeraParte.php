@@ -137,7 +137,7 @@ class PrimeraParte
                                 $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
                                 
                                 // Obtener información del empleado antes de eliminarlo
-                                $empleadoProyecto = \App\Models\Personal\EmpleadoProyecto::where('proyecto_id', $proyectoId)
+                                $empleadoProyecto = EmpleadoProyecto::where('proyecto_id', $proyectoId)
                                     ->where('empleado_id', $empleadoId)
                                     ->with('empleado')
                                     ->first();
@@ -216,7 +216,7 @@ class PrimeraParte
                                 $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
                                 
                                 // Obtener IDs de empleados que ya están en el proyecto
-                                $empleadosEnProyecto = \App\Models\Personal\EmpleadoProyecto::where('proyecto_id', $proyectoId)
+                                $empleadosEnProyecto = EmpleadoProyecto::where('proyecto_id', $proyectoId)
                                     ->pluck('empleado_id')
                                     ->toArray();
                                 
@@ -234,7 +234,7 @@ class PrimeraParte
                                     ->pluck('integrante_id')
                                     ->toArray();
                                 
-                                return \App\Models\Personal\Empleado::where('user_id', '!=', auth()->id())
+                                return Empleado::where('user_id', '!=', auth()->id())
                                     ->whereNotIn('id', $empleadosEnProyecto)
                                     ->whereNotIn('id', $empleadosDadosBaja)
                                     ->whereNotIn('id', $empleadosConSolicitudPendiente)
@@ -244,7 +244,7 @@ class PrimeraParte
                                 $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
                                 
                                 // Obtener IDs de empleados que ya están en el proyecto
-                                $empleadosEnProyecto = \App\Models\Personal\EmpleadoProyecto::where('proyecto_id', $proyectoId)
+                                $empleadosEnProyecto = EmpleadoProyecto::where('proyecto_id', $proyectoId)
                                     ->pluck('empleado_id')
                                     ->toArray();
                                 
@@ -323,7 +323,7 @@ class PrimeraParte
                         }
                         
                         // Obtener información del empleado
-                        $empleado = \App\Models\Personal\Empleado::find($data['empleado_id']);
+                        $empleado = Empleado::find($data['empleado_id']);
                         
                         // Crear solicitud pendiente
                         EquipoEjecutorNuevo::create([
@@ -1291,12 +1291,12 @@ class PrimeraParte
                                         
                                         // Reincorporar según el tipo de integrante
                                         if ($record->tipo_integrante === 'empleado') {
-                                            $existe = \App\Models\Personal\EmpleadoProyecto::where('proyecto_id', $proyectoId)
+                                            $existe = EmpleadoProyecto::where('proyecto_id', $proyectoId)
                                                 ->where('empleado_id', $record->integrante_id)
                                                 ->exists();
                                             // Crear registro en tabla de empleados
                                             if (!$existe) {
-                                                \App\Models\Personal\EmpleadoProyecto::create([
+                                                EmpleadoProyecto::create([
                                                     'proyecto_id' => $proyectoId,
                                                     'empleado_id' => $record->integrante_id,
                                                     'rol' => $record->rol_anterior ?? 'Integrante',

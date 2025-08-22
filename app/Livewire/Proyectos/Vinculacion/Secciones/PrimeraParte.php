@@ -209,12 +209,6 @@ class PrimeraParte
                         ->columnSpan(1)
                         ->required()
                         ->live()
-                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                            $fechaInicio = $get('fecha_inicio');
-                            if ($state && $fechaInicio && $state < $fechaInicio) {
-                                $set('fecha_finalizacion', null);
-                            }
-                        })
                         ->rules([
                             fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
                                 $fechaInicio = $get('fecha_inicio');
