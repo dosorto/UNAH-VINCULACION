@@ -13,6 +13,7 @@
                     class="absolute top-4 right-4 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-semibold group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition">
                     Vinculación Territorial
                 </span>
+                <br>
                 <div class="flex flex-col items-center">
                     <div
                         class="bg-blue-100 dark:bg-blue-900 rounded-full p-4 mb-5 group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition">
@@ -36,6 +37,7 @@
                     class="absolute top-4 right-4 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-3 py-1 rounded-full text-xs font-semibold group-hover:bg-green-200 dark:group-hover:bg-green-800 transition">
                     Proximamente
                 </span>
+                <br>
                 <div class="flex flex-col items-center">
                     <div
                         class="bg-green-100 dark:bg-green-900 rounded-full p-4 mb-5 group-hover:bg-green-200 dark:group-hover:bg-green-800 transition">
@@ -56,6 +58,7 @@
                     class="absolute top-4 right-4 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 px-3 py-1 rounded-full text-xs font-semibold group-hover:bg-yellow-200 dark:group-hover:bg-yellow-800 transition">
                     Proximamente
                 </span>
+                <br>
                 <div class="flex flex-col items-center">
                     <div
                         class="bg-yellow-100 dark:bg-yellow-900 rounded-full p-4 mb-5 group-hover:bg-yellow-200 dark:group-hover:bg-yellow-800 transition">
@@ -76,6 +79,7 @@
                     class="absolute top-4 right-4 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-full text-xs font-semibold group-hover:bg-orange-200 dark:group-hover:bg-orange-800 transition">
                     Proximamente
                 </span>
+                <br>
                 <div class="flex flex-col items-center">
                     <div
                         class="bg-orange-100 dark:bg-orange-900 rounded-full p-4 mb-5 group-hover:bg-orange-200 dark:group-hover:bg-orange-800 transition">
@@ -96,6 +100,7 @@
                     class="absolute top-4 right-4 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-3 py-1 rounded-full text-xs font-semibold group-hover:bg-purple-200 dark:group-hover:bg-purple-800 transition">
                     Proximamente
                 </span>
+                <br>
                 <div class="flex flex-col items-center">
                     <div
                         class="bg-purple-100 dark:bg-purple-900 rounded-full p-4 mb-5 group-hover:bg-purple-200 dark:group-hover:bg-purple-800 transition">
@@ -116,6 +121,7 @@
                     class="absolute top-4 right-4 bg-pink-100 dark:bg-pink-900 text-pink-700 dark:text-pink-300 px-3 py-1 rounded-full text-xs font-semibold group-hover:bg-pink-200 dark:group-hover:bg-pink-800 transition">
                     Proximamente
                 </span>
+                <br>
                 <div class="flex flex-col items-center">
                     <div
                         class="bg-pink-100 dark:bg-pink-900 rounded-full p-4 mb-5 group-hover:bg-pink-200 dark:group-hover:bg-pink-800 transition">

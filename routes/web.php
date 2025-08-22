@@ -332,7 +332,7 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
         Route::get('FichasActualizacionPorFirmar', FichasActualizacionPorFirmar::class)
             ->name('FichasActualizacionPorFirmar')
-            ->middleware('can:proyectos-admin-proyectos');
+            ->middleware('can:docente-admin-proyectos');
 
         Route::get('FichasActualizacionDocente', FichasActualizacionDocente::class)
             ->name('FichasActualizacionDocente')
