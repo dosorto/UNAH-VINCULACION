@@ -47,9 +47,7 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
                     ->searchable()
                     ->sortable()
                     ->wrap()
-                    ->description(fn (FichaActualizacion $record): string => 'Código: ' . $record->proyecto->codigo_proyecto)
-                    ->icon(fn (FichaActualizacion $record): string => $record->puedeSerEliminada() ? 'heroicon-o-trash' : '')
-                    ->iconColor(fn (FichaActualizacion $record): string => $record->puedeSerEliminada() ? 'danger' : ''),
+                    ->description(fn (FichaActualizacion $record): string => 'Código: ' . $record->proyecto->codigo_proyecto),
 
                 TextColumn::make('proyecto.coordinador.nombre_completo')
                     ->label('Coordinador')

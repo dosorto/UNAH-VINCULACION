@@ -4,6 +4,7 @@ namespace App\Livewire\Proyectos\Actualizacion\Secciones;
 
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioDocente;
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioEstudiante;
+
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioIntegranteInternacional;
 use App\Models\Proyecto\EquipoEjecutorBaja;
 use App\Models\Proyecto\EquipoEjecutorNuevo;
@@ -13,7 +14,10 @@ use App\Models\User;
 use Filament\Forms\Get;
 
 use App\Models\Personal\Empleado;
+use App\Models\Estudiante\EstudianteProyecto;
+use App\Models\Proyecto\EmpleadoProyecto;
 use App\Models\Proyecto\IntegranteInternacional;
+use App\Models\Proyecto\IntegranteInternacionalProyecto;
 
 use App\Models\Estudiante\Estudiante;
 use App\Models\UnidadAcademica\FacultadCentro;
@@ -90,6 +94,13 @@ class PrimeraParte
                             ->requiresConfirmation()
                             ->modalHeading('¿Dar de baja al integrante?')
                             ->modalDescription('Esta acción trasladará al integrante a la tabla de integrantes dados de baja.')
+                            ->form([
+                                // Aquí puedes agregar campos adicionales si es necesario
+                                Textarea::make('motivo_baja')
+                                    ->label('Motivo de Baja')
+                                    ->placeholder('Ingrese el motivo por el cual dá de baja al integrante')
+                                    ->required()
+                            ])
                             ->modalSubmitActionLabel('Confirmar Baja')
                             ->action(function (array $data, $component) {
                                 $record = $component->getRecord();
@@ -126,7 +137,7 @@ class PrimeraParte
                                 $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
                                 
                                 // Obtener información del empleado antes de eliminarlo
-                                $empleadoProyecto = \App\Models\Personal\EmpleadoProyecto::where('proyecto_id', $proyectoId)
+                                $empleadoProyecto = EmpleadoProyecto::where('proyecto_id', $proyectoId)
                                     ->where('empleado_id', $empleadoId)
                                     ->with('empleado')
                                     ->first();
@@ -155,7 +166,7 @@ class PrimeraParte
                                     'tipo_integrante' => 'empleado',
                                     'nombre_integrante' => $nombreEmpleado,
                                     'rol_anterior' => $empleadoProyecto->rol ?? 'Integrante',
-                                    'motivo_baja' => 'Baja solicitada durante actualización',
+                                    'motivo_baja' => $data['motivo_baja'] ?? 'Baja solicitada durante Actualización',
                                     'fecha_baja' => now(),
                                     'usuario_baja_id' => auth()->id(),
                                     'estado_baja' => 'pendiente',
@@ -205,25 +216,25 @@ class PrimeraParte
                                 $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
                                 
                                 // Obtener IDs de empleados que ya están en el proyecto
-                                $empleadosEnProyecto = \App\Models\Personal\EmpleadoProyecto::where('proyecto_id', $proyectoId)
+                                $empleadosEnProyecto = EmpleadoProyecto::where('proyecto_id', $proyectoId)
                                     ->pluck('empleado_id')
                                     ->toArray();
                                 
                                 // Obtener IDs de empleados dados de baja (incluyendo pendientes y aplicadas)
-                                $empleadosDadosBaja = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                                $empleadosDadosBaja = EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
                                     ->where('tipo_integrante', 'empleado')
                                     ->whereIn('estado_baja', ['pendiente', 'aplicada'])
                                     ->pluck('integrante_id')
                                     ->toArray();
                                 
                                 // Obtener IDs de empleados con solicitudes pendientes de agregar
-                                $empleadosConSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                                $empleadosConSolicitudPendiente = EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
                                     ->where('tipo_integrante', 'empleado')
                                     ->where('estado_incorporacion', 'pendiente')
                                     ->pluck('integrante_id')
                                     ->toArray();
                                 
-                                return \App\Models\Personal\Empleado::where('user_id', '!=', auth()->id())
+                                return Empleado::where('user_id', '!=', auth()->id())
                                     ->whereNotIn('id', $empleadosEnProyecto)
                                     ->whereNotIn('id', $empleadosDadosBaja)
                                     ->whereNotIn('id', $empleadosConSolicitudPendiente)
@@ -233,25 +244,25 @@ class PrimeraParte
                                 $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
                                 
                                 // Obtener IDs de empleados que ya están en el proyecto
-                                $empleadosEnProyecto = \App\Models\Personal\EmpleadoProyecto::where('proyecto_id', $proyectoId)
+                                $empleadosEnProyecto = EmpleadoProyecto::where('proyecto_id', $proyectoId)
                                     ->pluck('empleado_id')
                                     ->toArray();
                                 
                                 // Obtener IDs de empleados dados de baja (incluyendo pendientes y aplicadas)
-                                $empleadosDadosBaja = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                                $empleadosDadosBaja = EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
                                     ->where('tipo_integrante', 'empleado')
                                     ->whereIn('estado_baja', ['pendiente', 'aplicada'])
                                     ->pluck('integrante_id')
                                     ->toArray();
                                 
                                 // Obtener IDs de empleados con solicitudes pendientes de agregar
-                                $empleadosConSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                                $empleadosConSolicitudPendiente = EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
                                     ->where('tipo_integrante', 'empleado')
                                     ->where('estado_incorporacion', 'pendiente')
                                     ->pluck('integrante_id')
                                     ->toArray();
                                 
-                                return \App\Models\Personal\Empleado::where('user_id', '!=', auth()->id())
+                                return Empleado::where('user_id', '!=', auth()->id())
                                     ->whereNotIn('id', $empleadosEnProyecto)
                                     ->whereNotIn('id', $empleadosDadosBaja)
                                     ->whereNotIn('id', $empleadosConSolicitudPendiente)
@@ -263,6 +274,10 @@ class PrimeraParte
                                     ->pluck('nombre_completo', 'id');
                             })
                             ->helperText('Si no encuentra el empleado en la lista, puede pedirle a ese empleado crear su cuenta en NEXO'),
+                        Textarea::make('motivo_incorporacion')
+                            ->label('Motivo por el cual agrega al empleado')
+                            ->placeholder('Ingrese el motivo por el cual agrega al empleado')
+                            ->required(),
                         TextInput::make('rol')
                             ->label('Rol')
                             ->disabled()
@@ -276,7 +291,7 @@ class PrimeraParte
                         $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
                         
                         // Verificar que el empleado no tenga una baja pendiente o aplicada
-                        $tieneBajaPendiente = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                        $tieneBajaPendiente = EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
                             ->where('tipo_integrante', 'empleado')
                             ->where('integrante_id', $data['empleado_id'])
                             ->whereIn('estado_baja', ['pendiente', 'aplicada'])
@@ -292,7 +307,7 @@ class PrimeraParte
                         }
 
                         // Verificar que no haya una solicitud pendiente para este empleado
-                        $tieneSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                        $tieneSolicitudPendiente = EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
                             ->where('tipo_integrante', 'empleado')
                             ->where('integrante_id', $data['empleado_id'])
                             ->where('estado_incorporacion', 'pendiente')
@@ -308,7 +323,7 @@ class PrimeraParte
                         }
                         
                         // Obtener información del empleado
-                        $empleado = \App\Models\Personal\Empleado::find($data['empleado_id']);
+                        $empleado = Empleado::find($data['empleado_id']);
                         
                         // Crear solicitud pendiente
                         EquipoEjecutorNuevo::create([
@@ -317,7 +332,7 @@ class PrimeraParte
                             'tipo_integrante' => 'empleado',
                             'nombre_integrante' => $empleado->nombre_completo,
                             'rol_nuevo' => $data['rol'],
-                            'motivo_incorporacion' => 'Incorporación solicitada durante actualización',
+                            'motivo_incorporacion' => $data['motivo_incorporacion'] ?? 'Incorporación solicitada durante actualización',
                             'fecha_solicitud' => now(),
                             'usuario_solicitud_id' => auth()->id(),
                             'estado_incorporacion' => 'pendiente',
@@ -341,7 +356,7 @@ class PrimeraParte
                         ->searchable(['cuenta', 'nombre', 'apellido'])
                         ->relationship(
                             name: 'estudiante',
-                            titleAttribute: 'cuenta'
+                            titleAttribute: 'nombre'
                         )
                         ->disabled()
                         ->required(),
@@ -399,7 +414,7 @@ class PrimeraParte
                                 $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
                                 
                                 // Obtener información del estudiante antes de eliminarlo
-                                $estudianteProyecto = \App\Models\Estudiante\EstudianteProyecto::where('proyecto_id', $proyectoId)
+                                $estudianteProyecto = EstudianteProyecto::where('proyecto_id', $proyectoId)
                                     ->where('estudiante_id', $estudianteId)
                                     ->with('estudiante')
                                     ->first();
@@ -434,7 +449,7 @@ class PrimeraParte
                                     'tipo_integrante' => 'estudiante',
                                     'nombre_integrante' => $nombreEstudiante,
                                     'rol_anterior' => $estudianteProyecto->tipo_participacion_estudiante ?? 'Estudiante',
-                                    'motivo_baja' => 'Baja solicitada durante actualización',
+                                    'motivo_baja' => $data['motivo_baja'] ?? 'Baja solicitada durante Actualización',
                                     'fecha_baja' => now(),
                                     'usuario_baja_id' => auth()->id(),
                                     'estado_baja' => 'pendiente',
@@ -483,25 +498,25 @@ class PrimeraParte
                                 $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
                                 
                                 // Obtener IDs de estudiantes que ya están en el proyecto
-                                $estudiantesEnProyecto = \App\Models\Estudiante\EstudianteProyecto::where('proyecto_id', $proyectoId)
+                                $estudiantesEnProyecto = EstudianteProyecto::where('proyecto_id', $proyectoId)
                                     ->pluck('estudiante_id')
                                     ->toArray();
                                 
                                 // Obtener IDs de estudiantes dados de baja (incluyendo pendientes y aplicadas)
-                                $estudiantesDadosBaja = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                                $estudiantesDadosBaja = EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
                                     ->where('tipo_integrante', 'estudiante')
                                     ->whereIn('estado_baja', ['pendiente', 'aplicada'])
                                     ->pluck('integrante_id')
                                     ->toArray();
                                 
                                 // Obtener IDs de estudiantes con solicitudes pendientes de agregar
-                                $estudiantesConSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                                $estudiantesConSolicitudPendiente = EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
                                     ->where('tipo_integrante', 'estudiante')
                                     ->where('estado_incorporacion', 'pendiente')
                                     ->pluck('integrante_id')
                                     ->toArray();
                                 
-                                $estudiantes = \App\Models\Estudiante\Estudiante::whereNotIn('id', $estudiantesEnProyecto)
+                                $estudiantes = Estudiante::whereNotIn('id', $estudiantesEnProyecto)
                                     ->whereNotIn('id', $estudiantesDadosBaja)
                                     ->whereNotIn('id', $estudiantesConSolicitudPendiente)
                                     ->get();
@@ -520,25 +535,25 @@ class PrimeraParte
                                 $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
                                 
                                 // Obtener IDs de estudiantes que ya están en el proyecto
-                                $estudiantesEnProyecto = \App\Models\Estudiante\EstudianteProyecto::where('proyecto_id', $proyectoId)
+                                $estudiantesEnProyecto = EstudianteProyecto::where('proyecto_id', $proyectoId)
                                     ->pluck('estudiante_id')
                                     ->toArray();
                                 
                                 // Obtener IDs de estudiantes dados de baja (incluyendo pendientes y aplicadas)
-                                $estudiantesDadosBaja = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                                $estudiantesDadosBaja = EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
                                     ->where('tipo_integrante', 'estudiante')
                                     ->whereIn('estado_baja', ['pendiente', 'aplicada'])
                                     ->pluck('integrante_id')
                                     ->toArray();
                                 
                                 // Obtener IDs de estudiantes con solicitudes pendientes de agregar
-                                $estudiantesConSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                                $estudiantesConSolicitudPendiente = EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
                                     ->where('tipo_integrante', 'estudiante')
                                     ->where('estado_incorporacion', 'pendiente')
                                     ->pluck('integrante_id')
                                     ->toArray();
                                 
-                                $estudiantes = \App\Models\Estudiante\Estudiante::whereNotIn('id', $estudiantesEnProyecto)
+                                $estudiantes = Estudiante::whereNotIn('id', $estudiantesEnProyecto)
                                     ->whereNotIn('id', $estudiantesDadosBaja)
                                     ->whereNotIn('id', $estudiantesConSolicitudPendiente)
                                     ->where(function ($query) use ($search) {
@@ -568,7 +583,7 @@ class PrimeraParte
                                 
                                 // Si se proporciona email, crear usuario asociado
                                 if (isset($data['email']) && !empty($data['email'])) {
-                                    $user = \App\Models\User::create([
+                                    $user = User::create([
                                         'name' => $data['nombre'] . ' ' . $data['apellido'],
                                         'email' => $data['email'],
                                         'password' => Hash::make('password123'), // Password temporal
@@ -584,9 +599,16 @@ class PrimeraParte
                                 // Remover email del array ya que no va en la tabla estudiante
                                 unset($estudianteData['email']);
                                 
-                                return \App\Models\Estudiante\Estudiante::create($estudianteData);
+                                return Estudiante::create($estudianteData);
                             })
                             ->helperText('Si no encuentra el estudiante en la lista, puede crear uno nuevo usando el botón "+"'),
+                       
+                        // Aquí puedes agregar campos adicionales si es necesario
+                        Textarea::make('motivo_incorporacion')
+                            ->label('Motivo por el cual agrega al estudiante')
+                            ->placeholder('Ingrese el motivo por el cual agrega al estudiante')
+                            ->required(),
+                            
                         Select::make('tipo_participacion_estudiante')
                             ->label('Tipo de participación')
                             ->required()
@@ -612,7 +634,7 @@ class PrimeraParte
                         }
 
                         // Verificar que el estudiante no tenga una baja pendiente o aplicada
-                        $tieneBajaPendiente = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                        $tieneBajaPendiente = EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
                             ->where('tipo_integrante', 'estudiante')
                             ->where('integrante_id', $data['estudiante_id'])
                             ->whereIn('estado_baja', ['pendiente', 'aplicada'])
@@ -628,7 +650,7 @@ class PrimeraParte
                         }
 
                         // Verificar que no haya una solicitud pendiente para este estudiante
-                        $tieneSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                        $tieneSolicitudPendiente = EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
                             ->where('tipo_integrante', 'estudiante')
                             ->where('integrante_id', $data['estudiante_id'])
                             ->where('estado_incorporacion', 'pendiente')
@@ -644,7 +666,7 @@ class PrimeraParte
                         }
                         
                         // Obtener información del estudiante
-                        $estudiante = \App\Models\Estudiante\Estudiante::find($data['estudiante_id']);
+                        $estudiante = Estudiante::find($data['estudiante_id']);
                         
                         if (!$estudiante) {
                             Notification::make()
@@ -682,7 +704,7 @@ class PrimeraParte
                             'tipo_integrante' => 'estudiante',
                             'nombre_integrante' => $nombreCompleto,
                             'rol_nuevo' => $data['tipo_participacion_estudiante'],
-                            'motivo_incorporacion' => 'Incorporación solicitada durante actualización',
+                            'motivo_incorporacion' => $data['motivo_incorporacion'] ?? 'Incorporación solicitada durante actualización',
                             'fecha_solicitud' => now(),
                             'usuario_solicitud_id' => auth()->id(),
                             'estado_incorporacion' => 'pendiente',
@@ -708,7 +730,7 @@ class PrimeraParte
                         ->options(function ($state, $livewire) {
                             if (!$state) return [];
                             
-                            $integrante = \App\Models\Proyecto\IntegranteInternacional::find($state);
+                            $integrante = IntegranteInternacional::find($state);
                             if (!$integrante) return [];
                             
                             return [$integrante->id => "{$integrante->nombre_completo} ({$integrante->pais} - {$integrante->institucion})"];
@@ -765,7 +787,7 @@ class PrimeraParte
                                 $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
                                 
                                 // Obtener información del integrante internacional antes de eliminarlo
-                                $integranteProyecto = \App\Models\Proyecto\IntegranteInternacionalProyecto::where('proyecto_id', $proyectoId)
+                                $integranteProyecto = IntegranteInternacionalProyecto::where('proyecto_id', $proyectoId)
                                     ->where('integrante_internacional_id', $integranteInternacionalId)
                                     ->with('integranteInternacional')
                                     ->first();
@@ -794,7 +816,7 @@ class PrimeraParte
                                     'tipo_integrante' => 'integrante_internacional',
                                     'nombre_integrante' => $nombreInternacional,
                                     'rol_anterior' => $integranteProyecto->rol ?? 'Integrante Internacional',
-                                    'motivo_baja' => 'Baja solicitada durante actualización',
+                                    'motivo_baja' => $data['motivo_baja'] ?? 'Baja solicitada durante Actualización',
                                     'fecha_baja' => now(),
                                     'usuario_baja_id' => auth()->id(),
                                     'estado_baja' => 'pendiente',
@@ -843,12 +865,12 @@ class PrimeraParte
                                 $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
                                 
                                 // Obtener IDs de integrantes internacionales que ya están en el proyecto
-                                $internacionalesEnProyecto = \App\Models\Proyecto\IntegranteInternacionalProyecto::where('proyecto_id', $proyectoId)
+                                $internacionalesEnProyecto = IntegranteInternacionalProyecto::where('proyecto_id', $proyectoId)
                                     ->pluck('integrante_internacional_id')
                                     ->toArray();
                                 
                                 // Obtener IDs de integrantes internacionales dados de baja (incluyendo pendientes y aplicadas)
-                                $internacionalesDadosBaja = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                                $internacionalesDadosBaja = EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
                                     ->where('tipo_integrante', 'integrante_internacional')
                                     ->whereIn('estado_baja', ['pendiente', 'aplicada'])
                                     ->pluck('integrante_id')
@@ -856,14 +878,14 @@ class PrimeraParte
                                     ->toArray();
                                 
                                 // Obtener IDs de integrantes internacionales con solicitudes pendientes de agregar
-                                $internacionalesConSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                                $internacionalesConSolicitudPendiente = EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
                                     ->where('tipo_integrante', 'integrante_internacional')
                                     ->where('estado_incorporacion', 'pendiente')
                                     ->pluck('integrante_id')
                                     ->filter() // Filtrar valores null
                                     ->toArray();
                                 
-                                $query = \App\Models\Proyecto\IntegranteInternacional::query();
+                                $query = IntegranteInternacional::query();
                                 
                                 if (!empty($internacionalesEnProyecto)) {
                                     $query->whereNotIn('id', $internacionalesEnProyecto);
@@ -893,12 +915,12 @@ class PrimeraParte
                                 $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
                                 
                                 // Obtener IDs de integrantes internacionales que ya están en el proyecto
-                                $internacionalesEnProyecto = \App\Models\Proyecto\IntegranteInternacionalProyecto::where('proyecto_id', $proyectoId)
+                                $internacionalesEnProyecto = IntegranteInternacionalProyecto::where('proyecto_id', $proyectoId)
                                     ->pluck('integrante_internacional_id')
                                     ->toArray();
                                 
                                 // Obtener IDs de integrantes internacionales dados de baja (incluyendo pendientes y aplicadas)
-                                $internacionalesDadosBaja = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                                $internacionalesDadosBaja = EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
                                     ->where('tipo_integrante', 'integrante_internacional')
                                     ->whereIn('estado_baja', ['pendiente', 'aplicada'])
                                     ->pluck('integrante_id')
@@ -906,14 +928,14 @@ class PrimeraParte
                                     ->toArray();
                                 
                                 // Obtener IDs de integrantes internacionales con solicitudes pendientes de agregar
-                                $internacionalesConSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                                $internacionalesConSolicitudPendiente = EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
                                     ->where('tipo_integrante', 'integrante_internacional')
                                     ->where('estado_incorporacion', 'pendiente')
                                     ->pluck('integrante_id')
                                     ->filter() // Filtrar valores null
                                     ->toArray();
                                 
-                                $query = \App\Models\Proyecto\IntegranteInternacional::query();
+                                $query = IntegranteInternacional::query();
                                 
                                 if (!empty($internacionalesEnProyecto)) {
                                     $query->whereNotIn('id', $internacionalesEnProyecto);
@@ -949,16 +971,21 @@ class PrimeraParte
                                 FormularioIntegranteInternacional::form()
                             )
                             ->createOptionUsing(function (array $data) {
-                                return \App\Models\Proyecto\IntegranteInternacional::create($data);
+                                return IntegranteInternacional::create($data);
                             })
                             ->helperText('Si no encuentra el integrante en la lista, puede crear uno nuevo usando el botón "+"'),
+
+                            Textarea::make('motivo_incorporacion')
+                                ->label('Motivo por el cual agrega al empleado')
+                                ->placeholder('Ingrese el motivo por el cual agrega al empleado')
+                                ->required()
                     ])
                     ->action(function (array $data, $component) {
                         $livewire = $component->getLivewire();
                         $proyectoId = $livewire->record->id ?? $livewire->getRecord()->id;
                         
                         // Verificar que el integrante internacional no tenga una baja pendiente o aplicada
-                        $tieneBajaPendiente = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
+                        $tieneBajaPendiente = EquipoEjecutorBaja::where('proyecto_id', $proyectoId)
                             ->where('tipo_integrante', 'integrante_internacional')
                             ->where('integrante_id', $data['integrante_internacional_id'])
                             ->whereIn('estado_baja', ['pendiente', 'aplicada'])
@@ -974,7 +1001,7 @@ class PrimeraParte
                         }
 
                         // Verificar que no haya una solicitud pendiente para este integrante internacional
-                        $tieneSolicitudPendiente = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
+                        $tieneSolicitudPendiente = EquipoEjecutorNuevo::where('proyecto_id', $proyectoId)
                             ->where('tipo_integrante', 'integrante_internacional')
                             ->where('integrante_id', $data['integrante_internacional_id'])
                             ->where('estado_incorporacion', 'pendiente')
@@ -1000,7 +1027,7 @@ class PrimeraParte
                         }
                         
                         // Obtener información del integrante internacional
-                        $integrante = \App\Models\Proyecto\IntegranteInternacional::find($data['integrante_internacional_id']);
+                        $integrante = IntegranteInternacional::find($data['integrante_internacional_id']);
                         
                         if (!$integrante) {
                             Notification::make()
@@ -1036,7 +1063,7 @@ class PrimeraParte
                             'tipo_integrante' => 'integrante_internacional',
                             'nombre_integrante' => $nombreCompleto,
                             'rol_nuevo' => 'Integrante Internacional',
-                            'motivo_incorporacion' => 'Incorporación solicitada durante actualización',
+                            'motivo_incorporacion' => $data['motivo_incorporacion'] ?? 'Incorporación solicitada durante actualización',
                             'fecha_solicitud' => now(),
                             'usuario_solicitud_id' => auth()->id(),
                             'estado_incorporacion' => 'pendiente',
@@ -1064,7 +1091,7 @@ class PrimeraParte
                         ->visible(function (Get $get, $livewire) {
                             // Mostrar si hay solicitudes pendientes de nuevos integrantes
                             if (isset($livewire->record)) {
-                                $nuevosPendientes = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $livewire->record->id)
+                                $nuevosPendientes = EquipoEjecutorNuevo::where('proyecto_id', $livewire->record->id)
                                     ->where('estado_incorporacion', 'pendiente')
                                     ->whereNull('ficha_actualizacion_id')
                                     ->count();
@@ -1083,7 +1110,7 @@ class PrimeraParte
                         ->visible(function (Get $get, $livewire) {
                             // Mostrar solo si hay integrantes dados de baja pendientes
                             if (isset($livewire->record)) {
-                                $bajasPendientes = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $livewire->record->id)
+                                $bajasPendientes = EquipoEjecutorBaja::where('proyecto_id', $livewire->record->id)
                                     ->where('estado_baja', 'pendiente')
                                     ->whereNull('ficha_actualizacion_id')
                                     ->count();
@@ -1097,13 +1124,13 @@ class PrimeraParte
                     // Mostrar el fieldset solo si hay cambios (nuevos o bajas)
                     if (isset($livewire->record)) {
                         // Verificar si hay bajas pendientes
-                        $bajasPendientes = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $livewire->record->id)
+                        $bajasPendientes = EquipoEjecutorBaja::where('proyecto_id', $livewire->record->id)
                             ->where('estado_baja', 'pendiente')
                             ->whereNull('ficha_actualizacion_id')
                             ->count();
                         
                         // Verificar si hay nuevos integrantes pendientes
-                        $nuevosPendientes = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $livewire->record->id)
+                        $nuevosPendientes = EquipoEjecutorNuevo::where('proyecto_id', $livewire->record->id)
                             ->where('estado_incorporacion', 'pendiente')
                             ->whereNull('ficha_actualizacion_id')
                             ->count();
@@ -1154,7 +1181,13 @@ class PrimeraParte
                                 ->disabled()
                                 ->formatStateUsing(fn ($state) => $state ? \Carbon\Carbon::parse($state)->format('d/m/Y H:i') : '')
                                 ->columnSpan(1),
-                                
+
+                                Textarea::make('motivo_incorporacion')
+                                    ->label('Motivo por el cual agrega al integrante')
+                                    ->disabled()
+                                    ->placeholder('Ingrese el motivo por el cual agrega al integrante')
+                                    ->required(),
+
                             Actions::make([
                                 Action::make('cancelar_solicitud')
                                     ->label('Cancelar Solicitud')
@@ -1237,7 +1270,12 @@ class PrimeraParte
                                 ->disabled()
                                 ->formatStateUsing(fn ($state) => $state ? \Carbon\Carbon::parse($state)->format('d/m/Y H:i') : '')
                                 ->columnSpan(1),
-                                
+
+                            Textarea::make('motivo_baja')
+                                ->label('Motivo por el cual da de baja al empleado')
+                                ->placeholder('Ingrese el motivo por el cual da de baja al empleado')
+                                ->disabled(),
+
                             Actions::make([
                                 Action::make('reincorporar')
                                     ->label('Reincorporar')
@@ -1253,26 +1291,41 @@ class PrimeraParte
                                         
                                         // Reincorporar según el tipo de integrante
                                         if ($record->tipo_integrante === 'empleado') {
+                                            $existe = EmpleadoProyecto::where('proyecto_id', $proyectoId)
+                                                ->where('empleado_id', $record->integrante_id)
+                                                ->exists();
                                             // Crear registro en tabla de empleados
-                                            \App\Models\Personal\EmpleadoProyecto::create([
-                                                'proyecto_id' => $proyectoId,
-                                                'empleado_id' => $record->integrante_id,
-                                                'rol' => $record->rol_anterior ?? 'Integrante',
-                                            ]);
+                                            if (!$existe) {
+                                                EmpleadoProyecto::create([
+                                                    'proyecto_id' => $proyectoId,
+                                                    'empleado_id' => $record->integrante_id,
+                                                    'rol' => $record->rol_anterior ?? 'Integrante',
+                                                ]);
+                                            }
                                         } elseif ($record->tipo_integrante === 'estudiante') {
+                                            $existe = EstudianteProyecto::where('proyecto_id', $proyectoId)
+                                                ->where('estudiante_id', $record->integrante_id)
+                                                ->exists();
                                             // Crear registro en tabla de estudiantes
-                                            \App\Models\Estudiante\EstudianteProyecto::create([
-                                                'proyecto_id' => $proyectoId,
-                                                'estudiante_id' => $record->integrante_id,
-                                                'tipo_participacion_estudiante' => $record->rol_anterior ?? 'Voluntariado',
-                                            ]);
+                                            if (!$existe) {
+                                                EstudianteProyecto::create([
+                                                    'proyecto_id' => $proyectoId,
+                                                    'estudiante_id' => $record->integrante_id,
+                                                    'tipo_participacion_estudiante' => $record->rol_anterior ?? 'Voluntariado',
+                                                ]);
+                                            }
                                         } elseif ($record->tipo_integrante === 'integrante_internacional') {
+                                            $existe = IntegranteInternacionalProyecto::where('proyecto_id', $proyectoId)
+                                                ->where('integrante_internacional_id', $record->integrante_id)
+                                                ->exists();
                                             // Crear registro en tabla de integrantes internacionales
-                                            \App\Models\Proyecto\IntegranteInternacionalProyecto::create([
-                                                'proyecto_id' => $proyectoId,
-                                                'integrante_internacional_id' => $record->integrante_id,
-                                                'rol' => $record->rol_anterior ?? 'Integrante Internacional',
-                                            ]);
+                                            if (!$existe) {
+                                                IntegranteInternacionalProyecto::create([
+                                                    'proyecto_id' => $proyectoId,
+                                                    'integrante_internacional_id' => $record->integrante_id,
+                                                    'rol' => $record->rol_anterior ?? 'Integrante Internacional',
+                                                ]);
+                                            } 
                                         }
                                         
                                         // Eliminar el registro de bajas

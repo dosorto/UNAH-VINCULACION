@@ -99,20 +99,20 @@ class CreateProyectoVinculacion extends Component implements HasForms
                             SextaParte::form(),
                         ),
                 ])->submitAction(new HtmlString(Blade::render(<<<BLADE
-                <x-filament::button
-                    type="submit"
-                    size="sm"
-                    color="info"
-                >
-                 Enviar a Firmar
-                </x-filament::button>
-
+                
                 <x-filament::button
                    wire:click="borrador"
                     size="sm"
                     color="success"
                 >
                  Guardar Borrador
+                </x-filament::button>
+                <x-filament::button
+                    type="submit"
+                    size="sm"
+                    color="info"
+                >
+                 Enviar a Firmar
                 </x-filament::button>
             BLADE))),
 

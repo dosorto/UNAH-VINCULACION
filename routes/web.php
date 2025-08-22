@@ -30,6 +30,7 @@ use App\Livewire\Demografia\Municipio\ListaMunicipios;
 use App\Livewire\Docente\Proyectos\ProyectosAprobados;
 use App\Livewire\Docente\Proyectos\ProyectosRechazados;
 use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
+use App\Livewire\Proyectos\Vinculacion\TipoProyectoSelector;
 use App\Livewire\Docente\Proyectos\ProyectosAntesDelSistema;
 use App\Livewire\Docente\Proyectos\EditProyectoAntesDelSistema;
 use App\Livewire\Estudiante\CreateEstudiante;
@@ -316,6 +317,10 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
     Route::middleware(['auth'])->group(function () {
         Route::get('proyectosDocente',  ProyectosDocenteList::class)
             ->name('proyectosDocente')
+            ->middleware('can:docente-admin-proyectos');
+
+        Route::get('selectorTipoAccion',  TipoProyectoSelector::class)
+            ->name('selectorTipoAccion')
             ->middleware('can:docente-admin-proyectos');
 
         Route::get('historialproyecto/{proyecto}', HistorialProyecto::class)

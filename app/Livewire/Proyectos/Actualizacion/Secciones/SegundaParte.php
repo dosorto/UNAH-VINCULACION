@@ -2,36 +2,12 @@
 
 namespace App\Livewire\Proyectos\Actualizacion\Secciones;
 
-use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioDocente;
-use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioEstudiante;
-use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioIntegranteInternacional;
-use App\Models\Proyecto\EquipoEjecutorBaja;
-
-use Filament\Forms;
-use App\Models\User;
-use Filament\Forms\Get;
-
-use App\Models\Personal\Empleado;
-use App\Models\Proyecto\IntegranteInternacional;
-
-use App\Models\Estudiante\Estudiante;
-use App\Models\UnidadAcademica\FacultadCentro;
-use Faker\Provider\ar_EG\Text;
-use Filament\Forms\Components\Hidden;
-
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\DatePicker;
-
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
-use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Set;
-use Filament\Forms\Components\Actions\Action;
-use Filament\Forms\Components\Actions;
-use Filament\Notifications\Notification;
-
+use Filament\Forms\Get;
 class SegundaParte
 {
     public static function form(): array
@@ -56,19 +32,45 @@ class SegundaParte
                             }
                             return 'No definida';
                         })
-                        ->columnSpan(1),
+                        ->columnSpan(1)->live()
+                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                            $fechaFin = $get('fecha_ampliacion');
+                            if ($state && $fechaFin && $state > $fechaFin) {
+                                $set('fecha_ampliacion', null);
+                            }
+                        }),
 
                     DatePicker::make('fecha_ampliacion')
                         ->label('Nueva fecha de finalización')
                         ->helperText('Seleccione la nueva fecha de finalización del proyecto')
                         ->displayFormat('d/m/Y')
-                        ->columnSpan(1),
+                        ->columnSpan(1)
+                        ->live()
+                        ->rules([
+                                fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                    $fechaInicio = $get('fecha_finalizacion_actual');
+                                    if ($fechaInicio && $value) {
+                                        try {
+                                            // Convierte ambas fechas a Carbon
+                                            $fechaInicioCarbon = \Carbon\Carbon::createFromFormat('d/m/Y', $fechaInicio);
+                                            $fechaAmpliacionCarbon = \Carbon\Carbon::parse($value); // DatePicker retorna Y-m-d
+                                            if ($fechaAmpliacionCarbon->lte($fechaInicioCarbon)) {
+                                                $fail('La nueva fecha de finalización debe ser mayor a la fecha actual de finalización.');
+                                            }
+                                        } catch (\Exception $e) {
+                                            // Si hay error de formato, no validar
+                                        }
+                                    }
+                                },
+                            ]),
 
                     Textarea::make('motivo_ampliacion')
                         ->label('Motivos por los cuales se extiende la fecha de ejecución del proyecto')
                         ->helperText('Incluir las fechas de evaluación del proyecto')
                         ->rows(6)
-                        ->columnSpanFull(),
+                        ->columnSpanFull()
+                        ->required()
+                        ->visible(fn (Get $get) => !empty($get('fecha_ampliacion'))),
                 ])
                 ->columns(2)
                 ->columnSpanFull(),

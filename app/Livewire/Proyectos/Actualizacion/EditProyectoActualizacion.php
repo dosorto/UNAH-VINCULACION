@@ -136,6 +136,25 @@ class EditProyectoActualizacion extends Component implements HasForms
     {
         $data = $this->form->getState();
 
+        // Verificar si hay cambios
+        $hayBajas = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $this->record->id)
+            ->whereNull('ficha_actualizacion_id')
+            ->where('estado_baja', false)
+            ->exists();
+
+        $hayNuevos = !empty($data['empleado_proyecto']) || !empty($data['estudiante_proyecto']) || !empty($data['integrante_internacional_proyecto']);
+        $hayAmpliacion = !empty($data['fecha_ampliacion']);
+        $hayMotivo = !empty($data['motivo_ampliacion']);
+
+        if (!$hayBajas && !$hayNuevos && !$hayAmpliacion && !$hayMotivo) {
+            Notification::make()
+                ->title('No se detectaron cambios')
+                ->body('Debes realizar al menos un cambio o llenar algún campo para enviar la ficha de actualización a firmar.')
+                ->danger()
+                ->send();
+            return;
+        }
+
         // Excluir las relaciones del proceso de actualización automática
         // porque las manejamos manualmente con los botones de dar de baja/reincorporar
         $dataToUpdate = array_diff_key($data, [

@@ -144,6 +144,38 @@ class VerificarConstancia extends Controller
         return true;
     }
 
+    /*
+        metodo para validar si el empleado del proyecto se puede generar constancia o no
+    */
+    public static function validarConstanciaEmpleadoActualizacion(EmpleadoProyecto $empleadoProyecto)
+{
+    $categoriasValidas = ['Titular I', 'Titular II', 'Titular III', 'Titular IV', 'Titular V'];
+    $estadosValidos = ['Actualizacion realizada'];
+
+    // Obtener la ficha de actualización (puede ser colección)
+    $fichaActualizacion = $empleadoProyecto->proyecto->ficha_actualizacion;
+    if ($fichaActualizacion instanceof \Illuminate\Database\Eloquent\Collection) {
+        $fichaActualizacion = $fichaActualizacion->first();
+    }
+
+    // Validar estado
+    if (
+        !$fichaActualizacion ||
+        !in_array($fichaActualizacion->estado->tipoestado->nombre ?? '', $estadosValidos)
+    ) {
+        return false;
+    }
+
+    // Validar categoría
+    if (!in_array($empleadoProyecto->empleado->categoria->nombre, $categoriasValidas)) {
+        return false;
+    }
+
+    // otras validaciones
+
+    return true;
+}
+
     public static function validarConstanciaInscripcion(EmpleadoProyecto $empleadoProyecto)
     {
         if (!self::validarConstanciaEmpleado($empleadoProyecto)) {

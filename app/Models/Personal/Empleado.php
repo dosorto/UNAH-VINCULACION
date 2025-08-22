@@ -11,6 +11,7 @@ use App\Models\Proyecto\FirmaProyecto;
 use App\Models\UnidadAcademica\Campus;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Personal\CategoriaEmpleado;
+use App\Models\UnidadAcademica\Carrera;
 use App\Models\Personal\EmpleadoCodigoInvestigacion;
 
 use App\Models\ServicioInfraestructura\ServicioTecnologico;
@@ -202,6 +203,10 @@ class Empleado extends Model
         return $this->belongsToMany(Actividad::class, 'actividad_empleado');
     }
 
+    public function carrera()
+    {
+        return $this->belongsTo(Carrera::class, 'carrera_id');
+    }
         public function actividadesServicio()
     {
         return $this->belongsToMany(ActividadServicio::class,'acti_empleado_srvc','empleado_id','actividad_id'
@@ -249,11 +254,11 @@ class Empleado extends Model
      * @return string
      */
     public function getInitials(): string
-{
-    $nombre_completo = explode(' ', trim($this->nombre_completo));
-    $inicial_nombre = isset($nombre_completo[0]) ? mb_substr($nombre_completo[0], 0, 1) : '';
-    $inicial_segundo_nombre = isset($nombre_completo[1]) ? mb_substr($nombre_completo[1], 0, 1) : '';
-    return $inicial_nombre . $inicial_segundo_nombre;
-}
+    {
+        $nombre_completo = explode(' ', trim($this->nombre_completo));
+        $inicial_nombre = isset($nombre_completo[0]) ? mb_substr($nombre_completo[0], 0, 1) : '';
+        $inicial_segundo_nombre = isset($nombre_completo[1]) ? mb_substr($nombre_completo[1], 0, 1) : '';
+        return $inicial_nombre . $inicial_segundo_nombre;
+    }
     protected $table = 'empleado';
 }

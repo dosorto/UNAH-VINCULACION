@@ -355,6 +355,21 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                         ])
                         ->modalSubmitAction(false),
 
+                    Action::make('ActualizarProyecto')
+                        ->label(
+                            fn(Proyecto $proyecto): string =>
+                            $proyecto->estado->tipoestado->nombre == 'En curso' ? 'Actualizar Equipo o Fechas' : 'Actualizar Equipo o Fechas'
+                        )
+                        ->icon('heroicon-o-document-text')
+                        ->color('success')
+                        ->visible(function (Proyecto $proyecto) {
+                            $condicion = ($proyecto->estado->tipoestado->nombre == 'En curso')
+                                && $proyecto->coordinador->id == auth()->user()->empleado->id;
+
+                            return  $condicion;
+                        })
+                        ->url(fn(Proyecto $record): string => route('ficha-actualizacion',['proyecto' => $record->id] )),
+
                     Action::make('subsanacion')
                         ->label(
                             fn(Proyecto $proyecto): string =>
@@ -399,7 +414,6 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 ->first());
                         }),
                 ])
-
                     ->button()
                     ->color('primary')
                     ->label('Acciones'),
