@@ -154,7 +154,7 @@ class CuartaParte
                 ->label('Beneficiarios directos (número aproximado)'),
 
 
-            Select::make('modalidad_ejecucion')
+           /* Select::make('modalidad_ejecucion')
                 ->label('Modalidad de ejecución')
                 ->options([
                     'Distancia' => 'Distancia',
@@ -164,7 +164,7 @@ class CuartaParte
                 ->in(['Distancia', 'Presencial', 'Bimodal'])
                 ->required()
                 ->live()
-                ->columnSpan(1),
+                ->columnSpan(1),*/
 
             Select::make('pais')
                 ->label('País')

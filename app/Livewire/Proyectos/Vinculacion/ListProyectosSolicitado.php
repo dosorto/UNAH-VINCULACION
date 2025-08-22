@@ -219,7 +219,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                             ->disabled()
                                             ->columnSpan(1)
                                             ->default(function (Proyecto $proyecto) {
-                                                $prefix = 'DIT-VRA-DVUS';
+                                                $prefix = 'DICTAMEN-VRA-DVUS'. '-' . $proyecto->coordinador->centro_facultad->siglas;
                                                 $year = date('Y'); // Obtiene el año actual
                                                 $nextId = $proyecto ? $proyecto->id + 1 : 1; // Incrementa el ID o lo inicia en 1
                                                 $formattedId = str_pad($nextId, 3, '0', STR_PAD_LEFT); // Formatea el ID a 3 dígitos
@@ -232,7 +232,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                             ->disabled()
                                             ->columnSpan(1)
                                             ->default(function (Proyecto $proyecto) {
-                                                $prefix = 'VRA-DVUS'. '-' . $proyecto->coordinador->centro_facultad->siglas . '-' . $proyecto->coordinador->departamento_academico->siglas;
+                                                $prefix = 'VRA-DVUS'. '-' . $proyecto->coordinador->centro_facultad->siglas;
                                                 $year = date('Y'); // Obtiene el año actual
                                                 $nextId = $proyecto ? $proyecto->id + 1 : 1; // Incrementa el ID o lo inicia en 1
                                                 $formattedId = str_pad($nextId, 3, '0', STR_PAD_LEFT); // Formatea el ID a 3 dígitos
@@ -269,7 +269,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                             ->numeric(), */
                                         Hidden::make('numero_dictamen')
                                             ->default(function (Proyecto $proyecto) {
-                                                $prefix = 'DIT-VRA-DVUS';
+                                                $prefix = 'DICTAMEN-VRA-DVUS'. '-' . $proyecto->coordinador->centro_facultad->siglas;
                                                 $year = date('Y'); // Obtiene el año actual
                                                 $nextId = $proyecto ? $proyecto->id + 1 : 1; // Incrementa el ID o lo inicia en 1
                                                 $formattedId = str_pad($nextId, 3, '0', STR_PAD_LEFT); // Formatea el ID a 3 dígitos
@@ -279,7 +279,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
 
                                         Hidden::make('codigo_proyecto')
                                             ->default(function (Proyecto $proyecto) {
-                                                $prefix = 'VRA-DVUS'. '-' . $proyecto->coordinador->centro_facultad->siglas . '-' . $proyecto->coordinador->departamento_academico->siglas;
+                                                $prefix = 'VRA-DVUS'. '-' . $proyecto->coordinador->centro_facultad->siglas;
                                                 $year = date('Y'); // Obtiene el año actual
                                                 $nextId = $proyecto ? $proyecto->id + 1 : 1; // Incrementa el ID o lo inicia en 1
                                                 $formattedId = str_pad($nextId, 3, '0', STR_PAD_LEFT); // Formatea el ID a 3 dígitos

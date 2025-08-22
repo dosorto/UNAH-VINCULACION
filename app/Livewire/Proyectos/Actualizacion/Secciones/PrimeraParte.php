@@ -356,7 +356,7 @@ class PrimeraParte
                         ->searchable(['cuenta', 'nombre', 'apellido'])
                         ->relationship(
                             name: 'estudiante',
-                            titleAttribute: 'cuenta'
+                            titleAttribute: 'nombre'
                         )
                         ->disabled()
                         ->required(),

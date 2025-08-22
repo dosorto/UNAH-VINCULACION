@@ -80,13 +80,12 @@ return [
             [
                 'titulo' => 'Empleado',
                 'route' => 'ListarEmpleados',
-                'routes' => ['ListarEmpleados', 'crearEmpleado', 'codigosInvestigacionAdmin'],
+                'routes' => ['ListarEmpleados', 'crearEmpleado'],
                 'icono' => 'heroicon-c-cube',
                 'permisos' => ['empleados-admin-empleados'],
                 'children' => [
                     ['texto' => 'Empleados', 'route' => 'ListarEmpleados', 'permiso' => 'empleados-admin-empleados'],
                     ['texto' => 'Crear Empleado', 'route' => 'crearEmpleado', 'permiso' => 'empleados-admin-empleados'],
-                    ['texto' => 'Validar Códigos de Proyectos', 'route' => 'codigosInvestigacionAdmin', 'permiso' => 'empleados-admin-empleados'],
                 ],
                 'funcion' => null,
                 'parametro' => null,
@@ -107,7 +106,7 @@ return [
                 'can' => null,
             ],
             [
-                'titulo' => 'Proyecto',
+                'titulo' => 'Vinculación',
                 'route' => 'listarProyectosVinculacion',
                 'routes' => [
                     'listarProyectosVinculacion',
@@ -118,6 +117,7 @@ return [
                     'proyectos-admin-informenes',
                     'proyectos-admin-proyectos',
                     'fichasActualizacionVinculacion',
+                    'codigosInvestigacionAdmin',
                 ],
                 'icono' => 'heroicon-m-puzzle-piece',
                 'permisos' => [
@@ -128,11 +128,12 @@ return [
                     'proyectos-admin-revision-final',
                 ],
                 'children' => [
-                    ['texto' => 'Proyectos', 'route' => 'listarProyectosVinculacion', 'permiso' => 'proyectos-admin-proyectos'],
+                    ['texto' => 'Historial Vinculación', 'route' => 'listarProyectosVinculacion', 'permiso' => 'proyectos-admin-proyectos'],
                     ['texto' => 'Revisión DVUS', 'route' => 'listarProyectosSolicitado', 'permiso' => 'proyectos-admin-solicitados', 'funcion' => 'obtenerCantidadProyectosEnRevision'],
                     ['texto' => 'Revisión de Informes', 'route' => 'listarInformesSolicitado', 'permiso' => 'proyectos-admin-informenes', 'funcion' => 'obtenerCantidadInformesSolicitados'],
                     ['texto' => 'Firma Director DVUS', 'route' => 'listarProyectoRevisionFinal', 'permiso' => 'proyectos-admin-revision-final', 'funcion' => 'obtenerCantidadProyectosEnRevisionFinal'],
                     ['texto' => 'Fichas de Actualización', 'route' => 'fichasActualizacionVinculacion', 'permiso' => 'proyectos-admin-revision-final'],
+                    ['texto' => 'Validar Códigos de Proyectos', 'route' => 'codigosInvestigacionAdmin', 'permiso' => 'proyectos-admin-revision-final'],
                 ],
                 'funcion' => null,
                 'parametro' => null,
@@ -176,7 +177,7 @@ return [
 
             // director enlace de vinculacion
             [
-                'titulo' => 'Proyectos',
+                'titulo' => 'Historial Vinculación',
                 'route' => 'proyectosCentroFacultad',
                 'routes' => ['proyectosCentroFacultad'],
                 'icono' => 'heroicon-o-academic-cap',

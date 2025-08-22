@@ -187,27 +187,27 @@
 
 
                         
-                        <tr>
-                            <th class="full-width1" rowspan="2">5. Categoría del proyecto:</th>
-                            <td class="sub-header1" colspan="1">Desarrollo Local <br>
+                         <tr>
+                            <th class="full-width1" rowspan="1">5. Categoría del proyecto:</th>
+                            <td class="sub-header1" colspan="2">Desarrollo Local <br>
                                 <input disabled type="checkbox" class="No"
                                     @if ($proyecto->categoria->contains('nombre', 'Desarrollo Local')) checked @endif>
                             </td>
-                            <td class="sub-header1" colspan="1">Desarrollo Regional<br>
+                            <td class="sub-header1" colspan="2">Desarrollo Regional<br>
                                 <input disabled type="checkbox" class="No"
                                     @if ($proyecto->categoria->contains('nombre', 'Desarrollo Regional')) checked @endif>
                             </td>
-                            <td class="sub-header1" colspan="1">Volunt. Académico<br>
+                           <!-- <td class="sub-header1" colspan="1">Volunt. Académico<br>
                                 <input disabled type="checkbox" class="No"
                                     @if ($proyecto->categoria->contains('nombre', 'Volunt. Académico')) checked @endif>
                             </td>
                             <td class="sub-header1" colspan="1">Seguim. a egresados<br>
                                 <input disabled type="checkbox" class="No"
                                     @if ($proyecto->categoria->contains('nombre', 'Seguim. a egresados')) checked @endif>
-                            </td>
+                            </td> -->
                         </tr>
-                        <tr>
-                           <td class="sub-header1" colspan="1">I + D + i <br>
+                      <!--   <tr>
+                          <td class="sub-header1" colspan="1">I + D + i <br>
                                 <input disabled type="checkbox" class="No"
                                     @if ($proyecto->categoria->contains('nombre', 'I + D + i')) checked @endif>
                             </td>
@@ -222,8 +222,8 @@
                             <td class="sub-header1" colspan="1">APS<br>
                                 <input disabled type="checkbox" class="No"
                                     @if ($proyecto->categoria->contains('nombre', 'APS')) checked @endif>
-                            </td>
-                        </tr>
+                            </td> 
+                        </tr> -->
                         
                         
                         <!-- FECHAS DE EJECUCION  -->
@@ -1086,7 +1086,7 @@
 
                         </tr>
                         <tr>
-                            <th class="header" colspan="19">2. Descripción de las participantes del proyecto (Descripción breve de las unidades académicas participantes y su alineamiento con la estrategia de 
+                            <th class="header" colspan="19">2. Descripción de los participantes del proyecto (Descripción breve de las unidades académicas participantes y su alineamiento con la estrategia de 
                                 vinculación de la unidad. También se realizará una breve descripción de las contrapartes participantes, a qué se dedican y cómo se alinea el proyecto a los planes estratégicos)</th>
                         </tr>
                         <tr>
@@ -1581,7 +1581,7 @@
                                 <img src="{{ Storage::url(optional(optional($proyecto->firma_coodinador_proyecto()->first())->firma)->ruta_storage) }}"
                                     alt="" width="200px">
                                      <br>
-                                    <p>
+                                    <p> Firmado digitalmente </br>
                                         {{ optional($proyecto->firma_coodinador_proyecto->first())->fecha_firma
                                             ? \Carbon\Carbon::parse(optional($proyecto->firma_coodinador_proyecto->first())->fecha_firma)->translatedFormat(
                                                 'l d F Y h:i:s A',
@@ -1596,6 +1596,7 @@
                                     alt="" width="200px">
                                      <br>
                                     <p>
+                                        Firmado digitalmente </br>
                                         {{ optional($proyecto->firma_proyecto_jefe->first())->fecha_firma
                                             ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_jefe->first())->fecha_firma)->translatedFormat(
                                                 'l d F Y h:i:s A',
@@ -1658,6 +1659,7 @@
                                     alt="" width="200px">
                                      <br>
                                     <p>
+                                        Firmado digitalmente </br>
                                         {{ optional($proyecto->firma_proyecto_enlace->first())->fecha_firma
                                             ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_enlace->first())->fecha_firma)->translatedFormat(
                                                 'l d F Y h:i:s A',
@@ -1672,6 +1674,7 @@
                                     alt="" width="200px">
                                      <br>
                                     <p>
+                                        Firmado digitalmente </br>
                                         {{ optional($proyecto->firma_proyecto_decano->first())->fecha_firma
                                             ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_decano->first())->fecha_firma)->translatedFormat(
                                                 'l d F Y h:i:s A',
@@ -1698,6 +1701,7 @@
                                 <br>
 
                                 <p>
+                                    
                                     {{ optional($proyecto->firma_proyecto_decano->first())->fecha_firma
                                         ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_decano->first())->fecha_firma)->translatedFormat(
                                             'l d F Y h:i:s A',

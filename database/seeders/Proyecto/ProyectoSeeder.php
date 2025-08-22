@@ -79,14 +79,14 @@ class ProyectoSeeder extends Seeder
         //Otras áreas
 
         Categoria::insert([
-            ['nombre' => 'APS'],
+           // ['nombre' => 'APS'],
             ['nombre' => 'Desarrollo Regional'],
             ['nombre' => 'Desarrollo Local'],
-            ['nombre' => 'Volunt. Académico'],
+           /* ['nombre' => 'Volunt. Académico'],
             ['nombre' => 'Seguim. a egresados'],
             ['nombre' => 'I + D + i'],
             ['nombre' => 'Cultural'],
-            ['nombre' => 'Comunicación'],
+            ['nombre' => 'Comunicación'],*/
         ]);
 
         /*
