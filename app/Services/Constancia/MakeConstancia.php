@@ -133,7 +133,7 @@ class MakeConstancia
     public function buildPDF()
     {
         
-        $pdf = PDF::loadView($this->layout, $this->data);
+        $pdf = PDF::loadView($this->layout, $this->data)->setPaper('letter');
         // Generar un nombre único para el archivo basándome en los id del empleado en el proyecto
         $fileName = 'constancia_' . $this->hash . '_' . time() . '.pdf';
 

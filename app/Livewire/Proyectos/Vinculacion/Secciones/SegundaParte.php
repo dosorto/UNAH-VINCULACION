@@ -12,6 +12,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Repeater;
 
 use Filament\Forms\Components\FileUpload;
+use Illuminate\Validation\Rules\Numeric;
 
 
 class SegundaParte
@@ -26,15 +27,8 @@ class SegundaParte
                         ->minLength(2)
                         ->maxLength(255)
                         ->label('Nombre de la entidad')
-                        ->columnSpan(1)
+                        ->columnSpan(2)
                         ->required(),
-                        Forms\Components\TextInput::make('aporte')
-                        ->minLength(2)
-                        ->maxLength(255)
-                        ->label('Aporte')
-                        ->columnSpan(1)
-                        ->required()
-                        ->default(0),
                     Forms\Components\Radio::make('tipo_entidad')
                         ->label('Tipo de Contraparte')
                         ->options([
@@ -61,8 +55,7 @@ class SegundaParte
                         ->columnSpan(1)
                         ->required(),
                     Forms\Components\TextInput::make('telefono')
-                        ->minLength(2)
-                        ->maxLength(255)
+                        ->numeric()
                         ->label('Telefono')
                         ->columnSpan(1)
                         ->required(),
@@ -114,7 +107,9 @@ class SegundaParte
                 ->itemLabel('Entidad contraparte')
                 ->columns(2)
                 ->defaultItems(1)
-                ->addActionLabel('Agregar entidad contraparte')
+                ->minItems(1)
+                ->deletable(true)
+                ->addActionLabel('Agregar otra entidad contraparte')
         ];
     }
 }

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DVUS-CONST-0068/2025 | Constancia de Registro de Proyecto de Vinculación</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 0;
+        }
+
+        body {
+            margin: 0;
+            padding-top: 0;
+            background: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        .constancia-wrapper {
+            width: 8.5in;
+            height: 11in;
+            padding-top: 0.1;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            box-sizing: border-box;
+            position: relative;
+            background: #fff;
+            line-height: 1.6;
+            font-size: 14px;
+            z-index: 1;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 250px;
+            height: 430px;
+            background-image: url('lucen.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 1;
+            pointer-events: none;
+            z-index: -2;
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 5px;
+        }
+
+        .logos img {
+            height: 54px;
+        }
+
+        .contact-info {
+            text-align: right;
+            font-size: 12px;
+            font-family: Calibri, sans-serif;
+            font-weight: bold;
+            color: rgb(4, 4, 126);
+            line-height: 1.4;
+        }
+
+        .codigo {
+            text-align: center;
+            font-size: 1em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .subtitulo {
+            text-align: center;
+            font-size: 1em;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin: 10px 0;
+            letter-spacing: 0.5px;
+        }
+
+        h1 {
+            font-size: 16px;
+            font-family: 'Aptos Narrow', Arial, sans-serif;
+            text-align: center;
+            margin: 15px 0;
+            font-weight: bold;
+            line-height: 1.0;
+        }
+
+        .constancia-texto {
+            max-width: 7in;
+            margin: 20px auto 0;
+        }
+
+        .constancia-texto p {
+            text-align: justify;
+            margin: 10px 0;
+        }
+
+        .tabla-responsables {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px auto;
+            font-size: 14px;
+        }
+
+        .tabla-responsables {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px auto;
+            font-size: 14px;
+        }
+
+        .tabla-responsables th,
+        .tabla-responsables td {
+            border: 1px solid #000;
+            padding: 3px 5px;
+            text-align: left;
+        }
+
+        .tabla-responsables th {
+            background: #0f0258;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .firma {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .nombre-firma {
+            text-align: center;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+
+        .footer-info {
+            margin-top: 10px;
+            text-align: right;
+            font-size: 13px;
+            color: #0056b3;
+        }
+
+        .footer-info a {
+            color: #0056b3;
+            text-decoration: none;
+        }
+
+        .logos-footer {
+            margin-top: 10px;
+            display: flex;
+            justify-content: left;
+            gap: 15px;
+        }
+
+        .logos-footer img {
+            height: 70px;
+        }
+
+        .pagina {
+            text-align: right;
+            font-size: 13px;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+
+        .observacion {
+            margin: 5px auto 0;
+            padding: 10px 15px;
+            border-left: 4px solid #ffffff;
+            text-align: justify;
+            font-size: 12px;
+            max-width: 7in;
+        }
+
+        .verificar-link {
+            margin-top: 20px;
+            text-align: right;
+            font-size: 10px;
+        }
+
+        .verificar-link a {
+            color: #0056b3;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        /* Estilo para el cuadro azul en la esquina inferior derecha */
+        .footer-blue-box {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 50px;
+            height: 50px;
+            background-color: #063363;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        /* Estilo para el cuadro amarrillo en la esquina superior derecha */
+        .header-yellow-box {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 15px;
+            height: 120px;
+            background-color: #f8d50f;
+            /* Amarillo característico */
+            color: #fffcfc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 0 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="constancia-wrapper">
+        <div class="container">
+
+            <!-- Encabezado -->
+            <div class="header-row">
+                <div class="logos">
+                    <img src="imagen1.png" alt="Logo Vinculación" style="height: 100px;">
+                </div>
+                <div class="contact-info" style="margin-right: 50px; margin-top: 12px;">
+                    Tel. 2216-6100 Ext. 110576<br>
+                    Correo Electrónico:<br>
+                    vinculacion.sociedad@unah.edu.hn<br>
+                </div>
+            </div>
+
+            <!-- Bloque QR y Código en la misma fila, alineados arriba -->
+            <div
+                style="display: flex; justify-content: center; align-items: flex-start; margin-top: 0px; margin-bottom: 0;">
+                
+                <!-- Código en el área roja (derecha del QR) -->
+                <div style="margin-left: 350px; display: flex; align-items: center;">
+                    <div
+                        style="border: 1.9px solid #222; padding: 8px 22px; font-size: 17px; font-weight: bold; background: #fff;">
+                        Código: EZA438DO182
+                    </div>
+                </div>
+                <!-- QR en el área azul (izquierda) -->
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=https://bit.ly/AcademyTIValid"
+                        alt="QR Code" style="height: 90px; width: 90px; margin-left: 20px;">
+                </div>
+                
+            </div>
+
+            <!-- Títulos en el área rosa, centrados y con margen superior -->
+            <div style="text-align: center; margin-top: -10px;">
+                <!-- Número de constancia -->
+                <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 2px;">
+                    DVUS-CONST-0068/2025
+                </div>
+                <!-- Subtítulo principal -->
+                <div style="font-size: 1.1em; font-weight: bold; text-transform: uppercase; margin-bottom: 2px;">
+                    CONSTANCIA DE REGISTRO<br>DE PROYECTO DE VINCULACIÓN
+                </div>
+                <!-- Título largo con ancho máximo y salto de línea automático -->
+                <div
+                    style="font-size: 16px; font-weight: bold; margin-top: 8px; max-width: 650px; margin-left: auto; margin-right: auto; word-break: break-word;">
+                    Evaluación de Medio Término y Final del Proyecto de Fortalecimiento del Enfoque de Salvaguarda
+                    Infantil y Juvenil de Aldeas SOS
+                </div>
+            </div>
+            <!-- Cuerpo de la constancia -->
+            <div class="constancia-texto">
+                <p>
+                    El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace
+                    <strong>CONSTAR</strong> que <strong>UNAH Campus Atlántida</strong> ha registrado el proyecto de
+                    vinculación denominado <strong>Evaluación de Medio Término y Final del Proyecto de Fortalecimiento
+                        del Enfoque de Salvaguarda Infantil y Juvenil de Aldeas SOS</strong> el cual se ejecuta en
+                    Choluteca, Santa Rosa de Copán, Tela, Tegucigalpa / Departamentos de Choluteca, Copán, Atlántida y
+                    Francisco Morazán durante el período <strong>10 febrero de 2025</strong> hasta el <strong>30 enero
+                        de 2026</strong>, el cual fue registrado en esta dirección con el número
+                    <strong>DVUS-VRA-083-2025</strong>. El equipo docente responsable de la ejecución de este proyecto
+                    es el siguiente:
+                </p>
+
+                <!-- Tabla de responsables -->
+                <table class="tabla-responsables">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Nombre completo</th>
+                            <th>No. Empleado</th>
+                            <th>Categoría</th>
+                            <th>Departamento</th>
+                            <th>Rol</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1.</td>
+                            <td>Dunia Guadalupe Salgado Meza</td>
+                            <td>10291</td>
+                            <td>Titular I</td>
+                            <td>Humanidades y Artes</td>
+                            <td>Coordinadora</td>
+                        </tr>
+                        
+
+
+                    </tbody>
+                </table>
+
+                <p id="fecha-automatica">
+                Dado en Ciudad Universitaria José Trinidad Reyes, a los <span id="dia-letras"></span> días del mes de <span id="mes"></span> de <span id="año"></span>.
+            </p>
+
+            </div>
+
+
+            <!-- Firma -->
+            <div class="firma" style="text-align: center; margin-top: 100px;">
+                <img src="  https://unah.edu.hn/images/firma.png  " alt="Firma del Director" width="200">
+                <br>
+                <img src="https://unah.edu.hn/images/sello.png  " alt="Sello de la UNAH" width="120">
+            </div>
+
+            <!-- Nombre del firmante -->
+            <div class="nombre-firma">
+                Arq. Edler Ricardo Castellanos Rivera<br>
+                Director de Vinculación Universidad – Sociedad<br>
+                VRA-UNAH
+            </div>
+
+            <!-- Verificación 
+            <div class="verificar-link">
+                <a href="https://bit.ly/AcademyTIValid   "  target="_blank">Verificar validez de la constancia en:<br> https://bit.ly/AcademyTIValid  </a>
+            </div>-->
+
+
+            <!-- Observación -->
+            <div class="observacion">
+                <strong>Observación:</strong> Esta constancia no tiene validez para efectos de calificación en los
+                méritos de la función de vinculación establecidos en las Normas de la UNAH, sino para validez de
+                registro de la función de vinculación en la asignación académica, según Artículo 277 de las Normas
+                Académicas.
+            </div>
+
+            <!-- Footer -->
+            <div style="
+                position: absolute;
+                bottom: 40px;
+                left: 0;
+                width: 100%;
+                padding: 0 0.5in;
+                box-sizing: border-box;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            ">
+                <div style="margin: 0;">
+                    <img src="image.png" alt="logo" style="height: 70px;">
+                </div>
+                <div style="text-align: right; font-size: 13px;">
+                    Año Académico <strong>“José Dionisio de Herrera”</strong><br>
+                    <span style="color: #032e5c;">“La Educación es la primera necesidad de la República”</span>
+                </div>
+            </div>
+
+            <!-- Líneas de guiones y texto debajo -->
+            <div
+                style="position: absolute; bottom: 20px; left: 0; width: 100%; text-align: center; pointer-events: none;">
+                <hr style="border: none; border-top: 1px dashed #063363; width: 100%; margin: 0 auto;">
+                <p style="font-size: 12px; color: #053972; margin: 5px 0 0 0; pointer-events: auto;">
+                    Universidad Nacional Autónoma de Honduras | CIUDAD UNIVERSITARIA | Tegucigalpa M.D.C. Honduras C.A |
+                    www.unah.edu.hn
+                </p>
+            </div>
+
+            <!-- Cuadro azul en la esquina inferior derecha -->
+            <div class="footer-blue-box">
+                <p style="color: white; text-align: center;">
+
+                </p>
+            </div>
+
+            <!-- Cuadro amarillo en la esquina superior derecha -->
+
+            <div class="header-yellow-box">
+                <p style="color: white; text-align: center;">
+
+                </p>
+            </div>
+
+        </div>
+    </div>
+</body>
+
+</html>
+
+
+<script>
+    // Función para convertir número a letras (solo del 1 al 31)
+    function numeroALetras(numero) {
+        const unidades = [
+            "", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve",
+            "diez", "once", "doce", "trece", "catorce", "quince", "dieciséis", "diecisiete",
+            "dieciocho", "diecinueve", "veinte", "veintiuno", "veintidós", "veintitrés",
+            "veinticuatro", "veinticinco", "veintiséis", "veintisiete", "veintiocho", "veintinueve", "treinta", "treinta y uno"
+        ];
+        return unidades[numero] || "";
+    }
+
+    // Nombres de los meses en español
+    const meses = [
+        "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+    ];
+
+    
+    // Obtener fecha actual
+    const hoy = new Date();
+    const dia = hoy.getDate();           // 1-31
+    const mes = meses[hoy.getMonth()];   // Nombre del mes
+    const año = hoy.getFullYear();       // Año (ej. 2025)
+
+    // Convertir el día a letras
+    const diaEnLetras = numeroALetras(dia);
+
+    // Insertar en el HTML
+    document.getElementById("dia-letras").textContent = diaEnLetras;
+    document.getElementById("mes").textContent = mes;
+    document.getElementById("año").textContent = año;
+</script>

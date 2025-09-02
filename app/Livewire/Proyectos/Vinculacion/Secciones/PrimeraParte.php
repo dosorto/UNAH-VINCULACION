@@ -196,11 +196,27 @@ class PrimeraParte
                     DatePicker::make('fecha_inicio')
                         ->label('Fecha de inicio')
                         ->columnSpan(1)
-                        ->required(),
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                            $fechaFin = $get('fecha_finalizacion');
+                            if ($state && $fechaFin && $state > $fechaFin) {
+                                $set('fecha_finalizacion', null);
+                            }
+                        }),
                     DatePicker::make('fecha_finalizacion')
                         ->label('Fecha de finalización')
                         ->columnSpan(1)
-                        ->required(),
+                        ->required()
+                        ->live()
+                        ->rules([
+                            fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                $fechaInicio = $get('fecha_inicio');
+                                if ($fechaInicio && $value && $value < $fechaInicio) {
+                                    $fail('La fecha de finalización no debe ser anterior a la fecha de inicio.');
+                                }
+                            },
+                        ]),
                   /*  DatePicker::make('evaluacion_intermedia')
                         ->label('Evaluación intermedia')
                         ->columnSpan(1)

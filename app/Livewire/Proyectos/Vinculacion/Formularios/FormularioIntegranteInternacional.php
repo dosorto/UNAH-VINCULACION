@@ -27,7 +27,6 @@ class FormularioIntegranteInternacional
                 ->options([
                     'masculino' => 'Masculino',
                     'femenino' => 'Femenino',
-                    'otro' => 'Otro',
                 ])
                 ->required()
                 ->columnSpan(1),    

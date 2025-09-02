@@ -37,16 +37,15 @@ class FormularioDocente
                 ->options( [
                     'Masculino' => 'Masculino',
                     'Femenino' => 'Femenino',
-                    'Otro' => 'Otro',
                 ]),
 
-            Forms\Components\TextInput::make('numero_empleado')->minLength(2)->maxLength(255)->label('Número de empleado')->unique('empleado', 'numero_empleado')->required(),
+            Forms\Components\TextInput::make('numero_empleado')->numeric()->label('Número de empleado')->unique('empleado', 'numero_empleado')->required(),
 
             Select::make('categoria_id')->label('Categoría')->relationship(name: 'categoria', titleAttribute: 'nombre')->required()->preload(),
 
             Forms\Components\TextInput::make('email')->minLength(2)->maxLength(255)->label('Correo electrónico ')->required()->email()->unique('users', 'email')->email(), //->required(),
 
-            Forms\Components\TextInput::make('celular')->minLength(2)->maxLength(255)->label('Celular')->required(),
+            Forms\Components\TextInput::make('celular')->numeric()->label('Celular')->required(),
         ];
     }
 }

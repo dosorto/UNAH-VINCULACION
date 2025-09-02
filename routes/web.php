@@ -30,6 +30,7 @@ use App\Livewire\Demografia\Municipio\ListaMunicipios;
 use App\Livewire\Docente\Proyectos\ProyectosAprobados;
 use App\Livewire\Docente\Proyectos\ProyectosRechazados;
 use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
+use App\Livewire\Proyectos\Vinculacion\TipoProyectoSelector;
 use App\Livewire\Docente\Proyectos\ProyectosAntesDelSistema;
 use App\Livewire\Docente\Proyectos\EditProyectoAntesDelSistema;
 use App\Livewire\Estudiante\CreateEstudiante;
@@ -50,6 +51,7 @@ use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
 use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController;
 
 use App\Livewire\Proyectos\Vinculacion\ListProyectoRevisionFinal;
+use App\Livewire\Proyectos\Vinculacion\ListFichasActualizacionVinculacion;
 use App\Livewire\Slide\SlideConfig;
 
 use App\Http\Controllers\SetRoleController;
@@ -59,11 +61,18 @@ use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
 use App\Http\Controllers\DirectorCentro\Proyectos\ListProyectosCentro;
 use App\Http\Controllers\PDFController;
+
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
 use App\Livewire\Constancia\ListConstancias;
 use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
+use App\Livewire\Docente\Proyectos\FichasActualizacionPorFirmar;
+use App\Livewire\Docente\Proyectos\FichasActualizacionDocente;
 use App\Models\Slide\Slide;
 use App\Livewire\Personal\Contacto\ListContactos;
+
+use App\Livewire\ServicioTecnologico\CreateServicioTecnologico;
+
+use App\Services\Constancia\BuilderConstancia;
 
 Route::get('/acercade', function () {
     $slides = Slide::where('estado', true)
@@ -242,12 +251,6 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->middleware('can:estudiante-cambiar-datos-personales');
     });
 
-    Route::get('pruebacorreo', function () {
-        Mail::to('acxel.aplicano@unah.hn')
-            ->send(new correoProyectoCreado());
-        return 'Correo enviado';
-    })->name('pruebacorreo');
-
     // rutas agrupadas para el modulo de Proyectos
     Route::middleware(['auth'])->group(function () {
 
@@ -279,6 +282,10 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
         Route::get('listarProyectoRevisionFinal', ListProyectoRevisionFinal::class)
             ->name('listarProyectoRevisionFinal')
+            ->middleware('can:proyectos-admin-revision-final');
+
+        Route::get('fichasActualizacionVinculacion', ListFichasActualizacionVinculacion::class)
+            ->name('fichasActualizacionVinculacion')
             ->middleware('can:proyectos-admin-revision-final');
     });
 
@@ -312,20 +319,34 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('proyectosDocente')
             ->middleware('can:docente-admin-proyectos');
 
+        Route::get('selectorTipoAccion',  TipoProyectoSelector::class)
+            ->name('selectorTipoAccion')
+            ->middleware('can:docente-admin-proyectos');
+
         Route::get('historialproyecto/{proyecto}', HistorialProyecto::class)
             ->name('historialproyecto')
             ->middleware('can:docente-admin-proyectos');
 
         Route::get('/proyectos/{proyecto}/ficha-actualizacion', EditProyectoActualizacion::class)
-            ->name('ficha-actualizacion');
+            ->name('ficha-actualizacion')
+            ->middleware('can:docente-admin-proyectos');
 
         Route::get('SolicitudProyectosDocente', ProyectosPorFirmar::class)
             ->name('SolicitudProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
 
+        Route::get('FichasActualizacionPorFirmar', FichasActualizacionPorFirmar::class)
+            ->name('FichasActualizacionPorFirmar')
+            ->middleware('can:docente-admin-proyectos');
+
+        Route::get('FichasActualizacionDocente', FichasActualizacionDocente::class)
+            ->name('FichasActualizacionDocente')
+            ->middleware('can:docente-admin-proyectos');
+
         Route::get('AprobadoProyectosDocente', ProyectosAprobados::class)
             ->name('AprobadoProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
+
         Route::get('PendientesProyectosDocente', ProyectosRechazados::class)
             ->name('RechazadoProyectosDocente')
             ->middleware('can:docente-admin-proyectos');
@@ -366,8 +387,22 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
         });
 
- 
+        // Servicios Tecnologicos
+        Route::middleware(['auth'])->group(function () {
 
+            Route::get('createServicioTecnologico', CreateServicioTecnologico::class)
+                ->name('createServicioTecnologico');
+
+        });
+        
+
+        Route::get('/descargar-pdf', [PDFController::class, 'generatePDF']);
+        Route::get('/ver-pdf', [PDFController::class, 'verVista']);
+
+
+
+        Route::get('/constancia/{constancia:hash}/pdf', [PDFController::class, 'generatePDF'])
+    ->name('constancia.pdf');
 
 
     

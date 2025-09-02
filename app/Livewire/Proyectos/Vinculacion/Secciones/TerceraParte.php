@@ -4,6 +4,7 @@ namespace App\Livewire\Proyectos\Vinculacion\Secciones;
 
 use Filament\Forms;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\DatePicker;
@@ -74,11 +75,35 @@ class TerceraParte
                     Datepicker::make('fecha_inicio')
                         ->label('Fecha de Inicio')
                         ->required()
-                        ->columnSpan(1),
+                        ->columnSpan(1)->live()
+                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                            $fechaFin = $get('fecha_finalizacion');
+                            if ($state && $fechaFin && $state > $fechaFin) {
+                                $set('fecha_finalizacion', null);
+                            }
+                        }),
                     Datepicker::make('fecha_finalizacion')
                         ->label('Fecha de Finalizacion')
                         ->required()
-                        ->columnSpan(1),
+                        ->columnSpan(1)
+                        ->live()
+                        ->rules([
+                                fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                                    $fechaInicio = $get('fecha_inicio');
+                                    if ($fechaInicio && $value) {
+                                        try {
+                                            // Convierte ambas fechas a Carbon
+                                            $fechaInicioCarbon = \Carbon\Carbon::createFromFormat('d/m/Y', $fechaInicio);
+                                            $fechaAmpliacionCarbon = \Carbon\Carbon::parse($value); // DatePicker retorna Y-m-d
+                                            if ($fechaAmpliacionCarbon->lte($fechaInicioCarbon)) {
+                                                $fail('La fecha de finalización debe ser mayor a la fecha inicio.');
+                                            }
+                                        } catch (\Exception $e) {
+                                            // Si hay error de formato, no validar
+                                        }
+                                    }
+                                },
+                            ]),
                     Forms\Components\TextInput::make('horas')
                         ->label('Horas')
                         ->minLength(1)
@@ -87,11 +112,12 @@ class TerceraParte
                         ->numeric(),
                 ])
                 ->label('Descripción de actividades del proyecto (Descripción de todas las actividades enmarcadas en el proyecto, las cuales pueden ser, entre otras, la negociación inicial, la organización de los equipos de trabajo, la planificación, el desarrollo de actividades de capacitación y fortalecimiento, presentación de informe intermedio o parciales, presentación del informe final, proceso de evaluación, proceso de sistematización, publicación de artículo, otras acciones de divulgación)')
-                ->defaultItems(0)
+                ->defaultItems(1)
+                ->deletable(false)
                 ->itemLabel('Actividad')
                 ->addActionLabel('Agregar actividad')
                 ->grid(2)
-                ->collapsed(),
+                ->collapsible(),
         ];
     }
 }

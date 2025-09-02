@@ -11,7 +11,12 @@ use App\Models\Proyecto\FirmaProyecto;
 use App\Models\UnidadAcademica\Campus;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Personal\CategoriaEmpleado;
+use App\Models\UnidadAcademica\Carrera;
 use App\Models\Personal\EmpleadoCodigoInvestigacion;
+
+use App\Models\ServicioInfraestructura\ServicioTecnologico;
+use App\Models\ServicioInfraestructura\EmpleadoServicio;
+use App\Models\ServicioInfraestructura\ActividadServicio;
 
 use App\Models\Proyecto\EmpleadoActividad;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -153,6 +158,14 @@ class Empleado extends Model
         //->withTimestamps();
     }
 
+        // relacion muchos a muchos con el modelo Serviicio tecnologico mediante la tabla intermedia empleado_proyecto
+    public function servicios()
+    {
+        return $this->belongsToMany(ServicioTecbologico::class, 'empleado_servicio', 'empleado_id', 'id_servicio_tecnologico');
+        //  ->withPivot('id', 'fecha_inicio', 'fecha_fin', 'estado', 'horas_semanales', 'horas_totales', 'created_at', 'updated_at')
+        //->withTimestamps();
+    }
+
     // relacion uno a muchos con códigos de investigación
     public function codigosInvestigacion()
     {
@@ -190,19 +203,42 @@ class Empleado extends Model
         return $this->belongsToMany(Actividad::class, 'actividad_empleado');
     }
 
+    public function carrera()
+    {
+        return $this->belongsTo(Carrera::class, 'carrera_id');
+    }
+    
+        public function actividadesServicio()
+    {
+        return $this->belongsToMany(ActividadServicio::class,'acti_empleado_srvc','empleado_id','actividad_id'
+        );
+    }
 
     public function getIdValidos()
     {
-        // Mapear las firmas de los proyectos
-
+        // Mapear las firmas de los proyectos y fichas de actualización
         $proyectos = $this->firmaProyecto->map(function ($firma) {
+            // Firmas de proyectos normales
             if (
                 $firma->firmable_type == Proyecto::class &&
                 ($firma->cargo_firma->tipo_estado_id == $firma->proyecto->estado->tipo_estado_id)
             ) {
                 return $firma->id;
-            } else if (
-                ($firma->firmable_type != Proyecto::class &&
+            } 
+            // Firmas de fichas de actualización
+            else if (
+                $firma->firmable_type == \App\Models\Proyecto\FichaActualizacion::class &&
+                $firma->ficha_actualizacion &&
+                $firma->ficha_actualizacion->obtenerUltimoEstado() &&
+                ($firma->cargo_firma->tipo_estado_id == $firma->ficha_actualizacion->obtenerUltimoEstado()->tipo_estado_id) &&
+                ($firma->cargo_firma->tipoCargoFirma->nombre !== "Revisor Vinculacion")
+            ) {
+                return $firma->id;
+            }
+            // Firmas de documentos (informes, etc.)
+            else if (
+                ($firma->firmable_type != Proyecto::class && 
+                 $firma->firmable_type != \App\Models\Proyecto\FichaActualizacion::class &&
                     ($firma->cargo_firma->tipo_estado_id == $firma->documento_proyecto->estado->tipoestado->id))
                 && ($firma->cargo_firma->tipoCargoFirma->nombre !== "Revisor Vinculacion")
             ) {
@@ -219,11 +255,11 @@ class Empleado extends Model
      * @return string
      */
     public function getInitials(): string
-{
-    $nombre_completo = explode(' ', trim($this->nombre_completo));
-    $inicial_nombre = isset($nombre_completo[0]) ? mb_substr($nombre_completo[0], 0, 1) : '';
-    $inicial_segundo_nombre = isset($nombre_completo[1]) ? mb_substr($nombre_completo[1], 0, 1) : '';
-    return $inicial_nombre . $inicial_segundo_nombre;
-}
+    {
+        $nombre_completo = explode(' ', trim($this->nombre_completo));
+        $inicial_nombre = isset($nombre_completo[0]) ? mb_substr($nombre_completo[0], 0, 1) : '';
+        $inicial_segundo_nombre = isset($nombre_completo[1]) ? mb_substr($nombre_completo[1], 0, 1) : '';
+        return $inicial_nombre . $inicial_segundo_nombre;
+    }
     protected $table = 'empleado';
 }

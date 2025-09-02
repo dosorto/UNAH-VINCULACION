@@ -32,6 +32,7 @@ return [
         'Cancelado',
 
         'Borrador',
+        'Actualizacion realizada',
     ],
 
 
@@ -122,6 +123,38 @@ return [
                 'cargo' => 'Revisor Vinculacion',
                 'estado' => 'En revision',
                 'estado_siguiente' => 'Aprobado',
+            ],
+        ],
+        'revisores_ficha_actualizacion' => [
+            [
+                'descripcion' => 'Ficha_actualizacion',
+                'cargo' => 'Coordinador Proyecto',
+                'estado' => 'Coordinador Proyecto',
+                'estado_siguiente' => 'Enlace Vinculacion',
+            ],
+            [
+                'descripcion' => 'Ficha_actualizacion',
+                'cargo' => 'Enlace Vinculacion',
+                'estado' => 'Enlace Vinculacion',
+                'estado_siguiente' => 'Jefe Departamento',
+            ],
+            [
+                'descripcion' => 'Ficha_actualizacion',
+                'cargo' => 'Jefe Departamento',
+                'estado' => 'Jefe Departamento',
+                'estado_siguiente' => 'Director centro',
+            ],
+            [
+                'descripcion' => 'Ficha_actualizacion',
+                'cargo' => 'Director centro',
+                'estado' => 'Director centro',
+                'estado_siguiente' => 'En revision',
+            ],
+            [
+                'descripcion' => 'Ficha_actualizacion',
+                'cargo' => 'Revisor Vinculacion',
+                'estado' => 'En revision',
+                'estado_siguiente' => 'Actualizacion realizada',
             ],
         ],
       //  'revisores_constancia' => [

@@ -42,6 +42,8 @@ use App\Models\Proyecto\ResultadoEsperado;
 use App\Models\Proyecto\AporteInstitucional;
 use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Proyecto\MetaContribuye;
+use App\Models\Proyecto\EquipoEjecutorBaja;
+use App\Models\Proyecto\EquipoEjecutorNuevo;
 
 
 
@@ -741,6 +743,11 @@ class Proyecto extends Model
         return $this->hasMany(AporteInstitucional::class);
     }
     
+    public function aportesInstitucionales()
+    {
+        return $this->hasMany(AporteInstitucional::class, 'proyecto_id');
+    }
+
     public function ejes_prioritarios_unah()
     {
         return $this->belongsToMany(
@@ -749,6 +756,20 @@ class Proyecto extends Model
             'proyecto_id',
             'ejes_prioritarios_unah_id'
         );
+    }
+
+    // Relación con integrantes dados de baja
+    public function equipoEjecutorBajas()
+    {
+        return $this->hasMany(EquipoEjecutorBaja::class, 'proyecto_id')
+                    ->with(['empleado', 'estudiante', 'integranteInternacional']);
+    }
+
+    // Relación con nuevos integrantes pendientes
+    public function equipoEjecutorNuevos()
+    {
+        return $this->hasMany(EquipoEjecutorNuevo::class, 'proyecto_id')
+                    ->with(['empleado', 'estudiante', 'integranteInternacional']);
     }
 
     protected $table = 'proyecto';

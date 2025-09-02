@@ -8,6 +8,7 @@ use App\Models\Proyecto\Proyecto;
 use App\Http\Controllers\Controller;
 use App\Models\Constancia\Constancia;
 use App\Models\Constancia\TipoConstancia;
+use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Personal\Empleado;
 use Illuminate\Support\Facades\Crypt;
 use App\Models\Personal\EmpleadoProyecto;
@@ -47,6 +48,36 @@ class VerificarConstancia extends Controller
                 ]);
             }
         });
+        return;
+    }
+
+    /*
+        CREAR LAS CONSTANCIAS A LAS FICHAS DE ACTUALIZACION 
+    */
+    public static function makeConstanciasActualizacion(FichaActualizacion $fichaActualizacion)
+    {
+        // validar que la ficha este en estado de 'Actualizcion realizada'
+        $nombreEstadoProyecto = $fichaActualizacion->estado->tipoestado->nombre;
+        if ($nombreEstadoProyecto != 'Actualizacion realizada') {
+            return;
+        }
+
+        // mapear los empleados proyectos y llamar al metodo validarConstanciaEmpleado para ver si puede recibir o no su constancia
+        $fichaActualizacion->proyecto->docentes_proyecto->map(function ($empleadoProyecto) use ($nombreEstadoProyecto) {
+            // validar si el empleado del proyecto se puede generar constancia o no
+            if (self::validarConstanciaEmpleado($empleadoProyecto)) {
+                // crear la constancia
+                $Constancia = Constancia::create([
+                    'origen_type' => FichaActualizacion::class,
+                    'origen_id' => $empleadoProyecto->proyecto_id,
+                    'destinatario_type' => Empleado::class,
+                    'destinatario_id' => $empleadoProyecto->empleado_id,
+                    'tipo_constancia_id' => $nombreEstadoProyecto == 'Actualizacion realizada'
+                        ? TipoConstancia::where('nombre', 'Actualizacion')->first()->id
+                        : TipoConstancia::where('nombre', 'Actualizacion')->first()->id,
+                ]);
+            }
+        });
 
 
         return;
@@ -70,7 +101,23 @@ class VerificarConstancia extends Controller
         return $existeConstancia;
     }
 
+    // recibe un empleado proyecto y valida si tiene una constancia del tipo actualizacion
 
+    public static function validarConstanciaActualizacion(EmpleadoProyecto $empleadoProyecto, $tipo = 'Actualizacion'): bool
+    {
+        // Obtener el ID del tipo de constancia solo una vez
+        $tipoConstanciaId = TipoConstancia::where('nombre', $tipo)->value('id');
+
+        // Realizar la consulta
+        $existeConstancia = Constancia::where('origen_type', FichaActualizacion::class)
+            ->where('origen_id', $empleadoProyecto->proyecto_id)
+            ->where('destinatario_type', Empleado::class)
+            ->where('destinatario_id', $empleadoProyecto->empleado_id)
+            ->where('tipo_constancia_id', $tipoConstanciaId)
+            ->exists(); // Devuelve true si existe, false si no
+
+        return $existeConstancia;
+    }
 
 
     /*
@@ -80,7 +127,7 @@ class VerificarConstancia extends Controller
     {
 
         $categoriasValidas = ['Titular I', 'Titular II', 'Titular III', 'Titular IV', 'Titular V'];
-        $estadosValidos = ['En curso', 'Finalizado'];
+        $estadosValidos = ['En curso', 'Finalizado', 'Actualizacion realizada'];
 
         // validar que el proyecto este en estado de 'En curso' o 'Finalizado'
         if (!in_array($empleadoProyecto->proyecto->estado->tipoestado->nombre, $estadosValidos)) {
@@ -97,6 +144,38 @@ class VerificarConstancia extends Controller
         return true;
     }
 
+    /*
+        metodo para validar si el empleado del proyecto se puede generar constancia o no
+    */
+    public static function validarConstanciaEmpleadoActualizacion(EmpleadoProyecto $empleadoProyecto)
+{
+    $categoriasValidas = ['Titular I', 'Titular II', 'Titular III', 'Titular IV', 'Titular V'];
+    $estadosValidos = ['Actualizacion realizada'];
+
+    // Obtener la ficha de actualización (puede ser colección)
+    $fichaActualizacion = $empleadoProyecto->proyecto->ficha_actualizacion;
+    if ($fichaActualizacion instanceof \Illuminate\Database\Eloquent\Collection) {
+        $fichaActualizacion = $fichaActualizacion->first();
+    }
+
+    // Validar estado
+    if (
+        !$fichaActualizacion ||
+        !in_array($fichaActualizacion->estado->tipoestado->nombre ?? '', $estadosValidos)
+    ) {
+        return false;
+    }
+
+    // Validar categoría
+    if (!in_array($empleadoProyecto->empleado->categoria->nombre, $categoriasValidas)) {
+        return false;
+    }
+
+    // otras validaciones
+
+    return true;
+}
+
     public static function validarConstanciaInscripcion(EmpleadoProyecto $empleadoProyecto)
     {
         if (!self::validarConstanciaEmpleado($empleadoProyecto)) {
@@ -110,8 +189,21 @@ class VerificarConstancia extends Controller
         if (!self::validarConstanciaEmpleado($empleadoProyecto)) {
             return false;
         }
+        
         // validar que el estado del proyecto sea 'Finalizado'
         if ($empleadoProyecto->proyecto->estado->tipoestado->nombre != 'Finalizado') {
+            return false;
+        }
+        return true;
+    }
+
+    public static function validarConstanciaActualizacionRealizada(EmpleadoProyecto $empleadoProyecto)
+    {
+        if (!self::validarConstanciaEmpleado($empleadoProyecto)) {
+            return false;
+        }
+        // validar que el estado del proyecto sea 'Actualizacion realizada'
+        if ($empleadoProyecto->proyecto->estado->tipoestado->nombre != 'Actualizacion realizada') {
             return false;
         }
         return true;
@@ -125,6 +217,11 @@ class VerificarConstancia extends Controller
     public static function CrearPdfFinalizacion(EmpleadoProyecto $empleadoProyecto)
     {
         return self::CrearPdf($empleadoProyecto, 'finalizacion');
+    }
+
+    public static function CrearPdfActualizacion(EmpleadoProyecto $empleadoProyecto)
+    {
+        return self::CrearPdf($empleadoProyecto, 'actualizacion');
     }
 
     public static function CrearPdf(EmpleadoProyecto $empleadoProyecto, $tipo)

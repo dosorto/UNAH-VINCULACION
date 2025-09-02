@@ -61,10 +61,10 @@ class ProyectoSeeder extends Seeder
 
 
         Modalidad::insert([
-            ['nombre' => 'Unidisciplinar'],
-            ['nombre' => 'Multidisciplinar'],
-            ['nombre' => 'Interdisciplinar'],
             ['nombre' => 'Transdisciplinar'],
+            ['nombre' => 'Interdisciplinar'],
+            ['nombre' => 'Multidisciplinar'],
+            ['nombre' => 'Unidisciplinar'],
         ]);
 
         // crear las categorias para el proyecto
@@ -79,19 +79,14 @@ class ProyectoSeeder extends Seeder
         //Otras áreas
 
         Categoria::insert([
-            ['nombre' => 'Educación No Formal y/o Continua'],
-            ['nombre' => 'APS'],
+           // ['nombre' => 'APS'],
             ['nombre' => 'Desarrollo Regional'],
             ['nombre' => 'Desarrollo Local'],
-            ['nombre' => 'Volunt. Académico'],
+           /* ['nombre' => 'Volunt. Académico'],
             ['nombre' => 'Seguim. a egresados'],
             ['nombre' => 'I + D + i'],
             ['nombre' => 'Cultural'],
-            ['nombre' => 'Comunicación'],
-            ['nombre' => 'Investigación-acción-participación'],
-            ['nombre' => 'Asesoría técnico-científica'],
-            ['nombre' => 'Artísticos-culturales'],
-            ['nombre' => 'Otras áreas'],
+            ['nombre' => 'Comunicación'],*/
         ]);
 
         /*
@@ -121,6 +116,8 @@ class ProyectoSeeder extends Seeder
         TipoConstancia::insert([
             ['nombre' => 'Inscripcion', 'descripcion' => 'Se emite cuando un proyecto alcanza el estado en curso'],
             ['nombre' => 'Finalizacion', 'descripcion' => 'Se emite cuando un proyecto alcanza el estado Finalizado'],
+            ['nombre' => 'Actualizacion', 'descripcion' => 'Se emite cuando hay cambios en el proyecto'],
+            ['nombre' => 'Dictamen', 'descripcion' => 'Se emite el dictamen del proyecto'],
         ]);
     }
 }

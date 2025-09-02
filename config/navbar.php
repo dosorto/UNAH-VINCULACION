@@ -80,13 +80,12 @@ return [
             [
                 'titulo' => 'Empleado',
                 'route' => 'ListarEmpleados',
-                'routes' => ['ListarEmpleados', 'crearEmpleado', 'codigosInvestigacionAdmin'],
+                'routes' => ['ListarEmpleados', 'crearEmpleado'],
                 'icono' => 'heroicon-c-cube',
                 'permisos' => ['empleados-admin-empleados'],
                 'children' => [
                     ['texto' => 'Empleados', 'route' => 'ListarEmpleados', 'permiso' => 'empleados-admin-empleados'],
                     ['texto' => 'Crear Empleado', 'route' => 'crearEmpleado', 'permiso' => 'empleados-admin-empleados'],
-                    ['texto' => 'Validar Códigos de Proyectos', 'route' => 'codigosInvestigacionAdmin', 'permiso' => 'empleados-admin-empleados'],
                 ],
                 'funcion' => null,
                 'parametro' => null,
@@ -107,7 +106,7 @@ return [
                 'can' => null,
             ],
             [
-                'titulo' => 'Proyecto',
+                'titulo' => 'Vinculación',
                 'route' => 'listarProyectosVinculacion',
                 'routes' => [
                     'listarProyectosVinculacion',
@@ -117,6 +116,8 @@ return [
                     'proyectos-admin-revision-final',
                     'proyectos-admin-informenes',
                     'proyectos-admin-proyectos',
+                    'fichasActualizacionVinculacion',
+                    'codigosInvestigacionAdmin',
                 ],
                 'icono' => 'heroicon-m-puzzle-piece',
                 'permisos' => [
@@ -127,10 +128,12 @@ return [
                     'proyectos-admin-revision-final',
                 ],
                 'children' => [
-                    ['texto' => 'Proyectos', 'route' => 'listarProyectosVinculacion', 'permiso' => 'proyectos-admin-proyectos'],
-                    ['texto' => 'Solicitud Proyecto', 'route' => 'listarProyectosSolicitado', 'permiso' => 'proyectos-admin-solicitados', 'funcion' => 'obtenerCantidadProyectosEnRevision'],
+                    ['texto' => 'Historial Vinculación', 'route' => 'listarProyectosVinculacion', 'permiso' => 'proyectos-admin-proyectos'],
+                    ['texto' => 'Revisión DVUS', 'route' => 'listarProyectosSolicitado', 'permiso' => 'proyectos-admin-solicitados', 'funcion' => 'obtenerCantidadProyectosEnRevision'],
                     ['texto' => 'Revisión de Informes', 'route' => 'listarInformesSolicitado', 'permiso' => 'proyectos-admin-informenes', 'funcion' => 'obtenerCantidadInformesSolicitados'],
-                    ['texto' => 'Revisión Final', 'route' => 'listarProyectoRevisionFinal', 'permiso' => 'proyectos-admin-revision-final', 'funcion' => 'obtenerCantidadProyectosEnRevisionFinal'],
+                    ['texto' => 'Firma Director DVUS', 'route' => 'listarProyectoRevisionFinal', 'permiso' => 'proyectos-admin-revision-final', 'funcion' => 'obtenerCantidadProyectosEnRevisionFinal'],
+                    ['texto' => 'Fichas de Actualización', 'route' => 'fichasActualizacionVinculacion', 'permiso' => 'proyectos-admin-revision-final'],
+                    ['texto' => 'Validar Códigos de Proyectos', 'route' => 'codigosInvestigacionAdmin', 'permiso' => 'proyectos-admin-revision-final'],
                 ],
                 'funcion' => null,
                 'parametro' => null,
@@ -174,7 +177,7 @@ return [
 
             // director enlace de vinculacion
             [
-                'titulo' => 'Proyectos',
+                'titulo' => 'Historial Vinculación',
                 'route' => 'proyectosCentroFacultad',
                 'routes' => ['proyectosCentroFacultad'],
                 'icono' => 'heroicon-o-academic-cap',
@@ -185,28 +188,30 @@ return [
             ],
             // modulo docentes
             [
-                'titulo' => 'Proyectos',
+                'titulo' => 'Vinculación',
                 'route' => 'proyectosDocente',
                 'routes' => ['proyectosDocente', 'crearProyectoVinculacion'],
                 'icono' => 'heroicon-o-academic-cap',
                 'permisos' => ['docente-admin-proyectos'],
                 'children' => [
-                    ['texto' => 'Proyectos', 'route' => 'proyectosDocente', 'permiso' => 'docente-admin-proyectos'],
-                    ['texto' => 'Crear Proyecto', 'route' => 'crearProyectoVinculacion', 'permiso' => 'docente-admin-proyectos'],
-                    ['texto' => 'Proyectos Antes del Sistema', 'route' => 'proyectosAntesDelSistema', 'permiso' => 'docente-admin-proyectos'],
+                    ['texto' => 'Registrar Acción', 'route' => 'selectorTipoAccion', 'permiso' => 'docente-admin-proyectos'],
+                    ['texto' => 'Mi Historial Vinculación', 'route' => 'proyectosDocente', 'permiso' => 'docente-admin-proyectos'],
+                    ['texto' => 'Mis Fichas de Actualización', 'route' => 'FichasActualizacionDocente', 'permiso' => 'docente-admin-proyectos'],
+                    ['texto' => 'Vinculaciones Antes del Sistema', 'route' => 'proyectosAntesDelSistema', 'permiso' => 'docente-admin-proyectos'],
                 ],
                 'funcion' => null,
                 'parametro' => null,
                 'can' => null,
             ],
             [
-                'titulo' => 'Firmas',
+                'titulo' => 'Trazabilidad de Registros',
                 'route' => 'SolicitudProyectosDocente',
-                'routes' => ['SolicitudProyectosDocente', 'AprobadoProyectosDocente', 'RechazadoProyectosDocente'],
+                'routes' => ['SolicitudProyectosDocente', 'AprobadoProyectosDocente', 'RechazadoProyectosDocente', 'FichasActualizacionPorFirmar'],
                 'icono' => 'heroicon-o-document-text',
                 'permisos' => ['docente-admin-proyectos', 'docente-admin-solicitados'],
                 'children' => [
-                    ['texto' => 'Solicitud de Firma', 'route' => 'SolicitudProyectosDocente', 'permiso' => 'docente-admin-proyectos', 'funcion' => 'obtenerCantidadProyectosPorFirmar'],
+                    ['texto' => 'Revisión Comité Local', 'route' => 'SolicitudProyectosDocente', 'permiso' => 'docente-admin-proyectos', 'funcion' => 'obtenerCantidadProyectosPorFirmar'],
+                    ['texto' => 'Fichas de Actualización', 'route' => 'FichasActualizacionPorFirmar', 'permiso' => 'docente-admin-proyectos', 'funcion' => 'obtenerCantidadFichasPorFirmar'],
                     ['texto' => 'Firmas Aprobadas', 'route' => 'AprobadoProyectosDocente', 'permiso' => 'docente-admin-proyectos'],
                     ['texto' => 'Firmas Proximas', 'route' => 'RechazadoProyectosDocente', 'permiso' => 'docente-admin-proyectos'],
                 ],

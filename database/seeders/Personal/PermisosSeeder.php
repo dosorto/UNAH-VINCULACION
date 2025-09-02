@@ -44,7 +44,7 @@ class PermisosSeeder extends Seeder
         // modulo de inicio
         $permission14 = Permission::create(['name' => 'inicio-admin-inicio']);
         $permission15 = Permission::create(['name' => 'inicio-docente-inicio']);
-        $permission15 = Permission::create(['name' => 'inicio-estudiante-inicio']);
+        $permission155 = Permission::create(['name' => 'inicio-estudiante-inicio']);
 
 
         // modulo de constancias 

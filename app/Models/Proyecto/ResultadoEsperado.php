@@ -17,12 +17,22 @@ class ResultadoEsperado extends Model
         'nombre_resultado',
         'nombre_indicador',
         'nombre_medio_verificacion',
+        'plazo',
         'orden'
     ];
 
     protected $casts = [
         'orden' => 'integer'
     ];
+
+    public function getPlazoFormateadoAttribute(): string
+    {
+        return match($this->plazo) {
+            'corto_plazo' => 'Corto plazo',
+            'largo_plazo' => 'Largo plazo',
+            default => 'Sin plazo especificado'
+        };
+    }
 
     public function objetivoEspecifico(): BelongsTo
     {
