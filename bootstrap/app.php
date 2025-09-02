@@ -15,13 +15,18 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
-            
+            'ensure_user_has_role' => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
        
         $middleware->redirectGuestsTo('/');
 
         // redirect users to the 'listarPais' route after login
         $middleware->redirectUsersTo('inicio');
+
+        // Aplicar middleware global para usuarios autenticados
+        $middleware->web(append: [
+            \App\Http\Middleware\EnsureUserHasRole::class,
+        ]);
 
         $middleware->trustProxies(at: '*');
         //

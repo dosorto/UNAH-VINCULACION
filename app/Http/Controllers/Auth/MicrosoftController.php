@@ -82,6 +82,11 @@ class MicrosoftController extends Controller
 
                 $user->givePermissionTo('configuracion-admin-mi-perfil')
                     ->givePermissionTo('cambiar-datos-personales');
+                
+                // Asignar rol de docente por defecto si no tiene ningún rol
+                if (!$user->hasAnyRole(['admin', 'docente', 'Director/Enlace'])) {
+                    $user->assignRole('docente');
+                }
             } else {
                 $user = $testUser;
             }
