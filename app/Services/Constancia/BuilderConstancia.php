@@ -5,8 +5,13 @@ namespace App\Services\Constancia;
 use App\Models\Constancia\Constancia;
 use App\Models\Constancia\TipoConstancia;
 use App\Models\Personal\EmpleadoProyecto;
+use App\Models\Estudiante\EstudianteProyecto;
+use App\Models\Estudiante\Estudiante;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Proyecto;
+
+use App\Models\Proyecto\IntegranteInternacional;
+use App\Models\Proyecto\IntegranteInternacionalProyecto;
 use App\Models\Presupuesto\Presupuesto;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -61,11 +66,12 @@ class BuilderConstancia
     {
         $anio = now()->year;
         $prefijo = 'VRA-DVUS';
+        $siglasCentro = $this->proyecto->coordinador->centro_facultad->siglas ?? 'N/A';
         $maxIntentos = 100;
 
         do {
             $numero = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
-            $correlativo = "$prefijo-$numero/$anio";
+            $correlativo = "$prefijo-$siglasCentro-$numero/$anio";
             
             if (!Constancia::where('correlativo', $correlativo)->exists()) {
                 return $correlativo;
@@ -202,6 +208,27 @@ class BuilderConstancia
                 ];
             })->toArray();
 
+            $integrantesInternacionales = $this->proyecto->integrantesInternacionales->map(function ($item, $index) {
+                return [
+                    'no' => $index + 1,
+                    'nombre_completo' => $item->nombre_completo,
+                    'institucion' => $item->institucion,
+                    'rol' => 'Integrante internacional',
+                ];
+            })->toArray();
+
+            // Estudiantes
+            $estudiantes = $this->proyecto->participacionesEstudiantes->map(function ($item, $index) {
+                $est = $item->estudiante;
+                return [
+                    'no' => $index + 1,
+                    'nombre_completo' => $est->nombre . ' ' . $est->apellido,
+                    'cuenta' => $est->cuenta,
+                    'tipo_participacion' => $item->tipoParticipacion?->nombre ?? 'No especificado',
+                    'departamento' => $emp->departamento_academico?->nombre ?? 'No asignado',
+                ];
+            })->toArray();
+
         $firmaDirector = $this->getValidDirectorAsset($this->director?->firma?->ruta_storage, 'firma');
         $selloDirector = $this->getValidDirectorAsset($this->director?->sello?->ruta_storage, 'sello');
 
@@ -223,6 +250,8 @@ class BuilderConstancia
             'departamentos' => $departamentos,
             'municipios' => $municipios,
             'integrantes' => $integrantes,
+            'integrantes_internacionales' => $integrantesInternacionales,
+            'estudiantes' => $estudiantes,
             'tipo' => $this->tipo,
             'horas' => 0,
             'texto' => $this->buildTexto(

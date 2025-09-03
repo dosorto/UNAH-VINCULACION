@@ -43,5 +43,10 @@ class EstudianteProyecto extends Model
         return $this->belongsTo(Proyecto::class, 'proyecto_id',);
     }
 
+    public function tipoParticipacion()
+    {
+        return $this->belongsTo(TipoParticipacion::class, 'tipo_participacion_id');
+    }
+
     protected $table = 'estudiante_proyecto';
 }
