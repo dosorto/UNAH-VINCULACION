@@ -56,8 +56,7 @@ class FacultadCentroList extends Component implements HasForms, HasTable
                             ->label('Nombre')
                             ->required(),
                         TextInput::make('siglas')
-                            ->label('Siglas')
-                            ->required(),
+                            ->label('Siglas'),
                         Toggle::make('es_facultad')
                             ->label('Es Facultad'),
                         Select::make('campus_id')
@@ -134,8 +133,7 @@ class FacultadCentroList extends Component implements HasForms, HasTable
                             ->label('Nombre')
                             ->required(),
                         TextInput::make('siglas')
-                            ->label('Siglas')
-                            ->required(),
+                            ->label('Siglas'),
                         Toggle::make('es_facultad')
                             ->label('Es Facultad'),
                         Select::make('campus_id')
