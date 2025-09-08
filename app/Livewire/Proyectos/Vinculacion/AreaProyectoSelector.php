@@ -33,11 +33,11 @@ use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 
-class TipoProyectoSelector extends Component 
+class AreaProyectoSelector extends Component 
 {
     public function render(): View
     {
-        return view('livewire.proyectos.vinculacion.tipo-proyecto-selector')
+        return view('livewire.proyectos.vinculacion.areas-proyecto-selector')
             ;//->layout('components.panel.modulos.modulo-proyectos');
     }
 }
