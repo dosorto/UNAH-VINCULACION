@@ -56,6 +56,10 @@ class Presupuesto
                                 ->label('Cantidad')
                                 ->numeric()
                                 ->live(onBlur: true)
+                                ->disabled(function (Get $get) {
+                                    return $get('concepto') === 'costos_indirectos_infraestructura' ||
+                                           $get('concepto') === 'costos_indirectos_servicios';
+                                })
                                 ->afterStateUpdated(function (Get $get, Set $set, $state) {
                                     $costoUnitario = floatval($get('costo_unitario') ?? 0);
                                     $cantidad = floatval($state ?? 0);
@@ -63,6 +67,7 @@ class Presupuesto
                                     $set('costo_total', number_format($costoTotal, 2, '.', ''));
                                     // Calcular total usando una función helper
                                     self::calcularTotalAporteInstitucional($get, $set);
+                                    self::calcularTotalCantidades($get, $set); // Nueva función
                                 })
                                 ->columnSpan(1)
                                 ->default(0),
@@ -71,7 +76,11 @@ class Presupuesto
                                 ->label('Costo unitario')
                                 ->numeric()
                                 ->prefix('L.')
-                                ->live(onBlur: true)
+                                ->live(onBlur: true) 
+                                ->disabled(function (Get $get) {
+                                    return $get('concepto') === 'costos_indirectos_infraestructura' ||
+                                           $get('concepto') === 'costos_indirectos_servicios';
+                                })
                                 ->afterStateUpdated(function (Get $get, Set $set, $state) {
                                     $cantidad = floatval($get('cantidad') ?? 0);
                                     $costoUnitario = floatval($state ?? 0);
@@ -79,6 +88,7 @@ class Presupuesto
                                     $set('costo_total', number_format($costoTotal, 2, '.', ''));
                                     // Calcular total usando una función helper
                                     self::calcularTotalAporteInstitucional($get, $set);
+                                    self::calcularCostoUnitario($get, $set); // Nueva función
                                 })
                                 ->columnSpan(1)
                                 ->default(0),
@@ -147,7 +157,6 @@ class Presupuesto
                                 'unidad_label' => '%',
                                 'cantidad' => 0,
                                 'costo_unitario' => 0,
-                                'costo_total' => 0,
 
                             ],
                             [
@@ -157,7 +166,6 @@ class Presupuesto
                                 'unidad_label' => '%',
                                 'cantidad' => 0,
                                 'costo_unitario' => 0,
-                                'costo_total' => 0,
                             ],
                         ])
                         ->relationship('aporteInstitucional')
@@ -167,6 +175,20 @@ class Presupuesto
                         ->label('Total Aporte Institucional')
                         ->numeric()
                         ->prefix('L.')
+                        ->disabled()
+                        ->dehydrated()
+                        ->columnSpanFull(),
+
+                        TextInput::make('total_cantidades')
+                        ->label('Total de Cantidades')
+                        ->numeric()
+                        ->disabled()
+                        ->dehydrated()
+                        ->columnSpanFull(),
+
+                    TextInput::make('total_costo_unitario')
+                        ->label('Total Costo Unitario')
+                        ->numeric()
                         ->disabled()
                         ->dehydrated()
                         ->columnSpanFull(),
@@ -246,5 +268,43 @@ class Presupuesto
         }
         
         $set('../../total_aporte_institucional', number_format($total, 2, '.', ''));
+    }
+
+    private static function calcularTotalCantidades(Get $get, Set $set): void
+    {
+        // Obtener todos los datos del repeater desde el nivel superior
+        $allData = $get('../../') ?? [];
+        $aporteInstitucional = $allData['aporte_institucional'] ?? [];
+        
+        $totalCantidades = 0;
+        
+        if (is_array($aporteInstitucional)) {
+            foreach ($aporteInstitucional as $item) {
+                $cantidad = floatval($item['cantidad'] ?? 0);
+                $totalCantidades += $cantidad;
+            }
+        }
+        
+        // Guardar el total en un campo (puedes agregarlo a tu schema si es necesario)
+        $set('../../total_cantidades', number_format($totalCantidades, 2, '.', ''));
+    }
+        
+    private static function calcularCostoUnitario(Get $get, Set $set): void
+    {
+        // Obtener todos los datos del repeater desde el nivel superior
+        $allData = $get('../../') ?? [];
+        $aporteInstitucional = $allData['aporte_institucional'] ?? [];
+
+        $totalCostoUnitario = 0;
+
+        if (is_array($aporteInstitucional)) {
+            foreach ($aporteInstitucional as $item) {
+                $costoUnitario = floatval($item['costo_unitario'] ?? 0);
+                $totalCostoUnitario += $costoUnitario;
+            }
+        }
+        
+        // Guardar el total en un campo (puedes agregarlo a tu schema si es necesario)
+        $set('../../total_costo_unitario', number_format($totalCostoUnitario, 2, '.', ''));
     }
 }
