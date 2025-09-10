@@ -56,10 +56,6 @@ class Presupuesto
                                 ->label('Cantidad')
                                 ->numeric()
                                 ->live(onBlur: true)
-                                ->disabled(function (Get $get) {
-                                    return $get('concepto') === 'costos_indirectos_infraestructura' ||
-                                           $get('concepto') === 'costos_indirectos_servicios';
-                                })
                                 ->afterStateUpdated(function (Get $get, Set $set, $state) {
                                     $costoUnitario = floatval($get('costo_unitario') ?? 0);
                                     $cantidad = floatval($state ?? 0);
@@ -77,10 +73,6 @@ class Presupuesto
                                 ->numeric()
                                 ->prefix('L.')
                                 ->live(onBlur: true) 
-                                ->disabled(function (Get $get) {
-                                    return $get('concepto') === 'costos_indirectos_infraestructura' ||
-                                           $get('concepto') === 'costos_indirectos_servicios';
-                                })
                                 ->afterStateUpdated(function (Get $get, Set $set, $state) {
                                     $cantidad = floatval($get('cantidad') ?? 0);
                                     $costoUnitario = floatval($state ?? 0);
@@ -150,45 +142,122 @@ class Presupuesto
                                 'unidad' => 'global',
                                 'unidad_label' => 'Global',
                             ],
-                            [
-                                'concepto' => 'costos_indirectos_infraestructura',
-                                'concepto_label' => 'f) Costos indirectos por infraestructura universidad',
-                                'unidad' => 'porcentaje',
-                                'unidad_label' => '%',
-                                'cantidad' => 0,
-                                'costo_unitario' => 0,
-
-                            ],
-                            [
-                                'concepto' => 'costos_indirectos_servicios',
-                                'concepto_label' => 'g) Costos indirectos por servicios públicos',
-                                'unidad' => 'porcentaje',
-                                'unidad_label' => '%',
-                                'cantidad' => 0,
-                                'costo_unitario' => 0,
-                            ],
                         ])
                         ->relationship('aporteInstitucional')
                         ->columnSpanFull(),
+
+                        // Campos separados para infraestructura
+                    Fieldset::make('f) Costos indirectos por infraestructura universidad')
+                        ->schema([
+
+                            TextInput::make('infraestructura_unidad')
+                                ->label('Unidad (%)')
+                                ->disabled()
+                                ->columnSpan(1)
+                                ->default('%'),
+
+                            TextInput::make('infraestructura_cantidad')
+                                ->label('Cantidad')
+                                ->numeric()
+                                ->disabled()
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                    $costoUnitario = floatval($get('infraestructura_costo_unitario') ?? 0);
+                                    $cantidad = floatval($state ?? 0);
+                                    $costoTotal = $cantidad * $costoUnitario;
+                                    $set('infraestructura_costo_total', number_format($costoTotal, 2, '.', ''));
+                                    // Recalcular el total del aporte institucional
+                                    self::calcularTotalAporteInstitucional($get, $set);
+                                })
+                                ->columnSpan(1)
+                                ->default(0),
+
+                            TextInput::make('infraestructura_costo_unitario')
+                                ->label('Costo unitario')
+                                ->numeric()
+                                ->disabled()
+                                ->prefix('L.')
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                    $cantidad = floatval($get('infraestructura_cantidad') ?? 0);
+                                    $costoUnitario = floatval($state ?? 0);
+                                    $costoTotal = $cantidad * $costoUnitario;
+                                    $set('infraestructura_costo_total', number_format($costoTotal, 2, '.', ''));
+                                    // Recalcular el total del aporte institucional
+                                    self::calcularTotalAporteInstitucional($get, $set);
+                                })
+                                ->columnSpan(1)
+                                ->default(0),
+
+                            TextInput::make('infraestructura_costo_total')
+                                ->label('Costo Total')
+                                ->numeric()
+                                ->prefix('L.')
+                                ->disabled()
+                                ->dehydrated()
+                                ->columnSpan(1),
+                        ])
+                        ->columns(4)
+                        ->columnSpanFull(),
+
+                    // Campos separados para servicios
+                    Fieldset::make('g) Costos indirectos por servicios públicos')
+                        ->schema([
+                            TextInput::make('servicios_unidad')
+                                ->label('Unidad (%)')
+                                ->disabled()
+                                ->columnSpan(1)
+                                ->default('%'),
+
+                            TextInput::make('servicios_cantidad')
+                                ->label('Cantidad')
+                                ->numeric()
+                                ->disabled()
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                    $costoUnitario = floatval($get('servicios_costo_unitario') ?? 0);
+                                    $cantidad = floatval($state ?? 0);
+                                    $costoTotal = $cantidad * $costoUnitario;
+                                    $set('servicios_costo_total', number_format($costoTotal, 2, '.', ''));
+                                    // Recalcular el total del aporte institucional
+                                    self::calcularTotalAporteInstitucional($get, $set);
+                                })
+                                ->columnSpan(1)
+                                ->default(0),
+
+                            TextInput::make('servicios_costo_unitario')
+                                ->label('Costo unitario')
+                                ->numeric()
+                                ->disabled()
+                                ->prefix('L.')
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(function (Get $get, Set $set, $state) {
+                                    $cantidad = floatval($get('servicios_cantidad') ?? 0);
+                                    $costoUnitario = floatval($state ?? 0);
+                                    $costoTotal = $cantidad * $costoUnitario;
+                                    $set('servicios_costo_total', number_format($costoTotal, 2, '.', ''));
+                                    // Recalcular el total del aporte institucional
+                                    self::calcularTotalAporteInstitucional($get, $set);
+                                })
+                                ->columnSpan(1)
+                                ->default(0),
+
+                            TextInput::make('servicios_costo_total')
+                                ->label('Costo Total')
+                                ->numeric()
+                                ->prefix('L.')
+                                ->disabled()
+                                ->dehydrated()
+                                ->columnSpan(1),
+                        ])
+                        ->columns(4)
+                        ->columnSpanFull(),
+                        
                         
                     TextInput::make('total_aporte_institucional')
                         ->label('Total Aporte Institucional')
                         ->numeric()
                         ->prefix('L.')
-                        ->disabled()
-                        ->dehydrated()
-                        ->columnSpanFull(),
-
-                        TextInput::make('total_cantidades')
-                        ->label('Total de Cantidades')
-                        ->numeric()
-                        ->disabled()
-                        ->dehydrated()
-                        ->columnSpanFull(),
-
-                    TextInput::make('total_costo_unitario')
-                        ->label('Total Costo Unitario')
-                        ->numeric()
                         ->disabled()
                         ->dehydrated()
                         ->columnSpanFull(),
@@ -267,6 +336,11 @@ class Presupuesto
             }
         }
         
+        // Agregar los costos de infraestructura y servicios al total
+        $costoInfraestructura = floatval($get('../../infraestructura_costo_total') ?? 0);
+        $costoServicios = floatval($get('../../servicios_costo_total') ?? 0);
+        $total += $costoInfraestructura + $costoServicios;
+        
         $set('../../total_aporte_institucional', number_format($total, 2, '.', ''));
     }
 
@@ -285,8 +359,26 @@ class Presupuesto
             }
         }
         
-        // Guardar el total en un campo (puedes agregarlo a tu schema si es necesario)
-        $set('../../total_cantidades', number_format($totalCantidades, 2, '.', ''));
+        // Asignar el 5% del total de cantidades al campo infraestructura_cantidad
+        $cantidadInfraestructura = $totalCantidades * 0.05;
+        $set('../../infraestructura_cantidad', $cantidadInfraestructura);
+        
+        // También asignar el 5% del total de cantidades al campo servicios_cantidad
+        $cantidadServicios = $totalCantidades * 0.05;
+        $set('../../servicios_cantidad', $cantidadServicios);
+        
+        // Actualizar el costo total de infraestructura
+        $costoUnitarioInfra = floatval($get('../../infraestructura_costo_unitario') ?? 0);
+        $costoTotalInfra = $cantidadInfraestructura * $costoUnitarioInfra;
+        $set('../../infraestructura_costo_total', number_format($costoTotalInfra, 2, '.', ''));
+        
+        // Actualizar el costo total de servicios
+        $costoUnitarioServ = floatval($get('../../servicios_costo_unitario') ?? 0);
+        $costoTotalServ = $cantidadServicios * $costoUnitarioServ;
+        $set('../../servicios_costo_total', number_format($costoTotalServ, 2, '.', ''));
+        
+        // Recalcular el total del aporte institucional incluyendo infraestructura y servicios
+        self::calcularTotalAporteInstitucional($get, $set);
     }
         
     private static function calcularCostoUnitario(Get $get, Set $set): void
@@ -304,7 +396,28 @@ class Presupuesto
             }
         }
         
-        // Guardar el total en un campo (puedes agregarlo a tu schema si es necesario)
+        // Asignar el 5% del total del costo unitario al campo infraestructura_costo_unitario
+        $costoUnitarioInfraestructura = $totalCostoUnitario * 0.05;
+        $set('../../infraestructura_costo_unitario', $costoUnitarioInfraestructura);
+        
+        // También asignar el 5% del total del costo unitario al campo servicios_costo_unitario
+        $costoUnitarioServicios = $totalCostoUnitario * 0.05;
+        $set('../../servicios_costo_unitario', $costoUnitarioServicios);
+        
+        // Actualizar el costo total de infraestructura
+        $cantidadInfra = floatval($get('../../infraestructura_cantidad') ?? 0);
+        $costoTotalInfra = $cantidadInfra * $costoUnitarioInfraestructura;
+        $set('../../infraestructura_costo_total', number_format($costoTotalInfra, 2, '.', ''));
+        
+        // Actualizar el costo total de servicios
+        $cantidadServ = floatval($get('../../servicios_cantidad') ?? 0);
+        $costoTotalServ = $cantidadServ * $costoUnitarioServicios;
+        $set('../../servicios_costo_total', number_format($costoTotalServ, 2, '.', ''));
+        
+        // Guardar el total en el campo total_costo_unitario también
         $set('../../total_costo_unitario', number_format($totalCostoUnitario, 2, '.', ''));
+        
+        // Recalcular el total del aporte institucional incluyendo infraestructura y servicios
+        self::calcularTotalAporteInstitucional($get, $set);
     }
 }
