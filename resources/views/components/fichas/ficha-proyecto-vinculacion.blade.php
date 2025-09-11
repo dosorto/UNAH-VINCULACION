@@ -1356,15 +1356,15 @@
                             <td class="sub-header" colspan="3">%</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_infraestructura']?->cantidad ?? '' }}">
+                                    value="{{ $conceptos['costos_indirectos_infraestructura']?->cantidad_infraestructura ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_infraestructura']?->costo_unitario ?? '' }}">
+                                    value="{{ $conceptos['costos_indirectos_infraestructura']?->costo_unitario_infraestructura ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_infraestructura']?->costo_total ?? '' }}">
+                                    value="{{ $conceptos['costos_indirectos_infraestructura']?->costo_total_infraestructura ?? '' }}">
                             </td>
                         </tr>
                         
@@ -1374,15 +1374,15 @@
                             <td class="sub-header" colspan="3">%</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_servicios']?->cantidad ?? '' }}">
+                                    value="{{ $conceptos['costos_indirectos_servicios']?->cantidad_servicios ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_servicios']?->costo_unitario ?? '' }}">
+                                    value="{{ $conceptos['costos_indirectos_servicios']?->costo_unitario_servicios ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_servicios']?->costo_total ?? '' }}">
+                                    value="{{ $conceptos['costos_indirectos_servicios']?->costo_total_servicios ?? '' }}">
                             </td>
                         </tr>
                         
