@@ -139,17 +139,39 @@ class EditProyectoActualizacion extends Component implements HasForms
         // Verificar si hay cambios
         $hayBajas = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $this->record->id)
             ->whereNull('ficha_actualizacion_id')
-            ->where('estado_baja', false)
+            ->where('estado_baja', 'pendiente') // Cambiado de false a 'pendiente'
             ->exists();
 
-        $hayNuevos = !empty($data['empleado_proyecto']) || !empty($data['estudiante_proyecto']) || !empty($data['integrante_internacional_proyecto']);
-        $hayAmpliacion = !empty($data['fecha_ampliacion']);
-        $hayMotivo = !empty($data['motivo_ampliacion']);
+        $hayNuevos = !empty($data['empleado_proyecto']) || 
+                    !empty($data['estudiante_proyecto']) || 
+                    !empty($data['integrante_internacional_proyecto']);
 
-        if (!$hayBajas && !$hayNuevos && !$hayAmpliacion && !$hayMotivo) {
+        // Validar extensión de tiempo: ambos campos deben estar presentes
+        $hayExtension = (!empty($data['fecha_ampliacion']) && !empty($data['motivo_ampliacion']));
+
+        // Validar motivos de responsabilidades y razones de cambio
+        $hayMotivos = !empty($data['motivo_responsabilidades_nuevos']) || !empty($data['motivo_razones_cambio']);
+
+        // Verificar si hay AL MENOS UN cambio
+        if (!$hayBajas && !$hayNuevos && !$hayExtension && !$hayMotivos) {
             Notification::make()
                 ->title('No se detectaron cambios')
-                ->body('Debes realizar al menos un cambio o llenar algún campo para enviar la ficha de actualización a firmar.')
+                ->body('Debes realizar al menos un cambio para enviar la ficha de actualización a firmar:
+                • Dar de baja a un integrante
+                • Agregar nuevos integrantes  
+                • Solicitar extensión de tiempo (fecha y motivo)
+                • Agregar motivos de responsabilidades o razones de cambio')
+                ->danger()
+                ->send();
+            return;
+        }
+
+        // Validación adicional: si hay fecha de ampliación, debe haber motivo y viceversa
+        if ((!empty($data['fecha_ampliacion']) && empty($data['motivo_ampliacion'])) ||
+            (empty($data['fecha_ampliacion']) && !empty($data['motivo_ampliacion']))) {
+            Notification::make()
+                ->title('Campos incompletos')
+                ->body('Para solicitar extensión de tiempo, debes llenar tanto la fecha como el motivo de ampliación.')
                 ->danger()
                 ->send();
             return;

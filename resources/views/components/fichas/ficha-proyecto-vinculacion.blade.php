@@ -1356,15 +1356,53 @@
                             <td class="sub-header" colspan="3">%</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_infraestructura']?->cantidad ?? '' }}">
+                                    value="{{ number_format(
+    (
+        ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
+        ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
+        ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
+        ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
+        ($conceptos['gastos_impresion']?->cantidad ?? 0)
+    ) * 0.05,
+    2, '.', ','
+) }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_infraestructura']?->costo_unitario ?? '' }}">
+                                    value="{{ number_format(
+    (
+        ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
+        ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
+        ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
+        ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
+        ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
+    ) * 0.05,
+    2, '.', ','
+) }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_infraestructura']?->costo_total ?? '' }}">
+                                    value="{{ number_format(
+        (
+            (
+                ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
+                ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
+                ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
+                ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
+                ($conceptos['gastos_impresion']?->cantidad ?? 0)
+            ) * 0.05
+        ) *
+        (
+            (
+                ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
+                ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
+                ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
+                ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
+                ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
+            ) * 0.05
+        ),
+        2, '.', ','
+    ) }}">
                             </td>
                         </tr>
                         
@@ -1374,15 +1412,53 @@
                             <td class="sub-header" colspan="3">%</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_servicios']?->cantidad ?? '' }}">
+                                    value="{{ number_format(
+    (
+    ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
+    ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
+    ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
+    ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
+    ($conceptos['gastos_impresion']?->cantidad ?? 0)
+) * 0.05,
+    2, '.', ','
+) }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_servicios']?->costo_unitario ?? '' }}">
+                                    value="{{ number_format(
+    (
+    ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
+    ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
+    ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
+    ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
+    ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
+) * 0.05,
+    2, '.', ','
+) }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['costos_indirectos_servicios']?->costo_total ?? '' }}">
+                                    value="{{ number_format(
+        (
+            (
+                ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
+                ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
+                ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
+                ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
+                ($conceptos['gastos_impresion']?->cantidad ?? 0)
+            ) * 0.05
+        ) *
+        (
+            (
+                ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
+                ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
+                ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
+                ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
+                ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
+            ) * 0.05
+        ),
+        2, '.', ','
+    ) }}">
                             </td>
                         </tr>
                         

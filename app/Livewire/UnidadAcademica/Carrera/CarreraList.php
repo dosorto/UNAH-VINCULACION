@@ -57,7 +57,6 @@ class CarreraList extends Component implements HasForms, HasTable
                             ->label('Siglas')
                             ->maxLength(10),
                         Select::make('facultad_centro_id')
-                            ->required()
                             ->label('Facultad a la que pertenece')
                             ->relationship(
                                 name: 'facultadcentro',
@@ -68,6 +67,7 @@ class CarreraList extends Component implements HasForms, HasTable
                             ),
                         Select::make('facultades_centros')
                             ->label('Facultades o Centros')
+                            ->required()
                             ->searchable()
                             ->multiple()
                             ->live()
