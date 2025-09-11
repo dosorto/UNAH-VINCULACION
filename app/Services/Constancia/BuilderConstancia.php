@@ -374,7 +374,7 @@ class BuilderConstancia
             'actualizacion' => Blade::render(<<<BLADE
                 <p>
                     El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace CONSTAR que 
-                    <strong>UNAH Campus Atlántida</strong> ha registrado el proyecto de vinculación denominado 
+                    <strong>$nombreCentro </strong> ha registrado el proyecto de vinculación denominado 
                     <strong>{{ \$nombreProyecto }}</strong>, el cual se ejecuta en los municipios de 
                     <strong>{{ \$municipios }}</strong> durante el período 
                     <strong>{{ \$fechaInicio }}</strong> hasta el <strong>{{ \$fechaFinal }}</strong>, 
@@ -389,26 +389,16 @@ class BuilderConstancia
                 'codigoProyecto'
             )),
 
-        'actualizacion' => Blade::render(<<<BLADE
-            <p style="text-align: justify; line-height: 1.6; margin: 10px 0; font-size: 14px; font-family: 'Times New Roman', serif;">
-                El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace CONSTAR que 
-                <strong>UNAH Campus Atlántida</strong> ha registrado el proyecto de vinculación denominado 
-                <strong>{{ \$nombreProyecto }}</strong>, el cual se ejecuta en los municipios de 
-                <strong>{{ \$municipios }}</strong> durante el período 
-                <strong>{{ \$fechaInicio }}</strong> hasta el <strong>{{ \$fechaFinal }}</strong>, 
-                el cual fue registrado en esta dirección con el número 
-                <strong>{{ \$codigoProyecto }}</strong>. A la fecha, el equipo docente responsable de la ejecución de este proyecto es el siguiente:
-            </p>
-           
-        BLADE
-        , compact(
-            'nombreProyecto',
-            'municipios',
-            'fechaInicio',
-            'fechaFinal',
-            'codigoProyecto',
-            'integrantes' 
-        )),
+         'finalizacion' => Blade::render(<<<BLADE
+                <p>
+                    El Suscrito Director de Vinculación Universidad-Sociedad-VRA-UNAH, por este medio hace <strong>CONSTAR</strong> que el proyecto
+                    de vinculación denominado: <strong>{{ \$nombreProyecto }}</strong>, con código de registro <strong>{{ \$codigoProyecto }}</strong> 
+                    ha presentado el informe final que detalla los siguientes datos:
+                </p>
+            BLADE, [
+                'codigoProyecto' => $codigoProyecto,
+                'nombreProyecto' => $nombreProyecto,
+            ]),
 
             default => '<p>N/D</p>',
         };

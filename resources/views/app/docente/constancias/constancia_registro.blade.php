@@ -8,6 +8,7 @@
 
     <style>
         @page {
+            size: letter;
             margin: 3cm 0cm 3.2cm 0.5cm;
         }
         .header {
