@@ -408,7 +408,7 @@
                             <td>{{ $item['nombre_completo'] }}</td>
                             <td>{{ $item['cuenta'] }}</td>
                             <td>{{ $item['tipo_participacion'] }}</td>
-                            <td>{{ $item['departamento_academico'] }}</td>
+                            <td>{{ $item['departamento_academico'] ?? 'N/A' }}</td>
                         </tr>
                     @endforeach
                 </tbody>

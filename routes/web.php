@@ -89,11 +89,6 @@ Route::get('verificacion_constancia', [VerificarConstancia::class, 'verificacion
 //...
 
 
-//Route::get('generate-pdf', [PDFController::class, 'generatePDF']);
-
-//...
-
-
 Route::get('verificacion_constancia/{hash?}', [VerificarConstancia::class, 'index'])
     ->name('verificacion_constancia');
 
@@ -397,6 +392,7 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         
 
         Route::get('/descargar-pdf', [PDFController::class, 'generatePDF']);
+        
         Route::get('/ver-pdf', [PDFController::class, 'verVista']);
 
 
@@ -405,5 +401,12 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
     ->name('constancia.pdf');
 
 
+    Route::delete('/eliminar-constancia/{path}', function ($path) {
+        $filePath = storage_path('app/public/' . $path);
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+        return response()->json(['message' => 'Archivo eliminado']);
+    })->name('eliminar.constancia');
     
 });

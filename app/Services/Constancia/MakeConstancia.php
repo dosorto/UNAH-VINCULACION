@@ -132,22 +132,14 @@ class MakeConstancia
 
     public function buildPDF()
     {
-        
         $pdf = PDF::loadView($this->layout, $this->data)->setPaper('letter');
-        // Generar un nombre único para el archivo basándome en los id del empleado en el proyecto
         $fileName = 'constancia_' . $this->hash . '_' . time() . '.pdf';
-
-        // Definir la ruta con el nombre único
         $filePath = storage_path('app/public/' . $fileName);
 
-        // Guardar el PDF en la ruta
         $pdf->save($filePath);
 
         $this->pdfPath = $filePath;
-        // eliminar el qr despues de generar el pdf
-        //unlink($this->qrpath);
 
-        // Descargar el PDF y eliminarlo al instante para que no quede en storage
         return $this;
     }
 
