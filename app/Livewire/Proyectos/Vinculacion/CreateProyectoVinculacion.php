@@ -47,7 +47,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
         return $form
             ->schema([
                 Wizard::make([
-                   /* Wizard\Step::make('I.')
+                    Wizard\Step::make('I.')
                         ->description('Información general del proyecto')
                         ->schema(
                             PrimeraParte::form(),
@@ -80,7 +80,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                         ->schema(
                             MarcoLogico::form(),
                         )
-                        ->columns(2),*/
+                        ->columns(2),
                     Wizard\Step::make('VII.')
                         ->description('DETALLES DEL PRESUPUESTO')
                         ->schema(
