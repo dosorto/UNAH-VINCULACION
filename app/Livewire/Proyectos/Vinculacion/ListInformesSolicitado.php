@@ -48,11 +48,19 @@ class ListInformesSolicitado extends Component implements HasForms, HasTable
                     })
             )
             ->columns([
-
+                TextColumn::make('proyecto.nombre_proyecto')
+                    ->label('Nombre del Proyecto')
+                    ->searchable()
+                    ->wrap()
+                    ->sortable(),
                 TextColumn::make('tipo_documento')
-                    ->label('Tipo de informe'),
+                    ->label('Tipo de informe')
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('estado.tipoestado.nombre')
-                    ->label('Estado'),
+                    ->label('Estado')
+                    ->searchable()
+                    ->sortable(),
             ])
             ->filters([
                 //

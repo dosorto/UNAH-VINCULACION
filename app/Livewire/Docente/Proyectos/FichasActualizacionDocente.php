@@ -153,19 +153,30 @@ class FichasActualizacionDocente extends Component implements HasForms, HasTable
                     }),
 
                     Action::make('constancia_actualizacion')
-                        ->label('Constancia de Actualización')
-                        ->icon('heroicon-o-document')
-                        ->color('info')
-                        ->visible(function (FichaActualizacion $fichaActualizacion) {
-                            return VerificarConstancia::validarConstanciaActualizacion($fichaActualizacion->equipoEjecutor()
-                                ->where('empleado_id', $this->docente->id)
-                                ->first(), 'Actualizacion');
-                        })
-                        ->action(function (FichaActualizacion $fichaActualizacion) {
-                            return VerificarConstancia::CrearPdfActualizacion($fichaActualizacion->equipoEjecutor()
-                                ->where('empleado_id', $this->docente->id)
-                                ->first());
-                        }),
+                    ->label('Constancia de Actualización')
+                    ->icon('heroicon-o-document')
+                    ->color('info')
+                    ->visible(function (FichaActualizacion $fichaActualizacion) {
+                        // Verificar que el estado de la ficha sea 'Actualizacion realizada'
+                        $estadoFicha = $fichaActualizacion->obtenerUltimoEstado();
+                        if (!$estadoFicha || $estadoFicha->tipoestado->nombre !== 'Actualizacion realizada') {
+                            return false;
+                        }
+
+                        // Verificar que todas las firmas estén aprobadas
+                        $firmasRequeridas = $fichaActualizacion->firma_proyecto()->count();
+                        $firmasAprobadas = $fichaActualizacion->firma_proyecto()
+                            ->where('estado_revision', 'Aprobado')
+                            ->count();
+
+                        // Solo mostrar el botón si todas las firmas están aprobadas
+                        return $firmasRequeridas > 0 && $firmasRequeridas === $firmasAprobadas;
+                    })
+                    ->action(function (FichaActualizacion $fichaActualizacion) {
+                        return VerificarConstancia::CrearPdfActualizacion($fichaActualizacion->equipoEjecutor()
+                            ->where('empleado_id', $this->docente->id)
+                            ->first());
+                    }),
 
                 ])->button()
                     ->color('primary')

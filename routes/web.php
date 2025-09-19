@@ -30,7 +30,8 @@ use App\Livewire\Demografia\Municipio\ListaMunicipios;
 use App\Livewire\Docente\Proyectos\ProyectosAprobados;
 use App\Livewire\Docente\Proyectos\ProyectosRechazados;
 use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
-use App\Livewire\Proyectos\Vinculacion\TipoProyectoSelector;
+use App\Livewire\Proyectos\Vinculacion\AreaProyectoSelector;
+use App\Livewire\Proyectos\Vinculacion\CategoriaProyectoSelector;
 use App\Livewire\Docente\Proyectos\ProyectosAntesDelSistema;
 use App\Livewire\Docente\Proyectos\EditProyectoAntesDelSistema;
 use App\Livewire\Estudiante\CreateEstudiante;
@@ -314,8 +315,12 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('proyectosDocente')
             ->middleware('can:docente-admin-proyectos');
 
-        Route::get('selectorTipoAccion',  TipoProyectoSelector::class)
+        Route::get('selectorTipoAccion',  AreaProyectoSelector::class)
             ->name('selectorTipoAccion')
+            ->middleware('can:docente-admin-proyectos');
+
+        Route::get('selectorCategoria',  CategoriaProyectoSelector::class)
+            ->name('selectorCategoria')
             ->middleware('can:docente-admin-proyectos');
 
         Route::get('historialproyecto/{proyecto}', HistorialProyecto::class)
@@ -332,7 +337,7 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
         Route::get('FichasActualizacionPorFirmar', FichasActualizacionPorFirmar::class)
             ->name('FichasActualizacionPorFirmar')
-            ->middleware('can:proyectos-admin-proyectos');
+            ->middleware('can:docente-admin-proyectos');
 
         Route::get('FichasActualizacionDocente', FichasActualizacionDocente::class)
             ->name('FichasActualizacionDocente')

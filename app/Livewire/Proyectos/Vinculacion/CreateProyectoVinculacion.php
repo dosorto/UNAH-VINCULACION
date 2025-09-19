@@ -47,8 +47,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
         return $form
             ->schema([
                 Wizard::make([
-                    
-                 Wizard\Step::make('I.')
+                    Wizard\Step::make('I.')
                         ->description('Información general del proyecto')
                         ->schema(
                             PrimeraParte::form(),

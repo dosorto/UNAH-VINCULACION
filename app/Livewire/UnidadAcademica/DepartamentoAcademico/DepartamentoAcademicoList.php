@@ -54,8 +54,7 @@ class DepartamentoAcademicoList extends Component implements HasForms, HasTable
                             ->required(),
                         TextInput::make('siglas')
                             ->label('Siglas')
-                            ->maxLength(10)
-                            ->required(),
+                            ->maxLength(10),
                         Select::make('centro_facultad_id')
                             ->required()
                             ->label('Centro/Facultad')
@@ -120,8 +119,7 @@ class DepartamentoAcademicoList extends Component implements HasForms, HasTable
                             ->required(),
                         TextInput::make('siglas')
                             ->label('Siglas')
-                            ->maxLength(10)
-                            ->required(),
+                            ->maxLength(10),
                         Select::make('centro_facultad_id')
                             ->required()
                             ->label('Centro/Facultad')

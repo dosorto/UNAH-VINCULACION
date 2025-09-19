@@ -53,8 +53,7 @@ class CampusList extends Component implements HasForms, HasTable
                             ->required(),
                         TextInput::make('siglas')
                             ->label('Siglas')
-                            ->maxLength(10)
-                            ->required(),
+                            ->maxLength(10),
                         TextInput::make('direccion')
                             ->label('Dirección')
                             ->maxLength(255)
@@ -135,8 +134,7 @@ class CampusList extends Component implements HasForms, HasTable
                             ->required(),
                         TextInput::make('siglas')
                             ->label('Siglas')
-                            ->maxLength(10)
-                            ->required(),
+                            ->maxLength(10),
                         TextInput::make('direccion')
                             ->label('Dirección')
                             ->maxLength(255)

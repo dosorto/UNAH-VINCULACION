@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Models\Estado;
+namespace App\Models\ServicioInfraestructura;
 
 use App\Services\Correos\EnviarCorreos;
 use App\Models\Proyecto\Proyecto;
+use App\Models\Estado\TipoEstado;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -11,7 +12,7 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 use App\Models\Personal\Empleado;
 
-class EstadoProyecto extends Model
+class EstadoServicioTecnologico extends Model
 {
     use HasFactory;
     use SoftDeletes;

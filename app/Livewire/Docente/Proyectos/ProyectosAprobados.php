@@ -34,7 +34,12 @@ class ProyectosAprobados extends Component implements HasForms, HasTable
                     ->getQuery()
             )
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('proyecto.nombre_proyecto')
+                    ->label('Nombre del Proyecto')
+                    ->searchable()
+                    ->wrap()
+                    ->sortable(),
+                
                 Tables\Columns\TextColumn::make('cargo_firma.tipoCargoFirma.nombre')
                     ->badge()
                     ->color('info')

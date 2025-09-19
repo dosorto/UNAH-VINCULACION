@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 use App\Models\ServicioInfraestructura\ServicioTecnologico;
-use App\Models\ServicioInfraestructura\EmpleadoServicio;
 use App\Models\Personal\Empleado;
 
 use App\Models\ServicioInfraestructura\ActividadServicio;
