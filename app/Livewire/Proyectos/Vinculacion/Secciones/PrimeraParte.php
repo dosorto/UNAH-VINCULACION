@@ -88,6 +88,7 @@ class PrimeraParte
                 })
                 ->required()
                 ->preload(),
+
             Select::make('departamentos_academicos')
                 ->label('Departamentos Académicos')
                 ->searchable()
@@ -132,8 +133,7 @@ class PrimeraParte
                         return $query;
                     }
                 )
-                ->visible(fn(Get $get) => !empty($get('departamentos_academicos')))
-                ->required()
+                ->visible(fn(Get $get) => !empty($get('departamentos_academicos')))  
                 ->preload(),
 
 
