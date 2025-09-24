@@ -909,19 +909,19 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->administrativas_mujeres }}" disabled>
+                                {{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->where('asignatura_id', '!=', null)->first()?->asignatura?->codigo ?? '' }}
                             </td>
                             <td class="full-width" colspan="2">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Servicios', 'Masculino') }}" disabled>
+                               {{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->where('asignatura_id', '!=', null)->first()?->asignatura?->nombre ?? '' }}
                             </td>
                             <td class="full-width" colspan="2">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Servicios', 'Femenino') }}" disabled>
+                                {{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->where('asignatura_id', '!=', null)->first()?->asignatura?->periodoAcademico?->nombre ?? 'N/A' }}
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Asistentes técnicos laboratorios / Instructores', 'Masculino') }}" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Practica Asignatura', 'Masculino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Asistentes técnicos laboratorios / Instructores', 'Femenino') }}" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Practica Asignatura', 'Femenino') }}" disabled>
                             </td>
                         </tr>
                     </table>
