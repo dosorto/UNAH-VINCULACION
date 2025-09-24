@@ -21,6 +21,24 @@ use Illuminate\Support\Str;
 
 class VerificarConstancia extends Controller
 {
+
+ 
+    public function mostrarResultado($id)
+    {
+        $constancia = Constancia::findOrFail($id);
+        $makeConstancia = MakeConstancia::make($constancia)
+            ->setLayout('resultado.pdf') // Ajusta la ruta de la vista Blade para el PDF
+            ->generate();
+
+        // Pasar la ruta del PDF generado a la vista
+        $pdfPath = $makeConstancia->pdfPath ?? null; // Asegurarse de que $pdfPath esté definido
+
+        return view('aplicacion.resultado', [
+            'constancia' => $constancia,
+            'pdfPath' => $pdfPath,
+        ]);
+    }
+
     /*
         CREAR LAS CONSTANCIAS A LOS PROYECTOS 
     */

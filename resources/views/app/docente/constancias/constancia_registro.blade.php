@@ -8,6 +8,7 @@
 
     <style>
         @page {
+            size: letter;
             margin: 3cm 0cm 3.2cm 0.5cm;
         }
         .header {
@@ -225,7 +226,7 @@
     <table style="width: 100%; border-collapse: collapse; margin-top: -40px; margin-left: 0; padding-left: 0;">
         <tr>
             <td style="width: 40%; text-align: left; vertical-align: top; padding-left: 400px; padding-top: -80px;">
-                <div style="border: 1.5px solid #000; padding: 8px 10px; display: inline-block; font-size: 14px; font-weight: bold; background-color: #ffffff;">
+                <div style="border: 1.5px solid #000; padding: 8px 10px; display: inline-block; font-size: 14px; font-weight: bold; background-color: #ffffff; white-space: nowrap;">  
                     Código Verificación:
                     <span style="font-size: 14px; color: #00060c;">
                         {{ $codigoVerificacion ?? 'N/A' }}
@@ -233,7 +234,7 @@
                 </div>
             </td>
             <td style="width: 40%; text-align: right; vertical-align: top; padding-right: 65px; padding-top: -80px;">
-                <img src="{{ $qrCode }}" width="100" height="100" style="border: 1px solid #ddd;" />
+                <img src="{{ $qrCode }}" width="100" height="100" style="border: 1px solid #ddd; margin-left: 20px;" />
             </td>
         </tr>
     </table>

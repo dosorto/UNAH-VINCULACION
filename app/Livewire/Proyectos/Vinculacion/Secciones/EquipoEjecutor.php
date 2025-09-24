@@ -5,6 +5,8 @@ namespace App\Livewire\Proyectos\Vinculacion\Secciones;
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioDocente;
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioEstudiante;
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioIntegranteInternacional;
+use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioAsignatura;
+use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioPeriodoAcademico;
 
 use Filament\Forms;
 use App\Models\User;
@@ -139,12 +141,40 @@ class EquipoEjecutor
                     Select::make('tipo_participacion_estudiante')
                         ->label('Tipo de participación')
                         ->required()
+                        ->live()
                         ->options([
-                            'Practica Profesional' => 'Práctica Profesional',
+                            //'Practica Profesional' => 'Práctica Profesional',
                             'Servicio Social o PPS' => 'Servicio Social o PPS',
                             'Voluntariado' => 'Voluntariado',
+                            'Practica Asignatura' => 'Práctica Asignatura',
                         ])
                         ->required(),
+                    Select::make('asignatura_id')
+                        ->label('Asignatura')
+                        ->searchable(['codigo', 'nombre'])
+                        ->relationship(
+                            name: 'asignatura',
+                            titleAttribute: 'nombre'
+                        )
+                        ->visible(fn ($get) => $get('tipo_participacion_estudiante') === 'Practica Asignatura')
+                        ->createOptionForm(
+                            FormularioAsignatura::form()
+                        ),
+                    Select::make('periodo_academico_id')
+                        ->label('Período Académico')
+                        ->searchable(['nombre'])
+                        ->relationship(
+                            name: 'periodoAcademico',
+                            titleAttribute: 'nombre'
+                        )
+                        ->createOptionForm(
+                            FormularioPeriodoAcademico::form()
+                        )
+                        ->createOptionUsing(function (array $data) {
+                            return \App\Models\PeriodoAcademico::create($data);
+                        })
+                        ->visible(fn ($get) => $get('tipo_participacion_estudiante') === 'Practica Asignatura'),
+           
                 ])
                 ->label('Estudiantes')
                 ->relationship()
@@ -188,7 +218,7 @@ class EquipoEjecutor
                 ->itemLabel('Integrante Internacional')
                 ->addActionLabel('Agregar integrante internacional')
                 ->grid(2),
-            // actividades
+             // actividades
         ];
     }
 }

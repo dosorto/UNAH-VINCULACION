@@ -1,13 +1,46 @@
 @extends('layouts.aplicacion.app')
 @section('styles')
 <style>
-.fi-modal-window{
+.fi-modal-window {
     max-width: 90vw;
 }
-.fi-modal-content{
+.fi-modal-content {
     overflow-x: scroll;
 }
 
+/* Estilos para formato tamaño carta */
+.constancia-container {
+    width: 8.5in;
+    height: 11in;
+    margin: 0 auto;
+    background: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 1in;
+    overflow: hidden;
+    position: relative;
+}
+
+.constancia-container h1, .constancia-container p {
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+/* Ajustes para el QR */
+.constancia-container img.qr-code {
+    width: 150px;
+    height: 150px;
+    border: 1px solid #ddd;
+    margin: 20px auto;
+}
+
+/* Ajustes para las imágenes */
+.constancia-container img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
 </style>
 @endsection
 @section('title', 'Mensaje')
@@ -22,9 +55,7 @@
         <div class="relative max-w-3xl mx-auto px-4 sm:px-6">
             <!-- Navigation Header -->
             <div class="flex justify-between items-center mb-4">
-
-                
-                
+             
             </div>
             
             <!-- Message Box -->
@@ -76,6 +107,7 @@
                                 <p class="mt-1 text-black dark:text-white">{{$horas}}</p>
                             </div>
                         </div>
+                    </div>
 
                         
                         
@@ -174,21 +206,17 @@
                                             
                                         >
                                             <span >Reset</span>
-                                        </x-filament::button>
-                                      
-                                        
-            
+                                        </x-filament::button>          
                                     </x-slot>
                             
                                     {{-- Contenido escalable --}}
                                    
                                     <div
     x-bind:style="'transform: scale(' + scale + ') translate(' + translateX + 'px,' + translateY + 'px); transform-origin: center;'"
-    class="bg-white w-full flex justify-center items-center py-8 transition-transform duration-300 cursor-grab"
+    class="constancia-container"
    
 >
                                         @include('app.docente.constancias.constancia_registro')
-                                        @include('app.docente.constancias.constancia_actualizacion')
                                     </div>
                             
                                     {{-- Footer con botones que usan Alpine --}}

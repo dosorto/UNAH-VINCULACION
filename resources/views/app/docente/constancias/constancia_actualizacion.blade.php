@@ -6,10 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title></title>
 
-   <style>
+    <style>
         @page {
             margin: 3cm 0cm 3.2cm 0.5cm;
         }
+
         .header {
             position: fixed;
             top: -3cm;
@@ -20,14 +21,17 @@
             align-items: flex-start;
             justify-content: space-between;
         }
+
         .imgHeader {
             float: left;
             width: 3cm;
         }
+
         .imgHeader img {
             width: 10cm;
             height: auto;
         }
+
         .infoHeader {
             text-align: right;
             font-size: 12px;
@@ -35,6 +39,7 @@
             white-space: nowrap;
             margin-right: 35px;
         }
+
         .infoHeader p {
             margin: 0;
             line-height: 1.4;
@@ -44,6 +49,7 @@
             color: rgb(4, 4, 94);
             line-height: 1.4;
         }
+
         .header-yellow-box {
             position: absolute;
             top: 0;
@@ -52,12 +58,14 @@
             height: 100px;
             background-color: #f8d50f;
         }
+
         .constancia-texto {
             max-width: 7in;
             margin: 20px auto 0;
             font-family: Arial, sans-serif;
             line-height: 1.0;
         }
+
         .constancia-texto p {
             text-align: justify;
             margin: 10px 0;
@@ -65,24 +73,28 @@
             font-family: Arial, sans-serif;
             line-height: 1.2;
         }
+
         .tabla-responsables {
             width: 100%;
             border-collapse: collapse;
-            margin: 20px auto;
-            font-size: 15px;
+            margin: 10px auto;
+            font-size: 14px;
         }
+
         .tabla-responsables th,
         .tabla-responsables td {
             border: 1px solid #000;
             padding: 3px 5px;
             text-align: left;
         }
+
         .tabla-responsables th {
             background: #0f0258;
             color: #fff;
             font-weight: bold;
         }
-        #fecha-automatica { 
+
+        #fecha-automatica {
             font-family: Arial, sans-serif;
             text-align: justify;
             font-size: 16px;
@@ -90,30 +102,36 @@
             margin-bottom: 60px;
             line-height: 1.0;
         }
+
         .firma-container {
             position: relative;
             text-align: center;
             margin-top: 20px;
             height: 100px;
         }
+
         .firma {
             display: inline-block;
             position: relative;
         }
+
         .firma img {
             display: block;
         }
+
         .sello {
             position: absolute;
             top: -25px;
             right: -40px;
             z-index: 2;
         }
+
         .nombre-firma {
             text-align: center;
             margin-top: 2px;
             font-weight: bold;
         }
+
         .observacion {
             margin: 3px auto 0;
             padding: 10px 15px;
@@ -125,6 +143,7 @@
             page-break-before: auto;
             min-height: 130px;
         }
+
         .footer {
             position: fixed;
             bottom: -3.2cm;
@@ -136,11 +155,13 @@
             font-family: Arial, sans-serif;
             z-index: 10;
         }
-        .footer-logo img {  
-            position: relative;    
-            margin-top: 0px; 
-            margin-bottom: -20px;                 
+
+        .footer-logo img {
+            position: relative;
+            margin-top: 0px;
+            margin-bottom: -20px;
         }
+
         .footer-year {
             text-align: right;
             font-size: 13px;
@@ -149,16 +170,19 @@
             margin-bottom: 45px;
             margin-right: 85px;
         }
+
         .footer-bottom {
             text-align: justify;
             margin-bottom: 10px;
         }
+
         .footer-bottom hr {
             border: none;
             border-top: 1px dashed #063363;
             margin: -35px;
             margin-bottom: 15px;
         }
+
         .footer-bottom p {
             font-size: 12px;
             color: #053972;
@@ -167,6 +191,7 @@
             font-family: Arial, sans-serif;
             padding-bottom: -40px;
         }
+
         .footer-blue-box {
             position: fixed;
             padding: 0px;
@@ -176,6 +201,7 @@
             height: 50px;
             background-color: #061761;
         }
+
         body::before {
             content: '';
             position: fixed;
@@ -264,10 +290,7 @@
                         font-weight: bold;
                         background-color: #ffffff;
                     ">
-                    Código Verificación: <br>
-                    <span style="font-size: 14px; color: #00060c;">
-                        {{ $codigoVerificacion ?? 'N/A' }}
-                    </span>
+                    Código Verificación: <span style="white-space: nowrap;">{{ $codigoVerificacion ?? 'N/A' }}</span>
                 </div>
             </td>
 
@@ -342,6 +365,56 @@
             </tbody>
         </table>
 
+        @if (!empty($integrantes_internacionales))
+            <h4>Integrantes Internacionales</h4>
+            <table class="tabla-responsables">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Nombre completo</th>
+                        <th>Institución</th>
+                        <th>Rol</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($integrantes_internacionales as $item)
+                        <tr>
+                            <td>{{ $item['no'] }}.</td>
+                            <td>{{ $item['nombre_completo'] }}</td>
+                            <td>{{ $item['institucion'] }}</td>
+                            <td>{{ $item['rol'] }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+
+        @if (!empty($estudiantes))
+            <h4>Estudiantes</h4>
+            <table class="tabla-responsables">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Nombre completo</th>
+                        <th>N° Cuenta</th>
+                        <th>Tipo participación</th>
+                        <th>Departamento académico</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($estudiantes as $item)
+                        <tr>
+                            <td>{{ $item['no'] }}.</td>
+                            <td>{{ $item['nombre_completo'] }}</td>
+                            <td>{{ $item['cuenta'] }}</td>
+                            <td>{{ $item['tipo_participacion'] }}</td>
+                            <td>{{ $item['departamento_academico'] ?? 'N/A' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+
 
         @php
             $hoy = \Carbon\Carbon::today()->locale('es');
@@ -401,7 +474,7 @@
 
 
         <!-- Firma -->
-         <div class="firma-container">
+        <div class="firma-container">
             <div class="firma">
                 <div class="sello">
                     <img src="{{$selloDirector}}" alt="Sello de la UNAH" width="120">
@@ -410,14 +483,12 @@
             </div>
         </div>
 
-        <!-- Nombre del firmante -->
         <div class="nombre-firma">
-            {{ $nombreDirector }}<br>
+            {{$nombreDirector}}<br>
             Director de Vinculación Universidad – Sociedad<br>
             VRA-UNAH
         </div>
-        <br>
-
+        
         <!-- Observación -->
         <div class="observacion">
             <strong>Observación:</strong> Esta constancia no tiene validez para efectos de calificación en los
