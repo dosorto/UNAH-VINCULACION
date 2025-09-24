@@ -48,5 +48,15 @@ class EstudianteProyecto extends Model
         return $this->belongsTo(TipoParticipacion::class, 'tipo_participacion_id');
     }
 
+    public function asignatura()
+    {
+        return $this->belongsTo(\App\Models\Asignatura::class);
+    }
+
+    public function periodoAcademico()
+    {
+        return $this->belongsTo(\App\Models\PeriodoAcademico::class);
+    }
+
     protected $table = 'estudiante_proyecto';
 }
