@@ -17,6 +17,6 @@
     },
     "dependencies": {
         "@tailwindcss/vite": "^4.0.13",
-        "apexcharts": "^3.46.0"
+        "apexcharts": "^3.54.1"
     }
 }

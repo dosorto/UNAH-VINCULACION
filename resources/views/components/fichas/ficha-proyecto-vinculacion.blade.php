@@ -750,7 +750,7 @@
                         </tr>
                         <tr>
                             <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="sub-header" colspan="2" rowspan="2">Práctica Profesional</td>
+                            <td class="sub-header" colspan="2" rowspan="2">Práctica de asignatura</td>
                             <td class="sub-header" colspan="2" rowspan="2">Servicio Social o PPS</td>
                             <td class="sub-header" colspan="2" rowspan="2">Voluntariado</td>
                         </tr>
@@ -882,6 +882,39 @@
                                 <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Servicios', 'Masculino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Servicios', 'Femenino') }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Asistentes técnicos laboratorios / Instructores', 'Masculino') }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Asistentes técnicos laboratorios / Instructores', 'Femenino') }}" disabled>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="full-width1" rowspan="5">Detalle de la Práctica de asignatura/posgrado</th>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="5" rowspan="1"></td>
+                            <td class="sub-header" colspan="2" rowspan="1">Matrícula</td>
+                        </tr>
+                        <tr>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="1">Código</td>
+                            <td class="sub-header" colspan="2">Nombre</td>
+                            <td class="sub-header" colspan="2">Periodo académico</td>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->administrativas_mujeres }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="2">
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Servicios', 'Masculino') }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="2">
                                 <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Servicios', 'Femenino') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
