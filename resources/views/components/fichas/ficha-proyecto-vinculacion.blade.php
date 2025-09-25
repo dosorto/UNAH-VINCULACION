@@ -915,7 +915,7 @@
                                {{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->where('asignatura_id', '!=', null)->first()?->asignatura?->nombre ?? '' }}
                             </td>
                             <td class="full-width" colspan="2">
-                                {{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->where('asignatura_id', '!=', null)->first()?->asignatura?->periodoAcademico?->nombre ?? 'N/A' }}
+                                {{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->where('asignatura_id', '!=', null)->first()?->asignatura?->periodoAcademico?->nombre ?? '' }}
                             </td>
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Practica Asignatura', 'Masculino') }}" disabled>
