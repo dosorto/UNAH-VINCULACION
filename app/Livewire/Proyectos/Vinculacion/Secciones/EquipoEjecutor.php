@@ -156,6 +156,7 @@ class EquipoEjecutor
                             name: 'asignatura',
                             titleAttribute: 'nombre'
                         )
+                        ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->codigo} {$record->nombre}")
                         ->visible(fn ($get) => $get('tipo_participacion_estudiante') === 'Practica Asignatura')
                         ->createOptionForm(
                             FormularioAsignatura::form()

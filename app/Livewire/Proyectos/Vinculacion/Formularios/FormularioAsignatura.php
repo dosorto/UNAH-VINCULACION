@@ -14,9 +14,18 @@ class FormularioAsignatura
         return [
             TextInput::make('codigo')
                 ->label('Código de la Asignatura')
+                ->placeholder('ej: HH-101, EG-101')
                 ->required()
                 ->unique('asignaturas', 'codigo')
-                ->maxLength(10),
+                ->live()
+                ->maxLength(10)
+                ->rules([
+                    fn (): \Closure => function (string $attribute, $value, \Closure $fail) {
+                        if (!preg_match('/^[A-Z]{2}-\d{3}$/', $value)) {
+                            $fail('El código debe contener dos letras mayúsculas, un guión y tres números (por ejemplo: HH-101, EG-101).');
+                        }
+                    },
+                ]),
 
             TextInput::make('nombre')
                 ->label('Nombre de la Asignatura')
