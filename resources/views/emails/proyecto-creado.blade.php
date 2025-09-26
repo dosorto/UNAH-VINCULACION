@@ -271,15 +271,9 @@
             </div>
             
             <p style="text-align: justify; margin-bottom: 25px;">
-                Por medio de la presente, nos dirigimos a usted para <strong>confirmar oficialmente</strong> 
-                que su solicitud de proyecto ha sido registrada exitosamente en el Sistema de Gestión 
-                de Proyectos de Vinculación Universidad-Sociedad de la UNAH.
+                Por medio de la presente, nos dirigimos a usted para <strong>notificarle</strong> 
+                que su solicitud de registro de proyecto ha sido enviada exitosamente por medio del Sistema NEXO.
             </p>
-            
-            <div class="official-notice">
-                <div class="stamp">✓ REGISTRO OFICIAL</div>
-                <p><strong>Su proyecto ha sido ingresado al sistema NEXO-UNAH</strong></p>
-            </div>
             
             <div class="project-info">
                 <div class="project-title">{{ $proyecto->nombre_proyecto }}</div>
@@ -299,20 +293,9 @@
                     </div>
                 </div>
             </div>
-            
-            <div class="institutional-notice">
-                <h3>⚡ Proceso Institucional</h3>
-                <ul>
-                    <li><strong>Revisión académica:</strong> Su proyecto será evaluado por el comité técnico correspondiente</li>
-                    <li><strong>Validación institucional:</strong> Se verificará el cumplimiento de requisitos y normativas</li>
-                    <li><strong>Notificaciones oficiales:</strong> Recibirá comunicaciones sobre el avance del proceso</li>
-                    <li><strong>Seguimiento continuo:</strong> Podrá consultar el estado desde su panel institucional</li>
-                </ul>
-            </div>
 
             <p style="text-align: justify; margin: 25px 0;">
-                <strong>Importante:</strong> Este documento constituye la confirmación oficial del registro 
-                de su proyecto en el sistema institucional NEXO-UNAH. Conserve este correo para sus registros académicos.
+                <strong>Importante:</strong> Este correo electrónico confirma la solicitud de registro de su proyecto en el sistema institucional NEXO.
             </p>
             
             <div class="action-section">
@@ -323,24 +306,18 @@
                     Acceder al Sistema Institucional
                 </a>
             </div>
-
-            <div class="signature-section">
-                <p><strong>Atentamente,</strong></p>
-                <p>Dirección de Vinculación Universidad-Sociedad</p>
-                <p>Vicerrectoría de Relaciones Externas</p>
-                <p>Universidad Nacional Autónoma de Honduras</p>
-            </div>
         </div>
         
         <div class="footer">
             <div class="university-seal">
                 <p><strong>UNIVERSIDAD NACIONAL AUTÓNOMA DE HONDURAS</strong></p>
+                <p>Vicerrectoría Académica - Dirección de Vinculación Universidad-Sociedad</p>
                 <p>{{ $appName }} - Sistema de Gestión de Proyectos de Vinculación</p>
             </div>
-            <p>&copy; {{ date('Y') }} UNAH - Todos los derechos reservados</p>
+            <p>&copy; {{ date('Y') }} Nexo - Todos los derechos reservados</p>
             <div class="contact-info">
                 <p>Ciudad Universitaria José Trinidad Reyes | Tegucigalpa, Honduras</p>
-                <p>Este es un mensaje automático del sistema institucional</p>
+                <p>Este es un mensaje automático del sistema NEXO</p>
             </div>
         </div>
     </div>

@@ -38,6 +38,10 @@ use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
+// Imports para notificaciones por correo
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ProyectoEstadoCambiado;
+
 class ListProyectosSolicitado extends Component implements HasForms, HasTable
 {
     use InteractsWithForms;
@@ -194,13 +198,38 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                     'comentario' => $data['comentario'],
                                 ]);
 
+                                // Recargar el proyecto con todas sus relaciones para el correo
+                                $record->refresh();
+                                $record->load(['coordinador_proyecto.empleado.user']);
+
+                                // Enviar notificación por correo al coordinador del proyecto
+                                try {
+                                    if ($record->coordinador && $record->coordinador->user) {
+                                        Mail::to($record->coordinador->user->email)->send(
+                                            new ProyectoEstadoCambiado(
+                                                $record, 
+                                                $record->coordinador->user, 
+                                                'Subsanación', 
+                                                $data['comentario'],
+                                                'rechazo'
+                                            )
+                                        );
+                                        
+                                        \Log::info('Correo de rechazo enviado exitosamente para el proyecto: ' . $record->nombre_proyecto);
+                                    } else {
+                                        \Log::warning('No se pudo enviar correo de rechazo: coordinador o usuario no encontrado para el proyecto ID: ' . $record->id);
+                                    }
+                                } catch (\Exception $emailException) {
+                                    \Log::error('Error al enviar correo de proyecto rechazado para proyecto ID ' . $record->id . ': ' . $emailException->getMessage());
+                                }
+
                                 // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                                 // ->where('empleado_id', $this->docente->id)
                                 // ->first());
                                 Notification::make()
                                     ->title('¡Realizado!')
-                                    ->body('Proyecto Rechazado')
-                                    ->info()
+                                    ->body('Proyecto Rechazado y notificación enviada al coordinador')
+                                    ->warning()
                                     ->send();
                             })
                             ->cancelParentActions()
@@ -302,7 +331,7 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                                 // dd($this->docente);
 
                                 // actualizar el estado del proyecto al siguiente estado :)
-                                $proyecto->estado_proyecto()->create([
+                                $estadoProyecto = $proyecto->estado_proyecto()->create([
                                     'empleado_id' => Auth::user()->empleado->id,
                                     'tipo_estado_id' => TipoEstado::where('nombre', 'En revision final')->first()->id,
                                     'fecha' => now(),
@@ -328,13 +357,38 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
 
                                 $proyecto->update($data);
 
+                                // Recargar el proyecto con todas sus relaciones para el correo
+                                $proyecto->refresh();
+                                $proyecto->load(['coordinador_proyecto.empleado.user']);
+
+                                // Enviar notificación por correo al coordinador del proyecto
+                                try {
+                                    if ($proyecto->coordinador && $proyecto->coordinador->user) {
+                                        Mail::to($proyecto->coordinador->user->email)->send(
+                                            new ProyectoEstadoCambiado(
+                                                $proyecto, 
+                                                $proyecto->coordinador->user, 
+                                                'En revisión final', 
+                                                'Su proyecto ha sido aprobado exitosamente y enviado a revisión final. Recibirá notificaciones sobre el progreso del proceso.',
+                                                'aprobación'
+                                            )
+                                        );
+                                        
+                                        \Log::info('Correo de aprobación enviado exitosamente para el proyecto: ' . $proyecto->nombre_proyecto);
+                                    } else {
+                                        \Log::warning('No se pudo enviar correo de aprobación: coordinador o usuario no encontrado para el proyecto ID: ' . $proyecto->id);
+                                    }
+                                } catch (\Exception $emailException) {
+                                    \Log::error('Error al enviar correo de proyecto aprobado para proyecto ID ' . $proyecto->id . ': ' . $emailException->getMessage());
+                                }
+
                                 // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                                 // ->where('empleado_id', $this->docente->id)
                                 // ->first());
                                 Notification::make()
                                     ->title('¡Realizado!')
-                                    ->body('Proyecto Aprobado correctamente')
-                                    ->info()
+                                    ->body('Proyecto Aprobado correctamente y notificación enviada al coordinador')
+                                    ->success()
                                     ->send();
                             })
                             ->modalWidth(MaxWidth::SevenExtraLarge)

@@ -25,6 +25,9 @@ use Filament\Forms\Components\Textarea;
 
 
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ProyectoEstadoCambiado;
+use Illuminate\Support\Facades\Log;
 
 use App\Models\Proyecto\CargoFirma;
 
@@ -267,6 +270,36 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
                                     'comentario' => $data['comentario'],
                                 ]);
 
+                                // Enviar notificación por correo al coordinador del proyecto
+                                try {
+                                    $coordinador = $record->coordinador_proyecto->first()?->empleado->user ?? null;
+                                    
+                                    if ($coordinador) {
+                                        Mail::to($coordinador->email)->send(
+                                            new ProyectoEstadoCambiado(
+                                                $record,
+                                                $coordinador,
+                                                'Proyecto Rechazado',
+                                                $data['comentario'],
+                                                'rechazo'
+                                            )
+                                        );
+                                        Log::info('Correo de rechazo de proyecto enviado', [
+                                            'proyecto_id' => $record->id,
+                                            'coordinador_email' => $coordinador->email
+                                        ]);
+                                    } else {
+                                        Log::warning('No se pudo enviar correo de rechazo: coordinador no encontrado', [
+                                            'proyecto_id' => $record->id
+                                        ]);
+                                    }
+                                } catch (\Exception $e) {
+                                    Log::error('Error al enviar correo de rechazo de proyecto', [
+                                        'error' => $e->getMessage(),
+                                        'proyecto_id' => $record->id
+                                    ]);
+                                }
+
                                 // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                                 // ->where('empleado_id', $this->docente->id)
                                 // ->first());
@@ -323,6 +356,36 @@ class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
                                // $proyecto->user_director_id = Auth::user()->empleado->id;
                                 $proyecto->save();
                                 $proyecto->update($data);
+
+                                // Enviar notificación por correo al coordinador del proyecto
+                                try {
+                                    $coordinador = $proyecto->coordinador_proyecto->first()?->empleado->user ?? null;
+                                    
+                                    if ($coordinador) {
+                                        Mail::to($coordinador->email)->send(
+                                            new ProyectoEstadoCambiado(
+                                                $proyecto,
+                                                $coordinador,
+                                                'Proyecto Aprobado',
+                                                'Su proyecto ha sido aprobado exitosamente en la revisión final. El proyecto ha cambiado al estado "En curso" y puede continuar con las actividades programadas.',
+                                                'aprobación'
+                                            )
+                                        );
+                                        Log::info('Correo de aprobación de proyecto enviado', [
+                                            'proyecto_id' => $proyecto->id,
+                                            'coordinador_email' => $coordinador->email
+                                        ]);
+                                    } else {
+                                        Log::warning('No se pudo enviar correo de aprobación: coordinador no encontrado', [
+                                            'proyecto_id' => $proyecto->id
+                                        ]);
+                                    }
+                                } catch (\Exception $e) {
+                                    Log::error('Error al enviar correo de aprobación de proyecto', [
+                                        'error' => $e->getMessage(),
+                                        'proyecto_id' => $proyecto->id
+                                    ]);
+                                }
                                 
                                 VerificarConstancia::makeConstanciasProyecto($proyecto);
                                 // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
