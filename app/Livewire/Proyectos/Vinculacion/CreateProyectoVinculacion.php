@@ -50,13 +50,13 @@ class CreateProyectoVinculacion extends Component implements HasForms
                     Wizard\Step::make('I.')
                         ->description('Información general del proyecto')
                         ->schema(
-                            EquipoEjecutor::form(),
+                            PrimeraParte::form(),
                         )
                         ->columns(2),
                     Wizard\Step::make('II.')
                         ->description('EQUIPO EJECUTOR DEL PROYECTO')
                         ->schema(
-                            PrimeraParte::form(),
+                            EquipoEjecutor::form(),
                         ),
                     Wizard\Step::make('III.')
                         ->description('INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (en caso de contar con una contraparte).')
