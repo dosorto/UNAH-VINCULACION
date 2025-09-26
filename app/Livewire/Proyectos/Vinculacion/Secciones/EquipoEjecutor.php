@@ -161,18 +161,16 @@ class EquipoEjecutor
                             FormularioAsignatura::form()
                         ),
                     Select::make('periodo_academico_id')
-                        ->label('Período Académico')
-                        ->searchable(['nombre'])
-                        ->relationship(
-                            name: 'periodoAcademico',
-                            titleAttribute: 'nombre'
-                        )
-                        ->createOptionForm(
-                            FormularioPeriodoAcademico::form()
-                        )
-                        ->createOptionUsing(function (array $data) {
-                            return \App\Models\PeriodoAcademico::create($data);
-                        })
+                        ->label('Periodo Académico')
+                        ->required()
+                        ->live()
+                        ->options([
+                            'Primer Periodo' => 'Primer Periodo',
+                            'Segundo Periodo' => 'Segundo Periodo',
+                            'Tercer Periodo' => 'Tercer Periodo',
+                            'Primer Semestre' => 'Primer Semestre',
+                            'Segundo Semestre' => 'Segundo Semestre',
+                        ])
                         ->visible(fn ($get) => $get('tipo_participacion_estudiante') === 'Practica Asignatura'),
            
                 ])
