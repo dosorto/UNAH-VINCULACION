@@ -459,6 +459,7 @@ class Proyecto extends Model
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
             ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
             ->where('empleado.sexo', 'Masculino')
+            ->where('empleado.tipo_empleado', 'docente') // Agregado filtro por tipo
             ->where(function($q) {
                 $q->whereRaw("LOWER(categoria.nombre) LIKE '%profesores x hora%'")
                   ->orWhereRaw("LOWER(categoria.nombre) LIKE '%profesores horarios%'")
@@ -466,7 +467,8 @@ class Proyecto extends Model
                   ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular ii%'")
                   ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iii%'")
                   ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iv%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular v%'");
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular v%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%auxiliar%'"); // Agregado Auxiliar
             })
             ->count();
     }
@@ -477,6 +479,7 @@ class Proyecto extends Model
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
             ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
             ->where('empleado.sexo', 'Femenino')
+            ->where('empleado.tipo_empleado', 'docente') // Agregado filtro por tipo
             ->where(function($q) {
                 $q->whereRaw("LOWER(categoria.nombre) LIKE '%profesores x hora%'")
                   ->orWhereRaw("LOWER(categoria.nombre) LIKE '%profesores horarios%'")
@@ -484,7 +487,8 @@ class Proyecto extends Model
                   ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular ii%'")
                   ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iii%'")
                   ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iv%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular v%'");
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular v%'")
+                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%auxiliar%'"); // Agregado Auxiliar
             })
             ->count();
     }
@@ -494,18 +498,28 @@ class Proyecto extends Model
         $query = $this->empleado_proyecto()
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
             ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
-            ->where('empleado.tipo_empleado', 'Docente');
+            ->where('empleado.tipo_empleado', 'docente'); // Corregido: minúscula
 
         if (strtolower($categoria) === 'permanente') {
+            // Docentes permanentes: Titulares y Auxiliares
             $query->where(function($q) {
                 $q->whereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular i%'])
                 ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular ii%'])
                 ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular iii%'])
                 ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular iv%'])
-                ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular v%']);
+                ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular v%'])
+                ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%auxiliar%']); // Agregado
             });
         } else {
-            $query->whereRaw('LOWER(categoria.nombre) LIKE ?', ['%' . strtolower($categoria) . '%']);
+            // Búsqueda más precisa para las categorías específicas
+            $categoriaLower = strtolower($categoria);
+            if ($categoriaLower === 'profesores x hora') {
+                $query->whereRaw('LOWER(categoria.nombre) = ?', ['profesores x hora']);
+            } elseif ($categoriaLower === 'profesores horarios') {
+                $query->whereRaw('LOWER(categoria.nombre) = ?', ['profesores horarios']);
+            } else {
+                $query->whereRaw('LOWER(categoria.nombre) LIKE ?', ['%' . $categoriaLower . '%']);
+            }
         }
 
         if ($genero) {

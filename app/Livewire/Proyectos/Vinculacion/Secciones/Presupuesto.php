@@ -44,13 +44,13 @@ class Presupuesto
                                 ->label('Concepto')
                                 ->disabled()
                                 ->columnSpan(2)
-                                ->default(0),
+                                ->placeholder('0'),
                                 
                             TextInput::make('unidad_label')
                                 ->label('Unidad')
                                 ->disabled()
                                 ->columnSpan(1)
-                                ->default(0),
+                                ->placeholder('0'),
                                 
                             TextInput::make('cantidad')
                                 ->label('Cantidad')
@@ -66,8 +66,8 @@ class Presupuesto
                                     self::calcularTotalCantidades($get, $set); // Nueva función
                                 })
                                 ->columnSpan(1)
-                                ->default(0),
-                                
+                                ->placeholder('0'),
+
                             TextInput::make('costo_unitario')
                                 ->label('Costo unitario')
                                 ->numeric()
@@ -83,7 +83,7 @@ class Presupuesto
                                     self::calcularCostoUnitario($get, $set); // Nueva función
                                 })
                                 ->columnSpan(1)
-                                ->default(0),
+                                ->placeholder('0'),
 
                             TextInput::make('costo_total')
                                 ->label('Costo Total')
@@ -171,7 +171,7 @@ class Presupuesto
                                     self::calcularTotalAporteInstitucional($get, $set);
                                 })
                                 ->columnSpan(1)
-                                ->default(0),
+                                ->placeholder('0'),
 
                             TextInput::make('costo_unitario_infraestructura')
                                 ->label('Costo unitario')
@@ -188,7 +188,7 @@ class Presupuesto
                                     self::calcularTotalAporteInstitucional($get, $set);
                                 })
                                 ->columnSpan(1)
-                                ->default(0),
+                                ->placeholder('0'),
 
                             TextInput::make('costo_total_infraestructura')
                                 ->label('Costo Total')
@@ -232,7 +232,7 @@ class Presupuesto
                                     self::calcularTotalAporteInstitucional($get, $set);
                                 })
                                 ->columnSpan(1)
-                                ->default(0),
+                                ->placeholder('0'),
 
                             TextInput::make('costo_unitario_servicios')
                                 ->label('Costo unitario')
@@ -249,7 +249,7 @@ class Presupuesto
                                     self::calcularTotalAporteInstitucional($get, $set);
                                 })
                                 ->columnSpan(1)
-                                ->default(0),
+                                ->placeholder('0'),
 
                             TextInput::make('costo_total_servicios')
                                 ->label('Costo Total')
@@ -285,31 +285,31 @@ class Presupuesto
                         ->label('Aporte de contraparte')
                         ->numeric()
                         ->required()
-                        ->default(0),
+                        ->placeholder('0'),
 
                     TextInput::make('aporte_internacionales')
                         ->label('Aporte fondos internacionales')
                         ->numeric()
                         ->required()
-                        ->default(0),
+                        ->placeholder('0'),
 
                     TextInput::make('aporte_otras_universidades')
                         ->label('Aporte otras universidades')
                         ->numeric()
                         ->required()
-                        ->default(0),
+                        ->placeholder('0'),
 
                     TextInput::make('aporte_comunidad')
                         ->label('Aportes de beneficiarios')
                         ->numeric()
                         ->required()
-                        ->default(0),
+                        ->placeholder('0'),
 
                     TextInput::make('otros_aportes')
                         ->label('Otros aportes')
                         ->numeric()
                         ->required()
-                        ->default(0),
+                        ->placeholder('0'),
 
                 ])
                 ->relationship('presupuesto') // Relación hasOne
