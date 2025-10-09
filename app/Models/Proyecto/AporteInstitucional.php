@@ -27,6 +27,12 @@ class AporteInstitucional extends Model
         'costo_total' => 'decimal:2'
     ];
 
+    protected $attributes = [
+        'cantidad' => 0,
+        'costo_unitario' => 0,
+        'costo_total' => 0
+    ];
+
     protected $appends = [
         'concepto_label',
         'unidad_label'
@@ -55,6 +61,22 @@ class AporteInstitucional extends Model
             'porcentaje' => '%',
             default => $this->unidad
         };
+    }
+
+    // Mutadores para convertir valores null a 0
+    public function setCantidadAttribute($value)
+    {
+        $this->attributes['cantidad'] = $value ?? 0;
+    }
+
+    public function setCostoUnitarioAttribute($value)
+    {
+        $this->attributes['costo_unitario'] = $value ?? 0;
+    }
+
+    public function setCostoTotalAttribute($value)
+    {
+        $this->attributes['costo_total'] = $value ?? 0;
     }
 
     public function proyecto(): BelongsTo
