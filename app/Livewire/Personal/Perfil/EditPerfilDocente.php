@@ -115,6 +115,7 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
                 // Section para el sello
                 Section::make('Sello (opcional)')
                     ->description('Visualizar o agregar un nuevo Sello.')
+                    ->model($this->record->empleado)
                     ->headerActions([
                         Action::make('create')
                             ->label('Crear Nuevo Sello')
@@ -122,7 +123,7 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
                             ->form([
                                 // ...
                                 Hidden::make('empleado_id')
-                                    ->default($this->record->id),
+                                    ->default($this->record->empleado->id),
                                 FileUpload::make('ruta_storage')
                                     ->label('Sello')
                                     ->disk('public')
@@ -160,8 +161,8 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
                             ->defaultItems(1)
                             ->addable(false)
                             ->columns(1),
-                    ])
-                    ->model($this->record->empleado),
+                    ]),
+                    
 
                 // Section para códigos de proyectos de investigación
                 Section::make('Registro de proyectos de vinculación previos al sistema')
