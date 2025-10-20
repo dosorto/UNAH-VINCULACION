@@ -43,7 +43,7 @@ class SendEmail extends Command
             $proyecto = Proyecto::find($proyectoId);
             $usuario = User::find($usuarioId);
 
-            $usuario->email = 'acxel.aplicano@unah.hn';
+            $usuario->email = 'dorian.ordonez@unah.edu.hn';
             if ($proyecto && $usuario) {
                 try {
                     /*Mail::raw(new ProyectoCreado($proyecto, $usuario), function($message) {

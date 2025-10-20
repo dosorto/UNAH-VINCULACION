@@ -88,6 +88,7 @@ class PrimeraParte
                 })
                 ->required()
                 ->preload(),
+
             Select::make('departamentos_academicos')
                 ->label('Departamentos Académicos')
                 ->searchable()
@@ -116,23 +117,40 @@ class PrimeraParte
                     modifyQueryUsing: function ($query, Get $get) {
                         $departamentosSeleccionados = $get('departamentos_academicos');
                         $facultadesSeleccionadas = $get('facultades_centros');
-                        
+
                         if (!empty($departamentosSeleccionados)) {
-                            // Filtrar carreras que pertenecen a los departamentos seleccionados
-                            return $query->whereHas('departamentosAcademicos', function ($subQuery) use ($departamentosSeleccionados) {
-                                $subQuery->whereIn('departamento_academico.id', $departamentosSeleccionados);
+                            // Filtrar carreras que pertenecen a los departamentos seleccionados (pivot o campo directo)
+                            return $query->where(function ($subQuery) use ($departamentosSeleccionados) {
+                                $subQuery->whereHas('departamentosAcademicos', function ($q) use ($departamentosSeleccionados) {
+                                    $q->whereIn('departamento_academico.id', $departamentosSeleccionados);
+                                })
+                                ->orWhereIn('departamento_academico_id', $departamentosSeleccionados);
                             });
                         }
-                        
-                        // Si no hay departamentos seleccionados, mostrar todas las carreras de las facultades seleccionadas
+
                         if (!empty($facultadesSeleccionadas)) {
                             return $query->whereIn('facultad_centro_id', $facultadesSeleccionadas);
                         }
-                        
+
                         return $query;
                     }
                 )
-                ->visible(fn(Get $get) => !empty($get('departamentos_academicos')))
+                ->visible(function (Get $get) {
+                    $departamentosSeleccionados = $get('departamentos_academicos');
+                    if (empty($departamentosSeleccionados)) {
+                        return false;
+                    }
+                    
+                    // Verificar si hay carreras asociadas a los departamentos (por pivot o campo directo)
+                    $carrerasCount = \App\Models\UnidadAcademica\Carrera::where(function ($query) use ($departamentosSeleccionados) {
+                        $query->whereHas('departamentosAcademicos', function ($q) use ($departamentosSeleccionados) {
+                            $q->whereIn('departamento_academico.id', $departamentosSeleccionados);
+                        })
+                        ->orWhereIn('departamento_academico_id', $departamentosSeleccionados);
+                    })->count();
+                    
+                    return $carrerasCount > 0;
+                })
                 ->required()
                 ->preload(),
 

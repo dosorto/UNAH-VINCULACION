@@ -20,6 +20,9 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ProyectoEstadoCambiado;
+use Illuminate\Support\Facades\Log;
 
 class ListFichasActualizacionVinculacion extends Component implements HasForms, HasTable
 {
@@ -132,6 +135,36 @@ class ListFichasActualizacionVinculacion extends Component implements HasForms, 
                                     // Cancelar todas las solicitudes pendientes asociadas a la ficha
                                     $resultadoCancelacion = $fichaActualizacion->cancelarSolicitudesPorRechazo();
 
+                                    // Enviar notificación por correo al coordinador del proyecto
+                                    try {
+                                        $coordinador = $fichaActualizacion->proyecto->coordinador_proyecto->first()?->empleado->user ?? null;
+                                        
+                                        if ($coordinador) {
+                                            Mail::to($coordinador->email)->send(
+                                                new ProyectoEstadoCambiado(
+                                                    $fichaActualizacion->proyecto,
+                                                    $coordinador,
+                                                    'Ficha de Actualización Rechazada',
+                                                    $data['comentario'],
+                                                    'rechazo de ficha de actualización'
+                                                )
+                                            );
+                                            Log::info('Correo de rechazo de ficha de actualización enviado', [
+                                                'proyecto_id' => $fichaActualizacion->proyecto->id,
+                                                'coordinador_email' => $coordinador->email
+                                            ]);
+                                        } else {
+                                            Log::warning('No se pudo enviar correo de rechazo de ficha: coordinador no encontrado', [
+                                                'proyecto_id' => $fichaActualizacion->proyecto->id
+                                            ]);
+                                        }
+                                    } catch (\Exception $e) {
+                                        Log::error('Error al enviar correo de rechazo de ficha de actualización', [
+                                            'error' => $e->getMessage(),
+                                            'proyecto_id' => $fichaActualizacion->proyecto->id
+                                        ]);
+                                    }
+
                                     $mensaje = 'Ficha de Actualización Rechazada';
                                     if ($resultadoCancelacion['canceladas']) {
                                         $mensaje .= '. ' . $resultadoCancelacion['mensaje'];
@@ -200,6 +233,49 @@ class ListFichasActualizacionVinculacion extends Component implements HasForms, 
                                     if ($fechaActualizada['actualizada']) {
                                         $fechaNuevaFormateada = \Carbon\Carbon::parse($fechaActualizada['fecha_nueva'])->format('d/m/Y');
                                         $mensaje .= " La fecha de finalización del proyecto se ha actualizado al {$fechaNuevaFormateada}.";
+                                    }
+
+                                    // Enviar notificación por correo al coordinador del proyecto
+                                    try {
+                                        $coordinador = $fichaActualizacion->proyecto->coordinador_proyecto->first()?->empleado->user ?? null;
+                                        
+                                        if ($coordinador) {
+                                            $mensajeCorreo = 'Su Ficha de Actualización ha sido aprobada exitosamente. ';
+                                            if ($bajasProcesados > 0) {
+                                                $mensajeCorreo .= "Se han aplicado {$bajasProcesados} baja(s) al equipo ejecutor. ";
+                                            }
+                                            if ($integrantesNuevosProcesados > 0) {
+                                                $mensajeCorreo .= "Se han incorporado {$integrantesNuevosProcesados} nuevo(s) integrante(s) al equipo ejecutor. ";
+                                            }
+                                            if ($fechaActualizada['actualizada']) {
+                                                $fechaNuevaFormateada = \Carbon\Carbon::parse($fechaActualizada['fecha_nueva'])->format('d/m/Y');
+                                                $mensajeCorreo .= "La fecha de finalización del proyecto se ha actualizado al {$fechaNuevaFormateada}. ";
+                                            }
+                                            $mensajeCorreo .= 'Las constancias han sido generadas automáticamente.';
+                                            
+                                            Mail::to($coordinador->email)->send(
+                                                new ProyectoEstadoCambiado(
+                                                    $fichaActualizacion->proyecto,
+                                                    $coordinador,
+                                                    'Ficha de Actualización Aprobada',
+                                                    $mensajeCorreo,
+                                                    'aprobación de ficha de actualización'
+                                                )
+                                            );
+                                            Log::info('Correo de aprobación de ficha de actualización enviado', [
+                                                'proyecto_id' => $fichaActualizacion->proyecto->id,
+                                                'coordinador_email' => $coordinador->email
+                                            ]);
+                                        } else {
+                                            Log::warning('No se pudo enviar correo de aprobación de ficha: coordinador no encontrado', [
+                                                'proyecto_id' => $fichaActualizacion->proyecto->id
+                                            ]);
+                                        }
+                                    } catch (\Exception $e) {
+                                        Log::error('Error al enviar correo de aprobación de ficha de actualización', [
+                                            'error' => $e->getMessage(),
+                                            'proyecto_id' => $fichaActualizacion->proyecto->id
+                                        ]);
                                     }
 
                                     VerificarConstancia::makeConstanciasActualizacion($fichaActualizacion);

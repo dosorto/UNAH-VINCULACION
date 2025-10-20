@@ -417,9 +417,7 @@
                                     <div class="flex items-center pr-2">
                                         <div
                                             class="flex w-10 h-10 mr-3 items-center justify-center bg-gray-200 dark:bg-gray-700 text-blue-600 dark:text-blue-400 rounded-full">
-                                            <img src="https://ui-avatars.com/api/?name={{ $empleado->nombre_completo }}&amp;color=FFFFFF&amp;background=2563EB"
-                                                class="fi-avatar object-cover object-center fi-circular rounded-full h-10 w-10 fi-user-avatar"
-                                                alt="Dropbox" />
+                                                <div class="rounded-full h-10 w-10 bg-blue-700 p-2 text-gray-100">{{ $empleado->getInitials() }}</div>
                                         </div>
                                         <div>
                                             <h5 class="text-sm text-gray-900 dark:text-white font-medium mb-1">

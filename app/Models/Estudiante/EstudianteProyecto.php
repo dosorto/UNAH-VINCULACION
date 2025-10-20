@@ -31,6 +31,8 @@ class EstudianteProyecto extends Model
         'estudiante_id', 
         'proyecto_id', 
         'tipo_participacion_estudiante',
+        'asignatura_id',
+        'periodo_academico_id',
     ];
 
     public function estudiante()

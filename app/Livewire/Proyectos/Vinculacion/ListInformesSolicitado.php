@@ -29,6 +29,10 @@ use Illuminate\Support\Facades\Auth;
 use Filament\Forms\Components\Textarea;
 use League\CommonMark\Node\Block\Document;
 
+// Imports para notificaciones por correo
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ProyectoEstadoCambiado;
+
 class ListInformesSolicitado extends Component implements HasForms, HasTable
 {
     use InteractsWithForms;
@@ -110,13 +114,38 @@ class ListInformesSolicitado extends Component implements HasForms, HasTable
                                     'comentario' => $data['comentario'],
                                 ]);
 
+                                // Recargar el documento con todas las relaciones para el correo
+                                $documentoProyecto->refresh();
+                                $documentoProyecto->load(['proyecto.coordinador_proyecto.empleado.user']);
+
+                                // Enviar notificación por correo al coordinador del proyecto
+                                try {
+                                    if ($documentoProyecto->proyecto && $documentoProyecto->proyecto->coordinador && $documentoProyecto->proyecto->coordinador->user) {
+                                        Mail::to($documentoProyecto->proyecto->coordinador->user->email)->send(
+                                            new ProyectoEstadoCambiado(
+                                                $documentoProyecto->proyecto,
+                                                $documentoProyecto->proyecto->coordinador->user,
+                                                'Subsanación de ' . $documentoProyecto->tipo_documento,
+                                                $data['comentario'],
+                                                'rechazo de informe'
+                                            )
+                                        );
+                                        
+                                        \Log::info('Correo de rechazo de informe enviado exitosamente para el proyecto: ' . $documentoProyecto->proyecto->nombre_proyecto . ' - Informe: ' . $documentoProyecto->tipo_documento);
+                                    } else {
+                                        \Log::warning('No se pudo enviar correo de rechazo de informe: coordinador o usuario no encontrado para el proyecto ID: ' . $documentoProyecto->proyecto_id);
+                                    }
+                                } catch (\Exception $emailException) {
+                                    \Log::error('Error al enviar correo de informe rechazado para proyecto ID ' . $documentoProyecto->proyecto_id . ': ' . $emailException->getMessage());
+                                }
+
                                 // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                                 // ->where('empleado_id', $this->docente->id)
                                 // ->first());
                                 Notification::make()
                                     ->title('¡Realizado!')
-                                    ->body('Informe Rechazado correctamente')
-                                    ->info()
+                                    ->body('Informe Rechazado correctamente y notificación enviada al coordinador')
+                                    ->warning()
                                     ->send();
                             })
                             ->cancelParentActions()
@@ -157,13 +186,46 @@ class ListInformesSolicitado extends Component implements HasForms, HasTable
                                     'fecha' => now(),
                                     'comentario' => 'El informe ha sido aprobado correctamente',
                                 ]);
+
+                                // Recargar el documento con todas las relaciones para el correo
+                                $documentoProyecto->refresh();
+                                $documentoProyecto->load(['proyecto.coordinador_proyecto.empleado.user']);
+
+                                // Determinar el mensaje según el tipo de informe
+                                $mensajeAprobacion = $documentoProyecto->tipo_documento == 'Informe Final' 
+                                    ? 'Su ' . $documentoProyecto->tipo_documento . ' ha sido aprobado exitosamente. El proyecto ha sido marcado como FINALIZADO. Recibirá las constancias correspondientes.'
+                                    : 'Su ' . $documentoProyecto->tipo_documento . ' ha sido aprobado exitosamente. Puede continuar con las siguientes etapas del proyecto.';
+
+                                $estadoInforme = $documentoProyecto->tipo_documento . ' Aprobado';
+
+                                // Enviar notificación por correo al coordinador del proyecto
+                                try {
+                                    if ($documentoProyecto->proyecto && $documentoProyecto->proyecto->coordinador && $documentoProyecto->proyecto->coordinador->user) {
+                                        Mail::to($documentoProyecto->proyecto->coordinador->user->email)->send(
+                                            new ProyectoEstadoCambiado(
+                                                $documentoProyecto->proyecto,
+                                                $documentoProyecto->proyecto->coordinador->user,
+                                                $estadoInforme,
+                                                $mensajeAprobacion,
+                                                'aprobación de informe'
+                                            )
+                                        );
+                                        
+                                        \Log::info('Correo de aprobación de informe enviado exitosamente para el proyecto: ' . $documentoProyecto->proyecto->nombre_proyecto . ' - Informe: ' . $documentoProyecto->tipo_documento);
+                                    } else {
+                                        \Log::warning('No se pudo enviar correo de aprobación de informe: coordinador o usuario no encontrado para el proyecto ID: ' . $documentoProyecto->proyecto_id);
+                                    }
+                                } catch (\Exception $emailException) {
+                                    \Log::error('Error al enviar correo de informe aprobado para proyecto ID ' . $documentoProyecto->proyecto_id . ': ' . $emailException->getMessage());
+                                }
+
                                 // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
                                 // ->where('empleado_id', $this->docente->id)
                                 // ->first());
                                 Notification::make()
                                     ->title('¡Realizado!')
-                                    ->body('Informe Aprobado correctamente')
-                                    ->info()
+                                    ->body('Informe Aprobado correctamente y notificación enviada al coordinador')
+                                    ->success()
                                     ->send();
                             })
                             // ->modalWidth(MaxWidth::SevenExtraLarge)

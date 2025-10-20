@@ -12,20 +12,26 @@ use Illuminate\Mail\Mailables\Address;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
 
-class ProyectoCreado extends Mailable implements ShouldQueue
+class ProyectoEstadoCambiado extends Mailable implements ShouldQueue
 {
     use SerializesModels;
 
     public $proyecto;
     public $usuario;
+    public $nuevoEstado;
+    public $comentario;
+    public $accion;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(Proyecto $proyecto, User $usuario)
+    public function __construct(Proyecto $proyecto, User $usuario, string $nuevoEstado, string $comentario = '', string $accion = 'cambio de estado')
     {
         $this->proyecto = $proyecto;
         $this->usuario = $usuario;
+        $this->nuevoEstado = $nuevoEstado;
+        $this->comentario = $comentario;
+        $this->accion = $accion;
     }
 
     /**
@@ -35,7 +41,7 @@ class ProyectoCreado extends Mailable implements ShouldQueue
     {
         return new Envelope(
             from: new Address(env('MAIL_FROM_ADDRESS', 'nexo@unah.edu.hn'), env('APP_NAME', 'NEXO')),
-            subject: 'Proyecto Creado Exitosamente - ' . $this->proyecto->nombre_proyecto,
+            subject: 'Notificación de ' . $this->accion . ' - ' . $this->proyecto->nombre_proyecto,
         );
     }
 
@@ -45,17 +51,17 @@ class ProyectoCreado extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'emails.proyecto-creado',
+            view: 'emails.proyecto-estado-cambiado',
             with: [
                 'proyecto' => $this->proyecto,
-                'usuario' => $this->usuario,
-                'nombreCompleto' => $this->usuario->nombre . ' ' . $this->usuario->apellido,
-                'fechaCreacion' => $this->proyecto->created_at->format('d/m/Y H:i'),
-                'logoUrl' => asset('images/Image/logo_nexo.png'),
-                'appName' => env('APP_NAME', 'NEXO'),
-                'actionUrl' => 'https://nexo.unah.edu.hn/', // O la ruta específica del proyecto
-            ]
-        ); 
+                'nombreCompleto' => $this->usuario->empleado->nombre_completo,
+                'emailCoordinador' => $this->usuario->email,
+                'nuevoEstado' => $this->nuevoEstado,
+                'comentario' => $this->comentario,
+                'accion' => $this->accion,
+                'appName' => config('app.name', 'NEXO'),
+            ],
+        );
     }
 
     /**

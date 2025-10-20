@@ -73,7 +73,7 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
                             ->form([
                                 // ...
                                 Hidden::make('empleado_id')
-                                    ->default($this->record->id),
+                                    ->default($this->record->empleado->id),
                                 FileUpload::make('ruta_storage')
                                     ->label('Firma')
                                     ->disk('public')
@@ -164,7 +164,7 @@ class EditPerfilDocente extends Component implements HasForms, HasActions
                     ->model($this->record->empleado),
 
                 // Section para códigos de proyectos de investigación
-                Section::make('Códigos de Proyectos de Vinculación')
+                Section::make('Registro de proyectos de vinculación previos al sistema')
                     ->description($this->getCodigosInvestigacionDescription())
                     ->headerActions([
                         Action::make('agregar_codigo')

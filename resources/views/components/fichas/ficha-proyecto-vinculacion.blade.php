@@ -542,13 +542,13 @@
                         <tr>
                             <th class="full-width1" rowspan="3">Coordinador/a del Proyecto:</th>
                             <td class="sub-header">Nombre Completo:</td>
-                            <td class="full-width" colspan="1">
+                            <td class="full-width" colspan="2">
                                 <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el nombre completo"
                                     value="{{ $proyecto->coordinador->nombre_completo }}" disabled>
                             </td>
                             <td class="sub-header">No. de empleado:</td>
-                            <td class="full-width" colspan="">
+                            <td class="full-width" colspan="2">
                                 <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el número de empleado"
                                     value="{{ $proyecto->coordinador->numero_empleado }}" disabled>
@@ -556,13 +556,13 @@
                         </tr>
                         <tr>
                             <td class="sub-header">Correo electrónico:</td>
-                            <td class="full-width" colspan="1">
+                            <td class="full-width" colspan="2">
                                 <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el correo electrónico"
                                     value="{{ $proyecto->coordinador->user->email }}" disabled>
                             </td>
                             <td class="sub-header">Celular:</td>
-                            <td class="full-width" colspan="1">
+                            <td class="full-width" colspan="2">
                                 <input disabled type="email" class="input-field"
                                     placeholder="Ingrese el número de celular"
                                     value="{{ $proyecto->coordinador->celular }}" disabled>
@@ -570,13 +570,13 @@
                         </tr>
                         <tr>
                             <td class="sub-header">Categoria:</td>
-                            <td class="full-width" colspan="1">
+                            <td class="full-width" colspan="2">
                                 <input disabled type="email" class="input-field"
                                     placeholder="Ingrese el número de celular"
                                     value="{{ $proyecto->coordinador->categoria->nombre }}" disabled>
                             </td>
                             <td class="sub-header">Departamento:</td>
-                            <td class="full-width" colspan="1">
+                            <td class="full-width" colspan="2">
                                 <input disabled type="email" class="input-field"
                                     placeholder="Ingrese el número de celular"
                                     value="{{ $proyecto->coordinador->departamento_academico->nombre }}" disabled>
@@ -585,12 +585,12 @@
 
                     <!-- TABLA DE INTEGRANTES DEL EQUIPO UNIVERSITARIO -->
                         <tr>
-                            <th class="full-width1" colspan="6">Integrantes del equipo docente permanente tiempo completo
+                            <th class="full-width1" colspan="8">Integrantes del equipo docente permanente tiempo completo
                                 (Agregar más líneas de ser necesario)</th>
                         </tr>
                         <tr>
                             <th class="full-width1" colspan="2">Cantidad de integrantes empleados:</th>
-                            <td class="full-width" colspan="4">
+                            <td class="full-width" colspan="6">
                                 <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el número de empleados"
                                     value="{{ $proyecto->integrantes->count() }}" disabled>
@@ -603,6 +603,9 @@
                             <td class="sub-header">Correo electrónico:</td>
                             <td class="sub-header">Categoria:</td>
                             <td class="sub-header">Departamento:</td>
+                            <td class="sub-header">Tiempo de participación</td>
+                             <td class="sub-header">Productos a cargo</td>
+                           
                         </tr>
                         @forelse ($proyecto->integrantes as $integrante)
                             <tr>
@@ -631,6 +634,16 @@
                                         placeholder="Ingrese el departamento"
                                         value="{{ $integrante->departamento_academico->nombre }}" disabled>
                                 </td>
+                                <td class="full-width" colspan="1">
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento"
+                                        value="{{ $integrante->departamento_academico->nombre }}" disabled>
+                                </td>
+                                <td class="full-width" colspan="1">
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="Ingrese el departamento"
+                                        value="{{ $integrante->departamento_academico->nombre }}" disabled>
+                                </td>
                             </tr>
                         @empty
                             <tr>
@@ -641,53 +654,9 @@
                                 </td>
                             </tr>
                         @endforelse
+                       
                         <tr>
-                            <th class="header" colspan="6">Estudiantes</th>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="2">Nombre Completo:</td>
-                            <td class="sub-header">No. de cuenta</td>
-                            <td class="sub-header">Correo electrónico</td>
-                            <td class="sub-header">Tipo participacion:</td>
-                        </tr>
-                        @forelse ($proyecto->estudiante_proyecto as $integrante)
-                            <tr>
-                                <td class="full-width" colspan="2">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->estudiante->user->name }}" disabled>
-                                </td>
-
-                                <td class="full-width
-                                " colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->estudiante->cuenta }}" disabled>
-                                </td>
-                                <td class="full-width
-                                " colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->estudiante->user->email }}" disabled>
-                                </td>
-                                <td class="full-width
-                                " colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->tipo_participacion_estudiante }}" disabled>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td class="full-width
-                                " colspan="6">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento" value="No hay estudiantes" disabled>
-                                </td>
-                            </tr>
-                        @endforelse
-                        <tr>
-                            <th class="full-width1" colspan="6">Integrantes del equipo de cooperación internacional
+                            <th class="full-width1" colspan="8">Integrantes del equipo de cooperación internacional
                                 (Agregar más líneas de ser necesario)</th>
                         </tr>
                         <tr>
@@ -728,7 +697,7 @@
                         @empty
                             <tr>
                                 <td class="full-width
-                                " colspan="6">
+                                " colspan="8">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Aqui van los integrantes internacionales" value="No hay integrantes" disabled>
                                 </td>
@@ -740,7 +709,7 @@
 
                 <!-- SECCIÓN DE CUANTIFICACIÓN DEL TRABAJO VOLUNTARIO -->
                 <div class="section3">
-                    <div class="section-title">III. CUANTIFICACIÓN TRABAJO VOLUNTARIO </div>
+                    <div class="section-title">III. PARTICIPACIÓN MIEMBROS COMUNIDAD UNIVERSITARIA </div>
                     <table class="table_datos1">
                         <!-- PARTICIPACIÓN DE ESTUDIANTES -->
                         <tr>
@@ -750,7 +719,7 @@
                         </tr>
                         <tr>
                             <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="sub-header" colspan="2" rowspan="2">Práctica Profesional</td>
+                            <td class="sub-header" colspan="2" rowspan="2">Práctica de asignatura</td>
                             <td class="sub-header" colspan="2" rowspan="2">Servicio Social o PPS</td>
                             <td class="sub-header" colspan="2" rowspan="2">Voluntariado</td>
                         </tr>
@@ -889,6 +858,39 @@
                             </td>
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field" value="{{ $proyecto->getAdministrativosPorTipo('Asistentes técnicos laboratorios / Instructores', 'Femenino') }}" disabled>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="full-width1" rowspan="5">Detalle de la Práctica de asignatura/posgrado</th>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="5" rowspan="1"></td>
+                            <td class="sub-header" colspan="2" rowspan="1">Matrícula</td>
+                        </tr>
+                        <tr>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="1">Código</td>
+                            <td class="sub-header" colspan="2">Nombre</td>
+                            <td class="sub-header" colspan="2">Periodo académico</td>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="1">
+                                {{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->where('asignatura_id', '!=', null)->first()?->asignatura?->codigo ?? '' }}
+                            </td>
+                            <td class="full-width" colspan="2">
+                               {{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->where('asignatura_id', '!=', null)->first()?->asignatura?->nombre ?? '' }}
+                            </td>
+                            <td class="full-width" colspan="2">
+                                {{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->where('asignatura_id', '!=', null)->first()?->asignatura?->periodoAcademico?->nombre ?? '' }}
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Practica Asignatura', 'Masculino') }}" disabled>
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Practica Asignatura', 'Femenino') }}" disabled>
                             </td>
                         </tr>
                     </table>
