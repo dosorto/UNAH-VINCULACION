@@ -33,6 +33,9 @@ class EstudianteProyecto extends Model
         'tipo_participacion_estudiante',
         'asignatura_id',
         'periodo_academico_id',
+        'cantidad_estudiantes_hombres',
+        'cantidad_estudiantes_mujeres',
+        'total_estudiantes',
     ];
 
     public function estudiante()
@@ -55,10 +58,11 @@ class EstudianteProyecto extends Model
         return $this->belongsTo(\App\Models\Asignatura::class);
     }
 
-    public function periodoAcademico()
-    {
-        return $this->belongsTo(\App\Models\PeriodoAcademico::class);
-    }
+    // La relación con periodoAcademico se removió porque ahora periodo_academico_id es un campo de texto
+    // public function periodoAcademico()
+    // {
+    //     return $this->belongsTo(\App\Models\PeriodoAcademico::class);
+    // }
 
     protected $table = 'estudiante_proyecto';
 }

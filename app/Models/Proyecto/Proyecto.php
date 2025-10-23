@@ -166,6 +166,9 @@ class Proyecto extends Model
         'poblacion_participante',
         'hombres',
         'mujeres',
+        'cantidad_estudiantes_hombres',
+        'cantidad_estudiantes_mujeres',
+        'total_estudiantes',
         'otros',
         'indigenas_hombres',
         'indigenas_mujeres',
@@ -438,7 +441,7 @@ class Proyecto extends Model
             ->count();
     }
 
-    // Estudiantes por tipo de participación y género
+    // Estudiantes por tipo de participación y género (actualmente ya no se utiliza por que cmambiamos a cantidades)
     public function getEstudiantesPorTipo($tipo, $genero = null)
     {
         $query = $this->estudiante_proyecto()

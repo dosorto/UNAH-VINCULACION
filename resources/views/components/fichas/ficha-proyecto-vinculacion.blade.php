@@ -725,7 +725,7 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiantes_hombres }}" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiante_proyecto->sum('cantidad_estudiantes_hombres') }}" disabled>
                             </td>
                         </tr>
                         <tr>
@@ -739,25 +739,25 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiantes_mujeres }}" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiante_proyecto->sum('cantidad_estudiantes_mujeres') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Practica Profesional', 'Masculino') }}" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->sum('cantidad_estudiantes_hombres') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Practica Profesional', 'Femenino') }}" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->sum('cantidad_estudiantes_mujeres') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Servicio Social o PPS', 'Masculino') }}" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Servicio Social o PPS')->sum('cantidad_estudiantes_hombres') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Servicio Social o PPS', 'Femenino') }}" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Servicio Social o PPS')->sum('cantidad_estudiantes_mujeres') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Voluntariado', 'Masculino') }}" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Voluntariado')->sum('cantidad_estudiantes_hombres') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Voluntariado', 'Femenino') }}" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Voluntariado')->sum('cantidad_estudiantes_mujeres') }}" disabled>
                             </td>
                         </tr>
 
@@ -884,13 +884,13 @@
                                {{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->where('asignatura_id', '!=', null)->first()?->asignatura?->nombre ?? '' }}
                             </td>
                             <td class="full-width" colspan="2">
-                                {{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->where('asignatura_id', '!=', null)->first()?->asignatura?->periodoAcademico?->nombre ?? '' }}
+                                {{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->where('asignatura_id', '!=', null)->first()?->periodo_academico_id ?? '' }}
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Practica Asignatura', 'Masculino') }}" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->sum('cantidad_estudiantes_hombres') }}" disabled>
                             </td>
                             <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->getEstudiantesPorTipo('Practica Asignatura', 'Femenino') }}" disabled>
+                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->sum('cantidad_estudiantes_mujeres') }}" disabled>
                             </td>
                         </tr>
                     </table>
