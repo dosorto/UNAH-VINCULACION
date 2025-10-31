@@ -384,7 +384,7 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
 
                             return  $condicion;
                         })
-                        ->url(fn(Proyecto $record): string => route('editarProyectoVinculacion', $record)),
+                        ->url(fn(Proyecto $record): string => route('crearProyectoVinculacion', $record)),
                     Action::make('constancia')
                         ->label('Constancia de Inscripción')
                         ->icon('heroicon-o-document')
@@ -413,6 +413,18 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                                 ->where('empleado_id', $this->docente->id)
                                 ->first());
                         }),
+
+                    Action::make('terminar')
+                    ->label('Continuar editando')
+                    ->icon('heroicon-o-pencil')
+                    ->color('primary')
+                    ->visible(function (Proyecto $proyecto) {
+                        return ($proyecto->proyectoIsInEstadoByName('Autoguardado') &&
+                            $proyecto->coordinadorIsCurrentUser());
+                    })
+                    ->action(function (Proyecto $proyecto) {
+                        return redirect()->route('crearProyectoVinculacion', $proyecto);
+                    }),
                 ])
                     ->button()
                     ->color('primary')

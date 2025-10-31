@@ -250,7 +250,7 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
     // rutas agrupadas para el modulo de Proyectos
     Route::middleware(['auth'])->group(function () {
 
-        Route::get('crearProyectoVinculacion', CreateProyectoVinculacion::class)
+        Route::get('/crearProyectoVinculacion/{record?}', CreateProyectoVinculacion::class)
             ->name('crearProyectoVinculacion')
             ->middleware('permission:docente-crear-proyecto');
 

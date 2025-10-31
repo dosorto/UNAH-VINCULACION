@@ -44,8 +44,7 @@ use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Proyecto\MetaContribuye;
 use App\Models\Proyecto\EquipoEjecutorBaja;
 use App\Models\Proyecto\EquipoEjecutorNuevo;
-
-
+use DragonCode\Contracts\Cashier\Config\Payments\Statuses;
 
 class Proyecto extends Model
 {
@@ -102,6 +101,7 @@ class Proyecto extends Model
     ];
 
     protected static $logName = 'Proyecto';
+    protected $table = 'proyecto';
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -210,6 +210,16 @@ class Proyecto extends Model
         'caserio' => 'array',
     ];
 
+    // funcion para capturar cada ves que se crea un proyecto
+    protected static function booted(): void
+    {
+        static::created(function ($proyecto) {
+            $proyecto->fecha_registro = now();
+            $proyecto->save();
+        });
+    }
+
+
     public function getDocumentoIntermedioAttribute()
     {
         return $this->documentos()
@@ -236,29 +246,29 @@ class Proyecto extends Model
             ->where('tipo_documento', 'Informe Intermedio')
             ->first();
     }
-   
+
     public function estudiantes()
     {
         return $this->belongsToMany(Estudiante::class, 'estudiante_proyecto', 'proyecto_id', 'estudiante_id')
-                    ->using(EstudianteProyecto::class)
-                    ->withPivot('tipo_participacion_id')
-                    ->withTimestamps();
+            ->using(EstudianteProyecto::class)
+            ->withPivot('tipo_participacion_id')
+            ->withTimestamps();
     }
 
-    
+
     public function tipoParticipaciones()
     {
         return $this->belongsToMany(TipoParticipacion::class, 'estudiante_proyecto', 'proyecto_id', 'tipo_participacion_id')
-                    ->withPivot('estudiante_id');
+            ->withPivot('estudiante_id');
     }
 
 
     public function participacionesEstudiantes()
     {
         return $this->hasMany(EstudianteProyecto::class, 'proyecto_id')
-                    ->with(['estudiante', 'tipoParticipacion']);
+            ->with(['estudiante', 'tipoParticipacion']);
     }
-    
+
     public function documento_final()
     {
         return $this->documentos()
@@ -354,7 +364,7 @@ class Proyecto extends Model
         return $this->coordinador_proyecto->first()->empleado;
     }
 
-   
+
 
     // realacion uno a muchos con el modelo estudiante_proyecto
     public function estudiante_proyecto()
@@ -462,14 +472,14 @@ class Proyecto extends Model
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
             ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
             ->where('empleado.sexo', 'Masculino')
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->whereRaw("LOWER(categoria.nombre) LIKE '%profesores x hora%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%profesores horarios%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular i%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular ii%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iii%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iv%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular v%'");
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%profesores horarios%'")
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular i%'")
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular ii%'")
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iii%'")
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iv%'")
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular v%'");
             })
             ->count();
     }
@@ -480,14 +490,14 @@ class Proyecto extends Model
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
             ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
             ->where('empleado.sexo', 'Femenino')
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->whereRaw("LOWER(categoria.nombre) LIKE '%profesores x hora%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%profesores horarios%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular i%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular ii%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iii%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iv%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular v%'");
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%profesores horarios%'")
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular i%'")
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular ii%'")
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iii%'")
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular iv%'")
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%titular v%'");
             })
             ->count();
     }
@@ -500,12 +510,12 @@ class Proyecto extends Model
             ->where('empleado.tipo_empleado', 'Docente');
 
         if (strtolower($categoria) === 'permanente') {
-            $query->where(function($q) {
+            $query->where(function ($q) {
                 $q->whereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular i%'])
-                ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular ii%'])
-                ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular iii%'])
-                ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular iv%'])
-                ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular v%']);
+                    ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular ii%'])
+                    ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular iii%'])
+                    ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular iv%'])
+                    ->orWhereRaw('LOWER(categoria.nombre) LIKE ?', ['%titular v%']);
             });
         } else {
             $query->whereRaw('LOWER(categoria.nombre) LIKE ?', ['%' . strtolower($categoria) . '%']);
@@ -525,11 +535,11 @@ class Proyecto extends Model
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
             ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
             ->where('empleado.sexo', 'Masculino')
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->whereRaw("LOWER(categoria.nombre) LIKE '%administrativo%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%servicio%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%tecnico%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%instructor%'");
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%servicio%'")
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%tecnico%'")
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%instructor%'");
             })
             ->count();
     }
@@ -540,11 +550,11 @@ class Proyecto extends Model
             ->join('empleado', 'empleado_proyecto.empleado_id', '=', 'empleado.id')
             ->join('categoria', 'empleado.categoria_id', '=', 'categoria.id')
             ->where('empleado.sexo', 'Femenino')
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->whereRaw("LOWER(categoria.nombre) LIKE '%administrativo%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%servicio%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%tecnico%'")
-                  ->orWhereRaw("LOWER(categoria.nombre) LIKE '%instructor%'");
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%servicio%'")
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%tecnico%'")
+                    ->orWhereRaw("LOWER(categoria.nombre) LIKE '%instructor%'");
             })
             ->count();
     }
@@ -745,7 +755,7 @@ class Proyecto extends Model
     {
         return $this->hasMany(AporteInstitucional::class);
     }
-    
+
     public function aportesInstitucionales()
     {
         return $this->hasMany(AporteInstitucional::class, 'proyecto_id');
@@ -765,15 +775,91 @@ class Proyecto extends Model
     public function equipoEjecutorBajas()
     {
         return $this->hasMany(EquipoEjecutorBaja::class, 'proyecto_id')
-                    ->with(['empleado', 'estudiante', 'integranteInternacional']);
+            ->with(['empleado', 'estudiante', 'integranteInternacional']);
     }
 
     // Relación con nuevos integrantes pendientes
     public function equipoEjecutorNuevos()
     {
         return $this->hasMany(EquipoEjecutorNuevo::class, 'proyecto_id')
-                    ->with(['empleado', 'estudiante', 'integranteInternacional']);
+            ->with(['empleado', 'estudiante', 'integranteInternacional']);
     }
 
-    protected $table = 'proyecto';
+
+    public  static function createFromData(array $data): self
+    {
+        $proyecto = self::create($data);
+        return $proyecto;
+    }
+
+    public function agregarFirma(
+        string $cargoFirma,
+        Empleado $empleado
+    ): FirmaProyecto {
+        $firmaP = $this->firma_proyecto()->updateOrCreate(
+            [
+                'empleado_id' => $empleado->id,
+                'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                    ->where('tipo_cargo_firma.nombre', $cargoFirma)
+                    ->where('cargo_firma.descripcion', 'Proyecto')
+                    ->first()->id,
+            ],
+            [
+                'estado_revision' => 'Aprobado',
+                'firma_id' => $empleado?->firma?->id,
+                'sello_id' => $empleado?->sello?->id,
+                'hash' => 'hash',
+                'fecha_firma' => now(),
+            ]
+        );
+        return $firmaP;
+    }
+
+
+    public function agregarEstado(
+        Empleado $empleado,
+        int $tipoEstadoId,
+        string $comentario = "Comentario"
+    ) {
+        $this->estado_proyecto()->create([
+            'empleado_id' => $empleado->id,
+            'tipo_estado_id' => $tipoEstadoId,
+            'fecha' => now(),
+            'comentario' => $comentario,
+        ]);
+    }
+
+    public function agregarEstadoByName(
+        Empleado $empleado,
+        string $tipoEstadoNombre,
+        string $comentario = "Comentario"
+    ) {
+        $tipoEstado = TipoEstado::where('nombre', $tipoEstadoNombre)->first();
+
+        if (!$tipoEstado) {
+            throw new \Exception("Tipo de estado '{$tipoEstadoNombre}' no encontrado.");
+        }
+
+        $this->agregarEstado($empleado, $tipoEstado->id, $comentario);
+    }
+
+    public function proyectoIsInEstadoByName(string $estadoNombre): bool
+    {
+        return $this->estado->tipoestado->nombre === $estadoNombre;
+    }
+
+    public function proyectoIsInAnyEstados(array $estadoNombres): bool
+    {
+        return in_array($this->obtenerUltimoEstado()
+            ->tipo_estado_id, TipoEstado::whereIn('nombre', $estadoNombres)
+            ->pluck('id')->toArray());
+    }
+
+    public function coordinadorIsCurrentUser(): bool
+    {
+        $coordinador = $this->coordinador;
+        $empleadoActual = auth()->user()?->empleado;
+
+        return $coordinador && $empleadoActual && $coordinador->id === $empleadoActual?->id;
+    }
 }

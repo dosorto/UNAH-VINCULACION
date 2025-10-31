@@ -220,7 +220,7 @@ class CuartaParte
                 ->relationship(
                     name: 'municipio',
                     titleAttribute: 'nombre',
-                    modifyQueryUsing: fn($query, Get $get) => $query->whereIn('departamento_id', $get('departamento'))
+                    modifyQueryUsing: fn($query, Get $get) => $query->whereIn('departamento_id', $get('departamento') ?? [])
                 )
                 ->live()
                 ->preload(),

@@ -49,13 +49,13 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->whereNotIn('proyecto.id', function ($query) {
                         $query->select('estadoable_id')
                             ->from('estado_proyecto')
-                            ->where('estadoable_type', Proyecto::class) // Asegúrate de filtrar por el modelo `Proyecto`
+                            ->where('estadoable_type', Proyecto::class) 
                             ->whereIn('tipo_estado_id', TipoEstado::whereIn('nombre', ['Borrador'])->pluck('id')->toArray()) // Excluir 'Borrador' y 'Subsanacion'
                             ->where('es_actual', true);
                     })
                     ->leftJoin('proyecto_centro_facultad', 'proyecto_centro_facultad.proyecto_id', '=', 'proyecto.id')
                     ->leftJoin('proyecto_depto_ac', 'proyecto_depto_ac.proyecto_id', '=', 'proyecto.id')
-                    // unir con la tabla de estados
+    
                     ->leftJoin('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
                     ->leftJoin('tipo_estado', 'estado_proyecto.tipo_estado_id', '=', 'tipo_estado.id')
                     // si  el usuario tiene el permiso de admin_centro_facultad-proyectos filtrar por el centro/facultad
