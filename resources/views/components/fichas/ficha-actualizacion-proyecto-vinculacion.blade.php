@@ -101,7 +101,7 @@
                             <th class="full-width2" colspan="7">Empleados</th>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="2">Nombre Completo:</td>
+                            <td class="sub-header" colspan="3">Nombre Completo:</td>
                             <td class="sub-header">No. de empleado/a:</td>
                             <td class="sub-header">Correo electrónico:</td>
                             <td class="sub-header">Categoria:</td>
@@ -199,7 +199,7 @@
                                 $fechaIncorporacion = isset($integrante->pivot) ? $integrante->pivot->created_at : null;
                             @endphp
                             <tr style="{{ $esNuevo ? 'background-color: #d4edda; border-left: 4px solid #28a745;' : '' }}">
-                                <td class="full-width" colspan="2">
+                                <td class="full-width" colspan="3">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre completo"
                                         value="{{ $integrante->nombre_completo }}{{ $esNuevo ? ' ' : '' }}" disabled>
@@ -233,142 +233,68 @@
                                 </td>
                             </tr>
                         @endforelse
+                        
+                        <!-- PARTICIPACIÓN DE ESTUDIANTES -->
+                        @php
+                            // Usar el snapshot del estado de estudiantes en el momento de la ficha
+                            $estadoEstudiantes = collect($fichaActualizacion->estado_estudiantes_en_momento_ficha ?? []);
+                        @endphp
                         <tr>
                             <th class="full-width2" colspan="7">Estudiantes</th>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="3">Nombre Completo:</td>
-                            <td class="sub-header">No. de cuenta</td>
-                            <td class="sub-header">Correo electrónico</td>
-                            <td class="sub-header">Tipo participacion:</td>
+                            <td class="sub-header" colspan="1">TOTAL</td>
+                            <td class="sub-header" colspan="6">Desglose del tipo de participación de estudiantes:</td>
                         </tr>
-                        @php
-                            // Obtener bajas de estudiantes de ESTA ficha específica
-                            $estudiantesBajaEstaFicha = $fichaActualizacion->equipoEjecutorBajas
-                                ->where('tipo_integrante', 'estudiante')
-                                ->pluck('integrante_id');
-                                
-                            // Obtener bajas de estudiantes que ocurrieron DESPUÉS de esta ficha
-                            $estudiantesBajasPosteriores = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $proyecto->id)
-                                ->where('tipo_integrante', 'estudiante')
-                                ->whereHas('fichaActualizacion', function($query) use ($fichaActualizacion) {
-                                    $query->where('created_at', '>', $fichaActualizacion->created_at);
-                                })
-                                ->where('estado_baja', 'aplicada')
-                                ->pluck('integrante_id');
-                                
-                            // Estudiantes activos en el momento de esta ficha
-                            $estudiantesActivosEnEseMomento = $proyecto->estudiante_proyecto->filter(function ($integrante) use ($estudiantesBajaEstaFicha) {
-                                return !$estudiantesBajaEstaFicha->contains($integrante->estudiante_id);
-                            });
-                            
-                            // Agregar estudiantes que fueron dados de baja posteriormente
-                            $estudiantesDadosBajaPosteriormente = \App\Models\Estudiante\Estudiante::with('user')->whereIn('id', $estudiantesBajasPosteriores)->get();
-                            
-                            // Obtener IDs de estudiantes actuales para evitar duplicados
-                            $idsEstudiantesActuales = $estudiantesActivosEnEseMomento->pluck('estudiante_id')->toArray();
-                            
-                            // Crear relaciones pivot simuladas para estudiantes faltantes
-                            $estudiantesFaltantes = $estudiantesDadosBajaPosteriormente->filter(function($estudiante) use ($idsEstudiantesActuales) {
-                                return !in_array($estudiante->id, $idsEstudiantesActuales);
-                            })->map(function($estudiante) {
-                                // Crear un mock object que simule la estructura de EstudianteProyecto
-                                $mockObject = new \App\Models\Estudiante\EstudianteProyecto();
-                                $mockObject->estudiante_id = $estudiante->id;
-                                $mockObject->estudiante = $estudiante;
-                                $mockObject->created_at = null;
-                                $mockObject->tipo_participacion_estudiante = 'Participante';
-                                $mockObject->exists = false; // Indicar que no existe en BD
-                                return $mockObject;
-                            });
-                            
-                            // Combinar para obtener el estado completo en el momento de esta ficha
-                            // AGREGAR ESTUDIANTES NUEVOS DE LA FICHA ACTUAL
-                            $estudiantesNuevosFicha = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyecto->id)
-                                ->where('tipo_integrante', 'estudiante')
-                                ->where('ficha_actualizacion_id', $fichaActualizacion->id)
-                                ->get()
-                                ->map(function($nuevo) {
-                                    $estudiante = \App\Models\Estudiante\Estudiante::with('user')->find($nuevo->integrante_id);
-                                    if ($estudiante) {
-                                        // Crear un mock object que simule la estructura de EstudianteProyecto
-                                        $mockObject = new \App\Models\Estudiante\EstudianteProyecto();
-                                        $mockObject->estudiante_id = $estudiante->id;
-                                        $mockObject->estudiante = $estudiante;
-                                        $mockObject->created_at = $nuevo->fecha_solicitud;
-                                        $mockObject->tipo_participacion_estudiante = $nuevo->rol_nuevo ?? 'Participante';
-                                        $mockObject->exists = false; // Indicar que no existe en BD
-                                        return $mockObject;
-                                    }
-                                    return null;
-                                })->filter();
-
-                            $todosLosEstudiantesEnEseMomento = $estudiantesActivosEnEseMomento
-                                ->merge($estudiantesFaltantes)
-                                ->merge($estudiantesNuevosFicha);
-                            
-                            // Separar entre originales y agregados después
-                            $estudiantesPosteriores = $todosLosEstudiantesEnEseMomento->filter(function ($integrante) use ($proyecto) {
-                                $fechaRegistro = $proyecto->fecha_registro;
-                                $fechaIncorporacion = $integrante->created_at ?? null;
-                                
-                                if (!$fechaRegistro || !$fechaIncorporacion) {
-                                    return false;
-                                }
-                                
-                                return $fechaIncorporacion->gt($fechaRegistro);
-                            });
-                            
-                            // También marcar como nuevos los estudiantes de la ficha actual
-                            $idsEstudiantesNuevosFicha = \App\Models\Proyecto\EquipoEjecutorNuevo::where('proyecto_id', $proyecto->id)
-                                ->where('tipo_integrante', 'estudiante')
-                                ->where('ficha_actualizacion_id', $fichaActualizacion->id)
-                                ->pluck('integrante_id');
-                        @endphp
-
-                        @forelse ($todosLosEstudiantesEnEseMomento as $integrante)
-                            @php
-                                // Solo marcar como nuevo si fue agregado específicamente en ESTA ficha de actualización
-                                $esNuevo = $idsEstudiantesNuevosFicha->contains($integrante->estudiante_id ?? $integrante->id);
-                                $fechaIncorporacion = $integrante->created_at ?? null;
-                                $estudiante = $integrante->estudiante ?? $integrante;
-                            @endphp
-                            <tr style="{{ $esNuevo ? 'background-color: #d4edda; border-left: 4px solid #28a745;' : '' }}">
-                                <td class="full-width" colspan="3">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento"
-                                        value="{{ $estudiante->user?->name ?? ($estudiante->nombre . ' ' . $estudiante->apellido) }}{{ $esNuevo ? ' ' : '' }}" disabled>
-                                </td>
-
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento"
-                                        value="{{ $estudiante->cuenta }}" disabled>
-                                </td>
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento"
-                                        value="{{ $estudiante->user?->email ?? 'Sin email registrado' }}" disabled>
-                                </td>
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->tipo_participacion_estudiante ?? 'Participante' }}" disabled>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td class="full-width" colspan="7">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento" value="No hay estudiantes activos en el equipo" disabled>
-                                </td>
-                            </tr>
-                        @endforelse
+                        <tr>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="2" rowspan="2">Práctica de asignatura</td>
+                            <td class="sub-header" colspan="2" rowspan="2">Servicio Social o PPS</td>
+                            <td class="sub-header" colspan="2" rowspan="2">Voluntariado</td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" value="{{ $estadoEstudiantes->sum('cantidad_hombres') }}">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                            <td class="sub-header" colspan="1">Hombres</td>
+                            <td class="sub-header" colspan="1">Mujeres</td>
+                        </tr>
+                        <tr>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" value="{{ $estadoEstudiantes->sum('cantidad_mujeres') }}">
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" value="{{ $estadoEstudiantes->where('tipo_participacion', 'Practica Asignatura')->sum('cantidad_hombres') }}">
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" value="{{ $estadoEstudiantes->where('tipo_participacion', 'Practica Asignatura')->sum('cantidad_mujeres') }}">
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" value="{{ $estadoEstudiantes->where('tipo_participacion', 'Servicio Social o PPS')->sum('cantidad_hombres') }}">
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" value="{{ $estadoEstudiantes->where('tipo_participacion', 'Servicio Social o PPS')->sum('cantidad_mujeres') }}">
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" value="{{ $estadoEstudiantes->where('tipo_participacion', 'Voluntariado')->sum('cantidad_hombres') }}">
+                            </td>
+                            <td class="full-width" colspan="1">
+                                <input disabled type="text" class="input-field" value="{{ $estadoEstudiantes->where('tipo_participacion', 'Voluntariado')->sum('cantidad_mujeres') }}">
+                            </td>
+                        </tr>
+                        
                         <tr>
                             <th class="full-width2" colspan="7">Integrantes Internacionales</th>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="2">Nombre Completo:</td>
+                            <td class="sub-header" colspan="3">Nombre Completo:</td>
                             <td class="sub-header">Pasaporte:</td>
                             <td class="sub-header">Correo electrónico:</td>
                             <td class="sub-header">País:</td>
@@ -454,7 +380,7 @@
                                 $fechaIncorporacion = isset($integrante->pivot) ? $integrante->pivot->created_at : null;
                             @endphp
                             <tr style="{{ $esNuevo ? 'background-color: #d4edda; border-left: 4px solid #28a745;' : '' }}">
-                                <td class="full-width" colspan="2">
+                                <td class="full-width" colspan="3">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre completo"
                                         value="{{ $integrante->nombre_completo }}{{ $esNuevo ? ' ' : '' }}" disabled>
@@ -490,7 +416,7 @@
                         @endforelse
 
                         <tr>
-                            <th class="full-width2" colspan="3" rowspan="1">Fecha de incorporación del proyecto</th> 
+                            <th class="full-width2" colspan="4" rowspan="1">Fecha de incorporación del proyecto</th> 
                             <td class="full-width" colspan="3">
                                 <div class="date-container">
                                     <div class="date-part">

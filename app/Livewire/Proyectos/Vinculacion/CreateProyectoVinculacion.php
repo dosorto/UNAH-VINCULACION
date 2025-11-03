@@ -212,7 +212,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                         fn(Action $action) => $action
                             ->label('Paso Anterior')
                             ->size('sm')
-                            ->color('secondary')
+                            ->color('primary')
                     )
                     // aca se puede personalizar en que paso aparece por defecto
                     // posiblemente sea mas intuitivo para el usuario continuar justo por donde lo dejo,

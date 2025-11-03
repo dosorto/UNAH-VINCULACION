@@ -23,10 +23,14 @@ class FichaActualizacion extends Model
         'motivo_ampliacion',
         'motivo_responsabilidades_nuevos',
         'motivo_razones_cambio',
+        'cambios_cantidades_estudiantes',
+        'estado_estudiantes_en_momento_ficha',
     ];
 
     protected $casts = [
         'integrantes_baja' => 'array',
+        'cambios_cantidades_estudiantes' => 'array',
+        'estado_estudiantes_en_momento_ficha' => 'array',
         'fecha_registro' => 'datetime',
         'fecha_baja' => 'date',
         'fecha_ampliacion' => 'date',

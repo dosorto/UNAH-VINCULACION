@@ -72,6 +72,19 @@ class EditProyectoActualizacion extends Component implements HasForms
         ])->find($this->record->id);            // Llenar el formulario manualmente con los datos del proyecto y campos adicionales
             $formData = $this->record->attributesToArray();
             
+            // Agregar las relaciones al formulario
+            $formData['estudiante_proyecto'] = $this->record->estudiante_proyecto->map(function ($estudiante) {
+                return [
+                    'id' => $estudiante->id,
+                    'tipo_participacion_estudiante' => $estudiante->tipo_participacion_estudiante,
+                    'asignatura_id' => $estudiante->asignatura_id,
+                    'periodo_academico_id' => $estudiante->periodo_academico_id,
+                    'cantidad_estudiantes_hombres' => $estudiante->cantidad_estudiantes_hombres,
+                    'cantidad_estudiantes_mujeres' => $estudiante->cantidad_estudiantes_mujeres,
+                    'total_estudiantes' => $estudiante->total_estudiantes,
+                ];
+            })->toArray();
+            
             // Agregar fecha de finalización actual para mostrar en el formulario
             $formData['fecha_finalizacion_actual'] = $this->record->fecha_finalizacion ? 
                 \Carbon\Carbon::parse($this->record->fecha_finalizacion)->format('d/m/Y') : 
@@ -135,7 +148,7 @@ class EditProyectoActualizacion extends Component implements HasForms
     public function save()
     {
         $data = $this->form->getState();
-
+        
         // Verificar si hay cambios
         $hayBajas = \App\Models\Proyecto\EquipoEjecutorBaja::where('proyecto_id', $this->record->id)
             ->whereNull('ficha_actualizacion_id')
@@ -143,8 +156,50 @@ class EditProyectoActualizacion extends Component implements HasForms
             ->exists();
 
         $hayNuevos = !empty($data['empleado_proyecto']) || 
-                    !empty($data['estudiante_proyecto']) || 
                     !empty($data['integrante_internacional_proyecto']);
+
+        // Verificar si hubo cambios en las cantidades de estudiantes
+        $hayCambiosCantidades = false;
+        $cambiosCantidadesEstudiantes = []; // Guardar los cambios para la ficha
+        
+        if (!empty($data['estudiante_proyecto'])) {
+            foreach ($data['estudiante_proyecto'] as $estudianteData) {
+                // Si el registro tiene un ID, verificar si las cantidades cambiaron
+                if (isset($estudianteData['id'])) {
+                    $estudianteProyectoOriginal = \App\Models\Estudiante\EstudianteProyecto::find($estudianteData['id']);
+                    if ($estudianteProyectoOriginal) {
+                        if ($estudianteProyectoOriginal->cantidad_estudiantes_hombres != ($estudianteData['cantidad_estudiantes_hombres'] ?? 0) ||
+                            $estudianteProyectoOriginal->cantidad_estudiantes_mujeres != ($estudianteData['cantidad_estudiantes_mujeres'] ?? 0)) {
+                            $hayCambiosCantidades = true;
+                            // NO actualizar inmediatamente, guardar para la ficha
+                            $cambiosCantidadesEstudiantes[] = [
+                                'estudiante_proyecto_id' => $estudianteData['id'],
+                                'tipo_participacion' => $estudianteData['tipo_participacion_estudiante'] ?? null,
+                                'asignatura_id' => $estudianteData['asignatura_id'] ?? null,
+                                'periodo_academico_id' => $estudianteData['periodo_academico_id'] ?? null,
+                                'cantidad_hombres_anterior' => $estudianteProyectoOriginal->cantidad_estudiantes_hombres,
+                                'cantidad_mujeres_anterior' => $estudianteProyectoOriginal->cantidad_estudiantes_mujeres,
+                                'cantidad_hombres_nueva' => $estudianteData['cantidad_estudiantes_hombres'] ?? 0,
+                                'cantidad_mujeres_nueva' => $estudianteData['cantidad_estudiantes_mujeres'] ?? 0,
+                            ];
+                        }
+                    }
+                } else {
+                    // Si no tiene ID, es un nuevo tipo de participación
+                    $hayCambiosCantidades = true;
+                    $cambiosCantidadesEstudiantes[] = [
+                        'estudiante_proyecto_id' => null, // Es nuevo
+                        'tipo_participacion' => $estudianteData['tipo_participacion_estudiante'] ?? null,
+                        'asignatura_id' => $estudianteData['asignatura_id'] ?? null,
+                        'periodo_academico_id' => $estudianteData['periodo_academico_id'] ?? null,
+                        'cantidad_hombres_anterior' => 0,
+                        'cantidad_mujeres_anterior' => 0,
+                        'cantidad_hombres_nueva' => $estudianteData['cantidad_estudiantes_hombres'] ?? 0,
+                        'cantidad_mujeres_nueva' => $estudianteData['cantidad_estudiantes_mujeres'] ?? 0,
+                    ];
+                }
+            }
+        }
 
         // Validar extensión de tiempo: ambos campos deben estar presentes
         $hayExtension = (!empty($data['fecha_ampliacion']) && !empty($data['motivo_ampliacion']));
@@ -153,12 +208,13 @@ class EditProyectoActualizacion extends Component implements HasForms
         $hayMotivos = !empty($data['motivo_responsabilidades_nuevos']) || !empty($data['motivo_razones_cambio']);
 
         // Verificar si hay AL MENOS UN cambio
-        if (!$hayBajas && !$hayNuevos && !$hayExtension && !$hayMotivos) {
+        if (!$hayBajas && !$hayNuevos && !$hayExtension && !$hayMotivos && !$hayCambiosCantidades) {
             Notification::make()
                 ->title('No se detectaron cambios')
                 ->body('Debes realizar al menos un cambio para enviar la ficha de actualización a firmar:
                 • Dar de baja a un integrante
                 • Agregar nuevos integrantes  
+                • Modificar cantidades de estudiantes
                 • Solicitar extensión de tiempo (fecha y motivo)
                 • Agregar motivos de responsabilidades o razones de cambio')
                 ->danger()
@@ -195,6 +251,19 @@ class EditProyectoActualizacion extends Component implements HasForms
         // Actualizar solo los campos del proyecto, no las relaciones
         $this->record->update($dataToUpdate);
 
+        // Guardar snapshot del estado actual de estudiantes ANTES de cualquier cambio
+        $estadoActualEstudiantes = $this->record->estudiante_proyecto->map(function ($ep) {
+            return [
+                'id' => $ep->id,
+                'tipo_participacion' => $ep->tipo_participacion_estudiante,
+                'asignatura_id' => $ep->asignatura_id,
+                'periodo_academico_id' => $ep->periodo_academico_id,
+                'cantidad_hombres' => $ep->cantidad_estudiantes_hombres,
+                'cantidad_mujeres' => $ep->cantidad_estudiantes_mujeres,
+                'total' => $ep->total_estudiantes,
+            ];
+        })->toArray();
+
         // Crear la ficha de actualización
         $fichaActualizacion = FichaActualizacion::create([
             'fecha_registro' => now(),
@@ -208,6 +277,8 @@ class EditProyectoActualizacion extends Component implements HasForms
             'motivo_ampliacion' => $data['motivo_ampliacion'] ?? null,
             'motivo_responsabilidades_nuevos' => $data['motivo_responsabilidades_nuevos'] ?? null,
             'motivo_razones_cambio' => $data['motivo_razones_cambio'] ?? null,
+            'cambios_cantidades_estudiantes' => $cambiosCantidadesEstudiantes, // Guardar cambios propuestos
+            'estado_estudiantes_en_momento_ficha' => $estadoActualEstudiantes, // Guardar estado actual como snapshot
         ]);
 
         // Asociar las bajas pendientes con esta ficha de actualización
