@@ -324,7 +324,7 @@ class Presupuesto
                 ->columnSpanFull()
                 ->columns(2),
 
-            Repeater::make('superavit')
+            /*Repeater::make('superavit')
                 ->label('Superávit (En caso de existir)')
                 ->schema([
                     Forms\Components\TextInput::make('inversion')
@@ -341,7 +341,7 @@ class Presupuesto
                 ->label('Superávit')
                 ->columnSpanFull()
                 ->defaultItems(0)
-                ->relationship(),
+                ->relationship(), */
         ];
     }
 

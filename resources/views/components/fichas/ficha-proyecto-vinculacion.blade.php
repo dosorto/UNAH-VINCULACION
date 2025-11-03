@@ -493,7 +493,7 @@
                                     placeholder="Ingrese el nombre de la entidad">
                             </td>
                         </tr>
-                        <tr>
+                        <!-- <tr>
                             <th class="full-width1" colspan="6"> En caso de superávit o rentabilidad en el proyecto,
                                 haga un
                                 desglose detallado
@@ -531,7 +531,7 @@
                                         placeholder="Ingrese el departamento" value="No hay superavit" disabled>
                                 </td>
                             </tr>
-                        @endforelse
+                        @endforelse -->
                     </table>
                 </div>
 
