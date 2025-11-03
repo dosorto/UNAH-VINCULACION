@@ -29,6 +29,7 @@ class ResultadoEsperado extends Model
     {
         return match($this->plazo) {
             'corto_plazo' => 'Corto plazo',
+            'mediano_plazo' => 'Mediano plazo',
             'largo_plazo' => 'Largo plazo',
             default => 'Sin plazo especificado'
         };
