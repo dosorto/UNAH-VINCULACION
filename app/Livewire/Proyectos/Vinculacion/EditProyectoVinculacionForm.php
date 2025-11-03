@@ -88,7 +88,7 @@ class EditProyectoVinculacionForm extends Component implements HasForms
 
 
         if (in_array($this->record->obtenerUltimoEstado()
-            ->tipo_estado_id, TipoEstado::whereIn('nombre', ['Borrador', 'Subsanacion'])
+            ->tipo_estado_id, TipoEstado::whereIn('nombre', ['Borrador', 'Subsanacion', 'Autoguardado'])
             ->pluck('id')->toArray())) {
             // Cargar las relaciones necesarias para el formulario
             $this->record->load([

@@ -34,7 +34,6 @@ class EnviarCorreos
     public function enviarCorreoProyecto(EstadoProyecto $estado_proyecto): void
     {
         $coordinador = $estado_proyecto->proyecto->coordinador;
-
         // Usamos el EmailBuilder y el mensaje dinámico
         $mensaje =  'MESAJE';//$this->mensajeDinamico->obtenerMensaje($estado_proyecto->tipoestado);
       

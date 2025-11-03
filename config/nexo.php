@@ -32,6 +32,7 @@ return [
         'Cancelado',
 
         'Borrador',
+        'Autoguardado',
         'Actualizacion realizada',
     ],
 

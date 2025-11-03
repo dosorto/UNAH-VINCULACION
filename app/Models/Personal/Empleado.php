@@ -221,7 +221,7 @@ class Empleado extends Model
             // Firmas de proyectos normales
             if (
                 $firma->firmable_type == Proyecto::class &&
-                ($firma->cargo_firma->tipo_estado_id == $firma->proyecto->estado->tipo_estado_id)
+                ($firma->cargo_firma->tipo_estado_id == $firma->proyecto?->estado->tipo_estado_id)
             ) {
                 return $firma->id;
             } 

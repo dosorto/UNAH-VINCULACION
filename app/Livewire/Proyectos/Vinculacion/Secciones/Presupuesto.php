@@ -39,19 +39,19 @@ class Presupuesto
                         ->schema([
                             Hidden::make('concepto'),
                             Hidden::make('unidad'),
-                                
+
                             TextInput::make('concepto_label')
                                 ->label('Concepto')
                                 ->disabled()
                                 ->columnSpan(2)
-                                ->placeholder('0'),
-                                
+                                ->default(0),
+
                             TextInput::make('unidad_label')
                                 ->label('Unidad')
                                 ->disabled()
                                 ->columnSpan(1)
-                                ->placeholder('0'),
-                                
+                                ->default(0),
+
                             TextInput::make('cantidad')
                                 ->label('Cantidad')
                                 ->numeric()
@@ -65,14 +65,15 @@ class Presupuesto
                                     self::calcularTotalAporteInstitucional($get, $set);
                                     self::calcularTotalCantidades($get, $set); // Nueva función
                                 })
+                                ->required()
                                 ->columnSpan(1)
-                                ->placeholder('0'),
+                                ->default(0),
 
                             TextInput::make('costo_unitario')
                                 ->label('Costo unitario')
                                 ->numeric()
                                 ->prefix('L.')
-                                ->live(onBlur: true) 
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function (Get $get, Set $set, $state) {
                                     $cantidad = floatval($get('cantidad') ?? 0);
                                     $costoUnitario = floatval($state ?? 0);
@@ -82,6 +83,7 @@ class Presupuesto
                                     self::calcularTotalAporteInstitucional($get, $set);
                                     self::calcularCostoUnitario($get, $set); // Nueva función
                                 })
+                                ->required()
                                 ->columnSpan(1)
                                 ->placeholder('0'),
 
@@ -111,42 +113,48 @@ class Presupuesto
                             }
                             $set('total_aporte_institucional', $total);
                         })
-                        ->default([
-                            [
-                                'concepto' => 'horas_trabajo_docentes',
-                                'concepto_label' => 'a) Horas de trabajo docentes',
-                                'unidad' => 'hra_profes',
-                                'unidad_label' => 'Hra/profes',
-                            ],
-                            [
-                                'concepto' => 'horas_trabajo_estudiantes',
-                                'concepto_label' => 'b) Horas de trabajo estudiantes',
-                                'unidad' => 'hra_estud',
-                                'unidad_label' => 'Hra/estud',
-                            ],
-                            [
-                                'concepto' => 'gastos_movilizacion',
-                                'concepto_label' => 'c) Gastos de movilización',
-                                'unidad' => 'global',
-                                'unidad_label' => 'Global',
-                            ],
-                            [
-                                'concepto' => 'utiles_materiales_oficina',
-                                'concepto_label' => 'd) Útiles y materiales de oficina',
-                                'unidad' => 'global',
-                                'unidad_label' => 'Global',
-                            ],
-                            [
-                                'concepto' => 'gastos_impresion',
-                                'concepto_label' => 'e) Gastos de impresión',
-                                'unidad' => 'global',
-                                'unidad_label' => 'Global',
-                            ],
-                        ])
+
                         ->relationship('aporteInstitucional')
+                        ->afterStateHydrated(function ($state, $set) {
+                            // Si el Repeater está vacío, llenarlo con los ítems por defecto
+                            if (empty($state)) {
+                                $set('aporte_institucional', [
+                                    [
+                                        'concepto' => 'horas_trabajo_docentes',
+                                        'concepto_label' => 'a) Horas de trabajo docentes',
+                                        'unidad' => 'hra_profes',
+                                        'unidad_label' => 'Hra/profes',
+                                    ],
+                                    [
+                                        'concepto' => 'horas_trabajo_estudiantes',
+                                        'concepto_label' => 'b) Horas de trabajo estudiantes',
+                                        'unidad' => 'hra_estud',
+                                        'unidad_label' => 'Hra/estud',
+                                    ],
+                                    [
+                                        'concepto' => 'gastos_movilizacion',
+                                        'concepto_label' => 'c) Gastos de movilización',
+                                        'unidad' => 'global',
+                                        'unidad_label' => 'Global',
+                                    ],
+                                    [
+                                        'concepto' => 'utiles_materiales_oficina',
+                                        'concepto_label' => 'd) Útiles y materiales de oficina',
+                                        'unidad' => 'global',
+                                        'unidad_label' => 'Global',
+                                    ],
+                                    [
+                                        'concepto' => 'gastos_impresion',
+                                        'concepto_label' => 'e) Gastos de impresión',
+                                        'unidad' => 'global',
+                                        'unidad_label' => 'Global',
+                                    ],
+                                ]);
+                            }
+                        })
                         ->columnSpanFull(),
 
-                        // Campos separados para infraestructura
+                    // Campos separados para infraestructura
                     Fieldset::make('f) Costos indirectos por infraestructura universidad')
                         ->schema([
                             Hidden::make('concepto'),
@@ -267,8 +275,8 @@ class Presupuesto
                         ])
                         ->columns(4)
                         ->columnSpanFull(),
-                        
-                        
+
+
                     TextInput::make('total_aporte_institucional')
                         ->label('Total Aporte Institucional')
                         ->numeric()
@@ -316,7 +324,7 @@ class Presupuesto
                 ->columnSpanFull()
                 ->columns(2),
 
-            Repeater::make('superavit')
+            /*Repeater::make('superavit')
                 ->label('Superávit (En caso de existir)')
                 ->schema([
                     Forms\Components\TextInput::make('inversion')
@@ -333,7 +341,7 @@ class Presupuesto
                 ->label('Superávit')
                 ->columnSpanFull()
                 ->defaultItems(0)
-                ->relationship(),
+                ->relationship(), */
         ];
     }
 
@@ -342,7 +350,7 @@ class Presupuesto
         // Obtener todos los datos del repeater desde el nivel superior
         $allData = $get('../../') ?? [];
         $aporteInstitucional = $allData['aporte_institucional'] ?? [];
-        
+
         $total = 0;
         if (is_array($aporteInstitucional)) {
             foreach ($aporteInstitucional as $item) {
@@ -350,12 +358,12 @@ class Presupuesto
                 $total += $costoTotal;
             }
         }
-        
+
         // Agregar los costos de infraestructura y servicios al total
         $costoInfraestructura = floatval($get('../../costo_total_infraestructura') ?? 0);
         $costoServicios = floatval($get('../../costo_total_servicios') ?? 0);
         $total += $costoInfraestructura + $costoServicios;
-        
+
         $set('../../total_aporte_institucional', number_format($total, 2, '.', ''));
     }
 
@@ -364,38 +372,38 @@ class Presupuesto
         // Obtener todos los datos del repeater desde el nivel superior
         $allData = $get('../../') ?? [];
         $aporteInstitucional = $allData['aporte_institucional'] ?? [];
-        
+
         $totalCantidades = 0;
-        
+
         if (is_array($aporteInstitucional)) {
             foreach ($aporteInstitucional as $item) {
                 $cantidad = floatval($item['cantidad'] ?? 0);
                 $totalCantidades += $cantidad;
             }
         }
-        
+
         // Asignar el 5% del total de cantidades al campo cantidad_infraestructura
         $cantidadInfraestructura = $totalCantidades * 0.05;
         $set('../../cantidad_infraestructura', $cantidadInfraestructura);
-        
+
         // También asignar el 5% del total de cantidades al campo cantidad_servicios
         $cantidadServicios = $totalCantidades * 0.05;
         $set('../../cantidad_servicios', $cantidadServicios);
-        
+
         // Actualizar el costo total de infraestructura
         $costoUnitarioInfra = floatval($get('../../costo_unitario_infraestructura') ?? 0);
         $costoTotalInfra = $cantidadInfraestructura * $costoUnitarioInfra;
         $set('../../costo_total_infraestructura', number_format($costoTotalInfra, 2, '.', ''));
-        
+
         // Actualizar el costo total de servicios
         $costoUnitarioServ = floatval($get('../../costo_unitario_servicios') ?? 0);
         $costoTotalServ = $cantidadServicios * $costoUnitarioServ;
         $set('../../costo_total_servicios', number_format($costoTotalServ, 2, '.', ''));
-        
+
         // Recalcular el total del aporte institucional incluyendo infraestructura y servicios
         self::calcularTotalAporteInstitucional($get, $set);
     }
-        
+
     private static function calcularCostoUnitario(Get $get, Set $set): void
     {
         // Obtener todos los datos del repeater desde el nivel superior
@@ -410,28 +418,28 @@ class Presupuesto
                 $totalCostoUnitario += $costoUnitario;
             }
         }
-        
+
         // Asignar el 5% del total del costo unitario al campo costo_unitario_infraestructura
         $costoUnitarioInfraestructura = $totalCostoUnitario * 0.05;
         $set('../../costo_unitario_infraestructura', $costoUnitarioInfraestructura);
-        
+
         // También asignar el 5% del total del costo unitario al campo costo_unitario_servicios
         $costoUnitarioServicios = $totalCostoUnitario * 0.05;
         $set('../../costo_unitario_servicios', $costoUnitarioServicios);
-        
+
         // Actualizar el costo total de infraestructura
         $cantidadInfra = floatval($get('../../cantidad_infraestructura') ?? 0);
         $costoTotalInfra = $cantidadInfra * $costoUnitarioInfraestructura;
         $set('../../costo_total_infraestructura', number_format($costoTotalInfra, 2, '.', ''));
-        
+
         // Actualizar el costo total de servicios
         $cantidadServ = floatval($get('../../cantidad_servicios') ?? 0);
         $costoTotalServ = $cantidadServ * $costoUnitarioServicios;
         $set('../../costo_total_servicios', number_format($costoTotalServ, 2, '.', ''));
-        
+
         // Guardar el total en el campo total_costo_unitario también
         $set('../../total_costo_unitario', number_format($totalCostoUnitario, 2, '.', ''));
-        
+
         // Recalcular el total del aporte institucional incluyendo infraestructura y servicios
         self::calcularTotalAporteInstitucional($get, $set);
     }

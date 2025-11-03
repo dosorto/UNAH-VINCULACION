@@ -16,6 +16,7 @@ class SextaParte
     {
         return [
             Repeater::make('firma_proyecto_jefe')
+                ->relationship()
                 ->id('firma_proyecto_1')
                 ->label('Jefe de departamento')
                 ->schema([
@@ -24,15 +25,15 @@ class SextaParte
                         ->searchable(['nombre_completo', 'numero_empleado'])
                         ->required()
                         ->relationship(name: 'empleado', titleAttribute: 'nombre_completo'),
-                   
+
 
                     Hidden::make('cargo_firma_id')
-                    ->required()
-                    ->in(
-                        CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                            ->where('tipo_cargo_firma.nombre', 'Jefe Departamento')
-                            ->first()->id
-                    )
+                        ->required()
+                        ->in(
+                            CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                                ->where('tipo_cargo_firma.nombre', 'Jefe Departamento')
+                                ->first()->id
+                        )
                         ->default(
                             CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
                                 ->where('tipo_cargo_firma.nombre', 'Jefe Departamento')
@@ -44,9 +45,8 @@ class SextaParte
                 ])
                 ->minItems(1)
                 ->maxItems(1)
-                ->addable(false)
-                ->deletable(false)
-                ->relationship(),
+                ->addable(true)
+                ->deletable(false),
             Repeater::make('firma_proyecto_decano')
                 ->id('firma_proyecto_1')
                 ->label('Decano de facultad o director de centro')
@@ -66,7 +66,9 @@ class SextaParte
 
                 ])
                 ->deletable(false)
-                ->addable(false)
+                ->addable(true)
+                ->minItems(1)
+                ->maxItems(1)
                 ->relationship(),
 
 
@@ -88,7 +90,9 @@ class SextaParte
 
                 ])
                 ->deletable(false)
-                ->addable(false)
+                ->addable(true)
+                ->minItems(1)
+                ->maxItems(1)
                 ->relationship(),
 
         ];

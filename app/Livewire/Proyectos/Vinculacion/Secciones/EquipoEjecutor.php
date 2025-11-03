@@ -22,7 +22,7 @@ use Filament\Forms\Components\Hidden;
 
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-
+USE Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
@@ -108,7 +108,9 @@ class EquipoEjecutor
                 ->grid(2),
             Repeater::make('estudiante_proyecto')
                 ->schema([
-                    Select::make('estudiante_id')
+                    Hidden::make('estudiante_id')
+                        ->default(null), // Como ahora manejamos cantidades, no estudiantes individuales
+                    /*Select::make('estudiante_id')
                         ->label('Estudiante')
                         ->required()
                         ->searchable(['cuenta', 'nombre', 'apellido'])
@@ -137,7 +139,7 @@ class EquipoEjecutor
 
                             ]);
                         })
-                        ->required(),
+                        ->required(),*/
                     Select::make('tipo_participacion_estudiante')
                         ->label('Tipo de participación')
                         ->required()
@@ -173,6 +175,49 @@ class EquipoEjecutor
                             'Segundo Semestre' => 'Segundo Semestre',
                         ])
                         ->visible(fn ($get) => $get('tipo_participacion_estudiante') === 'Practica Asignatura'),
+
+                    Fieldset::make('Cantidad de Estudiantes')
+                        ->schema([
+                            TextInput::make('cantidad_estudiantes_hombres')
+                                ->label('Hombres')
+                                ->numeric()
+                                ->minValue(0)
+                                ->default(0)
+                                ->live()
+                                ->afterStateUpdated(function ($state, $set, $get) {
+                                    $hombres = (int)$state;
+                                    $mujeres = (int)$get('cantidad_estudiantes_mujeres');
+                                    $set('total_estudiantes', $hombres + $mujeres);
+                                })
+                                ->columnSpan(1),
+
+                            TextInput::make('cantidad_estudiantes_mujeres')
+                                ->label('Mujeres')
+                                ->numeric()
+                                ->minValue(0)
+                                ->default(0)
+                                ->live()
+                                ->afterStateUpdated(function ($state, $set, $get) {
+                                    $mujeres = (int)$state;
+                                    $hombres = (int)$get('cantidad_estudiantes_hombres');
+                                    $set('total_estudiantes', $hombres + $mujeres);
+                                })
+                                ->columnSpan(1),
+
+                            TextInput::make('total_estudiantes')
+                                ->label('Total de Estudiantes')
+                                ->numeric()
+                                ->disabled()
+                                ->dehydrated()
+                                ->default(function ($get) {
+                                    $hombres = (int)($get('cantidad_estudiantes_hombres') ?? 0);
+                                    $mujeres = (int)($get('cantidad_estudiantes_mujeres') ?? 0);
+                                    return $hombres + $mujeres;
+                                })
+                                ->columnSpan(1),
+                        ])
+                        ->columns(3)
+                        ->columnSpanFull(),
            
                 ])
                 ->label('Estudiantes')

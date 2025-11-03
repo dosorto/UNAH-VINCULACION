@@ -4,6 +4,7 @@ namespace App\Livewire\Proyectos\Actualizacion\Secciones;
 
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioDocente;
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioEstudiante;
+use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioAsignatura;
 
 use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioIntegranteInternacional;
 use App\Models\Proyecto\EquipoEjecutorBaja;
@@ -350,7 +351,10 @@ class PrimeraParte
                 
             Repeater::make('estudiante_proyecto')
                 ->schema([
-                    Select::make('estudiante_id')
+                    Hidden::make('id'),
+                    Hidden::make('estudiante_id')
+                        ->default(null),
+                   /* Select::make('estudiante_id')
                         ->label('Estudiante')
                         ->required()
                         ->searchable(['cuenta', 'nombre', 'apellido'])
@@ -359,17 +363,91 @@ class PrimeraParte
                             titleAttribute: 'nombre'
                         )
                         ->disabled()
-                        ->required(),
+                        ->required(), */
                     Select::make('tipo_participacion_estudiante')
                         ->label('Tipo de participación')
                         ->required()
+                        ->live()
                         ->options([
-                            'Practica Profesional' => 'Práctica Profesional',
+                            //'Practica Profesional' => 'Práctica Profesional',
                             'Servicio Social o PPS' => 'Servicio Social o PPS',
                             'Voluntariado' => 'Voluntariado',
+                            'Practica Asignatura' => 'Práctica Asignatura',
                         ])
-                        ->disabled()
                         ->required(),
+                        Select::make('asignatura_id')
+                        ->label('Asignatura')
+                        ->searchable(['codigo', 'nombre'])
+                        ->options(function () {
+                            return \App\Models\UnidadAcademica\Asignatura::all()
+                                ->mapWithKeys(fn ($asignatura) => [
+                                    $asignatura->id => "{$asignatura->codigo} {$asignatura->nombre}"
+                                ])
+                                ->toArray();
+                        })
+                        ->visible(fn ($get) => $get('tipo_participacion_estudiante') === 'Practica Asignatura')
+                        ->createOptionForm(
+                            FormularioAsignatura::form()
+                        ),
+                    Select::make('periodo_academico_id')
+                        ->label('Periodo Académico')
+                        ->required()
+                        ->live()
+                        ->options([
+                            'Primer Periodo' => 'Primer Periodo',
+                            'Segundo Periodo' => 'Segundo Periodo',
+                            'Tercer Periodo' => 'Tercer Periodo',
+                            'Primer Semestre' => 'Primer Semestre',
+                            'Segundo Semestre' => 'Segundo Semestre',
+                        ])
+                        ->visible(fn ($get) => $get('tipo_participacion_estudiante') === 'Practica Asignatura'),
+
+                    Fieldset::make('Cantidad de Estudiantes')
+                        ->schema([
+                            TextInput::make('cantidad_estudiantes_hombres')
+                                ->label('Hombres')
+                                ->numeric()
+                                ->minValue(0)
+                                ->default(0)
+                                ->live()
+                                ->afterStateUpdated(function ($state, $set, $get) {
+                                    $hombres = (int)$state;
+                                    $mujeres = (int)$get('cantidad_estudiantes_mujeres');
+                                    $set('total_estudiantes', $hombres + $mujeres);
+                                })
+                                ->columnSpan(1),
+
+                            TextInput::make('cantidad_estudiantes_mujeres')
+                                ->label('Mujeres')
+                                ->numeric()
+                                ->minValue(0)
+                                ->default(0)
+                                ->live()
+                                ->afterStateUpdated(function ($state, $set, $get) {
+                                    $mujeres = (int)$state;
+                                    $hombres = (int)$get('cantidad_estudiantes_hombres');
+                                    $set('total_estudiantes', $hombres + $mujeres);
+                                })
+                                ->columnSpan(1),
+
+                            TextInput::make('total_estudiantes')
+                                ->label('Total de Estudiantes')
+                                ->numeric()
+                                ->disabled()
+                                ->dehydrated()
+                                ->default(function ($get) {
+                                    $hombres = (int)($get('cantidad_estudiantes_hombres') ?? 0);
+                                    $mujeres = (int)($get('cantidad_estudiantes_mujeres') ?? 0);
+                                    return $hombres + $mujeres;
+                                })
+                                ->columnSpan(1),
+                        ])
+                        ->columns(3)
+                        ->columnSpanFull(),
+                    
+                    // COMENTADO: Sistema de dar de baja estudiantes individuales ya no aplica
+                    // Ahora solo se actualizan las cantidades de estudiantes
+                    /*
                     Actions::make([
                         Action::make('dar_baja_estudiante')
                             ->label('Dar de Baja')
@@ -469,17 +547,20 @@ class PrimeraParte
                                 return;
                             }),
                     ])->columnSpanFull(),
+                    */
                 ])
                 ->label('Estudiantes')
-                ->relationship()
-                ->deletable(false)
-                ->addable(false)
-                ->defaultItems(fn($livewire) => $livewire->record ? $livewire->record->estudiante_proyecto->count() : 0)
+                ->deletable(true)  // Permite eliminar entradas de tipo de participación
+                ->addable(true)    // Permite agregar nuevas entradas de tipo de participación
+                ->defaultItems(0)
                 ->columnSpanFull()
                 ->grid(2)
+                ->addActionLabel('Agregar tipo de participación')
                 ->live(),
                 
-            // Botón para solicitar nuevo estudiante
+            // COMENTADO: Sistema de agregar estudiantes individuales ya no aplica
+            // Ahora solo se actualizan las cantidades de estudiantes en el repeater
+            /*
             Actions::make([
                 Action::make('solicitar_estudiante')
                     ->label('Agregar Nuevo Estudiante')
@@ -719,6 +800,7 @@ class PrimeraParte
                         $livewire->dispatch('refresh-form');
                     }),
             ])->columnSpanFull(),
+            */
                 
             Repeater::make('integrante_internacional_proyecto')
                 ->label('Integrantes de cooperación internacional')

@@ -44,7 +44,7 @@ class PrimeraParte
             Select::make('modalidad_id')
                 ->label('Modalidad')
                 ->columnSpanFull()
-                ->relationship('modalidad','nombre')
+                ->relationship('modalidad', 'nombre')
                 ->required()
                 ->preload(),
             //categoria del proyecto
@@ -65,7 +65,7 @@ class PrimeraParte
                 ->required()
                 ->preload(),
 
-           /* Forms\Components\Radio::make('ejes_prioritarios')
+            /* Forms\Components\Radio::make('ejes_prioritarios')
                 ->label('Alineamiento con ejes prioritarios de la UNAH')
                 ->options([
                             'Desarrollo_económico_social' => 'Desarrollo económico y social',
@@ -75,7 +75,7 @@ class PrimeraParte
                         ])
                         ->inline()
                         ->required()
-                        ->columnSpanFull(),    */   
+                        ->columnSpanFull(),    */
 
             Select::make('facultades_centros')
                 ->label('Facultades o Centros')
@@ -124,7 +124,7 @@ class PrimeraParte
                                 $subQuery->whereHas('departamentosAcademicos', function ($q) use ($departamentosSeleccionados) {
                                     $q->whereIn('departamento_academico.id', $departamentosSeleccionados);
                                 })
-                                ->orWhereIn('departamento_academico_id', $departamentosSeleccionados);
+                                    ->orWhereIn('departamento_academico_id', $departamentosSeleccionados);
                             });
                         }
 
@@ -140,15 +140,15 @@ class PrimeraParte
                     if (empty($departamentosSeleccionados)) {
                         return false;
                     }
-                    
+
                     // Verificar si hay carreras asociadas a los departamentos (por pivot o campo directo)
                     $carrerasCount = \App\Models\UnidadAcademica\Carrera::where(function ($query) use ($departamentosSeleccionados) {
                         $query->whereHas('departamentosAcademicos', function ($q) use ($departamentosSeleccionados) {
                             $q->whereIn('departamento_academico.id', $departamentosSeleccionados);
                         })
-                        ->orWhereIn('departamento_academico_id', $departamentosSeleccionados);
+                            ->orWhereIn('departamento_academico_id', $departamentosSeleccionados);
                     })->count();
-                    
+
                     return $carrerasCount > 0;
                 })
                 ->required()
@@ -207,8 +207,8 @@ class PrimeraParte
                         ->required(),
                 ])
                 ->columnSpanFull(),
-               
-                Fieldset::make('Fechas')
+
+            Fieldset::make('Fechas')
                 ->columns(2)
                 ->schema([
                     DatePicker::make('fecha_inicio')
@@ -228,14 +228,14 @@ class PrimeraParte
                         ->required()
                         ->live()
                         ->rules([
-                            fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
+                            fn(Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get) {
                                 $fechaInicio = $get('fecha_inicio');
                                 if ($fechaInicio && $value && $value < $fechaInicio) {
                                     $fail('La fecha de finalización no debe ser anterior a la fecha de inicio.');
                                 }
                             },
                         ]),
-                  /*  DatePicker::make('evaluacion_intermedia')
+                    /*  DatePicker::make('evaluacion_intermedia')
                         ->label('Evaluación intermedia')
                         ->columnSpan(1)
                         ->required(),
@@ -246,6 +246,28 @@ class PrimeraParte
                 ])
                 ->columnSpanFull()
                 ->label('Fechas'),
+
+            Repeater::make('coordinador_proyecto')
+                ->label('Coordinador')
+                ->schema([
+                    Select::make('empleado_id')
+                        ->label('')
+                        ->required()
+                        ->searchable(['nombre_completo', 'numero_empleado'])
+                        ->relationship(name: 'empleado', titleAttribute: 'nombre_completo')
+                        ->default(fn() => optional(Empleado::where('user_id', auth()->id())->first())->id)
+                        ->disabled(),
+                    Hidden::make('rol')
+                        ->default('Coordinador'),
+                    Hidden::make('empleado_id')
+
+                ])
+                ->columnSpanFull()
+                ->relationship()
+                ->minItems(1)
+                ->maxItems(1)
+                ->deletable(false)
+                ->defaultItems(1),
             // actividades
         ];
     }

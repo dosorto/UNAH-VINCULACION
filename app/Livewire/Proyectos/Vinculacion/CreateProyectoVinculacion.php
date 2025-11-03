@@ -5,6 +5,8 @@ namespace App\Livewire\Proyectos\Vinculacion;
 use Livewire\Component;
 use Filament\Forms\Form;
 use App\Jobs\SendEmailJob;
+use App\Livewire\Components\Paso;
+use App\Livewire\Components\PasosContainer;
 use App\Models\Estado\TipoEstado;
 use App\Models\Proyecto\Proyecto;
 use Illuminate\Support\HtmlString;
@@ -30,16 +32,109 @@ use App\Livewire\Proyectos\Vinculacion\Secciones\TerceraParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\EquipoEjecutor;
 use App\Livewire\Proyectos\Vinculacion\Secciones\MarcoLogico;
 use App\Livewire\Proyectos\Vinculacion\Secciones\Presupuesto;
+use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\Wizard\Step;
 
 class CreateProyectoVinculacion extends Component implements HasForms
 {
     use InteractsWithForms;
 
     public ?array $data = [];
+    public ?Proyecto $record = null;
 
-    public function mount(): void
+    public $model;
+
+
+    // cambiar esta funcion a un middleware !!!!!!!!!!!
+    public function authorizar(Proyecto $record): bool
     {
-        $this->form->fill();
+        // validar que el coordinador del proyecto sea el usuario logueado
+        if (
+            $record->coordinadorIsCurrentUser()
+            && $record->proyectoIsInAnyEstados(['Borrador', 'Subsanación', 'Autoguardado'])
+        )
+            return true;
+
+        return false;
+    }
+
+    public function mount(?Proyecto $record): void
+    {
+        $this->record = $record;
+        $this->model = $this->record->exists ? $this->record : Proyecto::class;
+
+        //$this->form->fill();
+
+        if ($this->record->exists && !$this->authorizar($record))
+            abort(403, 'No autorizado para editar este proyecto.');
+
+        if ($this->record->exists) {
+
+
+            $this->record->load([
+                'objetivosEspecificos.resultados',
+                'integrantes',
+                'estudiante_proyecto',
+                'entidad_contraparte.instrumento_formalizacion',
+                'actividades.empleados',
+                'presupuesto',
+                'superavit',
+                'ods',
+                'anexos',
+                'coordinador_proyecto.empleado'
+            ]);
+            $this->form->fill($this->record->attributesToArray());
+        } else {
+            $this->form->fill();
+        }
+    }
+
+    public function saveData(Step $step)
+    {
+        // Extraer los datos del formulario del paso actual
+        $data = $step->getChildComponentContainer()->getState();
+
+        // Si no hay registro, lo creamos
+        if (!$this->record || !$this->record->exists) {
+            $this->record = \App\Models\Proyecto\Proyecto::create($data);
+
+            // Obtenemos el contenedor del step
+            $container = $step->getChildComponentContainer();
+
+            // Asociamos el modelo al contenedor
+            $container->model($this->record);
+
+            // Guardamos las relaciones del paso actual
+            $container->saveRelationships();
+
+            $this->record->agregarEstadoByName(
+                empleado: auth()->user()->empleado,
+                tipoEstadoNombre: "Autoguardado",
+                comentario: 'Proyecto guardado como Autoguardado',
+            );
+
+            // redireccionar a la misma pagina pero con el id del proyecto creado
+
+            return $this->redirectRoute('crearProyectoVinculacion', ['record' => $this->record->id, 'step' => "ii"]);
+        } else {
+            // Si ya existe, lo actualizamos con los datos del paso
+            $this->record->update($data);
+
+            $container = $step->getChildComponentContainer();
+
+            // Asociamos el modelo al contenedor
+            $container->model($this->record);
+
+            // Guardamos las relaciones del paso actual
+            $container->saveRelationships();
+        }
+
+        // enviar una notificacion que sus datos se han guardado
+        Notification::make()
+            ->title('¡Datos guardados!')
+            ->body('Los datos del paso se han guardado correctamente.')
+            ->success()
+            ->send();
     }
 
     public function form(Form $form): Form
@@ -52,52 +147,79 @@ class CreateProyectoVinculacion extends Component implements HasForms
                         ->schema(
                             PrimeraParte::form(),
                         )
+                        ->afterValidation(fn(Step $step) => $this->saveData($step))
                         ->columns(2),
                     Wizard\Step::make('II.')
                         ->description('EQUIPO EJECUTOR DEL PROYECTO')
                         ->schema(
                             EquipoEjecutor::form(),
-                        ),
+                        )
+                        ->afterValidation(fn(Step $step) => $this->saveData($step)),
                     Wizard\Step::make('III.')
                         ->description('INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (en caso de contar con una contraparte).')
                         ->schema(
                             SegundaParte::form(),
-                        ),
+                        )
+                        ->afterValidation(fn(Step $step) => $this->saveData($step)),
                     Wizard\Step::make('IV.')
                         ->description('CRONOGRAMA DE ACTIVIDADES.')
-                        
                         ->schema(
                             TerceraParte::form(),
-                        ),
+                        )
+                        ->afterValidation(fn(Step $step) => $this->saveData($step)),
                     Wizard\Step::make('V.')
                         ->description('DATOS DEL PROYECTO')
                         ->schema(
                             CuartaParte::form(),
                         )
+                        ->afterValidation(fn(Step $step) => $this->saveData($step))
                         ->columns(2),
-                        Wizard\Step::make('VI.')
+                    Wizard\Step::make('VI.')
                         ->description('RESUMEN MARCO LÓGICO DEL PROYECTO')
                         ->schema(
                             MarcoLogico::form(),
                         )
+                        ->afterValidation(fn(Step $step) => $this->saveData($step))
                         ->columns(2),
                     Wizard\Step::make('VII.')
                         ->description('DETALLES DEL PRESUPUESTO')
                         ->schema(
                             Presupuesto::form(),
                         )
+                        ->afterValidation(fn(Step $step) => $this->saveData($step))
                         ->columns(2),
                     Wizard\Step::make('VIII.')
                         ->description('ANEXOS')
                         ->schema(
                             QuintaParte::form(),
-                        ),
+                        )
+                        ->afterValidation(fn(Step $step) => $this->saveData($step)),
                     Wizard\Step::make('IX.')
                         ->description('FIRMAS')
                         ->schema(
                             SextaParte::form(),
-                        ),
-                ])->submitAction(new HtmlString(Blade::render(<<<BLADE
+                        )
+                        ->afterValidation(fn(Step $step) => dd($this->saveData($step))),
+                ])
+                    ->nextAction(
+                        fn(Action $action) => $action
+                            ->label('Siguiente Paso')
+                            ->size('sm')
+                            ->color('primary')
+                    )
+                    // aca se puede personalizar la accion del paso anterior
+                    ->previousAction(
+                        fn(Action $action) => $action
+                            ->label('Paso Anterior')
+                            ->size('sm')
+                            ->color('primary')
+                    )
+                    // aca se puede personalizar en que paso aparece por defecto
+                    // posiblemente sea mas intuitivo para el usuario continuar justo por donde lo dejo,
+                    // pero para eso el proyecto debe almacenar en que paso se cerro
+                    // o el paso anterior
+                    ->persistStepInQueryString()
+                    ->submitAction(new HtmlString(Blade::render(<<<BLADE
                 
                 <x-filament::button
                    wire:click="borrador"
@@ -118,77 +240,34 @@ class CreateProyectoVinculacion extends Component implements HasForms
 
             ])
             ->statePath('data')
-            ->model(Proyecto::class);
+            ->model($this->model);
     }
 
     public function create(): void
     {
         $data = $this->form->getState();
-        $record = null;
-        
         try {
-            // Intentar obtener el estado del formulario y crear el proyecto
-            $data['fecha_registro'] = now();
-            $record = Proyecto::create($data);
-            $this->form->model($record)->saveRelationships();
-        } catch (\Exception $e) {
-            // Notificación de error si ocurre al crear el proyecto
-            // Solo eliminar el registro si fue creado exitosamente
-            if ($record) {
-                $record->delete();
-            }
 
-            Notification::make()
-                ->title('Error')
-                ->body('Error al crear el proyecto: ' . $e->getMessage())
-                ->danger()
-                ->send();
-            return;
-        }
 
-        try {
-            // Intentar agregar o actualizar la firma
-            $firmaP = $record->firma_proyecto()->updateOrCreate(
-                [
-                    'empleado_id' => auth()->user()->empleado->id,
-                    'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                        ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
-                        ->where('cargo_firma.descripcion', 'Proyecto')
-                        ->first()->id,
-                ],
-                [
-                    'estado_revision' => 'Aprobado',
-                    'firma_id' => auth()->user()?->empleado?->firma?->id,
-                    'sello_id' => auth()->user()?->empleado?->sello?->id,
-                    'hash' => 'hash',
-                    'fecha_firma' => now(),
-                ]
+            $empleado = auth()->user()->empleado;
+            $this->record->update($data);
+            $this->form->model($this->record)->saveRelationships();
+
+
+            $this->record->agregarFirma(
+                cargoFirma: 'Coordinador Proyecto',
+                empleado: $empleado
             );
-            
-            // Intentar agregar el estado del proyecto
-            $record->estado_proyecto()->create([
-                'empleado_id' => auth()->user()->empleado->id,
-                'tipo_estado_id' => $firmaP->cargo_firma->estado_siguiente_id,
-                'fecha' => now(),
-                'comentario' => 'Proyecto creado exitosamente y enviado a firmar',
-            ]);
-            
-            // Enviar el correo al usuario que creó el proyecto
-            // Obtener el nombre del estado al que cambió el proyecto
-            $estado = TipoEstado::find($firmaP->cargo_firma->estado_siguiente_id);
-            $estadoNombre = $estado ? $estado->nombre : 'Desconocido';
 
-            // Enviar el correo al usuario que creó el proyecto
-            try {
-                Mail::to(auth()->user()->email)->send(new ProyectoCreado($record, auth()->user()));
-            } catch (\Exception $emailException) {
-                // Log del error pero no fallar la creación del proyecto
-                \Log::warning('Error al enviar correo de proyecto creado: ' . $emailException->getMessage());
-            }
-            
+            // Intentar agregar el estado del proyecto
+            $this->record->agregarEstadoByName(
+                empleado: $empleado,
+                tipoEstadoNombre: "Enlace Vinculacion",
+                comentario: 'Proyecto enviado para firma',
+            );
         } catch (\Exception $e) {
-            // Eliminar el proyecto en caso de error
-            $record->delete();
+
+            dd($e->getMessage());
             Notification::make()
                 ->title('Error')
                 ->body('Error al procesar el proyecto: ' . $e->getMessage())
@@ -197,7 +276,14 @@ class CreateProyectoVinculacion extends Component implements HasForms
             return;
         }
 
-            
+        try {
+            Mail::to(auth()->user()->email)->send(new ProyectoCreado($this->record, auth()->user()));
+        } catch (\Exception $emailException) {
+            // Log del error pero no fallar la creación del proyecto
+            \Log::warning('Error al enviar correo de proyecto creado: ' . $emailException->getMessage());
+        }
+
+
         // Notificación de éxito si todo se completó correctamente
         Notification::make()
             ->title('¡Éxito!')
@@ -205,80 +291,41 @@ class CreateProyectoVinculacion extends Component implements HasForms
             ->success()
             ->send();
 
-        $this->js('location.reload();');
+       // redirigir al usuario a la pagina de proyectos
+       redirect()->route('proyectosDocente');
     }
 
 
     // optimizar esta funcion para despues, es demasiado redundante y lo unico que cambia es el nombre del estado :)
-    public function borrador(): void
+    public function borrador()
     {
-
         $data = $this->form->getState();
         try {
-            $data['fecha_registro'] = now();
 
-            // Intentar crear el proyecto
-            $record = Proyecto::create($data);
-            $this->form->model($record)->saveRelationships();
-        } catch (\Exception $e) {
-            Notification::make()
-                ->title('Error')
-                ->body('Error al crear el proyecto: ' . $e->getMessage())
-                ->danger()
-                ->send();
-            return;
-        }
+            $empleado = auth()->user()->empleado;
+            $this->record->update($data);
+            $this->form->model($this->record)->saveRelationships();
 
-        try {
-            // Intentar agregar la firma
-            $firmaP = $record->firma_proyecto()->create([
-                'empleado_id' => auth()->user()->empleado->id,
-                'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                    ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
-                    ->where('cargo_firma.descripcion', 'Proyecto')
-                    ->first()->id,
-                'estado_revision' => 'Pendiente',
-                'hash' => 'hash'
-            ]);
-        } catch (\Exception $e) {
-            // Eliminar el proyecto en caso de error
-            $record->delete();
-            Notification::make()
-                ->title('Error')
-                ->body('Error al agregar la firma: ' . $e->getMessage())
-                ->danger()
-                ->send();
-            return;
-        }
+            $this->record->agregarFirma(
+                cargoFirma: 'Coordinador Proyecto',
+                empleado: $empleado
+            );
 
-        try {
             // Intentar agregar el estado del proyecto
-            $record->estado_proyecto()->create([
-                'empleado_id' => auth()->user()->empleado->id,
-                'tipo_estado_id' => TipoEstado::where('nombre', 'Borrador')->first()->id,
-                'fecha' => now(),
-                'comentario' => 'Proyecto creado en borrador',
-            ]);
-            
-            // Enviar el correo al usuario que creó el proyecto
-            try {
-                Mail::to(auth()->user()->email)->send(new ProyectoCreado($record, auth()->user()));
-            } catch (\Exception $emailException) {
-                // Log del error pero no fallar la creación del proyecto
-                \Log::warning('Error al enviar correo de proyecto creado en borrador: ' . $emailException->getMessage());
-            }
-            
+            $this->record->agregarEstadoByName(
+                empleado: $empleado,
+                tipoEstadoNombre: 'Borrador',
+                comentario: 'Proyecto guardado como borrador',
+            );
         } catch (\Exception $e) {
-            // Eliminar el proyecto en caso de error
-            $record->delete();
+            dd($e->getMessage());
             Notification::make()
                 ->title('Error')
-                ->body('Error al agregar el estado del proyecto: ' . $e->getMessage())
+                ->body('Error al procesar el proyecto: ' . $e->getMessage())
                 ->danger()
                 ->send();
             return;
         }
-
         // Notificación de éxito si todo se completó correctamente
         Notification::make()
             ->title('¡Éxito!')
@@ -286,12 +333,11 @@ class CreateProyectoVinculacion extends Component implements HasForms
             ->success()
             ->send();
 
-        $this->js('location.reload();');
+        redirect()->route('proyectosDocente');
     }
 
     public function render(): View
     {
-        return view('livewire.proyectos.vinculacion.create-proyecto-vinculacion');
-            ;//->layout('components.panel.modulos.modulo-proyectos');
+        return view('livewire.proyectos.vinculacion.create-proyecto-vinculacion');; //->layout('components.panel.modulos.modulo-proyectos');
     }
 }
