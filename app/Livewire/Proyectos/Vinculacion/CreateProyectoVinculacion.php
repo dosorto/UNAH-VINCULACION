@@ -114,7 +114,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
             );
 
             // redireccionar a la misma pagina pero con el id del proyecto creado
-        
+
             return $this->redirectRoute('crearProyectoVinculacion', ['record' => $this->record->id, 'step' => "ii"]);
         } else {
             // Si ya existe, lo actualizamos con los datos del paso
@@ -199,7 +199,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                         ->schema(
                             SextaParte::form(),
                         )
-                        ->afterValidation(fn(Step $step) => $this->saveData($step)),
+                        ->afterValidation(fn(Step $step) => dd($this->saveData($step))),
                 ])
                     ->nextAction(
                         fn(Action $action) => $action
@@ -245,9 +245,13 @@ class CreateProyectoVinculacion extends Component implements HasForms
 
     public function create(): void
     {
+        $data = $this->form->getState();
         try {
 
+
             $empleado = auth()->user()->empleado;
+            $this->record->update($data);
+            $this->form->model($this->record)->saveRelationships();
 
 
             $this->record->agregarFirma(
@@ -263,8 +267,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
             );
         } catch (\Exception $e) {
 
-            // Eliminar el proyecto en caso de error
-            $this->record->delete();
+            dd($e->getMessage());
             Notification::make()
                 ->title('Error')
                 ->body('Error al procesar el proyecto: ' . $e->getMessage())
@@ -288,16 +291,20 @@ class CreateProyectoVinculacion extends Component implements HasForms
             ->success()
             ->send();
 
-        $this->js('location.reload();');
+       // redirigir al usuario a la pagina de proyectos
+       redirect()->route('proyectosDocente');
     }
 
 
     // optimizar esta funcion para despues, es demasiado redundante y lo unico que cambia es el nombre del estado :)
-    public function borrador(): void
+    public function borrador()
     {
-
+        $data = $this->form->getState();
         try {
+
             $empleado = auth()->user()->empleado;
+            $this->record->update($data);
+            $this->form->model($this->record)->saveRelationships();
 
             $this->record->agregarFirma(
                 cargoFirma: 'Coordinador Proyecto',
@@ -311,8 +318,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 comentario: 'Proyecto guardado como borrador',
             );
         } catch (\Exception $e) {
-            // Eliminar el proyecto en caso de error
-            $this->record->delete();
+            dd($e->getMessage());
             Notification::make()
                 ->title('Error')
                 ->body('Error al procesar el proyecto: ' . $e->getMessage())
@@ -327,7 +333,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
             ->success()
             ->send();
 
-        $this->js('location.reload();');
+        redirect()->route('proyectosDocente');
     }
 
     public function render(): View
