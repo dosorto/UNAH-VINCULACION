@@ -51,6 +51,7 @@ class MarcoLogico
                                 ->label('Plazo del resultado')
                                 ->options([
                                     'corto_plazo' => 'Corto plazo',
+                                    'mediano_plazo' => 'Mediano plazo',
                                     'largo_plazo' => 'Largo plazo',
                                 ])
                                 ->placeholder('Seleccione el plazo')
