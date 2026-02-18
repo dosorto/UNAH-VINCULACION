@@ -4,8 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
     <title>Notificación - {{ $subject }}</title>
     <style>
+        :root {
+            color-scheme: light dark;
+            supported-color-schemes: light dark;
+        }
+
         body {
             margin: 0;
             font-family: 'Arial', sans-serif;
@@ -16,7 +23,7 @@
         .container {
             max-width: 600px;
             margin: auto;
-            background-color: #fff;
+            background-color: #ffffff;
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
@@ -24,7 +31,7 @@
 
         .header {
             background: linear-gradient(to right, #1c1c38, #0b0b8b);
-            color: white;
+            color: #ffffff;
             padding: 30px 20px;
             text-align: left;
         }
@@ -37,31 +44,35 @@
         .header h1 {
             margin: 0;
             font-size: 22px;
+            color: #ffffff;
         }
 
         .header p {
             margin: 5px 0 0;
             font-size: 14px;
-            opacity: 0.8;
+            opacity: 0.9;
+            color: #ffffff;
         }
 
         .content {
             padding: 30px 20px;
             font-size: 15px;
-            color: #333;
+            color: #333333;
+            background-color: #ffffff;
         }
 
-        .download-link {
-            color: #f6a400;
-            font-size: 14px;
-            text-decoration: none;
+        .content strong {
+            color: #1c1c38;
+        }
+
+        .content a {
+            color: #0b0b8b;
         }
 
         .button {
             display: inline-block;
             background: linear-gradient(135deg, #ffcc00, #facc15);
-            /* Gradiente amarillo */
-            color: #003366;
+            color: #003366 !important;
             text-decoration: none;
             padding: 12px 24px;
             border-radius: 8px;
@@ -87,6 +98,42 @@
 
         .footer p {
             margin: 0;
+            color: #777777;
+        }
+
+        /* Soporte para modo oscuro */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #1a1a1a;
+            }
+
+            .container {
+                background-color: #2d2d2d;
+                border: 1px solid #404040;
+            }
+
+            .content {
+                background-color: #2d2d2d;
+                color: #e0e0e0;
+            }
+
+            .content strong {
+                color: #ffcc00;
+            }
+
+            .content a {
+                color: #66b3ff;
+            }
+
+            .footer {
+                background-color: #1a1a1a;
+                color: #999999;
+                border-top: 1px solid #404040;
+            }
+
+            .footer p {
+                color: #999999;
+            }
         }
     </style>
 </head>

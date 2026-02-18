@@ -10,22 +10,23 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Mail\Mailables\Address;
 use App\Models\Proyecto\Proyecto;
-use App\Models\User;
 
-class ProyectoCreado extends Mailable implements ShouldQueue
+class FirmasActualizadas extends Mailable implements ShouldQueue
 {
-    use SerializesModels;
+    use Queueable, SerializesModels;
 
     public $proyecto;
-    public $usuario;
+    public $cambios;
+    public $destinatario;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(Proyecto $proyecto, User $usuario)
+    public function __construct(Proyecto $proyecto, array $cambios, $destinatario)
     {
         $this->proyecto = $proyecto;
-        $this->usuario = $usuario;
+        $this->cambios = $cambios;
+        $this->destinatario = $destinatario;
     }
 
     /**
@@ -35,7 +36,7 @@ class ProyectoCreado extends Mailable implements ShouldQueue
     {
         return new Envelope(
             from: new Address(env('MAIL_FROM_ADDRESS', 'nexo@unah.edu.hn'), env('APP_NAME', 'NEXO')),
-            subject: 'Proyecto Creado Exitosamente - ' . $this->proyecto->nombre_proyecto,
+            subject: 'Actualización de Firmas - ' . $this->proyecto->nombre_proyecto,
         );
     }
 
@@ -45,18 +46,15 @@ class ProyectoCreado extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'emails.correoProyectoCreado',
+            view: 'emails.firmas-actualizadas',
             with: [
                 'proyecto' => $this->proyecto,
-                'usuario' => $this->usuario,
-                'empleadoNombre' => $this->usuario->nombre . ' ' . $this->usuario->apellido,
-                'subject' => 'Proyecto Creado Exitosamente',
-                'mensaje' => 'Su proyecto "' . $this->proyecto->nombre_proyecto . '" ha sido registrado exitosamente en el sistema NEXO.',
+                'cambios' => $this->cambios,
+                'destinatario' => $this->destinatario,
                 'logoUrl' => asset('images/Image/logo_nexo.png'),
                 'appName' => env('APP_NAME', 'NEXO'),
-                'actionUrl' => route('proyectosVinculacion') ?? 'https://nexo.unah.edu.hn/',
             ]
-        ); 
+        );
     }
 
     /**

@@ -35,9 +35,20 @@ use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 class AreaProyectoSelector extends Component 
 {
+    public function mostrarMensajeDesarrolloLocal()
+    {
+        \Filament\Notifications\Notification::make()
+            ->title('Importante')
+            ->body('Para registrar un proyecto de Vinculación, todos los integrantes deben estar registrados en NEXO.')
+            ->warning()
+            ->persistent()
+            ->send();
+    }
+
     public function render(): View
     {
         return view('livewire.proyectos.vinculacion.areas-proyecto-selector')
             ;//->layout('components.panel.modulos.modulo-proyectos');
     }
 }
+

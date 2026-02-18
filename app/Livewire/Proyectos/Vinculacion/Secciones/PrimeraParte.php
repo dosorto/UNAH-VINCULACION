@@ -55,7 +55,22 @@ class PrimeraParte
                 ->columnSpanFull()
                 ->relationship('categoria', 'nombre')
                 ->required()
-                ->preload(),
+                ->preload()
+                ->live()
+                ->afterStateUpdated(function ($state, callable $set) {
+                    if (is_array($state)) {
+                        $categorias = \App\Models\Proyecto\Categoria::whereIn('id', $state)->pluck('nombre')->toArray();
+                        
+                        if (in_array('Desarrollo Local', $categorias)) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Importante')
+                                ->body('Para registrar un proyecto de Vinculación, todos los integrantes deben estar registrados en NEXO.')
+                                ->warning()
+                                ->persistent()
+                                ->send();
+                        }
+                    }
+                }),
 
             Select::make('ejes_prioritarios_unah')
                 ->label('Alineamiento con ejes prioritarios de la UNAH')

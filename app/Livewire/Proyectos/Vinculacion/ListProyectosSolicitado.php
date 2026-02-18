@@ -258,7 +258,8 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
 
                                         TextInput::make('codigo_proyecto')
                                             ->label('Código del Proyecto')
-                                            ->disabled()
+                                            ->disabled(fn() => !auth()->user()->hasRole(['admin', 'Director/Enlace']))
+                                            ->dehydrated()
                                             ->columnSpan(1)
                                             ->default(function (Proyecto $proyecto) {
                                                 $prefix = 'VRA-DVUS'. '-' . $proyecto->coordinador->centro_facultad->siglas;

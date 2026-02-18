@@ -24,7 +24,17 @@ class SextaParte
                         ->label('')
                         ->searchable(['nombre_completo', 'numero_empleado'])
                         ->required()
-                        ->relationship(name: 'empleado', titleAttribute: 'nombre_completo'),
+                        ->relationship(
+                            name: 'empleado',
+                            titleAttribute: 'nombre_completo',
+                            modifyQueryUsing: function (\Illuminate\Database\Eloquent\Builder $query) {
+                                $empleadoActual = auth()->user()->empleado;
+                                if ($empleadoActual && $empleadoActual->centro_facultad_id) {
+                                    $query->where('centro_facultad_id', $empleadoActual->centro_facultad_id);
+                                }
+                                return $query;
+                            }
+                        ),
 
 
                     Hidden::make('cargo_firma_id')
@@ -55,7 +65,17 @@ class SextaParte
                         ->label('')
                         ->required()
                         ->searchable(['nombre_completo', 'numero_empleado'])
-                        ->relationship(name: 'empleado', titleAttribute: 'nombre_completo'),
+                        ->relationship(
+                            name: 'empleado',
+                            titleAttribute: 'nombre_completo',
+                            modifyQueryUsing: function (\Illuminate\Database\Eloquent\Builder $query) {
+                                $empleadoActual = auth()->user()->empleado;
+                                if ($empleadoActual && $empleadoActual->centro_facultad_id) {
+                                    $query->where('centro_facultad_id', $empleadoActual->centro_facultad_id);
+                                }
+                                return $query;
+                            }
+                        ),
                     Hidden::make('cargo_firma_id')
                         ->default(
                             CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
@@ -80,7 +100,17 @@ class SextaParte
                         ->label('')
                         ->required()
                         ->searchable(['nombre_completo', 'numero_empleado'])
-                        ->relationship(name: 'empleado', titleAttribute: 'nombre_completo'),
+                        ->relationship(
+                            name: 'empleado',
+                            titleAttribute: 'nombre_completo',
+                            modifyQueryUsing: function (\Illuminate\Database\Eloquent\Builder $query) {
+                                $empleadoActual = auth()->user()->empleado;
+                                if ($empleadoActual && $empleadoActual->centro_facultad_id) {
+                                    $query->where('centro_facultad_id', $empleadoActual->centro_facultad_id);
+                                }
+                                return $query;
+                            }
+                        ),
                     Hidden::make('cargo_firma_id')
                         ->default(
                             CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')

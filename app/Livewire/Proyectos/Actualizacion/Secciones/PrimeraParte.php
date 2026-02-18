@@ -374,6 +374,8 @@ class PrimeraParte
                             'Voluntariado' => 'Voluntariado',
                             'Practica Asignatura' => 'Práctica Asignatura',
                         ])
+                        ->disabled(fn() => !auth()->user()->hasRole(['admin', 'Director/Enlace']))
+                        ->dehydrated()
                         ->required(),
                         Select::make('asignatura_id')
                         ->label('Asignatura')
@@ -698,6 +700,8 @@ class PrimeraParte
                                 'Servicio Social o PPS' => 'Servicio Social o PPS',
                                 'Voluntariado' => 'Voluntariado',
                             ])
+                            ->disabled(fn() => !auth()->user()->hasRole(['admin', 'Director/Enlace']))
+                            ->dehydrated()
                             ->default('Voluntariado'),
                     ])
                     ->action(function (array $data, $component) {
