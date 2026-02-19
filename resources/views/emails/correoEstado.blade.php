@@ -94,7 +94,6 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{ $logoUrl }}" alt="NEXO">
             <h1>{{ $appName }}</h1>
             <p>Conectando la academia con la sociedad para el desarrollo integral de Honduras a través de proyectos de impacto social, investigación aplicada y transferencia de conocimiento.</p>
         </div>

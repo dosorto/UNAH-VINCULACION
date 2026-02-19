@@ -30,7 +30,7 @@
         }
         .header {
             background: linear-gradient(135deg, #004080 0%, #0066cc 100%);
-            color: #ffffff;
+            color: #0000;
             padding: 40px 30px;
             text-align: center;
             position: relative;
@@ -264,8 +264,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{ $logoUrl }}" alt="Logo NEXO">
-            <h1>Actualización de Firmas del Proyecto</h1>
+            <h1 style="color:#1a2d3d;">PROYECTO DE VINCULACIÓN</h1>
         </div>
 
         <div class="content">

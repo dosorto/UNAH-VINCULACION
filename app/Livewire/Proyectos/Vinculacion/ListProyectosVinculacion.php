@@ -60,16 +60,6 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->leftJoin('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
                     ->leftJoin('tipo_estado', 'estado_proyecto.tipo_estado_id', '=', 'tipo_estado.id')
                     // Filtrar por categoría según el rol del usuario
-                    ->when(auth()->user()->hasRole('equipo_desarrollo_local'), function ($query) {
-                        $query->whereHas('categoria', function ($q) {
-                            $q->where('nombre', 'Desarrollo Local');
-                        });
-                    })
-                    ->when(auth()->user()->hasRole('equipo_vinculacion_educacion_no_formal'), function ($query) {
-                        $query->whereHas('categoria', function ($q) {
-                            $q->where('nombre', 'Vinculación Educación No Formal');
-                        });
-                    })
                     ->select('proyecto.*')
                     ->distinct('proyecto.id')
 
@@ -265,6 +255,44 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->icon('heroicon-o-link')
                     ->modalHeading('Reasignar Jefes y Directores')
                     ->modalWidth(MaxWidth::TwoExtraLarge)
+                    ->fillForm(function ($record) {
+                        // Forzar recarga del registro para obtener datos frescos
+                        $proyectoFresco = \App\Models\Proyecto\Proyecto::find($record->id);
+                        
+                        // Obtener las firmas actuales usando joins para asegurar datos frescos
+                        $firmaJefe = \App\Models\Proyecto\FirmaProyecto::join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+                            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+                            ->where('firma_proyecto.firmable_type', \App\Models\Proyecto\Proyecto::class)
+                            ->where('firma_proyecto.firmable_id', $record->id)
+                            ->where('tipo_cargo_firma.nombre', 'Jefe Departamento')
+                            ->where('cargo_firma.descripcion', 'Proyecto')
+                            ->select('firma_proyecto.*')
+                            ->first();
+                            
+                        $firmaDirector = \App\Models\Proyecto\FirmaProyecto::join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+                            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+                            ->where('firma_proyecto.firmable_type', \App\Models\Proyecto\Proyecto::class)
+                            ->where('firma_proyecto.firmable_id', $record->id)
+                            ->where('tipo_cargo_firma.nombre', 'Director centro')
+                            ->where('cargo_firma.descripcion', 'Proyecto')
+                            ->select('firma_proyecto.*')
+                            ->first();
+                            
+                        $firmaEnlace = \App\Models\Proyecto\FirmaProyecto::join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+                            ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+                            ->where('firma_proyecto.firmable_type', \App\Models\Proyecto\Proyecto::class)
+                            ->where('firma_proyecto.firmable_id', $record->id)
+                            ->where('tipo_cargo_firma.nombre', 'Enlace Vinculacion')
+                            ->where('cargo_firma.descripcion', 'Proyecto')
+                            ->select('firma_proyecto.*')
+                            ->first();
+                        
+                        return [
+                            'jefe_id' => $firmaJefe?->empleado_id,
+                            'director_id' => $firmaDirector?->empleado_id,
+                            'enlace_id' => $firmaEnlace?->empleado_id,
+                        ];
+                    })
                     ->form([
                         Select::make('jefe_id')
                             ->label('Jefe de Departamento')
@@ -276,10 +304,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                             ->searchable()
                             ->preload()
                             ->placeholder('Seleccione el jefe de departamento')
-                            ->default(function ($record) {
-                                $firma = $record->firma_proyecto_jefe()->first();
-                                return $firma?->empleado_id;
-                            }),
+                            ->required(),
                         
                         Select::make('director_id')
                             ->label('Decano/Director de Centro')
@@ -291,10 +316,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                             ->searchable()
                             ->preload()
                             ->placeholder('Seleccione el decano o director')
-                            ->default(function ($record) {
-                                $firma = $record->firma_proyecto_decano()->first();
-                                return $firma?->empleado_id;
-                            }),
+                            ->required(),
                         
                         Select::make('enlace_id')
                             ->label('Enlace de Vinculación')
@@ -306,10 +328,7 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                             ->searchable()
                             ->preload()
                             ->placeholder('Seleccione el enlace de vinculación')
-                            ->default(function ($record) {
-                                $firma = $record->firma_proyecto_enlace()->first();
-                                return $firma?->empleado_id;
-                            }),
+                            ->required(),
                     ])
                     ->action(function (array $data, $record) {
                         $cambios = [];
@@ -317,12 +336,28 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                         
                         // Actualizar Jefe de Departamento
                         if (isset($data['jefe_id'])) {
-                            $firmaJefe = $record->firma_proyecto_jefe()->first();
+                            $firmaJefe = \App\Models\Proyecto\FirmaProyecto::join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+                                ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+                                ->where('firma_proyecto.firmable_type', \App\Models\Proyecto\Proyecto::class)
+                                ->where('firma_proyecto.firmable_id', $record->id)
+                                ->where('tipo_cargo_firma.nombre', 'Jefe Departamento')
+                                ->where('cargo_firma.descripcion', 'Proyecto')
+                                ->select('firma_proyecto.*')
+                                ->first();
+                                
                             if ($firmaJefe) {
-                                $firmaJefe->update(['empleado_id' => $data['jefe_id']]);
+                                $antiguoJefe = \App\Models\Personal\Empleado::find($firmaJefe->empleado_id);
+                                
+                                // Actualizar usando el modelo directamente
+                                \App\Models\Proyecto\FirmaProyecto::where('id', $firmaJefe->id)
+                                    ->update(['empleado_id' => $data['jefe_id']]);
+                                    
                                 $nuevoJefe = \App\Models\Personal\Empleado::find($data['jefe_id']);
-                                if ($nuevoJefe) {
-                                    $cambios['Jefe de Departamento'] = $nuevoJefe->nombre_completo;
+                                if ($nuevoJefe && $antiguoJefe && $antiguoJefe->id != $nuevoJefe->id) {
+                                    $cambios['Jefe de Departamento'] = [
+                                        'anterior' => $antiguoJefe->nombre_completo,
+                                        'nuevo' => $nuevoJefe->nombre_completo
+                                    ];
                                     $empleadosNotificar[] = $nuevoJefe;
                                 }
                             }
@@ -330,12 +365,27 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                         
                         // Actualizar Decano/Director
                         if (isset($data['director_id'])) {
-                            $firmaDirector = $record->firma_proyecto_decano()->first();
+                            $firmaDirector = \App\Models\Proyecto\FirmaProyecto::join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+                                ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+                                ->where('firma_proyecto.firmable_type', \App\Models\Proyecto\Proyecto::class)
+                                ->where('firma_proyecto.firmable_id', $record->id)
+                                ->where('tipo_cargo_firma.nombre', 'Director centro')
+                                ->where('cargo_firma.descripcion', 'Proyecto')
+                                ->select('firma_proyecto.*')
+                                ->first();
+                                
                             if ($firmaDirector) {
-                                $firmaDirector->update(['empleado_id' => $data['director_id']]);
+                                $antiguoDirector = \App\Models\Personal\Empleado::find($firmaDirector->empleado_id);
+                                
+                                \App\Models\Proyecto\FirmaProyecto::where('id', $firmaDirector->id)
+                                    ->update(['empleado_id' => $data['director_id']]);
+                                    
                                 $nuevoDirector = \App\Models\Personal\Empleado::find($data['director_id']);
-                                if ($nuevoDirector) {
-                                    $cambios['Decano/Director de Centro'] = $nuevoDirector->nombre_completo;
+                                if ($nuevoDirector && $antiguoDirector && $antiguoDirector->id != $nuevoDirector->id) {
+                                    $cambios['Decano/Director de Centro'] = [
+                                        'anterior' => $antiguoDirector->nombre_completo,
+                                        'nuevo' => $nuevoDirector->nombre_completo
+                                    ];
                                     $empleadosNotificar[] = $nuevoDirector;
                                 }
                             }
@@ -343,12 +393,27 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                         
                         // Actualizar Enlace
                         if (isset($data['enlace_id'])) {
-                            $firmaEnlace = $record->firma_proyecto_enlace()->first();
+                            $firmaEnlace = \App\Models\Proyecto\FirmaProyecto::join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+                                ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
+                                ->where('firma_proyecto.firmable_type', \App\Models\Proyecto\Proyecto::class)
+                                ->where('firma_proyecto.firmable_id', $record->id)
+                                ->where('tipo_cargo_firma.nombre', 'Enlace Vinculacion')
+                                ->where('cargo_firma.descripcion', 'Proyecto')
+                                ->select('firma_proyecto.*')
+                                ->first();
+                                
                             if ($firmaEnlace) {
-                                $firmaEnlace->update(['empleado_id' => $data['enlace_id']]);
+                                $antiguoEnlace = \App\Models\Personal\Empleado::find($firmaEnlace->empleado_id);
+                                
+                                \App\Models\Proyecto\FirmaProyecto::where('id', $firmaEnlace->id)
+                                    ->update(['empleado_id' => $data['enlace_id']]);
+                                    
                                 $nuevoEnlace = \App\Models\Personal\Empleado::find($data['enlace_id']);
-                                if ($nuevoEnlace) {
-                                    $cambios['Enlace de Vinculación'] = $nuevoEnlace->nombre_completo;
+                                if ($nuevoEnlace && $antiguoEnlace && $antiguoEnlace->id != $nuevoEnlace->id) {
+                                    $cambios['Enlace de Vinculación'] = [
+                                        'anterior' => $antiguoEnlace->nombre_completo,
+                                        'nuevo' => $nuevoEnlace->nombre_completo
+                                    ];
                                     $empleadosNotificar[] = $nuevoEnlace;
                                 }
                             }
@@ -386,6 +451,11 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                             ->success()
                             ->send();
                     })
+                    ->after(function () {
+                        // Forzar recarga del componente para reflejar cambios
+                        $this->dispatch('$refresh');
+                    })
+                    ->closeModalByClickingAway(false)
                     ->visible(fn() => auth()->user()->hasRole(['admin', 'Director/Enlace'])),
                 
                 Action::make('Proyecto de Vinculación')

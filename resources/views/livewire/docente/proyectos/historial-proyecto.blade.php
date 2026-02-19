@@ -9,11 +9,22 @@
     @endphp
     <div class="w-full md:w-3/5 lg:w-2/3">
         <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
-            Ficha de proyecto: {{ $proyecto->estado->tipoestado->nombre }}
+            Estado: {{ $proyecto->estado->tipoestado->nombre }}
         </h1>
         <x-filament::section collapsible collapsed persist-collapsed id="user-details">
             <x-slot name="heading">
-                Ficha del proyecto
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-bold">Ficha del Proyecto</span>
+                    @if ($proyecto->estado->tipoestado->nombre == 'Borrador' || $proyecto->estado->tipoestado->nombre == 'Subsanacion' || $proyecto->estado->tipoestado->nombre == 'Autoguardado')
+                    <x-filament::button 
+                        color="primary" 
+                        icon="heroicon-o-pencil-square"
+                        tag="a"
+                        href="{{ route('editarProyectoVinculacion', ['proyecto' => $proyecto->id]) }}">
+                        Continuar Editando
+                    </x-filament::button>
+                    @endif
+                </div>
             </x-slot>
 
             <div

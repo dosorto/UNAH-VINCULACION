@@ -254,7 +254,6 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{ $logoUrl }}" alt="{{ $appName }} Logo">
             <h1>Confirmación de Registro de Proyecto</h1>
             <div class="subtitle">Sistema de Gestión de Proyectos de Vinculación</div>
         </div>

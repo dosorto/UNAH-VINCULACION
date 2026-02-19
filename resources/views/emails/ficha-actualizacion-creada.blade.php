@@ -129,14 +129,13 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{ asset('images/logo_nuevo.png') }}" alt="UNAH Logo" class="logo">
-            <h1>🔄 Ficha de Actualización Enviada</h1>
+            <h1>Ficha de Actualización Enviada</h1>
             <p>Su ficha de actualización ha sido enviada exitosamente al proceso de firmas</p>
         </div>
 
         <div class="content">
             <div class="success-badge">
-                ✅ FICHA ENVIADA A FIRMAR
+                FICHA ENVIADA A FIRMAR
             </div>
 
             <p style="font-size: 16px; color: #374151; margin-bottom: 25px;">
@@ -149,7 +148,7 @@
             </p>
 
             <div class="project-details">
-                <h3 style="color: #1e40af; margin: 0 0 15px 0; font-size: 18px;">📋 Detalles de la Actualización</h3>
+                <h3 style="color: #1e40af; margin: 0 0 15px 0; font-size: 18px;">Detalles de la Actualización</h3>
                 
                 <div class="detail-row">
                     <span class="detail-label">Proyecto Original:</span>
@@ -178,7 +177,7 @@
             </div>
             
             <div class="institutional-notice">
-                <h3>⚡ Proceso de Revisión de Actualización</h3>
+                <h3>Proceso de Revisión de Actualización</h3>
                 <ul>
                     <li><strong>Revisión académica:</strong> Su ficha será evaluada por las autoridades correspondientes</li>
                     <li><strong>Validación institucional:</strong> Se verificará el cumplimiento de normativas de actualización</li>
@@ -195,8 +194,8 @@
             </p>
 
             <p style="text-align: center; margin: 30px 0;">
-                <a href="{{ route('proyectosDocente') }}" class="btn">
-                    📊 Ver Mis Proyectos
+                <a href="{{ route('listarProyectosVinculacion') }}" class="btn">
+                    Ver Mis Proyectos
                 </a>
             </p>
         </div>

@@ -5,36 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Notificación de {{ $accion }} - {{ $appName }}</title>
     <style>
-                    <div class="status-change {{ str_contains($accion, 'rechazo') ? 'rejected' : '' }}">
-                <h3>
-                    @if(str_contains($accion, 'rechazo'))
-                        {{ str_contains($accion, 'ficha') ? '❌ FICHA DE ACTUALIZACIÓN RECHAZADA' : '❌ PROYECTO RECHAZADO' }}
-                    @elseif(str_contains($accion, 'aprobación de ficha'))
-                        ✅ FICHA DE ACTUALIZACIÓN APROBADA
-                    @else
-                        ✅ ESTADO ACTUALIZADO
-                    @endif
-                </h3>
-                <p style="font-size: 16px; margin: 15px 0;">
-                    @if(str_contains($accion, 'rechazo'))
-                        {{ str_contains($accion, 'ficha') ? 'Su ficha de actualización ha sido rechazada y requiere correcciones.' : 'Su proyecto ha sido rechazado y requiere subsanación.' }}
-                    @elseif(str_contains($accion, 'aprobación de ficha'))
-                        Su ficha de actualización ha sido aprobada exitosamente. Los cambios han sido aplicados al proyecto.
-                    @else
-                        El estado de su proyecto ha sido actualizado exitosamente.
-                    @endif
-                </p>
-                <span class="status-badge {{ str_contains($accion, 'rechazo') ? 'rejected' : '' }}">
-                    {{ $nuevoEstado }}
-                </span>
-            </div>        font-family: 'Times New Roman', Times, serif;
-            line-height: 1.8;
-            color: #2c3e50;
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f8f9fa;
-        }
         .container {
             background-color: white;
             border: 2px solid #004080;
@@ -257,7 +227,7 @@
 
             @if($comentario && trim($comentario) !== '')
             <div class="comment-section">
-                <h4>💬 Comentarios del revisor</h4>
+                <h4>Comentarios del revisor</h4>
                 <div class="comment-text">
                     {{ $comentario }}
                 </div>
