@@ -60,12 +60,12 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->leftJoin('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
                     ->leftJoin('tipo_estado', 'estado_proyecto.tipo_estado_id', '=', 'tipo_estado.id')
                     // Filtrar por cetgoria según el rol del usuario ya sea equipo_desarrollo_local y equipo_vinculacion_educacion_no_formal
-                    // si  el usuario tiene el permiso de admin_centro_facultad-proyectos filtrar por el centro/facultad
+                    /* si  el usuario tiene el permiso de admin_centro_facultad-proyectos filtrar por el centro/facultad
                     ->when(auth()->user()->hasRole('equipo_desarrollo_local'), function ($query) { 
                         $query->whereHas('categoria', function ($q) 
                         { $q->where('nombre', 'Desarrollo Local'); }); }) 
                         ->when(auth()->user()->hasRole('equipo_vinculacion_educacion_no_formal'), function ($query) 
-                        { $query->whereHas('categoria', function ($q) { $q->where('nombre', 'Vinculación Educación No Formal'); }); })
+                        { $query->whereHas('categoria', function ($q) { $q->where('nombre', 'Vinculación Educación No Formal'); }); }) */
                     ->select('proyecto.*')
                     ->distinct('proyecto.id')
             )
