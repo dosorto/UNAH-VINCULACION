@@ -11,6 +11,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Mail\Mailables\Address;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
+use Illuminate\Support\Facades\Route;
 
 class ProyectoCreado extends Mailable implements ShouldQueue
 {
@@ -18,6 +19,8 @@ class ProyectoCreado extends Mailable implements ShouldQueue
 
     public $proyecto;
     public $usuario;
+    public $nombreCompleto;
+    public $fechaCreacion;
 
     /**
      * Create a new message instance.
@@ -26,6 +29,11 @@ class ProyectoCreado extends Mailable implements ShouldQueue
     {
         $this->proyecto = $proyecto;
         $this->usuario = $usuario;
+        // prepare derived values so they are serialized with the job
+        $this->nombreCompleto = optional($usuario->empleado)->nombre_completo
+            ?? ($usuario->nombre . ' ' . $usuario->apellido);
+        $this->fechaCreacion = optional($proyecto->fecha_registro)->format('d/m/Y')
+            ?? now()->format('d/m/Y');
     }
 
     /**
@@ -45,16 +53,17 @@ class ProyectoCreado extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'emails.correoProyectoCreado',
+            view: 'emails.proyecto-creado',
             with: [
                 'proyecto' => $this->proyecto,
                 'usuario' => $this->usuario,
-                'empleadoNombre' => $this->usuario->nombre . ' ' . $this->usuario->apellido,
+                'nombreCompleto' => $this->nombreCompleto,
                 'subject' => 'Proyecto Creado Exitosamente',
                 'mensaje' => 'Su proyecto "' . $this->proyecto->nombre_proyecto . '" ha sido registrado exitosamente en el sistema NEXO.',
+                'fechaCreacion' => $this->fechaCreacion,
                 'logoUrl' => asset('images/Image/logo_nexo.png'),
                 'appName' => env('APP_NAME', 'NEXO'),
-                'actionUrl' => route('proyectosVinculacion') ?? 'https://nexo.unah.edu.hn/',
+                'actionUrl' => 'https://nexo.unah.edu.hn/',
             ]
         ); 
     }

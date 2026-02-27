@@ -43,14 +43,14 @@ class SendEmail extends Command
             $proyecto = Proyecto::find($proyectoId);
             $usuario = User::find($usuarioId);
 
-            $usuario->email = 'dorian.ordonez@unah.edu.hn';
+            $usuario->email = 'acxel.aplicano@unah.hn';
             if ($proyecto && $usuario) {
                 try {
                     /*Mail::raw(new ProyectoCreado($proyecto, $usuario), function($message) {
                         $message->to($usuario->email)->subject('Prueba SMTP Office 365');
                     });*/
                     //$message->to($usuario->email)->subject('Proyecto Creado - ' . $proyecto->nombre_proyecto)->send();
-                     Mail::to($usuario->email)->send(new ProyectoCreado($proyecto, $usuario));
+                     Mail::to($usuario->email)->send(new Email());
                     $this->info("Correo de proyecto creado enviado a {$usuario->email}");
                 } catch (\Exception $e) {
                     $this->error("Error al enviar correo: " . $e->getMessage());

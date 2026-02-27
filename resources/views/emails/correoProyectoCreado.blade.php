@@ -149,7 +149,7 @@
             <p>{{ $mensaje }}</p>
             <p>Este proyecto ya está disponible para su revisión y seguimiento. 
                 Si desea más detalles, puede acceder al apartado correspondiente haciendo clic en el siguiente enlace:</p>
-            <a href="{{ $actionUrl }}" class="button">Ir al apartado</a>
+            <a href="https://nexo.unah.edu.hn/" class="button">Ir al apartado</a>
 
             <p>UNAH-NEXO<br><a href="notificacionespoa@unah.edu.hn">notificacionespoa@unah.edu.hn</a></p>
         </div>

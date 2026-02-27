@@ -301,7 +301,7 @@
                 <p style="margin-bottom: 15px; font-weight: 600; color: #004080;">
                     Acceda a su panel institucional para seguimiento:
                 </p>
-                <a href="{{ $actionUrl }}" class="action-button">
+                <a href="https://nexo.unah.edu.hn/" class="action-button">
                     Acceder al Sistema Institucional
                 </a>
             </div>
