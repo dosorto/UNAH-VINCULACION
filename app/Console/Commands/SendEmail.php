@@ -50,7 +50,7 @@ class SendEmail extends Command
                         $message->to($usuario->email)->subject('Prueba SMTP Office 365');
                     });*/
                     //$message->to($usuario->email)->subject('Proyecto Creado - ' . $proyecto->nombre_proyecto)->send();
-                     Mail::to($usuario->email)->send(new Email());
+                     Mail::to($usuario->email)->send(new ProyectoCreado($proyecto, $usuario));
                     $this->info("Correo de proyecto creado enviado a {$usuario->email}");
                 } catch (\Exception $e) {
                     $this->error("Error al enviar correo: " . $e->getMessage());
