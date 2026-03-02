@@ -235,7 +235,7 @@
             @endif
 
             <div style="text-align: center; margin: 30px 0;">
-                <a href="{{ route('listarProyectosVinculacion') }}" class="action-button">
+                <a href="https://nexo.unah.edu.hn/" class="action-button">
                     Ver Estado del Proyecto
                 </a>
             </div>
@@ -281,9 +281,7 @@
                 Universidad-Sociedad a través de los canales oficiales.
             </p>
 
-            <div class="logo-section">
-                <img src="{{ asset('images/logo_nuevo.png') }}" alt="Logo UNAH" />
-            </div>
+           
         </div>
 
         <div class="footer">

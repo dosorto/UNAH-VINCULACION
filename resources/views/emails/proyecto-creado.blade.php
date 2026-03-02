@@ -261,7 +261,6 @@
         <div class="content">
             <div class="institution-info">
                 <h2>Universidad Nacional Autónoma de Honduras</h2>
-                <p>Vicerrectoría de Relaciones Externas</p>
                 <p>Dirección de Vinculación Universidad-Sociedad</p>
             </div>
 

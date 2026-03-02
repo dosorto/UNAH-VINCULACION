@@ -264,7 +264,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1 style="color:#1a2d3d;">PROYECTO DE VINCULACIÓN</h1>
+            <h1 style="color:#1a2d3d;">REVISIÓN DE PROYECTO DE VINCULACIÓN</h1>
         </div>
 
         <div class="content">
@@ -275,7 +275,7 @@
             <div class="official-notice">
                 <h2>Notificación Importante</h2>
                 <p>
-                    Le informamos que se ha registado <strong>un nuevo proyecto de vinculación</strong> bajo su coordinación o participación.
+                    Le informamos que se ha registado <strong>un nuevo proyecto de vinculación</strong> que necesita su revisión, aprobación y firmas.
                 </p>
             </div>
 
