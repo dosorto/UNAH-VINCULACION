@@ -33,23 +33,10 @@ class EnviarCorreos
 
     public function enviarCorreoProyecto(EstadoProyecto $estado_proyecto): void
     {
-        $coordinador = $estado_proyecto->proyecto->coordinador;
-        // Usamos el EmailBuilder y el mensaje dinámico
-        $mensaje =  'MESAJE';//$this->mensajeDinamico->obtenerMensaje($estado_proyecto->tipoestado);
-      
-        $correo = (new EmailBuilder())
-            ->setEstadoNombre($estado_proyecto->tipoestado->nombre)
-            ->setEmpleadoNombre($coordinador->nombre_completo)
-            ->setNombreProyecto($estado_proyecto->proyecto->nombre_proyecto)
-            ->setActionUrl(route('listarProyectosVinculacion'))
-            ->setLogoUrl(asset('images/logo_nuevo.png'))
-            ->setAppName('NEXO-UNAH')
-            ->setMensaje($mensaje)
-            ->setSubject('Notificación de actualización de estado del proyecto')
-            ->build();
-
-        Mail::to($coordinador->user->email)->queue($correo);
-    
+        // El correo de cambio de estado del proyecto se gestiona directamente
+        // desde cada flujo (CreateProyectoVinculacion, ListProyectosSolicitado, etc.)
+        // usando mailables específicos (ProyectoCreado, FirmasActualizadas, etc.)
+        // No se envía Email::class aquí porque su vista está vacía.
     }
 
 

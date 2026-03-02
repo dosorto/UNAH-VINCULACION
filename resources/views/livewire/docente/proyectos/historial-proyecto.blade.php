@@ -9,13 +9,13 @@
     @endphp
     <div class="w-full md:w-3/5 lg:w-2/3">
         <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
-            Estado: {{ $proyecto->estado->tipoestado->nombre }}
+            Estado: {{ $proyecto->estado?->tipoestado?->nombre ?? 'Sin estado' }}
         </h1>
         <x-filament::section collapsible collapsed persist-collapsed id="user-details">
             <x-slot name="heading">
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-bold">Ficha del Proyecto</span>
-                    @if ($proyecto->estado->tipoestado->nombre == 'Borrador' || $proyecto->estado->tipoestado->nombre == 'Subsanacion' || $proyecto->estado->tipoestado->nombre == 'Autoguardado')
+                    @if ($proyecto->estado?->tipoestado?->nombre == 'Borrador' || $proyecto->estado?->tipoestado?->nombre == 'Subsanacion' || $proyecto->estado?->tipoestado?->nombre == 'Autoguardado')
                     <x-filament::button 
                         color="primary" 
                         icon="heroicon-o-pencil-square"
@@ -1989,10 +1989,10 @@
                 <div class="mb-4">
                     <x-filament::section collapsible collapsed persist-collapsed id="user-details">
                         <x-slot name="heading">
-                            Informe Intermedio, Estado: {{ $proyecto->documento_intermedio()->estado->tipoestado->nombre }}
+                            Informe Intermedio, Estado: {{ $proyecto->documento_intermedio()->estado?->tipoestado?->nombre ?? 'Sin estado' }}
                         </x-slot>
                         <x-slot name="description">
-                            {{ $proyecto->documento_intermedio()->estado->comentario }}
+                            {{ $proyecto->documento_intermedio()->estado?->comentario }}
                         </x-slot>
                         <iframe src="{{ asset('storage/' . $proyecto->documento_intermedio()->documento_url) }}" type="application/pdf" width="100%" height="600px"></iframe>
                     </x-filament::section>
@@ -2001,10 +2001,10 @@
             @if ($proyecto->documento_final() && $proyecto->documento_final()->documento_url != null)
                 <x-filament::section collapsible collapsed persist-collapsed id="user-details">
                     <x-slot name="heading">
-                        Informe Final, Estado: {{ $proyecto->documento_final()->estado->tipoestado->nombre }}
+                        Informe Final, Estado: {{ $proyecto->documento_final()->estado?->tipoestado?->nombre ?? 'Sin estado' }}
                     </x-slot>
                     <x-slot name="description">
-                        {{ $proyecto->documento_final()->estado->comentario }}
+                        {{ $proyecto->documento_final()->estado?->comentario }}
                     </x-slot>
                     <iframe src="{{ asset('storage/' . $proyecto->documento_final()->documento_url) }}"
                         type="application/pdf" width="100%" height="600px"></iframe>
@@ -2043,7 +2043,7 @@
                                 </span>
                             </div>
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-200 mt-2">
-                                Estado: {{ $estado->tipoestado->nombre ?? 'Cambio de estado' }}
+                                Estado: {{ $estado->tipoestado?->nombre ?? 'Cambio de estado' }}
                             </h3>
                             <p class="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">
                                 @if ($estado->empleado)
