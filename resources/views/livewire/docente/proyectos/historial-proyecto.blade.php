@@ -663,12 +663,12 @@
                                     <td class="full-width" colspan="1">
                                         <input disabled type="text" class="input-field"
                                             placeholder="Ingrese la categoría"
-                                            value="{{ $integrante->categoria->nombre }}" disabled>
+                                            value="{{ $integrante->categoria->nombre ?? 'Sin categoría' }}" disabled>
                                     </td>
                                     <td class="full-width" colspan="1">
                                         <input disabled type="text" class="input-field"
                                             placeholder="Ingrese el departamento"
-                                            value="{{ $integrante->departamento_academico->nombre }}" disabled>
+                                            value="{{ $integrante->departamento_academico->nombre ?? 'Sin departamento' }}" disabled>
                                     </td>
                                 </tr>
                             @empty
