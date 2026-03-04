@@ -665,6 +665,7 @@
                             <td class="sub-header">Correo electrónico:</td>
                             <td class="sub-header">País:</td>
                             <td class="sub-header">Universidad/Institucion:</td>
+                            
                         </tr>
                         @forelse ($proyecto->integrantesInternacionales as $integrante)
                             <tr>
