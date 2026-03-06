@@ -79,6 +79,29 @@ class ProyectosPorFirmar extends Component implements HasForms, HasTable
             ->filters([
                 //
             ])
+            ->recordUrl(function ($record) {
+                // $record es un FirmaProyecto, obtener el proyecto
+                $proyecto = $record->firmable_type == Proyecto::class 
+                    ? $record->proyecto 
+                    : $record->documento_proyecto->proyecto;
+                
+                if (!$proyecto) {
+                    return null;
+                }
+                
+                // Verificar que el usuario sea admin, coordinador o tenga permiso de ver
+                $user = auth()->user();
+                $esCoordinador = $proyecto->coordinador && $proyecto->coordinador->id === $user->empleado->id;
+                $esAdmin = $user->hasAnyRole(['admin', 'Director/Enlace', 'Revisor Vinculacion']);
+                $esFirmante = $record->empleado_id === $user->empleado->id;
+                
+                // Permitir acceso si es coordinador, admin o firmante del proyecto
+                if ($esCoordinador || $esAdmin || $esFirmante) {
+                    return route('historialproyecto', ['proyecto' => $proyecto->id]);
+                }
+                
+                return null; // No redirigir si no tiene permisos
+            })
             ->actions([
 
                 Action::make('first')

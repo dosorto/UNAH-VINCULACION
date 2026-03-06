@@ -437,9 +437,6 @@ class Presupuesto
         $costoTotalServ = $cantidadServ * $costoUnitarioServicios;
         $set('../../costo_total_servicios', number_format($costoTotalServ, 2, '.', ''));
 
-        // Guardar el total en el campo total_costo_unitario también
-        $set('../../total_costo_unitario', number_format($totalCostoUnitario, 2, '.', ''));
-
         // Recalcular el total del aporte institucional incluyendo infraestructura y servicios
         self::calcularTotalAporteInstitucional($get, $set);
     }

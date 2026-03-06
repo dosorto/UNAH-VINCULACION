@@ -151,6 +151,19 @@ class ListProyectosSolicitado extends Component implements HasForms, HasTable
                     ->wrap()
                     ->label('Estado'),
             ])
+            ->recordUrl(function ($record) {
+                // Verificar que el usuario sea admin o coordinador del proyecto
+                $user = auth()->user();
+                $esCoordinador = $record->coordinador && $record->coordinador->id === $user->empleado->id;
+                $esAdmin = $user->hasAnyRole(['admin', 'Director/Enlace', 'Revisor Vinculacion']);
+                
+                // Solo permitir acceso si es coordinador o admin
+                if ($esCoordinador || $esAdmin) {
+                    return route('historialproyecto', ['proyecto' => $record->id]);
+                }
+                
+                return null; // No redirigir si no tiene permisos
+            })
             ->actions([
 
 

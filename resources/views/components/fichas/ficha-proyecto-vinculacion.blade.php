@@ -1417,12 +1417,12 @@
                                 <input disabled type="text" class="input-field" 
                                     value="{{ number_format(
     (
-    ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
-    ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
-    ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
-    ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
-    ($conceptos['gastos_impresion']?->cantidad ?? 0)
-) * 0.05,
+        ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
+        ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
+        ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
+        ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
+        ($conceptos['gastos_impresion']?->cantidad ?? 0)
+    ) * 0.05,
     2, '.', ','
 ) }}">
                             </td>
@@ -1430,12 +1430,12 @@
                                 <input disabled type="text" class="input-field" 
                                     value="{{ number_format(
     (
-    ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
-    ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
-    ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
-    ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
-    ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
-) * 0.05,
+        ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
+        ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
+        ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
+        ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
+        ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
+    ) * 0.05,
     2, '.', ','
 ) }}">
                             </td>

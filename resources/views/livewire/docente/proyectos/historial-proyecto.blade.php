@@ -15,7 +15,7 @@
             <x-slot name="heading">
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-bold">Ficha del Proyecto</span>
-                    @if ($proyecto->estado?->tipoestado?->nombre == 'Borrador' || $proyecto->estado?->tipoestado?->nombre == 'Subsanacion' || $proyecto->estado?->tipoestado?->nombre == 'Autoguardado')
+                    @if ($esCoordinador && ($proyecto->estado?->tipoestado?->nombre == 'Borrador' || $proyecto->estado?->tipoestado?->nombre == 'Subsanacion' || $proyecto->estado?->tipoestado?->nombre == 'Autoguardado'))
                     <x-filament::button 
                         color="primary" 
                         icon="heroicon-o-pencil-square"
@@ -1458,15 +1458,53 @@
                                 <td class="sub-header" colspan="3">%</td>
                                 <td class="full-width" colspan="3">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $conceptos['costos_indirectos_infraestructura']?->cantidad ?? '' }}">
+                                        value="{{ number_format(
+    (
+        ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
+        ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
+        ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
+        ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
+        ($conceptos['gastos_impresion']?->cantidad ?? 0)
+    ) * 0.05,
+    2, '.', ','
+) }}">
                                 </td>
                                 <td class="full-width" colspan="3">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $conceptos['costos_indirectos_infraestructura']?->costo_unitario ?? '' }}">
+                                        value="{{ number_format(
+    (
+        ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
+        ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
+        ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
+        ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
+        ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
+    ) * 0.05,
+    2, '.', ','
+) }}">
                                 </td>
                                 <td class="full-width" colspan="3">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $conceptos['costos_indirectos_infraestructura']?->costo_total ?? '' }}">
+                                        value="{{ number_format(
+        (
+            (
+                ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
+                ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
+                ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
+                ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
+                ($conceptos['gastos_impresion']?->cantidad ?? 0)
+            ) * 0.05
+        ) *
+        (
+            (
+                ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
+                ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
+                ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
+                ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
+                ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
+            ) * 0.05
+        ),
+        2, '.', ','
+    ) }}">
                                 </td>
                             </tr>
 
@@ -1478,15 +1516,53 @@
                                 <td class="sub-header" colspan="3">%</td>
                                 <td class="full-width" colspan="3">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $conceptos['costos_indirectos_servicios']?->cantidad ?? '' }}">
+                                        value="{{ number_format(
+    (
+        ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
+        ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
+        ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
+        ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
+        ($conceptos['gastos_impresion']?->cantidad ?? 0)
+    ) * 0.05,
+    2, '.', ','
+) }}">
                                 </td>
                                 <td class="full-width" colspan="3">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $conceptos['costos_indirectos_servicios']?->costo_unitario ?? '' }}">
+                                        value="{{ number_format(
+    (
+        ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
+        ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
+        ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
+        ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
+        ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
+    ) * 0.05,
+    2, '.', ','
+) }}">
                                 </td>
                                 <td class="full-width" colspan="3">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $conceptos['costos_indirectos_servicios']?->costo_total ?? '' }}">
+                                        value="{{ number_format(
+        (
+            (
+                ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
+                ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
+                ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
+                ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
+                ($conceptos['gastos_impresion']?->cantidad ?? 0)
+            ) * 0.05
+        ) *
+        (
+            (
+                ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
+                ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
+                ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
+                ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
+                ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
+            ) * 0.05
+        ),
+        2, '.', ','
+    ) }}">
                                 </td>
                             </tr>
 
@@ -1983,6 +2059,49 @@
         <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
             Documentos del proyecto
         </h1>
+        
+        @if ($esCoordinador)
+            <div class="mb-4 flex flex-col gap-2">
+                {{-- Botón Actualizar Equipo o Fechas --}}
+                @if ($proyecto->estado?->tipoestado?->nombre == 'En curso')
+                    <x-filament::button
+                        color="success"
+                        icon="heroicon-o-document-text"
+                        tag="a"
+                        href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}"
+                        class="w-full">
+                        Actualizar Equipo o Fechas
+                    </x-filament::button>
+                @endif
+                
+                {{-- Botón para Informe Intermedio --}}
+                @if (($proyecto->estado?->tipoestado?->nombre == 'En curso' && is_null($proyecto->documento_intermedio())) || 
+                     ($proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion'))
+                    <x-filament::button
+                        color="warning"
+                        icon="heroicon-o-document-arrow-up"
+                        wire:click="mountAction('subirInformeIntermedio')"
+                        class="w-full">
+                        {{ $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion' ? 'Subsanar Informe Intermedio' : 'Subir Informe Intermedio' }}
+                    </x-filament::button>
+                @endif
+                
+                {{-- Botón para Informe Final --}}
+                @if (($proyecto->estado?->tipoestado?->nombre == 'En curso' && 
+                      $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Aprobado' && 
+                      is_null($proyecto->documento_final())) || 
+                     ($proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion'))
+                    <x-filament::button
+                        color="info"
+                        icon="heroicon-o-document-arrow-up"
+                        wire:click="mountAction('subirInformeFinal')"
+                        class="w-full">
+                        {{ $proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion' ? 'Subsanar Informe Final' : 'Subir Informe Final' }}
+                    </x-filament::button>
+                @endif
+            </div>
+        @endif
+        
         <div class="mb-5">
             
             @if ($proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
@@ -2061,4 +2180,6 @@
             @endif
         </div>
     </div>
+
+    <x-filament-actions::modals />
 </div>
