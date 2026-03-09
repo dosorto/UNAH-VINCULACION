@@ -17,12 +17,37 @@ class PDFController extends Controller
 {
     public function descargarPerfilProyecto(Proyecto $proyecto)
     {
+        // The profile view traverses many nested relationships; eager load to avoid
+        // N+1 queries and reduce render time before passing HTML to DomPDF.
+        $proyecto->loadMissing([
+            'facultades_centros',
+            'departamentos_academicos',
+            'carreras',
+            'ejes_prioritarios_unah',
+            'categoria',
+            'departamento',
+            'municipio',
+            'presupuesto',
+            'empleados',
+            'actividades.empleados',
+            'entidad_contraparte.instrumento_formalizacion',
+            'anexos',
+            'estudiante_proyecto.estudiante.user',
+        ]);
+
+        // DomPDF can exceed PHP defaults for complex tables and images.
+        @set_time_limit(180);
+        @ini_set('max_execution_time', '180');
+        @ini_set('memory_limit', '512M');
+
         $pdf = PDF::loadView('components.fichas.ficha-proyecto-vinculacion', [
             'proyecto' => $proyecto,
             'isPdf' => true,
-        ])->setPaper('a4', 'portrait')
+        ])->setPaper('letter', 'portrait')
             ->setOption('isRemoteEnabled', true)
-            ->setOption('isHtml5ParserEnabled', true);
+            ->setOption('isHtml5ParserEnabled', true)
+            ->setOption('defaultFont', 'Arial')
+            ->setOption('dpi', 96);
 
         return $pdf->download("perfil_proyecto_{$proyecto->id}.pdf");
     }

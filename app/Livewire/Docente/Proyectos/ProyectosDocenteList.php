@@ -425,6 +425,31 @@ class ProyectosDocenteList extends Component implements HasForms, HasTable
                     ->action(function (Proyecto $proyecto) {
                         return redirect()->route('crearProyectoVinculacion', $proyecto);
                     }),
+                    Action::make('eliminar_proyecto')
+                        ->label('Borrar proyecto')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalIcon('heroicon-o-exclamation-triangle')
+                        ->modalHeading('Confirmar borrado del proyecto')
+                        ->modalDescription('Esta acción moverá el proyecto a eliminado (borrado suave). Podrás recuperarlo desde base de datos si fuese necesario.')
+                        ->modalSubmitActionLabel('Sí, borrar proyecto')
+                        ->modalCancelActionLabel('Cancelar')
+                        ->visible(function (Proyecto $proyecto) {
+                            $estado = $proyecto->estado?->tipoestado?->nombre;
+
+                            return in_array($estado, ['Autoguardado', 'Borrador', 'Subsanacion', 'Subsanación'], true)
+                                && $proyecto->coordinadorIsCurrentUser();
+                        })
+                        ->action(function (Proyecto $proyecto) {
+                            $proyecto->delete();
+
+                            Notification::make()
+                                ->title('Proyecto eliminado')
+                                ->body('El proyecto fue eliminado correctamente con borrado suave.')
+                                ->success()
+                                ->send();
+                        }),
                 ])
                     ->button()
                     ->color('primary')

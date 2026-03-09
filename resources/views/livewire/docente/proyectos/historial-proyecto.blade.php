@@ -18,7 +18,7 @@
         <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
             Estado: {{ $proyecto->estado?->tipoestado?->nombre ?? 'Sin estado' }}
         </h1>
-        <x-filament::section collapsible collapsed persist-collapsed id="user-details">
+        <x-filament::section id="user-details">
             <x-slot name="heading">
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-bold">Ficha del Proyecto</span>
@@ -1835,6 +1835,29 @@
 
                     <!-- SECCIÓN DE FIRMAS -->
                     <div class="section3">
+                        @php
+                            $firmaCoordinador = $proyecto->firma_coodinador_proyecto()->first();
+                            $firmaJefe = $proyecto->firma_proyecto_jefe()->first();
+                            $firmaEnlace = $proyecto->firma_proyecto_enlace()->first();
+                            $firmaDecano = $proyecto->firma_proyecto_decano()->first();
+
+                            $resolverRutaFirma = function (?string $ruta) {
+                                if (empty($ruta) || !Storage::disk('public')->exists($ruta)) {
+                                    return null;
+                                }
+
+                                return Storage::url($ruta);
+                            };
+
+                            $coordSello = $resolverRutaFirma(optional($firmaCoordinador?->sello)->ruta_storage);
+                            $coordFirma = $resolverRutaFirma(optional($firmaCoordinador?->firma)->ruta_storage);
+                            $jefeSello = $resolverRutaFirma(optional($firmaJefe?->sello)->ruta_storage);
+                            $jefeFirma = $resolverRutaFirma(optional($firmaJefe?->firma)->ruta_storage);
+                            $enlaceSello = $resolverRutaFirma(optional($firmaEnlace?->sello)->ruta_storage);
+                            $enlaceFirma = $resolverRutaFirma(optional($firmaEnlace?->firma)->ruta_storage);
+                            $decanoSello = $resolverRutaFirma(optional($firmaDecano?->sello)->ruta_storage);
+                            $decanoFirma = $resolverRutaFirma(optional($firmaDecano?->firma)->ruta_storage);
+                        @endphp
                         <div class="section-title">IV. FIRMAS. </div>
                         <table class="table_datos4">
                             <tr>
@@ -1859,34 +1882,42 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
-                                    <img src="{{ Storage::url(optional(optional($proyecto->firma_coodinador_proyecto()->first())->sello)->ruta_storage) }}"
-                                        alt="" width="200px">
-                                    <img src="{{ Storage::url(optional(optional($proyecto->firma_coodinador_proyecto()->first())->firma)->ruta_storage) }}"
-                                        alt="" width="200px">
-                                    <br>
-                                    <p> Firmado digitalmente </br>
-                                        {{ optional($proyecto->firma_coodinador_proyecto->first())->fecha_firma
-                                            ? \Carbon\Carbon::parse(optional($proyecto->firma_coodinador_proyecto->first())->fecha_firma)->translatedFormat(
-                                                'l d F Y h:i:s A',
-                                            )
-                                            : '' }}
-                                    </p>
+                                <td class="full-width" colspan="2" style="{{ ($coordSello || $coordFirma) ? 'height: 200px; width: 200px;' : '' }}">
+                                    @if ($coordSello)
+                                        <img src="{{ $coordSello }}" alt="" width="200px">
+                                    @endif
+                                    @if ($coordFirma)
+                                        <img src="{{ $coordFirma }}" alt="" width="200px">
+                                    @endif
+                                    @if ($coordSello || $coordFirma)
+                                        <br>
+                                        <p> Firmado digitalmente </br>
+                                            {{ optional($firmaCoordinador)->fecha_firma
+                                                ? \Carbon\Carbon::parse(optional($firmaCoordinador)->fecha_firma)->translatedFormat(
+                                                    'l d F Y h:i:s A',
+                                                )
+                                                : '' }}
+                                        </p>
+                                    @endif
                                 </td>
-                                <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
-                                    <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_jefe()->first())->sello)->ruta_storage) }}"
-                                        alt="" width="200px">
-                                    <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_jefe()->first())->firma)->ruta_storage) }}"
-                                        alt="" width="200px">
-                                    <br>
-                                    <p>
-                                        Firmado digitalmente </br>
-                                        {{ optional($proyecto->firma_proyecto_jefe->first())->fecha_firma
-                                            ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_jefe->first())->fecha_firma)->translatedFormat(
-                                                'l d F Y h:i:s A',
-                                            )
-                                            : '' }}
-                                    </p>
+                                <td class="full-width" colspan="2" style="{{ ($jefeSello || $jefeFirma) ? 'height: 200px; width: 200px;' : '' }}">
+                                    @if ($jefeSello)
+                                        <img src="{{ $jefeSello }}" alt="" width="200px">
+                                    @endif
+                                    @if ($jefeFirma)
+                                        <img src="{{ $jefeFirma }}" alt="" width="200px">
+                                    @endif
+                                    @if ($jefeSello || $jefeFirma)
+                                        <br>
+                                        <p>
+                                            Firmado digitalmente </br>
+                                            {{ optional($firmaJefe)->fecha_firma
+                                                ? \Carbon\Carbon::parse(optional($firmaJefe)->fecha_firma)->translatedFormat(
+                                                    'l d F Y h:i:s A',
+                                                )
+                                                : '' }}
+                                        </p>
+                                    @endif
                                 </td>
                             </tr>
 
@@ -1938,35 +1969,43 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
-                                    <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_enlace()->first())->sello)->ruta_storage) }}"
-                                        alt="" width="200px">
-                                    <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_enlace()->first())->firma)->ruta_storage) }}"
-                                        alt="" width="200px">
-                                    <br>
-                                    <p>
-                                        Firmado digitalmente </br>
-                                        {{ optional($proyecto->firma_proyecto_enlace->first())->fecha_firma
-                                            ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_enlace->first())->fecha_firma)->translatedFormat(
-                                                'l d F Y h:i:s A',
-                                            )
-                                            : '' }}
-                                    </p>
+                                <td class="full-width" colspan="2" style="{{ ($enlaceSello || $enlaceFirma) ? 'height: 200px; width: 200px;' : '' }}">
+                                    @if ($enlaceSello)
+                                        <img src="{{ $enlaceSello }}" alt="" width="200px">
+                                    @endif
+                                    @if ($enlaceFirma)
+                                        <img src="{{ $enlaceFirma }}" alt="" width="200px">
+                                    @endif
+                                    @if ($enlaceSello || $enlaceFirma)
+                                        <br>
+                                        <p>
+                                            Firmado digitalmente </br>
+                                            {{ optional($firmaEnlace)->fecha_firma
+                                                ? \Carbon\Carbon::parse(optional($firmaEnlace)->fecha_firma)->translatedFormat(
+                                                    'l d F Y h:i:s A',
+                                                )
+                                                : '' }}
+                                        </p>
+                                    @endif
                                 </td>
-                                <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
-                                    <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_decano()->first())->sello)->ruta_storage) }}"
-                                        alt="" width="200px">
-                                    <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_decano()->first())->firma)->ruta_storage) }}"
-                                        alt="" width="200px">
-                                    <br>
-                                    <p>
-                                        Firmado digitalmente </br>
-                                        {{ optional($proyecto->firma_proyecto_decano->first())->fecha_firma
-                                            ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_decano->first())->fecha_firma)->translatedFormat(
-                                                'l d F Y h:i:s A',
-                                            )
-                                            : '' }}
-                                    </p>
+                                <td class="full-width" colspan="2" style="{{ ($decanoSello || $decanoFirma) ? 'height: 200px; width: 200px;' : '' }}">
+                                    @if ($decanoSello)
+                                        <img src="{{ $decanoSello }}" alt="" width="200px">
+                                    @endif
+                                    @if ($decanoFirma)
+                                        <img src="{{ $decanoFirma }}" alt="" width="200px">
+                                    @endif
+                                    @if ($decanoSello || $decanoFirma)
+                                        <br>
+                                        <p>
+                                            Firmado digitalmente </br>
+                                            {{ optional($firmaDecano)->fecha_firma
+                                                ? \Carbon\Carbon::parse(optional($firmaDecano)->fecha_firma)->translatedFormat(
+                                                    'l d F Y h:i:s A',
+                                                )
+                                                : '' }}
+                                        </p>
+                                    @endif
                                 </td>
                             </tr>
 

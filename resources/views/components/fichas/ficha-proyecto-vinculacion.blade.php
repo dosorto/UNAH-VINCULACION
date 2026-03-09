@@ -8,7 +8,75 @@
     <title>Document</title>
     @if (!empty($isPdf))
         <style>
-            {!! file_get_contents(public_path('css/app/fichaVinculacion.css')) !!}
+            {!! file_get_contents(public_path('css/app/fichaHistorial.css')) !!}
+        </style>
+        <style>
+            @page {
+                size: letter portrait;
+                margin: 8mm 6mm;
+            }
+            body {
+                background: #fff !important;
+                margin: 0;
+                padding: 0;
+                color: #111;
+                font-size: 9px;
+                line-height: 1.2;
+            }
+            .container {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 auto !important;
+                border: 1px solid #ccc !important;
+                padding: 8px !important;
+                box-sizing: border-box !important;
+            }
+            .header img {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+            .table_datos1, .table_datos2, .table_datos3, .table_datos4, .table_datos5, .table_datos6, .table_datos7 {
+                width: 100% !important;
+                table-layout: fixed !important;
+                border-collapse: collapse !important;
+                page-break-inside: auto;
+            }
+            .table_datos1 tr, .table_datos2 tr, .table_datos3 tr, .table_datos4 tr, .table_datos5 tr, .table_datos6 tr, .table_datos7 tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+            .table_datos1 td, .table_datos1 th,
+            .table_datos2 td, .table_datos2 th,
+            .table_datos3 td, .table_datos3 th,
+            .table_datos4 td, .table_datos4 th,
+            .table_datos5 td, .table_datos5 th,
+            .table_datos6 td, .table_datos6 th,
+            .table_datos7 td, .table_datos7 th {
+                word-break: break-word !important;
+                overflow-wrap: anywhere !important;
+                white-space: normal !important;
+                padding: 2px 3px !important;
+                vertical-align: top !important;
+                font-size: 8.5px !important;
+            }
+            h1 { font-size: 12px !important; line-height: 1.2 !important; margin: 0 0 6px 0 !important; }
+            p, .section-title, .detalles, .contact-info, .date-part .date-label {
+                font-size: 8.5px !important;
+                line-height: 1.2 !important;
+            }
+            input.input-field {
+                border: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                font-size: 9px !important;
+                line-height: 1.2 !important;
+            }
+            iframe, embed, .no-print, .fi-btn, .fi-modal {
+                display: none !important;
+            }
         </style>
     @else
         <link rel="stylesheet" href="{{ asset('css/app/fichaVinculacion.css') }}">
@@ -49,7 +117,7 @@
         </x-filament::section>
     @endif
 
-    <x-filament::section collapsible collapsed persist-collapsed id="user-details">
+    <x-filament::section id="user-details">
         <x-slot name="heading">
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
                 <span>Ficha del proyecto</span>
@@ -71,8 +139,8 @@
             <div class="container">
                 <div class="header">
                     <div class="logo-space">
-                        <img src="{{ asset('images/Image/Imagen1.jpg') }}" width="500px" height="120px"
-                            alt="Escudo de la UNAH">
+                        <img src="{{ !empty($isPdf) ? public_path('images/Image/Imagen1.jpg') : asset('images/Image/Imagen1.jpg') }}"
+                            width="500px" height="120px" alt="Escudo de la UNAH">
                         <div class="contact-info">
                             <a href="vinculacion.sociedad@unah.edu.hn">vinculacion.sociedad@unah.edu.hn</a><br>
                             Tel. 2216-7070 Ext. 110576
@@ -369,15 +437,16 @@
                     <tr>
                         <th class="full-width1" colspan="6">8. Sitio de ejecución del proyecto</th>
                     </tr>
+                    <tr>
                         <td class="sub-header" colspan="1">Departamento</td>
                         <td class="full-width" colspan="1">
-                            @forelse ($proyecto->municipio as $municipio)
+                            @forelse ($proyecto->departamento as $departamento)
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre de la entidad"
-                                        value="{{ $municipio->nombre }}" disabled>
+                                        value="{{ $departamento->nombre }}" disabled>
                                 @empty
                                     <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad" value="No hay municipios"
+                                        placeholder="Ingrese el nombre de la entidad" value="No hay departamentos"
                                         disabled>
                                 @endforelse
                         </td>
@@ -1130,27 +1199,31 @@
                                 </td>
                                 <td class="full-width
                                     " colspan="3">
-                                    <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
-                                        <x-slot name="heading">
-                                            Documento de formalización
-                                        </x-slot>
-                                        <x-slot name="trigger">
-                                            <x-filament::button>
-                                                Ver documento
-                                            </x-filament::button>
-                                        </x-slot>
+                                    @if (empty($isPdf))
+                                        <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
+                                            <x-slot name="heading">
+                                                Documento de formalización
+                                            </x-slot>
+                                            <x-slot name="trigger">
+                                                <x-filament::button>
+                                                    Ver documento
+                                                </x-filament::button>
+                                            </x-slot>
 
 
-                                        <iframe src="{{ Storage::url($instrumento->documento_url) }}"
-                                            style="width: 100%; height: 85vh; border: none;"></iframe>
+                                            <iframe src="{{ Storage::url($instrumento->documento_url) }}"
+                                                style="width: 100%; height: 85vh; border: none;"></iframe>
 
-                                    </x-filament::modal>
-                                    <x-filament::button>
-                                        <a href="{{ Storage::url($instrumento->documento_url) }}" download
-                                            style="text-decoration: none; color: inherit;">
-                                            Descargar
-                                        </a>
-                                    </x-filament::button>
+                                        </x-filament::modal>
+                                        <x-filament::button>
+                                            <a href="{{ Storage::url($instrumento->documento_url) }}" download
+                                                style="text-decoration: none; color: inherit;">
+                                                Descargar
+                                            </a>
+                                        </x-filament::button>
+                                    @else
+                                        <span>Documento adjunto</span>
+                                    @endif
 
                                 </td>
                             </tr>
@@ -1685,40 +1758,43 @@
                                 @endforelse
 
                             </td>
-                            <td class="" colspan="5">
-                                <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
-                                    <x-slot name="heading">
-                                        Actividad
-                                    </x-slot>
-                                    <x-slot name="trigger">
-                                        <x-filament::button>
-                                            Ver Actividad
-                                        </x-filament::button>
-                                    </x-slot>
+                                <td class="" colspan="5">
+                                    @if (empty($isPdf))
+                                        <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
+                                            <x-slot name="heading">
+                                                Actividad
+                                            </x-slot>
+                                            <x-slot name="trigger">
+                                                <x-filament::button>
+                                                    Ver Actividad
+                                                </x-filament::button>
+                                            </x-slot>
 
-                                    <div class="activity-container">
-                                        <div class="activity-header">Detalles de la Actividad</div>
-                                        <div class="activity-body">
-                                            <div class="row">
-                                                <div class="column"><strong>Fecha de Inicio:</strong>
-                                                    {{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</div>
-                                            </div>
-                                            <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}</div>
-                                            <div class="highlight"><strong>Responsables:</strong>
-                                                @forelse ($actividad->empleados as $responsable)
-                                                    <div>
-                                                        <div>{{ $responsable->nombre_completo }}</div>
-                                                    </div>
-                                                @empty
-                                                    No asignado
-                                                @endforelse
+                                        <div class="activity-container">
+                                            <div class="activity-header">Detalles de la Actividad</div>
+                                            <div class="activity-body">
+                                                <div class="row">
+                                                    <div class="column"><strong>Fecha de Inicio:</strong>
+                                                        {{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</div>
+                                                </div>
+                                                <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}</div>
+                                                <div class="highlight"><strong>Responsables:</strong>
+                                                    @forelse ($actividad->empleados as $responsable)
+                                                        <div>
+                                                            <div>{{ $responsable->nombre_completo }}</div>
+                                                        </div>
+                                                    @empty
+                                                        No asignado
+                                                    @endforelse
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                </x-filament::modal>
-
-                            </td>
+                                        </x-filament::modal>
+                                    @else
+                                        <span>Actividad registrada</span>
+                                    @endif
+                                </td>
                         </tr>
                     @empty
                         <td class="full-width
@@ -1734,6 +1810,34 @@
 
                 <!-- SECCIÓN DE FIRMAS -->
                 <div class="section3">
+                    @php
+                        $isPdfMode = !empty($isPdf);
+                        $firmaCoordinador = $proyecto->firma_coodinador_proyecto()->first();
+                        $firmaJefe = $proyecto->firma_proyecto_jefe()->first();
+                        $firmaEnlace = $proyecto->firma_proyecto_enlace()->first();
+                        $firmaDecano = $proyecto->firma_proyecto_decano()->first();
+
+                        $resolverRutaFirma = function (?string $ruta) use ($isPdfMode) {
+                            if (empty($ruta) || !Storage::disk('public')->exists($ruta)) {
+                                return null;
+                            }
+
+                            if ($isPdfMode) {
+                                return public_path('storage/' . $ruta);
+                            }
+
+                            return Storage::url($ruta);
+                        };
+
+                        $coordSello = $resolverRutaFirma(optional($firmaCoordinador?->sello)->ruta_storage);
+                        $coordFirma = $resolverRutaFirma(optional($firmaCoordinador?->firma)->ruta_storage);
+                        $jefeSello = $resolverRutaFirma(optional($firmaJefe?->sello)->ruta_storage);
+                        $jefeFirma = $resolverRutaFirma(optional($firmaJefe?->firma)->ruta_storage);
+                        $enlaceSello = $resolverRutaFirma(optional($firmaEnlace?->sello)->ruta_storage);
+                        $enlaceFirma = $resolverRutaFirma(optional($firmaEnlace?->firma)->ruta_storage);
+                        $decanoSello = $resolverRutaFirma(optional($firmaDecano?->sello)->ruta_storage);
+                        $decanoFirma = $resolverRutaFirma(optional($firmaDecano?->firma)->ruta_storage);
+                    @endphp
                     <div class="section-title">IV. FIRMAS. </div>
                     <table class="table_datos4">
                         <tr>
@@ -1758,34 +1862,42 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
-                                <img src="{{ Storage::url(optional(optional($proyecto->firma_coodinador_proyecto()->first())->sello)->ruta_storage) }}"
-                                    alt="" width="200px">
-                                <img src="{{ Storage::url(optional(optional($proyecto->firma_coodinador_proyecto()->first())->firma)->ruta_storage) }}"
-                                    alt="" width="200px">
-                                     <br>
+                            <td class="full-width" colspan="2" style="{{ ($coordSello || $coordFirma) ? 'height: 200px; width: 200px;' : '' }}">
+                                @if ($coordSello)
+                                    <img src="{{ $coordSello }}" alt="" width="200px">
+                                @endif
+                                @if ($coordFirma)
+                                    <img src="{{ $coordFirma }}" alt="" width="200px">
+                                @endif
+                                @if ($coordSello || $coordFirma)
+                                    <br>
                                     <p> Firmado digitalmente </br>
-                                        {{ optional($proyecto->firma_coodinador_proyecto->first())->fecha_firma
-                                            ? \Carbon\Carbon::parse(optional($proyecto->firma_coodinador_proyecto->first())->fecha_firma)->translatedFormat(
+                                        {{ optional($firmaCoordinador)->fecha_firma
+                                            ? \Carbon\Carbon::parse(optional($firmaCoordinador)->fecha_firma)->translatedFormat(
                                                 'l d F Y h:i:s A',
                                             )
                                             : '' }}
                                     </p>
+                                @endif
                             </td>
-                            <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
-                                <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_jefe()->first())->sello)->ruta_storage) }}"
-                                    alt="" width="200px">
-                                <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_jefe()->first())->firma)->ruta_storage) }}"
-                                    alt="" width="200px">
-                                     <br>
+                            <td class="full-width" colspan="2" style="{{ ($jefeSello || $jefeFirma) ? 'height: 200px; width: 200px;' : '' }}">
+                                @if ($jefeSello)
+                                    <img src="{{ $jefeSello }}" alt="" width="200px">
+                                @endif
+                                @if ($jefeFirma)
+                                    <img src="{{ $jefeFirma }}" alt="" width="200px">
+                                @endif
+                                @if ($jefeSello || $jefeFirma)
+                                    <br>
                                     <p>
                                         Firmado digitalmente </br>
-                                        {{ optional($proyecto->firma_proyecto_jefe->first())->fecha_firma
-                                            ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_jefe->first())->fecha_firma)->translatedFormat(
+                                        {{ optional($firmaJefe)->fecha_firma
+                                            ? \Carbon\Carbon::parse(optional($firmaJefe)->fecha_firma)->translatedFormat(
                                                 'l d F Y h:i:s A',
                                             )
                                             : '' }}
                                     </p>
+                                @endif
                             </td>
                         </tr>
 
@@ -1835,35 +1947,43 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
-                                <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_enlace()->first())->sello)->ruta_storage) }}"
-                                    alt="" width="200px">
-                                <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_enlace()->first())->firma)->ruta_storage) }}"
-                                    alt="" width="200px">
-                                     <br>
+                            <td class="full-width" colspan="2" style="{{ ($enlaceSello || $enlaceFirma) ? 'height: 200px; width: 200px;' : '' }}">
+                                @if ($enlaceSello)
+                                    <img src="{{ $enlaceSello }}" alt="" width="200px">
+                                @endif
+                                @if ($enlaceFirma)
+                                    <img src="{{ $enlaceFirma }}" alt="" width="200px">
+                                @endif
+                                @if ($enlaceSello || $enlaceFirma)
+                                    <br>
                                     <p>
                                         Firmado digitalmente </br>
-                                        {{ optional($proyecto->firma_proyecto_enlace->first())->fecha_firma
-                                            ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_enlace->first())->fecha_firma)->translatedFormat(
+                                        {{ optional($firmaEnlace)->fecha_firma
+                                            ? \Carbon\Carbon::parse(optional($firmaEnlace)->fecha_firma)->translatedFormat(
                                                 'l d F Y h:i:s A',
                                             )
                                             : '' }}
                                     </p>
+                                @endif
                             </td>
-                            <td class="full-width" colspan="2" style="height: 200px; width: 200px;">
-                                <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_decano()->first())->sello)->ruta_storage) }}"
-                                    alt="" width="200px">
-                                <img src="{{ Storage::url(optional(optional($proyecto->firma_proyecto_decano()->first())->firma)->ruta_storage) }}"
-                                    alt="" width="200px">
-                                     <br>
+                            <td class="full-width" colspan="2" style="{{ ($decanoSello || $decanoFirma) ? 'height: 200px; width: 200px;' : '' }}">
+                                @if ($decanoSello)
+                                    <img src="{{ $decanoSello }}" alt="" width="200px">
+                                @endif
+                                @if ($decanoFirma)
+                                    <img src="{{ $decanoFirma }}" alt="" width="200px">
+                                @endif
+                                @if ($decanoSello || $decanoFirma)
+                                    <br>
                                     <p>
                                         Firmado digitalmente </br>
-                                        {{ optional($proyecto->firma_proyecto_decano->first())->fecha_firma
-                                            ? \Carbon\Carbon::parse(optional($proyecto->firma_proyecto_decano->first())->fecha_firma)->translatedFormat(
+                                        {{ optional($firmaDecano)->fecha_firma
+                                            ? \Carbon\Carbon::parse(optional($firmaDecano)->fecha_firma)->translatedFormat(
                                                 'l d F Y h:i:s A',
                                             )
                                             : '' }}
                                     </p>
+                                @endif
                             </td>
                         </tr>
 
@@ -1972,25 +2092,28 @@
                                     placeholder="Ingrese el departamento" value="ANEXO DEL PROYECTO" disabled>
                            </td>
                             <td class="full-width" colspan="11">
-                                <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
-                                    <x-slot name="heading">
-                                        Anexo
-                                    </x-slot>
-                                    <x-slot name="trigger">
-                                        <x-filament::button>
-                                            Ver anexo
-                                        </x-filament::button>
-                                    </x-slot>
-                                    <iframe src="{{ Storage::url($anexo->documento_url) }}"
-                                        style="width: 100%; height: 85vh; border: none;"></iframe>
-                                </x-filament::modal>
-                                <x-filament::button>
-                                    <a href="{{ Storage::url($anexo->documento_url) }}" download
-                                        style="text-decoration: none; color: inherit;">
-                                        Descargar
-                                    </a>
-                                </x-filament::button>
-
+                                @if (empty($isPdf))
+                                    <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
+                                        <x-slot name="heading">
+                                            Anexo
+                                        </x-slot>
+                                        <x-slot name="trigger">
+                                            <x-filament::button>
+                                                Ver anexo
+                                            </x-filament::button>
+                                        </x-slot>
+                                        <iframe src="{{ Storage::url($anexo->documento_url) }}"
+                                            style="width: 100%; height: 85vh; border: none;"></iframe>
+                                    </x-filament::modal>
+                                    <x-filament::button>
+                                        <a href="{{ Storage::url($anexo->documento_url) }}" download
+                                            style="text-decoration: none; color: inherit;">
+                                            Descargar
+                                        </a>
+                                    </x-filament::button>
+                                @else
+                                    <span>Anexo adjunto</span>
+                                @endif
                             </td>
                         </tr>
                     @empty
