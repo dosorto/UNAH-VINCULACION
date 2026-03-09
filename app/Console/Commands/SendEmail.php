@@ -15,7 +15,7 @@ class SendEmail extends Command
      *
      * @var string
      */
-    protected $signature = 'test:email {--proyecto=} {--usuario=}';
+    protected $signature = 'test:email {--proyecto=} {--usuario=} {--correo=}';
 
     /**
      * The console command description.
@@ -38,20 +38,20 @@ class SendEmail extends Command
         // Probar correo de proyecto creado si se proporcionan parámetros
         $proyectoId = $this->option('proyecto');
         $usuarioId = $this->option('usuario');
+        $correoDestino = $this->option('correo') ?: 'dorian.ordonez@unah.edu.hn';
 
         if ($proyectoId && $usuarioId) {
             $proyecto = Proyecto::find($proyectoId);
             $usuario = User::find($usuarioId);
 
-            $usuario->email = 'acxel.aplicano@unah.hn';
             if ($proyecto && $usuario) {
                 try {
                     /*Mail::raw(new ProyectoCreado($proyecto, $usuario), function($message) {
                         $message->to($usuario->email)->subject('Prueba SMTP Office 365');
                     });*/
                     //$message->to($usuario->email)->subject('Proyecto Creado - ' . $proyecto->nombre_proyecto)->send();
-                     Mail::to($usuario->email)->send(new ProyectoCreado($proyecto, $usuario));
-                    $this->info("Correo de proyecto creado enviado a {$usuario->email}");
+                    Mail::to($correoDestino)->send(new ProyectoCreado($proyecto, $usuario));
+                    $this->info("Correo de proyecto creado enviado a {$correoDestino}");
                 } catch (\Exception $e) {
                     $this->error("Error al enviar correo: " . $e->getMessage());
                 }
