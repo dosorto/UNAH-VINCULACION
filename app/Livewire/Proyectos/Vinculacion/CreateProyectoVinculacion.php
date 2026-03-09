@@ -199,7 +199,7 @@ class CreateProyectoVinculacion extends Component implements HasForms
                         ->schema(
                             SextaParte::form(),
                         )
-                        ->afterValidation(fn(Step $step) => dd($this->saveData($step))),
+                        ->afterValidation(fn(Step $step) => $this->saveData($step)),
                 ])
                     ->nextAction(
                         fn(Action $action) => $action
@@ -266,8 +266,6 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 comentario: 'Proyecto enviado para firma',
             );
         } catch (\Exception $e) {
-
-            dd($e->getMessage());
             Notification::make()
                 ->title('Error')
                 ->body('Error al procesar el proyecto: ' . $e->getMessage())
@@ -318,7 +316,6 @@ class CreateProyectoVinculacion extends Component implements HasForms
                 comentario: 'Proyecto guardado como borrador',
             );
         } catch (\Exception $e) {
-            dd($e->getMessage());
             Notification::make()
                 ->title('Error')
                 ->body('Error al procesar el proyecto: ' . $e->getMessage())

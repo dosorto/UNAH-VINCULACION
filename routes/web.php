@@ -1,26 +1,16 @@
 <?php
 
-use App\Jobs\SendEmailJob;
 use App\Livewire\Docente\Proyectos\HistorialProyecto;
 use App\Livewire\User\Roles;
 use App\Livewire\User\Users;
 use App\Livewire\Login\Login;
 use App\Livewire\Inicio\InicioAdmin;
-use App\Mail\correoProyectoCreado;
-use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Demografia\Pais\CreatePais;
 use App\Livewire\Demografia\Pais\ListPaises;
 use App\Livewire\Configuracion\Logs\ListLogs;
-use App\Livewire\Demografia\Aldea\ListAldeas;
-use App\Livewire\Auth\ResetPasswordController;
-use App\Livewire\Demografia\Aldea\CreateAldea;
 use App\Livewire\Personal\Perfil\EditPerfil;
-use App\Livewire\Auth\ForgotPasswordController;
-use App\Livewire\Demografia\Ciudad\ListaCiudad;
 use App\Livewire\Personal\Permiso\ListPermisos;
-use App\Livewire\Demografia\Ciudad\CreateCiudad;
 use App\Livewire\Personal\Empleado\ListEmpleado;
 use App\Http\Controllers\Auth\MicrosoftController;
 use App\Livewire\Personal\Empleado\CreateEmpleado;
@@ -45,11 +35,9 @@ use App\Livewire\Proyectos\Vinculacion\ListInformesSolicitado;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosSolicitado;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
 
-use App\Livewire\Docente\Proyectos\SolicitudProyectosDocenteList;
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
 use App\Livewire\Proyectos\Actualizacion\EditProyectoActualizacion;
 use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
-use App\Http\Controllers\Docente\ProyectoController as DocenteProyectoController;
 
 use App\Livewire\Proyectos\Vinculacion\ListProyectoRevisionFinal;
 use App\Livewire\Proyectos\Vinculacion\ListFichasActualizacionVinculacion;
@@ -60,7 +48,6 @@ use App\Livewire\UnidadAcademica\Campus\CampusList;
 use App\Livewire\UnidadAcademica\Carrera\CarreraList;
 use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList;
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
-use App\Http\Controllers\DirectorCentro\Proyectos\ListProyectosCentro;
 use App\Http\Controllers\PDFController;
 
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
@@ -72,8 +59,6 @@ use App\Models\Slide\Slide;
 use App\Livewire\Personal\Contacto\ListContactos;
 
 use App\Livewire\ServicioTecnologico\CreateServicioTecnologico;
-
-use App\Services\Constancia\BuilderConstancia;
 
 Route::get('/acercade', function () {
     $slides = Slide::where('estado', true)
@@ -399,6 +384,9 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         Route::get('/descargar-pdf', [PDFController::class, 'generatePDF']);
         
         Route::get('/ver-pdf', [PDFController::class, 'verVista']);
+
+        Route::get('/proyectos/{proyecto}/perfil-pdf', [PDFController::class, 'descargarPerfilProyecto'])
+            ->name('proyecto.perfil.pdf');
 
 
 

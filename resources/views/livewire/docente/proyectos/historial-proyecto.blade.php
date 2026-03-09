@@ -1,6 +1,13 @@
 <div class="flex flex-col md:flex-row lg:flex-row gap-4">
     @push('styles')
         <link rel="stylesheet" href="{{ asset('css/app/fichaHistorial.css') }}">
+        <style>
+            @media print {
+                .no-print {
+                    display: none !important;
+                }
+            }
+        </style>
     @endpush
     @php
         use Carbon\Carbon;
@@ -15,15 +22,25 @@
             <x-slot name="heading">
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-bold">Ficha del Proyecto</span>
-                    @if ($esCoordinador && ($proyecto->estado?->tipoestado?->nombre == 'Borrador' || $proyecto->estado?->tipoestado?->nombre == 'Subsanacion' || $proyecto->estado?->tipoestado?->nombre == 'Autoguardado'))
-                    <x-filament::button 
-                        color="primary" 
-                        icon="heroicon-o-pencil-square"
-                        tag="a"
-                        href="{{ route('editarProyectoVinculacion', ['proyecto' => $proyecto->id]) }}">
-                        Continuar Editando
-                    </x-filament::button>
-                    @endif
+                    <div class="flex items-center gap-2 no-print">
+                        <x-filament::button
+                            color="info"
+                            icon="heroicon-o-arrow-down-tray"
+                            tag="a"
+                            href="{{ route('proyecto.perfil.pdf', ['proyecto' => $proyecto->id]) }}"
+                        >
+                            Descargar PDF
+                        </x-filament::button>
+                        @if ($esCoordinador && ($proyecto->estado?->tipoestado?->nombre == 'Borrador' || $proyecto->estado?->tipoestado?->nombre == 'Subsanacion' || $proyecto->estado?->tipoestado?->nombre == 'Autoguardado'))
+                        <x-filament::button 
+                            color="primary" 
+                            icon="heroicon-o-pencil-square"
+                            tag="a"
+                            href="{{ route('editarProyectoVinculacion', ['proyecto' => $proyecto->id]) }}">
+                            Continuar Editando
+                        </x-filament::button>
+                        @endif
+                    </div>
                 </div>
             </x-slot>
 
@@ -39,7 +56,7 @@
                                 Tel. 2216-7070 Ext. 110576
                             </div>
                         </div>
-                        <h1>FORMULARIO DE REGISTRO DE PROYECTO DE VINCULACIÓN CON CONTRAPARTE</h1>
+                        <h1>FORM-DVUS-001 - FORMULARIO DE REGISTRO DE PROYECTO DE VINCULACIÓN DE DESARROLLO LOCAL Y REGIONAL</h1>
                     </div>
 
                     <div class="section1">
@@ -374,13 +391,13 @@
                             <tr>
                                 <td class="sub-header" colspan="1">Departamento</td>
                                 <td class="full-width" colspan="1">
-                                    @forelse ($proyecto->municipio as $municipio)
+                                    @forelse ($proyecto->departamento as $departamento)
                                         <input disabled type="text" class="input-field"
                                             placeholder="Ingrese el nombre de la entidad"
-                                            value="{{ $municipio->nombre }}" disabled>
+                                            value="{{ $departamento->nombre }}" disabled>
                                     @empty
                                         <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese el nombre de la entidad" value="No hay municipios"
+                                            placeholder="Ingrese el nombre de la entidad" value="No hay departamentos"
                                             disabled>
                                     @endforelse
                                 </td>
@@ -597,7 +614,7 @@
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el correo electrónico"
-                                        value="{{ $proyecto->coordinador->user->email }}" disabled>
+                                        value="{{ $proyecto->coordinador?->user?->email ?? 'Sin correo' }}" disabled>
                                 </td>
                                 <td class="sub-header">Celular:</td>
                                 <td class="full-width" colspan="1">
@@ -658,7 +675,7 @@
                                     <td class="full-width" colspan="1">
                                         <input disabled type="text" class="input-field"
                                             placeholder="Ingrese el correo electrónico"
-                                            value="{{ $integrante->user->email }}" disabled>
+                                            value="{{ $integrante->user?->email ?? 'Sin correo' }}" disabled>
                                     </td>
                                     <td class="full-width" colspan="1">
                                         <input disabled type="text" class="input-field"
@@ -694,20 +711,20 @@
                                     <td class="full-width" colspan="2">
                                         <input disabled type="text" class="input-field"
                                             placeholder="Ingrese el departamento"
-                                            value="{{ $integrante->estudiante->user->name }}" disabled>
+                                            value="{{ $integrante->estudiante?->user?->name ?? 'Sin usuario' }}" disabled>
                                     </td>
 
                                     <td class="full-width
                                     " colspan="1">
                                         <input disabled type="text" class="input-field"
                                             placeholder="Ingrese el departamento"
-                                            value="{{ $integrante->estudiante->cuenta }}" disabled>
+                                            value="{{ $integrante->estudiante?->cuenta ?? 'Sin cuenta' }}" disabled>
                                     </td>
                                     <td class="full-width
                                     " colspan="1">
                                         <input disabled type="text" class="input-field"
                                             placeholder="Ingrese el departamento"
-                                            value="{{ $integrante->estudiante->user->email }}" disabled>
+                                            value="{{ $integrante->estudiante?->user?->email ?? 'Sin correo' }}" disabled>
                                     </td>
                                     <td class="full-width
                                     " colspan="1">
@@ -779,6 +796,105 @@
 
                     </div>
 
+                    @php
+                        $estudianteParticipaciones = collect($proyecto->estudiante_proyecto ?? []);
+
+                        $normalizarTipoParticipacion = function ($tipo) {
+                            $tipoNormalizado = mb_strtolower((string) $tipo, 'UTF-8');
+
+                            if (str_contains($tipoNormalizado, 'servicio social')) {
+                                return 'servicio';
+                            }
+                            if (str_contains($tipoNormalizado, 'voluntariado')) {
+                                return 'voluntariado';
+                            }
+                            if (str_contains($tipoNormalizado, 'practica') || str_contains($tipoNormalizado, 'práctica')) {
+                                return 'practica';
+                            }
+
+                            return 'otro';
+                        };
+
+                        $sumarEstudiantesPorTipoYSexo = function (string $tipo, string $sexo) use ($estudianteParticipaciones, $normalizarTipoParticipacion) {
+                            $columna = $sexo === 'hombres' ? 'cantidad_estudiantes_hombres' : 'cantidad_estudiantes_mujeres';
+
+                            return $estudianteParticipaciones
+                                ->filter(fn ($item) => $normalizarTipoParticipacion($item->tipo_participacion_estudiante ?? '') === $tipo)
+                                ->sum(fn ($item) => (int) ($item->{$columna} ?? 0));
+                        };
+
+                        $totalEstudiantesHombres = $estudianteParticipaciones->sum(fn ($item) => (int) ($item->cantidad_estudiantes_hombres ?? 0));
+                        $totalEstudiantesMujeres = $estudianteParticipaciones->sum(fn ($item) => (int) ($item->cantidad_estudiantes_mujeres ?? 0));
+
+                        $practicaHombres = $sumarEstudiantesPorTipoYSexo('practica', 'hombres');
+                        $practicaMujeres = $sumarEstudiantesPorTipoYSexo('practica', 'mujeres');
+                        $servicioHombres = $sumarEstudiantesPorTipoYSexo('servicio', 'hombres');
+                        $servicioMujeres = $sumarEstudiantesPorTipoYSexo('servicio', 'mujeres');
+                        $voluntariadoHombres = $sumarEstudiantesPorTipoYSexo('voluntariado', 'hombres');
+                        $voluntariadoMujeres = $sumarEstudiantesPorTipoYSexo('voluntariado', 'mujeres');
+
+                        $integrantesProyecto = collect($proyecto->integrantes ?? []);
+
+                        $categoriaNombre = fn ($empleado) => mb_strtolower((string) optional($empleado->categoria)->nombre, 'UTF-8');
+                        $tipoEmpleado = fn ($empleado) => mb_strtolower((string) ($empleado->tipo_empleado ?? ''), 'UTF-8');
+
+                        $esDocenteBase = fn ($empleado) => $tipoEmpleado($empleado) === 'docente'
+                            || str_contains($categoriaNombre($empleado), 'profesor')
+                            || str_contains($categoriaNombre($empleado), 'titular')
+                            || str_contains($categoriaNombre($empleado), 'auxiliar');
+
+                        $esAdministrativoBase = fn ($empleado) => $tipoEmpleado($empleado) === 'administrativo'
+                            || str_contains($categoriaNombre($empleado), 'administrativo')
+                            || str_contains($categoriaNombre($empleado), 'servicio')
+                            || str_contains($categoriaNombre($empleado), 'tecnico')
+                            || str_contains($categoriaNombre($empleado), 'instructor');
+
+                        $esDocenteXHora = fn ($empleado) => $esDocenteBase($empleado) && str_contains($categoriaNombre($empleado), 'x hora');
+                        $esDocenteHorario = fn ($empleado) => $esDocenteBase($empleado) && str_contains($categoriaNombre($empleado), 'horario');
+                        $esDocentePermanente = fn ($empleado) => $esDocenteBase($empleado) && preg_match('/titular\\s*(i|ii|iii|iv|v)|permanente|auxiliar/u', $categoriaNombre($empleado)) === 1;
+                        $esDocente = fn ($empleado) => $esDocenteBase($empleado);
+
+                        $esAdministrativo = fn ($empleado) => $esAdministrativoBase($empleado) && str_contains($categoriaNombre($empleado), 'administrativo');
+                        $esServicios = fn ($empleado) => $esAdministrativoBase($empleado) && str_contains($categoriaNombre($empleado), 'servicio');
+                        $esAsistenteTecnico = fn ($empleado) => $esAdministrativoBase($empleado)
+                            && (str_contains($categoriaNombre($empleado), 'tecnico')
+                                || str_contains($categoriaNombre($empleado), 'instructor')
+                                || str_contains($categoriaNombre($empleado), 'laboratorio'));
+                        $esPersonalAdministrativo = fn ($empleado) => $esAdministrativoBase($empleado);
+
+                        $contarIntegrantes = function (callable $filtro, ?string $sexo = null) use ($integrantesProyecto) {
+                            return $integrantesProyecto->filter(function ($empleado) use ($filtro, $sexo) {
+                                if (!$filtro($empleado)) {
+                                    return false;
+                                }
+
+                                if (!$sexo) {
+                                    return true;
+                                }
+
+                                return mb_strtolower((string) ($empleado->sexo ?? ''), 'UTF-8') === $sexo;
+                            })->count();
+                        };
+
+                        $docentesHombres = $contarIntegrantes($esDocente, 'masculino');
+                        $docentesMujeres = $contarIntegrantes($esDocente, 'femenino');
+                        $docentesXHoraHombres = $contarIntegrantes($esDocenteXHora, 'masculino');
+                        $docentesXHoraMujeres = $contarIntegrantes($esDocenteXHora, 'femenino');
+                        $docentesHorarioHombres = $contarIntegrantes($esDocenteHorario, 'masculino');
+                        $docentesHorarioMujeres = $contarIntegrantes($esDocenteHorario, 'femenino');
+                        $docentesPermanentesHombres = $contarIntegrantes($esDocentePermanente, 'masculino');
+                        $docentesPermanentesMujeres = $contarIntegrantes($esDocentePermanente, 'femenino');
+
+                        $adminHombres = $contarIntegrantes($esPersonalAdministrativo, 'masculino');
+                        $adminMujeres = $contarIntegrantes($esPersonalAdministrativo, 'femenino');
+                        $administrativosHombres = $contarIntegrantes($esAdministrativo, 'masculino');
+                        $administrativosMujeres = $contarIntegrantes($esAdministrativo, 'femenino');
+                        $serviciosHombres = $contarIntegrantes($esServicios, 'masculino');
+                        $serviciosMujeres = $contarIntegrantes($esServicios, 'femenino');
+                        $asistentesTecnicosHombres = $contarIntegrantes($esAsistenteTecnico, 'masculino');
+                        $asistentesTecnicosMujeres = $contarIntegrantes($esAsistenteTecnico, 'femenino');
+                    @endphp
+
                     <!-- SECCIÓN DE CUANTIFICACIÓN DEL TRABAJO VOLUNTARIO -->
                     <div class="section3">
                         <div class="section-title">III. CUANTIFICACIÓN TRABAJO VOLUNTARIO </div>
@@ -799,7 +915,7 @@
                             <tr>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->estudiantes_hombres }}" disabled>
+                                        value="{{ $totalEstudiantesHombres }}" disabled>
                                 </td>
                             </tr>
                             <tr>
@@ -814,36 +930,36 @@
                             <tr>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->estudiantes_mujeres }}" disabled>
+                                        value="{{ $totalEstudiantesMujeres }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getEstudiantesPorTipo('Practica Profesional', 'Masculino') }}"
+                                        value="{{ $practicaHombres }}"
                                         disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getEstudiantesPorTipo('Practica Profesional', 'Femenino') }}"
+                                        value="{{ $practicaMujeres }}"
                                         disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getEstudiantesPorTipo('Servicio Social o PPS', 'Masculino') }}"
+                                        value="{{ $servicioHombres }}"
                                         disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getEstudiantesPorTipo('Servicio Social o PPS', 'Femenino') }}"
+                                        value="{{ $servicioMujeres }}"
                                         disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getEstudiantesPorTipo('Voluntariado', 'Masculino') }}"
+                                        value="{{ $voluntariadoHombres }}"
                                         disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getEstudiantesPorTipo('Voluntariado', 'Femenino') }}"
+                                        value="{{ $voluntariadoMujeres }}"
                                         disabled>
                                 </td>
                             </tr>
@@ -864,7 +980,7 @@
                             <tr>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->docentes_hombres }}" disabled>
+                                        value="{{ $docentesHombres }}" disabled>
                                 </td>
                             </tr>
                             <tr>
@@ -879,36 +995,36 @@
                             <tr>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->docentes_mujeres }}" disabled>
+                                        value="{{ $docentesMujeres }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getDocentesPorCategoria('Profesores x hora', 'Masculino') }}"
+                                        value="{{ $docentesXHoraHombres }}"
                                         disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getDocentesPorCategoria('Profesores x hora', 'Femenino') }}"
+                                        value="{{ $docentesXHoraMujeres }}"
                                         disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getDocentesPorCategoria('Profesores horarios', 'Masculino') }}"
+                                        value="{{ $docentesHorarioHombres }}"
                                         disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getDocentesPorCategoria('Profesores horarios', 'Femenino') }}"
+                                        value="{{ $docentesHorarioMujeres }}"
                                         disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getDocentesPorCategoria('permanente', 'Masculino') }}"
+                                        value="{{ $docentesPermanentesHombres }}"
                                         disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getDocentesPorCategoria('permanente', 'Femenino') }}"
+                                        value="{{ $docentesPermanentesMujeres }}"
                                         disabled>
                                 </td>
                             </tr>
@@ -930,7 +1046,7 @@
                             <tr>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->administrativos_hombres }}" disabled>
+                                        value="{{ $adminHombres }}" disabled>
                                 </td>
                             </tr>
                             <tr>
@@ -945,36 +1061,36 @@
                             <tr>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->administrativas_mujeres }}" disabled>
+                                        value="{{ $adminMujeres }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getAdministrativosPorTipo('Administrativo', 'Masculino') }}"
+                                        value="{{ $administrativosHombres }}"
                                         disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getAdministrativosPorTipo('Administrativo', 'Femenino') }}"
+                                        value="{{ $administrativosMujeres }}"
                                         disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getAdministrativosPorTipo('Servicios', 'Masculino') }}"
+                                        value="{{ $serviciosHombres }}"
                                         disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getAdministrativosPorTipo('Servicios', 'Femenino') }}"
+                                        value="{{ $serviciosMujeres }}"
                                         disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getAdministrativosPorTipo('Asistentes técnicos laboratorios / Instructores', 'Masculino') }}"
+                                        value="{{ $asistentesTecnicosHombres }}"
                                         disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
-                                        value="{{ $proyecto->getAdministrativosPorTipo('Asistentes técnicos laboratorios / Instructores', 'Femenino') }}"
+                                        value="{{ $asistentesTecnicosMujeres }}"
                                         disabled>
                                 </td>
                             </tr>

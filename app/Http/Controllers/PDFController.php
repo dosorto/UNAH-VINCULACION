@@ -15,6 +15,18 @@ use PDF;
 
 class PDFController extends Controller
 {
+    public function descargarPerfilProyecto(Proyecto $proyecto)
+    {
+        $pdf = PDF::loadView('components.fichas.ficha-proyecto-vinculacion', [
+            'proyecto' => $proyecto,
+            'isPdf' => true,
+        ])->setPaper('a4', 'portrait')
+            ->setOption('isRemoteEnabled', true)
+            ->setOption('isHtml5ParserEnabled', true);
+
+        return $pdf->download("perfil_proyecto_{$proyecto->id}.pdf");
+    }
+
     public function generatePDF()
     {
         $qrcode = base64_encode(QrCode::format('png')->size(200)->errorCorrection('H')->generate('string'));
