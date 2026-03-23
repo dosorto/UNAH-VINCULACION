@@ -36,37 +36,38 @@ class HistorialProyecto extends Component implements HasForms, HasActions
 {
     $this->proyecto = $proyecto;
     
-    // Verificar si el usuario actual es el coordinador del proyecto
     $user = auth()->user();
+
+    // Los administradores del sistema no deben tener restricción por pertenencia.
+    $esAdminSistema = $user && $user->hasAnyRole(['admin', 'Director/Enlace', 'Revisor Vinculacion']);
+
     if ($user && $user->empleado) {
         $this->esCoordinador = $proyecto->coordinador && $proyecto->coordinador->id === $user->empleado->id;
     }
-    
-    // Buscar EmpleadoProyecto, pero no fallar si no existe
-    $empleadoProyecto = EmpleadoProyecto::where('proyecto_id', $proyecto->id)->first();
-    
-    // Solo autorizar si existe el registro
-    if ($empleadoProyecto) {
-        $this->authorize('view', $empleadoProyecto);
-    } else {
-        // Si no existe, verificar que el usuario sea admin, coordinador o firmante del proyecto
-        $user = auth()->user();
-        
+
+    if (!$esAdminSistema) {
         if (!$user || !$user->empleado) {
             abort(403, 'No tiene permiso para ver este proyecto');
         }
-        
-        $esCoordinador = $proyecto->coordinador && $proyecto->coordinador->id === $user->empleado->id;
-        $esAdmin = $user->hasAnyRole(['admin', 'Director/Enlace', 'Revisor Vinculacion']);
-        
-        // Verificar si el usuario es firmante del proyecto
-        $esFirmante = \App\Models\Proyecto\FirmaProyecto::where('firmable_type', Proyecto::class)
-            ->where('firmable_id', $proyecto->id)
-            ->where('empleado_id', $user->empleado->id)
-            ->exists();
-        
-        if (!$esCoordinador && !$esAdmin && !$esFirmante) {
-            abort(403, 'No tiene permiso para ver este proyecto. Solo el coordinador, firmantes del proyecto o un administrador pueden acceder al historial.');
+
+        // Buscar EmpleadoProyecto, pero no fallar si no existe
+        $empleadoProyecto = EmpleadoProyecto::where('proyecto_id', $proyecto->id)->first();
+
+        // Si existe, aplicar policy de pertenencia.
+        if ($empleadoProyecto) {
+            $this->authorize('view', $empleadoProyecto);
+        } else {
+            $esCoordinador = $proyecto->coordinador && $proyecto->coordinador->id === $user->empleado->id;
+
+            // Verificar si el usuario es firmante del proyecto
+            $esFirmante = \App\Models\Proyecto\FirmaProyecto::where('firmable_type', Proyecto::class)
+                ->where('firmable_id', $proyecto->id)
+                ->where('empleado_id', $user->empleado->id)
+                ->exists();
+
+            if (!$esCoordinador && !$esFirmante) {
+                abort(403, 'No tiene permiso para ver este proyecto. Solo el coordinador, firmantes del proyecto o un administrador pueden acceder al historial.');
+            }
         }
     }
 

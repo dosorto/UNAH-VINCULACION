@@ -598,9 +598,8 @@
                                 <th class="full-width1" rowspan="3">Coordinador/a del Proyecto:</th>
                                 <td class="sub-header">Nombre Completo:</td>
                                 <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre completo"
-                                        value="{{ $proyecto->coordinador->nombre_completo }}" disabled>
+                                    <textarea disabled rows="2" class="input-field-multiline"
+                                        placeholder="Ingrese el nombre completo">{{ $proyecto->coordinador->nombre_completo }}</textarea>
                                 </td>
                                 <td class="sub-header">No. de empleado:</td>
                                 <td class="full-width" colspan="">
@@ -612,9 +611,8 @@
                             <tr>
                                 <td class="sub-header">Correo electrónico:</td>
                                 <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el correo electrónico"
-                                        value="{{ $proyecto->coordinador?->user?->email ?? 'Sin correo' }}" disabled>
+                                    <textarea disabled rows="2" class="input-field-multiline"
+                                        placeholder="Ingrese el correo electrónico">{{ $proyecto->coordinador?->user?->email ?? 'Sin correo' }}</textarea>
                                 </td>
                                 <td class="sub-header">Celular:</td>
                                 <td class="full-width" colspan="1">
@@ -625,17 +623,15 @@
                             </tr>
                             <tr>
                                 <td class="sub-header">Categoria:</td>
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="email" class="input-field"
-                                        placeholder="Ingrese el número de celular"
-                                        value="{{ $proyecto->coordinador->categoria->nombre }}" disabled>
-                                </td>
-                                <td class="sub-header">Departamento:</td>
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="email" class="input-field"
-                                        placeholder="Ingrese el número de celular"
-                                        value="{{ $proyecto->coordinador->departamento_academico->nombre }}" disabled>
-                                </td>
+                            <td class="full-width" colspan="1">
+                                <textarea disabled rows="2" class="input-field-multiline"
+                                    placeholder="Ingrese el número de celular">{{ $proyecto->coordinador->categoria->nombre }}</textarea>
+                            </td>
+                            <td class="sub-header">Departamento:</td>
+                            <td class="full-width" colspan="1">
+                                <textarea disabled rows="2" class="input-field-multiline"
+                                    placeholder="Ingrese el número de celular">{{ $proyecto->coordinador->departamento_academico->nombre }}</textarea>
+                            </td>
                             </tr>
 
                             <!-- TABLA DE INTEGRANTES DEL EQUIPO UNIVERSITARIO -->
@@ -663,9 +659,8 @@
                             @forelse ($proyecto->integrantes as $integrante)
                                 <tr>
                                     <td class="full-width" colspan="1">
-                                        <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese el nombre completo"
-                                            value="{{ $integrante->nombre_completo }}" disabled>
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el nombre completo">{{ $integrante->nombre_completo }}</textarea>
                                     </td>
                                     <td class="full-width" colspan="1">
                                         <input disabled type="text" class="input-field"
@@ -673,19 +668,16 @@
                                             value="{{ $integrante->numero_empleado }}" disabled>
                                     </td>
                                     <td class="full-width" colspan="1">
-                                        <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese el correo electrónico"
-                                            value="{{ $integrante->user?->email ?? 'Sin correo' }}" disabled>
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el correo electrónico">{{ $integrante->user?->email ?? 'Sin correo' }}</textarea>
                                     </td>
                                     <td class="full-width" colspan="1">
-                                        <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese la categoría"
-                                            value="{{ $integrante->categoria->nombre ?? 'Sin categoría' }}" disabled>
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese la categoría">{{ $integrante->categoria->nombre ?? 'Sin categoría' }}</textarea>
                                     </td>
                                     <td class="full-width" colspan="1">
-                                        <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese el departamento"
-                                            value="{{ $integrante->departamento_academico->nombre ?? 'Sin departamento' }}" disabled>
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el departamento">{{ $integrante->departamento_academico->nombre ?? 'Sin departamento' }}</textarea>
                                     </td>
                                 </tr>
                             @empty
@@ -709,9 +701,8 @@
                             @forelse ($proyecto->estudiante_proyecto as $integrante)
                                 <tr>
                                     <td class="full-width" colspan="2">
-                                        <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese el departamento"
-                                            value="{{ $integrante->estudiante?->user?->name ?? 'Sin usuario' }}" disabled>
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el departamento">{{ $integrante->estudiante?->user?->name ?? 'Sin usuario' }}</textarea>
                                     </td>
 
                                     <td class="full-width
@@ -722,9 +713,8 @@
                                     </td>
                                     <td class="full-width
                                     " colspan="1">
-                                        <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese el departamento"
-                                            value="{{ $integrante->estudiante?->user?->email ?? 'Sin correo' }}" disabled>
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el departamento">{{ $integrante->estudiante?->user?->email ?? 'Sin correo' }}</textarea>
                                     </td>
                                     <td class="full-width
                                     " colspan="1">
@@ -757,9 +747,8 @@
                             @forelse ($proyecto->integrantesInternacionales as $integrante)
                                 <tr>
                                     <td class="full-width" colspan="1">
-                                        <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese el nombre completo"
-                                            value="{{ $integrante->nombre_completo }}" disabled>
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el nombre completo">{{ $integrante->nombre_completo }}</textarea>
                                     </td>
                                     <td class="full-width" colspan="1">
                                         <input disabled type="text" class="input-field"
@@ -767,19 +756,16 @@
                                             value="{{ $integrante->documento_identidad }}" disabled>
                                     </td>
                                     <td class="full-width" colspan="1">
-                                        <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese el correo electrónico"
-                                            value="{{ $integrante->email }}" disabled>
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el correo electrónico">{{ $integrante->email }}</textarea>
                                     </td>
                                     <td class="full-width" colspan="1">
-                                        <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese la categoría" value="{{ $integrante->pais }}"
-                                            disabled>
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese la categoría">{{ $integrante->pais }}</textarea>
                                     </td>
                                     <td class="full-width" colspan="1">
-                                        <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese el departamento"
-                                            value="{{ $integrante->institucion }}" disabled>
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el departamento">{{ $integrante->institucion }}</textarea>
                                     </td>
                                 </tr>
                             @empty
@@ -1842,11 +1828,36 @@
                             $firmaDecano = $proyecto->firma_proyecto_decano()->first();
 
                             $resolverRutaFirma = function (?string $ruta) {
-                                if (empty($ruta) || !Storage::disk('public')->exists($ruta)) {
+                                if (empty($ruta)) {
                                     return null;
                                 }
 
-                                return Storage::url($ruta);
+                                $rutaNormalizada = ltrim($ruta, '/');
+
+                                if (str_starts_with($rutaNormalizada, 'storage/')) {
+                                    $rutaNormalizada = substr($rutaNormalizada, strlen('storage/'));
+                                }
+
+                                $rutaPublica = public_path('storage/' . $rutaNormalizada);
+                                $rutaDiscoPublico = storage_path('app/public/' . $rutaNormalizada);
+
+                                if (filter_var($ruta, FILTER_VALIDATE_URL)) {
+                                    return $ruta;
+                                }
+
+                                if (is_file($ruta)) {
+                                    return asset(str_replace(public_path() . '/', '', $ruta));
+                                }
+
+                                if (is_file($rutaPublica)) {
+                                    return asset('storage/' . $rutaNormalizada);
+                                }
+
+                                if (is_file($rutaDiscoPublico) || Storage::disk('public')->exists($rutaNormalizada)) {
+                                    return Storage::url($rutaNormalizada);
+                                }
+
+                                return Storage::url($rutaNormalizada);
                             };
 
                             $coordSello = $resolverRutaFirma(optional($firmaCoordinador?->sello)->ruta_storage);
@@ -1857,6 +1868,16 @@
                             $enlaceFirma = $resolverRutaFirma(optional($firmaEnlace?->firma)->ruta_storage);
                             $decanoSello = $resolverRutaFirma(optional($firmaDecano?->sello)->ruta_storage);
                             $decanoFirma = $resolverRutaFirma(optional($firmaDecano?->firma)->ruta_storage);
+
+                            $formatearFechaFirma = function ($fecha) {
+                                if (empty($fecha)) {
+                                    return '';
+                                }
+
+                                return \Carbon\Carbon::parse($fecha)
+                                    ->locale('es')
+                                    ->isoFormat('dddd D [de] MMMM [de] YYYY hh:mm:ss A');
+                            };
                         @endphp
                         <div class="section-title">IV. FIRMAS. </div>
                         <table class="table_datos4">
@@ -1891,12 +1912,9 @@
                                     @endif
                                     @if ($coordSello || $coordFirma)
                                         <br>
-                                        <p> Firmado digitalmente </br>
-                                            {{ optional($firmaCoordinador)->fecha_firma
-                                                ? \Carbon\Carbon::parse(optional($firmaCoordinador)->fecha_firma)->translatedFormat(
-                                                    'l d F Y h:i:s A',
-                                                )
-                                                : '' }}
+                                        <p style="font-family: 'Courier New', Courier, monospace; font-size: 12px; line-height: 1.4; letter-spacing: 0.4px;">
+                                            Firmado digitalmente </br>
+                                            {{ $formatearFechaFirma(optional($firmaCoordinador)->fecha_firma) }}
                                         </p>
                                     @endif
                                 </td>
@@ -1909,13 +1927,9 @@
                                     @endif
                                     @if ($jefeSello || $jefeFirma)
                                         <br>
-                                        <p>
+                                        <p style="font-family: 'Courier New', Courier, monospace; font-size: 12px; line-height: 1.4; letter-spacing: 0.4px;">
                                             Firmado digitalmente </br>
-                                            {{ optional($firmaJefe)->fecha_firma
-                                                ? \Carbon\Carbon::parse(optional($firmaJefe)->fecha_firma)->translatedFormat(
-                                                    'l d F Y h:i:s A',
-                                                )
-                                                : '' }}
+                                            {{ $formatearFechaFirma(optional($firmaJefe)->fecha_firma) }}
                                         </p>
                                     @endif
                                 </td>
@@ -1978,13 +1992,9 @@
                                     @endif
                                     @if ($enlaceSello || $enlaceFirma)
                                         <br>
-                                        <p>
+                                        <p style="font-family: 'Courier New', Courier, monospace; font-size: 12px; line-height: 1.4; letter-spacing: 0.4px;">
                                             Firmado digitalmente </br>
-                                            {{ optional($firmaEnlace)->fecha_firma
-                                                ? \Carbon\Carbon::parse(optional($firmaEnlace)->fecha_firma)->translatedFormat(
-                                                    'l d F Y h:i:s A',
-                                                )
-                                                : '' }}
+                                            {{ $formatearFechaFirma(optional($firmaEnlace)->fecha_firma) }}
                                         </p>
                                     @endif
                                 </td>
@@ -1997,13 +2007,9 @@
                                     @endif
                                     @if ($decanoSello || $decanoFirma)
                                         <br>
-                                        <p>
+                                        <p style="font-family: 'Courier New', Courier, monospace; font-size: 12px; line-height: 1.4; letter-spacing: 0.4px;">
                                             Firmado digitalmente </br>
-                                            {{ optional($firmaDecano)->fecha_firma
-                                                ? \Carbon\Carbon::parse(optional($firmaDecano)->fecha_firma)->translatedFormat(
-                                                    'l d F Y h:i:s A',
-                                                )
-                                                : '' }}
+                                            {{ $formatearFechaFirma(optional($firmaDecano)->fecha_firma) }}
                                         </p>
                                     @endif
                                 </td>

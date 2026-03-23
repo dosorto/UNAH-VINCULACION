@@ -69,6 +69,9 @@ class ListProyectosVinculacion extends Component implements HasForms, HasTable
                     ->select('proyecto.*')
                     ->distinct('proyecto.id')
             )
+            ->recordUrl(
+                fn (Proyecto $record): string => route('historialproyecto', ['proyecto' => $record->id])
+            )
             ->columns([
 
                 Tables\Columns\TextColumn::make('codigo_proyecto')

@@ -125,6 +125,7 @@ p {
     border: 1px solid #000;
     padding: 8px;
     text-align: left;
+    vertical-align: top;
 }
 
 .table_datos1 .full-width1 {
@@ -156,6 +157,26 @@ p {
     padding: 5px;
     border: none;
     font-family: Arial, sans-serif;
+}
+
+.table_datos1 .input-field-multiline,
+.table_datos2 .input-field-multiline,
+.table_datos3 .input-field-multiline,
+.table_datos4 .input-field-multiline,
+.table_datos5 .input-field-multiline,
+.table_datos7 .input-field-multiline {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 5px;
+    border: none;
+    font-family: Arial, sans-serif;
+    background: transparent;
+    resize: none;
+    overflow: hidden;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.35;
 }
 
 .table_datos1 .input-field1 {
