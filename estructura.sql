@@ -907,7 +907,7 @@ CREATE TABLE `proyecto` (
   `fecha_finalizacion` date DEFAULT NULL,
   `evaluacion_intermedia` date DEFAULT NULL,
   `evaluacion_final` date DEFAULT NULL,
-  `poblacion_participante` decimal(8,2) DEFAULT NULL,
+  `poblacion_participante` decimal(12,2) DEFAULT NULL,
   `modalidad_ejecucion` enum('Distancia','Presencial','Bimodal') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `resultados_esperados` longtext COLLATE utf8mb4_unicode_ci,
   `indicadores_medicion_resultados` longtext COLLATE utf8mb4_unicode_ci,

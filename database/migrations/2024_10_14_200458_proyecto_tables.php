@@ -81,7 +81,7 @@ return new class extends Migration
             $table->date('fecha_finalizacion')->nullable();
             $table->date('evaluacion_intermedia')->nullable();
             $table->date('evaluacion_final')->nullable();
-            $table->decimal('poblacion_participante', 8, 2)->nullable();
+            $table->decimal('poblacion_participante', 15, 2)->nullable();
             $table->integer('hombres')->nullable();
             $table->integer('mujeres')->nullable();
             $table->integer('otros')->nullable();
