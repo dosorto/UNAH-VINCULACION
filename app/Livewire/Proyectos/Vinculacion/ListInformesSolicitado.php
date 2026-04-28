@@ -1,247 +1,160 @@
-﻿<?php
+<?php
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
 use App\Http\Controllers\Docente\VerificarConstancia;
-use App\Models\Proyecto\DocumentoProyecto;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
-use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables\Columns\TextColumn;
-use App\Models\Proyecto\Proyecto;
-use Filament\Tables\Actions\Action;
-use Filament\Support\Enums\MaxWidth;
-
-
-
-use App\Support\Notification;
 use App\Models\Estado\TipoEstado;
-
-
+use App\Models\Proyecto\DocumentoProyecto;
+use App\Support\Notification;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
-
-use Filament\Forms\Components\Textarea;
-use League\CommonMark\Node\Block\Document;
-
-// Imports para notificaciones por correo
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ProyectoEstadoCambiado;
+use Livewire\Component;
+use Livewire\WithPagination;
 
-class ListInformesSolicitado extends Component implements HasForms, HasTable
+class ListInformesSolicitado extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
-    public function table(Table $table): Table
+    public string $search = '';
+
+    public bool $viewModal = false;
+    public ?int $viewDocumentoId = null;
+
+    public bool $rechazarModal = false;
+    public ?int $rechazarDocumentoId = null;
+    public string $rechazarComentario = '';
+
+    public bool $aprobarModal = false;
+    public ?int $aprobarDocumentoId = null;
+
+    public function updatingSearch(): void
     {
-        return $table
-            ->query(
-                DocumentoProyecto::query()
-                    ->whereIn('id', function ($query) {
-                        $query->select('estadoable_id')
-                            ->from('estado_proyecto')
-                            ->where('estadoable_type', DocumentoProyecto::class)
-                            ->where('tipo_estado_id', TipoEstado::where('nombre', 'En revision')->first()->id)
-                            ->where('es_actual', true);
-                    })
-            )
-            ->columns([
-                TextColumn::make('proyecto.nombre_proyecto')
-                    ->label('Nombre del Proyecto')
-                    ->searchable()
-                    ->wrap()
-                    ->sortable(),
-                TextColumn::make('tipo_documento')
-                    ->label('Tipo de informe')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('estado.tipoestado.nombre')
-                    ->label('Estado')
-                    ->searchable()
-                    ->sortable(),
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
+        $this->resetPage();
+    }
 
-                Action::make('first')
-                    ->label('Ver')
-                    ->modalContent(
-                        fn(DocumentoProyecto $documentoProyecto) =>  view(
-                            'components.fichas.informe',
-                            ['documentoProyecto' => $documentoProyecto]
-                        )
+    public function openView(int $id): void
+    {
+        $this->viewDocumentoId = $id;
+        $this->viewModal = true;
+    }
 
-                    )
-                    ->stickyModalFooter()
-                    ->stickyModalHeader()
-                    ->modalWidth(MaxWidth::SevenExtraLarge)
-                    ->modalSubmitAction(false)
-                    ->extraModalFooterActions([
-                        Action::make('second')
-                            ->label('Rechazar')
-                            ->form([
-                                Textarea::make('comentario')
-                                    ->label('Comentario')
-                                    ->columnSpanFull(),
-                            ])
-                            ->icon('heroicon-o-x-circle') // Icono para "Rechazar"
-                            ->color('danger')
-                            ->requiresConfirmation()
-                            ->modalHeading('Confirmar Rechazo') // Título del diálogo
+    public function openRechazar(int $id): void
+    {
+        $this->rechazarDocumentoId = $id;
+        $this->rechazarComentario = '';
+        $this->rechazarModal = true;
+    }
 
-                            ->modalSubheading('¿Estás seguro de que deseas Rechazar la firma de este proyecto?')
-                            ->action(function (DocumentoProyecto $documentoProyecto,  array $data) {
-                                //  cambiar todos los estados de la revision a Pendiente
-                                $documentoProyecto->firma_documento()->update([
-                                    'estado_revision' => 'Pendiente',
-                                    'firma_id' => null,
-                                    'sello_id' => null,
+    public function rechazar(): void
+    {
+        $this->validate(['rechazarComentario' => 'required|string']);
 
-                                ]);
+        $doc = DocumentoProyecto::findOrFail($this->rechazarDocumentoId);
 
-                                $documentoProyecto->estado_documento()->create([
-                                    'empleado_id' => Auth::user()->empleado->id,
-                                    'tipo_estado_id' => TipoEstado::where('nombre', 'Subsanacion')->first()->id,
-                                    'fecha' => now(),
-                                    'comentario' => $data['comentario'],
-                                ]);
+        $doc->firma_documento()->update([
+            'estado_revision' => 'Pendiente',
+            'firma_id'        => null,
+            'sello_id'        => null,
+        ]);
 
-                                // Recargar el documento con todas las relaciones para el correo
-                                $documentoProyecto->refresh();
-                                $documentoProyecto->load(['proyecto.coordinador_proyecto.empleado.user']);
+        $doc->estado_documento()->create([
+            'empleado_id'   => Auth::user()->empleado->id,
+            'tipo_estado_id' => TipoEstado::where('nombre', 'Subsanacion')->first()->id,
+            'fecha'         => now(),
+            'comentario'    => $this->rechazarComentario,
+        ]);
 
-                                // Enviar notificación por correo al coordinador del proyecto
-                                try {
-                                    if ($documentoProyecto->proyecto && $documentoProyecto->proyecto->coordinador && $documentoProyecto->proyecto->coordinador->user) {
-                                        Mail::to($documentoProyecto->proyecto->coordinador->user->email)->send(
-                                            new ProyectoEstadoCambiado(
-                                                $documentoProyecto->proyecto,
-                                                $documentoProyecto->proyecto->coordinador->user,
-                                                'Subsanación de ' . $documentoProyecto->tipo_documento,
-                                                $data['comentario'],
-                                                'rechazo de informe'
-                                            )
-                                        );
-                                        
-                                        \Log::info('Correo de rechazo de informe enviado exitosamente para el proyecto: ' . $documentoProyecto->proyecto->nombre_proyecto . ' - Informe: ' . $documentoProyecto->tipo_documento);
-                                    } else {
-                                        \Log::warning('No se pudo enviar correo de rechazo de informe: coordinador o usuario no encontrado para el proyecto ID: ' . $documentoProyecto->proyecto_id);
-                                    }
-                                } catch (\Exception $emailException) {
-                                    \Log::error('Error al enviar correo de informe rechazado para proyecto ID ' . $documentoProyecto->proyecto_id . ': ' . $emailException->getMessage());
-                                }
+        try {
+            $doc->refresh();
+            $doc->load(['proyecto.coordinador_proyecto.empleado.user']);
+            if ($doc->proyecto?->coordinador?->user) {
+                Mail::to($doc->proyecto->coordinador->user->email)->send(
+                    new ProyectoEstadoCambiado($doc->proyecto, $doc->proyecto->coordinador->user, 'Subsanación de ' . $doc->tipo_documento, $this->rechazarComentario, 'rechazo de informe')
+                );
+            }
+        } catch (\Exception $e) {
+            Log::error('Error enviando correo rechazo informe: ' . $e->getMessage());
+        }
 
-                                // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
-                                // ->where('empleado_id', $this->docente->id)
-                                // ->first());
-                                Notification::make()
-                                    ->title('¡Realizado!')
-                                    ->body('Informe Rechazado correctamente y notificación enviada al coordinador')
-                                    ->warning()
-                                    ->send();
-                            })
-                            ->cancelParentActions()
-                            ->button(),
+        $this->rechazarModal = false;
+        $this->rechazarDocumentoId = null;
+        $this->viewModal = false;
+        Notification::make()->title('¡Realizado!')->body('Informe rechazado correctamente.')->warning()->send();
+    }
 
-                        Action::make('aprobar')
-                            ->label('Aprobar')
-                            ->cancelParentActions()
-                            ->icon('heroicon-o-check-circle') // Icono para "Aprobar"
-                            ->color('success')
-                            ->requiresConfirmation()
-                            ->modalHeading('Terminar Registro') // Título del diálogo
-                            ->modalSubheading('Para aprobar el proyecto, por favor llene los siguientes campos')
-                            ->action(function (DocumentoProyecto $documentoProyecto) {
-                                // dd($this->docente);
-                                // dd($documentoProyecto->tipo_documento);
-                                // actualizar el estado del proyecto al siguiente estado :)
+    public function openAprobar(int $id): void
+    {
+        $this->aprobarDocumentoId = $id;
+        $this->aprobarModal = true;
+    }
 
-                                // dd($documentoProyecto->tipo_documento);
-                                if ($documentoProyecto->tipo_documento == 'Informe Final') {
-                                    // dd('finalizado');
-                                    $proyecto  =  $documentoProyecto->proyecto;
-                                    $proyecto->estado_proyecto()->create([
-                                        'empleado_id' => Auth::user()->empleado->id,
-                                        'tipo_estado_id' => TipoEstado::where('nombre', 'Finalizado')->first()->id,
-                                        'fecha' => now(),
-                                        'comentario' => 'El informe ha sido aprobado correctamente',
-                                    ]);
+    public function aprobar(): void
+    {
+        $doc = DocumentoProyecto::findOrFail($this->aprobarDocumentoId);
 
-
-                                    VerificarConstancia::makeConstanciasProyecto($proyecto);
-                                }
-
-                                // dd('antes de finalizar documento');
-                                $documentoProyecto->estado_documento()->create([
-                                    'empleado_id' => Auth::user()->empleado->id,
-                                    'tipo_estado_id' => TipoEstado::where('nombre', 'Aprobado')->first()->id,
-                                    'fecha' => now(),
-                                    'comentario' => 'El informe ha sido aprobado correctamente',
-                                ]);
-
-                                // Recargar el documento con todas las relaciones para el correo
-                                $documentoProyecto->refresh();
-                                $documentoProyecto->load(['proyecto.coordinador_proyecto.empleado.user']);
-
-                                // Determinar el mensaje según el tipo de informe
-                                $mensajeAprobacion = $documentoProyecto->tipo_documento == 'Informe Final' 
-                                    ? 'Su ' . $documentoProyecto->tipo_documento . ' ha sido aprobado exitosamente. El proyecto ha sido marcado como FINALIZADO. Recibirá las constancias correspondientes.'
-                                    : 'Su ' . $documentoProyecto->tipo_documento . ' ha sido aprobado exitosamente. Puede continuar con las siguientes etapas del proyecto.';
-
-                                $estadoInforme = $documentoProyecto->tipo_documento . ' Aprobado';
-
-                                // Enviar notificación por correo al coordinador del proyecto
-                                try {
-                                    if ($documentoProyecto->proyecto && $documentoProyecto->proyecto->coordinador && $documentoProyecto->proyecto->coordinador->user) {
-                                        Mail::to($documentoProyecto->proyecto->coordinador->user->email)->send(
-                                            new ProyectoEstadoCambiado(
-                                                $documentoProyecto->proyecto,
-                                                $documentoProyecto->proyecto->coordinador->user,
-                                                $estadoInforme,
-                                                $mensajeAprobacion,
-                                                'aprobación de informe'
-                                            )
-                                        );
-                                        
-                                        \Log::info('Correo de aprobación de informe enviado exitosamente para el proyecto: ' . $documentoProyecto->proyecto->nombre_proyecto . ' - Informe: ' . $documentoProyecto->tipo_documento);
-                                    } else {
-                                        \Log::warning('No se pudo enviar correo de aprobación de informe: coordinador o usuario no encontrado para el proyecto ID: ' . $documentoProyecto->proyecto_id);
-                                    }
-                                } catch (\Exception $emailException) {
-                                    \Log::error('Error al enviar correo de informe aprobado para proyecto ID ' . $documentoProyecto->proyecto_id . ': ' . $emailException->getMessage());
-                                }
-
-                                // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
-                                // ->where('empleado_id', $this->docente->id)
-                                // ->first());
-                                Notification::make()
-                                    ->title('¡Realizado!')
-                                    ->body('Informe Aprobado correctamente y notificación enviada al coordinador')
-                                    ->success()
-                                    ->send();
-                            })
-                            // ->modalWidth(MaxWidth::SevenExtraLarge)
-                            ->button(),
-                    ]),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //
-                ]),
+        if ($doc->tipo_documento === 'Informe Final') {
+            $proyecto = $doc->proyecto;
+            $proyecto->estado_proyecto()->create([
+                'empleado_id'   => Auth::user()->empleado->id,
+                'tipo_estado_id' => TipoEstado::where('nombre', 'Finalizado')->first()->id,
+                'fecha'         => now(),
+                'comentario'    => 'El informe ha sido aprobado correctamente',
             ]);
+            VerificarConstancia::makeConstanciasProyecto($proyecto);
+        }
+
+        $doc->estado_documento()->create([
+            'empleado_id'   => Auth::user()->empleado->id,
+            'tipo_estado_id' => TipoEstado::where('nombre', 'Aprobado')->first()->id,
+            'fecha'         => now(),
+            'comentario'    => 'El informe ha sido aprobado correctamente',
+        ]);
+
+        $estadoInforme = $doc->tipo_documento . ' Aprobado';
+        $mensajeAprobacion = $doc->tipo_documento === 'Informe Final'
+            ? 'Su ' . $doc->tipo_documento . ' ha sido aprobado. El proyecto ha sido marcado como FINALIZADO.'
+            : 'Su ' . $doc->tipo_documento . ' ha sido aprobado. Puede continuar con las siguientes etapas.';
+
+        try {
+            $doc->refresh();
+            $doc->load(['proyecto.coordinador_proyecto.empleado.user']);
+            if ($doc->proyecto?->coordinador?->user) {
+                Mail::to($doc->proyecto->coordinador->user->email)->send(
+                    new ProyectoEstadoCambiado($doc->proyecto, $doc->proyecto->coordinador->user, $estadoInforme, $mensajeAprobacion, 'aprobación de informe')
+                );
+            }
+        } catch (\Exception $e) {
+            Log::error('Error enviando correo aprobación informe: ' . $e->getMessage());
+        }
+
+        $this->aprobarModal = false;
+        $this->viewModal = false;
+        Notification::make()->title('¡Realizado!')->body('Informe aprobado correctamente.')->success()->send();
     }
 
     public function render(): View
     {
-        return view('livewire.proyectos.vinculacion.list-informes-solicitado')
-            ;//->layout('components.panel.modulos.modulo-proyectos');
+        $records = DocumentoProyecto::query()
+            ->whereIn('id', function ($query) {
+                $query->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', DocumentoProyecto::class)
+                    ->where('tipo_estado_id', TipoEstado::where('nombre', 'En revision')->first()->id)
+                    ->where('es_actual', true);
+            })
+            ->when($this->search, fn($q) => $q->whereHas('proyecto', fn($q2) =>
+                $q2->where('nombre_proyecto', 'like', '%' . $this->search . '%')
+            ))
+            ->with(['proyecto', 'estado.tipoestado'])
+            ->paginate(10);
+
+        $viewDocumento = $this->viewDocumentoId
+            ? DocumentoProyecto::with(['proyecto'])->find($this->viewDocumentoId)
+            : null;
+
+        return view('livewire.proyectos.vinculacion.list-informes-solicitado', compact('records', 'viewDocumento'));
     }
 }

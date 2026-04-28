@@ -1,416 +1,175 @@
-﻿<?php
+<?php
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
 use App\Http\Controllers\Docente\VerificarConstancia;
-use App\Models\Proyecto\Proyecto;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
-use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use App\Models\Estado\TipoEstado;
-
-
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Filters\Filter;
-use Filament\Support\Enums\MaxWidth;
-use Illuminate\Support\Facades\Auth;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-
-
+use App\Models\Proyecto\CargoFirma;
+use App\Models\Proyecto\Proyecto;
 use App\Support\Notification;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ProyectoEstadoCambiado;
-use Illuminate\Support\Facades\Log;
+use Livewire\Component;
+use Livewire\WithPagination;
 
-use App\Models\Proyecto\CargoFirma;
-
-
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Enums\FiltersLayout;
-
-use App\Models\UnidadAcademica\FacultadCentro;
-use App\Models\UnidadAcademica\DepartamentoAcademico;
-use Filament\Forms\Get;
-
-
-class ListProyectoRevisionFinal extends Component implements HasForms, HasTable
+class ListProyectoRevisionFinal extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
-    public function table(Table $table): Table
+    public string $search = '';
+
+    public bool $viewModal = false;
+    public ?int $viewProyectoId = null;
+
+    public bool $rechazarModal = false;
+    public ?int $rechazarProyectoId = null;
+    public string $rechazarComentario = '';
+
+    public bool $aprobarModal = false;
+    public ?int $aprobarProyectoId = null;
+
+    public function updatingSearch(): void { $this->resetPage(); }
+
+    public function openView(int $id): void
     {
-        return $table
-            ->query(
-                Proyecto::query()
-                    ->whereIn('proyecto.id', function ($query) {
-                        $query->select('estadoable_id')
-                            ->from('estado_proyecto')
-                            ->where('estadoable_type', Proyecto::class) // Asegúrate de filtrar por el modelo `Proyecto`
-                            ->where('tipo_estado_id', TipoEstado::where('nombre', 'En revision final')->first()->id)
-                            ->where('es_actual', true);
-                    })
-                    ->leftJoin('proyecto_centro_facultad', 'proyecto_centro_facultad.proyecto_id', '=', 'proyecto.id')
-                    ->leftJoin('proyecto_depto_ac', 'proyecto_depto_ac.proyecto_id', '=', 'proyecto.id')
-                    // unir con la tabla de estados
-                    ->leftJoin('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
-                    ->leftJoin('tipo_estado', 'estado_proyecto.tipo_estado_id', '=', 'tipo_estado.id')
-                    // si  el usuario tiene el permiso de admin_centro_facultad-proyectos filtrar por el centro/facultad
+        $this->viewProyectoId = $id;
+        $this->viewModal = true;
+    }
 
-                    ->select('proyecto.*')
-                    ->distinct('proyecto.id')
+    public function openRechazar(int $id): void
+    {
+        $this->rechazarProyectoId = $id;
+        $this->rechazarComentario = '';
+        $this->rechazarModal = true;
+    }
 
-            )
-            ->columns([
-                Tables\Columns\TextColumn::make('codigo_proyecto')
-                    ->label('Código')
-                    ->searchable()
-                    ->toggleable()
-                    ->getStateUsing(fn($record) => $record->codigo_proyecto ?: '-')
-                    ->placeholder('-'),
-                Tables\Columns\TextColumn::make('numero_dictamen')
-                    ->label('N° Dictamen')
-                    ->searchable()
-                    ->toggleable()
-                    ->getStateUsing(fn($record) => $record->numero_dictamen ?: '-')
-                    ->placeholder('-'),
-                Tables\Columns\TextColumn::make('nombre_proyecto')
-                    ->limit(30)
-                    ->searchable(),
+    public function rechazar(): void
+    {
+        $this->validate(['rechazarComentario' => 'required|string']);
 
-                Tables\Columns\TextColumn::make('departamentos_academicos.nombre')
-                    ->badge()
-                    ->color('info')
-                    ->separator(',')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->wrap()
-                    ->label('Departamentos')
-                    ->searchable(),
+        $record = Proyecto::findOrFail($this->rechazarProyectoId);
 
-                Tables\Columns\TextColumn::make('facultades_centros.nombre')
-                    ->badge()
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->wrap()
-                    ->label('Centros/Facultades'),
+        $record->firma_proyecto()->update([
+            'estado_revision' => 'Pendiente',
+            'firma_id'        => null,
+            'sello_id'        => null,
+            'fecha_firma'     => null,
+        ]);
+        $record->firma_revisor_vinculacion()->delete();
+        $record->responsable_revision_id = null;
+        $record->numero_dictamen  = null;
+        $record->fecha_aprobacion = null;
+        $record->fecha_registro   = null;
+        $record->numero_libro     = null;
+        $record->numero_tomo      = null;
+        $record->numero_folio     = null;
+        $record->save();
+        $record->categoria()->detach();
+        $record->ods()->detach();
 
+        $record->estado_proyecto()->create([
+            'empleado_id'   => Auth::user()->empleado->id,
+            'tipo_estado_id' => TipoEstado::where('nombre', 'Subsanacion')->first()->id,
+            'fecha'         => now(),
+            'comentario'    => $this->rechazarComentario,
+        ]);
 
+        try {
+            $coordinador = $record->coordinador_proyecto->first()?->empleado->user ?? null;
+            if ($coordinador) {
+                Mail::to($coordinador->email)->send(
+                    new ProyectoEstadoCambiado($record, $coordinador, 'Proyecto Rechazado', $this->rechazarComentario, 'rechazo')
+                );
+            }
+        } catch (\Exception $e) {
+            Log::error('Error correo rechazo revisión final: ' . $e->getMessage());
+        }
 
-                Tables\Columns\TextColumn::make('fecha_inicio')
-                    ->date(),
+        $this->rechazarModal = false;
+        $this->viewModal = false;
+        Notification::make()->title('¡Realizado!')->body('Proyecto Rechazado')->info()->send();
+    }
 
-                Tables\Columns\TextColumn::make('poblacion_participante')
-                    ->label('Población Participante')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->numeric(),
+    public function openAprobar(int $id): void
+    {
+        $this->aprobarProyectoId = $id;
+        $this->aprobarModal = true;
+    }
 
-                Tables\Columns\TextColumn::make('categoria.nombre')
-                    ->badge()
-                    ->wrap()
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Categoría'),
+    public function aprobar(): void
+    {
+        $proyecto = Proyecto::findOrFail($this->aprobarProyectoId);
 
+        $proyecto->estado_proyecto()->create([
+            'empleado_id'   => Auth::user()->empleado->id,
+            'tipo_estado_id' => TipoEstado::where('nombre', 'En curso')->first()->id,
+            'fecha'         => now(),
+            'comentario'    => 'El proyecto ha cambiado de estado a En curso',
+        ]);
 
-                Tables\Columns\TextColumn::make('Estado.tipoestado.nombre')
-                    ->badge()
-                    ->color(fn(Proyecto $proyecto) => match ($proyecto->estado->tipoestado->nombre) {
-                        'En curso' => 'success',
-                        'Subsanacion' => 'danger',
-                        'Borrador' => 'warning',
-                        'Finalizado' => 'info',
-                        default => 'primary',
-                    })
-                    ->label('Estado')
-                    ->separator(',')
-                    ->wrap()
-                    ->label('Estado'),
+        $proyecto->firma_proyecto()->updateOrCreate(
+            [
+                'empleado_id'   => auth()->user()->empleado->id,
+                'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                    ->where('tipo_cargo_firma.nombre', 'Director Vinculacion')
+                    ->where('cargo_firma.descripcion', 'Proyecto')
+                    ->first()->id,
+            ],
+            [
+                'estado_revision' => 'Aprobado',
+                'firma_id'        => auth()->user()?->empleado?->firma?->id,
+                'sello_id'        => auth()->user()?->empleado?->sello?->id,
+                'hash'            => 'hash',
+                'fecha_firma'     => now(),
+            ]
+        );
+        $proyecto->save();
 
-            ])
-            ->filters([
-                // filtrar por ods
-                SelectFilter::make('ods_id')
-                    ->label('ODS')
-                    ->multiple()
-                    ->relationship('ods', 'nombre')
-                    ->preload(),
+        try {
+            $coordinador = $proyecto->coordinador_proyecto->first()?->empleado->user ?? null;
+            if ($coordinador) {
+                Mail::to($coordinador->email)->send(
+                    new ProyectoEstadoCambiado($proyecto, $coordinador, 'Proyecto Aprobado', 'Su proyecto ha sido aprobado en revisión final y cambió a "En curso".', 'aprobación')
+                );
+            }
+        } catch (\Exception $e) {
+            Log::error('Error correo aprobación revisión final: ' . $e->getMessage());
+        }
 
+        VerificarConstancia::makeConstanciasProyecto($proyecto);
 
-                SelectFilter::make('categoria_id')
-                    ->label('Categoría')
-                    ->multiple()
-                    ->relationship('categoria', 'nombre')
-                    ->preload(),
-                SelectFilter::make('modalidad_id')
-                    ->label('Modalidad')
-                    ->multiple()
-                    ->relationship('modalidad', 'nombre')
-                    ->preload(),
-
-
-                // filter name can be anything you want
-                Filter::make('created_at')
-                    ->form([
-                        Select::make('centro_facultad_id')
-                            ->label('Centro/Facultad')
-                            ->default('asdf')
-                            ->options(function () {
-                                return FacultadCentro::query()
-
-                                    ->get()
-                                    ->pluck('nombre', 'id');
-                            })
-                            // si el usuario tiene el permiso de admin_centro_facultad-proyectos filtrar por el centro/facultad
-                            ->live()
-                            ->multiple(),
-                        Select::make('departamento_id')
-                            ->label('Departamento')
-                            ->visible(fn(Get $get) => !empty($get('centro_facultad_id')))
-                            ->options(fn(Get $get) => DepartamentoAcademico::query()
-                                ->whereIn('centro_facultad_id', $get('centro_facultad_id') ?: [])
-                                ->get()
-                                ->pluck('nombre', 'id'))
-                            ->live()
-                            ->multiple(),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        if (!empty($data['centro_facultad_id'])) {
-                            $query
-
-                                ->whereIn('centro_facultad_id', $data['centro_facultad_id']);
-                        }
-                        if (!empty($data['departamento_id'])) {
-                            $query
-                                ->whereIn('departamento_academico_id', $data['departamento_id']);
-                        }
-                        return $query;
-                    })
-
-
-
-            ],  layout: FiltersLayout::AboveContent)
-            ->actions([
-
-                Action::make('first')
-                    ->label('Ver')
-                    ->modalContent(
-                        fn(Proyecto $proyecto) =>  view(
-                            'components.fichas.ficha-proyecto-vinculacion',
-                            ['proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye'])]
-                        )
-
-                    )
-                    ->stickyModalFooter()
-                    ->stickyModalHeader()
-                    ->modalWidth(MaxWidth::SevenExtraLarge)
-                    ->modalSubmitAction(false)
-                    ->extraModalFooterActions([
-                        Action::make('second')
-                            ->label('Rechazar')
-                            ->form([
-                                Textarea::make('comentario')
-                                    ->required()
-                                    ->label('Comentario')
-                                    ->columnSpanFull(),
-                            ])
-                            ->icon('heroicon-o-x-circle') // Icono para "Rechazar"
-                            ->color('danger')
-                            ->requiresConfirmation()
-                            ->modalHeading('Confirmar Rechazo') // Título del diálogo
-
-                            ->modalSubheading('¿Estás seguro de que deseas Rechazar la firma de este proyecto?')
-                            ->action(function (Proyecto $record,  array $data) {
-                                //  cambiar todos los estados de la revision a Pendiente
-                                $record->firma_proyecto()->update([
-                                    'estado_revision' => 'Pendiente',
-                                    'firma_id' => null,
-                                    'sello_id' => null,
-                                    'fecha_firma' => null,
-
-                                ]);
-                                // eliminar al  $proyecto->firma_revisor_vinculacion()->create([
-
-                                $record->firma_revisor_vinculacion()->delete();
-
-                                // quitar al responsable de la revision
-                                $record->responsable_revision_id = null;
-                                // quitar el numero de dictamen
-                                $record->numero_dictamen = null;
-                                // quitar la fecha de aprobacion
-                                $record->fecha_aprobacion = null;
-                                // quitar la fecha de registro
-                                $record->fecha_registro = null;
-                                // quitar el nuro de libro
-                                $record->numero_libro = null;
-
-                                // quitar el numero de tomo
-                                $record->numero_tomo = null;
-
-                                // quitar el numero de folio
-                                $record->numero_folio = null;
-
-                                $record->save();
-                                // quitar las categorias
-                                $record->categoria()->detach();
-
-                                // quitar los ods
-                                $record->ods()->detach();
-
-
-
-                                $record->estado_proyecto()->create([
-                                    'empleado_id' => Auth::user()->empleado->id,
-                                    'tipo_estado_id' => TipoEstado::where('nombre', 'Subsanacion')->first()->id,
-                                    'fecha' => now(),
-                                    'comentario' => $data['comentario'],
-                                ]);
-
-                                // Enviar notificación por correo al coordinador del proyecto
-                                try {
-                                    $coordinador = $record->coordinador_proyecto->first()?->empleado->user ?? null;
-                                    
-                                    if ($coordinador) {
-                                        Mail::to($coordinador->email)->send(
-                                            new ProyectoEstadoCambiado(
-                                                $record,
-                                                $coordinador,
-                                                'Proyecto Rechazado',
-                                                $data['comentario'],
-                                                'rechazo'
-                                            )
-                                        );
-                                        Log::info('Correo de rechazo de proyecto enviado', [
-                                            'proyecto_id' => $record->id,
-                                            'coordinador_email' => $coordinador->email
-                                        ]);
-                                    } else {
-                                        Log::warning('No se pudo enviar correo de rechazo: coordinador no encontrado', [
-                                            'proyecto_id' => $record->id
-                                        ]);
-                                    }
-                                } catch (\Exception $e) {
-                                    Log::error('Error al enviar correo de rechazo de proyecto', [
-                                        'error' => $e->getMessage(),
-                                        'proyecto_id' => $record->id
-                                    ]);
-                                }
-
-                                // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
-                                // ->where('empleado_id', $this->docente->id)
-                                // ->first());
-                                Notification::make()
-                                    ->title('¡Realizado!')
-                                    ->body('Proyecto Rechazado')
-                                    ->info()
-                                    ->send();
-
-                                //recargar la pagina con js
-
-                            })
-                            ->cancelParentActions()
-                            ->button(),
-
-                        Action::make('aprobar')
-                            ->label('Aprobar')
-                            ->cancelParentActions()
-                            ->icon('heroicon-o-check-circle') // Icono para "Aprobar"
-                            ->color('success')
-                            ->requiresConfirmation()
-                            ->modalHeading('Terminar Registro') // Título del diálogo
-                            ->modalSubheading('Para aprobar el proyecto, por favor presione el botón "Aprobar"')
-                            ->action(function (Proyecto $proyecto, array $data) {
-                                // dd($this->docente);
-
-                                
-
-                                // actualizar el estado del proyecto al siguiente estado :)
-                                $proyecto->estado_proyecto()->create([
-                                    'empleado_id' => Auth::user()->empleado->id,
-                                    'tipo_estado_id' => TipoEstado::where('nombre', 'En curso')->first()->id,
-                                    'fecha' => now(),
-                                    'comentario' => 'El proyecto ha cambiado de estado a En curso',
-                                ]);
-
-                                $proyecto->firma_proyecto()->updateOrCreate(
-                                    [
-                                        'empleado_id' => auth()->user()->empleado->id,
-                                        'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                                            ->where('tipo_cargo_firma.nombre', 'Director Vinculacion')
-                                            ->where('cargo_firma.descripcion', 'Proyecto')
-                                            ->first()->id,
-                                    ],
-                                    [
-                                        'estado_revision' => 'Aprobado',
-                                        'firma_id' => auth()->user()?->empleado?->firma?->id,
-                                        'sello_id' => auth()->user()?->empleado?->sello?->id,
-                                        'hash' => 'hash',
-                                        'fecha_firma' => now(),
-                                    ]
-                                );
-
-                               // $proyecto->user_director_id = Auth::user()->empleado->id;
-                                $proyecto->save();
-                                $proyecto->update($data);
-
-                                // Enviar notificación por correo al coordinador del proyecto
-                                try {
-                                    $coordinador = $proyecto->coordinador_proyecto->first()?->empleado->user ?? null;
-                                    
-                                    if ($coordinador) {
-                                        Mail::to($coordinador->email)->send(
-                                            new ProyectoEstadoCambiado(
-                                                $proyecto,
-                                                $coordinador,
-                                                'Proyecto Aprobado',
-                                                'Su proyecto ha sido aprobado exitosamente en la revisión final. El proyecto ha cambiado al estado "En curso" y puede continuar con las actividades programadas.',
-                                                'aprobación'
-                                            )
-                                        );
-                                        Log::info('Correo de aprobación de proyecto enviado', [
-                                            'proyecto_id' => $proyecto->id,
-                                            'coordinador_email' => $coordinador->email
-                                        ]);
-                                    } else {
-                                        Log::warning('No se pudo enviar correo de aprobación: coordinador no encontrado', [
-                                            'proyecto_id' => $proyecto->id
-                                        ]);
-                                    }
-                                } catch (\Exception $e) {
-                                    Log::error('Error al enviar correo de aprobación de proyecto', [
-                                        'error' => $e->getMessage(),
-                                        'proyecto_id' => $proyecto->id
-                                    ]);
-                                }
-                                
-                                VerificarConstancia::makeConstanciasProyecto($proyecto);
-                                // dd(FirmaProyecto::where('proyecto_id', $proyecto->id)
-                                // ->where('empleado_id', $this->docente->id)
-                                // ->first());
-                                Notification::make()
-                                    ->title('¡Realizado!')
-                                    ->body('Proyecto Aprobado correctamente')
-                                    ->info()
-                                    ->send();
-                            })
-                            ->button(),
-
-                    ])
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //
-                ]),
-            ]);
+        $this->aprobarModal = false;
+        $this->viewModal = false;
+        Notification::make()->title('¡Realizado!')->body('Proyecto Aprobado correctamente')->info()->send();
     }
 
     public function render(): View
     {
-        return view('livewire.proyectos.vinculacion.list-proyecto-revision-final')
-            ;//->layout('components.panel.modulos.modulo-proyectos');
+        $records = Proyecto::query()
+            ->whereIn('proyecto.id', function ($query) {
+                $query->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->where('tipo_estado_id', TipoEstado::where('nombre', 'En revision final')->first()->id)
+                    ->where('es_actual', true);
+            })
+            ->leftJoin('proyecto_centro_facultad', 'proyecto_centro_facultad.proyecto_id', '=', 'proyecto.id')
+            ->leftJoin('proyecto_depto_ac', 'proyecto_depto_ac.proyecto_id', '=', 'proyecto.id')
+            ->select('proyecto.*')
+            ->when($this->search, fn($q) => $q->where(fn($q2) => $q2
+                ->where('proyecto.nombre_proyecto', 'like', '%' . $this->search . '%')
+                ->orWhere('proyecto.codigo_proyecto', 'like', '%' . $this->search . '%')
+            ))
+            ->distinct()
+            ->paginate(10);
+
+        $viewProyecto = $this->viewProyectoId
+            ? Proyecto::with(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye'])->find($this->viewProyectoId)
+            : null;
+
+        return view('livewire.proyectos.vinculacion.list-proyecto-revision-final', compact('records', 'viewProyecto'));
     }
 }

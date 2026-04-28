@@ -1,474 +1,212 @@
-﻿<?php
+<?php
 
 namespace App\Livewire\Docente\Proyectos;
 
 use App\Http\Controllers\Docente\VerificarConstancia;
-use Filament\Tables;
-use Livewire\Component;
-use Filament\Tables\Table;
-use Illuminate\Support\Str;
-
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
-use App\Models\Proyecto\Proyecto;
-use PHPUnit\Framework\Reorderable;
 use App\Models\Proyecto\CargoFirma;
-use Filament\Tables\Actions\Action;
-use Illuminate\Contracts\View\View;
-use Filament\Support\Enums\MaxWidth;
-use Illuminate\Support\Facades\File;
-use App\Models\Estado\EstadoProyecto;
-
-use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Select;
-use Illuminate\Support\Facades\Crypt;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Components\Repeater;
-
-use Filament\Tables\Contracts\HasTable;
-use Filament\Forms\Components\TextInput;
+use App\Models\Proyecto\Proyecto;
 use App\Support\Notification;
+use Illuminate\Contracts\View\View;
+use Livewire\Component;
+use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 
-use Filament\Tables\Actions\ActionGroup;
-use Filament\Forms\Components\FileUpload;
-use Illuminate\Database\Eloquent\Builder;
-
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Tables\Concerns\InteractsWithTable;
-
-use Filament\Tables\Filters\Layout;
-use Filament\Tables\Filters\SelectFilter;
-
-use Filament\Tables\Enums\FiltersLayout;
-use Illuminate\Support\Facades\Auth;
-
-
-class ProyectosDocenteList extends Component implements HasForms, HasTable
+class ProyectosDocenteList extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
+    use WithFileUploads;
+
     public Empleado $docente;
+
+    public string $search = '';
+    public array $filterCategoria = [];
+    public string $filterRol = '';
+    public array $filterEstado = [];
+
+    public bool $informeIntermedioModal = false;
+    public ?int $informeIntermedioProyectoId = null;
+    public $informeIntermedioFile = null;
+
+    public bool $informeFinalModal = false;
+    public ?int $informeFinalProyectoId = null;
+    public $informeFinalFile = null;
+
+    public bool $deleteModal = false;
+    public ?int $deleteProyectoId = null;
 
     public function mount($docente = null): void
     {
-        $this->docente = $docente ?? Auth::user()->empleado;
+        $this->docente = $docente ?? auth()->user()->empleado;
     }
-    public function table(Table $table): Table
+
+    public function updatingSearch(): void
     {
-        return $table
-            ->recordClasses(function (Proyecto $proyecto) {
-                if ($proyecto->estado->tipoestado->nombre == 'Subsanacion') {
-                    return 'bg-red-100 border-4 border-red-600 dark:bg-red-900 dark:border-red-400';
-                }
-            })
-            ->query(
+        $this->resetPage();
+    }
 
-                Proyecto::query()
-                    ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
-                    ->join('estado_proyecto', function($join) {
-                        $join->on('estado_proyecto.estadoable_id', '=', 'proyecto.id')
-                             ->where('estado_proyecto.estadoable_type', '=', 'App\Models\Proyecto\Proyecto')
-                             ->where('estado_proyecto.es_actual', '=', true);
-                    })
-                    ->join('tipo_estado', 'estado_proyecto.tipo_estado_id', '=', 'tipo_estado.id')
-                    ->select('proyecto.*')
-                    ->where('empleado_proyecto.empleado_id', $this->docente->id)
-                    ->where('tipo_estado.nombre', '!=', 'PendienteInformacion')
-                    ->whereNotExists(function($query) {
-                        $query->select('*')
-                              ->from('empleado_codigos_investigacion')
-                              ->whereRaw('empleado_codigos_investigacion.codigo_proyecto = proyecto.codigo_proyecto')
-                              ->where('tipo_estado.nombre', '=', 'Finalizado');
-                    })
-                    ->distinct()
-            )
-            ->recordUrl(
-                function (Proyecto $record) {
-                    return route('historialproyecto', $record);
-                }
-            )
-            ->columns([
+    public function openSubirIntermedio(int $proyectoId): void
+    {
+        $this->informeIntermedioProyectoId = $proyectoId;
+        $this->informeIntermedioFile = null;
+        $this->informeIntermedioModal = true;
+    }
 
-                Tables\Columns\TextColumn::make('codigo_proyecto')
-                    ->label('Código')
-                    ->searchable()
-                    ->toggleable()
-                    ->getStateUsing(fn($record) => $record->codigo_proyecto ?: '-')
-                    ->placeholder('-'),
-                Tables\Columns\TextColumn::make('numero_dictamen')
-                    ->label('N° Dictamen')
-                    ->searchable()
-                    ->toggleable()
-                    ->getStateUsing(fn($record) => $record->numero_dictamen ?: '-')
-                    ->placeholder('-'),
-                Tables\Columns\TextColumn::make('nombre_proyecto')
-                    ->limit(60)
-                    ->wrap()
-                    ->searchable(),
+    public function subirInformeIntermedio(): void
+    {
+        $this->validate(['informeIntermedioFile' => 'required|file|mimes:pdf|max:10240']);
 
-                Tables\Columns\TextColumn::make('docentes_proyecto.rol')
-                    ->label('Rol')
-                    ->formatStateUsing(
-                        function (Proyecto $record) {
-                            return $record->docentes_proyecto()
-                                ->where('empleado_id', $this->docente->id)
-                                ->first()->rol;
-                        }
-                    )
-                    ->limit(30)
-                    ->wrap()
-                    ->searchable(),
+        $proyecto = Proyecto::findOrFail($this->informeIntermedioProyectoId);
 
+        $proyecto->documentos()->where('tipo_documento', 'Informe Intermedio')
+            ->each(function ($doc) {
+                $doc->firma_documento()->delete();
+                $doc->estado_documento()->delete();
+            });
+        $proyecto->documentos()->where('tipo_documento', 'Informe Intermedio')->delete();
 
-                Tables\Columns\TextColumn::make('Estado.tipoestado.nombre')
-                    ->badge()
-                    ->color(fn(Proyecto $proyecto) => match ($proyecto->estado->tipoestado->nombre) {
-                        'En curso' => 'success',
-                        'Subsanacion' => 'danger',
-                        'Borrador' => 'warning',
-                        'Finalizado' => 'info',
-                        default => 'primary',
-                    })
-                    ->label('Estado')
-                    ->separator(',')
-                    ->wrap()
-                    ->label('Estado'),
+        $path = $this->informeIntermedioFile->store('documentos', 'public');
+        $doc = $proyecto->documentos()->create([
+            'tipo_documento' => 'Informe Intermedio',
+            'documento_url'  => $path,
+        ]);
 
+        CargoFirma::where('descripcion', 'Documento_intermedio')->get()
+            ->each(function ($cargo) use ($proyecto, $doc) {
+                $doc->firma_documento()->create([
+                    'empleado_id'   => $proyecto->getFirmabyCargo($cargo->tipoCargoFirma->nombre)->empleado->id,
+                    'cargo_firma_id' => $cargo->id,
+                    'estado_revision' => 'Pendiente',
+                    'hash'          => 'hash',
+                ]);
+            });
 
+        $doc->estado_documento()->create([
+            'empleado_id'   => auth()->user()->empleado->id,
+            'tipo_estado_id' => TipoEstado::where('nombre', 'Enlace Vinculacion')->first()->id,
+            'fecha'         => now(),
+            'comentario'    => 'Documento creado',
+        ]);
 
+        $this->informeIntermedioModal = false;
+        $this->informeIntermedioFile = null;
+        Notification::make()->title('Informe subido')->body('El informe intermedio fue enviado correctamente.')->success()->send();
+    }
 
+    public function openSubirFinal(int $proyectoId): void
+    {
+        $this->informeFinalProyectoId = $proyectoId;
+        $this->informeFinalFile = null;
+        $this->informeFinalModal = true;
+    }
 
-            ])
-            ->filters([
-                SelectFilter::make('categoria_id')
-                    ->label('Categoría')
-                    ->multiple()
-                    ->relationship('categoria', 'nombre')
-                    ->preload(),
+    public function subirInformeFinal(): void
+    {
+        $this->validate(['informeFinalFile' => 'required|file|mimes:pdf|max:10240']);
 
-                SelectFilter::make('rol')
-                    ->label('Rol')
-                    ->options([
-                        'Coordinador' => 'Coordinador',
-                        'Integrante' => 'Integrante',
-                    ]),
+        $proyecto = Proyecto::findOrFail($this->informeFinalProyectoId);
 
-                SelectFilter::make('estado')
-                    ->label('Estado')
-                    ->multiple()
-                    ->preload()
-                    ->options(TipoEstado::pluck('nombre', 'id')->toArray())
-                    ->query(function (Builder $query, array $data) {
-                        if (!empty($data['values'])) {
-                            $query->whereIn('proyecto.id', function ($subQuery) use ($data) {  
-                                $subQuery->select('estadoable_id')
-                                    ->from('estado_proyecto')
-                                    ->where('estadoable_type', Proyecto::class)
-                                    ->whereIn('tipo_estado_id', $data['values'])
-                                    ->where('es_actual', true);
-                            });
-                        }
-                    }),
-            ],  layout: FiltersLayout::AboveContent)
-            ->actions([
-                ActionGroup::make([
-                    Action::make('Proyecto de Vinculación')
-                        ->label('Ver Proyecto')
-                        ->icon('heroicon-o-eye')
-                        ->color('primary')
-                        ->stickyModalFooter()
-                        ->stickyModalHeader()
-                        ->modalContent(
-                            fn(Proyecto $proyecto): View =>
-                            view(
-                                'components.fichas.ficha-proyecto-vinculacion',
-                                ['proyecto' => $proyecto->load(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye'])]
-                            )
-                        )
-                        // ->stickyModalHeader()
-                        ->modalWidth(MaxWidth::SevenExtraLarge)
-                        ->extraModalFooterActions([
-                            Action::make('third')
-                                ->label(
-                                    'Subir Informe Intermedio'
-                                    //     function (Proyecto $proyecto) {
-                                    //     return $proyecto->estado->tipoestado->nombre == 'En curso' ? 'Subsanar' : 'Revisar';
-                                    // }
-                                )
-                                ->form([
+        $proyecto->documentos()->where('tipo_documento', 'Informe Final')
+            ->each(function ($doc) {
+                $doc->firma_documento()->delete();
+                $doc->estado_documento()->delete();
+            });
+        $proyecto->documentos()->where('tipo_documento', 'Informe Final')->delete();
 
-                                    Repeater::make('documentos')
-                                        ->schema([
-                                            Hidden::make('tipo_documento')
-                                                ->default('Informe Intermedio'),
-                                            TextInput::make('dd')
-                                                ->label('Tipo de Informe')
-                                                ->disabled()
-                                                ->default('Informe Intermedio'),
+        $path = $this->informeFinalFile->store('documentos', 'public');
+        $doc = $proyecto->documentos()->create([
+            'tipo_documento' => 'Informe Final',
+            'documento_url'  => $path,
+        ]);
 
-                                            FileUpload::make('documento_url')
-                                                ->label('Informe Intermedio')
-                                                ->required()
-                                                ->label('Informe Intermedio')
-                                                ->acceptedFileTypes(['application/pdf'])
-                                        ])
-                                        ->addable(false)
-                                        ->reorderable(false)
-                                        ->deletable(false)
-                                ])
-                                ->action(function (Proyecto $proyecto, array $data) {
-                                    // eliminar las firmas de los documentos intermedios anteriores
-                                    $proyecto->documentos()
-                                        ->where('tipo_documento', 'Informe Intermedio')
-                                        ->each(function ($documento) {
-                                            $documento->firma_documento()->delete();
-                                        });
+        CargoFirma::where('descripcion', 'Documento_final')->get()
+            ->each(function ($cargo) use ($proyecto, $doc) {
+                $doc->firma_documento()->create([
+                    'empleado_id'   => $proyecto->getFirmabyCargo($cargo->tipoCargoFirma->nombre)->empleado->id,
+                    'cargo_firma_id' => $cargo->id,
+                    'estado_revision' => 'Pendiente',
+                    'hash'          => 'hash',
+                ]);
+            });
 
-                                    // eliminar los estados de los documentos intermedios anteriores
-                                    $proyecto->documentos()
-                                        ->where('tipo_documento', 'Informe Intermedio')
-                                        ->each(function ($documento) {
-                                            $documento->estado_documento()->delete();
-                                        });
-                                    // eliminar todos los documentos intermedios anteriores
-                                    $proyecto->documentos()
-                                        ->where('tipo_documento', 'Informe Intermedio')
-                                        ->delete();
+        $doc->estado_documento()->create([
+            'empleado_id'   => auth()->user()->empleado->id,
+            'tipo_estado_id' => TipoEstado::where('nombre', 'Enlace Vinculacion')->first()->id,
+            'fecha'         => now(),
+            'comentario'    => 'Documento creado',
+        ]);
 
-                                    // crear el documento intermedio 
-                                    $documentoIntermedio = $proyecto->documentos()->create([
-                                        'tipo_documento' => $data['documentos'][0]['tipo_documento'],
-                                        'documento_url' => $data['documentos'][0]['documento_url'],
-                                    ]);
-                                    $cargosFirmas = CargoFirma::where('descripcion', 'Documento_intermedio')
-                                        ->get();
-                                    $cargosFirmas->each(function ($cargo) use ($proyecto, $documentoIntermedio) {
-                                        $documentoIntermedio->firma_documento()->create([
-                                            'empleado_id' => $proyecto->getFirmabyCargo($cargo->tipoCargoFirma->nombre)->empleado->id,
-                                            'cargo_firma_id' => $cargo->id,
-                                            'estado_revision' => 'Pendiente',
-                                            'hash' => 'hash'
-                                        ]);
-                                    });
-                                    $documentoIntermedio->estado_documento()->create([
-                                        'empleado_id' => auth()->user()->empleado->id,
-                                        'tipo_estado_id' => TipoEstado::where('nombre', 'Enlace Vinculacion')->first()->id,
-                                        'fecha' => now(),
-                                        'comentario' => 'Documento creado',
-                                    ]);
+        $this->informeFinalModal = false;
+        $this->informeFinalFile = null;
+        Notification::make()->title('Informe subido')->body('El informe final fue enviado correctamente.')->success()->send();
+    }
 
-                                    // dd($proyecto->documento_intermedio());
-                                })
-                                ->icon('heroicon-o-document-arrow-up') // Icono para "Rechazar"
-                                ->color('success')
-                                ->modalHeading('Documentos del Proyecto')
-                                ->modalSubheading('A continuación se muestran los documentos del proyecto y su estado')
-                                ->visible(function (Proyecto $proyecto) {
-                                    return ((($proyecto->estado->tipoestado->nombre == 'En curso' &&
-                                        is_null($proyecto->documento_intermedio())) ||
-                                        $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion')
-                                        && $proyecto->coordinador->id == auth()->user()->empleado->id);
-                                })
-                                ->modalWidth(MaxWidth::SevenExtraLarge),
+    public function constanciaInscripcion(int $proyectoId): mixed
+    {
+        $proyecto = Proyecto::findOrFail($proyectoId);
+        $empleadoProyecto = $proyecto->docentes_proyecto()->where('empleado_id', $this->docente->id)->first();
+        return VerificarConstancia::CrearPdfInscripcion($empleadoProyecto);
+    }
 
+    public function constanciaFinalizacion(int $proyectoId): mixed
+    {
+        $proyecto = Proyecto::findOrFail($proyectoId);
+        $empleadoProyecto = $proyecto->docentes_proyecto()->where('empleado_id', $this->docente->id)->first();
+        return VerificarConstancia::CrearPdfFinalizacion($empleadoProyecto);
+    }
 
+    public function openDelete(int $proyectoId): void
+    {
+        $this->deleteProyectoId = $proyectoId;
+        $this->deleteModal = true;
+    }
 
-                            // informe final logica
-                            Action::make('quinto')
-                                ->label(
-                                    'Informe Final'
-                                )
-                                ->form([
-                                    Repeater::make('documentos')
-                                        ->schema([
-                                            Hidden::make('tipo_documento')
-                                                ->default('Informe Final'),
-                                            TextInput::make('informe_final')
-                                                ->label('Tipo de Informe')
-                                                ->disabled()
-                                                ->default('Informe Final'),
-
-                                            FileUpload::make('documento_url')
-                                                ->label('Informe Final')
-                                                ->required()
-                                                ->acceptedFileTypes(['application/pdf'])
-                                        ])
-                                        ->addable(false)
-                                        ->reorderable(false)
-                                        ->deletable(false)
-                                ])
-                                ->action(function (Proyecto $proyecto, array $data) {
-                                    // eliminar las firmas de los documentos intermedios anteriores
-                                    $proyecto->documentos()
-                                        ->where('tipo_documento', 'Informe Final')
-                                        ->each(function ($documento) {
-                                            $documento->firma_documento()->delete();
-                                        });
-
-                                    // eliminar los estados de los documentos intermedios anteriores
-                                    $proyecto->documentos()
-                                        ->where('tipo_documento', 'Informe Final')
-                                        ->each(function ($documento) {
-                                            $documento->estado_documento()->delete();
-                                        });
-                                    // eliminar todos los documentos intermedios anteriores
-                                    $proyecto->documentos()
-                                        ->where('tipo_documento', 'Informe Final')
-                                        ->delete();
-
-                                    // crear el documento intermedio 
-                                    $documentoIntermedio = $proyecto->documentos()->create([
-                                        'tipo_documento' => $data['documentos'][0]['tipo_documento'],
-                                        'documento_url' => $data['documentos'][0]['documento_url'],
-                                    ]);
-                                    $cargosFirmas = CargoFirma::where('descripcion', 'Documento_final')
-                                        ->get();
-                                    $cargosFirmas->each(function ($cargo) use ($proyecto, $documentoIntermedio) {
-                                        $documentoIntermedio->firma_documento()->create([
-                                            'empleado_id' => $proyecto->getFirmabyCargo($cargo->tipoCargoFirma->nombre)->empleado->id,
-                                            'cargo_firma_id' => $cargo->id,
-                                            'estado_revision' => 'Pendiente',
-                                            'hash' => 'hash'
-                                        ]);
-                                    });
-                                    $documentoIntermedio->estado_documento()->create([
-                                        'empleado_id' => auth()->user()->empleado->id,
-                                        'tipo_estado_id' => TipoEstado::where('nombre', 'Enlace Vinculacion')->first()->id,
-                                        'fecha' => now(),
-                                        'comentario' => 'Documento creado',
-                                    ]);
-                                })
-                                ->icon('heroicon-o-document-arrow-up') // Icono para "Rechazar"
-                                ->color('success')
-                                ->modalHeading('Documentos del Proyecto')
-                                ->modalSubheading('A continuación se muestran los documentos del proyecto y su estado')
-                                ->visible(function (Proyecto $proyecto) {
-                                    return ((($proyecto->estado->tipoestado->nombre == 'En curso' &&
-                                        $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Aprobado') &&
-                                        is_null($proyecto->documento_final())
-                                        ||
-                                        $proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion')
-                                        && $proyecto->coordinador->id == auth()->user()->empleado->id);
-                                })
-                                ->modalWidth(MaxWidth::SevenExtraLarge),
-
-                        ])
-                        ->modalSubmitAction(false),
-
-                    Action::make('ActualizarProyecto')
-                        ->label(
-                            fn(Proyecto $proyecto): string =>
-                            $proyecto->estado->tipoestado->nombre == 'En curso' ? 'Actualizar Equipo o Fechas' : 'Actualizar Equipo o Fechas'
-                        )
-                        ->icon('heroicon-o-document-text')
-                        ->color('success')
-                        ->visible(function (Proyecto $proyecto) {
-                            $condicion = ($proyecto->estado->tipoestado->nombre == 'En curso')
-                                && $proyecto->coordinador->id == auth()->user()->empleado->id;
-
-                            return  $condicion;
-                        })
-                        ->url(fn(Proyecto $record): string => route('ficha-actualizacion',['proyecto' => $record->id] )),
-
-                    Action::make('subsanacion')
-                        ->label(
-                            fn(Proyecto $proyecto): string =>
-                            $proyecto->estado->tipoestado->nombre == 'Subsanacion' ? 'Subsanar' : 'Editar Borrador'
-                        )
-                        ->icon('heroicon-o-document')
-                        ->color('warning')
-                        ->visible(function (Proyecto $proyecto) {
-                            $condicion = ($proyecto->estado->tipoestado->nombre == 'Subsanacion' ||
-                                $proyecto->estado->tipoestado->nombre == 'Borrador')
-                                && $proyecto->coordinador->id == auth()->user()->empleado->id;
-
-                            return  $condicion;
-                        })
-                        ->url(fn(Proyecto $record): string => route('crearProyectoVinculacion', $record)),
-                    Action::make('constancia')
-                        ->label('Constancia de Inscripción')
-                        ->icon('heroicon-o-document')
-                        ->color('info')
-                        ->visible(function (Proyecto $proyecto) {
-                            return VerificarConstancia::validarConstancia($proyecto->docentes_proyecto()
-                                ->where('empleado_id', $this->docente->id)
-                                ->first());
-                        })
-                        ->action(function (Proyecto $proyecto) {
-                            return VerificarConstancia::CrearPdfInscripcion($proyecto->docentes_proyecto()
-                                ->where('empleado_id', $this->docente->id)
-                                ->first());
-                        }),
-                    Action::make('constancia_finalizacion')
-                        ->label('Constancia de Finalización')
-                        ->icon('heroicon-o-document')
-                        ->color('info')
-                        ->visible(function (Proyecto $proyecto) {
-                            return VerificarConstancia::validarConstancia($proyecto->docentes_proyecto()
-                                ->where('empleado_id', $this->docente->id)
-                                ->first(), 'finalizacion');
-                        })
-                        ->action(function (Proyecto $proyecto) {
-                            return VerificarConstancia::CrearPdfFinalizacion($proyecto->docentes_proyecto()
-                                ->where('empleado_id', $this->docente->id)
-                                ->first());
-                        }),
-
-                    Action::make('terminar')
-                    ->label('Continuar editando')
-                    ->icon('heroicon-o-pencil')
-                    ->color('primary')
-                    ->visible(function (Proyecto $proyecto) {
-                        return ($proyecto->proyectoIsInEstadoByName('Autoguardado') &&
-                            $proyecto->coordinadorIsCurrentUser());
-                    })
-                    ->action(function (Proyecto $proyecto) {
-                        return redirect()->route('crearProyectoVinculacion', $proyecto);
-                    }),
-                    Action::make('eliminar_proyecto')
-                        ->label('Borrar proyecto')
-                        ->icon('heroicon-o-trash')
-                        ->color('danger')
-                        ->requiresConfirmation()
-                        ->modalIcon('heroicon-o-exclamation-triangle')
-                        ->modalHeading('Confirmar borrado del proyecto')
-                        ->modalDescription('Esta acción moverá el proyecto a eliminado (borrado suave). Podrás recuperarlo desde base de datos si fuese necesario.')
-                        ->modalSubmitActionLabel('Sí, borrar proyecto')
-                        ->modalCancelActionLabel('Cancelar')
-                        ->visible(function (Proyecto $proyecto) {
-                            $estado = $proyecto->estado?->tipoestado?->nombre;
-
-                            return in_array($estado, ['Autoguardado', 'Borrador', 'Subsanacion', 'Subsanación'], true)
-                                && $proyecto->coordinadorIsCurrentUser();
-                        })
-                        ->action(function (Proyecto $proyecto) {
-                            $proyecto->delete();
-
-                            Notification::make()
-                                ->title('Proyecto eliminado')
-                                ->body('El proyecto fue eliminado correctamente con borrado suave.')
-                                ->success()
-                                ->send();
-                        }),
-                ])
-                    ->button()
-                    ->color('primary')
-                    ->label('Acciones'),
-
-
-
-                // ->openUrlInNewTab()
-            ])
-
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //
-                ]),
-            ]);
+    public function deleteProyecto(): void
+    {
+        $proyecto = Proyecto::findOrFail($this->deleteProyectoId);
+        $proyecto->delete();
+        $this->deleteModal = false;
+        $this->deleteProyectoId = null;
+        Notification::make()->title('Proyecto eliminado')->body('El proyecto fue eliminado correctamente.')->success()->send();
     }
 
     public function render(): View
     {
-        return view('livewire.docente.proyectos.proyectos-docente-list');
+        $records = Proyecto::query()
+            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+            ->join('estado_proyecto', function ($join) {
+                $join->on('estado_proyecto.estadoable_id', '=', 'proyecto.id')
+                    ->where('estado_proyecto.estadoable_type', '=', 'App\Models\Proyecto\Proyecto')
+                    ->where('estado_proyecto.es_actual', '=', true);
+            })
+            ->join('tipo_estado', 'estado_proyecto.tipo_estado_id', '=', 'tipo_estado.id')
+            ->select('proyecto.*')
+            ->where('empleado_proyecto.empleado_id', $this->docente->id)
+            ->where('tipo_estado.nombre', '!=', 'PendienteInformacion')
+            ->whereNotExists(function ($query) {
+                $query->select('*')
+                    ->from('empleado_codigos_investigacion')
+                    ->whereRaw('empleado_codigos_investigacion.codigo_proyecto = proyecto.codigo_proyecto')
+                    ->where('tipo_estado.nombre', '=', 'Finalizado');
+            })
+            ->when($this->search, fn($q) => $q->where(fn($q2) => $q2
+                ->where('proyecto.nombre_proyecto', 'like', '%' . $this->search . '%')
+                ->orWhere('proyecto.codigo_proyecto', 'like', '%' . $this->search . '%')
+                ->orWhere('proyecto.numero_dictamen', 'like', '%' . $this->search . '%')
+            ))
+            ->when(!empty($this->filterCategoria), fn($q) => $q->whereHas(
+                'categoria',
+                fn($q2) => $q2->whereIn('categoria_proyecto.id', $this->filterCategoria)
+            ))
+            ->when($this->filterRol, fn($q) => $q->where('empleado_proyecto.rol', $this->filterRol))
+            ->when(!empty($this->filterEstado), fn($q) => $q->whereIn('tipo_estado.id', $this->filterEstado))
+            ->distinct()
+            ->paginate(10);
+
+        $categorias = \App\Models\Proyecto\Categoria::orderBy('nombre')->pluck('nombre', 'id');
+        $estadosTipo = TipoEstado::orderBy('nombre')->pluck('nombre', 'id');
+
+        return view('livewire.docente.proyectos.proyectos-docente-list', compact('records', 'categorias', 'estadosTipo'));
     }
 }
