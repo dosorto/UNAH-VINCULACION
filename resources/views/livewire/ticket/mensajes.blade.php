@@ -18,13 +18,9 @@
 
         {{-- Botón Finalizar (si tiene permiso y el ticket no está cerrado) --}}
         @if($puedeFinalizar && $ticket->estado !== 'cerrado')
-            <x-filament::button
-                color="danger"
-                wire:click="finalizarTicket"
-                class="self-start"
-            >
+            <button wire:click="finalizarTicket" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg self-start">
                 Finalizar Ticket
-            </x-filament::button>
+            </button>
         @endif
     </div>
 
@@ -75,12 +71,9 @@
             ></textarea>
 
             <div class="mt-4 flex justify-between">
-                <x-filament::button
-                    wire:click="enviarMensaje"
-                    color="primary"
-                >
+                <button wire:click="enviarMensaje" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg">
                     Enviar
-                </x-filament::button>
+                </button>
             </div>
         </div>
     @endif

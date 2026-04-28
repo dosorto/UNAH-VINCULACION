@@ -1,95 +1,76 @@
-﻿<?php
+<?php
 
 namespace App\Livewire\Personal\Perfil;
 
-use App\Livewire\Proyectos\Vinculacion\Formularios\FormularioEstudiante;
 use App\Models\Estudiante\Estudiante;
-use Livewire\Component;
-
-
-use Filament\Forms\Form;
-
-use Filament\Forms\Contracts\HasForms;
-
-use Filament\Forms\Components\TextInput;
-// use Filament\Pages\Actions\CreateAction;
-// use Filament\Actions\Action;
+use App\Models\UnidadAcademica\Carrera;
+use App\Models\UnidadAcademica\FacultadCentro;
 use App\Support\Notification;
-
-use Filament\Actions\Contracts\HasActions;
-
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Actions\Concerns\InteractsWithActions;
-use Filament\Forms\Components\Section;
-// importar modelo role de spatie
+use Illuminate\Contracts\View\View;
+use Livewire\Component;
 use Spatie\Permission\Models\Role;
 
-class EditPerfilEstudiante    extends Component implements HasForms, HasActions
+class EditPerfilEstudiante extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithActions;
-
-    public ?array $data = [];
-
     public Estudiante $record;
+
+    public string $nombre = '';
+    public string $apellido = '';
+    public string $sexo = '';
+    public ?int $centro_facultad_id = null;
+    public ?int $carrera_id = null;
+    public string $cuenta = '';
 
     public function mount(): void
     {
-        $this->record =   auth()->user()->estudiante;
-        $this->form->fill($this->record->attributesToArray());
+        $this->record = auth()->user()->estudiante;
+        $this->nombre            = $this->record->nombre ?? '';
+        $this->apellido          = $this->record->apellido ?? '';
+        $this->sexo              = $this->record->sexo ?? '';
+        $this->centro_facultad_id = $this->record->centro_facultad_id;
+        $this->carrera_id        = $this->record->carrera_id;
+        $this->cuenta            = $this->record->cuenta ?? '';
     }
 
-    public function form(Form $form): Form
+    public function save(): void
     {
-        return $form
-            ->schema(
-                [
-                    Section::make('Perfil Estudiante')
-                        ->schema(
-                            FormularioEstudiante::form(false)
-                        )
-                ]
-            )
-            ->disabled(!auth()->user()->can('cambiar-datos-personales'))
-            ->statePath('data')
-            ->model($this->record);
-    }
+        if (!auth()->user()->can('cambiar-datos-personales')) {
+            return;
+        }
 
+        $this->validate([
+            'nombre'           => 'required|string|max:255',
+            'apellido'         => 'required|string|max:255',
+            'sexo'             => 'required|in:Masculino,Femenino',
+            'centro_facultad_id' => 'required|exists:centro_facultad,id',
+            'carrera_id'       => 'nullable|exists:carrera,id',
+            'cuenta'           => 'required|numeric',
+        ]);
 
+        $this->record->update([
+            'nombre'            => $this->nombre,
+            'apellido'          => $this->apellido,
+            'sexo'              => $this->sexo,
+            'centro_facultad_id' => $this->centro_facultad_id,
+            'carrera_id'        => $this->carrera_id,
+            'cuenta'            => $this->cuenta,
+        ]);
 
-    public function save()
-    {
-
-        $data = $this->form->getState();
-
-        // dd($data);
-        // validar que el docente tenga almenos una firma y un sello
-
-        $this->record->update($data);
-        $this->record->user->assignRole('estudiante')->save();
-        $this->record->user->active_role_id =  Role::where('name', 'estudiante')->first()->id;
-        // quitar el permiso de 'configuracion-admin-mi-perfil al usuario
+        $this->record->user->assignRole('estudiante');
+        $this->record->user->active_role_id = Role::where('name', 'estudiante')->first()?->id;
         $this->record->user->revokePermissionTo('cambiar-datos-personales');
         $this->record->user->save();
 
-        Notification::make()
-            ->title('Exito!')
-            ->body('Perfil  actualizado correctamente.')
-            ->success()
-            ->send();
+        Notification::make()->title('Exito!')->body('Perfil actualizado correctamente.')->success()->send();
+
         return redirect()->route('inicio');
     }
 
-
-
-
-    public function render()
+    public function render(): View
     {
-        return view(
-            'livewire.personal.perfil.edit-perfil-estudiante',
-            [
-                'record' => $this->record,
-            ]
-        );
+        $centros = FacultadCentro::orderBy('nombre')->pluck('nombre', 'id');
+        $carreras = Carrera::orderBy('nombre')->pluck('nombre', 'id');
+
+        return view('livewire.personal.perfil.edit-perfil-estudiante', compact('centros', 'carreras'));
     }
 }

@@ -18,31 +18,22 @@
         <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
             Estado: {{ $proyecto->estado?->tipoestado?->nombre ?? 'Sin estado' }}
         </h1>
-        <x-filament::section id="user-details">
-            <x-slot name="heading">
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-bold">Ficha del Proyecto</span>
-                    <div class="flex items-center gap-2 no-print">
-                        <x-filament::button
-                            color="info"
-                            icon="heroicon-o-arrow-down-tray"
-                            tag="a"
-                            href="{{ route('proyecto.perfil.pdf', ['proyecto' => $proyecto->id]) }}"
-                        >
-                            Descargar PDF
-                        </x-filament::button>
-                        @if ($esCoordinador && ($proyecto->estado?->tipoestado?->nombre == 'Borrador' || $proyecto->estado?->tipoestado?->nombre == 'Subsanacion' || $proyecto->estado?->tipoestado?->nombre == 'Autoguardado'))
-                        <x-filament::button 
-                            color="primary" 
-                            icon="heroicon-o-pencil-square"
-                            tag="a"
-                            href="{{ route('editarProyectoVinculacion', ['proyecto' => $proyecto->id]) }}">
-                            Continuar Editando
-                        </x-filament::button>
-                        @endif
-                    </div>
+        <div id="user-details" class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700">
+            <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 no-print">
+                <span class="text-xl font-bold dark:text-white">Ficha del Proyecto</span>
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('proyecto.perfil.pdf', ['proyecto' => $proyecto->id]) }}"
+                       class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg">
+                        Descargar PDF
+                    </a>
+                    @if ($esCoordinador && ($proyecto->estado?->tipoestado?->nombre == 'Borrador' || $proyecto->estado?->tipoestado?->nombre == 'Subsanacion' || $proyecto->estado?->tipoestado?->nombre == 'Autoguardado'))
+                    <a href="{{ route('editarProyectoVinculacion', ['proyecto' => $proyecto->id]) }}"
+                       class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
+                        Continuar Editando
+                    </a>
+                    @endif
                 </div>
-            </x-slot>
+            </div>
 
             <div
                 style="display: flex; justify-content: center; margin-top: 20px; background-color: white; max-height: 80vh; overflow-y: auto;">

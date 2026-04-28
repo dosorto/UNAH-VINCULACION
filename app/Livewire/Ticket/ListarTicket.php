@@ -1,291 +1,132 @@
-﻿<?php
+<?php
 
 namespace App\Livewire\Ticket;
 
 use App\Models\Ticket\Ticket;
 use App\Models\Ticket\TicketSugerencia;
-use Filament\Tables;
-use Filament\Forms;
-use Livewire\Component;
-use Illuminate\Support\Facades\Auth;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Tables\Filters\Filter;
-use Filament\Tables\Enums\FiltersLayout;
-use Filament\Forms\Components\Grid;
-use Filament\Support\Enums\IconPosition;
 use App\Support\Notification;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
+use Livewire\WithPagination;
 
-class ListarTicket extends Component implements HasForms, HasTable
+class ListarTicket extends Component
 {
-    use Tables\Concerns\InteractsWithTable;
-    use Forms\Concerns\InteractsWithForms;
+    use WithPagination;
 
-    public $ticketSeleccionado;
-    public $nuevoMensaje = '';
-    public ?array $data = [];
+    public string $search = '';
+    public string $filtroTipo = '';
+    public string $filtroEstado = '';
+
+    public bool $createModal = false;
+    public string $create_tipo_ticket = '';
+    public string $create_asunto = '';
+    public string $create_mensaje = '';
+
+    public bool $viewModal = false;
+    public ?int $viewTicketId = null;
+    public string $nuevoMensaje = '';
+
     public array $ticketsModalAbiertos = [];
 
-    public function table(Table $table): Table
+    public function updatingSearch(): void { $this->resetPage(); }
+
+    public function openCreate(): void
     {
-        return $table
-             ->query(function () {
-            $query = Ticket::query()
-                ->with('mensajes')
-                ->where('estado', '!=', 'cerrado')
-                ->orderByRaw("FIELD(estado, 'en proceso', 'abierto', 'cerrado')")
-                ->latest();
-
-            $user = auth()->user();
-
-            if (!$user->can('admin-tickets-administrar-tickets')) {
-                $query->where('user_id', $user->id);
-            }
-
-            return $query;
-        })
-            
-            ->columns([
-                TextColumn::make('tipo_ticket')
-                    ->label('Tipo de Ticket')
-                    ->searchable()
-                    ->toggleable(),
-                TextColumn::make('asunto')
-                    ->label('Asunto')
-                    ->searchable()
-                    ->toggleable(),
-                TextColumn::make('estado')
-                    ->label('Estado')
-                    ->badge()
-                    ->toggleable(),
-                TextColumn::make('created_at')
-                    ->label('Fecha')
-                    ->dateTime('d/m/Y H:i')
-                    ->toggleable(),
-            ])
-            ->filters([
-                Filter::make('filtrar_tickets')
-                    ->form([
-                        Grid::make(2)
-                            ->schema([
-                                Select::make('tipo_ticket')
-                                    ->label('Tipo de Ticket')
-                                    ->options([
-                                        'Soporte Tecnico' => 'Soporte Técnico',
-                                        'Sugerencia' => 'Sugerencia',
-                                        'Consulta General' => 'Consulta General',
-                                        'Otro' => 'Otro',
-                                    ]),
-                                Select::make('estado')
-                                    ->label('Estado')
-                                    ->options([
-                                        'abierto' => 'Abierto',
-                                        'en proceso' => 'En Proceso',
-                                    ]),
-                            ])
-                    ])
-                    ->query(function ($query, array $data) {
-                        if (!empty($data['tipo_ticket'])) {
-                            $query->where('tipo_ticket', $data['tipo_ticket']);
-                        }
-                        if (!empty($data['estado'])) {
-                            $query->where('estado', $data['estado']);
-                        }
-                        return $query;
-                    })
-            ], layout: FiltersLayout::AboveContent)
-            ->actions([
-                Action::make('ver_mensaje')
-                    ->label('Ver mensaje')
-                    ->icon(fn (Ticket $record) => $this->debeMostrarIconoNuevoMensaje($record) ? 'heroicon-o-bell-alert' : 'heroicon-o-eye')
-                    ->tooltip(fn (Ticket $record) => $this->debeMostrarIconoNuevoMensaje($record) ? 'Mensaje sin contestar' : 'Ver mensaje')
-                    ->button()
-                    ->color('primary')
-                    ->iconPosition(IconPosition::Before)
-                    ->visible(fn (Ticket $record) => $record->mensajes && $record->mensajes->isNotEmpty())
-                    ->badge(fn (Ticket $record) => $this->debeMostrarIconoNuevoMensaje($record) ? '!' : null)
-                    ->badgeColor('danger')
-                    ->mountUsing(fn (Ticket $record) => $this->abrirModal($record))
-                    ->modalHeading('')
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel(false)
-                    ->modalContent(fn ($record) =>
-                            $record
-                                ? view('livewire.ticket.mensajes', ['ticket' => $record->load('mensajes.user')])
-                                : null
-                        )
-            ])
-            ->headerActions([
-                Action::make('ver_historial')
-                    ->label('Historial de Tickets')
-                    ->icon('heroicon-o-archive-box')
-                    ->url(route('historialTicket'))
-                    ->color('success'),
-
-                Action::make('crear_ticket')
-                    ->label('Nuevo Ticket')
-                    ->icon('heroicon-o-plus')
-                    ->color('info')
-                    ->button()
-                    ->visible(fn () => auth()->user()?->can('tickets-ver-modulo')) 
-                    ->mountUsing(fn () => $this->abrirFormulario())
-                    ->modalHeading('Nuevo Ticket')
-                    ->modalSubmitActionLabel('Enviar')
-                    ->action(fn () => $this->crearTicket())
-                    ->form(fn () => $this->form(new Form($this)))
-            ]);
+        $this->reset(['create_tipo_ticket', 'create_asunto', 'create_mensaje']);
+        $this->createModal = true;
     }
 
-    public function abrirModal(Ticket $ticket)
+    public function crearTicket(): void
     {
-        $this->ticketSeleccionado = $ticket;
-        $this->nuevoMensaje = '';
-        $this->ticketsModalAbiertos[$ticket->id] = true;
-    }
-
-    public function enviarMensaje()
-    {
-        if (!$this->ticketSeleccionado || $this->nuevoMensaje === '') {
-            return;
-        }
-
-        if ($this->ticketSeleccionado->estado === 'cerrado') {
-            return;
-        }
-
-        $userId = Auth::id();
-        $esAdmin = Auth::user()?->can('admin-tickets-administrar-tickets');
-
-        TicketSugerencia::create([
-            'ticket_id' => $this->ticketSeleccionado->id,
-            'user_id' => $userId,
-            'mensaje' => $this->nuevoMensaje,
-            'estado' => 'abierto',
+        $this->validate([
+            'create_tipo_ticket' => 'required|string',
+            'create_asunto'      => 'required|string|max:500',
+            'create_mensaje'     => 'required|string',
         ]);
 
-        if ($esAdmin) {
-            $yaRespondioAdmin = TicketSugerencia::where('ticket_id', $this->ticketSeleccionado->id)
-                ->whereHas('user.roles', function ($query) {
-                    $query->where('name', 'admin');
-                })
-                ->where('user_id', '!=', $userId)
-                ->exists();
-
-            if (!$yaRespondioAdmin && $this->ticketSeleccionado->estado === 'abierto') {
-                $this->ticketSeleccionado->estado = 'en proceso';
-                $this->ticketSeleccionado->save();
-            }
-        }
-
-        $this->ticketSeleccionado->refresh();
-        $this->dispatch('$refresh');
-        $this->nuevoMensaje = '';
-    }
-
-    public function tieneMensajesNuevos(Ticket $ticket): bool
-    {
-        return $ticket->mensajes->contains(function ($mensaje) {
-            return $mensaje->user_id !== Auth::id();
-        });
-    }
-
-    public function debeMostrarIconoNuevoMensaje(Ticket $ticket): bool
-    {
-        if ($ticket->estado === 'cerrado') return false;
-        if (isset($this->ticketsModalAbiertos[$ticket->id])) return false;
-        $ultimoMensaje = $ticket->mensajes->last();
-        if (!$ultimoMensaje) return false;
-        return $ultimoMensaje->user_id !== Auth::id();
-    }
-
-    public function finalizarTicket()
-    {
-        if ($this->ticketSeleccionado && Auth::user()?->can('admin-tickets-administrar-tickets')) {
-            $this->ticketSeleccionado->estado = 'cerrado';
-            $this->ticketSeleccionado->save();
-
-            Notification::make()
-                ->title('Ticket Finalizado')
-                ->body('El ticket ha sido movido al historial.')
-                ->success()
-                ->send();
-
-            // Cerrar modal correctamente
-            $this->dispatch('closeModal');
-
-            $this->ticketSeleccionado = null;
-            $this->dispatch('$refresh');
-        }
-    }
-
-
-    public function abrirFormulario()
-    {
-        $this->form->fill();
-    }
-
-    public function crearTicket()
-    {
-        $validated = $this->form->getState();
-
         $ticket = Ticket::create([
-            'user_id' => Auth::id(),
-            'tipo_ticket' => $validated['tipo_ticket'],
-            'asunto' => $validated['asunto'],
-            'estado' => 'abierto',
+            'user_id'     => Auth::id(),
+            'tipo_ticket' => $this->create_tipo_ticket,
+            'asunto'      => $this->create_asunto,
+            'estado'      => 'abierto',
         ]);
 
         TicketSugerencia::create([
             'ticket_id' => $ticket->id,
-            'user_id' => Auth::id(),
-            'mensaje' => $validated['mensaje'],
-            'estado' => 'abierto',
+            'user_id'   => Auth::id(),
+            'mensaje'   => $this->create_mensaje,
+            'estado'    => 'abierto',
         ]);
 
-        Notification::make()
-            ->title('¡Éxito!')
-            ->body('Se ha creado el ticket correctamente')
-            ->success()
-            ->send();
-
-        $this->data = [];
-        $this->dispatch('closeModal');
-        $this->dispatch('$refresh');
+        $this->createModal = false;
+        Notification::make()->title('Ticket creado correctamente.')->success()->send();
     }
 
-    public function form(Form $form): Form
+    public function openView(int $id): void
     {
-        return $form
-            ->schema([
-                Select::make('tipo_ticket')
-                    ->label('Tipo de Ticket')
-                    ->options([
-                        'Soporte Tecnico' => 'Soporte Técnico',
-                        'Sugerencia' => 'Sugerencia',
-                        'Consulta General' => 'Consulta General',
-                        'Otro' => 'Otro',
-                    ])
-                    ->required(),
-                Textarea::make('asunto')
-                    ->label('Asunto')
-                    ->required()
-                    ->rows(2),
-                Textarea::make('mensaje')
-                    ->label('Mensaje')
-                    ->required()
-                    ->rows(4),
-            ])
-            ->statePath('data');
+        $this->viewTicketId = $id;
+        $this->nuevoMensaje = '';
+        $this->ticketsModalAbiertos[$id] = true;
+        $this->viewModal = true;
     }
 
-    public function render()
+    public function enviarMensaje(): void
     {
-        return view('livewire.ticket.listar-ticket');
+        if (!$this->viewTicketId || $this->nuevoMensaje === '') return;
+
+        $ticket = Ticket::find($this->viewTicketId);
+        if (!$ticket || $ticket->estado === 'cerrado') return;
+
+        TicketSugerencia::create([
+            'ticket_id' => $ticket->id,
+            'user_id'   => Auth::id(),
+            'mensaje'   => $this->nuevoMensaje,
+            'estado'    => 'abierto',
+        ]);
+
+        $esAdmin = Auth::user()?->can('admin-tickets-administrar-tickets');
+        if ($esAdmin && $ticket->estado === 'abierto') {
+            $ticket->update(['estado' => 'en proceso']);
+        }
+
+        $this->nuevoMensaje = '';
+    }
+
+    public function finalizarTicket(): void
+    {
+        if (!$this->viewTicketId || !Auth::user()?->can('admin-tickets-administrar-tickets')) return;
+
+        Ticket::findOrFail($this->viewTicketId)->update(['estado' => 'cerrado']);
+
+        Notification::make()->title('Ticket finalizado.')->success()->send();
+        $this->viewModal = false;
+        $this->viewTicketId = null;
+    }
+
+    public function debeMostrarAlerta(Ticket $ticket): bool
+    {
+        if ($ticket->estado === 'cerrado') return false;
+        if (isset($this->ticketsModalAbiertos[$ticket->id])) return false;
+        $ultimo = $ticket->mensajes->last();
+        return $ultimo && $ultimo->user_id !== Auth::id();
+    }
+
+    public function render(): View
+    {
+        $user = Auth::user();
+        $query = Ticket::with('mensajes')
+            ->where('estado', '!=', 'cerrado')
+            ->when(!$user->can('admin-tickets-administrar-tickets'), fn($q) => $q->where('user_id', $user->id))
+            ->when($this->filtroTipo,   fn($q) => $q->where('tipo_ticket', $this->filtroTipo))
+            ->when($this->filtroEstado, fn($q) => $q->where('estado', $this->filtroEstado))
+            ->latest();
+
+        $ticket = $this->viewTicketId ? Ticket::with('mensajes.user')->find($this->viewTicketId) : null;
+
+        return view('livewire.ticket.listar-ticket', [
+            'records' => $query->paginate(15),
+            'ticket'  => $ticket,
+        ]);
     }
 }

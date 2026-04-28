@@ -1,187 +1,141 @@
-﻿<?php
+<?php
 
 namespace App\Livewire\Personal\Empleado;
 
-use App\Livewire\Personal\Empleado\Formularios\FormularioEmpleado;
-use App\Models\Personal\Empleado;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
-use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Illuminate\Support\Facades\Auth;
-use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Repeater;
-// use Filament\Pages\Actions\CreateAction;
-// use Filament\Actions\Action;
-use App\Support\Notification;
-use Filament\Forms\Components\FileUpload;
-use Filament\Actions\Contracts\HasActions;
-use App\Models\Personal\FirmaSelloEmpleado;
-use Filament\Forms\Components\Actions\Action;
-use Filament\Actions\Concerns\InteractsWithActions;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
-
-
-
-use app\Models\User;
-
-use Filament\Forms\Components\CheckboxList;
-// importar modelo role de spatie
-use Spatie\Permission\Models\Role;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
-use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
-use Filament\Tables\Enums\FiltersLayout;
-use Filament\Tables\Filters\Filter;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\UnidadAcademica\FacultadCentro;
+use App\Models\User;
+use App\Support\Notification;
+use Illuminate\Contracts\View\View;
+use Illuminate\Validation\Rule;
+use Livewire\Component;
+use Livewire\WithPagination;
+use Spatie\Permission\Models\Role;
 
-class ListEmpleado extends Component implements HasForms, HasTable
+class ListEmpleado extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
-    public function table(Table $table): Table
+    public string $search = '';
+    public ?int $filterCentroFacultad = null;
+    public ?int $filterDepartamento = null;
+
+    public bool $editModal = false;
+    public ?int $editId = null;
+    public string $edit_name = '';
+    public string $edit_email = '';
+    public string $edit_nombre_completo = '';
+    public string $edit_numero_empleado = '';
+    public string $edit_celular = '';
+    public ?int $edit_centro_facultad_id = null;
+    public ?int $edit_departamento_academico_id = null;
+    public array $edit_roles = [];
+
+    public function updatingSearch(): void
     {
-        return $table
-            ->query(
-                User::query()
-                    ->whereHas('empleado')
-                    ->with('empleado')
-                    ->with('empleado.categoria')
-                    ->with('empleado.centro_facultad')
-                    ->with('empleado.departamento_academico')
-                    ->with('empleado.centro_facultad')
-                    ->leftJoin('empleado', 'users.id', '=', 'empleado.user_id')
-                    ->select('users.*')
+        $this->resetPage();
+    }
 
-            )
-            ->columns([
+    public function updatingFilterCentroFacultad(): void
+    {
+        $this->filterDepartamento = null;
+        $this->resetPage();
+    }
 
-                // rol de usuario
-                Tables\Columns\TextColumn::make('roles.name')
-                    ->label('Roles')
-                    ->badge()
-                    ->wrap(),
+    public function updatingFilterDepartamento(): void
+    {
+        $this->resetPage();
+    }
 
-                Tables\Columns\TextColumn::make('empleado.nombre_completo')
-                    ->searchable(isIndividual: true)
-                    ->label('Nombre Completo'),
-                Tables\Columns\TextColumn::make('empleado.numero_empleado')
-                    ->searchable(isIndividual: true)
-                    ->label('Número de Empleado'),
-                Tables\Columns\TextColumn::make('empleado.categoria.nombre')
-                    ->label('Categoría'),
+    public function updatingEditCentroFacultadId(): void
+    {
+        $this->edit_departamento_academico_id = null;
+    }
 
-                Tables\Columns\TextColumn::make('empleado.centro_facultad.nombre')
-                    ->label('Facultad o Centro')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->badge(),
-                Tables\Columns\TextColumn::make('empleado.departamento_academico.nombre')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Departamento Académico'),
-                Tables\Columns\TextColumn::make('email')
-                    ->label('Correo Electrónico')
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('empleado.celular')
-                    ->label('Celular')
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->label('Fecha de Creación'),
+    public function openEdit(int $id): void
+    {
+        $user = User::with(['empleado', 'roles'])->findOrFail($id);
+        $this->editId                        = $id;
+        $this->edit_name                     = $user->name;
+        $this->edit_email                    = $user->email;
+        $this->edit_nombre_completo          = $user->empleado?->nombre_completo ?? '';
+        $this->edit_numero_empleado          = $user->empleado?->numero_empleado ?? '';
+        $this->edit_celular                  = $user->empleado?->celular ?? '';
+        $this->edit_centro_facultad_id       = $user->empleado?->centro_facultad_id;
+        $this->edit_departamento_academico_id = $user->empleado?->departamento_academico_id;
+        $this->edit_roles                    = $user->roles->pluck('id')->toArray();
+        $this->editModal = true;
+    }
 
+    public function save(): void
+    {
+        $user = User::findOrFail($this->editId);
 
-            ])
-            ->filters([
-                // filter name can be anything you want
-                Filter::make('created_at')
-                    ->form([
-                        Select::make('centro_facultad_id')
-                            ->label('Centro/Facultad')
-                            ->options(FacultadCentro::all()->pluck('nombre', 'id'))
-                            ->live()
-                            ->multiple(),
-                        Select::make('departamento_id')
-                            ->label('Departamento')
-                            ->visible(fn(Get $get) => !empty($get('centro_facultad_id')))
-                            ->options(fn(Get $get) => DepartamentoAcademico::query()
-                                ->whereIn('centro_facultad_id', $get('centro_facultad_id') ?: [])
-                                ->get()
-                                ->pluck('nombre', 'id'))
-                            ->live()
-                            ->multiple(),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        if (!empty($data['centro_facultad_id'])) {
-                            $query
+        $this->validate([
+            'edit_name'            => ['required', 'string', 'max:255', Rule::unique('users', 'name')->ignore($user->id)],
+            'edit_email'           => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'edit_nombre_completo' => 'required|string|max:255',
+            'edit_numero_empleado' => ['required', 'numeric', Rule::unique('empleado', 'numero_empleado')->ignore($user->empleado?->id)],
+            'edit_celular'         => 'required|numeric',
+            'edit_centro_facultad_id' => 'required|exists:centro_facultad,id',
+        ]);
 
-                                ->whereIn('centro_facultad_id', $data['centro_facultad_id']);
-                        }
-                        if (!empty($data['departamento_id'])) {
-                            $query
-                                ->whereIn('departamento_academico_id', $data['departamento_id']);
-                        }
-                        return $query;
-                    })
-            ],  layout: FiltersLayout::AboveContent)
-            ->actions([
+        $user->update(['name' => $this->edit_name, 'email' => $this->edit_email]);
 
-                EditAction::make()
-                    ->form(
-                    FormularioEmpleado::form()
-                    )
-                    ->using(function (User $record, array $data) {
+        if ($user->empleado) {
+            $user->empleado->update([
+                'nombre_completo'           => $this->edit_nombre_completo,
+                'numero_empleado'           => $this->edit_numero_empleado,
+                'celular'                   => $this->edit_celular,
+                'centro_facultad_id'        => $this->edit_centro_facultad_id,
+                'departamento_academico_id' => $this->edit_departamento_academico_id,
+            ]);
+        }
 
-                        $record->update($data);
-                        
-                        $primerRol = $record->roles()->first();
+        $user->syncRoles($this->edit_roles);
+        $primerRol = $user->roles()->first();
+        if ($primerRol) {
+            $user->active_role_id = $primerRol->id;
+            $user->save();
+        }
 
-                        if ($primerRol) {
-                            $record->active_role_id = $primerRol->id;
-                            $record->save();
-                        }
+        $this->editModal = false;
+        $this->editId    = null;
 
-                        return $record;
-                    })
-            ])
-            ->headerActions([
-                ExportAction::make()->exports([
-                    ExcelExport::make('table')
-                        ->fromTable()
-                    //->queue()->withChunkSize(100)
-                    //->askForFilename('Empleados')
-                    // ->askForWriterType(),
-                ])
-                    ->label('Exportar a Excel')
-                    ->color('success')
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //
-                ]),
-            ])
-            ->paginated([10, 25, 50, 100]);
+        Notification::make()->title('¡Éxito!')->body('Empleado actualizado correctamente.')->success()->send();
     }
 
     public function render(): View
     {
-        return view('livewire.personal.empleado.list-empleado')
-            ;//->layout('components.panel.modulos.modulo-empleado');
+        $records = User::query()
+            ->whereHas('empleado')
+            ->with(['empleado.categoria', 'empleado.centro_facultad', 'empleado.departamento_academico', 'roles'])
+            ->when($this->search, fn($q) =>
+                $q->whereHas('empleado', fn($q) =>
+                    $q->where('nombre_completo', 'like', '%' . $this->search . '%')
+                      ->orWhere('numero_empleado', 'like', '%' . $this->search . '%')
+                )->orWhere('email', 'like', '%' . $this->search . '%')
+            )
+            ->when($this->filterCentroFacultad, fn($q) =>
+                $q->whereHas('empleado', fn($q) => $q->where('centro_facultad_id', $this->filterCentroFacultad))
+            )
+            ->when($this->filterDepartamento, fn($q) =>
+                $q->whereHas('empleado', fn($q) => $q->where('departamento_academico_id', $this->filterDepartamento))
+            )
+            ->paginate(10);
+
+        $centros = FacultadCentro::orderBy('nombre')->pluck('nombre', 'id');
+
+        $departamentos = $this->filterCentroFacultad
+            ? DepartamentoAcademico::where('centro_facultad_id', $this->filterCentroFacultad)->orderBy('nombre')->pluck('nombre', 'id')
+            : collect();
+
+        $allRoles = Role::orderBy('name')->get(['id', 'name']);
+
+        $editDepartamentos = $this->edit_centro_facultad_id
+            ? DepartamentoAcademico::where('centro_facultad_id', $this->edit_centro_facultad_id)->orderBy('nombre')->pluck('nombre', 'id')
+            : collect();
+
+        return view('livewire.personal.empleado.list-empleado', compact('records', 'centros', 'departamentos', 'allRoles', 'editDepartamentos'));
     }
 }
