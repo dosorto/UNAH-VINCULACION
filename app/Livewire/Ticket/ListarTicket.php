@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Ticket;
 
@@ -20,7 +20,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Forms\Components\Grid;
 use Filament\Support\Enums\IconPosition;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 
 class ListarTicket extends Component implements HasForms, HasTable
 {

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
@@ -24,7 +24,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 
 
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ProyectoEstadoCambiado;
 use Illuminate\Support\Facades\Log;

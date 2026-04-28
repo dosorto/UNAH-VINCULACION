@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Estudiante;
 
@@ -13,7 +13,7 @@ use Spatie\Permission\Models\Role;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use Livewire\Component;
 use Illuminate\Contracts\View\View;
 use Filament\Forms\Form;

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Aplicacion\Contacto;
 
@@ -10,7 +10,7 @@ use Filament\Forms\Form;
 use Livewire\Component;
 use Illuminate\Contracts\View\View;
 use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use Filament\Forms\Components\Textarea;
 
 

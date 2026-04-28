@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Slide;
 
@@ -13,7 +13,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Hidden;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use Filament\Forms\Components\Toggle;
 
 class SlideConfig extends Component implements HasForms

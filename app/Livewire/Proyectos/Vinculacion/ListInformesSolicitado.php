@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
@@ -20,7 +20,7 @@ use Filament\Support\Enums\MaxWidth;
 
 
 
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use App\Models\Estado\TipoEstado;
 
 

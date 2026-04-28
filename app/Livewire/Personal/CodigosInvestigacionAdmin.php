@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Personal;
 
@@ -13,7 +13,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use App\Models\Personal\EmpleadoCodigoInvestigacion;
 use App\Models\Personal\EmpleadoProyecto;
 use App\Models\Proyecto\Proyecto;

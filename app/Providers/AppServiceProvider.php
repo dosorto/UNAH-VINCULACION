@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Event;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Policies\UnidadAcademica\FacultadCentroPolicy;
 use Illuminate\Support\Facades\View;
@@ -28,9 +27,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         View::share('DataNavBar', DataNavBar::class);
-        Event::listen(function (\SocialiteProviders\Manager\SocialiteWasCalled $event) {
-            $event->extendSocialite('microsoft', \SocialiteProviders\Microsoft\Provider::class);
-        });
-        
+
     }
 }

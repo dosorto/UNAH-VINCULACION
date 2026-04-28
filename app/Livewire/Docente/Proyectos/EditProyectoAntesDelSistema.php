@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Docente\Proyectos;
 
@@ -42,7 +42,7 @@ use App\Models\UnidadAcademica\Carrera;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 
 use App\Models\Personal\EmpleadoProyecto;
 

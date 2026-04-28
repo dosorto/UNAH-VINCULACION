@@ -3,63 +3,29 @@
 namespace App\Livewire\Constancia;
 
 use App\Models\Constancia\Constancia;
-use Filament\Forms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
-use Livewire\Component;
+use App\Support\Notification;
 use Illuminate\Contracts\View\View;
+use Livewire\Component;
 
-use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
-
-class BuscarConstancia extends Component implements HasForms
+class BuscarConstancia extends Component
 {
-    use InteractsWithForms;
+    public string $codigo = '';
 
-    public ?array $data = [];
-
-    public function mount()
+    public function submit(): void
     {
-        $this->form->fill();
-    }
+        $this->validate([
+            'codigo' => 'required|string',
+        ]);
 
-    public function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                TextInput::make('codigo')
-                ->required()
-                ->label('Codigo')
-            ])
-            ->statePath('data');
-    }
+        $constancia = Constancia::where('hash', $this->codigo)->first();
 
-    public function submit()
-    {
-        $data = $this->form->getState();
-        // buscar la constancias con el codigo si lo encuentra redireccionar a la ruta sino
-        // mandar la notificacion que no lo encontro
+        if ($constancia) {
+            Notification::make()->title('Éxito')->body('Se encontró un registro con ese código.')->success()->send();
+            $this->redirect(route('verificacion_constancia', $this->codigo));
+            return;
+        }
 
-        $Constancia = Constancia::where('hash', $data['codigo'])
-            ->first();
-
-        if ($Constancia) {
-            Notification::make()
-                ->title('Exito')
-                ->body('Se ha encontrado un registro con ese codigo')
-                ->success()
-                ->send();
-            return redirect()->route('verificacion_constancia', $data['codigo']);
-        } else
-            Notification::make()
-                ->title('Error')
-                ->body('NO SE ENCONTRO REGISTRO CON ESE CODIGO')
-                ->danger()
-                ->send();
-
-
-        //
+        Notification::make()->title('Error')->body('No se encontró registro con ese código.')->danger()->send();
     }
 
     public function render(): View

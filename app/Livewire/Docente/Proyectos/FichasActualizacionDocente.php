@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Docente\Proyectos;
 
@@ -19,7 +19,7 @@ use Filament\Tables\Actions\ActionGroup;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use Illuminate\Support\Facades\Auth;
 
 class FichasActualizacionDocente extends Component implements HasForms, HasTable

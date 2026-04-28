@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
@@ -21,7 +21,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Tables\Contracts\HasTable;
 
 use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Forms\Components\DatePicker;

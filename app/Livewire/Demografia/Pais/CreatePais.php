@@ -3,86 +3,54 @@
 namespace App\Livewire\Demografia\Pais;
 
 use App\Models\Demografia\Pais;
-use Filament\Forms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
-use Livewire\Component;
+use App\Support\Notification;
 use Illuminate\Contracts\View\View;
+use Livewire\Component;
 
-use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
-use Filament\Forms\Components\Section;
-
-
-class CreatePais extends Component implements HasForms
+class CreatePais extends Component
 {
-    use InteractsWithForms;
-    
-    public ?array $data = [];
+    public string $codigo_area = '';
+    public string $codigo_iso = '';
+    public string $codigo_iso_numerico = '';
+    public string $codigo_iso_alpha_2 = '';
+    public string $nombre = '';
+    public string $gentilicio = '';
 
-    
+    protected array $rules = [
+        'codigo_area'          => 'required|numeric',
+        'codigo_iso'           => 'required|string|max:10',
+        'codigo_iso_numerico'  => 'required|numeric',
+        'codigo_iso_alpha_2'   => 'required|string|max:5',
+        'nombre'               => 'required|string|max:100',
+        'gentilicio'           => 'required|string|max:100',
+    ];
 
-    public function mount(): void
-    {
-        $this->form->fill();
-    }
-
-    public function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                Section::make('Crear un nuevo País')
-                    ->description('Crea un nuevo país con sus datos asociados.')
-                    ->schema([
-                        TextInput::make('codigo_area')
-                            ->label('Código de área')
-                            ->numeric()
-                            ->required(),
-                        TextInput::make('codigo_iso')
-                            ->label('Código ISO')
-                            ->required(),
-                        TextInput::make('codigo_iso_numerico')
-                            ->label('Código ISO numérico')
-                            ->numeric()
-                            ->required(),
-                        TextInput::make('codigo_iso_alpha_2')
-                            ->label('Código ISO alpha 2')
-                            ->required(),
-                        TextInput::make('nombre')
-                            ->label('Nombre')
-                            ->required(),
-                        TextInput::make('gentilicio')
-                            ->label('Gentilicio')
-                            ->required(),
-                    ])
-                    ->columns(2)
-            ])
-            ->columns(2)
-            ->statePath('data')
-            ->model(Pais::class);
-    }
+    protected array $messages = [
+        'codigo_area.required'         => 'El código de área es obligatorio.',
+        'codigo_iso.required'          => 'El código ISO es obligatorio.',
+        'codigo_iso_numerico.required' => 'El código ISO numérico es obligatorio.',
+        'codigo_iso_alpha_2.required'  => 'El código ISO alpha 2 es obligatorio.',
+        'nombre.required'              => 'El nombre es obligatorio.',
+        'gentilicio.required'          => 'El gentilicio es obligatorio.',
+    ];
 
     public function create(): void
     {
-        $data = $this->form->getState();
+        $data = $this->validate();
 
-        $record = Pais::create($data);
-        $this->form->model($record)->saveRelationships();
+        Pais::create($data);
 
         Notification::make()
             ->title('¡Éxito!')
             ->body('País creado correctamente.')
             ->success()
             ->send();
-        //$this->js('location.reload();');
-        // limpiar formulario
-        $this->data = [];
+
+        $this->reset(['codigo_area', 'codigo_iso', 'codigo_iso_numerico', 'codigo_iso_alpha_2', 'nombre', 'gentilicio']);
     }
 
     public function render(): View
     {
-        return view('livewire.demografia.create-pais')
-        ;//->layout('components.panel.modulos.modulo-demografia');
+        return view('livewire.demografia.create-pais');
     }
 }

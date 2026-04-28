@@ -2,74 +2,32 @@
 
 namespace App\Livewire\Configuracion\Logs;
 
-use Spatie\Activitylog\Models\Activity;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables\Columns\TextColumn;
+use Livewire\Component;
+use Livewire\WithPagination;
+use Spatie\Activitylog\Models\Activity;
 
-class ListLogs extends Component implements HasForms, HasTable
+class ListLogs extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
-    public function table(Table $table): Table
+    public string $search = '';
+
+    public function updatingSearch(): void
     {
-        return $table
-            ->query(Activity::query())
-            ->columns([
-                TextColumn::make('description')
-                    ->label('Descripción')
-                    ->numeric()
-                    ->sortable(),
-                    TextColumn::make('subject_type')
-                    ->label('Tipo')
-                    ->formatStateUsing(function (Activity $record) {
-                        return class_basename($record->subject_type);
-                    })
-                    ->searchable(),
-                TextColumn::make('subject_id')
-                    ->label('Codigo del registro afectado')
-                    ->numeric()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                
-                TextColumn::make('causer.name')
-                ->default('Dato precargado')
-                    ->label('Usuario')
-                    ->searchable(),
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                //
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //
-                ]),
-            ])
-            ->paginated([10, 25, 50, 100]);
+        $this->resetPage();
     }
 
     public function render(): View
     {
-        return view('livewire.configuracion.logs.list-logs')
-        ;//->layout('components.panel.modulos.modulo-configuracion');
+        $records = Activity::with('causer')
+            ->when($this->search, fn($q) =>
+                $q->where('description', 'like', '%'.$this->search.'%')
+                  ->orWhereHas('causer', fn($q2) => $q2->where('name', 'like', '%'.$this->search.'%'))
+            )
+            ->latest()
+            ->paginate(25);
+
+        return view('livewire.configuracion.logs.list-logs', compact('records'));
     }
 }

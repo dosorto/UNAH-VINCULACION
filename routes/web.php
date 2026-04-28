@@ -12,7 +12,6 @@ use App\Livewire\Configuracion\Logs\ListLogs;
 use App\Livewire\Personal\Perfil\EditPerfil;
 use App\Livewire\Personal\Permiso\ListPermisos;
 use App\Livewire\Personal\Empleado\ListEmpleado;
-use App\Http\Controllers\Auth\MicrosoftController;
 use App\Livewire\Personal\Empleado\CreateEmpleado;
 use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Livewire\Demografia\Municipio\CreateMunicipio;
@@ -89,22 +88,14 @@ Route::get('/logout', function () {
 
 // Rutas para redireccionar a los usuario autenticados
 Route::middleware(['guest'])->group(function () {
-    // rutas para autenticación con Microsoft
-    Route::get('auth/microsoft', [MicrosoftController::class, 'redirectToMicrosoft'])
-        ->name('auth.microsoft');
-
-    Route::get('auth/microsoft/callback', [MicrosoftController::class, 'handleMicrosoftCallback'])
-        ->name('auth.microsoft.callback');
-
-  
     Route::get('/', Login::class)
-        ->name('login')
-        ->middleware('guest');
-    // Rutas para restablecimiento de contraseña olvidada
-    // Route::get('password/reset', ForgotPasswordController::class)
-    //     ->name('password.request');
-    // Route::get('password/reset/{token}', ResetPasswordController::class)
-    //    ->name('password.reset');
+        ->name('login');
+
+    Route::get('password/reset', \App\Livewire\Auth\ForgotPasswordController::class)
+        ->name('password.request');
+
+    Route::get('password/reset/{token}', \App\Livewire\Auth\ResetPasswordController::class)
+        ->name('password.reset');
 });
 
 // Rutas para redireccionar a los usuario  no autenticados

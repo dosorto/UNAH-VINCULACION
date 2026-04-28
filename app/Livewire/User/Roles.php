@@ -2,106 +2,113 @@
 
 namespace App\Livewire\User;
 
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
+use App\Support\Notification;
 use Illuminate\Contracts\View\View;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\MultiSelect;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\CreateAction;
-use Filament\Forms\Components\Select;
+use Livewire\Component;
+use Livewire\WithPagination;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
-class Roles extends Component implements HasForms, HasTable
+class Roles extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
+    public string $search = '';
 
-    // roles que NO se pueden eliminar ni editar
-    private $roles = [
-        'admin',
-        'docente',
-        'admin_centro_facultad',
-        'estudiante',
-        'Validador'
+    public bool $createModal = false;
+    public string $create_name = '';
+    public array $create_permissions = [];
+
+    public bool $editModal = false;
+    public ?int $editId = null;
+    public string $edit_name = '';
+    public array $edit_permissions = [];
+
+    private array $protectedRoles = [
+        'admin', 'docente', 'admin_centro_facultad', 'estudiante', 'Validador',
     ];
 
-    // Propiedad para manejar permisos seleccionados
-    public ?array $selectedPermissions = [];
-
-    public function table(Table $table): Table
+    public function updatingSearch(): void
     {
-        return $table
-            ->query(Role::query())
-            ->columns([
-                Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->actions([
-                EditAction::make()
-                    ->form(function ($record) {
-                        return [
-                            TextInput::make('name')
-                                ->required()
-                                ->maxLength(255),
-                            Select::make('permissions')
-                                ->label('Permisos')
-                                ->multiple()
-                                ->relationship(name: 'permissions', titleAttribute: 'name')
-                                ->preload(),
-                        ];
-                    })
-                    ->visible(function ($record) {
+        $this->resetPage();
+    }
 
-                        // validar ademas que el rol no tenga usuarios asignados
+    public function isProtected(string $name): bool
+    {
+        return in_array($name, $this->protectedRoles);
+    }
 
-                        $role = Role::find($record->id);
-                        $users = $role->users;
+    public function openCreate(): void
+    {
+        $this->reset(['create_name', 'create_permissions']);
+        $this->createModal = true;
+    }
 
-                        return !in_array($record->name, $this->roles) && count($users) == 0;
-                    }),
-                DeleteAction::make()
-                    ->visible(function ($record) {
-                        $role = Role::find($record->id);
-                        $users = $role->users;
-                        return !in_array($record->name, $this->roles) && count($users) == 0;
-                    }),
-            ])
-            ->bulkActions([])
-            ->headerActions([
-                CreateAction::make()
-                    ->form([
-                        TextInput::make('name')
-                            ->required()
-                            ->maxLength(255),
-                        Select::make('permissions')
-                            ->label('Permisos')
-                            ->multiple()
-                            ->relationship(name: 'permissions', titleAttribute: 'name')
-                            ->preload(),
-                    ]),
-            ]);
+    public function store(): void
+    {
+        $this->validate([
+            'create_name'          => 'required|string|max:255|unique:roles,name',
+            'create_permissions'   => 'array',
+            'create_permissions.*' => 'exists:permissions,id',
+        ]);
+
+        $role = Role::create(['name' => $this->create_name, 'guard_name' => 'web']);
+        $role->syncPermissions($this->create_permissions);
+
+        $this->createModal = false;
+        Notification::make()->title('Rol creado.')->success()->send();
+    }
+
+    public function openEdit(int $id): void
+    {
+        $role = Role::with('permissions')->findOrFail($id);
+        $this->editId           = $id;
+        $this->edit_name        = $role->name;
+        $this->edit_permissions = $role->permissions->pluck('id')->toArray();
+        $this->editModal        = true;
+    }
+
+    public function save(): void
+    {
+        $this->validate([
+            'edit_name'          => 'required|string|max:255|unique:roles,name,'.$this->editId,
+            'edit_permissions'   => 'array',
+            'edit_permissions.*' => 'exists:permissions,id',
+        ]);
+
+        $role = Role::findOrFail($this->editId);
+        $role->update(['name' => $this->edit_name]);
+        $role->syncPermissions($this->edit_permissions);
+
+        $this->editModal = false;
+        Notification::make()->title('Rol actualizado.')->success()->send();
+    }
+
+    public function delete(int $id): void
+    {
+        $role = Role::withCount('users')->findOrFail($id);
+
+        if ($this->isProtected($role->name) || $role->users_count > 0) {
+            Notification::make()->title('No se puede eliminar este rol.')->danger()->send();
+            return;
+        }
+
+        $role->delete();
+        Notification::make()->title('Rol eliminado.')->success()->send();
     }
 
     public function render(): View
     {
-        return view('livewire.user.roles')
-            ;//->layout('components.panel.modulos.modulo-usuarios');
+        $records = Role::withCount('users')
+            ->when($this->search, fn($q) =>
+                $q->where('name', 'like', '%'.$this->search.'%')
+            )
+            ->orderBy('name')
+            ->paginate(15);
+
+        return view('livewire.user.roles', [
+            'records'     => $records,
+            'permissions' => Permission::orderBy('name')->get(['id', 'name']),
+        ]);
     }
 }

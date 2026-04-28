@@ -107,7 +107,7 @@
         </main>
     </div>
    
-    @livewire('notifications')
+    @livewire('components.notifications')
     @filamentScripts
     @vite('resources/js/app.js')
 </body>

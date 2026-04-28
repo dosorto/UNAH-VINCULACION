@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
@@ -17,7 +17,7 @@ use Filament\Forms\Components\Wizard;
 use Illuminate\Support\Facades\Blade;
 use Filament\Forms\Contracts\HasForms;
 
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use Filament\Forms\Concerns\InteractsWithForms;
 use App\Livewire\Proyectos\Vinculacion\Secciones\SextaParte;
 use App\Livewire\Proyectos\Vinculacion\Secciones\CuartaParte;

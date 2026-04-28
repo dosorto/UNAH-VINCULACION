@@ -3,168 +3,122 @@
 namespace App\Livewire\UnidadAcademica\Campus;
 
 use App\Models\UnidadAcademica\Campus;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
+use App\Support\Notification;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
+use Livewire\Component;
+use Livewire\WithPagination;
 
-use Illuminate\Database\Eloquent\Model;
-use Filament\Tables\Actions\EditAction;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
-use Filament\Tables\Actions\DeleteAction;
-
-use Filament\Tables\Actions\RestoreAction;
-
-use Filament\Forms\Components\TextInput;
-use Filament\Tables\Actions\CreateAction;
-use Filament\Notifications\Notification;
-use Filament\Forms\Components\Select;
-
-use App\Models\UnidadAcademica\CentroFacultad;
-use Filament\Forms\Components\Toggle;
-
-use Filament\Tables\Filters\TernaryFilter;
-
-use Filament\Tables\Enums\FiltersLayout;
-class CampusList extends Component implements HasForms, HasTable
+class CampusList extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
-    public function table(Table $table): Table
+    public string $search = '';
+    public bool $showTrashed = false;
+
+    public bool $createModal = false;
+    public string $create_nombre_campus = '';
+    public string $create_siglas = '';
+    public string $create_direccion = '';
+    public string $create_telefono = '';
+    public string $create_url = '';
+
+    public bool $editModal = false;
+    public ?int $editId = null;
+    public string $edit_nombre_campus = '';
+    public string $edit_siglas = '';
+    public string $edit_direccion = '';
+    public string $edit_telefono = '';
+    public string $edit_url = '';
+
+    public function updatingSearch(): void
     {
-        return $table
-            ->query(Campus::query())
-            ->striped()
-            ->headerActions([
-                CreateAction::make()
-                    ->label('Crear Campus')
-                    ->form([
-                        TextInput::make('nombre_campus')
-                            ->label('Nombre')
-                            ->maxLength(255)
-                            ->required(),
-                        TextInput::make('siglas')
-                            ->label('Siglas')
-                            ->maxLength(10),
-                        TextInput::make('direccion')
-                            ->label('Dirección')
-                            ->maxLength(255)
-                            ->required(),
-                        TextInput::make('telefono')
-                            ->label('Teléfono')
-                            ->maxLength(255)
-                            ->required(),
-                        TextInput::make('url')
-                            ->label('URL')
-                            ->url()
-                            ->maxLength(255)
-                            ->required(),
+        $this->resetPage();
+    }
 
+    public function openCreate(): void
+    {
+        $this->reset(['create_nombre_campus', 'create_siglas', 'create_direccion', 'create_telefono', 'create_url']);
+        $this->createModal = true;
+    }
 
+    public function store(): void
+    {
+        $this->validate([
+            'create_nombre_campus' => 'required|string|max:255',
+            'create_siglas'        => 'nullable|string|max:10',
+            'create_direccion'     => 'required|string|max:255',
+            'create_telefono'      => 'required|string|max:255',
+            'create_url'           => 'required|url|max:255',
+        ]);
 
-                        // ...
-                    ])
-                    ->using(function (array $data, string $model): Model {
-                        return  $model::create($data);
-                    })
-                    ->successNotification(
-                        Notification::make()
-                            ->success()
-                            ->title('Exito!')
-                            ->body('Facultad/Centro creado exitosamente.')
-                    ),
-                ExportAction::make()->exports([
-                    ExcelExport::make('table')
-                        ->fromTable()
+        Campus::create([
+            'nombre_campus' => $this->create_nombre_campus,
+            'siglas'        => $this->create_siglas,
+            'direccion'     => $this->create_direccion,
+            'telefono'      => $this->create_telefono,
+            'url'           => $this->create_url,
+        ]);
 
-                        ->askForFilename('Facultades y Centros')
-                        ->askForWriterType(),
-                ])
-                    ->label('Exportar a Excel')
-                    ->color('success'),
+        $this->createModal = false;
+        Notification::make()->title('Campus creado.')->success()->send();
+    }
 
-            ])
-            ->columns([
-                Tables\Columns\TextColumn::make('nombre_campus')
-                    ->limit(30)
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('siglas')
-                    ->limit(10)
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('direccion')
-                    ->limit(30)
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('telefono')
-                    ->limit(30)
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('url')
-                    ->limit(50)
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
+    public function openEdit(int $id): void
+    {
+        $campus = Campus::findOrFail($id);
+        $this->editId             = $id;
+        $this->edit_nombre_campus = $campus->nombre_campus;
+        $this->edit_siglas        = $campus->siglas ?? '';
+        $this->edit_direccion     = $campus->direccion;
+        $this->edit_telefono      = $campus->telefono;
+        $this->edit_url           = $campus->url;
+        $this->editModal          = true;
+    }
 
-                Tables\Filters\TrashedFilter::make(),
-            ],  layout: FiltersLayout::AboveContent)
-            ->actions([
-                EditAction::make()
-                    ->form([
-                        TextInput::make('nombre_campus')
-                            ->label('Nombre')
-                            ->maxLength(255)
-                            ->required(),
-                        TextInput::make('siglas')
-                            ->label('Siglas')
-                            ->maxLength(10),
-                        TextInput::make('direccion')
-                            ->label('Dirección')
-                            ->maxLength(255)
-                            ->required(),
-                        TextInput::make('telefono')
-                            ->label('Teléfono')
-                            ->maxLength(255)
-                            ->required(),
-                        TextInput::make('url')
-                            ->label('URL')
-                            ->url()
-                            ->maxLength(255)
-                            ->required(),
-                        // ...
-                    ]),
-                DeleteAction::make(),
-                RestoreAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
-                    Tables\Actions\RestoreBulkAction::make(),
-                ]),
-            ]);
+    public function save(): void
+    {
+        $this->validate([
+            'edit_nombre_campus' => 'required|string|max:255',
+            'edit_siglas'        => 'nullable|string|max:10',
+            'edit_direccion'     => 'required|string|max:255',
+            'edit_telefono'      => 'required|string|max:255',
+            'edit_url'           => 'required|url|max:255',
+        ]);
+
+        Campus::findOrFail($this->editId)->update([
+            'nombre_campus' => $this->edit_nombre_campus,
+            'siglas'        => $this->edit_siglas,
+            'direccion'     => $this->edit_direccion,
+            'telefono'      => $this->edit_telefono,
+            'url'           => $this->edit_url,
+        ]);
+
+        $this->editModal = false;
+        Notification::make()->title('Campus actualizado.')->success()->send();
+    }
+
+    public function delete(int $id): void
+    {
+        Campus::findOrFail($id)->delete();
+        Notification::make()->title('Campus eliminado.')->success()->send();
+    }
+
+    public function restore(int $id): void
+    {
+        Campus::withTrashed()->findOrFail($id)->restore();
+        Notification::make()->title('Campus restaurado.')->success()->send();
     }
 
     public function render(): View
     {
-        return view('livewire.unidad-academica.campus.campus-list')
-           ;// ->layout('components.panel.modulos.modulo-unidad-academica', ['title' => 'Campus']);
+        $records = Campus::when($this->showTrashed, fn($q) => $q->withTrashed())
+            ->when($this->search, fn($q) =>
+                $q->where('nombre_campus', 'like', '%'.$this->search.'%')
+                  ->orWhere('siglas', 'like', '%'.$this->search.'%')
+            )
+            ->orderBy('nombre_campus')
+            ->paginate(10);
+
+        return view('livewire.unidad-academica.campus.campus-list', compact('records'));
     }
 }

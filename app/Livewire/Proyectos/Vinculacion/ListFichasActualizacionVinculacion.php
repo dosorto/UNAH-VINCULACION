@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Filament\Forms\Components\Textarea;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ProyectoEstadoCambiado;
 use Illuminate\Support\Facades\Log;

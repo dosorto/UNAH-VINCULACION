@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Personal\Contacto;
 
@@ -15,7 +15,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\TextInput;
 use Filament\Tables\Actions\ViewAction;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 
 use Filament\Forms\Components\Textarea;
 use Filament\Tables\Actions\Action;

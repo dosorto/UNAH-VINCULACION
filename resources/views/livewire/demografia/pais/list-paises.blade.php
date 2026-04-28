@@ -1,19 +1,118 @@
 <div>
-    <div class="mb-4 mt-4 flex justify-between items-center">
+    {{-- Cabecera --}}
+    <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-            <p class="text-zinc-950 dark:text-white font-bold mb-1">
-                Listado de países
-            </p>
-            <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm mt-0">
-                A continuación se muestra el listado de países
-            </p>
+            <p class="text-zinc-950 dark:text-white font-bold mb-1">Listado de países</p>
+            <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm">A continuación se muestra el listado de países.</p>
         </div>
-        <div>
-            <x-filament::button color="info" icon="heroicon-o-document-arrow-up"     href="{{route('crearPais')}}" tag="a" wire:navigate>
-                Nuevo
-            </x-filament::button>
-        </div>
-
+        <a href="{{ route('crearPais') }}" wire:navigate
+            class="inline-flex items-center px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium rounded-lg">
+            + Nuevo
+        </a>
     </div>
-    {{ $this->table }}
+
+    {{-- Búsqueda --}}
+    <div class="mb-3">
+        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar por nombre o gentilicio..."
+            class="w-full sm:w-80 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+    </div>
+
+    {{-- Tabla --}}
+    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">País</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Gentilicio</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Código ISO</th>
+                    <th class="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-300">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
+                @forelse ($records as $record)
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        <td class="px-4 py-3 text-gray-900 dark:text-white">{{ $record->nombre }}</td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $record->gentilicio }}</td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $record->codigo_iso }}</td>
+                        <td class="px-4 py-3 text-right space-x-2">
+                            <button wire:click="openEdit({{ $record->id }})"
+                                class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-md">
+                                Editar
+                            </button>
+                            <button wire:click="delete({{ $record->id }})"
+                                wire:confirm="¿Eliminar este país?"
+                                class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-md">
+                                Eliminar
+                            </button>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="4" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                            No se encontraron registros.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4">
+        {{ $records->links() }}
+    </div>
+
+    {{-- Modal editar --}}
+    @if ($editModal)
+        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" wire:click.self="$set('editModal', false)">
+            <div class="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-lg p-6 mx-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Editar País</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código de área</label>
+                        <input type="number" wire:model="edit_codigo_area"
+                            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm" />
+                        @error('edit_codigo_area') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código ISO</label>
+                        <input type="text" wire:model="edit_codigo_iso"
+                            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm" />
+                        @error('edit_codigo_iso') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ISO Numérico</label>
+                        <input type="number" wire:model="edit_codigo_iso_numerico"
+                            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ISO Alpha 2</label>
+                        <input type="text" wire:model="edit_codigo_iso_alpha_2"
+                            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre *</label>
+                        <input type="text" wire:model="edit_nombre"
+                            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm" />
+                        @error('edit_nombre') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gentilicio *</label>
+                        <input type="text" wire:model="edit_gentilicio"
+                            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm" />
+                        @error('edit_gentilicio') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button wire:click="$set('editModal', false)"
+                        class="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 rounded-lg">
+                        Cancelar
+                    </button>
+                    <button wire:click="save"
+                        class="px-4 py-2 text-sm text-white bg-blue-700 hover:bg-blue-800 rounded-lg">
+                        Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

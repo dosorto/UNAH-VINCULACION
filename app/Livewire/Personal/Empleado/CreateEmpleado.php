@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Personal\Empleado;
 
@@ -11,7 +11,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Livewire\Component;
 use Illuminate\Contracts\View\View;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use app\Models\User;

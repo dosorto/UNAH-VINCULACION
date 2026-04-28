@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Docente\Proyectos;
 
@@ -15,7 +15,7 @@ use App\Models\Estado\TipoEstado;
 use App\Models\Personal\EmpleadoProyecto;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Support\Enums\MaxWidth;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Personal\Empleado;
 

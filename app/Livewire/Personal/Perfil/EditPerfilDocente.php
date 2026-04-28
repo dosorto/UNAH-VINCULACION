@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 
 namespace App\Livewire\Personal\Perfil;
@@ -17,7 +17,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use Filament\Forms\Components\FileUpload;
 use Filament\Actions\Contracts\HasActions;
 use App\Models\Personal\FirmaSelloEmpleado;

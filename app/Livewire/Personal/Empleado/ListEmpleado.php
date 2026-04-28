@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Personal\Empleado;
 
@@ -27,7 +27,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Repeater;
 // use Filament\Pages\Actions\CreateAction;
 // use Filament\Actions\Action;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use Filament\Forms\Components\FileUpload;
 use Filament\Actions\Contracts\HasActions;
 use App\Models\Personal\FirmaSelloEmpleado;

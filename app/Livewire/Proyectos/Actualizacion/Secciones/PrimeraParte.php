@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Proyectos\Actualizacion\Secciones;
 
@@ -36,7 +36,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Set;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Actions;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use Illuminate\Support\Facades\Hash;
 
 class PrimeraParte

@@ -3,89 +3,75 @@
 namespace App\Livewire\Demografia\Departamento;
 
 use App\Models\Demografia\Departamento;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
-use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
-
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Columns\TextColumn;
-
-use Filament\Tables\Actions\EditAction;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
 use App\Models\Demografia\Pais;
+use App\Support\Notification;
+use Illuminate\Contracts\View\View;
+use Livewire\Component;
+use Livewire\WithPagination;
 
-
-
-class ListDepartamentos extends Component implements HasForms, HasTable
+class ListDepartamentos extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
-    public function table(Table $table): Table
+    public string $search = '';
+    public bool $editModal = false;
+    public ?int $editId = null;
+    public ?int $edit_pais_id = null;
+    public string $edit_nombre = '';
+    public string $edit_codigo_departamento = '';
+
+    public function updatingSearch(): void
     {
-        return $table
-            ->heading('Departamentos')
-            ->query(Departamento::query())
-            ->columns([
-                Tables\Columns\TextColumn::make('pais.nombre')
-                    ->label('País')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('nombre')
-                    ->label('Nombre')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('codigo_departamento')
-                    ->label('Código del Departamento')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                DeleteAction::make(),
+        $this->resetPage();
+    }
 
-                EditAction::make()
-                    ->form([
-                        Select::make('pais_id')
-                            ->label('País')
-                            ->options(
-                                Pais::All()
-                                    ->pluck('nombre', 'id')
-                            ),
-                        TextInput::make('nombre')
-                            ->label('Nombre'),
-                        TextInput::make('codigo_departamento')
-                            ->label('Código del Departamento')
-                            ->columnSpanFull()
-                        // ...
-                    ]),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //
-                ]),
-            ]);
+    public function openEdit(int $id): void
+    {
+        $dep = Departamento::findOrFail($id);
+        $this->editId                   = $id;
+        $this->edit_pais_id             = $dep->pais_id;
+        $this->edit_nombre              = $dep->nombre;
+        $this->edit_codigo_departamento = $dep->codigo_departamento;
+        $this->editModal                = true;
+    }
+
+    public function save(): void
+    {
+        $this->validate([
+            'edit_pais_id'             => 'required|exists:paises,id',
+            'edit_nombre'              => 'required|string|max:100',
+            'edit_codigo_departamento' => 'required|string|max:20',
+        ]);
+
+        Departamento::findOrFail($this->editId)->update([
+            'pais_id'             => $this->edit_pais_id,
+            'nombre'              => $this->edit_nombre,
+            'codigo_departamento' => $this->edit_codigo_departamento,
+        ]);
+
+        $this->editModal = false;
+        Notification::make()->title('Departamento actualizado.')->success()->send();
+    }
+
+    public function delete(int $id): void
+    {
+        Departamento::findOrFail($id)->delete();
+        Notification::make()->title('Departamento eliminado.')->success()->send();
     }
 
     public function render(): View
     {
-        return view('livewire.demografia.departamento.list-departamentos')
-        ;//->layout('components.panel.modulos.modulo-demografia');
+        $records = Departamento::with('pais')
+            ->when($this->search, fn($q) =>
+                $q->where('nombre', 'like', '%'.$this->search.'%')
+                  ->orWhere('codigo_departamento', 'like', '%'.$this->search.'%')
+            )
+            ->orderBy('nombre')
+            ->paginate(10);
+
+        return view('livewire.demografia.departamento.list-departamentos', [
+            'records' => $records,
+            'paises'  => Pais::orderBy('nombre')->pluck('nombre', 'id'),
+        ]);
     }
 }

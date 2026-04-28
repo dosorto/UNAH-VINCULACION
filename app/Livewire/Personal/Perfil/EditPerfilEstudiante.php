@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Personal\Perfil;
 
@@ -14,7 +14,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Components\TextInput;
 // use Filament\Pages\Actions\CreateAction;
 // use Filament\Actions\Action;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 
 use Filament\Actions\Contracts\HasActions;
 

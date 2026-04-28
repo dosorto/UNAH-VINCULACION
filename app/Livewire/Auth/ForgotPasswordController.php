@@ -2,60 +2,41 @@
 
 namespace App\Livewire\Auth;
 
-use Filament\Forms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
-use Livewire\Component;
+use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
-use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
+use Livewire\Component;
 
-class ForgotPasswordController extends Component implements HasForms
+class ForgotPasswordController extends Component
 {
-    use InteractsWithForms;
+    public string $email = '';
 
-    public ?array $data = [];
+    protected array $rules = [
+        'email' => 'required|email|max:255',
+    ];
 
-    public function mount()
-    {
-        $this->form->fill();
-    }
-
-    public function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                TextInput::make('email')
-                    ->required()
-                    ->maxLength(255),
-                //
-            ])
-            ->statePath('data');
-    }
+    protected array $messages = [
+        'email.required' => 'El correo es obligatorio.',
+        'email.email'    => 'Ingresa un correo válido.',
+    ];
 
     public function submit(): void
     {
-        $data = $this->form->getState();
-        // Intentar enviar el correo de restablecimiento
-        $status = Password::sendResetLink(
-            $data
-        );
+        $this->validate();
 
-        // dd($status, Password::RESET_LINK_SENT);
+        $status = Password::sendResetLink(['email' => $this->email]);
 
-        // Retornar respuesta dependiendo del estado
         if ($status === Password::RESET_LINK_SENT) {
             Notification::make()
-                ->title('Se ha enviado el mensaje de verificacion a tu correo!')
+                ->title('Se ha enviado el mensaje de verificación a tu correo!')
                 ->success()
                 ->send();
-        } else {
 
+            $this->email = '';
+        } else {
             Notification::make()
-                ->title('No existe el correo electronico en el sistema!')
+                ->title('No existe el correo electrónico en el sistema!')
                 ->danger()
                 ->send();
 
@@ -63,7 +44,6 @@ class ForgotPasswordController extends Component implements HasForms
                 'email' => [trans($status)],
             ]);
         }
-
     }
 
     public function render(): View

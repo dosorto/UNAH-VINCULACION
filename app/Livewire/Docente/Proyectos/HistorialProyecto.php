@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Docente\Proyectos;
 
@@ -10,7 +10,7 @@ use App\Models\Proyecto\CargoFirma;
 use App\Models\Estado\TipoEstado;
 use Livewire\Component;
 use Spatie\Activitylog\Models\Activity;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use Filament\Actions\Action;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Actions\Concerns\InteractsWithActions;

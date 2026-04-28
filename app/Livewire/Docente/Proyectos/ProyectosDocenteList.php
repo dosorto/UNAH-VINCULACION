@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Docente\Proyectos;
 
@@ -27,7 +27,7 @@ use Filament\Forms\Components\Repeater;
 
 use Filament\Tables\Contracts\HasTable;
 use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Forms\Components\FileUpload;

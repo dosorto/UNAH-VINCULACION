@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Livewire\Docente\Proyectos;
 
@@ -15,7 +15,7 @@ use Illuminate\Contracts\View\View;
 use App\Models\Proyecto\FirmaProyecto;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Tables\Contracts\HasTable;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Tables\Concerns\InteractsWithTable;

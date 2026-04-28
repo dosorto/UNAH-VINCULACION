@@ -59,7 +59,7 @@
 
 
 <body class="min-h-screen flex flex-col dark:bg-gray-900 bg-gray-200">
-    @livewire('notifications')
+    @livewire('components.notifications')
     @filamentScripts
     @vite('resources/js/app.js')
 

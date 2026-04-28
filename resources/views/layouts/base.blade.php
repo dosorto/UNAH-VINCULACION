@@ -102,7 +102,7 @@
     <!-- Footer -->
     @include('partials.footer')
 
-    @livewire('notifications')
+    @livewire('components.notifications')
     @filamentScripts
     @vite('resources/js/app.js')
     
