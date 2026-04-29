@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     <div class="space-y-6">
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
             <div class="flex items-center justify-between">

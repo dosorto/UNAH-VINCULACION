@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     <div class="mb-6">
         <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Crear Estudiante</h2>
     </div>

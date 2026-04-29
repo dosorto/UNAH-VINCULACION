@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     <div class="mb-4">
         <p class="text-zinc-950 dark:text-white font-bold mb-1">Proyectos Solicitados</p>
         <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm">Proyectos en estado "En revision" pendientes de aprobación.</p>

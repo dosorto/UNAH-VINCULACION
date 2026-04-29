@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -352,7 +352,7 @@
                                     </div>
                                     <div class="date-part">
                                         <span class="date-label">Año</span>
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_finalizacion ? $proyecto->fecha_finalizacion->format('Y') : '' }}">
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_finalizacion ? $proyecto->fecha_finalizacion->format('Y') : ' }}">
                                     </div>
                                 </div>
                             </td>
@@ -479,7 +479,7 @@
                                 @endforeach
                             @else
                                 <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el caserío" value="{{ $proyecto->caserio ?? '' }}" disabled>
+                                    placeholder="Ingrese el caserío" value="{{ $proyecto->caserio ?? ' }}" disabled>
                             @endif
                         </td>
                     </tr>
@@ -493,7 +493,7 @@
                                 @endforeach
                             @else
                                 <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese la región" value="{{ $proyecto->region ?? '' }}" disabled>
+                                    placeholder="Ingrese la región" value="{{ $proyecto->region ?? ' }}" disabled>
                             @endif
                         </td>
                         <td class="sub-header" colspan="1">País</td>
@@ -505,7 +505,7 @@
                                 @endforeach
                             @else
                                 <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el país" value="{{ $proyecto->pais ?? '' }}" disabled>
+                                    placeholder="Ingrese el país" value="{{ $proyecto->pais ?? ' }}" disabled>
                             @endif
                         </td>
                     </tr>
@@ -1258,7 +1258,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 <textarea disabled cols="30" rows="6" class="input-field"
-                                    placeholder="Descripción de participantes">{{ $proyecto->descripcion_participantes ?? '' }}</textarea>
+                                    placeholder="Descripción de participantes">{{ $proyecto->descripcion_participantes ?? ' }}</textarea>
                             </td>
                         </tr>
 
@@ -1269,7 +1269,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 <textarea disabled cols="30" rows="6" class="input-field"
-                                    placeholder="Definición del problema">{{ $proyecto->definicion_problema ?? '' }}</textarea>
+                                    placeholder="Definición del problema">{{ $proyecto->definicion_problema ?? ' }}</textarea>
                             </td>
                         </tr>
                         
@@ -1327,7 +1327,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 <textarea disabled cols="30" rows="6" class="input-field" 
-                                    placeholder="Metodología">{{ $proyecto->metodologia ?? '' }}</textarea>
+                                    placeholder="Metodología">{{ $proyecto->metodologia ?? ' }}</textarea>
                             </td>
                         </tr>
                         <tr>
@@ -1336,7 +1336,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 <textarea disabled cols="30" rows="6" class="input-field" 
-                                    placeholder="Bibliografía">{{ $proyecto->bibliografia ?? '' }}</textarea>
+                                    placeholder="Bibliografía">{{ $proyecto->bibliografia ?? ' }}</textarea>
                             </td>
                         </tr>
                     </table>

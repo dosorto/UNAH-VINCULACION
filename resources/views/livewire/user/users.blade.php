@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     {{-- Cabecera --}}
     <div class="mb-4">
         <p class="text-zinc-950 dark:text-white font-bold mb-1">Usuarios</p>

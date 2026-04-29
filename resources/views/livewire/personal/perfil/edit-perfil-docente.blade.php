@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     @php $canEdit = auth()->user()->can('cambiar-datos-personales'); @endphp
 
     <form wire:submit.prevent="save" class="space-y-6">

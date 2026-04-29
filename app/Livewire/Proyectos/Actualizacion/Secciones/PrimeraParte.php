@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 namespace App\Livewire\Proyectos\Actualizacion\Secciones;
 

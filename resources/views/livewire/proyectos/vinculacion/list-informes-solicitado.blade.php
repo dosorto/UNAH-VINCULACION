@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     <div class="mb-4">
         <p class="text-zinc-950 dark:text-white font-bold mb-1">Informes por Revisar</p>
         <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm">Informes intermedios y finales en estado de revisión.</p>

@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     {{-- Cabecera --}}
     <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>

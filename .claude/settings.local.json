@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -rl \"Filament\\\\\\\\\\\\\\\\\" app/ --include=\"*.php\")"
+      "Bash(grep -rl \"Filament\\\\\\\\\\\\\\\\\" app/ --include=\"*.php\")",
+      "Bash(php --version)"
     ]
   }
 }

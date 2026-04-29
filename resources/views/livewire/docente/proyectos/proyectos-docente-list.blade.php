@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     <div class="w-full flex justify-between items-center mb-4">
         <div>
             <p class="text-zinc-950 dark:text-white font-bold mb-1">Proyectos de vinculación.</p>

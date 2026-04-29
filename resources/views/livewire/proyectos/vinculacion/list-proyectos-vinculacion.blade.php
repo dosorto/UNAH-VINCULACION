@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     <div class="mb-4">
         <p class="text-zinc-950 dark:text-white font-bold mb-1">Proyectos de Vinculación</p>
         <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm">Listado de todos los proyectos registrados en el sistema.</p>

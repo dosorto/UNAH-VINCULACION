@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     <div class="mb-4">
         <p class="text-zinc-950 dark:text-white font-bold mb-1">Historial de Tickets</p>
         <p class="text-zinc-500 dark:text-gray-400 text-sm">Tickets finalizados.</p>

@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     <div class="mb-4">
         <p class="text-zinc-950 dark:text-white font-bold mb-1">Registro de Actividades</p>
         <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm">Aquí se muestran los registros de actividades de la aplicación.</p>

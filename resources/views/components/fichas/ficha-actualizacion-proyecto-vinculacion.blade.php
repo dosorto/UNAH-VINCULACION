@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -429,7 +429,7 @@
                                     </div>
                                     <div class="date-part">
                                         <span class="date-label">Año</span>
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_inicio ? $proyecto->fecha_inicio->format('Y') : '' }}">
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_inicio ? $proyecto->fecha_inicio->format('Y') : ' }}">
                                     </div>
                                 </div>
                             </td>
@@ -446,7 +446,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 <textarea disabled id="resumen" name="resumen" cols="30" rows="6" class="input-field"
-                                    placeholder="Ingrese el resumen">{{ $fichaActualizacion->motivo_responsabilidades_nuevos ?? '' }}</textarea>
+                                    placeholder="Ingrese el resumen">{{ $fichaActualizacion->motivo_responsabilidades_nuevos ?? ' }}</textarea>
                             </td>
                         </tr>
                     </table>
@@ -621,7 +621,7 @@
                                     </div>
                                     <div class="date-part">
                                         <span class="date-label">Año</span>
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_inicio ? $proyecto->fecha_inicio->format('Y') : '' }}">
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_inicio ? $proyecto->fecha_inicio->format('Y') : ' }}">
                                     </div>
                                 </div>
                             </td>
@@ -638,7 +638,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 <textarea disabled id="resumen" name="resumen" cols="30" rows="6" class="input-field"
-                                    placeholder="Ingrese el resumen">{{ $fichaActualizacion->motivo_razones_cambio ?? '' }}</textarea>
+                                    placeholder="Ingrese el resumen">{{ $fichaActualizacion->motivo_razones_cambio ?? ' }}</textarea>
                             </td>
                         </tr>
                     </table>
@@ -702,7 +702,7 @@
                                     </div>
                                     <div class="date-part">
                                         <span class="date-label">Año</span>
-                                        <input disabled type="text" class="input-field" value="{{ $fichaActualizacion->fecha_ampliacion ? \Carbon\Carbon::parse($fichaActualizacion->fecha_ampliacion)->format('Y') : '' }}">
+                                        <input disabled type="text" class="input-field" value="{{ $fichaActualizacion->fecha_ampliacion ? \Carbon\Carbon::parse($fichaActualizacion->fecha_ampliacion)->format('Y') : ' }}">
                                     </div>
                                 </div>
                             </td>
@@ -713,7 +713,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 <textarea disabled id="motivo_ampliacion" name="motivo_ampliacion" cols="30" rows="6" class="input-field"
-                                    placeholder="Motivos por los cuales se extiende la fecha de ejecución del proyecto">{{ $fichaActualizacion->motivo_ampliacion ?? '' }}</textarea>
+                                    placeholder="Motivos por los cuales se extiende la fecha de ejecución del proyecto">{{ $fichaActualizacion->motivo_ampliacion ?? ' }}</textarea>
                             </td>
                         </tr>
                     </table>

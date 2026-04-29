@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     <div class="mb-4 mt-4 flex justify-between items-center">
         <div>
             <p class="text-zinc-950 dark:text-white font-bold mb-1">Estudiantes</p>

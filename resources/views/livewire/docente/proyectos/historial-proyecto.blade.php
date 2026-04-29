@@ -1,4 +1,4 @@
-<div class="flex flex-col md:flex-row lg:flex-row gap-4">
+﻿<div class="flex flex-col md:flex-row lg:flex-row gap-4">
     @push('styles')
         <link rel="stylesheet" href="{{ asset('css/app/fichaHistorial.css') }}">
         <style>
@@ -422,7 +422,7 @@
                                         @endforeach
                                     @else
                                         <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese el caserío" value="{{ $proyecto->caserio ?? '' }}"
+                                            placeholder="Ingrese el caserío" value="{{ $proyecto->caserio ?? ' }}"
                                             disabled>
                                     @endif
                                 </td>
@@ -437,7 +437,7 @@
                                         @endforeach
                                     @else
                                         <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese la región" value="{{ $proyecto->region ?? '' }}"
+                                            placeholder="Ingrese la región" value="{{ $proyecto->region ?? ' }}"
                                             disabled>
                                     @endif
                                 </td>
@@ -1257,7 +1257,7 @@
                             </tr>
                             <tr>
                                 <td class="full-width" colspan="19">
-                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Descripción de participantes">{{ $proyecto->descripcion_participantes ?? '' }}</textarea>
+                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Descripción de participantes">{{ $proyecto->descripcion_participantes ?? ' }}</textarea>
                                 </td>
                             </tr>
 
@@ -1268,7 +1268,7 @@
                             </tr>
                             <tr>
                                 <td class="full-width" colspan="19">
-                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Definición del problema">{{ $proyecto->definicion_problema ?? '' }}</textarea>
+                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Definición del problema">{{ $proyecto->definicion_problema ?? ' }}</textarea>
                                 </td>
                             </tr>
 
@@ -1329,7 +1329,7 @@
                             </tr>
                             <tr>
                                 <td class="full-width" colspan="19">
-                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Metodología">{{ $proyecto->metodologia ?? '' }}</textarea>
+                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Metodología">{{ $proyecto->metodologia ?? ' }}</textarea>
                                 </td>
                             </tr>
                             <tr>
@@ -1337,7 +1337,7 @@
                             </tr>
                             <tr>
                                 <td class="full-width" colspan="19">
-                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Bibliografía">{{ $proyecto->bibliografia ?? '' }}</textarea>
+                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Bibliografía">{{ $proyecto->bibliografia ?? ' }}</textarea>
                                 </td>
                             </tr>
                         </table>
