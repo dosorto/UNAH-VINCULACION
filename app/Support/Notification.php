@@ -64,6 +64,17 @@ class Notification
         session()->push('flash_notifications', $data);
 
         // Para requests Livewire (AJAX): despachar evento al componente
-        Livewire::dispatch('notify', $data);
+        if (Livewire::isLivewireRequest()) {
+            $component = Livewire::current();
+            if ($component && method_exists($component, 'dispatch')) {
+                $component->dispatch(
+                    'notify',
+                    title: $data['title'],
+                    body: $data['body'],
+                    type: $data['type'],
+                    id: $data['id']
+                );
+            }
+        }
     }
 }
