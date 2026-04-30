@@ -92,7 +92,8 @@ class ListEmpleado extends Component
             ]);
         }
 
-        $user->syncRoles($this->edit_roles);
+        $roles = Role::whereIn('id', $this->edit_roles)->pluck('name')->all();
+        $user->syncRoles($roles);
         $primerRol = $user->roles()->first();
         if ($primerRol) {
             $user->active_role_id = $primerRol->id;

@@ -55,7 +55,8 @@ class CreateEmpleado extends Component
             'departamento_academico_id' => $this->departamento_academico_id,
         ]);
 
-        $user->syncRoles($this->create_roles);
+        $roles = Role::whereIn('id', $this->create_roles)->pluck('name')->all();
+        $user->syncRoles($roles);
         $primerRol = $user->roles()->first();
         if ($primerRol) {
             $user->active_role_id = $primerRol->id;
