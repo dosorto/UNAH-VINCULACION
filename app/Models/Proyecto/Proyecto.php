@@ -625,7 +625,7 @@ class Proyecto extends Model
 
     public function getDirectorVinculacionAttribute()
     {
-        return $this->firma_director_vinculacion()->first()->empleado;
+        return $this->firma_director_vinculacion()->first()?->empleado;
     }
 
 

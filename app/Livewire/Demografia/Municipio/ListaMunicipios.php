@@ -31,22 +31,22 @@ class ListaMunicipios extends Component
         $this->editId                = $id;
         $this->edit_departamento_id  = $municipio->departamento_id;
         $this->edit_nombre           = $municipio->nombre;
-        $this->edit_codigo_municipio = $municipio->codigo_municipio;
+        $this->edit_codigo_municipio = (string) ($municipio->codigo_municipio ?? '');
         $this->editModal             = true;
     }
 
     public function save(): void
     {
         $this->validate([
-            'edit_departamento_id'  => 'required|exists:departamentos,id',
+            'edit_departamento_id'  => 'required|exists:departamento,id',
             'edit_nombre'           => 'required|string|max:100',
-            'edit_codigo_municipio' => 'required|string|max:20',
+            'edit_codigo_municipio' => 'nullable|numeric',
         ]);
 
         Municipio::findOrFail($this->editId)->update([
             'departamento_id'  => $this->edit_departamento_id,
             'nombre'           => $this->edit_nombre,
-            'codigo_municipio' => $this->edit_codigo_municipio,
+            'codigo_municipio' => $this->edit_codigo_municipio ?: null,
         ]);
 
         $this->editModal = false;

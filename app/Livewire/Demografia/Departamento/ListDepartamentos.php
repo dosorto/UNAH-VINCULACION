@@ -31,22 +31,22 @@ class ListDepartamentos extends Component
         $this->editId                   = $id;
         $this->edit_pais_id             = $dep->pais_id;
         $this->edit_nombre              = $dep->nombre;
-        $this->edit_codigo_departamento = $dep->codigo_departamento;
+        $this->edit_codigo_departamento = (string) ($dep->codigo_departamento ?? '');
         $this->editModal                = true;
     }
 
     public function save(): void
     {
         $this->validate([
-            'edit_pais_id'             => 'required|exists:paises,id',
+            'edit_pais_id'             => 'required|exists:pais,id',
             'edit_nombre'              => 'required|string|max:100',
-            'edit_codigo_departamento' => 'required|string|max:20',
+            'edit_codigo_departamento' => 'nullable|numeric',
         ]);
 
         Departamento::findOrFail($this->editId)->update([
             'pais_id'             => $this->edit_pais_id,
             'nombre'              => $this->edit_nombre,
-            'codigo_departamento' => $this->edit_codigo_departamento,
+            'codigo_departamento' => $this->edit_codigo_departamento ?: null,
         ]);
 
         $this->editModal = false;

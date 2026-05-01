@@ -27,21 +27,24 @@ class BuilderConstancia
     private EmpleadoProyecto $empleadoProyecto;
     private Empleado $empleado;
     private Proyecto $proyecto;
-    private Empleado $director;
+    private ?Empleado $director;
 
     private array $data = [];
     private string $tipo;
     private bool $pdf;
     private string|null $qrPath = null;
+    private ?Constancia $existingConstancia;
 
     public function __construct(
         EmpleadoProyecto $empleadoProyecto,
         string $tipo,
-        bool $pdf = false
+        bool $pdf = false,
+        ?Constancia $constancia = null
     ) {
         $this->empleadoProyecto = $empleadoProyecto;
         $this->tipo = $tipo;
         $this->pdf = $pdf;
+        $this->existingConstancia = $constancia;
 
         $this->empleado = $empleadoProyecto->empleado;
         $this->proyecto = $empleadoProyecto->proyecto;
@@ -52,9 +55,9 @@ class BuilderConstancia
         $this->data = $this->buildData();
     }
 
-    public static function make(EmpleadoProyecto $empleadoProyecto, string $tipo, bool $pdf): self
+    public static function make(EmpleadoProyecto $empleadoProyecto, string $tipo, bool $pdf, ?Constancia $constancia = null): self
     {
-        return new static($empleadoProyecto, $tipo, $pdf);
+        return new static($empleadoProyecto, $tipo, $pdf, $constancia);
     }
 
     public function getData()
@@ -98,6 +101,15 @@ class BuilderConstancia
 
     private function resolveConstancia(): ?Constancia
     {
+        if ($this->existingConstancia) {
+            if (empty($this->existingConstancia->correlativo)) {
+                $this->existingConstancia->update(['correlativo' => $this->generarCorrelativo()]);
+                $this->existingConstancia->refresh();
+            }
+
+            return $this->existingConstancia;
+        }
+
         $tipoId = TipoConstancia::where('nombre', $this->tipo)->value('id');
         if (!$tipoId) return null;
 
@@ -410,10 +422,10 @@ class BuilderConstancia
         $enlace = route('verificacion_constancia', ['hash' => $hash]);
 
         if ($this->pdf) {
-            $qrCodeName = $hash . '.png';
+            $qrCodeName = $hash . '.svg';
             $qrcodePath = storage_path("app/public/{$qrCodeName}");
 
-            QrCode::format('png')
+            QrCode::format('svg')
                 ->size(150)
                 ->errorCorrection('L')
                 ->generate($enlace, $qrcodePath);
@@ -421,13 +433,13 @@ class BuilderConstancia
             $this->qrPath = 'file://' . $qrcodePath;
         } else {
             $qrBase64 = base64_encode(
-                QrCode::format('png')
+                QrCode::format('svg')
                     ->size(150)
                     ->errorCorrection('L')
                     ->generate($enlace)
             );
 
-            $this->qrPath = 'data:image/png;base64,' . $qrBase64;
+            $this->qrPath = 'data:image/svg+xml;base64,' . $qrBase64;
         }
     }
 }

@@ -7,10 +7,11 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Services\Constancia\BuilderConstancia;
 
 use App\Models\Constancia\Constancia;
-use App\Models\Constancia\TipoConstancia;
 use App\Models\Personal\EmpleadoProyecto;
 use App\Models\Personal\Empleado;
+use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Proyecto\Proyecto;
+use Illuminate\Support\Str;
 use PDF;
 
 class PDFController extends Controller
@@ -52,9 +53,42 @@ class PDFController extends Controller
         return $pdf->download("perfil_proyecto_{$proyecto->id}.pdf");
     }
 
-    public function generatePDF()
+    public function generatePDF(Constancia $constancia)
     {
-        $qrcode = base64_encode(QrCode::format('png')->size(200)->errorCorrection('H')->generate('string'));
+        $constancia->loadMissing(['tipo', 'origen', 'destinatario']);
+
+        $proyecto = match (true) {
+            $constancia->origen instanceof Proyecto => $constancia->origen,
+            $constancia->origen instanceof FichaActualizacion => $constancia->origen->proyecto,
+            $constancia->origen_type === FichaActualizacion::class => Proyecto::find($constancia->origen_id),
+            default => null,
+        };
+
+        if (!$proyecto || !$constancia->destinatario instanceof Empleado) {
+            abort(404, 'Constancia no encontrada.');
+        }
+
+        $tipo = Str::of($constancia->tipo?->nombre ?? '')
+            ->ascii()
+            ->lower()
+            ->trim()
+            ->toString();
+
+        if (!in_array($tipo, ['inscripcion', 'finalizacion', 'actualizacion'], true)) {
+            abort(422, 'Tipo de constancia no soportado.');
+        }
+
+        $empleadoProyecto = EmpleadoProyecto::where('proyecto_id', $proyecto->id)
+            ->where('empleado_id', $constancia->destinatario_id)
+            ->firstOrFail();
+
+        return BuilderConstancia::make($empleadoProyecto, $tipo, true, $constancia)
+            ->getConstancia();
+    }
+
+    public function generateGenericPDF()
+    {
+        $qrcode = base64_encode(QrCode::format('svg')->size(200)->errorCorrection('H')->generate('string'));
         $headerLogo = env('PDF_HEADER_LOGO');
         $footerLogo = env('PDF_FOOTER_LOGO');
         $solLogo = env ('PDF_SOL_LOGO');
@@ -95,7 +129,7 @@ class PDFController extends Controller
 
     public function verVista()
 {
-    $qrcode = base64_encode(QrCode::format('png')->size(200)->errorCorrection('H')->generate('string'));
+    $qrcode = base64_encode(QrCode::format('svg')->size(200)->errorCorrection('H')->generate('string'));
     $headerLogo = env('PDF_HEADER_LOGO');
     $footerLogo = env('PDF_FOOTER_LOGO');
     $solLogo = env('PDF_SOL_LOGO'); 

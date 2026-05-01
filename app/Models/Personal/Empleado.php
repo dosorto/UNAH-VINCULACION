@@ -161,7 +161,8 @@ class Empleado extends Model
         // relacion muchos a muchos con el modelo Serviicio tecnologico mediante la tabla intermedia empleado_proyecto
     public function servicios()
     {
-        return $this->belongsToMany(ServicioTecbologico::class, 'empleado_servicio', 'empleado_id', 'id_servicio_tecnologico');
+        return $this->belongsToMany(ServicioTecnologico::class, 'empleado_servicio', 'empleado_id', 'servicio_tecnologico_id')
+            ->withPivot('rol', 'hash');
         //  ->withPivot('id', 'fecha_inicio', 'fecha_fin', 'estado', 'horas_semanales', 'horas_totales', 'created_at', 'updated_at')
         //->withTimestamps();
     }

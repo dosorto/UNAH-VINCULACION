@@ -58,6 +58,7 @@ use App\Models\Slide\Slide;
 use App\Livewire\Personal\Contacto\ListContactos;
 
 use App\Livewire\ServicioTecnologico\CreateServicioTecnologico;
+use App\Livewire\ServicioTecnologico\ListServiciosTecnologicos;
 
 Route::get('/acercade', function () {
     $slides = Slide::where('estado', true)
@@ -77,13 +78,17 @@ Route::get('verificacion_constancia', [VerificarConstancia::class, 'verificacion
 Route::get('verificacion_constancia/{hash?}', [VerificarConstancia::class, 'index'])
     ->name('verificacion_constancia');
 
+Route::get('/constancia/{constancia:hash}/pdf', [PDFController::class, 'generatePDF'])
+    ->name('constancia.pdf');
+
 Route::get('/logout', function () {
-    if (Auth::check()) { // Verifica si el usuario está autenticado
-        Auth::logout(); // Cierra la sesión
-        return redirect('/'); // Redirige al inicio
+    if (auth()->check()) {
+        auth()->logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
     }
 
-    return redirect()->route('/'); // Si no está autenticado, redirige a la página de login
+    return redirect()->route('login');
 })->name('logout');
 
 // Rutas para redireccionar a los usuario autenticados
@@ -369,21 +374,18 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             Route::get('createServicioTecnologico', CreateServicioTecnologico::class)
                 ->name('createServicioTecnologico');
 
+            Route::get('/servicios-tecnologicos', ListServiciosTecnologicos::class)
+                ->name('listServiciosTecnologicos');
+
         });
         
 
-        Route::get('/descargar-pdf', [PDFController::class, 'generatePDF']);
+        Route::get('/descargar-pdf', [PDFController::class, 'generateGenericPDF']);
         
         Route::get('/ver-pdf', [PDFController::class, 'verVista']);
 
         Route::get('/proyectos/{proyecto}/perfil-pdf', [PDFController::class, 'descargarPerfilProyecto'])
             ->name('proyecto.perfil.pdf');
-
-
-
-        Route::get('/constancia/{constancia:hash}/pdf', [PDFController::class, 'generatePDF'])
-    ->name('constancia.pdf');
-
 
     Route::delete('/eliminar-constancia/{path}', function ($path) {
         $filePath = storage_path('app/public/' . $path);

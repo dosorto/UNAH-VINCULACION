@@ -12,6 +12,8 @@ use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\Carrera;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class CreateServicioTecnologico extends Component
 {
@@ -103,54 +105,95 @@ class CreateServicioTecnologico extends Component
     {
         $this->validate([
             'nombre_accion' => 'required|string|max:255',
+            'modalidad_id' => 'nullable|exists:modalidad,id',
+            'fecha_inicio' => 'required|date',
+            'fecha_finalizacion' => 'required|date|after_or_equal:fecha_inicio',
+            'facultades_centros' => 'array',
+            'facultades_centros.*' => 'integer|exists:centro_facultad,id',
+            'departamentos_academicos' => 'array',
+            'departamentos_academicos.*' => 'integer|exists:departamento_academico,id',
+            'carreras' => 'array',
+            'carreras.*' => 'integer|exists:carrera,id',
+            'departamento_geo' => 'array',
+            'departamento_geo.*' => 'integer|exists:departamento,id',
+            'municipio_geo' => 'array',
+            'municipio_geo.*' => 'integer|exists:municipio,id',
+            'empleados' => 'array',
+            'empleados.*.empleado_id' => 'nullable|integer|exists:empleado,id',
+            'empleados.*.rol' => 'nullable|in:Coordinador,Subcoordinador,Integrante',
+            'aporte_unah' => 'numeric|min:0',
+            'aporte_contraparte' => 'numeric|min:0',
+            'otros_aportes' => 'numeric|min:0',
+            'actividades' => 'array',
+            'actividades.*.descripcion' => 'nullable|string',
+            'actividades.*.fecha_inicio' => 'nullable|date',
+            'actividades.*.fecha_finalizacion' => 'nullable|date',
+            'actividades.*.objetivos' => 'nullable|string',
+            'actividades.*.resultados' => 'nullable|string',
+            'actividades.*.horas' => 'nullable|numeric|min:0',
         ]);
+
+        $actividades = $this->actividadesParaGuardar();
 
         $this->calcTotales();
 
         try {
-            $record = ServicioTecnologico::create([
-                'nombre_accion' => $this->nombre_accion,
-                'modalidad_id' => $this->modalidad_id,
-                'descripción_servicio' => $this->descripcion_servicio,
-                'descripcion_problema' => $this->descripcion_problema,
-                'descripcion_participante' => $this->descripcion_participante,
-                'fecha_inicio' => $this->fecha_inicio ?: null,
-                'fecha_finalizacion' => $this->fecha_finalizacion ?: null,
-                'objetivo_general' => $this->objetivo_general,
-                'objetivo_especifico' => $this->objetivo_especifico,
-                'resultados_esperados' => $this->resultados_esperados,
-                'indicadores_resultados' => $this->indicadores_resultados,
-                'descripción_ser_infraestructura' => $this->descripcion_servicio_infraestructura,
-                'ubicacion' => $this->ubicacion,
-                'unidad_gestora' => $this->unidad_gestora,
-                'indigenas_hombres' => $this->indigenas_hombres,
-                'indigenas_mujeres' => $this->indigenas_mujeres,
-                'afroamericanos_hombres' => $this->afroamericanos_hombres,
-                'afroamericanos_mujeres' => $this->afroamericanos_mujeres,
-                'mestizos_hombres' => $this->mestizos_hombres,
-                'mestizos_mujeres' => $this->mestizos_mujeres,
-                'hombres' => $this->hombres,
-                'mujeres' => $this->mujeres,
-                'aldea' => $this->aldea,
-            ]);
+            DB::transaction(function () use ($actividades) {
+                $record = ServicioTecnologico::create([
+                    'nombre_accion' => $this->nombre_accion,
+                    'modalidad_id' => $this->modalidad_id,
+                    'descripción_servicio' => $this->descripcion_servicio,
+                    'descripcion_problema' => $this->descripcion_problema,
+                    'descripcion_participante' => $this->descripcion_participante,
+                    'fecha_inicio' => $this->fecha_inicio,
+                    'fecha_finalizacion' => $this->fecha_finalizacion,
+                    'objetivo_general' => $this->objetivo_general,
+                    'objetivo_especifico' => $this->objetivo_especifico,
+                    'resultados_esperados' => $this->resultados_esperados,
+                    'indicadores_resultados' => $this->indicadores_resultados,
+                    'descripción_ser_infraestructura' => $this->descripcion_servicio_infraestructura,
+                    'ubicacion' => $this->ubicacion,
+                    'unidad_gestora' => $this->unidad_gestora,
+                    'indigenas_hombres' => $this->indigenas_hombres,
+                    'indigenas_mujeres' => $this->indigenas_mujeres,
+                    'afroamericanos_hombres' => $this->afroamericanos_hombres,
+                    'afroamericanos_mujeres' => $this->afroamericanos_mujeres,
+                    'mestizos_hombres' => $this->mestizos_hombres,
+                    'mestizos_mujeres' => $this->mestizos_mujeres,
+                    'hombres' => $this->hombres,
+                    'mujeres' => $this->mujeres,
+                    'aldea' => $this->aldea,
+                ]);
 
-            if (!empty($this->facultades_centros)) $record->facultades_centros()->sync($this->facultades_centros);
-            if (!empty($this->departamentos_academicos)) $record->departamentos_academicos()->sync($this->departamentos_academicos);
-            if (!empty($this->carreras)) $record->carreras()->sync($this->carreras);
-            if (!empty($this->departamento_geo)) $record->departamento()->sync($this->departamento_geo);
-            if (!empty($this->municipio_geo)) $record->municipio()->sync($this->municipio_geo);
+                $record->centrosFacultades()->sync($this->facultades_centros);
+                $record->departamentosAcademicos()->sync($this->departamentos_academicos);
+                $record->carreras()->sync($this->carreras);
+                $record->departamento()->sync($this->departamento_geo);
+                $record->municipio()->sync($this->municipio_geo);
 
-            foreach ($this->empleados as $item) {
-                if (!empty($item['empleado_id'])) {
-                    $record->empleados()->firstOrCreate(['empleado_id' => $item['empleado_id']], ['rol' => $item['rol'] ?? 'Integrante']);
+                foreach ($actividades as $actividad) {
+                    $record->actividades()->create($actividad);
                 }
-            }
 
-            $record->presupuesto()->create([
-                'aporte_unah' => $this->aporte_unah,
-                'aporte_contraparte' => $this->aporte_contraparte,
-                'otros_aportes' => $this->otros_aportes,
-            ]);
+                foreach ($this->empleados as $item) {
+                    if (!empty($item['empleado_id'])) {
+                        $record->empleados()->syncWithoutDetaching([
+                            (int) $item['empleado_id'] => [
+                                'rol' => $item['rol'] ?? 'Integrante',
+                            ],
+                        ]);
+                    }
+                }
+
+                $totalIngresos = $this->aporte_unah + $this->aporte_contraparte + $this->otros_aportes;
+
+                $record->presupuesto()->create([
+                    'total_aporte_unah' => $this->aporte_unah,
+                    'total_ingresos' => $totalIngresos,
+                    'total_egresos' => 0,
+                    'excedente' => $totalIngresos,
+                ]);
+            });
 
             Notification::make()->title('¡Éxito!')->body('Servicio tecnológico creado correctamente.')->success()->send();
             $this->recordId = null;
@@ -159,6 +202,63 @@ class CreateServicioTecnologico extends Component
         } catch (\Exception $e) {
             Notification::make()->title('Error')->body('Error al crear el servicio: ' . $e->getMessage())->danger()->send();
         }
+    }
+
+    protected function actividadesParaGuardar(): array
+    {
+        $actividades = [];
+        $errors = [];
+
+        foreach ($this->actividades as $index => $actividad) {
+            $descripcion = trim((string) ($actividad['descripcion'] ?? ''));
+            $fechaInicio = $actividad['fecha_inicio'] ?? null;
+            $fechaFinalizacion = $actividad['fecha_finalizacion'] ?? null;
+            $objetivos = trim((string) ($actividad['objetivos'] ?? ''));
+            $resultados = trim((string) ($actividad['resultados'] ?? ''));
+            $horas = $actividad['horas'] ?? null;
+
+            $tieneDatos = $descripcion !== ''
+                || !empty($fechaInicio)
+                || !empty($fechaFinalizacion)
+                || $objetivos !== ''
+                || $resultados !== ''
+                || ($horas !== null && $horas !== '');
+
+            if (!$tieneDatos) {
+                continue;
+            }
+
+            if ($descripcion === '') {
+                $errors["actividades.{$index}.descripcion"] = 'La descripción de la actividad es obligatoria.';
+            }
+
+            if (empty($fechaInicio)) {
+                $errors["actividades.{$index}.fecha_inicio"] = 'La fecha de inicio de la actividad es obligatoria.';
+            }
+
+            if (empty($fechaFinalizacion)) {
+                $errors["actividades.{$index}.fecha_finalizacion"] = 'La fecha de finalización de la actividad es obligatoria.';
+            }
+
+            if (!empty($fechaInicio) && !empty($fechaFinalizacion) && strtotime($fechaFinalizacion) < strtotime($fechaInicio)) {
+                $errors["actividades.{$index}.fecha_finalizacion"] = 'La fecha de finalización debe ser posterior o igual a la fecha de inicio.';
+            }
+
+            $actividades[] = [
+                'descripcion' => $descripcion,
+                'fecha_inicio' => $fechaInicio,
+                'fecha_finalizacion' => $fechaFinalizacion,
+                'objetivos' => $objetivos !== '' ? $objetivos : null,
+                'resultados' => $resultados !== '' ? $resultados : null,
+                'horas' => $horas !== null && $horas !== '' ? $horas : null,
+            ];
+        }
+
+        if (!empty($errors)) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        return $actividades;
     }
 
     public function render(): View

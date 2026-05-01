@@ -13,14 +13,12 @@
     <title>{{ config('app.name') }}</title>
     <link rel="icon" href="{{ asset('images/Image/logo_nexo.png') }}" type="image/png">
 
-    <link rel="stylesheet" href="{{ asset('css/filament/filament/app.css') }}">
     <style>
         [x-cloak] {
             display: none !important;
         }
     </style>
 
-    @filamentStyles
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
@@ -60,7 +58,6 @@
 
 <body class="min-h-screen flex flex-col dark:bg-gray-900 bg-gray-200">
     @livewire('components.notifications')
-    @filamentScripts
     @vite('resources/js/app.js')
 
     <!-- Header -->

@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
             <p class="text-zinc-950 dark:text-white font-bold mb-1">Listado de departamentos</p>
@@ -62,7 +62,7 @@
                     @error('edit_nombre') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código *</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código</label>
                     <input type="text" wire:model="edit_codigo_departamento" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm" />
                     @error('edit_codigo_departamento') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>

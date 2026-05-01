@@ -15,21 +15,22 @@ class CreateDepartamento extends Component
     public string $codigo_departamento = '';
 
     protected array $rules = [
-        'pais_id'            => 'required|exists:paises,id',
+        'pais_id'            => 'required|exists:pais,id',
         'nombre'             => 'required|string|max:100',
-        'codigo_departamento'=> 'required|string|max:20',
+        'codigo_departamento'=> 'nullable|numeric',
     ];
 
     protected array $messages = [
         'pais_id.required' => 'Selecciona un país.',
         'pais_id.exists'   => 'El país seleccionado no es válido.',
         'nombre.required'  => 'El nombre es obligatorio.',
-        'codigo_departamento.required' => 'El código del departamento es obligatorio.',
+        'codigo_departamento.numeric' => 'El código del departamento debe ser numérico.',
     ];
 
     public function create(): void
     {
         $data = $this->validate();
+        $data['codigo_departamento'] = $data['codigo_departamento'] ?: null;
 
         Departamento::create($data);
 

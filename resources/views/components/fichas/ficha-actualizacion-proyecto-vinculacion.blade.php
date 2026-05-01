@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -10,10 +10,13 @@
 </head>
 
 <body style="background-color: #f2f2f2; ">
-    <x-filament::section collapsible collapsed persist-collapsed id="user-details">
-        <x-slot name="heading">
-            Ficha de actualización
-        </x-slot>
+<details class="rounded-xl border border-gray-200 bg-white shadow-sm">
+    <summary class="flex cursor-pointer list-none items-center justify-between gap-x-4 px-6 py-4">
+        <span class="text-sm font-semibold text-gray-900">Ficha de actualización</span>
+        <svg class="h-5 w-5 flex-shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+        </svg>
+    </summary>
 
         <div style="display: flex; justify-content: center; margin-top: 20px; background-color: white;">
             <div class="container">
@@ -925,24 +928,41 @@
                                     placeholder="Ingrese el departamento" value="ANEXO DEL PROYECTO" disabled>
                            </td>
                             <td class="full-width" colspan="11">
-                                <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
-                                    <x-slot name="heading">
-                                        Anexo
-                                    </x-slot>
-                                    <x-slot name="trigger">
-                                        <x-filament::button>
-                                            Ver anexo
-                                        </x-filament::button>
-                                    </x-slot>
-                                    <iframe src="{{ Storage::url($anexo->documento_url) }}"
-                                        style="width: 100%; height: 85vh; border: none;"></iframe>
-                                </x-filament::modal>
-                                <x-filament::button>
-                                    <a href="{{ Storage::url($anexo->documento_url) }}" download
-                                        style="text-decoration: none; color: inherit;">
-                                        Descargar
-                                    </a>
-                                </x-filament::button>
+                                <div x-data="{ open: false }">
+                                    <button type="button" @click="open = true"
+                                        class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition">
+                                        Ver anexo
+                                    </button>
+                                    <div x-show="open" x-cloak class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+                                        <div class="fixed inset-0 bg-black/60" @click.self="open = false"></div>
+                                        <div class="relative flex min-h-full items-start justify-center p-4">
+                                            <div class="relative w-full max-w-7xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl my-4">
+                                                <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-3">
+                                                    <span class="text-sm font-semibold text-gray-900 dark:text-white">Anexo</span>
+                                                    <button type="button" @click="open = false"
+                                                        class="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                                                        aria-label="Cerrar">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
+                                                            <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                                <div class="p-0">
+                                                    <iframe src="{{ Storage::url($anexo->documento_url) }}"
+                                                        style="width: 100%; height: 85vh; border: none;"></iframe>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <a href="{{ Storage::url($anexo->documento_url) }}" download
+                                    class="inline-flex items-center gap-1.5 rounded-lg bg-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-300 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                                        <path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z"/>
+                                        <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z"/>
+                                    </svg>
+                                    Descargar
+                                </a>
 
                             </td>
                         </tr>
@@ -998,7 +1018,7 @@
                     </table>
             </div>
         </div>
-    </x-filament::section>
+</details>
 
 
 </body>

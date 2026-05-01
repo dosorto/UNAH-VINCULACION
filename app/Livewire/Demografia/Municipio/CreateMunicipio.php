@@ -15,20 +15,21 @@ class CreateMunicipio extends Component
     public string $codigo_municipio = '';
 
     protected array $rules = [
-        'departamento_id'  => 'required|exists:departamentos,id',
+        'departamento_id'  => 'required|exists:departamento,id',
         'nombre'           => 'required|string|max:100',
-        'codigo_municipio' => 'required|string|max:20',
+        'codigo_municipio' => 'nullable|numeric',
     ];
 
     protected array $messages = [
         'departamento_id.required' => 'Selecciona un departamento.',
         'nombre.required'          => 'El nombre es obligatorio.',
-        'codigo_municipio.required'=> 'El código del municipio es obligatorio.',
+        'codigo_municipio.numeric' => 'El código del municipio debe ser numérico.',
     ];
 
     public function create(): void
     {
         $data = $this->validate();
+        $data['codigo_municipio'] = $data['codigo_municipio'] ?: null;
 
         Municipio::create($data);
 

@@ -193,7 +193,7 @@ class EditPerfilDocente extends Component
 
         Notification::make()->title('Exito!')->body('Perfil actualizado correctamente.')->success()->send();
 
-        return redirect()->route('inicio');
+        $this->redirectRoute('inicio');
     }
 
     public function render(): View

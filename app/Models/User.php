@@ -111,7 +111,17 @@ class User extends Authenticatable
 
     public function getActiveRoleAttribute()
     {
-        return \Spatie\Permission\Models\Role::find($this->active_role_id);
+        if (! $this->active_role_id) {
+            return null;
+        }
+
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->firstWhere('id', (int) $this->active_role_id);
+        }
+
+        return $this->roles()
+            ->where('roles.id', $this->active_role_id)
+            ->first();
     }
 
 

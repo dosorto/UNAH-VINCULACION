@@ -2,6 +2,7 @@
 
 namespace App\Models\PresupuestoServicio;
 
+use App\Models\ServicioInfraestructura\ServicioTecnologico;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -11,9 +12,11 @@ class PresupuestoServicio extends Model
 
     protected $fillable = [
         'servicio_tecnologico_id',
-        'costo_total',
-        'fecha_inicio',
-        'fecha_fin',
+        'descripcion_excedente',
+        'total_ingresos',
+        'total_egresos',
+        'excedente',
+        'total_aporte_unah',
     ];
 
     public function ingresos(): HasMany
