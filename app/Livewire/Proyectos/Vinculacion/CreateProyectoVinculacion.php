@@ -98,15 +98,18 @@ class CreateProyectoVinculacion extends Component
     public ?int $decano_empleado_id = null;
     public ?int $enlace_empleado_id = null;
 
-    public function mount(?Proyecto $record = null): void
+    public function mount(?int $record = null): void
     {
-        if ($record && $record->exists) {
-            if (!$record->coordinadorIsCurrentUser() ||
-                !$record->proyectoIsInAnyEstados(['Borrador', 'Subsanacion', 'Autoguardado'])) {
-                abort(403);
+        if ($record !== null) {
+            $proyecto = Proyecto::find($record);
+            if ($proyecto) {
+                if (!$proyecto->coordinadorIsCurrentUser() ||
+                    !$proyecto->proyectoIsInAnyEstados(['Borrador', 'Subsanacion', 'Autoguardado'])) {
+                    abort(403);
+                }
+                $this->recordId = $proyecto->id;
+                $this->loadFromRecord($proyecto);
             }
-            $this->recordId = $record->id;
-            $this->loadFromRecord($record);
         }
         $this->initDefaults();
     }

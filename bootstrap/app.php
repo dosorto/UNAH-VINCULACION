@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // redirect users to the 'listarPais' route after login
         $middleware->redirectUsersTo('inicio');
 
+        
         // Aplicar middleware global para usuarios autenticados
         $middleware->web(append: [
             \App\Http\Middleware\EnsureUserHasRole::class,
