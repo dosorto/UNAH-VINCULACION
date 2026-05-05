@@ -38,18 +38,6 @@
                 </select>
                 @error('modalidad_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha Inicio <span class="text-red-500">*</span></label>
-                    <input type="date" wire:model="fecha_inicio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                    @error('fecha_inicio') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha Finalización <span class="text-red-500">*</span></label>
-                    <input type="date" wire:model="fecha_finalizacion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
-                    @error('fecha_finalizacion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                </div>
-            </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categorías <span class="text-red-500">*</span></label>
                 <div x-data="{
@@ -329,6 +317,18 @@
                 </div>
             </div>
             @endif
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha Inicio <span class="text-red-500">*</span></label>
+                    <input type="date" wire:model="fecha_inicio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    @error('fecha_inicio') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha Finalización <span class="text-red-500">*</span></label>
+                    <input type="date" wire:model="fecha_finalizacion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    @error('fecha_finalizacion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
         </div>
         @endif
 
@@ -479,16 +479,26 @@
                         <button wire:click="addInstrumento({{ $ci }})" type="button" class="text-xs text-blue-600 hover:text-blue-800">+ Agregar</button>
                     </div>
                     @foreach($contraparte['instrumento_formalizacion'] ?? [] as $ii => $inst)
-                    <div class="flex items-center gap-2 mb-2">
-                        <select wire:model="entidad_contraparte.{{ $ci }}.instrumento_formalizacion.{{ $ii }}.tipo_documento" class="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-sm focus:border-blue-500">
-                            <option value="">Tipo de documento...</option>
-                            <option value="Convenio">Convenio</option>
-                            <option value="Carta de Intención">Carta de Intención</option>
-                            <option value="Acuerdo">Acuerdo</option>
-                            <option value="Contrato">Contrato</option>
-                            <option value="Otro">Otro</option>
-                        </select>
-                        <button wire:click="removeInstrumento({{ $ci }}, {{ $ii }})" type="button" class="text-xs text-red-600 hover:text-red-800 whitespace-nowrap">Eliminar</button>
+                    <div class="mb-3 rounded-md border border-gray-200 dark:border-gray-700 p-3">
+                        <div class="grid grid-cols-1 lg:grid-cols-[1fr_1fr_auto] gap-2 items-start">
+                            <div>
+                                <select wire:model="entidad_contraparte.{{ $ci }}.instrumento_formalizacion.{{ $ii }}.tipo_documento" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-sm focus:border-blue-500">
+                                    <option value="">Tipo de documento...</option>
+                                    <option value="carta_formal_solicitud">Carta formal de solicitud a la unidad académica</option>
+                                    <option value="carta_intenciones">Carta de intenciones con la UNAH</option>
+                                    <option value="convenio_marco">Convenio marco con la UNAH</option>
+                                </select>
+                                @error("entidad_contraparte.$ci.instrumento_formalizacion.$ii.tipo_documento") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <input type="file" wire:model="entidad_contraparte.{{ $ci }}.instrumento_formalizacion.{{ $ii }}.documento_file" class="w-full text-xs text-gray-600 dark:text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                                @if(!empty($inst['documento_url']))
+                                    <a href="{{ Storage::url($inst['documento_url']) }}" target="_blank" class="mt-1 inline-block text-xs text-blue-600 hover:text-blue-800">Documento actual</a>
+                                @endif
+                                @error("entidad_contraparte.$ci.instrumento_formalizacion.$ii.documento_file") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <button wire:click="removeInstrumento({{ $ci }}, {{ $ii }})" type="button" class="text-xs text-red-600 hover:text-red-800 whitespace-nowrap lg:mt-1">Eliminar</button>
+                        </div>
                     </div>
                     @endforeach
                 </div>
@@ -694,7 +704,11 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-gray-500 mb-1">Plazo</label>
-                                    <input type="text" wire:model="objetivosEspecificos.{{ $oi }}.resultados.{{ $ri }}.plazo" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                    <select wire:model="objetivosEspecificos.{{ $oi }}.resultados.{{ $ri }}.plazo" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500">
+                                        <option value="corto_plazo">Corto plazo</option>
+                                        <option value="mediano_plazo">Mediano plazo</option>
+                                        <option value="largo_plazo">Largo plazo</option>
+                                    </select>
                                 </div>
                             </div>
                             <div class="mt-1 text-right">
@@ -731,8 +745,8 @@
                             <tr class="border-t border-gray-200 dark:border-gray-700">
                                 <td class="py-2 px-3 text-gray-700 dark:text-gray-300 text-xs">{{ $aporte['concepto_label'] ?? $aporte['concepto'] }}</td>
                                 <td class="py-2 px-3 text-gray-500 text-xs">{{ $aporte['unidad_label'] ?? $aporte['unidad'] }}</td>
-                                <td class="py-2 px-3"><input type="number" wire:model="aporte_institucional.{{ $i }}.cantidad" wire:change="updateAporteTotal({{ $i }})" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
-                                <td class="py-2 px-3"><input type="number" wire:model="aporte_institucional.{{ $i }}.costo_unitario" wire:change="updateAporteTotal({{ $i }})" min="0" step="0.01" class="w-28 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
+                                <td class="py-2 px-3"><input type="number" wire:model="aporte_institucional.{{ $i }}.cantidad" wire:change="updateAporteTotal({{ $i }})" min="0" @disabled(!($aporte['editable'] ?? true)) class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
+                                <td class="py-2 px-3"><input type="number" wire:model="aporte_institucional.{{ $i }}.costo_unitario" wire:change="updateAporteTotal({{ $i }})" min="0" step="0.01" @disabled(!($aporte['editable'] ?? true)) class="w-28 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
                                 <td class="py-2 px-3 text-center font-medium text-gray-900 dark:text-white">{{ number_format($aporte['costo_total'] ?? 0, 2) }}</td>
                             </tr>
                             @endforeach

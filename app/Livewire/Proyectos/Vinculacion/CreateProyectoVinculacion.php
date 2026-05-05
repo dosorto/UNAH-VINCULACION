@@ -17,6 +17,7 @@ use App\Models\Proyecto\IntegranteInternacional;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\Carrera;
+use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ProyectoCreado;
@@ -98,6 +99,18 @@ class CreateProyectoVinculacion extends Component
     public ?int $decano_empleado_id = null;
     public ?int $enlace_empleado_id = null;
 
+    protected array $instrumentoTipos = [
+        'carta_formal_solicitud',
+        'carta_intenciones',
+        'convenio_marco',
+    ];
+
+    protected array $plazoOpciones = [
+        'corto_plazo',
+        'mediano_plazo',
+        'largo_plazo',
+    ];
+
     public function mount(?int $record = null): void
     {
         if ($record !== null) {
@@ -154,8 +167,8 @@ class CreateProyectoVinculacion extends Component
         $this->lineas_investigacion_academica = $record->lineas_investigacion_academica ?? '';
         $this->ods = $record->ods->pluck('id')->toArray();
         $this->metasContribuye = $record->metasContribuye->pluck('id')->toArray();
-        $this->fecha_inicio = $record->fecha_inicio?->format('Y-m-d') ?? '';
-        $this->fecha_finalizacion = $record->fecha_finalizacion?->format('Y-m-d') ?? '';
+        $this->fecha_inicio = $this->dateForInput($record->fecha_inicio);
+        $this->fecha_finalizacion = $this->dateForInput($record->fecha_finalizacion);
 
         $this->empleado_proyecto = $record->empleado_proyecto->map(fn($ep) => [
             'empleado_id' => $ep->empleado_id,
@@ -186,16 +199,18 @@ class CreateProyectoVinculacion extends Component
             'correo' => $e->correo,
             'descripcion_acuerdos' => $e->descripcion_acuerdos,
             'instrumento_formalizacion' => $e->instrumento_formalizacion->map(fn($i) => [
-                'tipo_documento' => $i->tipo_documento,
+                'id' => $i->id,
+                'tipo_documento' => $this->normalizeInstrumentoTipo($i->tipo_documento) ?: $i->tipo_documento,
                 'documento_url' => $i->documento_url,
+                'documento_file' => null,
             ])->toArray(),
         ])->toArray();
 
         $this->actividades = $record->actividades->map(fn($a) => [
             'descripcion' => $a->descripcion,
             'empleados' => $a->empleados->pluck('id')->toArray(),
-            'fecha_inicio' => $a->fecha_inicio?->format('Y-m-d') ?? '',
-            'fecha_finalizacion' => $a->fecha_finalizacion?->format('Y-m-d') ?? '',
+            'fecha_inicio' => $this->dateForInput($a->fecha_inicio),
+            'fecha_finalizacion' => $this->dateForInput($a->fecha_finalizacion),
             'horas' => $a->horas ?? '',
         ])->toArray();
 
@@ -229,7 +244,7 @@ class CreateProyectoVinculacion extends Component
                 'nombre_resultado' => $r->nombre_resultado,
                 'nombre_indicador' => $r->nombre_indicador,
                 'nombre_medio_verificacion' => $r->nombre_medio_verificacion,
-                'plazo' => $r->plazo,
+                'plazo' => $this->normalizePlazo($r->plazo),
             ])->toArray(),
         ])->toArray();
 
@@ -256,17 +271,13 @@ class CreateProyectoVinculacion extends Component
 
     protected function initDefaults(): void
     {
-        if (empty($this->aporte_institucional)) {
-            $this->aporte_institucional = [
-                ['concepto' => 'horas_trabajo_docentes', 'concepto_label' => 'a) Horas de trabajo docentes', 'unidad' => 'hra_profes', 'unidad_label' => 'Hra/profes', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0],
-                ['concepto' => 'horas_trabajo_estudiantes', 'concepto_label' => 'b) Horas de trabajo estudiantes', 'unidad' => 'hra_estud', 'unidad_label' => 'Hra/estud', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0],
-                ['concepto' => 'gastos_movilizacion', 'concepto_label' => 'c) Gastos de movilización', 'unidad' => 'global', 'unidad_label' => 'Global', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0],
-                ['concepto' => 'utiles_materiales_oficina', 'concepto_label' => 'd) Útiles y materiales de oficina', 'unidad' => 'global', 'unidad_label' => 'Global', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0],
-                ['concepto' => 'gastos_impresion', 'concepto_label' => 'e) Gastos de impresión', 'unidad' => 'global', 'unidad_label' => 'Global', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0],
-            ];
+        if (!$this->recordId && $this->fecha_inicio === '') {
+            $this->fecha_inicio = Carbon::now('America/Tegucigalpa')->format('Y-m-d');
         }
+        $this->aporte_institucional = $this->normalizeAporteRows($this->aporte_institucional);
+        $this->recalculateAporteInstitucional();
         if (empty($this->objetivosEspecificos)) {
-            $this->objetivosEspecificos = [['descripcion' => '', 'resultados' => [['nombre_resultado' => '', 'nombre_indicador' => '', 'nombre_medio_verificacion' => '', 'plazo' => '']]]];
+            $this->objetivosEspecificos = [['descripcion' => '', 'resultados' => [['nombre_resultado' => '', 'nombre_indicador' => '', 'nombre_medio_verificacion' => '', 'plazo' => 'corto_plazo']]]];
         }
         if (empty($this->entidad_contraparte)) {
             $this->entidad_contraparte = [['nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '', 'cargo_contacto' => '', 'telefono' => '', 'correo' => '', 'descripcion_acuerdos' => '', 'instrumento_formalizacion' => []]];
@@ -408,10 +419,49 @@ class CreateProyectoVinculacion extends Component
 
     protected function saveStep3(): void
     {
+        foreach ($this->entidad_contraparte as $ci => $item) {
+            foreach ($item['instrumento_formalizacion'] ?? [] as $ii => $inst) {
+                $tipo = $this->normalizeInstrumentoTipo($inst['tipo_documento'] ?? '');
+                if ($tipo !== '') {
+                    $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['tipo_documento'] = $tipo;
+                }
+            }
+        }
+
+        $this->validate([
+            'entidad_contraparte.*.instrumento_formalizacion.*.tipo_documento' => 'nullable|in:' . implode(',', $this->instrumentoTipos),
+            'entidad_contraparte.*.instrumento_formalizacion.*.documento_file' => 'nullable|file|max:10240',
+        ]);
+
+        $hasMissingDocument = false;
+        foreach ($this->entidad_contraparte as $ci => $item) {
+            foreach ($item['instrumento_formalizacion'] ?? [] as $ii => $inst) {
+                if (empty($inst['tipo_documento'])) {
+                    continue;
+                }
+
+                $isExisting = !empty($inst['id']);
+                $hasStoredDocument = !empty($inst['documento_url']);
+                $hasUploadedDocument = isset($inst['documento_file']) && is_object($inst['documento_file']);
+
+                if (!$isExisting && !$hasStoredDocument && !$hasUploadedDocument) {
+                    $this->addError(
+                        "entidad_contraparte.$ci.instrumento_formalizacion.$ii.documento_file",
+                        'El documento es obligatorio para instrumentos nuevos.'
+                    );
+                    $hasMissingDocument = true;
+                }
+            }
+        }
+
+        if ($hasMissingDocument) {
+            return;
+        }
+
         $record = $this->ensureRecord();
         $record->entidad_contraparte()->each(fn($e) => $e->instrumento_formalizacion()->delete());
         $record->entidad_contraparte()->delete();
-        foreach ($this->entidad_contraparte as $item) {
+        foreach ($this->entidad_contraparte as $ci => $item) {
             if (!empty($item['nombre'])) {
                 $entidad = $record->entidad_contraparte()->create([
                     'nombre' => $item['nombre'],
@@ -422,12 +472,20 @@ class CreateProyectoVinculacion extends Component
                     'correo' => $item['correo'] ?? '',
                     'descripcion_acuerdos' => $item['descripcion_acuerdos'] ?? '',
                 ]);
-                foreach ($item['instrumento_formalizacion'] ?? [] as $inst) {
+                foreach ($item['instrumento_formalizacion'] ?? [] as $ii => $inst) {
                     if (!empty($inst['tipo_documento'])) {
-                        $entidad->instrumento_formalizacion()->create([
+                        $documentoUrl = $inst['documento_url'] ?? null;
+                        if (isset($inst['documento_file']) && is_object($inst['documento_file'])) {
+                            $documentoUrl = $inst['documento_file']->store('instrumentos-formalizacion', 'public');
+                        }
+
+                        $instrumento = $entidad->instrumento_formalizacion()->create([
                             'tipo_documento' => $inst['tipo_documento'],
-                            'documento_url' => $inst['documento_url'] ?? null,
+                            'documento_url' => $documentoUrl,
                         ]);
+                        $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['id'] = $instrumento->id;
+                        $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['documento_url'] = $documentoUrl;
+                        $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['documento_file'] = null;
                     }
                 }
             }
@@ -503,6 +561,7 @@ class CreateProyectoVinculacion extends Component
             'objetivo_general' => 'required|string',
             'objetivosEspecificos' => 'required|array|min:1',
             'objetivosEspecificos.*.descripcion' => 'required|string',
+            'objetivosEspecificos.*.resultados.*.plazo' => 'nullable|in:' . implode(',', $this->plazoOpciones),
         ]);
         $record = $this->ensureRecord();
         $record->update(['objetivo_general' => $this->objetivo_general]);
@@ -516,7 +575,7 @@ class CreateProyectoVinculacion extends Component
                         'nombre_resultado' => $rData['nombre_resultado'],
                         'nombre_indicador' => $rData['nombre_indicador'] ?? '',
                         'nombre_medio_verificacion' => $rData['nombre_medio_verificacion'] ?? '',
-                        'plazo' => $rData['plazo'] ?? '',
+                        'plazo' => $this->normalizePlazo($rData['plazo'] ?? '') ?: 'corto_plazo',
                     ]);
                 }
             }
@@ -527,6 +586,10 @@ class CreateProyectoVinculacion extends Component
     protected function saveStep7(): void
     {
         $record = $this->ensureRecord();
+        $this->aporte_institucional = $this->normalizeAporteRows($this->aporte_institucional);
+        $this->recalculateAporteInstitucional();
+        $totalAporteInstitucional = collect($this->aporte_institucional)->sum('costo_total');
+
         $record->aporteInstitucional()->delete();
         foreach ($this->aporte_institucional as $item) {
             $record->aporteInstitucional()->create([
@@ -537,6 +600,7 @@ class CreateProyectoVinculacion extends Component
                 'costo_total' => $item['costo_total'] ?? 0,
             ]);
         }
+        $record->update(['total_aporte_institucional' => $totalAporteInstitucional]);
         $record->presupuesto()->updateOrCreate([], [
             'aporte_contraparte' => $this->aporte_contraparte,
             'aporte_internacionales' => $this->aporte_internacionales,
@@ -586,15 +650,130 @@ class CreateProyectoVinculacion extends Component
     public function removeInternacional(int $i): void { array_splice($this->integrante_internacional_proyecto, $i, 1); }
     public function addContraparte(): void { $this->entidad_contraparte[] = ['nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '', 'cargo_contacto' => '', 'telefono' => '', 'correo' => '', 'descripcion_acuerdos' => '', 'instrumento_formalizacion' => []]; }
     public function removeContraparte(int $i): void { array_splice($this->entidad_contraparte, $i, 1); }
-    public function addInstrumento(int $ci): void { $this->entidad_contraparte[$ci]['instrumento_formalizacion'][] = ['tipo_documento' => '', 'documento_url' => '']; }
+    public function addInstrumento(int $ci): void { $this->entidad_contraparte[$ci]['instrumento_formalizacion'][] = ['id' => null, 'tipo_documento' => '', 'documento_url' => null, 'documento_file' => null]; }
     public function removeInstrumento(int $ci, int $ii): void { array_splice($this->entidad_contraparte[$ci]['instrumento_formalizacion'], $ii, 1); }
     public function addActividad(): void { $this->actividades[] = ['descripcion' => '', 'empleados' => [], 'fecha_inicio' => '', 'fecha_finalizacion' => '', 'horas' => '']; }
     public function removeActividad(int $i): void { array_splice($this->actividades, $i, 1); }
-    public function addObjetivo(): void { $this->objetivosEspecificos[] = ['descripcion' => '', 'resultados' => [['nombre_resultado' => '', 'nombre_indicador' => '', 'nombre_medio_verificacion' => '', 'plazo' => '']]]; }
+    public function addObjetivo(): void { $this->objetivosEspecificos[] = ['descripcion' => '', 'resultados' => [['nombre_resultado' => '', 'nombre_indicador' => '', 'nombre_medio_verificacion' => '', 'plazo' => 'corto_plazo']]]; }
     public function removeObjetivo(int $i): void { array_splice($this->objetivosEspecificos, $i, 1); }
-    public function addResultado(int $oi): void { $this->objetivosEspecificos[$oi]['resultados'][] = ['nombre_resultado' => '', 'nombre_indicador' => '', 'nombre_medio_verificacion' => '', 'plazo' => '']; }
+    public function addResultado(int $oi): void { $this->objetivosEspecificos[$oi]['resultados'][] = ['nombre_resultado' => '', 'nombre_indicador' => '', 'nombre_medio_verificacion' => '', 'plazo' => 'corto_plazo']; }
     public function removeResultado(int $oi, int $ri): void { array_splice($this->objetivosEspecificos[$oi]['resultados'], $ri, 1); }
-    public function updateAporteTotal(int $i): void { $this->aporte_institucional[$i]['costo_total'] = (float)($this->aporte_institucional[$i]['cantidad'] ?? 0) * (float)($this->aporte_institucional[$i]['costo_unitario'] ?? 0); }
+    public function updateAporteTotal(int $i): void
+    {
+        $this->aporte_institucional[$i]['costo_total'] = (float)($this->aporte_institucional[$i]['cantidad'] ?? 0) * (float)($this->aporte_institucional[$i]['costo_unitario'] ?? 0);
+        $this->recalculateAporteInstitucional();
+    }
+
+    protected function dateForInput(mixed $value): string
+    {
+        if (empty($value)) {
+            return '';
+        }
+
+        try {
+            if ($value instanceof \DateTimeInterface) {
+                return $value->format('Y-m-d');
+            }
+
+            return Carbon::parse($value)->format('Y-m-d');
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
+    protected function normalizePlazo(?string $value): string
+    {
+        $normalized = trim(str_replace(['-', ' '], '_', mb_strtolower((string) $value)));
+
+        return match ($normalized) {
+            'corto', 'corto_plazo' => 'corto_plazo',
+            'mediano', 'mediano_plazo' => 'mediano_plazo',
+            'largo', 'largo_plazo' => 'largo_plazo',
+            default => '',
+        };
+    }
+
+    protected function normalizeInstrumentoTipo(?string $value): string
+    {
+        $normalized = trim(mb_strtolower((string) $value));
+        $normalized = strtr($normalized, [
+            'á' => 'a',
+            'é' => 'e',
+            'í' => 'i',
+            'ó' => 'o',
+            'ú' => 'u',
+            'ü' => 'u',
+            'ñ' => 'n',
+        ]);
+        $normalized = trim((string) preg_replace('/[^a-z0-9]+/u', '_', $normalized), '_');
+
+        return match ($normalized) {
+            'carta_formal_solicitud', 'carta_formal_de_solicitud_a_la_unidad_academica' => 'carta_formal_solicitud',
+            'carta_intenciones', 'carta_de_intenciones', 'carta_intencion', 'carta_de_intencion' => 'carta_intenciones',
+            'convenio_marco', 'convenio_marco_con_la_unah', 'convenio' => 'convenio_marco',
+            default => '',
+        };
+    }
+
+    protected function defaultAporteInstitucionalRows(): array
+    {
+        return [
+            ['concepto' => 'horas_trabajo_docentes', 'concepto_label' => 'a) Horas de trabajo docentes', 'unidad' => 'hra_profes', 'unidad_label' => 'Hra/profes', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0, 'editable' => true],
+            ['concepto' => 'horas_trabajo_estudiantes', 'concepto_label' => 'b) Horas de trabajo estudiantes', 'unidad' => 'hra_estud', 'unidad_label' => 'Hra/estud', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0, 'editable' => true],
+            ['concepto' => 'gastos_movilizacion', 'concepto_label' => 'c) Gastos de movilización', 'unidad' => 'global', 'unidad_label' => 'Global', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0, 'editable' => true],
+            ['concepto' => 'utiles_materiales_oficina', 'concepto_label' => 'd) Útiles y materiales de oficina', 'unidad' => 'global', 'unidad_label' => 'Global', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0, 'editable' => true],
+            ['concepto' => 'gastos_impresion', 'concepto_label' => 'e) Gastos de impresión', 'unidad' => 'global', 'unidad_label' => 'Global', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0, 'editable' => true],
+            ['concepto' => 'costos_indirectos_infraestructura', 'concepto_label' => 'f) Costos indirectos por infraestructura universidad', 'unidad' => 'porcentaje', 'unidad_label' => '%', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0, 'editable' => false],
+            ['concepto' => 'costos_indirectos_servicios', 'concepto_label' => 'g) Costos indirectos por servicios públicos', 'unidad' => 'porcentaje', 'unidad_label' => '%', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0, 'editable' => false],
+        ];
+    }
+
+    protected function normalizeAporteRows(array $rows): array
+    {
+        $byConcept = collect($rows)->filter(fn($row) => !empty($row['concepto']))->keyBy('concepto');
+
+        return collect($this->defaultAporteInstitucionalRows())->map(function (array $default) use ($byConcept) {
+            $existing = $byConcept->get($default['concepto'], []);
+
+            return array_merge($default, [
+                'cantidad' => (float)($existing['cantidad'] ?? $default['cantidad']),
+                'costo_unitario' => (float)($existing['costo_unitario'] ?? $default['costo_unitario']),
+                'costo_total' => (float)($existing['costo_total'] ?? $default['costo_total']),
+            ]);
+        })->toArray();
+    }
+
+    protected function recalculateAporteInstitucional(): void
+    {
+        $this->aporte_institucional = $this->normalizeAporteRows($this->aporte_institucional);
+
+        foreach ($this->aporte_institucional as $index => $aporte) {
+            if ($aporte['editable'] ?? true) {
+                $this->aporte_institucional[$index]['costo_total'] = (float)($aporte['cantidad'] ?? 0) * (float)($aporte['costo_unitario'] ?? 0);
+            }
+        }
+
+        $base = collect($this->aporte_institucional)
+            ->whereIn('concepto', [
+                'horas_trabajo_docentes',
+                'horas_trabajo_estudiantes',
+                'gastos_movilizacion',
+                'utiles_materiales_oficina',
+                'gastos_impresion',
+            ]);
+
+        $cantidad = round($base->sum('cantidad') * 0.05, 2);
+        $costoUnitario = round($base->sum('costo_unitario') * 0.05, 2);
+        $costoTotal = round($cantidad * $costoUnitario, 2);
+
+        foreach ($this->aporte_institucional as $index => $aporte) {
+            if (in_array($aporte['concepto'], ['costos_indirectos_infraestructura', 'costos_indirectos_servicios'], true)) {
+                $this->aporte_institucional[$index]['cantidad'] = $cantidad;
+                $this->aporte_institucional[$index]['costo_unitario'] = $costoUnitario;
+                $this->aporte_institucional[$index]['costo_total'] = $costoTotal;
+            }
+        }
+    }
 
     public function create(): void
     {

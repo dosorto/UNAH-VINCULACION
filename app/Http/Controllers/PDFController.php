@@ -29,11 +29,21 @@ class PDFController extends Controller
             'departamento',
             'municipio',
             'presupuesto',
-            'empleados',
+            'empleados.user',
+            'empleados.categoria',
+            'empleados.departamento_academico',
             'actividades.empleados',
             'entidad_contraparte.instrumento_formalizacion',
             'anexos',
+            'aporteInstitucional',
+            'objetivosEspecificos.resultados',
             'estudiante_proyecto.estudiante.user',
+            'estudiante_proyecto.asignatura',
+            'coordinador_proyecto.empleado.user',
+            'coordinador_proyecto.empleado.categoria',
+            'coordinador_proyecto.empleado.departamento_academico',
+            'firma_proyecto.empleado',
+            'integrantesInternacionales',
         ]);
 
         // DomPDF can exceed PHP defaults for complex tables and images.

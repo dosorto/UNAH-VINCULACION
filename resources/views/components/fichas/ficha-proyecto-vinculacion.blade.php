@@ -95,8 +95,8 @@
         <details class="rounded-xl border border-gray-200 bg-white shadow-sm">
             <summary class="flex cursor-pointer list-none items-center justify-between gap-x-4 px-6 py-4">
                 <div>
-                    <span class="text-sm font-semibold text-gray-900">Informe Intermedio, Estado: {{ $proyecto->documento_intermedio()->estado->tipoestado->nombre }}</span>
-                    <p class="mt-1 text-sm font-normal text-gray-500">{{ $proyecto->documento_intermedio()->estado->comentario }}</p>
+                    <span class="text-sm font-semibold text-gray-900">Informe Intermedio, Estado: {{ $proyecto->documento_intermedio()->estado?->tipoestado?->nombre ?? 'No especificado' }}</span>
+                    <p class="mt-1 text-sm font-normal text-gray-500">{{ $proyecto->documento_intermedio()->estado?->comentario ?? 'Sin comentario' }}</p>
                 </div>
                 <svg class="h-5 w-5 flex-shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
@@ -112,8 +112,8 @@
         <details class="rounded-xl border border-gray-200 bg-white shadow-sm">
             <summary class="flex cursor-pointer list-none items-center justify-between gap-x-4 px-6 py-4">
                 <div>
-                    <span class="text-sm font-semibold text-gray-900">Informe Final, Estado: {{ $proyecto->documento_final()->estado->tipoestado->nombre }}</span>
-                    <p class="mt-1 text-sm font-normal text-gray-500">{{ $proyecto->documento_final()->estado->comentario }}</p>
+                    <span class="text-sm font-semibold text-gray-900">Informe Final, Estado: {{ $proyecto->documento_final()->estado?->tipoestado?->nombre ?? 'No especificado' }}</span>
+                    <p class="mt-1 text-sm font-normal text-gray-500">{{ $proyecto->documento_final()->estado?->comentario ?? 'Sin comentario' }}</p>
                 </div>
                 <svg class="h-5 w-5 flex-shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
@@ -642,6 +642,9 @@
                 </div>
 
                 <div class="section2">
+                    @php
+                        $coordinador = optional($proyecto->coordinador_proyecto->first())->empleado;
+                    @endphp
                     <div class="section-title">II. EQUIPO EJECUTOR DEL PROYECTO. </div>
                     <table class="table_datos1">
                         <!-- TABLA COORDINADOR DEL PROYECTO -->
@@ -650,38 +653,38 @@
                             <td class="sub-header">Nombre Completo:</td>
                             <td class="full-width" colspan="2">
                                 <textarea disabled rows="2" class="input-field-multiline"
-                                    placeholder="Ingrese el nombre completo">{{ $proyecto->coordinador->nombre_completo }}</textarea>
+                                    placeholder="Ingrese el nombre completo">{{ $coordinador?->nombre_completo ?? 'No especificado' }}</textarea>
                             </td>
                             <td class="sub-header">No. de empleado:</td>
                             <td class="full-width" colspan="2">
                                 <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el número de empleado"
-                                    value="{{ $proyecto->coordinador->numero_empleado }}" disabled>
+                                    value="{{ $coordinador?->numero_empleado ?? 'No especificado' }}" disabled>
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-header">Correo electrónico:</td>
                             <td class="full-width" colspan="2">
                                 <textarea disabled rows="2" class="input-field-multiline"
-                                    placeholder="Ingrese el correo electrónico">{{ $proyecto->coordinador->user->email }}</textarea>
+                                    placeholder="Ingrese el correo electrónico">{{ $coordinador?->user?->email ?? 'No especificado' }}</textarea>
                             </td>
                             <td class="sub-header">Celular:</td>
                             <td class="full-width" colspan="2">
                                 <input disabled type="email" class="input-field"
                                     placeholder="Ingrese el número de celular"
-                                    value="{{ $proyecto->coordinador->celular }}" disabled>
+                                    value="{{ $coordinador?->celular ?? 'No especificado' }}" disabled>
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-header">Categoria:</td>
                             <td class="full-width" colspan="2">
                                 <textarea disabled rows="2" class="input-field-multiline"
-                                    placeholder="Ingrese el número de celular">{{ $proyecto->coordinador->categoria->nombre }}</textarea>
+                                    placeholder="Ingrese el número de celular">{{ $coordinador?->categoria?->nombre ?? 'No especificado' }}</textarea>
                             </td>
                             <td class="sub-header">Departamento:</td>
                             <td class="full-width" colspan="2">
                                 <textarea disabled rows="2" class="input-field-multiline"
-                                    placeholder="Ingrese el número de celular">{{ $proyecto->coordinador->departamento_academico->nombre }}</textarea>
+                                    placeholder="Ingrese el número de celular">{{ $coordinador?->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
                             </td>
                         </tr>
 
@@ -722,23 +725,23 @@
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el correo electrónico">{{ $integrante->user->email }}</textarea>
+                                        placeholder="Ingrese el correo electrónico">{{ $integrante->user?->email ?? 'No especificado' }}</textarea>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese la categoría">{{ $integrante->categoria->nombre ?? 'Sin categoría' }}</textarea>
+                                        placeholder="Ingrese la categoría">{{ $integrante->categoria?->nombre ?? 'Sin categoría' }}</textarea>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el departamento">{{ $integrante->departamento_academico->nombre ?? 'Sin departamento' }}</textarea>
+                                        placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'Sin departamento' }}</textarea>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el departamento">{{ $integrante->departamento_academico->nombre }}</textarea>
+                                        placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el departamento">{{ $integrante->departamento_academico->nombre }}</textarea>
+                                        placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
                                 </td>
                             </tr>
                         @empty
@@ -1196,7 +1199,7 @@
                                 </td>
                                 <td class="full-width
                                     " colspan="3">
-                                    @if (empty($isPdf))
+                                    @if (empty($isPdf) && !empty($instrumento->documento_url))
                                         <div x-data="{ open: false }">
                                             <button type="button" @click="open = true"
                                                 class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition">
@@ -1232,8 +1235,10 @@
                                             </svg>
                                             Descargar
                                         </a>
-                                    @else
+                                    @elseif (!empty($instrumento->documento_url))
                                         <span>Documento adjunto</span>
+                                    @else
+                                        <span>No especificado</span>
                                     @endif
 
                                 </td>
@@ -1470,6 +1475,18 @@
                         @php
                             // Crear un array asociativo para fácil acceso a los conceptos
                             $conceptos = collect($proyecto->aporteInstitucional)->keyBy('concepto');
+                            $baseAporteInstitucional = collect([
+                                $conceptos->get('horas_trabajo_docentes'),
+                                $conceptos->get('horas_trabajo_estudiantes'),
+                                $conceptos->get('gastos_movilizacion'),
+                                $conceptos->get('utiles_materiales_oficina'),
+                                $conceptos->get('gastos_impresion'),
+                            ])->filter();
+                            $cantidadIndirecta = round($baseAporteInstitucional->sum('cantidad') * 0.05, 2);
+                            $costoUnitarioIndirecto = round($baseAporteInstitucional->sum('costo_unitario') * 0.05, 2);
+                            $costoTotalIndirecto = round($cantidadIndirecta * $costoUnitarioIndirecto, 2);
+                            $infraestructura = $conceptos->get('costos_indirectos_infraestructura');
+                            $servicios = $conceptos->get('costos_indirectos_servicios');
                         @endphp
                         
                         <!-- Horas de trabajo docentes -->
@@ -1478,15 +1495,15 @@
                             <td class="sub-header" colspan="3">Hra/profesores</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_docentes']?->cantidad ?? '' }}">
+                                    value="{{ $conceptos->get('horas_trabajo_docentes')?->cantidad ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_docentes']?->costo_unitario ?? '' }}">
+                                    value="{{ $conceptos->get('horas_trabajo_docentes')?->costo_unitario ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_docentes']?->costo_total ?? '' }}">
+                                    value="{{ $conceptos->get('horas_trabajo_docentes')?->costo_total ?? '' }}">
                             </td>
                         </tr>
                         
@@ -1496,15 +1513,15 @@
                             <td class="sub-header" colspan="3">Hra/estudiantes</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_estudiantes']?->cantidad ?? '' }}">
+                                    value="{{ $conceptos->get('horas_trabajo_estudiantes')?->cantidad ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? '' }}">
+                                    value="{{ $conceptos->get('horas_trabajo_estudiantes')?->costo_unitario ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_estudiantes']?->costo_total ?? '' }}">
+                                    value="{{ $conceptos->get('horas_trabajo_estudiantes')?->costo_total ?? '' }}">
                             </td>
                         </tr>
                         
@@ -1514,15 +1531,15 @@
                             <td class="sub-header" colspan="3">Global</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_movilizacion']?->cantidad ?? '' }}">
+                                    value="{{ $conceptos->get('gastos_movilizacion')?->cantidad ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_movilizacion']?->costo_unitario ?? '' }}">
+                                    value="{{ $conceptos->get('gastos_movilizacion')?->costo_unitario ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_movilizacion']?->costo_total ?? '' }}">
+                                    value="{{ $conceptos->get('gastos_movilizacion')?->costo_total ?? '' }}">
                             </td>
                         </tr>
                         
@@ -1532,15 +1549,15 @@
                             <td class="sub-header" colspan="3">Global</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['utiles_materiales_oficina']?->cantidad ?? '' }}">
+                                    value="{{ $conceptos->get('utiles_materiales_oficina')?->cantidad ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['utiles_materiales_oficina']?->costo_unitario ?? '' }}">
+                                    value="{{ $conceptos->get('utiles_materiales_oficina')?->costo_unitario ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['utiles_materiales_oficina']?->costo_total ?? '' }}">
+                                    value="{{ $conceptos->get('utiles_materiales_oficina')?->costo_total ?? '' }}">
                             </td>
                         </tr>
                         
@@ -1550,15 +1567,15 @@
                             <td class="sub-header" colspan="3">Global</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_impresion']?->cantidad ?? '' }}">
+                                    value="{{ $conceptos->get('gastos_impresion')?->cantidad ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_impresion']?->costo_unitario ?? '' }}">
+                                    value="{{ $conceptos->get('gastos_impresion')?->costo_unitario ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_impresion']?->costo_total ?? '' }}">
+                                    value="{{ $conceptos->get('gastos_impresion')?->costo_total ?? '' }}">
                             </td>
                         </tr>
                         
@@ -1568,53 +1585,15 @@
                             <td class="sub-header" colspan="3">%</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ number_format(
-    (
-        ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
-        ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
-        ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
-        ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
-        ($conceptos['gastos_impresion']?->cantidad ?? 0)
-    ) * 0.05,
-    2, '.', ','
-) }}">
+                                    value="{{ number_format($infraestructura?->cantidad ?? $cantidadIndirecta, 2, '.', ',') }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ number_format(
-    (
-        ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
-        ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
-        ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
-        ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
-        ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
-    ) * 0.05,
-    2, '.', ','
-) }}">
+                                    value="{{ number_format($infraestructura?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',') }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ number_format(
-        (
-            (
-                ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
-                ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
-                ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
-                ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
-                ($conceptos['gastos_impresion']?->cantidad ?? 0)
-            ) * 0.05
-        ) *
-        (
-            (
-                ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
-                ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
-                ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
-                ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
-                ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
-            ) * 0.05
-        ),
-        2, '.', ','
-    ) }}">
+                                    value="{{ number_format($infraestructura?->costo_total ?? $costoTotalIndirecto, 2, '.', ',') }}">
                             </td>
                         </tr>
                         
@@ -1624,53 +1603,15 @@
                             <td class="sub-header" colspan="3">%</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ number_format(
-    (
-        ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
-        ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
-        ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
-        ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
-        ($conceptos['gastos_impresion']?->cantidad ?? 0)
-    ) * 0.05,
-    2, '.', ','
-) }}">
+                                    value="{{ number_format($servicios?->cantidad ?? $cantidadIndirecta, 2, '.', ',') }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ number_format(
-    (
-        ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
-        ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
-        ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
-        ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
-        ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
-    ) * 0.05,
-    2, '.', ','
-) }}">
+                                    value="{{ number_format($servicios?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',') }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ number_format(
-        (
-            (
-                ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
-                ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
-                ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
-                ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
-                ($conceptos['gastos_impresion']?->cantidad ?? 0)
-            ) * 0.05
-        ) *
-        (
-            (
-                ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
-                ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
-                ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
-                ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
-                ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
-            ) * 0.05
-        ),
-        2, '.', ','
-    ) }}">
+                                    value="{{ number_format($servicios?->costo_total ?? $costoTotalIndirecto, 2, '.', ',') }}">
                             </td>
                         </tr>
                         

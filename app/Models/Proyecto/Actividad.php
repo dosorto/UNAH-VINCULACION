@@ -36,6 +36,11 @@ class Actividad extends Model
         'horas',
         'proyecto_id',
     ];
+
+    protected $casts = [
+        'fecha_inicio' => 'date',
+        'fecha_finalizacion' => 'date',
+    ];
     
     public function proyecto()
     {
