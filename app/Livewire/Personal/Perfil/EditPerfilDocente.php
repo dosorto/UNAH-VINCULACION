@@ -203,11 +203,11 @@ class EditPerfilDocente extends Component
             ? DepartamentoAcademico::where('centro_facultad_id', $this->centro_facultad_id)->orderBy('nombre')->pluck('nombre', 'id')
             : collect();
 
-        $firmas = $this->record->empleado?->firma ?? collect();
-        $sellos = $this->record->empleado?->sello ?? collect();
+        $firma = $this->record->empleado?->firma;
+        $sello = $this->record->empleado?->sello;
         $codigos = $this->record->empleado?->codigosInvestigacion ?? collect();
         $anios = collect(range(date('Y') - 10, date('Y') + 2))->mapWithKeys(fn($y) => [$y => $y]);
 
-        return view('livewire.personal.perfil.edit-perfil-docente', compact('centros', 'departamentos', 'firmas', 'sellos', 'codigos', 'anios'));
+        return view('livewire.personal.perfil.edit-perfil-docente', compact('centros', 'departamentos', 'firma', 'sello', 'codigos', 'anios'));
     }
 }
