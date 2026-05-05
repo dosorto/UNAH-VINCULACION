@@ -4,7 +4,10 @@ namespace App\Livewire\Proyectos\Vinculacion;
 
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
+use App\Models\Proyecto\Categoria;
 use App\Models\Proyecto\FirmaProyecto;
+use App\Models\Proyecto\Modalidad;
+use App\Models\Proyecto\Od;
 use App\Models\Proyecto\Proyecto;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
@@ -18,7 +21,12 @@ class ListProyectosVinculacion extends Component
     use WithPagination;
 
     public string $search = '';
-    public array $filterEstado = [];
+    public string $filterEstado = '';
+    public string $filterCategoria = '';
+    public string $filterModalidad = '';
+    public string $filterOds = '';
+    public string $filterFechaInicio = '';
+    public string $filterFechaFin = '';
     public ?int $filterCentroFacultad = null;
     public ?int $filterDepartamento = null;
 
@@ -102,7 +110,11 @@ class ListProyectosVinculacion extends Component
             })
             ->leftJoin('proyecto_centro_facultad', 'proyecto_centro_facultad.proyecto_id', '=', 'proyecto.id')
             ->leftJoin('proyecto_depto_ac', 'proyecto_depto_ac.proyecto_id', '=', 'proyecto.id')
-            ->leftJoin('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
+            ->leftJoin('estado_proyecto', function ($join) {
+                $join->on('estado_proyecto.estadoable_id', '=', 'proyecto.id')
+                    ->where('estado_proyecto.estadoable_type', Proyecto::class)
+                    ->where('estado_proyecto.es_actual', true);
+            })
             ->leftJoin('tipo_estado', 'estado_proyecto.tipo_estado_id', '=', 'tipo_estado.id')
             ->select('proyecto.*')
             ->when($this->search, fn($q) => $q->where(fn($q2) => $q2
@@ -110,7 +122,12 @@ class ListProyectosVinculacion extends Component
                 ->orWhere('proyecto.codigo_proyecto', 'like', '%' . $this->search . '%')
                 ->orWhere('proyecto.numero_dictamen', 'like', '%' . $this->search . '%')
             ))
-            ->when(!empty($this->filterEstado), fn($q) => $q->whereIn('tipo_estado.id', $this->filterEstado))
+            ->when($this->filterEstado, fn($q) => $q->where('tipo_estado.id', $this->filterEstado))
+            ->when($this->filterModalidad, fn($q) => $q->where('proyecto.modalidad_id', $this->filterModalidad))
+            ->when($this->filterCategoria, fn($q) => $q->whereHas('categoria', fn($q2) => $q2->where('categorias.id', $this->filterCategoria)))
+            ->when($this->filterOds, fn($q) => $q->whereHas('ods', fn($q2) => $q2->where('ods.id', $this->filterOds)))
+            ->when($this->filterFechaInicio, fn($q) => $q->whereDate('proyecto.fecha_inicio', '>=', $this->filterFechaInicio))
+            ->when($this->filterFechaFin, fn($q) => $q->whereDate('proyecto.fecha_finalizacion', '<=', $this->filterFechaFin))
             ->when($this->filterCentroFacultad, fn($q) => $q->where('proyecto_centro_facultad.centro_facultad_id', $this->filterCentroFacultad))
             ->when($this->filterDepartamento, fn($q) => $q->where('proyecto_depto_ac.departamento_academico_id', $this->filterDepartamento))
             ->distinct()
@@ -126,7 +143,13 @@ class ListProyectosVinculacion extends Component
             ? \App\Models\UnidadAcademica\DepartamentoAcademico::where('centro_facultad_id', $this->filterCentroFacultad)->orderBy('nombre')->pluck('nombre', 'id')
             : collect();
         $empleados       = Empleado::orderBy('nombre_completo')->pluck('nombre_completo', 'id');
+        $categorias      = Categoria::orderBy('nombre')->pluck('nombre', 'id');
+        $modalidades     = Modalidad::orderBy('nombre')->pluck('nombre', 'id');
+        $odsList         = Od::orderBy('nombre')->pluck('nombre', 'id');
 
-        return view('livewire.proyectos.vinculacion.list-proyectos-vinculacion', compact('records', 'viewProyecto', 'estadosTipo', 'centros', 'departamentos', 'empleados'));
+        return view('livewire.proyectos.vinculacion.list-proyectos-vinculacion', compact(
+            'records', 'viewProyecto', 'estadosTipo', 'centros', 'departamentos',
+            'empleados', 'categorias', 'modalidades', 'odsList'
+        ));
     }
 }

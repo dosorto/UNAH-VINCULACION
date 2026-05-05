@@ -1,3 +1,4 @@
+@php use App\Http\Controllers\Docente\VerificarConstancia; @endphp
 <div>
     <div class="w-full flex justify-between items-center mb-4">
         <div>
@@ -24,16 +25,16 @@
             <option value="Integrante">Integrante</option>
         </select>
 
-        <select wire:model.live="filterCategoria" multiple
-                class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm h-10">
+        <select wire:model.live="filterCategoria"
+                class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm">
             <option value="">Todas las categorías</option>
             @foreach ($categorias as $id => $nombre)
                 <option value="{{ $id }}">{{ $nombre }}</option>
             @endforeach
         </select>
 
-        <select wire:model.live="filterEstado" multiple
-                class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm h-10">
+        <select wire:model.live="filterEstado"
+                class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm">
             <option value="">Todos los estados</option>
             @foreach ($estadosTipo as $id => $nombre)
                 <option value="{{ $id }}">{{ $nombre }}</option>
@@ -83,13 +84,26 @@
                             <span class="px-2 py-1 text-xs font-medium rounded-full {{ $estadoBadge }}">{{ $estado ?: '-' }}</span>
                         </td>
                         <td class="px-4 py-3">
-                            <div x-data="{ open: false }" class="relative">
-                                <button @click="open = !open"
+                            <div x-data="{
+                                    open: false,
+                                    top: 0,
+                                    right: 0,
+                                    toggle(btn) {
+                                        this.open = !this.open;
+                                        if (this.open) {
+                                            const r = btn.getBoundingClientRect();
+                                            this.top = r.bottom + 4;
+                                            this.right = window.innerWidth - r.right;
+                                        }
+                                    }
+                                }" @click.outside="open = false">
+                                <button @click="toggle($event.currentTarget)"
                                         class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
                                     Acciones ▾
                                 </button>
-                                <div x-show="open" x-cloak @click.outside="open = false"
-                                     class="absolute right-0 z-20 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
+                                <div x-show="open" x-cloak
+                                     :style="`position:fixed;top:${top}px;right:${right}px;z-index:9999;`"
+                                     class="w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
 
                                     {{-- Ver historial --}}
                                     <a href="{{ route('historialproyecto', $proyecto) }}"

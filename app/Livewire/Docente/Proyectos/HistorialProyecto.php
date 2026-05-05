@@ -19,7 +19,6 @@ class HistorialProyecto extends Component
     use WithFileUploads;
 
     public Proyecto $proyecto;
-    public array $estados = [];
     public bool $esCoordinador = false;
 
     public bool $informeIntermedioModal = false;
@@ -60,21 +59,6 @@ class HistorialProyecto extends Component
             }
         }
 
-        $documentosIds = DocumentoProyecto::where('proyecto_id', $proyecto->id)->pluck('id')->toArray();
-
-        $this->estados = EstadoProyecto::where(function ($query) use ($proyecto, $documentosIds) {
-            $query->where(function ($q) use ($proyecto) {
-                $q->where('estadoable_type', Proyecto::class)->where('estadoable_id', $proyecto->id);
-            });
-            if (!empty($documentosIds)) {
-                $query->orWhere(function ($q) use ($documentosIds) {
-                    $q->where('estadoable_type', DocumentoProyecto::class)->whereIn('estadoable_id', $documentosIds);
-                });
-            }
-        })
-        ->orderByDesc('created_at')
-        ->get()
-        ->toArray();
     }
 
     public function openSubirIntermedio(): void
@@ -173,9 +157,28 @@ class HistorialProyecto extends Component
 
     public function render(): View
     {
-        return view('livewire.docente.proyectos.historial-proyecto', [
-            'proyecto' => $this->proyecto,
-            'estados'  => $this->estados,
-        ]);
+        $proyecto = $this->proyecto;
+
+        $documentosIds = DocumentoProyecto::where('proyecto_id', $proyecto->id)->pluck('id')->toArray();
+
+        $estados = EstadoProyecto::where(function ($query) use ($proyecto, $documentosIds) {
+            $query->where(function ($q) use ($proyecto) {
+                $q->where('estadoable_type', Proyecto::class)->where('estadoable_id', $proyecto->id);
+            });
+            if (!empty($documentosIds)) {
+                $query->orWhere(function ($q) use ($documentosIds) {
+                    $q->where('estadoable_type', DocumentoProyecto::class)->whereIn('estadoable_id', $documentosIds);
+                });
+            }
+        })
+        ->with(['empleado', 'tipoestado'])
+        ->orderByDesc('created_at')
+        ->get();
+
+        $diasTranscurridos = $proyecto->created_at
+            ? (int) $proyecto->created_at->diffInDays(now())
+            : 0;
+
+        return view('livewire.docente.proyectos.historial-proyecto', compact('proyecto', 'estados', 'diasTranscurridos'));
     }
 }

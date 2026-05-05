@@ -361,7 +361,7 @@
                                     </div>
                                     <div class="date-part">
                                         <span class="date-label">Año</span>
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_finalizacion ? $proyecto->fecha_finalizacion->format('Y') : ' }}">
+                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_finalizacion ? $proyecto->fecha_finalizacion->format('Y') : '' }}">
                                     </div>
                                 </div>
                             </td>
@@ -488,33 +488,35 @@
                                 @endforeach
                             @else
                                 <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el caserío" value="{{ $proyecto->caserio ?? ' }}" disabled>
+                                    placeholder="Ingrese el caserío" value="{{ $proyecto->caserio ?? '' }}" disabled>
                             @endif
                         </td>
                     </tr>
                     <tr>
                         <td class="sub-header" colspan="1">Región</td>
                         <td class="full-width" colspan="1">
-                            @if(is_array($proyecto->region) && count($proyecto->region) > 0)
-                                @foreach($proyecto->region as $region)
+                            @php $regionArr = is_array($proyecto->region) ? $proyecto->region : (array) $proyecto->region; @endphp
+                            @if(count($regionArr) > 0)
+                                @foreach($regionArr as $region)
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese la región" value="{{ $region }}" disabled>
                                 @endforeach
                             @else
                                 <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese la región" value="{{ $proyecto->region ?? ' }}" disabled>
+                                    placeholder="Ingrese la región" value="" disabled>
                             @endif
                         </td>
                         <td class="sub-header" colspan="1">País</td>
                         <td class="full-width" colspan="2">
-                            @if(is_array($proyecto->pais) && count($proyecto->pais) > 0)
-                                @foreach($proyecto->pais as $pais)
+                            @php $paisArr = is_array($proyecto->pais) ? $proyecto->pais : (array) $proyecto->pais; @endphp
+                            @if(count($paisArr) > 0)
+                                @foreach($paisArr as $pais)
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el país" value="{{ $pais }}" disabled>
                                 @endforeach
                             @else
                                 <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el país" value="{{ $proyecto->pais ?? ' }}" disabled>
+                                    placeholder="Ingrese el país" value="" disabled>
                             @endif
                         </td>
                     </tr>

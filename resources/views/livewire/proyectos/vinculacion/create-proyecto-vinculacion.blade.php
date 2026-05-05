@@ -52,44 +52,194 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categorías <span class="text-red-500">*</span></label>
-                <select wire:model="categoria" multiple size="5" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                    @foreach($categorias as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Ctrl+click para seleccionar múltiples</p>
+                <div x-data="{
+                        open: false,
+                        selected: $wire.entangle('categoria'),
+                        options: @js($categorias),
+                        toggle(id) {
+                            id = String(id);
+                            let curr = (this.selected || []).map(String);
+                            const i = curr.indexOf(id);
+                            if (i === -1) curr.push(id); else curr.splice(i, 1);
+                            this.selected = curr;
+                        },
+                        isSelected(id) { return (this.selected || []).map(String).includes(String(id)); },
+                        getName(id) { return this.options[id] ?? this.options[String(id)] ?? id; }
+                    }" @click.outside="open = false" class="relative">
+                    <div @click="open = !open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
+                        <template x-for="id in (selected || [])" :key="id">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                <span x-text="getName(id)"></span>
+                                <button type="button" @click.stop="toggle(id)" class="ml-0.5 font-bold leading-none hover:text-orange-900">×</button>
+                            </span>
+                        </template>
+                        <span x-show="!selected || selected.length === 0" class="text-gray-400 text-sm">Seleccione una opción</span>
+                        <span class="ml-auto text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
+                    </div>
+                    <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        <template x-for="[id, name] in Object.entries(options)" :key="id">
+                            <div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
+                                :class="isSelected(id) ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 font-medium' : 'text-gray-700 dark:text-gray-300'">
+                                <span x-text="name"></span>
+                                <span x-show="isSelected(id)" class="text-orange-600 dark:text-orange-400 text-xs">✓</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
                 @error('categoria') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ejes Prioritarios UNAH <span class="text-red-500">*</span></label>
-                <select wire:model="ejes_prioritarios_unah" multiple size="4" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                    @foreach($ejesPrioritarios as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Ctrl+click para seleccionar múltiples</p>
+                <div x-data="{
+                        open: false,
+                        selected: $wire.entangle('ejes_prioritarios_unah'),
+                        options: @js($ejesPrioritarios),
+                        toggle(id) {
+                            id = String(id);
+                            let curr = (this.selected || []).map(String);
+                            const i = curr.indexOf(id);
+                            if (i === -1) curr.push(id); else curr.splice(i, 1);
+                            this.selected = curr;
+                        },
+                        isSelected(id) { return (this.selected || []).map(String).includes(String(id)); },
+                        getName(id) { return this.options[id] ?? this.options[String(id)] ?? id; }
+                    }" @click.outside="open = false" class="relative">
+                    <div @click="open = !open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
+                        <template x-for="id in (selected || [])" :key="id">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                <span x-text="getName(id)"></span>
+                                <button type="button" @click.stop="toggle(id)" class="ml-0.5 font-bold leading-none hover:text-orange-900">×</button>
+                            </span>
+                        </template>
+                        <span x-show="!selected || selected.length === 0" class="text-gray-400 text-sm">Seleccione una opción</span>
+                        <span class="ml-auto text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
+                    </div>
+                    <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        <template x-for="[id, name] in Object.entries(options)" :key="id">
+                            <div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
+                                :class="isSelected(id) ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 font-medium' : 'text-gray-700 dark:text-gray-300'">
+                                <span x-text="name"></span>
+                                <span x-show="isSelected(id)" class="text-orange-600 dark:text-orange-400 text-xs">✓</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
                 @error('ejes_prioritarios_unah') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Facultades / Centros <span class="text-red-500">*</span></label>
-                <select wire:model.live="facultades_centros" multiple size="4" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                    @foreach($facultadesCentros as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Ctrl+click para seleccionar múltiples</p>
+                <div x-data="{
+                        open: false,
+                        selected: $wire.entangle('facultades_centros').live,
+                        options: @js($facultadesCentros),
+                        toggle(id) {
+                            id = String(id);
+                            let curr = (this.selected || []).map(String);
+                            const i = curr.indexOf(id);
+                            if (i === -1) curr.push(id); else curr.splice(i, 1);
+                            this.selected = curr;
+                        },
+                        isSelected(id) { return (this.selected || []).map(String).includes(String(id)); },
+                        getName(id) { return this.options[id] ?? this.options[String(id)] ?? id; }
+                    }" @click.outside="open = false" class="relative">
+                    <div @click="open = !open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
+                        <template x-for="id in (selected || [])" :key="id">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                <span x-text="getName(id)"></span>
+                                <button type="button" @click.stop="toggle(id)" class="ml-0.5 font-bold leading-none hover:text-orange-900">×</button>
+                            </span>
+                        </template>
+                        <span x-show="!selected || selected.length === 0" class="text-gray-400 text-sm">Seleccione una opción</span>
+                        <span class="ml-auto text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
+                    </div>
+                    <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        <template x-for="[id, name] in Object.entries(options)" :key="id">
+                            <div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
+                                :class="isSelected(id) ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 font-medium' : 'text-gray-700 dark:text-gray-300'">
+                                <span x-text="name"></span>
+                                <span x-show="isSelected(id)" class="text-orange-600 dark:text-orange-400 text-xs">✓</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
                 @error('facultades_centros') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             @if($departamentosAcademicos->count())
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departamentos Académicos</label>
-                <select wire:model.live="departamentos_academicos" multiple size="4" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                    @foreach($departamentosAcademicos as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Ctrl+click para seleccionar múltiples</p>
+                <div x-data="{
+                        open: false,
+                        selected: $wire.entangle('departamentos_academicos').live,
+                        options: @js($departamentosAcademicos),
+                        toggle(id) {
+                            id = String(id);
+                            let curr = (this.selected || []).map(String);
+                            const i = curr.indexOf(id);
+                            if (i === -1) curr.push(id); else curr.splice(i, 1);
+                            this.selected = curr;
+                        },
+                        isSelected(id) { return (this.selected || []).map(String).includes(String(id)); },
+                        getName(id) { return this.options[id] ?? this.options[String(id)] ?? id; }
+                    }" @click.outside="open = false" class="relative">
+                    <div @click="open = !open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
+                        <template x-for="id in (selected || [])" :key="id">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                <span x-text="getName(id)"></span>
+                                <button type="button" @click.stop="toggle(id)" class="ml-0.5 font-bold leading-none hover:text-orange-900">×</button>
+                            </span>
+                        </template>
+                        <span x-show="!selected || selected.length === 0" class="text-gray-400 text-sm">Seleccione una opción</span>
+                        <span class="ml-auto text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
+                    </div>
+                    <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        <template x-for="[id, name] in Object.entries(options)" :key="id">
+                            <div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
+                                :class="isSelected(id) ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 font-medium' : 'text-gray-700 dark:text-gray-300'">
+                                <span x-text="name"></span>
+                                <span x-show="isSelected(id)" class="text-orange-600 dark:text-orange-400 text-xs">✓</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
             </div>
             @endif
             @if($carrerasOpts->count())
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carreras</label>
-                <select wire:model="carreras" multiple size="4" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                    @foreach($carrerasOpts as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Ctrl+click para seleccionar múltiples</p>
+                <div x-data="{
+                        open: false,
+                        selected: $wire.entangle('carreras'),
+                        options: @js($carrerasOpts),
+                        toggle(id) {
+                            id = String(id);
+                            let curr = (this.selected || []).map(String);
+                            const i = curr.indexOf(id);
+                            if (i === -1) curr.push(id); else curr.splice(i, 1);
+                            this.selected = curr;
+                        },
+                        isSelected(id) { return (this.selected || []).map(String).includes(String(id)); },
+                        getName(id) { return this.options[id] ?? this.options[String(id)] ?? id; }
+                    }" @click.outside="open = false" class="relative">
+                    <div @click="open = !open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
+                        <template x-for="id in (selected || [])" :key="id">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                <span x-text="getName(id)"></span>
+                                <button type="button" @click.stop="toggle(id)" class="ml-0.5 font-bold leading-none hover:text-orange-900">×</button>
+                            </span>
+                        </template>
+                        <span x-show="!selected || selected.length === 0" class="text-gray-400 text-sm">Seleccione una opción</span>
+                        <span class="ml-auto text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
+                    </div>
+                    <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        <template x-for="[id, name] in Object.entries(options)" :key="id">
+                            <div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
+                                :class="isSelected(id) ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 font-medium' : 'text-gray-700 dark:text-gray-300'">
+                                <span x-text="name"></span>
+                                <span x-show="isSelected(id)" class="text-orange-600 dark:text-orange-400 text-xs">✓</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
             </div>
             @endif
             <div>
@@ -104,19 +254,79 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ODS <span class="text-red-500">*</span></label>
-                <select wire:model.live="ods" multiple size="5" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                    @foreach($odsList as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Ctrl+click para seleccionar múltiples</p>
+                <div x-data="{
+                        open: false,
+                        selected: $wire.entangle('ods').live,
+                        options: @js($odsList),
+                        toggle(id) {
+                            id = String(id);
+                            let curr = (this.selected || []).map(String);
+                            const i = curr.indexOf(id);
+                            if (i === -1) curr.push(id); else curr.splice(i, 1);
+                            this.selected = curr;
+                        },
+                        isSelected(id) { return (this.selected || []).map(String).includes(String(id)); },
+                        getName(id) { return this.options[id] ?? this.options[String(id)] ?? id; }
+                    }" @click.outside="open = false" class="relative">
+                    <div @click="open = !open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
+                        <template x-for="id in (selected || [])" :key="id">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                <span x-text="getName(id)"></span>
+                                <button type="button" @click.stop="toggle(id)" class="ml-0.5 font-bold leading-none hover:text-orange-900">×</button>
+                            </span>
+                        </template>
+                        <span x-show="!selected || selected.length === 0" class="text-gray-400 text-sm">Seleccione una opción</span>
+                        <span class="ml-auto text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
+                    </div>
+                    <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        <template x-for="[id, name] in Object.entries(options)" :key="id">
+                            <div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
+                                :class="isSelected(id) ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 font-medium' : 'text-gray-700 dark:text-gray-300'">
+                                <span x-text="name"></span>
+                                <span x-show="isSelected(id)" class="text-orange-600 dark:text-orange-400 text-xs">✓</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
                 @error('ods') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             @if($metasList->count())
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metas que Contribuye</label>
-                <select wire:model="metasContribuye" multiple size="5" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                    @foreach($metasList as $id => $descripcion) <option value="{{ $id }}">{{ $descripcion }}</option> @endforeach
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Ctrl+click para seleccionar múltiples</p>
+                <div x-data="{
+                        open: false,
+                        selected: $wire.entangle('metasContribuye'),
+                        options: @js($metasList),
+                        toggle(id) {
+                            id = String(id);
+                            let curr = (this.selected || []).map(String);
+                            const i = curr.indexOf(id);
+                            if (i === -1) curr.push(id); else curr.splice(i, 1);
+                            this.selected = curr;
+                        },
+                        isSelected(id) { return (this.selected || []).map(String).includes(String(id)); },
+                        getName(id) { return this.options[id] ?? this.options[String(id)] ?? id; }
+                    }" @click.outside="open = false" class="relative">
+                    <div @click="open = !open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
+                        <template x-for="id in (selected || [])" :key="id">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                <span x-text="getName(id)"></span>
+                                <button type="button" @click.stop="toggle(id)" class="ml-0.5 font-bold leading-none hover:text-orange-900">×</button>
+                            </span>
+                        </template>
+                        <span x-show="!selected || selected.length === 0" class="text-gray-400 text-sm">Seleccione una opción</span>
+                        <span class="ml-auto text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
+                    </div>
+                    <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        <template x-for="[id, name] in Object.entries(options)" :key="id">
+                            <div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
+                                :class="isSelected(id) ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 font-medium' : 'text-gray-700 dark:text-gray-300'">
+                                <span x-text="name"></span>
+                                <span x-show="isSelected(id)" class="text-orange-600 dark:text-orange-400 text-xs">✓</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
             </div>
             @endif
         </div>
@@ -234,10 +444,12 @@
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo de Entidad</label>
                         <select wire:model="entidad_contraparte.{{ $ci }}.tipo_entidad" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
                             <option value="">Seleccione...</option>
-                            <option value="Publica">Pública</option>
-                            <option value="Privada">Privada</option>
-                            <option value="ONG">ONG</option>
-                            <option value="Internacional">Internacional</option>
+                            <option value="internacional">Internacional</option>
+                            <option value="gobierno_nacional">Gobierno Nacional</option>
+                            <option value="gobierno_municipal">Gobierno Municipal</option>
+                            <option value="ong">ONG</option>
+                            <option value="sociedad_civil">Sociedad Civil</option>
+                            <option value="sector_privado">Sector Privado</option>
                         </select>
                     </div>
                     <div>
