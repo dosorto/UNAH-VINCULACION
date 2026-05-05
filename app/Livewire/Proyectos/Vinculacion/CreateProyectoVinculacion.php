@@ -14,6 +14,8 @@ use App\Models\Proyecto\EjesPrioritariosUnah;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\MetaContribuye;
 use App\Models\Proyecto\IntegranteInternacional;
+use App\Models\Asignatura;
+use App\Models\PeriodoAcademico;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\Carrera;
@@ -48,6 +50,15 @@ class CreateProyectoVinculacion extends Component
     public array $empleado_proyecto = [];
     public array $estudiante_proyecto = [];
     public array $integrante_internacional_proyecto = [];
+    public bool $showInternacionalModal = false;
+    public array $nuevoIntegranteInternacional = [
+        'nombre_completo' => '',
+        'documento_identidad' => '',
+        'sexo' => '',
+        'email' => '',
+        'pais' => '',
+        'institucion' => '',
+    ];
 
     // Step 3
     public array $entidad_contraparte = [];
@@ -109,6 +120,19 @@ class CreateProyectoVinculacion extends Component
         'corto_plazo',
         'mediano_plazo',
         'largo_plazo',
+    ];
+
+    protected array $tipoParticipacionEstudianteOpciones = [
+        'Servicio Social o PPS' => 'PPS / Servicio Social',
+        'Practica Profesional' => 'Práctica Profesional',
+        'Practica Asignatura' => 'Asignatura',
+    ];
+
+    protected array $tipoParticipacionEstudiantePermitidos = [
+        'Servicio Social o PPS',
+        'Practica Profesional',
+        'Practica Asignatura',
+        'Voluntariado',
     ];
 
     public function mount(?int $record = null): void
@@ -177,7 +201,7 @@ class CreateProyectoVinculacion extends Component
         ])->toArray();
 
         $this->estudiante_proyecto = $record->estudiante_proyecto->map(fn($ep) => [
-            'tipo_participacion_estudiante' => $ep->tipo_participacion_estudiante,
+            'tipo_participacion_estudiante' => $this->normalizeTipoParticipacionEstudiante($ep->tipo_participacion_estudiante) ?: $ep->tipo_participacion_estudiante,
             'asignatura_id' => $ep->asignatura_id,
             'periodo_academico_id' => $ep->periodo_academico_id,
             'cantidad_estudiantes_hombres' => $ep->cantidad_estudiantes_hombres ?? 0,
@@ -383,6 +407,46 @@ class CreateProyectoVinculacion extends Component
 
     protected function saveStep2(): void
     {
+        $this->validate([
+            'empleado_proyecto.*.empleado_id' => 'nullable|exists:empleado,id',
+            'estudiante_proyecto.*.tipo_participacion_estudiante' => 'nullable|string',
+            'estudiante_proyecto.*.asignatura_id' => 'nullable|exists:asignaturas,id',
+            'estudiante_proyecto.*.periodo_academico_id' => 'nullable|exists:periodos_academicos,id',
+            'estudiante_proyecto.*.cantidad_estudiantes_hombres' => 'nullable|integer|min:0',
+            'estudiante_proyecto.*.cantidad_estudiantes_mujeres' => 'nullable|integer|min:0',
+            'integrante_internacional_proyecto.*.integrante_internacional_id' => 'nullable|exists:integrante_internacional,id',
+        ]);
+
+        $hasInvalidStudentRows = false;
+        foreach ($this->estudiante_proyecto as $i => $item) {
+            $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '') ?: ($item['tipo_participacion_estudiante'] ?? '');
+            $this->estudiante_proyecto[$i]['tipo_participacion_estudiante'] = $tipo;
+
+            if ($tipo !== '' && !in_array($tipo, $this->tipoParticipacionEstudiantePermitidos, true)) {
+                $this->addError("estudiante_proyecto.$i.tipo_participacion_estudiante", 'Seleccione un tipo de participación válido.');
+                $hasInvalidStudentRows = true;
+                continue;
+            }
+
+            if ($this->isTipoParticipacionAsignatura($tipo)) {
+                if (empty($item['asignatura_id'])) {
+                    $this->addError("estudiante_proyecto.$i.asignatura_id", 'Seleccione la asignatura.');
+                    $hasInvalidStudentRows = true;
+                }
+                if (empty($item['periodo_academico_id'])) {
+                    $this->addError("estudiante_proyecto.$i.periodo_academico_id", 'Seleccione el periodo académico.');
+                    $hasInvalidStudentRows = true;
+                }
+            } else {
+                $this->estudiante_proyecto[$i]['asignatura_id'] = null;
+                $this->estudiante_proyecto[$i]['periodo_academico_id'] = null;
+            }
+        }
+
+        if ($hasInvalidStudentRows) {
+            return;
+        }
+
         $record = $this->ensureRecord();
         $coordId = auth()->user()->empleado->id;
         foreach ($this->empleado_proyecto as $item) {
@@ -395,11 +459,13 @@ class CreateProyectoVinculacion extends Component
         }
         $record->estudiante_proyecto()->delete();
         foreach ($this->estudiante_proyecto as $item) {
-            if (!empty($item['tipo_participacion_estudiante'])) {
+            $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '') ?: ($item['tipo_participacion_estudiante'] ?? '');
+            if (!empty($tipo)) {
+                $isAsignatura = $this->isTipoParticipacionAsignatura($tipo);
                 $record->estudiante_proyecto()->create([
-                    'tipo_participacion_estudiante' => $item['tipo_participacion_estudiante'],
-                    'asignatura_id' => $item['asignatura_id'] ?? null,
-                    'periodo_academico_id' => $item['periodo_academico_id'] ?? null,
+                    'tipo_participacion_estudiante' => $tipo,
+                    'asignatura_id' => $isAsignatura ? ($item['asignatura_id'] ?? null) : null,
+                    'periodo_academico_id' => $isAsignatura ? ($item['periodo_academico_id'] ?? null) : null,
                     'cantidad_estudiantes_hombres' => $item['cantidad_estudiantes_hombres'] ?? 0,
                     'cantidad_estudiantes_mujeres' => $item['cantidad_estudiantes_mujeres'] ?? 0,
                     'total_estudiantes' => ($item['cantidad_estudiantes_hombres'] ?? 0) + ($item['cantidad_estudiantes_mujeres'] ?? 0),
@@ -496,12 +562,30 @@ class CreateProyectoVinculacion extends Component
     protected function saveStep4(): void
     {
         $record = $this->ensureRecord();
+        $validEmpleados = $this->responsableIdsDisponibles($record);
+        $hasInvalidResponsables = false;
+
+        foreach ($this->actividades as $i => $item) {
+            $selected = collect($item['empleados'] ?? [])
+                ->filter()
+                ->map(fn($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->toArray();
+
+            $invalid = array_diff($selected, $validEmpleados);
+            if (!empty($invalid)) {
+                $this->addError("actividades.$i.empleados", 'Seleccione únicamente responsables que pertenecen al equipo ejecutor.');
+                $hasInvalidResponsables = true;
+            }
+        }
+
+        if ($hasInvalidResponsables) {
+            return;
+        }
+
         $record->actividades()->each(fn($a) => $a->empleados()->detach());
         $record->actividades()->delete();
-        $validEmpleados = array_unique(array_merge(
-            $record->empleado_proyecto->pluck('empleado_id')->toArray(),
-            [auth()->user()->empleado->id]
-        ));
         foreach ($this->actividades as $item) {
             if (!empty($item['descripcion'])) {
                 $actividad = $record->actividades()->create([
@@ -510,7 +594,12 @@ class CreateProyectoVinculacion extends Component
                     'fecha_finalizacion' => $item['fecha_finalizacion'] ?: null,
                     'horas' => $item['horas'] ?? 0,
                 ]);
-                $ids = array_intersect($item['empleados'] ?? [], $validEmpleados);
+                $ids = collect($item['empleados'] ?? [])
+                    ->filter()
+                    ->map(fn($id) => (int) $id)
+                    ->unique()
+                    ->values()
+                    ->toArray();
                 if (!empty($ids)) $actividad->empleados()->sync($ids);
             }
         }
@@ -640,6 +729,101 @@ class CreateProyectoVinculacion extends Component
         }
     }
 
+    public function updatedEstudianteProyecto($value, ?string $key = null): void
+    {
+        if ($key === null || !str_ends_with($key, '.tipo_participacion_estudiante')) {
+            return;
+        }
+
+        $index = (int) explode('.', $key, 2)[0];
+        $tipo = $this->normalizeTipoParticipacionEstudiante($value) ?: (string) $value;
+        $this->estudiante_proyecto[$index]['tipo_participacion_estudiante'] = $tipo;
+
+        if (!$this->isTipoParticipacionAsignatura($tipo)) {
+            $this->estudiante_proyecto[$index]['asignatura_id'] = null;
+            $this->estudiante_proyecto[$index]['periodo_academico_id'] = null;
+        }
+    }
+
+    public function openInternacionalModal(): void
+    {
+        $this->resetErrorBag();
+        $this->showInternacionalModal = true;
+    }
+
+    public function closeInternacionalModal(): void
+    {
+        $this->showInternacionalModal = false;
+        $this->resetNuevoIntegranteInternacional();
+    }
+
+    public function saveNuevoIntegranteInternacional(): void
+    {
+        $data = $this->validate([
+            'nuevoIntegranteInternacional.nombre_completo' => 'required|string|max:255',
+            'nuevoIntegranteInternacional.documento_identidad' => 'required|string|max:255',
+            'nuevoIntegranteInternacional.sexo' => 'nullable|in:masculino,femenino,otro',
+            'nuevoIntegranteInternacional.email' => 'required|email|max:255',
+            'nuevoIntegranteInternacional.pais' => 'required|string|max:255',
+            'nuevoIntegranteInternacional.institucion' => 'required|string|max:255',
+        ])['nuevoIntegranteInternacional'];
+
+        $data = [
+            'nombre_completo' => trim($data['nombre_completo']),
+            'documento_identidad' => trim($data['documento_identidad']),
+            'sexo' => $data['sexo'] ?: null,
+            'email' => trim($data['email']),
+            'pais' => trim($data['pais']),
+            'institucion' => trim($data['institucion']),
+        ];
+
+        $integrante = IntegranteInternacional::where('email', $data['email'])
+            ->orWhere('documento_identidad', $data['documento_identidad'])
+            ->first();
+
+        if (!$integrante) {
+            $integrante = IntegranteInternacional::create($data);
+            Notification::make()->title('Integrante internacional creado')->success()->send();
+        } else {
+            Notification::make()->title('Integrante internacional existente seleccionado')->success()->send();
+        }
+
+        $this->selectIntegranteInternacional((int) $integrante->id);
+        $this->showInternacionalModal = false;
+        $this->resetNuevoIntegranteInternacional();
+    }
+
+    protected function resetNuevoIntegranteInternacional(): void
+    {
+        $this->nuevoIntegranteInternacional = [
+            'nombre_completo' => '',
+            'documento_identidad' => '',
+            'sexo' => '',
+            'email' => '',
+            'pais' => '',
+            'institucion' => '',
+        ];
+    }
+
+    protected function selectIntegranteInternacional(int $integranteId): void
+    {
+        foreach ($this->integrante_internacional_proyecto as $i => $item) {
+            if ((int) ($item['integrante_internacional_id'] ?? 0) === $integranteId) {
+                return;
+            }
+
+            if (empty($item['integrante_internacional_id'])) {
+                $this->integrante_internacional_proyecto[$i]['integrante_internacional_id'] = $integranteId;
+                return;
+            }
+        }
+
+        $this->integrante_internacional_proyecto[] = [
+            'integrante_internacional_id' => $integranteId,
+            'nombre' => '',
+        ];
+    }
+
     // Repeater helpers
     public function addEmpleado(): void { $this->empleado_proyecto[] = ['empleado_id' => null, 'rol' => 'Integrante', 'nombre' => '']; }
     public function removeEmpleado(int $i): void { array_splice($this->empleado_proyecto, $i, 1); }
@@ -691,6 +875,68 @@ class CreateProyectoVinculacion extends Component
             'largo', 'largo_plazo' => 'largo_plazo',
             default => '',
         };
+    }
+
+    protected function normalizeTipoParticipacionEstudiante(?string $value): string
+    {
+        $normalized = trim(mb_strtolower((string) $value));
+        $normalized = strtr($normalized, [
+            'á' => 'a',
+            'é' => 'e',
+            'í' => 'i',
+            'ó' => 'o',
+            'ú' => 'u',
+            'ü' => 'u',
+        ]);
+        $normalized = trim((string) preg_replace('/[^a-z0-9]+/u', '_', $normalized), '_');
+
+        return match ($normalized) {
+            'pps', 'servicio_social', 'servicio_social_o_pps', 'pps_servicio_social', 'servicio_social_pps' => 'Servicio Social o PPS',
+            'practica_profesional' => 'Practica Profesional',
+            'asignatura', 'practica_asignatura', 'practica_de_asignatura' => 'Practica Asignatura',
+            'voluntariado' => 'Voluntariado',
+            default => '',
+        };
+    }
+
+    protected function isTipoParticipacionAsignatura(?string $value): bool
+    {
+        return $this->normalizeTipoParticipacionEstudiante($value) === 'Practica Asignatura';
+    }
+
+    protected function responsableIdsDisponibles(?Proyecto $record = null): array
+    {
+        $coordId = auth()->user()->empleado?->id;
+        $stateIds = collect($this->empleado_proyecto)
+            ->pluck('empleado_id')
+            ->filter()
+            ->map(fn($id) => (int) $id);
+
+        $recordIds = $record
+            ? $record->empleado_proyecto()->pluck('empleado_id')->map(fn($id) => (int) $id)
+            : collect();
+
+        return collect([$coordId])
+            ->merge($stateIds)
+            ->merge($recordIds)
+            ->filter()
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->toArray();
+    }
+
+    protected function responsableOptions(?Proyecto $record = null)
+    {
+        $ids = $this->responsableIdsDisponibles($record);
+
+        if (empty($ids)) {
+            return collect();
+        }
+
+        return Empleado::whereIn('id', $ids)
+            ->orderBy('nombre_completo')
+            ->pluck('nombre_completo', 'id');
     }
 
     protected function normalizeInstrumentoTipo(?string $value): string
@@ -834,6 +1080,8 @@ class CreateProyectoVinculacion extends Component
     public function render(): View
     {
         $centroId = auth()->user()->empleado?->centro_facultad_id;
+        $record = $this->recordId ? Proyecto::with('anexos')->find($this->recordId) : null;
+
         return view('livewire.proyectos.vinculacion.create-proyecto-vinculacion', [
             'modalidades' => Modalidad::orderBy('nombre')->pluck('nombre', 'id'),
             'categorias' => Categoria::orderBy('nombre')->pluck('nombre', 'id'),
@@ -854,15 +1102,19 @@ class CreateProyectoVinculacion extends Component
                 : MetaContribuye::whereIn('ods_id', $this->ods)->orderBy('ods_id')->orderBy('numero_meta')
                     ->get()->mapWithKeys(fn($m) => [$m->id => "Meta {$m->numero_meta}: {$m->descripcion}"]),
             'empleados' => Empleado::where('user_id', '!=', auth()->id())->orderBy('nombre_completo')->pluck('nombre_completo', 'id'),
+            'responsablesOptions' => $this->responsableOptions($record),
             'empleadosMismoCentro' => $centroId
                 ? Empleado::where('centro_facultad_id', $centroId)->orderBy('nombre_completo')->pluck('nombre_completo', 'id')
                 : Empleado::orderBy('nombre_completo')->pluck('nombre_completo', 'id'),
             'internacionales' => IntegranteInternacional::orderBy('nombre_completo')->get()->mapWithKeys(fn($i) => [$i->id => "{$i->nombre_completo} ({$i->pais} - {$i->institucion})"]),
+            'tiposParticipacionEstudiante' => $this->tipoParticipacionEstudianteOpciones,
+            'asignaturas' => Asignatura::orderBy('codigo')->orderBy('nombre')->get()->mapWithKeys(fn($a) => [$a->id => trim("{$a->codigo} - {$a->nombre}", ' -')]),
+            'periodosAcademicos' => PeriodoAcademico::orderBy('nombre')->pluck('nombre', 'id'),
             'departamentosGeo' => \App\Models\Demografia\Departamento::orderBy('nombre')->pluck('nombre', 'id'),
             'municipiosGeo' => empty($this->departamento_geo)
                 ? collect()
                 : \App\Models\Demografia\Municipio::whereIn('departamento_id', $this->departamento_geo)->orderBy('nombre')->pluck('nombre', 'id'),
-            'record' => $this->recordId ? Proyecto::with('anexos')->find($this->recordId) : null,
+            'record' => $record,
             'coordNombre' => auth()->user()->empleado?->nombre_completo ?? auth()->user()->name,
         ]);
     }
