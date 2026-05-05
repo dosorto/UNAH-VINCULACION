@@ -5,7 +5,11 @@ namespace App\Livewire\Proyectos\Vinculacion;
 use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Models\Estado\TipoEstado;
 use App\Models\Proyecto\CargoFirma;
+use App\Models\Proyecto\Categoria;
+use App\Models\Proyecto\Modalidad;
+use App\Models\Proyecto\Od;
 use App\Models\Proyecto\Proyecto;
+use App\Models\UnidadAcademica\FacultadCentro;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +24,10 @@ class ListProyectoRevisionFinal extends Component
     use WithPagination;
 
     public string $search = '';
+    public string $filterOds = '';
+    public string $filterCategoria = '';
+    public string $filterModalidad = '';
+    public ?int $filterCentroFacultad = null;
 
     public bool $viewModal = false;
     public ?int $viewProyectoId = null;
@@ -32,6 +40,10 @@ class ListProyectoRevisionFinal extends Component
     public ?int $aprobarProyectoId = null;
 
     public function updatingSearch(): void { $this->resetPage(); }
+    public function updatingFilterOds(): void { $this->resetPage(); }
+    public function updatingFilterCategoria(): void { $this->resetPage(); }
+    public function updatingFilterModalidad(): void { $this->resetPage(); }
+    public function updatingFilterCentroFacultad(): void { $this->resetPage(); }
 
     public function openView(int $id): void
     {
@@ -146,9 +158,9 @@ class ListProyectoRevisionFinal extends Component
         Notification::make()->title('¡Realizado!')->body('Proyecto Aprobado correctamente')->info()->send();
     }
 
-    public function render(): View
+    private function recordsQuery()
     {
-        $records = Proyecto::query()
+        return Proyecto::query()
             ->whereIn('proyecto.id', function ($query) {
                 $query->select('estadoable_id')
                     ->from('estado_proyecto')
@@ -163,13 +175,34 @@ class ListProyectoRevisionFinal extends Component
                 ->where('proyecto.nombre_proyecto', 'like', '%' . $this->search . '%')
                 ->orWhere('proyecto.codigo_proyecto', 'like', '%' . $this->search . '%')
             ))
-            ->distinct()
+            ->when($this->filterOds, fn($q) => $q->whereHas('ods', fn($q2) => $q2->where('ods.id', $this->filterOds)))
+            ->when($this->filterCategoria, fn($q) => $q->whereHas('categoria', fn($q2) => $q2->where('categorias.id', $this->filterCategoria)))
+            ->when($this->filterModalidad, fn($q) => $q->where('proyecto.modalidad_id', $this->filterModalidad))
+            ->when($this->filterCentroFacultad, fn($q) => $q->where('proyecto_centro_facultad.centro_facultad_id', $this->filterCentroFacultad))
+            ->distinct();
+    }
+
+    public function render(): View
+    {
+        $records = $this->recordsQuery()
             ->paginate(10);
 
         $viewProyecto = $this->viewProyectoId
             ? Proyecto::with(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye'])->find($this->viewProyectoId)
             : null;
 
-        return view('livewire.proyectos.vinculacion.list-proyecto-revision-final', compact('records', 'viewProyecto'));
+        $odsList = Od::orderBy('nombre')->pluck('nombre', 'id');
+        $categorias = Categoria::orderBy('nombre')->pluck('nombre', 'id');
+        $modalidades = Modalidad::orderBy('nombre')->pluck('nombre', 'id');
+        $centros = FacultadCentro::orderBy('nombre')->pluck('nombre', 'id');
+
+        return view('livewire.proyectos.vinculacion.list-proyecto-revision-final', compact(
+            'records',
+            'viewProyecto',
+            'odsList',
+            'categorias',
+            'modalidades',
+            'centros'
+        ));
     }
 }

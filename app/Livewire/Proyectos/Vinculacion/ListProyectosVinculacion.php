@@ -9,6 +9,7 @@ use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\Modalidad;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\Proyecto;
+use App\Support\AdminCsv;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
@@ -98,9 +99,30 @@ class ListProyectosVinculacion extends Component
         Notification::make()->title('Firmas actualizadas')->body('Los responsables de firma fueron actualizados correctamente.')->success()->send();
     }
 
-    public function render(): View
+    public function exportExcel()
     {
-        $records = Proyecto::query()
+        return AdminCsv::download('historial-vinculacion-' . now()->format('Y-m-d') . '.csv', [
+            'Codigo',
+            'Numero Dictamen',
+            'Nombre del Proyecto',
+            'Estado',
+            'Fecha Inicio',
+        ], function () {
+            foreach ($this->recordsQuery()->with(['estadoActual.tipoestado'])->orderBy('proyecto.nombre_proyecto')->lazy() as $proyecto) {
+                yield [
+                    $proyecto->codigo_proyecto,
+                    $proyecto->numero_dictamen,
+                    $proyecto->nombre_proyecto,
+                    $proyecto->estadoActual?->tipoestado?->nombre,
+                    $proyecto->fecha_inicio,
+                ];
+            }
+        });
+    }
+
+    private function recordsQuery()
+    {
+        return Proyecto::query()
             ->whereNotIn('proyecto.id', function ($query) {
                 $query->select('estadoable_id')
                     ->from('estado_proyecto')
@@ -130,7 +152,12 @@ class ListProyectosVinculacion extends Component
             ->when($this->filterFechaFin, fn($q) => $q->whereDate('proyecto.fecha_finalizacion', '<=', $this->filterFechaFin))
             ->when($this->filterCentroFacultad, fn($q) => $q->where('proyecto_centro_facultad.centro_facultad_id', $this->filterCentroFacultad))
             ->when($this->filterDepartamento, fn($q) => $q->where('proyecto_depto_ac.departamento_academico_id', $this->filterDepartamento))
-            ->distinct()
+            ->distinct();
+    }
+
+    public function render(): View
+    {
+        $records = $this->recordsQuery()
             ->paginate(10);
 
         $viewProyecto = $this->viewProyectoId

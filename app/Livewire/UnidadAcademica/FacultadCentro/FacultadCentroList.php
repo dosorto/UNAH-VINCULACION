@@ -4,6 +4,7 @@ namespace App\Livewire\UnidadAcademica\FacultadCentro;
 
 use App\Models\UnidadAcademica\Campus;
 use App\Models\UnidadAcademica\FacultadCentro;
+use App\Support\AdminCsv;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
@@ -101,15 +102,39 @@ class FacultadCentroList extends Component
         Notification::make()->title('Facultad/Centro restaurado.')->success()->send();
     }
 
+    public function exportExcel()
+    {
+        return AdminCsv::download('facultades-centros-' . now()->format('Y-m-d') . '.csv', [
+            'Nombre',
+            'Siglas',
+            'Tipo',
+            'Campus',
+        ], function () {
+            foreach ($this->recordsQuery()->lazy() as $facultadCentro) {
+                yield [
+                    $facultadCentro->nombre,
+                    $facultadCentro->siglas,
+                    $facultadCentro->es_facultad ? 'Facultad' : 'Centro',
+                    $facultadCentro->campus?->nombre_campus,
+                ];
+            }
+        });
+    }
+
+    private function recordsQuery()
+    {
+        return FacultadCentro::with('campus')
+            ->when($this->showTrashed, fn($q) => $q->withTrashed())
+            ->when($this->search, fn($q) => $q->where(fn($query) => $query
+                ->where('nombre', 'like', '%'.$this->search.'%')
+                ->orWhere('siglas', 'like', '%'.$this->search.'%')
+            ))
+            ->orderBy('nombre');
+    }
+
     public function render(): View
     {
-        $records = FacultadCentro::with('campus')
-            ->when($this->showTrashed, fn($q) => $q->withTrashed())
-            ->when($this->search, fn($q) =>
-                $q->where('nombre', 'like', '%'.$this->search.'%')
-                  ->orWhere('siglas', 'like', '%'.$this->search.'%')
-            )
-            ->orderBy('nombre')
+        $records = $this->recordsQuery()
             ->paginate(10);
 
         return view('livewire.unidad-academica.facultad-centro.facultad-centro-list', [

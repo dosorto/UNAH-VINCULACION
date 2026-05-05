@@ -5,6 +5,7 @@ namespace App\Livewire\UnidadAcademica\Carrera;
 use App\Models\UnidadAcademica\Carrera;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\FacultadCentro;
+use App\Support\AdminCsv;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
@@ -16,6 +17,7 @@ class CarreraList extends Component
 
     public string $search = '';
     public bool $showTrashed = false;
+    public ?int $filterCentroFacultad = null;
 
     public bool $createModal = false;
     public string $create_nombre = '';
@@ -33,6 +35,11 @@ class CarreraList extends Component
     public array $edit_facultad_centros = [];
 
     public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterCentroFacultad(): void
     {
         $this->resetPage();
     }
@@ -115,21 +122,54 @@ class CarreraList extends Component
         Notification::make()->title('Carrera restaurada.')->success()->send();
     }
 
+    public function exportExcel()
+    {
+        return AdminCsv::download('carreras-' . now()->format('Y-m-d') . '.csv', [
+            'Nombre',
+            'Siglas',
+            'Facultad',
+            'Departamento',
+            'Centros donde se imparte',
+        ], function () {
+            foreach ($this->recordsQuery()->lazy() as $carrera) {
+                yield [
+                    $carrera->nombre,
+                    $carrera->siglas,
+                    $carrera->facultadcentro?->nombre,
+                    $carrera->departamentoAcademico?->nombre,
+                    $carrera->facultadCentros->pluck('nombre')->implode(', '),
+                ];
+            }
+        });
+    }
+
+    private function recordsQuery()
+    {
+        return Carrera::with(['facultadcentro', 'departamentoAcademico', 'facultadCentros'])
+            ->when($this->showTrashed, fn($q) => $q->withTrashed())
+            ->when($this->search, fn($q) => $q->where(fn($query) => $query
+                ->where('nombre', 'like', '%'.$this->search.'%')
+                ->orWhere('siglas', 'like', '%'.$this->search.'%')
+            ))
+            ->when($this->filterCentroFacultad, fn($q) => $q->where(function ($query) {
+                $query->where('facultad_centro_id', $this->filterCentroFacultad)
+                    ->orWhereHas('facultadCentros', fn($fc) => $fc->where('centro_facultad.id', $this->filterCentroFacultad));
+            }))
+            ->orderBy('nombre');
+    }
+
     public function render(): View
     {
-        $records = Carrera::with(['facultadcentro', 'departamentoAcademico', 'facultadCentros'])
-            ->when($this->showTrashed, fn($q) => $q->withTrashed())
-            ->when($this->search, fn($q) =>
-                $q->where('nombre', 'like', '%'.$this->search.'%')
-                  ->orWhere('siglas', 'like', '%'.$this->search.'%')
-            )
-            ->orderBy('nombre')
+        $records = $this->recordsQuery()
             ->paginate(10);
+
+        $centrosFacultad = FacultadCentro::orderBy('nombre')->pluck('nombre', 'id');
 
         return view('livewire.unidad-academica.carrera.carrera-list', [
             'records'              => $records,
             'facultades'           => FacultadCentro::where('es_facultad', 1)->orderBy('nombre')->pluck('nombre', 'id'),
             'centros'              => FacultadCentro::where('es_facultad', 0)->orderBy('nombre')->pluck('nombre', 'id'),
+            'centrosFacultad'      => $centrosFacultad,
             'departamentosAcad'    => DepartamentoAcademico::orderBy('nombre')->pluck('nombre', 'id'),
         ]);
     }

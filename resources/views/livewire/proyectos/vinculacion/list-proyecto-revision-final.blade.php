@@ -3,9 +3,37 @@
         <p class="text-zinc-950 dark:text-white font-bold mb-1">Proyectos en Revisión Final</p>
         <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm">Proyectos pendientes de aprobación final por Dirección de Vinculación.</p>
     </div>
-    <div class="mb-3">
+    <div class="mb-3 flex flex-wrap gap-3">
         <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar por nombre o código..."
                class="w-full sm:w-80 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm">
+        <select wire:model.live="filterOds"
+                class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm">
+            <option value="">Todos los ODS</option>
+            @foreach ($odsList as $id => $nombre)
+                <option value="{{ $id }}">{{ $nombre }}</option>
+            @endforeach
+        </select>
+        <select wire:model.live="filterCategoria"
+                class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm">
+            <option value="">Todas las categorías</option>
+            @foreach ($categorias as $id => $nombre)
+                <option value="{{ $id }}">{{ $nombre }}</option>
+            @endforeach
+        </select>
+        <select wire:model.live="filterModalidad"
+                class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm">
+            <option value="">Todas las modalidades</option>
+            @foreach ($modalidades as $id => $nombre)
+                <option value="{{ $id }}">{{ $nombre }}</option>
+            @endforeach
+        </select>
+        <select wire:model.live="filterCentroFacultad"
+                class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm">
+            <option value="">Todos los Centros/Facultades</option>
+            @foreach ($centros as $id => $nombre)
+                <option value="{{ $id }}">{{ $nombre }}</option>
+            @endforeach
+        </select>
     </div>
     <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Personal\Empleado;
 
+use App\Models\Personal\CategoriaEmpleado;
 use App\Models\Personal\Empleado;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\FacultadCentro;
@@ -18,6 +19,7 @@ class CreateEmpleado extends Component
     public string $nombre_completo = '';
     public string $numero_empleado = '';
     public string $celular = '';
+    public ?int $categoria_id = null;
     public ?int $centro_facultad_id = null;
     public ?int $departamento_academico_id = null;
     public array $create_roles = [];
@@ -28,6 +30,7 @@ class CreateEmpleado extends Component
         'nombre_completo'    => 'required|string|max:255',
         'numero_empleado'    => 'required|numeric|unique:empleado,numero_empleado',
         'celular'            => 'required|numeric',
+        'categoria_id'       => 'nullable|exists:categoria,id',
         'centro_facultad_id' => 'required|exists:centro_facultad,id',
     ];
 
@@ -51,6 +54,7 @@ class CreateEmpleado extends Component
             'nombre_completo'           => $this->nombre_completo,
             'numero_empleado'           => $this->numero_empleado,
             'celular'                   => $this->celular,
+            'categoria_id'              => $this->categoria_id,
             'centro_facultad_id'        => $this->centro_facultad_id,
             'departamento_academico_id' => $this->departamento_academico_id,
         ]);
@@ -65,17 +69,18 @@ class CreateEmpleado extends Component
 
         Notification::make()->title('Exito!')->body('Empleado creado correctamente.')->success()->send();
 
-        $this->reset(['name', 'email', 'nombre_completo', 'numero_empleado', 'celular', 'centro_facultad_id', 'departamento_academico_id', 'create_roles']);
+        $this->reset(['name', 'email', 'nombre_completo', 'numero_empleado', 'celular', 'categoria_id', 'centro_facultad_id', 'departamento_academico_id', 'create_roles']);
         $this->js('location.reload();');
     }
 
     public function render(): View
     {
         $centros = FacultadCentro::orderBy('nombre')->pluck('nombre', 'id');
+        $categorias = CategoriaEmpleado::orderBy('nombre')->pluck('nombre', 'id');
         $departamentos = $this->centro_facultad_id
             ? DepartamentoAcademico::where('centro_facultad_id', $this->centro_facultad_id)->orderBy('nombre')->pluck('nombre', 'id')
             : collect();
         $allRoles = Role::orderBy('name')->get(['id', 'name']);
-        return view('livewire.personal.empleado.create-empleado', compact('centros', 'departamentos', 'allRoles'));
+        return view('livewire.personal.empleado.create-empleado', compact('centros', 'categorias', 'departamentos', 'allRoles'));
     }
 }

@@ -5,16 +5,29 @@
             <p class="text-zinc-950 dark:text-white font-bold mb-1">Carreras</p>
             <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm">Administración de carreras universitarias.</p>
         </div>
-        <button wire:click="openCreate"
-            class="inline-flex items-center px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium rounded-lg">
-            + Nueva
-        </button>
+        <div class="flex gap-2">
+            <button type="button" wire:click="exportExcel"
+                class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg">
+                Exportar Excel
+            </button>
+            <button wire:click="openCreate"
+                class="inline-flex items-center px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium rounded-lg">
+                + Nueva
+            </button>
+        </div>
     </div>
 
     {{-- Filtros --}}
     <div class="mb-3 flex flex-col sm:flex-row gap-3">
         <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar por nombre o siglas..."
             class="w-full sm:w-80 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+        <select wire:model.live="filterCentroFacultad"
+            class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="">Todos los Centros/Facultades</option>
+            @foreach($centrosFacultad as $id => $nombre)
+                <option value="{{ $id }}">{{ $nombre }}</option>
+            @endforeach
+        </select>
         <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <input type="checkbox" wire:model.live="showTrashed" class="rounded border-gray-300">
             Mostrar eliminadas
