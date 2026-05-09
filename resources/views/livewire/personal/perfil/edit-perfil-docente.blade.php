@@ -1,5 +1,5 @@
 <div>
-    @php $canEdit = auth()->user()->can('cambiar-datos-personales'); @endphp
+    @php $canEdit = auth()->user()->can('perfil.editar'); @endphp
 
     <form wire:submit.prevent="save" class="space-y-6">
         {{-- Datos de Usuario/Empleado --}}

@@ -78,12 +78,19 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Permisos</label>
-                        <div class="grid grid-cols-2 gap-1 max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-md p-2">
-                            @foreach($permissions as $perm)
-                                <label class="inline-flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
-                                    <input type="checkbox" wire:model="create_permissions" value="{{ $perm->id }}" class="rounded border-gray-300">
-                                    {{ $perm->name }}
-                                </label>
+                        <div class="max-h-72 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-md p-2 space-y-3">
+                            @foreach($permissionsGrouped as $module => $perms)
+                                <div>
+                                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{{ $module }}</p>
+                                    <div class="grid grid-cols-2 gap-1">
+                                        @foreach($perms as $perm)
+                                            <label class="inline-flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                                                <input type="checkbox" wire:model="create_permissions" value="{{ $perm->id }}" class="rounded border-gray-300">
+                                                {{ $perm->display_name ?? $perm->name }}
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                </div>
                             @endforeach
                         </div>
                     </div>
@@ -112,12 +119,19 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Permisos</label>
-                        <div class="grid grid-cols-2 gap-1 max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-md p-2">
-                            @foreach($permissions as $perm)
-                                <label class="inline-flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
-                                    <input type="checkbox" wire:model="edit_permissions" value="{{ $perm->id }}" class="rounded border-gray-300">
-                                    {{ $perm->name }}
-                                </label>
+                        <div class="max-h-72 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-md p-2 space-y-3">
+                            @foreach($permissionsGrouped as $module => $perms)
+                                <div>
+                                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{{ $module }}</p>
+                                    <div class="grid grid-cols-2 gap-1">
+                                        @foreach($perms as $perm)
+                                            <label class="inline-flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                                                <input type="checkbox" wire:model="edit_permissions" value="{{ $perm->id }}" class="rounded border-gray-300">
+                                                {{ $perm->display_name ?? $perm->name }}
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                </div>
                             @endforeach
                         </div>
                     </div>

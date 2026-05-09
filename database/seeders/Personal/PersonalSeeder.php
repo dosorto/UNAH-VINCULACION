@@ -129,8 +129,8 @@ class PersonalSeeder extends Seeder
                 'categoria_id' => 2
             ]);
 
-            $user2->givePermissionTo('cambiar-datos-personales');
-            $user2->givePermissionTo('configuracion-admin-mi-perfil');
+            $user2->givePermissionTo('perfil.editar');
+            $user2->givePermissionTo('configuracion.perfil');
 
             $user3 = User::create([
                 'name' => 'Estudiante  POA',
@@ -148,8 +148,8 @@ class PersonalSeeder extends Seeder
                 'sexo' => 'Masculino',
             ]);
 
-            $user3->user->givePermissionTo('cambiar-datos-personales');
-            $user3->user->givePermissionTo('configuracion-admin-mi-perfil');
+            $user3->user->givePermissionTo('perfil.editar');
+            $user3->user->givePermissionTo('configuracion.perfil');
         }
     }
 }

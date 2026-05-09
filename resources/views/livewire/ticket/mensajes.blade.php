@@ -3,7 +3,7 @@
     {{-- Encabezado con info y botón al lado --}}
     @php
         $usuarioActual = auth()->user();
-        $puedeFinalizar = $usuarioActual->can('admin-tickets-administrar-tickets');
+        $puedeFinalizar = $usuarioActual->can('tickets.administrar');
 
         $nombreOtroUsuario = $puedeFinalizar
             ? ($ticket->user->name ?? 'Usuario')

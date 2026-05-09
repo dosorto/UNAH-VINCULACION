@@ -1,4 +1,4 @@
-﻿<div class="flex flex-col md:flex-row lg:flex-row gap-4">
+<div class="flex flex-col md:flex-row lg:flex-row gap-4">
     @push('styles')
         <link rel="stylesheet" href="{{ asset('css/app/fichaHistorial.css') }}">
         <style>

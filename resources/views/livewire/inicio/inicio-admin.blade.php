@@ -1,17 +1,17 @@
 <div>
 
-    @if (auth()->user()->hasPermissionTo('ver-dashboard-admin') &&
-            auth()->user()->activeRole->hasPermissionTo('ver-dashboard-admin'))
+    @if (auth()->user()->hasPermissionTo('dashboard.admin') &&
+            auth()->user()->activeRole->hasPermissionTo('dashboard.admin'))
         @livewire('inicio.dashboards.dashboard')
     @endif
 
-    @if (auth()->user()->hasPermissionTo('ver-dashboard-docente') &&
-            auth()->user()->activeRole->hasPermissionTo('ver-dashboard-docente'))
+    @if (auth()->user()->hasPermissionTo('dashboard.docente') &&
+            auth()->user()->activeRole->hasPermissionTo('dashboard.docente'))
         @livewire('inicio.dashboards.dasboard-docente')
     @endif
 
-    @if (auth()->user()->hasPermissionTo('ver-dashboard-estudiante') &&
-            auth()->user()->activeRole->hasPermissionTo('ver-dashboard-estudiante'))
+    @if (auth()->user()->hasPermissionTo('dashboard.estudiante') &&
+            auth()->user()->activeRole->hasPermissionTo('dashboard.estudiante'))
         @livewire('inicio.dashboards.dashboard-estudiante')
     @endif
 </div>

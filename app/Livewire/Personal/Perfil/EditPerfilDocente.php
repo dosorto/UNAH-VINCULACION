@@ -157,7 +157,7 @@ class EditPerfilDocente extends Component
 
     public function save(): void
     {
-        $canEdit = Auth::user()->can('cambiar-datos-personales');
+        $canEdit = Auth::user()->can('perfil.editar');
         if (!$canEdit) {
             return;
         }
@@ -188,7 +188,7 @@ class EditPerfilDocente extends Component
             $this->record->active_role_id = Role::where('name', 'docente')->first()?->id;
         }
 
-        $this->record->revokePermissionTo('cambiar-datos-personales');
+        $this->record->revokePermissionTo('perfil.editar');
         $this->record->save();
 
         Notification::make()->title('Exito!')->body('Perfil actualizado correctamente.')->success()->send();
@@ -203,8 +203,12 @@ class EditPerfilDocente extends Component
             ? DepartamentoAcademico::where('centro_facultad_id', $this->centro_facultad_id)->orderBy('nombre')->pluck('nombre', 'id')
             : collect();
 
-        $firmas = $this->record->empleado?->firma ?? collect();
-        $sellos = $this->record->empleado?->sello ?? collect();
+        $firmas = $this->record->empleado
+            ? $this->record->empleado->firmaSellos()->where('tipo', 'firma')->where('estado', true)->get()
+            : collect();
+        $sellos = $this->record->empleado
+            ? $this->record->empleado->firmaSellos()->where('tipo', 'sello')->where('estado', true)->get()
+            : collect();
         $codigos = $this->record->empleado?->codigosInvestigacion ?? collect();
         $anios = collect(range(date('Y') - 10, date('Y') + 2))->mapWithKeys(fn($y) => [$y => $y]);
 

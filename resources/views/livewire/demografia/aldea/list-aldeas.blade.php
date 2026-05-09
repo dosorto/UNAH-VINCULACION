@@ -1,4 +1,4 @@
-﻿<div>
+<div>
     <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
             <p class="text-zinc-950 dark:text-white font-bold mb-1">Listado de aldeas</p>

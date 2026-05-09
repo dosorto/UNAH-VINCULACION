@@ -15,7 +15,8 @@
       "Bash(grep -n 'this->form\\\\|HasForms\\\\|InteractsWithForms\\\\|Form $form' /Users/efrainreyes/Documents/VINCULACION-UNAH/UNAH-VINCULACION/app/Livewire/Proyectos/Actualizacion/EditProyectoActualizacion.php)",
       "Bash(composer remove *)",
       "Bash(composer show *)",
-      "Bash(winget --version)"
+      "Bash(winget --version)",
+      "Bash(xargs grep -l \"Role\\\\|Permission\\\\|role\\\\|permission\")"
     ]
   }
 }

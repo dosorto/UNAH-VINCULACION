@@ -22,10 +22,10 @@ class ListPermisos extends Component
     {
         $records = Permission::when($this->search, fn($q) =>
                 $q->where('name', 'like', '%'.$this->search.'%')
-                  ->orWhere('guard_name', 'like', '%'.$this->search.'%')
+                  ->orWhere('display_name', 'like', '%'.$this->search.'%')
             )
             ->orderBy('name')
-            ->paginate(15);
+            ->paginate(20);
 
         return view('livewire.personal.permiso.list-permisos', compact('records'));
     }

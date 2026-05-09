@@ -34,7 +34,7 @@ class EditPerfilEstudiante extends Component
 
     public function save(): void
     {
-        if (!auth()->user()->can('cambiar-datos-personales')) {
+        if (!auth()->user()->can('perfil.editar')) {
             return;
         }
 
@@ -58,7 +58,7 @@ class EditPerfilEstudiante extends Component
 
         $this->record->user->assignRole('estudiante');
         $this->record->user->active_role_id = Role::where('name', 'estudiante')->first()?->id;
-        $this->record->user->revokePermissionTo('cambiar-datos-personales');
+        $this->record->user->revokePermissionTo('perfil.editar');
         $this->record->user->save();
 
         Notification::make()->title('Exito!')->body('Perfil actualizado correctamente.')->success()->send();
