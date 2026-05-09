@@ -10,6 +10,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use App\Models\User;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Estudiante\EstudianteProyecto;
+use App\Models\UnidadAcademica\Carrera;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 
@@ -76,5 +77,10 @@ class Estudiante extends Model
     public function centro_facultad()
     {
         return $this->belongsTo(FacultadCentro::class, 'centro_facultad_id');
+    }
+
+    public function carrera()
+    {
+        return $this->belongsTo(Carrera::class, 'carrera_id');
     }
 }

@@ -102,7 +102,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Facultad o Centro <span class="text-red-500">*</span></label>
-                                <select wire:model="edit_centro_facultad_id"
+                                <select wire:model.live="edit_centro_facultad_id"
                                     class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500">
                                     <option value="">Seleccione...</option>
                                     @foreach ($centros as $id => $nombre)
@@ -110,6 +110,22 @@
                                     @endforeach
                                 </select>
                                 @error('edit_centro_facultad_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carrera</label>
+                                <select wire:model="edit_carrera_id" @disabled(!$edit_centro_facultad_id || !$editCarreras->count())
+                                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-700">
+                                    <option value="">
+                                        {{ $edit_centro_facultad_id ? 'Sin carrera' : 'Seleccione primero una Facultad/Centro' }}
+                                    </option>
+                                    @foreach ($editCarreras as $id => $nombre)
+                                        <option value="{{ $id }}">{{ $nombre }}</option>
+                                    @endforeach
+                                </select>
+                                @if ($edit_centro_facultad_id && !$editCarreras->count())
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">No hay carreras registradas para esta Facultad/Centro.</p>
+                                @endif
+                                @error('edit_carrera_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
                     </div>

@@ -5,20 +5,22 @@
             <p class="text-zinc-950 dark:text-white font-bold mb-1">Listado de Campus</p>
             <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm">Administración de campus universitarios.</p>
         </div>
-        <button wire:click="openCreate"
-            class="inline-flex items-center px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium rounded-lg">
-            + Nuevo
-        </button>
+        <div class="flex gap-2">
+            <button type="button" wire:click="exportExcel"
+                class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg">
+                Exportar Excel
+            </button>
+            <button wire:click="openCreate"
+                class="inline-flex items-center px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium rounded-lg">
+                + Nuevo
+            </button>
+        </div>
     </div>
 
     {{-- Filtros --}}
     <div class="mb-3 flex flex-col sm:flex-row gap-3">
         <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar por nombre o siglas..."
             class="w-full sm:w-80 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500" />
-        <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-            <input type="checkbox" wire:model.live="showTrashed" class="rounded border-gray-300">
-            Mostrar eliminados
-        </label>
     </div>
 
     {{-- Tabla --}}
@@ -30,6 +32,7 @@
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Siglas</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Dirección</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Teléfono</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">URL</th>
                     <th class="px-4 py-3 text-right font-semibold text-gray-600 dark:text-gray-300">Acciones</th>
                 </tr>
             </thead>
@@ -40,6 +43,13 @@
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $record->siglas }}</td>
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ Str::limit($record->direccion, 40) }}</td>
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $record->telefono }}</td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">
+                            @if($record->url)
+                                <a href="{{ $record->url }}" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline">{{ Str::limit($record->url, 36) }}</a>
+                            @else
+                                —
+                            @endif
+                        </td>
                         <td class="px-4 py-3 text-right space-x-2">
                             @if($record->trashed())
                                 <button wire:click="restore({{ $record->id }})"
@@ -62,7 +72,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                        <td colspan="6" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
                             No se encontraron registros.
                         </td>
                     </tr>

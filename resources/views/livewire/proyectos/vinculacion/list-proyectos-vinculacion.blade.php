@@ -4,36 +4,122 @@
         <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm">Listado de todos los proyectos registrados en el sistema.</p>
     </div>
 
-    {{-- Filtros --}}
-    <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar por nombre, código o dictamen..."
-               class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm lg:col-span-2">
+    {{-- Barra de búsqueda --}}
+    <div class="mb-3 flex gap-3">
+        <input type="text" wire:model.live.debounce.300ms="search"
+               placeholder="Buscar por nombre, código o dictamen..."
+               class="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm">
+        <button type="button" wire:click="exportExcel"
+                class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
+            Exportar Excel
+        </button>
+    </div>
 
-        <select wire:model.live="filterCentroFacultad"
-                class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm">
-            <option value="">Todos los centros/facultades</option>
-            @foreach ($centros as $id => $nombre)
-                <option value="{{ $id }}">{{ $nombre }}</option>
-            @endforeach
-        </select>
+    {{-- Panel de filtros --}}
+    <div x-data="{ open: false }" class="mb-4">
+        <button @click="open = !open" type="button"
+                class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+            </svg>
+            Filtros
+            @php $activeFilters = collect([$filterEstado,$filterCategoria,$filterModalidad,$filterOds,$filterFechaInicio,$filterFechaFin,$filterCentroFacultad,$filterDepartamento])->filter()->count(); @endphp
+            @if($activeFilters > 0)
+                <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-orange-500 rounded-full">{{ $activeFilters }}</span>
+            @endif
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
 
-        @if ($filterCentroFacultad && $departamentos->count())
-        <select wire:model.live="filterDepartamento"
-                class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm">
-            <option value="">Todos los departamentos</option>
-            @foreach ($departamentos as $id => $nombre)
-                <option value="{{ $id }}">{{ $nombre }}</option>
-            @endforeach
-        </select>
-        @endif
+        <div x-show="open" x-cloak x-transition class="mt-2 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
 
-        <select wire:model.live="filterEstado" multiple
-                class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm h-10">
-            <option value="">Todos los estados</option>
-            @foreach ($estadosTipo as $id => $nombre)
-                <option value="{{ $id }}">{{ $nombre }}</option>
-            @endforeach
-        </select>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Estado</label>
+                    <select wire:model.live="filterEstado" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white">
+                        <option value="">Todos los estados</option>
+                        @foreach ($estadosTipo as $id => $nombre)
+                            <option value="{{ $id }}">{{ $nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Categoría</label>
+                    <select wire:model.live="filterCategoria" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white">
+                        <option value="">Todas las categorías</option>
+                        @foreach ($categorias as $id => $nombre)
+                            <option value="{{ $id }}">{{ $nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Modalidad</label>
+                    <select wire:model.live="filterModalidad" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white">
+                        <option value="">Todas las modalidades</option>
+                        @foreach ($modalidades as $id => $nombre)
+                            <option value="{{ $id }}">{{ $nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">ODS</label>
+                    <select wire:model.live="filterOds" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white">
+                        <option value="">Todos los ODS</option>
+                        @foreach ($odsList as $id => $nombre)
+                            <option value="{{ $id }}">{{ $nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Centro/Facultad</label>
+                    <select wire:model.live="filterCentroFacultad" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white">
+                        <option value="">Todos los centros</option>
+                        @foreach ($centros as $id => $nombre)
+                            <option value="{{ $id }}">{{ $nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                @if ($filterCentroFacultad && $departamentos->count())
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Departamento</label>
+                    <select wire:model.live="filterDepartamento" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white">
+                        <option value="">Todos los departamentos</option>
+                        @foreach ($departamentos as $id => $nombre)
+                            <option value="{{ $id }}">{{ $nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                @endif
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Fecha Inicio desde</label>
+                    <input type="date" wire:model.live="filterFechaInicio"
+                           class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Fecha Fin hasta</label>
+                    <input type="date" wire:model.live="filterFechaFin"
+                           class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white">
+                </div>
+
+            </div>
+            @if($activeFilters > 0)
+            <div class="mt-3 flex justify-end">
+                <button wire:click="$set('filterEstado',''); $set('filterCategoria',''); $set('filterModalidad',''); $set('filterOds',''); $set('filterFechaInicio',''); $set('filterFechaFin',''); $set('filterCentroFacultad', null); $set('filterDepartamento', null);"
+                        type="button"
+                        class="text-xs text-red-600 hover:text-red-800 dark:text-red-400 font-medium">
+                    Limpiar filtros
+                </button>
+            </div>
+            @endif
+        </div>
     </div>
 
     <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">

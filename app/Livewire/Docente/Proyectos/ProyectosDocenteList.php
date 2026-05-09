@@ -21,9 +21,9 @@ class ProyectosDocenteList extends Component
     public Empleado $docente;
 
     public string $search = '';
-    public array $filterCategoria = [];
+    public string $filterCategoria = '';
     public string $filterRol = '';
-    public array $filterEstado = [];
+    public string $filterEstado = '';
 
     public bool $informeIntermedioModal = false;
     public ?int $informeIntermedioProyectoId = null;
@@ -195,12 +195,12 @@ class ProyectosDocenteList extends Component
                 ->orWhere('proyecto.codigo_proyecto', 'like', '%' . $this->search . '%')
                 ->orWhere('proyecto.numero_dictamen', 'like', '%' . $this->search . '%')
             ))
-            ->when(!empty($this->filterCategoria), fn($q) => $q->whereHas(
+            ->when($this->filterCategoria, fn($q) => $q->whereHas(
                 'categoria',
-                fn($q2) => $q2->whereIn('categoria_proyecto.id', $this->filterCategoria)
+                fn($q2) => $q2->where('categoria_proyecto.id', $this->filterCategoria)
             ))
             ->when($this->filterRol, fn($q) => $q->where('empleado_proyecto.rol', $this->filterRol))
-            ->when(!empty($this->filterEstado), fn($q) => $q->whereIn('tipo_estado.id', $this->filterEstado))
+            ->when($this->filterEstado, fn($q) => $q->where('tipo_estado.id', $this->filterEstado))
             ->distinct()
             ->paginate(10);
 

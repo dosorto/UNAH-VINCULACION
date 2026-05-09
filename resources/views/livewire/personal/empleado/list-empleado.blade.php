@@ -4,10 +4,16 @@
             <p class="text-zinc-950 dark:text-white font-bold mb-1">Empleado</p>
             <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm">Empleados pertenecientes al sistema</p>
         </div>
-        <a href="{{ route('crearEmpleado') }}" wire:navigate
-            class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
-            Nuevo
-        </a>
+        <div class="flex gap-2">
+            <button type="button" wire:click="exportExcel"
+                class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
+                Exportar Excel
+            </button>
+            <a href="{{ route('crearEmpleado') }}" wire:navigate
+                class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                Nuevo
+            </a>
+        </div>
     </div>
 
     {{-- Filtros --}}
@@ -126,6 +132,17 @@
                                 <input type="text" wire:model="edit_celular"
                                     class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500" />
                                 @error('edit_celular') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría</label>
+                                <select wire:model="edit_categoria_id"
+                                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="">Sin categoría</option>
+                                    @foreach ($categorias as $id => $nombre)
+                                        <option value="{{ $id }}">{{ $nombre }}</option>
+                                    @endforeach
+                                </select>
+                                @error('edit_categoria_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Facultad o Centro <span class="text-red-500">*</span></label>

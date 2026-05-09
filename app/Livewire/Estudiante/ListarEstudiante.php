@@ -3,6 +3,7 @@
 namespace App\Livewire\Estudiante;
 
 use App\Models\Estudiante\Estudiante;
+use App\Models\UnidadAcademica\Carrera;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\User;
 use App\Support\Notification;
@@ -25,15 +26,21 @@ class ListarEstudiante extends Component
     public string $edit_apellido = '';
     public string $edit_cuenta = '';
     public ?int $edit_centro_facultad_id = null;
+    public ?int $edit_carrera_id = null;
 
     public function updatingSearch(): void
     {
         $this->resetPage();
     }
 
+    public function updatingEditCentroFacultadId(): void
+    {
+        $this->edit_carrera_id = null;
+    }
+
     public function openEdit(int $id): void
     {
-        $estudiante = Estudiante::with('user')->findOrFail($id);
+        $estudiante = Estudiante::with(['user', 'carrera'])->findOrFail($id);
         $this->editId            = $id;
         $this->edit_nombre_usuario     = $estudiante->user?->name ?? '';
         $this->edit_correo_electronico = $estudiante->user?->email ?? '';
@@ -41,6 +48,7 @@ class ListarEstudiante extends Component
         $this->edit_apellido           = $estudiante->apellido;
         $this->edit_cuenta             = $estudiante->cuenta;
         $this->edit_centro_facultad_id = $estudiante->centro_facultad_id;
+        $this->edit_carrera_id         = $estudiante->carrera_id;
         $this->editModal = true;
     }
 
@@ -55,6 +63,7 @@ class ListarEstudiante extends Component
             'edit_apellido'           => 'required|string|max:255',
             'edit_cuenta'             => ['required', 'numeric', Rule::unique('estudiante', 'cuenta')->ignore($estudiante->id)],
             'edit_centro_facultad_id' => 'required|exists:centro_facultad,id',
+            'edit_carrera_id'         => 'nullable|exists:carrera,id',
         ]);
 
         $estudiante->update([
@@ -62,6 +71,7 @@ class ListarEstudiante extends Component
             'apellido'          => $this->edit_apellido,
             'cuenta'            => $this->edit_cuenta,
             'centro_facultad_id' => $this->edit_centro_facultad_id,
+            'carrera_id'         => $this->edit_carrera_id,
         ]);
 
         if ($estudiante->user) {
@@ -80,7 +90,7 @@ class ListarEstudiante extends Component
     public function render(): View
     {
         $records = Estudiante::query()
-            ->with(['user', 'proyectosEstudiante.proyecto'])
+            ->with(['user', 'carrera', 'proyectosEstudiante.proyecto'])
             ->when($this->search, fn($q) => $q->where(function ($q) {
                 $q->where('nombre', 'like', '%' . $this->search . '%')
                   ->orWhere('apellido', 'like', '%' . $this->search . '%')
@@ -89,7 +99,23 @@ class ListarEstudiante extends Component
             ->paginate(10);
 
         $centros = FacultadCentro::orderBy('nombre')->pluck('nombre', 'id');
+        $editCarreras = $this->carrerasPorCentro($this->edit_centro_facultad_id);
 
-        return view('livewire.estudiante.listar-estudiante', compact('records', 'centros'));
+        return view('livewire.estudiante.listar-estudiante', compact('records', 'centros', 'editCarreras'));
+    }
+
+    private function carrerasPorCentro(?int $centroId)
+    {
+        if (!$centroId) {
+            return collect();
+        }
+
+        return Carrera::query()
+            ->where(function ($query) use ($centroId) {
+                $query->where('facultad_centro_id', $centroId)
+                    ->orWhereHas('facultadCentros', fn($q) => $q->where('centro_facultad.id', $centroId));
+            })
+            ->orderBy('nombre')
+            ->pluck('nombre', 'id');
     }
 }

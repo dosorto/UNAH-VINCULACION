@@ -3,6 +3,7 @@
 namespace App\Livewire\UnidadAcademica\Campus;
 
 use App\Models\UnidadAcademica\Campus;
+use App\Support\AdminCsv;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
@@ -109,14 +110,40 @@ class CampusList extends Component
         Notification::make()->title('Campus restaurado.')->success()->send();
     }
 
-    public function render(): View
+    public function exportExcel()
     {
-        $records = Campus::when($this->showTrashed, fn($q) => $q->withTrashed())
+        return AdminCsv::download('campus-' . now()->format('Y-m-d') . '.csv', [
+            'Nombre',
+            'Siglas',
+            'Direccion',
+            'Telefono',
+            'URL',
+        ], function () {
+            foreach ($this->recordsQuery()->lazy() as $campus) {
+                yield [
+                    $campus->nombre_campus,
+                    $campus->siglas,
+                    $campus->direccion,
+                    $campus->telefono,
+                    $campus->url,
+                ];
+            }
+        });
+    }
+
+    private function recordsQuery()
+    {
+        return Campus::when($this->showTrashed, fn($q) => $q->withTrashed())
             ->when($this->search, fn($q) =>
                 $q->where('nombre_campus', 'like', '%'.$this->search.'%')
                   ->orWhere('siglas', 'like', '%'.$this->search.'%')
             )
-            ->orderBy('nombre_campus')
+            ->orderBy('nombre_campus');
+    }
+
+    public function render(): View
+    {
+        $records = $this->recordsQuery()
             ->paginate(10);
 
         return view('livewire.unidad-academica.campus.campus-list', compact('records'));

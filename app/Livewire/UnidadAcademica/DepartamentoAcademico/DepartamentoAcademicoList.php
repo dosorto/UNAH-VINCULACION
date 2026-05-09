@@ -4,6 +4,7 @@ namespace App\Livewire\UnidadAcademica\DepartamentoAcademico;
 
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\FacultadCentro;
+use App\Support\AdminCsv;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
@@ -15,6 +16,7 @@ class DepartamentoAcademicoList extends Component
 
     public string $search = '';
     public bool $showTrashed = false;
+    public ?int $filterCentroFacultad = null;
 
     public bool $createModal = false;
     public string $create_nombre = '';
@@ -28,6 +30,11 @@ class DepartamentoAcademicoList extends Component
     public ?int $edit_centro_facultad_id = null;
 
     public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterCentroFacultad(): void
     {
         $this->resetPage();
     }
@@ -96,15 +103,38 @@ class DepartamentoAcademicoList extends Component
         Notification::make()->title('Departamento académico restaurado.')->success()->send();
     }
 
+    public function exportExcel()
+    {
+        return AdminCsv::download('departamentos-academicos-' . now()->format('Y-m-d') . '.csv', [
+            'Nombre',
+            'Siglas',
+            'Centro/Facultad',
+        ], function () {
+            foreach ($this->recordsQuery()->lazy() as $departamento) {
+                yield [
+                    $departamento->nombre,
+                    $departamento->siglas,
+                    $departamento->centroFacultad?->nombre,
+                ];
+            }
+        });
+    }
+
+    private function recordsQuery()
+    {
+        return DepartamentoAcademico::with('centroFacultad')
+            ->when($this->showTrashed, fn($q) => $q->withTrashed())
+            ->when($this->search, fn($q) => $q->where(fn($query) => $query
+                ->where('nombre', 'like', '%'.$this->search.'%')
+                ->orWhere('siglas', 'like', '%'.$this->search.'%')
+            ))
+            ->when($this->filterCentroFacultad, fn($q) => $q->where('centro_facultad_id', $this->filterCentroFacultad))
+            ->orderBy('nombre');
+    }
+
     public function render(): View
     {
-        $records = DepartamentoAcademico::with('centroFacultad')
-            ->when($this->showTrashed, fn($q) => $q->withTrashed())
-            ->when($this->search, fn($q) =>
-                $q->where('nombre', 'like', '%'.$this->search.'%')
-                  ->orWhere('siglas', 'like', '%'.$this->search.'%')
-            )
-            ->orderBy('nombre')
+        $records = $this->recordsQuery()
             ->paginate(10);
 
         return view('livewire.unidad-academica.departamento-academico.departamento-academico-list', [

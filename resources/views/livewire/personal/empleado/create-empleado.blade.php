@@ -46,6 +46,17 @@
                     @error('celular') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría</label>
+                    <select wire:model="categoria_id"
+                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">Sin categoría</option>
+                        @foreach ($categorias as $id => $nombre)
+                            <option value="{{ $id }}">{{ $nombre }}</option>
+                        @endforeach
+                    </select>
+                    @error('categoria_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Facultad o Centro <span class="text-red-500">*</span></label>
                     <select wire:model.live="centro_facultad_id"
                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500">

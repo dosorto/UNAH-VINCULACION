@@ -3,6 +3,7 @@
 namespace App\Livewire\Estudiante;
 
 use App\Models\Estudiante\Estudiante;
+use App\Models\UnidadAcademica\Carrera;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\User;
 use App\Support\Notification;
@@ -18,6 +19,7 @@ class CreateEstudiante extends Component
     public string $apellido = '';
     public string $cuenta = '';
     public ?int $centro_facultad_id = null;
+    public ?int $carrera_id = null;
 
     protected array $rules = [
         'user_name'          => 'required|string|max:255|unique:users,name',
@@ -26,7 +28,13 @@ class CreateEstudiante extends Component
         'apellido'           => 'required|string|max:255',
         'cuenta'             => 'required|numeric|unique:estudiante,cuenta',
         'centro_facultad_id' => 'required|exists:centro_facultad,id',
+        'carrera_id'         => 'nullable|exists:carrera,id',
     ];
+
+    public function updatingCentroFacultadId(): void
+    {
+        $this->carrera_id = null;
+    }
 
     public function create(): void
     {
@@ -48,16 +56,34 @@ class CreateEstudiante extends Component
             'apellido'           => $this->apellido,
             'cuenta'             => $this->cuenta,
             'centro_facultad_id' => $this->centro_facultad_id,
+            'carrera_id'         => $this->carrera_id,
         ]);
 
         Notification::make()->title('¡Éxito!')->body('Estudiante creado correctamente.')->success()->send();
 
-        $this->reset(['user_name', 'user_email', 'nombre', 'apellido', 'cuenta', 'centro_facultad_id']);
+        $this->reset(['user_name', 'user_email', 'nombre', 'apellido', 'cuenta', 'centro_facultad_id', 'carrera_id']);
     }
 
     public function render(): View
     {
         $centros = FacultadCentro::orderBy('nombre')->pluck('nombre', 'id');
-        return view('livewire.estudiante.create-estudiante', compact('centros'));
+        $carreras = $this->carrerasPorCentro($this->centro_facultad_id);
+
+        return view('livewire.estudiante.create-estudiante', compact('centros', 'carreras'));
+    }
+
+    private function carrerasPorCentro(?int $centroId)
+    {
+        if (!$centroId) {
+            return collect();
+        }
+
+        return Carrera::query()
+            ->where(function ($query) use ($centroId) {
+                $query->where('facultad_centro_id', $centroId)
+                    ->orWhereHas('facultadCentros', fn($q) => $q->where('centro_facultad.id', $centroId));
+            })
+            ->orderBy('nombre')
+            ->pluck('nombre', 'id');
     }
 }
