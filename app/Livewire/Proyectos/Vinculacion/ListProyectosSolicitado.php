@@ -107,30 +107,45 @@ class ListProyectosSolicitado extends Component
     public function aprobar(): void
     {
         $proyecto = Proyecto::findOrFail($this->aprobarProyectoId);
+        $cargoFirma = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+            ->where('tipo_cargo_firma.nombre', 'Revisor Vinculacion')
+            ->where('cargo_firma.descripcion', 'Proyecto')
+            ->first();
+
+        $nextEstadoId = $cargoFirma
+            ? $proyecto->nextEstadoIdForCargo($cargoFirma->id)
+            : null;
+
+        if (! $nextEstadoId) {
+            $nextEstadoId = TipoEstado::where('nombre', 'En revision final')->first()?->id;
+        }
+
+        $nextEstadoNombre = $nextEstadoId
+            ? TipoEstado::find($nextEstadoId)?->nombre
+            : 'En revision final';
 
         $proyecto->estado_proyecto()->create([
             'empleado_id'   => Auth::user()->empleado->id,
-            'tipo_estado_id' => TipoEstado::where('nombre', 'En revision final')->first()->id,
+            'tipo_estado_id' => $nextEstadoId,
             'fecha'         => now(),
-            'comentario'    => 'El proyecto ha sido enviado a revisión final.',
+            'comentario'    => 'El proyecto ha cambiado de estado a '.$nextEstadoNombre.'.',
         ]);
 
-        $proyecto->firma_proyecto()->updateOrCreate(
-            [
-                'empleado_id'   => auth()->user()->empleado->id,
-                'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                    ->where('tipo_cargo_firma.nombre', 'Revisor Vinculacion')
-                    ->where('cargo_firma.descripcion', 'Proyecto')
-                    ->first()->id,
-            ],
-            [
-                'estado_revision' => 'Aprobado',
-                'firma_id'        => auth()->user()?->empleado?->firma?->id,
-                'sello_id'        => auth()->user()?->empleado?->sello?->id,
-                'hash'            => 'hash',
-                'fecha_firma'     => now(),
-            ]
-        );
+        if ($cargoFirma) {
+            $proyecto->firma_proyecto()->updateOrCreate(
+                [
+                    'empleado_id'   => auth()->user()->empleado->id,
+                    'cargo_firma_id' => $cargoFirma->id,
+                ],
+                [
+                    'estado_revision' => 'Aprobado',
+                    'firma_id'        => auth()->user()?->empleado?->firma?->id,
+                    'sello_id'        => auth()->user()?->empleado?->sello?->id,
+                    'hash'            => 'hash',
+                    'fecha_firma'     => now(),
+                ]
+            );
+        }
 
         $proyecto->update([
             'codigo_proyecto'         => $this->aprobar_codigo,

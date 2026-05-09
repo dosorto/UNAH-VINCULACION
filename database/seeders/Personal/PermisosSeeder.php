@@ -40,6 +40,7 @@ class PermisosSeeder extends Seeder
         // modulo de configuracion
         $permission12 = Permission::create(['name' => 'configuracion-admin-logs']);
         $permission13 = Permission::create(['name' => 'configuracion-admin-mi-perfil']);
+        $permission13b = Permission::create(['name' => 'configuracion-admin-flujos']);
 
         // modulo de inicio
         $permission14 = Permission::create(['name' => 'inicio-admin-inicio']);
@@ -112,6 +113,7 @@ class PermisosSeeder extends Seeder
             'inicio-admin-inicio',
             'proyectos-admin-solicitados-final',
             'configuracion-admin-mi-perfil',
+            'configuracion-admin-flujos',
             'unidad-academica-admin-campus',
             'unidad-academica-admin-carrera',
             'unidad-academica-admin-departamento',

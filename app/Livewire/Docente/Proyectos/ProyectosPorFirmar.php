@@ -103,9 +103,12 @@ class ProyectosPorFirmar extends Component
                 'fecha_firma'     => now(),
             ]);
 
+            $nextEstadoId = $firma->proyecto?->nextEstadoIdForCargo($firma->cargo_firma_id)
+                ?? $firma->cargo_firma->estado_siguiente_id;
+
             $firma->proyecto->estado_proyecto()->create([
                 'empleado_id'    => auth()->user()->empleado->id,
-                'tipo_estado_id' => $firma->cargo_firma->estado_siguiente_id,
+                'tipo_estado_id' => $nextEstadoId,
                 'fecha'          => now(),
                 'comentario'     => 'Firmado y aprobado en este estado',
             ]);

@@ -45,6 +45,8 @@ use App\Models\Proyecto\MetaContribuye;
 use App\Models\Proyecto\EquipoEjecutorBaja;
 use App\Models\Proyecto\EquipoEjecutorNuevo;
 use DragonCode\Contracts\Cashier\Config\Payments\Statuses;
+use App\Models\Proyecto\FlujoAprobacion;
+use Illuminate\Support\Collection;
 
 class Proyecto extends Model
 {
@@ -97,7 +99,8 @@ class Proyecto extends Model
         'numero_libro',
         'numero_tomo',
         'numero_folio',
-        'numero_dictamen'
+        'numero_dictamen',
+        'flujo_aprobacion_id'
     ];
 
     protected static $logName = 'Proyecto';
@@ -196,6 +199,7 @@ class Proyecto extends Model
         'programa_pertenece',
         'lineas_investigacion_academica',
         'responsable_revision_id',
+        'flujo_aprobacion_id',
     ];
 
     protected $casts = [
@@ -598,6 +602,11 @@ class Proyecto extends Model
         return $this->morphMany(FirmaProyecto::class, 'firmable');
     }
 
+    public function flujoAprobacion()
+    {
+        return $this->belongsTo(FlujoAprobacion::class, 'flujo_aprobacion_id');
+    }
+
     public function firma_coodinador_proyecto()
     {
         return $this->morphMany(FirmaProyecto::class, 'firmable')
@@ -686,6 +695,64 @@ class Proyecto extends Model
         return $this->estado_proyecto()
             ->latest('created_at') // Ordenar por la columna que representa el último registro
             ->first();
+    }
+
+    public function resolveFlujoAprobacion(): ?FlujoAprobacion
+    {
+        if ($this->flujoAprobacion) {
+            return $this->flujoAprobacion->loadMissing('etapas.cargoFirma.tipoCargoFirma');
+        }
+
+        return FlujoAprobacion::query()
+            ->with('etapas.cargoFirma.tipoCargoFirma')
+            ->where('proceso', 'PROYECTO')
+            ->where('activo', true)
+            ->orderBy('id')
+            ->first();
+    }
+
+    public function flujoEtapasOrdenadas(): Collection
+    {
+        $flujo = $this->resolveFlujoAprobacion();
+
+        return $flujo?->etapas
+            ? $flujo->etapas->sortBy('orden')->values()
+            : collect();
+    }
+
+    public function nextCargoFirmaId(?int $cargoFirmaId): ?int
+    {
+        if (! $cargoFirmaId) {
+            return null;
+        }
+
+        $etapas = $this->flujoEtapasOrdenadas();
+        $currentIndex = $etapas->search(fn ($etapa) => (int) $etapa->cargo_firma_id === (int) $cargoFirmaId);
+
+        if ($currentIndex === false) {
+            return null;
+        }
+
+        return $etapas->get($currentIndex + 1)?->cargo_firma_id;
+    }
+
+    public function nextEstadoIdForCargo(?int $cargoFirmaId): ?int
+    {
+        if (! $cargoFirmaId) {
+            return null;
+        }
+
+        $cargoActual = CargoFirma::find($cargoFirmaId);
+        if (! $cargoActual) {
+            return null;
+        }
+
+        $nextCargoId = $this->nextCargoFirmaId($cargoFirmaId);
+        if ($nextCargoId) {
+            return CargoFirma::find($nextCargoId)?->tipo_estado_id;
+        }
+
+        return $cargoActual->estado_siguiente_id;
     }
 
 

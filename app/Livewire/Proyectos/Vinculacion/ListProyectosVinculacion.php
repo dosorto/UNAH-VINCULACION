@@ -9,6 +9,7 @@ use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\Modalidad;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\FlujoAprobacion;
 use App\Support\AdminCsv;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
@@ -39,6 +40,10 @@ class ListProyectosVinculacion extends Component
     public ?int $firmas_jefe_id = null;
     public ?int $firmas_director_id = null;
     public ?int $firmas_enlace_id = null;
+
+    public bool $flowModal = false;
+    public ?int $flowProyectoId = null;
+    public ?int $flowSelectedId = null;
 
     public function updatingSearch(): void { $this->resetPage(); }
     public function updatingFilterCentroFacultad(): void { $this->filterDepartamento = null; }
@@ -97,6 +102,30 @@ class ListProyectosVinculacion extends Component
 
         $this->firmasModal = false;
         Notification::make()->title('Firmas actualizadas')->body('Los responsables de firma fueron actualizados correctamente.')->success()->send();
+    }
+
+    public function openFlowModal(int $id): void
+    {
+        $this->flowProyectoId = $id;
+        $proyecto = Proyecto::find($id);
+        $this->flowSelectedId = $proyecto?->flujo_aprobacion_id
+            ?? FlujoAprobacion::defaultForProyectos()?->id;
+        $this->flowModal = true;
+    }
+
+    public function saveFlow(): void
+    {
+        $this->validate([
+            'flowSelectedId' => ['required', 'exists:flujos_aprobacion,id'],
+        ]);
+
+        $proyecto = Proyecto::findOrFail($this->flowProyectoId);
+        $proyecto->update([
+            'flujo_aprobacion_id' => $this->flowSelectedId,
+        ]);
+
+        $this->flowModal = false;
+        Notification::make()->title('Flujo actualizado')->body('El flujo del proyecto se actualizo correctamente.')->success()->send();
     }
 
     public function exportExcel()
@@ -173,10 +202,14 @@ class ListProyectosVinculacion extends Component
         $categorias      = Categoria::orderBy('nombre')->pluck('nombre', 'id');
         $modalidades     = Modalidad::orderBy('nombre')->pluck('nombre', 'id');
         $odsList         = Od::orderBy('nombre')->pluck('nombre', 'id');
+        $flujos          = FlujoAprobacion::query()
+            ->where('proceso', 'PROYECTO')
+            ->orderBy('nombre')
+            ->get();
 
         return view('livewire.proyectos.vinculacion.list-proyectos-vinculacion', compact(
             'records', 'viewProyecto', 'estadosTipo', 'centros', 'departamentos',
-            'empleados', 'categorias', 'modalidades', 'odsList'
+            'empleados', 'categorias', 'modalidades', 'odsList', 'flujos'
         ));
     }
 }
