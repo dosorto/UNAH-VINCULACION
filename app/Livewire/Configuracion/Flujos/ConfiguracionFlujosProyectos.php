@@ -107,6 +107,8 @@ class ConfiguracionFlujosProyectos extends Component
             'stages.*.codigo' => ['required', 'string', 'max:80'],
             'stages.*.nombre' => ['required', 'string', 'max:180'],
             'stages.*.cargo_firma_id' => ['required', 'exists:cargo_firma,id'],
+            'stages.*.requiere_asignacion' => ['boolean'],
+            'stages.*.emisor_define_destinatario' => ['boolean'],
             'stages.*.activo' => ['boolean'],
         ]);
 
@@ -130,6 +132,8 @@ class ConfiguracionFlujosProyectos extends Component
                     'codigo' => strtoupper(trim($stage['codigo'])),
                     'nombre' => $stage['nombre'],
                     'cargo_firma_id' => $stage['cargo_firma_id'],
+                    'requiere_asignacion' => (bool) ($stage['requiere_asignacion'] ?? false),
+                    'emisor_define_destinatario' => (bool) ($stage['emisor_define_destinatario'] ?? false),
                     'activo' => $stage['activo'] ?? true,
                 ]);
             }
@@ -159,7 +163,7 @@ class ConfiguracionFlujosProyectos extends Component
         return view('livewire.configuracion.flujos.configuracion-flujos-proyectos', [
             'flows' => $flows,
             'cargos' => $cargos,
-        ])->layout('layouts.app');
+        ])->layout('layouts.app', ['hideHorizontalNav' => true]);
     }
 
     protected function loadWorkflow(FlujoAprobacion $flow): void
@@ -179,6 +183,8 @@ class ConfiguracionFlujosProyectos extends Component
                 'codigo' => $stage->codigo,
                 'nombre' => $stage->nombre,
                 'cargo_firma_id' => (string) $stage->cargo_firma_id,
+                'requiere_asignacion' => (bool) $stage->requiere_asignacion,
+                'emisor_define_destinatario' => (bool) $stage->emisor_define_destinatario,
                 'activo' => (bool) $stage->activo,
             ])
             ->values()
@@ -208,6 +214,8 @@ class ConfiguracionFlujosProyectos extends Component
             'codigo' => 'ETAPA_'.$order,
             'nombre' => '',
             'cargo_firma_id' => '',
+            'requiere_asignacion' => true,
+            'emisor_define_destinatario' => false,
             'activo' => true,
         ];
     }

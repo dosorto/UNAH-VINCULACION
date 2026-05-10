@@ -18,10 +18,14 @@ class FlujoAprobacionEtapa extends Model
         'codigo',
         'nombre',
         'cargo_firma_id',
+        'requiere_asignacion',
+        'emisor_define_destinatario',
         'activo',
     ];
 
     protected $casts = [
+        'requiere_asignacion' => 'boolean',
+        'emisor_define_destinatario' => 'boolean',
         'activo' => 'boolean',
     ];
 
