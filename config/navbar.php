@@ -167,12 +167,12 @@ return [
                 'routes' => ['listarLogs', 'slides', 'configuracion.flujos.proyectos'],
                 'icono' => 'heroicon-c-cog-6-tooth',
                 'class' => 'mb-4',
-                'permisos' => ['configuracion-admin-logs', 'apariencia-admin-slides', 'configuracion-admin-flujos'],
+                'permisos' => ['configuracion.logs', 'apariencia.slides', 'configuracion.flujos'],
                 'children' => [
-                    ['texto' => 'Logs', 'route' => 'listarLogs', 'permiso' => 'configuracion-admin-logs'],
-                    ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia-admin-slides'],
-                    ['texto' => 'Flujos de proyectos', 'route' => 'configuracion.flujos.proyectos', 'permiso' => 'configuracion-admin-flujos'],
-                    ['texto' => 'Contactanos', 'route' => 'contactanos', 'permiso' => 'configuracion-admin-contactanos']
+                    ['texto' => 'Logs', 'route' => 'listarLogs', 'permiso' => 'configuracion.logs'],
+                    ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia.slides'],
+                    ['texto' => 'Flujos de proyectos', 'route' => 'configuracion.flujos.proyectos', 'permiso' => 'configuracion.flujos'],
+                    ['texto' => 'Contactanos', 'route' => 'contactanos', 'permiso' => 'configuracion.contactanos']
                 ],
             ],
 
@@ -209,7 +209,7 @@ return [
                 'route' => 'SolicitudProyectosDocente',
                 'routes' => ['SolicitudProyectosDocente', 'AprobadoProyectosDocente', 'RechazadoProyectosDocente', 'FichasActualizacionPorFirmar'],
                 'icono' => 'heroicon-o-document-text',
-                'permisos' => ['docente.proyectos', 'docente-admin-solicitados'],
+                'permisos' => ['docente.proyectos'],
                 'children' => [
                     ['texto' => 'Revisión Comité Local', 'route' => 'SolicitudProyectosDocente', 'permiso' => 'docente.proyectos', 'funcion' => 'obtenerCantidadProyectosPorFirmar'],
                     ['texto' => 'Fichas de Actualización', 'route' => 'FichasActualizacionPorFirmar', 'permiso' => 'docente.proyectos', 'funcion' => 'obtenerCantidadFichasPorFirmar'],

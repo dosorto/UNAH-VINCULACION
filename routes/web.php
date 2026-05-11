@@ -202,11 +202,11 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
         Route::get('slides', SlideConfig::class)
             ->name('slides')
-            ->middleware('can:apariencia-admin-slides');
+            ->middleware('can:apariencia.slides');
 
         Route::get('configuracion/flujos-proyectos', ConfiguracionFlujosProyectos::class)
             ->name('configuracion.flujos.proyectos')
-            ->middleware('can:configuracion-admin-flujos');
+            ->middleware('can:configuracion.flujos');
     });
 
 
