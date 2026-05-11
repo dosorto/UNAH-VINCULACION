@@ -14,6 +14,8 @@ use App\Models\Proyecto\EjesPrioritariosUnah;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\MetaContribuye;
 use App\Models\Proyecto\IntegranteInternacional;
+use App\Models\Proyecto\FlujoAprobacion;
+use App\Models\Estado\TipoEstado;
 use App\Models\Asignatura;
 use App\Models\PeriodoAcademico;
 use App\Models\UnidadAcademica\FacultadCentro;
@@ -358,6 +360,7 @@ class CreateProyectoVinculacion extends Component
             'fecha_finalizacion' => $this->fecha_finalizacion ?: null,
             'programa_pertenece' => $this->programa_pertenece,
             'lineas_investigacion_academica' => $this->lineas_investigacion_academica,
+            'flujo_aprobacion_id' => FlujoAprobacion::defaultForProyectos()?->id,
         ]);
         $record->coordinador_proyecto()->firstOrCreate(
             ['empleado_id' => $empleado->id],
@@ -1032,7 +1035,26 @@ class CreateProyectoVinculacion extends Component
         try {
             $this->saveFirmas($record);
             $record->agregarFirma(cargoFirma: 'Coordinador Proyecto', empleado: $empleado);
-            $record->agregarEstadoByName(empleado: $empleado, tipoEstadoNombre: 'Enlace Vinculacion', comentario: 'Proyecto enviado para firma');
+            $cargoFirma = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+                ->where('cargo_firma.descripcion', 'Proyecto')
+                ->first();
+
+            $nextEstadoId = $cargoFirma
+                ? $record->nextEstadoIdForCargo($cargoFirma->id)
+                : null;
+
+            if (! $nextEstadoId) {
+                $nextEstadoId = TipoEstado::where('nombre', 'Enlace Vinculacion')->first()?->id;
+            }
+
+            if ($nextEstadoId) {
+                $record->agregarEstado(
+                    empleado: $empleado,
+                    tipoEstadoId: $nextEstadoId,
+                    comentario: 'Proyecto enviado para firma'
+                );
+            }
         } catch (\Exception $e) {
             Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
             return;

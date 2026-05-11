@@ -163,6 +163,8 @@
                                 @if(auth()->user()->hasRole(['admin', 'Director/Enlace']))
                                 <button wire:click="openFirmas({{ $proyecto->id }})"
                                         class="px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg">Firmas</button>
+                                <button wire:click="openFlowModal({{ $proyecto->id }})"
+                                        class="px-3 py-1.5 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg">Flujo</button>
                                 @endif
                             </div>
                         </td>
@@ -238,6 +240,35 @@
                 <div class="flex justify-end gap-3 pt-2">
                     <button wire:click="$set('firmasModal', false)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
                     <button wire:click="saveFirmas()" class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg">Guardar Firmas</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Modal Configurar Flujo --}}
+    @if ($flowModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-xl">
+            <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold dark:text-white">Asignar flujo al proyecto</h3>
+                <button wire:click="$set('flowModal', false)" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Flujo de aprobacion</label>
+                    <select wire:model="flowSelectedId"
+                            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm">
+                        <option value="">Seleccione...</option>
+                        @foreach ($flujos as $flujo)
+                            <option value="{{ $flujo->id }}">{{ $flujo->nombre }}</option>
+                        @endforeach
+                    </select>
+                    @error('flowSelectedId') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button wire:click="$set('flowModal', false)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
+                    <button wire:click="saveFlow" class="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg">Guardar flujo</button>
                 </div>
             </div>
         </div>

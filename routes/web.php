@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 use App\Livewire\Demografia\Pais\CreatePais;
 use App\Livewire\Demografia\Pais\ListPaises;
 use App\Livewire\Configuracion\Logs\ListLogs;
+use App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
 use App\Livewire\Personal\Perfil\EditPerfil;
 use App\Livewire\Personal\Permiso\ListPermisos;
 use App\Livewire\Personal\Empleado\ListEmpleado;
@@ -201,7 +202,11 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
         Route::get('slides', SlideConfig::class)
             ->name('slides')
-            ->middleware('can:apariencia.slides');
+            ->middleware('can:apariencia-admin-slides');
+
+        Route::get('configuracion/flujos-proyectos', ConfiguracionFlujosProyectos::class)
+            ->name('configuracion.flujos.proyectos')
+            ->middleware('can:configuracion-admin-flujos');
     });
 
 

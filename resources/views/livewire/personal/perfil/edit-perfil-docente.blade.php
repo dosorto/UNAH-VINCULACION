@@ -77,11 +77,11 @@
     <div class="mt-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
         <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Firma (Requerido)</p>
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Visualizar o agregar una nueva Firma.</p>
-        @foreach ($firmas as $firma)
+        @if ($firma)
             <div class="mb-3">
                 <img src="{{ Storage::url($firma->ruta_storage) }}" alt="Firma" class="max-h-24 border border-gray-200 rounded" />
             </div>
-        @endforeach
+        @endif
         <div class="flex items-center gap-3">
             <input type="file" wire:model="firmaUpload" accept="image/*" class="text-sm text-gray-600 dark:text-gray-400" />
             <button wire:click="subirFirma" type="button"
@@ -96,11 +96,11 @@
     <div class="mt-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
         <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Sello (Opcional)</p>
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Visualizar o agregar un nuevo Sello.</p>
-        @foreach ($sellos as $sello)
+        @if ($sello)
             <div class="mb-3">
                 <img src="{{ Storage::url($sello->ruta_storage) }}" alt="Sello" class="max-h-24 border border-gray-200 rounded" />
             </div>
-        @endforeach
+        @endif
         <div class="flex items-center gap-3">
             <input type="file" wire:model="selloUpload" accept="image/*" class="text-sm text-gray-600 dark:text-gray-400" />
             <button wire:click="subirSello" type="button"

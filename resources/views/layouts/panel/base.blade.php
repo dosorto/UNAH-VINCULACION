@@ -9,6 +9,7 @@
 
     <title>{{ config('app.name') }}</title>
     <link rel="icon" href="{{ asset('images/Image/logo_nexo.png') }}" type="image/png">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0" />
 
     <style>
         [x-cloak] {
@@ -99,7 +100,9 @@
             <div class="bg-white p-6 border border-gray-300 rounded-lg dark:bg-white/5 dark:border-gray-700 h-full">
                 @yield('titulo')
                 <div class="mt-4">
-                    @include('components.panel.navbar-horizontal.navbar')
+                    @if (empty($hideHorizontalNav))
+                        @include('components.panel.navbar-horizontal.navbar')
+                    @endif
                     @yield('main')
                 </div>
             </div>
