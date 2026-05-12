@@ -19,18 +19,53 @@
             Estado: {{ $proyecto->estado?->tipoestado?->nombre ?? 'Sin estado' }}
         </h1>
         <div id="user-details" class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700">
-            <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 no-print">
+            <div class="flex flex-wrap justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 no-print gap-2">
                 <span class="text-xl font-bold dark:text-white">Ficha del Proyecto</span>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                     <a href="{{ route('proyecto.perfil.pdf', ['proyecto' => $proyecto->id]) }}"
                        class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg">
                         Descargar PDF
                     </a>
-                    @if ($esCoordinador && ($proyecto->estado?->tipoestado?->nombre == 'Borrador' || $proyecto->estado?->tipoestado?->nombre == 'Subsanacion' || $proyecto->estado?->tipoestado?->nombre == 'Autoguardado'))
-                    <a href="{{ route('editarProyectoVinculacion', ['proyecto' => $proyecto->id]) }}"
-                       class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
-                        Continuar Editando
-                    </a>
+
+                    @if ($esCoordinador)
+                        @php $estadoNombre = $proyecto->estado?->tipoestado?->nombre; @endphp
+
+                        {{-- Continuar editando (Borrador / Autoguardado / Subsanacion) --}}
+                        @if (in_array($estadoNombre, ['Borrador', 'Autoguardado', 'Subsanacion']))
+                            <a href="{{ route('crearProyectoVinculacion', $proyecto) }}"
+                               class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
+                                {{ $estadoNombre === 'Subsanacion' ? 'Subsanar Proyecto' : 'Continuar Editando' }}
+                            </a>
+                        @endif
+
+                        {{-- Subir / Subsanar Informe Intermedio --}}
+                        @if ($estadoNombre === 'En curso' &&
+                             (is_null($proyecto->documento_intermedio()) ||
+                              $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre === 'Subsanacion'))
+                            <button wire:click="openSubirIntermedio()"
+                                    class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg">
+                                {{ $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre === 'Subsanacion' ? 'Subsanar Inf. Intermedio' : 'Subir Inf. Intermedio' }}
+                            </button>
+                        @endif
+
+                        {{-- Subir / Subsanar Informe Final --}}
+                        @if ($estadoNombre === 'En curso' &&
+                             (($proyecto->documento_intermedio()?->estado?->tipoestado?->nombre === 'Aprobado' &&
+                               is_null($proyecto->documento_final())) ||
+                              $proyecto->documento_final()?->estado?->tipoestado?->nombre === 'Subsanacion'))
+                            <button wire:click="openSubirFinal()"
+                                    class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg">
+                                {{ $proyecto->documento_final()?->estado?->tipoestado?->nombre === 'Subsanacion' ? 'Subsanar Inf. Final' : 'Subir Inf. Final' }}
+                            </button>
+                        @endif
+
+                        {{-- Actualizar equipo / fechas --}}
+                        @if ($estadoNombre === 'En curso')
+                            <a href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}"
+                               class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 rounded-lg">
+                                Actualizar Equipo o Fechas
+                            </a>
+                        @endif
                     @endif
                 </div>
             </div>
