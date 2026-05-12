@@ -171,7 +171,7 @@ return [
                 'children' => [
                     ['texto' => 'Logs', 'route' => 'listarLogs', 'permiso' => 'configuracion-admin-logs'],
                     ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia-admin-slides'],
-                    ['texto' => 'Flujos de proyectos', 'route' => 'configuracion.flujos.proyectos', 'permiso' => 'configuracion-admin-flujos'],
+                    ['texto' => 'Flujos', 'route' => 'configuracion.flujos.proyectos', 'permiso' => 'configuracion-admin-flujos'],
                     ['texto' => 'Contactanos', 'route' => 'contactanos', 'permiso' => 'configuracion-admin-contactanos']
                 ],
             ],
