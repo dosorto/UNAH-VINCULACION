@@ -1,4 +1,12 @@
-<div>
+<div
+    x-data
+    x-on:borrador-creado.window="
+        const baseUrl = @js(url('crearProyectoVinculacion'));
+        if ($event.detail?.id && !window.location.pathname.endsWith('/' + $event.detail.id)) {
+            window.history.replaceState({}, '', baseUrl + '/' + $event.detail.id);
+        }
+    "
+>
     {{-- Step progress --}}
     <div class="mb-6 bg-white dark:bg-gray-900 shadow rounded-lg p-4">
         @php $stepLabels = ['Info General','Equipo','Contraparte','Actividades','Descripción','Marco Lógico','Presupuesto','Anexos','Firmas']; @endphp
@@ -27,12 +35,12 @@
         <div class="space-y-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del Proyecto <span class="text-red-500">*</span></label>
-                <input type="text" wire:model="nombre_proyecto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                <input type="text" wire:model.live.debounce.1000ms="nombre_proyecto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                 @error('nombre_proyecto') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Modalidad <span class="text-red-500">*</span></label>
-                <select wire:model="modalidad_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <select wire:model.live="modalidad_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                     <option value="">Seleccione...</option>
                     @foreach($modalidades as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
                 </select>
@@ -42,7 +50,7 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categorías <span class="text-red-500">*</span></label>
                 <div x-data="{
                         open: false,
-                        selected: $wire.entangle('categoria'),
+                        selected: $wire.entangle('categoria').live,
                         options: @js($categorias),
                         toggle(id) {
                             id = String(id);
@@ -80,7 +88,7 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ejes Prioritarios UNAH <span class="text-red-500">*</span></label>
                 <div x-data="{
                         open: false,
-                        selected: $wire.entangle('ejes_prioritarios_unah'),
+                        selected: $wire.entangle('ejes_prioritarios_unah').live,
                         options: @js($ejesPrioritarios),
                         toggle(id) {
                             id = String(id);
@@ -196,7 +204,7 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carreras</label>
                 <div x-data="{
                         open: false,
-                        selected: $wire.entangle('carreras'),
+                        selected: $wire.entangle('carreras').live,
                         options: @js($carrerasOpts),
                         toggle(id) {
                             id = String(id);
@@ -232,12 +240,12 @@
             @endif
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Programa al que Pertenece <span class="text-red-500">*</span></label>
-                <input type="text" wire:model="programa_pertenece" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                <input type="text" wire:model.live.debounce.1000ms="programa_pertenece" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                 @error('programa_pertenece') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Líneas de Investigación Académica <span class="text-red-500">*</span></label>
-                <textarea wire:model="lineas_investigacion_academica" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="lineas_investigacion_academica" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 @error('lineas_investigacion_academica') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
@@ -281,10 +289,10 @@
             @if($metasList->count())
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metas que Contribuye</label>
-                <div x-data="{
+                <div wire:key="metas-contribuye-{{ md5(json_encode($metasDisponibles)) }}" x-data="{
                         open: false,
-                        selected: $wire.entangle('metasContribuye'),
-                        options: @js($metasList),
+                        selected: $wire.entangle('metasContribuye').live,
+                        options: @js($metasDisponibles),
                         toggle(id) {
                             id = String(id);
                             let curr = (this.selected || []).map(String);
@@ -320,12 +328,12 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha Inicio <span class="text-red-500">*</span></label>
-                    <input type="date" wire:model="fecha_inicio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    <input type="date" wire:model.live.debounce.1000ms="fecha_inicio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                     @error('fecha_inicio') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha Finalización <span class="text-red-500">*</span></label>
-                    <input type="date" wire:model="fecha_finalizacion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    <input type="date" wire:model.live.debounce.1000ms="fecha_finalizacion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                     @error('fecha_finalizacion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
             </div>
@@ -351,7 +359,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Empleado</label>
-                            <select wire:model="empleado_proyecto.{{ $i }}.empleado_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
+                            <select wire:model.live="empleado_proyecto.{{ $i }}.empleado_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
                                 <option value="">Seleccione...</option>
                                 @foreach($empleados as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
                             </select>
@@ -397,18 +405,18 @@
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Hombres</label>
-                            <input type="number" wire:model="estudiante_proyecto.{{ $i }}.cantidad_estudiantes_hombres" wire:change="updateEstudianteTotal({{ $i }})" min="0" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                            <input type="number" wire:model.live.debounce.1000ms="estudiante_proyecto.{{ $i }}.cantidad_estudiantes_hombres" wire:change="updateEstudianteTotal({{ $i }})" min="0" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mujeres</label>
-                            <input type="number" wire:model="estudiante_proyecto.{{ $i }}.cantidad_estudiantes_mujeres" wire:change="updateEstudianteTotal({{ $i }})" min="0" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                            <input type="number" wire:model.live.debounce.1000ms="estudiante_proyecto.{{ $i }}.cantidad_estudiantes_mujeres" wire:change="updateEstudianteTotal({{ $i }})" min="0" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                         </div>
                     </div>
                     @if(($est['tipo_participacion_estudiante'] ?? '') === 'Practica Asignatura')
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Asignatura</label>
-                            <select wire:model="estudiante_proyecto.{{ $i }}.asignatura_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
+                            <select wire:model.live="estudiante_proyecto.{{ $i }}.asignatura_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
                                 <option value="">Seleccione...</option>
                                 @foreach($asignaturas as $id => $nombre)
                                     <option value="{{ $id }}">{{ $nombre }}</option>
@@ -418,7 +426,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Periodo Académico</label>
-                            <select wire:model="estudiante_proyecto.{{ $i }}.periodo_academico_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
+                            <select wire:model.live="estudiante_proyecto.{{ $i }}.periodo_academico_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
                                 <option value="">Seleccione...</option>
                                 @foreach($periodosAcademicos as $id => $nombre)
                                     <option value="{{ $id }}">{{ $nombre }}</option>
@@ -445,7 +453,7 @@
                 </div>
                 @foreach($integrante_internacional_proyecto as $i => $int)
                 <div class="mb-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
-                    <select wire:model="integrante_internacional_proyecto.{{ $i }}.integrante_internacional_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
+                    <select wire:model.live="integrante_internacional_proyecto.{{ $i }}.integrante_internacional_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
                         <option value="">Seleccione...</option>
                         @foreach($internacionales as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
                     </select>
@@ -470,17 +478,17 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div class="sm:col-span-2">
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre completo</label>
-                                <input type="text" wire:model="nuevoIntegranteInternacional.nombre_completo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                                <input type="text" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.nombre_completo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                                 @error('nuevoIntegranteInternacional.nombre_completo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Pasaporte / Documento</label>
-                                <input type="text" wire:model="nuevoIntegranteInternacional.documento_identidad" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                                <input type="text" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.documento_identidad" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                                 @error('nuevoIntegranteInternacional.documento_identidad') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Sexo</label>
-                                <select wire:model="nuevoIntegranteInternacional.sexo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500">
+                                <select wire:model.live="nuevoIntegranteInternacional.sexo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500">
                                     <option value="">No especificado</option>
                                     <option value="masculino">Masculino</option>
                                     <option value="femenino">Femenino</option>
@@ -490,17 +498,17 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo electrónico</label>
-                                <input type="email" wire:model="nuevoIntegranteInternacional.email" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                                <input type="email" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.email" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                                 @error('nuevoIntegranteInternacional.email') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">País</label>
-                                <input type="text" wire:model="nuevoIntegranteInternacional.pais" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                                <input type="text" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.pais" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                                 @error('nuevoIntegranteInternacional.pais') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div class="sm:col-span-2">
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Institución</label>
-                                <input type="text" wire:model="nuevoIntegranteInternacional.institucion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                                <input type="text" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.institucion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                                 @error('nuevoIntegranteInternacional.institucion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
@@ -530,11 +538,11 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre</label>
-                        <input type="text" wire:model="entidad_contraparte.{{ $ci }}.nombre" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                        <input type="text" wire:model.live.debounce.1000ms="entidad_contraparte.{{ $ci }}.nombre" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo de Entidad</label>
-                        <select wire:model="entidad_contraparte.{{ $ci }}.tipo_entidad" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
+                        <select wire:model.live="entidad_contraparte.{{ $ci }}.tipo_entidad" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
                             <option value="">Seleccione...</option>
                             <option value="internacional">Internacional</option>
                             <option value="gobierno_nacional">Gobierno Nacional</option>
@@ -546,23 +554,23 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre de Contacto</label>
-                        <input type="text" wire:model="entidad_contraparte.{{ $ci }}.nombre_contacto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                        <input type="text" wire:model.live.debounce.1000ms="entidad_contraparte.{{ $ci }}.nombre_contacto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Cargo de Contacto</label>
-                        <input type="text" wire:model="entidad_contraparte.{{ $ci }}.cargo_contacto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                        <input type="text" wire:model.live.debounce.1000ms="entidad_contraparte.{{ $ci }}.cargo_contacto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Teléfono</label>
-                        <input type="text" wire:model="entidad_contraparte.{{ $ci }}.telefono" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                        <input type="text" wire:model.live.debounce.1000ms="entidad_contraparte.{{ $ci }}.telefono" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo</label>
-                        <input type="email" wire:model="entidad_contraparte.{{ $ci }}.correo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                        <input type="email" wire:model.live.debounce.1000ms="entidad_contraparte.{{ $ci }}.correo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                     </div>
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción de Acuerdos</label>
-                        <textarea wire:model="entidad_contraparte.{{ $ci }}.descripcion_acuerdos" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
+                        <textarea wire:model.live.debounce.1000ms="entidad_contraparte.{{ $ci }}.descripcion_acuerdos" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
                     </div>
                 </div>
                 <div class="mt-3">
@@ -574,7 +582,7 @@
                     <div class="mb-3 rounded-md border border-gray-200 dark:border-gray-700 p-3">
                         <div class="grid grid-cols-1 lg:grid-cols-[1fr_1fr_auto] gap-2 items-start">
                             <div>
-                                <select wire:model="entidad_contraparte.{{ $ci }}.instrumento_formalizacion.{{ $ii }}.tipo_documento" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-sm focus:border-blue-500">
+                                <select wire:model.live="entidad_contraparte.{{ $ci }}.instrumento_formalizacion.{{ $ii }}.tipo_documento" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-sm focus:border-blue-500">
                                     <option value="">Tipo de documento...</option>
                                     <option value="carta_formal_solicitud">Carta formal de solicitud a la unidad académica</option>
                                     <option value="carta_intenciones">Carta de intenciones con la UNAH</option>
@@ -617,20 +625,20 @@
                 <div class="space-y-3">
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción</label>
-                        <textarea wire:model="actividades.{{ $i }}.descripcion" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
+                        <textarea wire:model.live.debounce.1000ms="actividades.{{ $i }}.descripcion" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha Inicio</label>
-                            <input type="date" wire:model="actividades.{{ $i }}.fecha_inicio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                            <input type="date" wire:model.live.debounce.1000ms="actividades.{{ $i }}.fecha_inicio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha Finalización</label>
-                            <input type="date" wire:model="actividades.{{ $i }}.fecha_finalizacion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                            <input type="date" wire:model.live.debounce.1000ms="actividades.{{ $i }}.fecha_finalizacion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Horas</label>
-                            <input type="number" wire:model="actividades.{{ $i }}.horas" min="0" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                            <input type="number" wire:model.live.debounce.1000ms="actividades.{{ $i }}.horas" min="0" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                         </div>
                     </div>
                     <div>
@@ -718,15 +726,15 @@
         <div class="space-y-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Resumen</label>
-                <textarea wire:model="resumen" rows="4" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="resumen" rows="4" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de Participantes</label>
-                <textarea wire:model="descripcion_participantes" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="descripcion_participantes" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Definición del Problema</label>
-                <textarea wire:model="definicion_problema" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="definicion_problema" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
             <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                 <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Beneficiarios por Etnia</h4>
@@ -742,18 +750,18 @@
                         <tbody>
                             <tr>
                                 <td class="py-1 pr-6 text-gray-700 dark:text-gray-300">Indígenas</td>
-                                <td class="py-1 px-3"><input type="number" wire:model="indigenas_hombres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
-                                <td class="py-1 px-3"><input type="number" wire:model="indigenas_mujeres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
+                                <td class="py-1 px-3"><input type="number" wire:model.live.debounce.1000ms="indigenas_hombres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
+                                <td class="py-1 px-3"><input type="number" wire:model.live.debounce.1000ms="indigenas_mujeres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
                             </tr>
                             <tr>
                                 <td class="py-1 pr-6 text-gray-700 dark:text-gray-300">Afroamericanos</td>
-                                <td class="py-1 px-3"><input type="number" wire:model="afroamericanos_hombres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
-                                <td class="py-1 px-3"><input type="number" wire:model="afroamericanos_mujeres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
+                                <td class="py-1 px-3"><input type="number" wire:model.live.debounce.1000ms="afroamericanos_hombres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
+                                <td class="py-1 px-3"><input type="number" wire:model.live.debounce.1000ms="afroamericanos_mujeres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
                             </tr>
                             <tr>
                                 <td class="py-1 pr-6 text-gray-700 dark:text-gray-300">Mestizos</td>
-                                <td class="py-1 px-3"><input type="number" wire:model="mestizos_hombres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
-                                <td class="py-1 px-3"><input type="number" wire:model="mestizos_mujeres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
+                                <td class="py-1 px-3"><input type="number" wire:model.live.debounce.1000ms="mestizos_hombres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
+                                <td class="py-1 px-3"><input type="number" wire:model.live.debounce.1000ms="mestizos_mujeres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
                             </tr>
                             <tr class="border-t border-gray-300 dark:border-gray-600 font-semibold">
                                 <td class="py-1 pr-6 text-gray-900 dark:text-white">Total</td>
@@ -776,7 +784,7 @@
                 @if($municipiosGeo->count())
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Municipio(s)</label>
-                    <select wire:model="municipio_geo" multiple size="4" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
+                    <select wire:model.live="municipio_geo" multiple size="4" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
                         @foreach($municipiosGeo as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
                     </select>
                     <p class="text-xs text-gray-500 mt-1">Ctrl+click para seleccionar múltiples</p>
@@ -784,28 +792,28 @@
                 @endif
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aldea</label>
-                    <input type="text" wire:model="aldea" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500" />
+                    <input type="text" wire:model.live.debounce.1000ms="aldea" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500" />
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Caserío</label>
-                    <input type="text" wire:model="caserio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500" />
+                    <input type="text" wire:model.live.debounce.1000ms="caserio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500" />
                 </div>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alineamiento a la Reforma</label>
-                <textarea wire:model="alineamiento_reforma" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="alineamiento_reforma" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Impacto Deseado</label>
-                <textarea wire:model="impacto_deseado" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="impacto_deseado" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metodología</label>
-                <textarea wire:model="metodologia" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="metodologia" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bibliografía</label>
-                <textarea wire:model="bibliografia" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="bibliografia" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
         </div>
         @endif
@@ -816,7 +824,7 @@
         <div class="space-y-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Objetivo General <span class="text-red-500">*</span></label>
-                <textarea wire:model="objetivo_general" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="objetivo_general" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 @error('objetivo_general') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
@@ -834,7 +842,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción <span class="text-red-500">*</span></label>
-                        <textarea wire:model="objetivosEspecificos.{{ $oi }}.descripcion" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
+                        <textarea wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $oi }}.descripcion" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
                         @error("objetivosEspecificos.{$oi}.descripcion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div class="ml-4">
@@ -847,19 +855,19 @@
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 <div>
                                     <label class="block text-xs font-medium text-gray-500 mb-1">Resultado</label>
-                                    <input type="text" wire:model="objetivosEspecificos.{{ $oi }}.resultados.{{ $ri }}.nombre_resultado" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                    <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $oi }}.resultados.{{ $ri }}.nombre_resultado" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-gray-500 mb-1">Indicador</label>
-                                    <input type="text" wire:model="objetivosEspecificos.{{ $oi }}.resultados.{{ $ri }}.nombre_indicador" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                    <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $oi }}.resultados.{{ $ri }}.nombre_indicador" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-gray-500 mb-1">Medio de Verificación</label>
-                                    <input type="text" wire:model="objetivosEspecificos.{{ $oi }}.resultados.{{ $ri }}.nombre_medio_verificacion" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                    <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $oi }}.resultados.{{ $ri }}.nombre_medio_verificacion" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-gray-500 mb-1">Plazo</label>
-                                    <select wire:model="objetivosEspecificos.{{ $oi }}.resultados.{{ $ri }}.plazo" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500">
+                                    <select wire:model.live="objetivosEspecificos.{{ $oi }}.resultados.{{ $ri }}.plazo" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500">
                                         <option value="corto_plazo">Corto plazo</option>
                                         <option value="mediano_plazo">Mediano plazo</option>
                                         <option value="largo_plazo">Largo plazo</option>
@@ -900,8 +908,8 @@
                             <tr class="border-t border-gray-200 dark:border-gray-700">
                                 <td class="py-2 px-3 text-gray-700 dark:text-gray-300 text-xs">{{ $aporte['concepto_label'] ?? $aporte['concepto'] }}</td>
                                 <td class="py-2 px-3 text-gray-500 text-xs">{{ $aporte['unidad_label'] ?? $aporte['unidad'] }}</td>
-                                <td class="py-2 px-3"><input type="number" wire:model="aporte_institucional.{{ $i }}.cantidad" wire:change="updateAporteTotal({{ $i }})" min="0" @disabled(!($aporte['editable'] ?? true)) class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
-                                <td class="py-2 px-3"><input type="number" wire:model="aporte_institucional.{{ $i }}.costo_unitario" wire:change="updateAporteTotal({{ $i }})" min="0" step="0.01" @disabled(!($aporte['editable'] ?? true)) class="w-28 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
+                                <td class="py-2 px-3"><input type="number" wire:model.live.debounce.1000ms="aporte_institucional.{{ $i }}.cantidad" wire:change="updateAporteTotal({{ $i }})" min="0" @disabled(!($aporte['editable'] ?? true)) class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
+                                <td class="py-2 px-3"><input type="number" wire:model.live.debounce.1000ms="aporte_institucional.{{ $i }}.costo_unitario" wire:change="updateAporteTotal({{ $i }})" min="0" step="0.01" @disabled(!($aporte['editable'] ?? true)) class="w-28 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
                                 <td class="py-2 px-3 text-center font-medium text-gray-900 dark:text-white">{{ number_format($aporte['costo_total'] ?? 0, 2) }}</td>
                             </tr>
                             @endforeach
@@ -918,23 +926,23 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Aporte Contraparte</label>
-                        <input type="number" wire:model="aporte_contraparte" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                        <input type="number" wire:model.live.debounce.1000ms="aporte_contraparte" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Aporte Internacionales</label>
-                        <input type="number" wire:model="aporte_internacionales" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                        <input type="number" wire:model.live.debounce.1000ms="aporte_internacionales" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Aporte Otras Universidades</label>
-                        <input type="number" wire:model="aporte_otras_universidades" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                        <input type="number" wire:model.live.debounce.1000ms="aporte_otras_universidades" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Aporte Comunidad</label>
-                        <input type="number" wire:model="aporte_comunidad" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                        <input type="number" wire:model.live.debounce.1000ms="aporte_comunidad" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Otros Aportes</label>
-                        <input type="number" wire:model="otros_aportes" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                        <input type="number" wire:model.live.debounce.1000ms="otros_aportes" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                     </div>
                 </div>
             </div>
@@ -980,21 +988,21 @@
             <p class="text-sm text-gray-600 dark:text-gray-400">Seleccione a las personas que firmarán el proyecto.</p>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jefe de Departamento</label>
-                <select wire:model="jefe_empleado_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
+                <select wire:model.live="jefe_empleado_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
                     <option value="">Seleccione...</option>
                     @foreach($empleadosMismoCentro as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
                 </select>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Decano / Director de Centro</label>
-                <select wire:model="decano_empleado_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
+                <select wire:model.live="decano_empleado_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
                     <option value="">Seleccione...</option>
                     @foreach($empleadosMismoCentro as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
                 </select>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Enlace de Vinculación</label>
-                <select wire:model="enlace_empleado_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
+                <select wire:model.live="enlace_empleado_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
                     <option value="">Seleccione...</option>
                     @foreach($empleados as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
                 </select>
@@ -1018,6 +1026,15 @@
                 @endif
             </div>
             <div class="flex items-center gap-3">
+                <span class="text-xs min-w-[78px] text-right">
+                    @if($estadoAutoGuardado === 'guardando')
+                        <span class="text-gray-500 dark:text-gray-400">Guardando...</span>
+                    @elseif($estadoAutoGuardado === 'guardado')
+                        <span class="text-green-600 dark:text-green-400">Guardado</span>
+                    @elseif($estadoAutoGuardado === 'error')
+                        <span class="text-red-600 dark:text-red-400">Error al guardar</span>
+                    @endif
+                </span>
                 @if($currentStep === 9)
                 <button wire:click="borrador" type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50">
                     Guardar como Borrador
