@@ -65,7 +65,6 @@
             {{-- Modalidad --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Modalidad <span class="text-red-500">*</span></label>
-                <select wire:model="modalidad_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500">
                 <select wire:model.live="modalidad_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                     <option value="">Seleccione...</option>
                     @foreach($modalidades as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
@@ -80,22 +79,11 @@
                 ['wire' => 'facultades_centros',        'label' => 'Facultades / Centros',         'opts' => $facultadesCentros,     'req' => true, 'live' => true],
             ];
             @endphp
-            @foreach($multiSelectFields as $field)
+            
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {{ $field['label'] }}@if($field['req'] ?? false) <span class="text-red-500">*</span>@endif
-                </label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categorías <span class="text-red-500">*</span></label>
                 <div x-data="{
                         open: false,
-                        selected: {!! isset($field['live']) ? "(\$wire.get('{$field['wire']}') || []).map(String)" : "\$wire.entangle('{$field['wire']}')" !!},
-                        options: @js($field['opts']),
-                        toggle(id) { id = String(id); let c = (this.selected||[]).map(String); const i=c.indexOf(id); i===-1?c.push(id):c.splice(i,1); this.selected=c;{!! isset($field['live']) ? " \$wire.set('{$field['wire']}', c, true);" : '' !!} },
-                        isSelected(id) { return (this.selected||[]).map(String).includes(String(id)); },
-                        getName(id) { return this.options[id]??this.options[String(id)]??id; }
-                    }" @click.outside="open=false" class="relative" {{ isset($field['live']) ? 'wire:ignore' : '' }}>
-                    <div @click="open=!open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
-                        <template x-for="id in (selected||[])" :key="id">
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                         selected: $wire.entangle('categoria').live,
                         options: @js($categorias),
                         toggle(id) {
@@ -112,102 +100,24 @@
                         <template x-for="id in (selected || [])" :key="id">
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
                                 <span x-text="getName(id)"></span>
-                                <button type="button" @click.stop="toggle(id)" class="font-bold leading-none hover:text-blue-900">×</button>
+                                <button type="button" @click.stop="toggle(id)" class="ml-0.5 font-bold leading-none hover:text-orange-900">×</button>
                             </span>
                         </template>
-                        <span x-show="!selected||selected.length===0" class="text-gray-400 text-sm">Seleccione...</span>
-                        <span class="ml-auto text-gray-400 text-xs" x-text="open?'▴':'▾'"></span>
+                        <span x-show="!selected || selected.length === 0" class="text-gray-400 text-sm">Seleccione una opción</span>
+                        <span class="ml-auto text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
                     </div>
                     <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                        <template x-for="[id,name] in Object.entries(options)" :key="id">
+                        <template x-for="[id, name] in Object.entries(options)" :key="id">
                             <div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
-                                :class="isSelected(id)?'bg-blue-50 dark:bg-blue-900/20 text-blue-700 font-medium':'text-gray-700 dark:text-gray-300'">
+                                :class="isSelected(id) ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 font-medium' : 'text-gray-700 dark:text-gray-300'">
                                 <span x-text="name"></span>
-                                <span x-show="isSelected(id)" class="text-blue-600 text-xs">✓</span>
+                                <span x-show="isSelected(id)" class="text-orange-600 dark:text-orange-400 text-xs">✓</span>
                             </div>
                         </template>
                     </div>
                 </div>
-                @error($field['wire']) <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 @error('categoria') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ejes Prioritarios UNAH <span class="text-red-500">*</span></label>
-                <div x-data="{
-                        open: false,
-                        selected: $wire.entangle('ejes_prioritarios_unah').live,
-                        options: @js($ejesPrioritarios),
-                        toggle(id) {
-                            id = String(id);
-                            let curr = (this.selected || []).map(String);
-                            const i = curr.indexOf(id);
-                            if (i === -1) curr.push(id); else curr.splice(i, 1);
-                            this.selected = curr;
-                        },
-                        isSelected(id) { return (this.selected || []).map(String).includes(String(id)); },
-                        getName(id) { return this.options[id] ?? this.options[String(id)] ?? id; }
-                    }" @click.outside="open = false" class="relative">
-                    <div @click="open = !open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
-                        <template x-for="id in (selected || [])" :key="id">
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-                                <span x-text="getName(id)"></span>
-                                <button type="button" @click.stop="toggle(id)" class="ml-0.5 font-bold leading-none hover:text-orange-900">×</button>
-                            </span>
-                        </template>
-                        <span x-show="!selected || selected.length === 0" class="text-gray-400 text-sm">Seleccione una opción</span>
-                        <span class="ml-auto text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
-                    </div>
-                    <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                        <template x-for="[id, name] in Object.entries(options)" :key="id">
-                            <div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
-                                :class="isSelected(id) ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 font-medium' : 'text-gray-700 dark:text-gray-300'">
-                                <span x-text="name"></span>
-                                <span x-show="isSelected(id)" class="text-orange-600 dark:text-orange-400 text-xs">✓</span>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-                @error('ejes_prioritarios_unah') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Facultades / Centros <span class="text-red-500">*</span></label>
-                <div x-data="{
-                        open: false,
-                        selected: $wire.entangle('facultades_centros').live,
-                        options: @js($facultadesCentros),
-                        toggle(id) {
-                            id = String(id);
-                            let curr = (this.selected || []).map(String);
-                            const i = curr.indexOf(id);
-                            if (i === -1) curr.push(id); else curr.splice(i, 1);
-                            this.selected = curr;
-                        },
-                        isSelected(id) { return (this.selected || []).map(String).includes(String(id)); },
-                        getName(id) { return this.options[id] ?? this.options[String(id)] ?? id; }
-                    }" @click.outside="open = false" class="relative">
-                    <div @click="open = !open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
-                        <template x-for="id in (selected || [])" :key="id">
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-                                <span x-text="getName(id)"></span>
-                                <button type="button" @click.stop="toggle(id)" class="ml-0.5 font-bold leading-none hover:text-orange-900">×</button>
-                            </span>
-                        </template>
-                        <span x-show="!selected || selected.length === 0" class="text-gray-400 text-sm">Seleccione una opción</span>
-                        <span class="ml-auto text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
-                    </div>
-                    <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                        <template x-for="[id, name] in Object.entries(options)" :key="id">
-                            <div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
-                                :class="isSelected(id) ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 font-medium' : 'text-gray-700 dark:text-gray-300'">
-                                <span x-text="name"></span>
-                                <span x-show="isSelected(id)" class="text-orange-600 dark:text-orange-400 text-xs">✓</span>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-                @error('facultades_centros') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-            </div>
-            @endforeach
 
             @if($departamentosAcademicos->count())
             <div>
@@ -227,11 +137,6 @@
             @if($carrerasOpts->count())
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carreras</label>
-                <div x-data="{open:false,selected:$wire.entangle('carreras'),options:@js($carrerasOpts),toggle(id){id=String(id);let c=(this.selected||[]).map(String);const i=c.indexOf(id);i===-1?c.push(id):c.splice(i,1);this.selected=c;},isSelected(id){return(this.selected||[]).map(String).includes(String(id));},getName(id){return this.options[id]??this.options[String(id)]??id;}}" @click.outside="open=false" class="relative">
-                    <div @click="open=!open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
-                        <template x-for="id in (selected||[])" :key="id"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"><span x-text="getName(id)"></span><button type="button" @click.stop="toggle(id)" class="font-bold">×</button></span></template>
-                        <span x-show="!selected||selected.length===0" class="text-gray-400 text-sm">Seleccione...</span>
-                        <span class="ml-auto text-gray-400 text-xs" x-text="open?'▴':'▾'"></span>
                 <div x-data="{
                         open: false,
                         selected: $wire.entangle('carreras').live,
@@ -257,7 +162,13 @@
                         <span class="ml-auto text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
                     </div>
                     <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                        <template x-for="[id,name] in Object.entries(options)" :key="id"><div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between" :class="isSelected(id)?'bg-blue-50 text-blue-700 font-medium':'text-gray-700 dark:text-gray-300'"><span x-text="name"></span><span x-show="isSelected(id)" class="text-xs">✓</span></div></template>
+                        <template x-for="[id,name] in Object.entries(options)" :key="id">
+                            <div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
+                                :class="isSelected(id) ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 font-medium' : 'text-gray-700 dark:text-gray-300'">
+                                <span x-text="name"></span>
+                                <span x-show="isSelected(id)" class="text-orange-600 dark:text-orange-400 text-xs">✓</span>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -266,13 +177,11 @@
             {{-- Programa / Líneas --}}
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Programa al que Pertenece <span class="text-red-500">*</span></label>
-                <input type="text" wire:model="programa_pertenece" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                 <input type="text" wire:model.live.debounce.1000ms="programa_pertenece" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                 @error('programa_pertenece') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Líneas de Investigación Académica <span class="text-red-500">*</span></label>
-                <textarea wire:model="lineas_investigacion_academica" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500"></textarea>
                 <textarea wire:model.live.debounce.1000ms="lineas_investigacion_academica" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 @error('lineas_investigacion_academica') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
@@ -297,9 +206,9 @@
             @if($metasList->count())
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metas que Contribuye</label>
-                <div wire:key="metas-contribuye-{{ md5(json_encode($metasDisponibles)) }}" x-data="{
+                <div wire:key="metas-contribuye-{{ md5(json_encode($metasDisponibles)) }}" wire:ignore x-data="{
                         open: false,
-                        selected: $wire.entangle('metasContribuye').live,
+                        selected: @js($metasContribuye),
                         options: @js($metasDisponibles),
                         toggle(id) {
                             id = String(id);
@@ -307,6 +216,7 @@
                             const i = curr.indexOf(id);
                             if (i === -1) curr.push(id); else curr.splice(i, 1);
                             this.selected = curr;
+                            @this.set('metasContribuye', curr, false);
                         },
                         isSelected(id) { return (this.selected || []).map(String).includes(String(id)); },
                         getName(id) { return this.options[id] ?? this.options[String(id)] ?? id; }
@@ -388,29 +298,6 @@
                             @endforeach
                         </tbody>
                     </table>
-                @forelse($empleado_proyecto as $i => $emp)
-                <div class="mb-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Empleado</label>
-                            <select wire:model.live="empleado_proyecto.{{ $i }}.empleado_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
-                                <option value="">Seleccione...</option>
-                                @foreach($empleados as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Rol</label>
-                            <div class="min-h-[34px] flex items-center">
-                                <span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700 px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-200">
-                                    {{ $emp['rol'] ?? 'Integrante' }}
-                                </span>
-                            </div>
-                            <p class="text-[11px] text-gray-500 mt-1">Rol no editable</p>
-                        </div>
-                    </div>
-                    <div class="mt-2 text-right">
-                        <button wire:click="removeEmpleado({{ $i }})" type="button" class="text-xs text-red-600 hover:text-red-800">Eliminar</button>
-                    </div>
                 </div>
                 @else
                 <p class="text-sm text-gray-500 text-center py-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">Sin empleados integrantes agregados.</p>
@@ -471,59 +358,6 @@
                             </tr>
                         </tbody>
                     </table>
-                @foreach($estudiante_proyecto as $i => $est)
-                <div class="mb-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo de Participación</label>
-                            <select wire:model.live="estudiante_proyecto.{{ $i }}.tipo_participacion_estudiante" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
-                                <option value="">Seleccione...</option>
-                                @foreach($tiposParticipacionEstudiante as $value => $label)
-                                    <option value="{{ $value }}">{{ $label }}</option>
-                                @endforeach
-                                @if(!empty($est['tipo_participacion_estudiante']) && !array_key_exists($est['tipo_participacion_estudiante'], $tiposParticipacionEstudiante))
-                                    <option value="{{ $est['tipo_participacion_estudiante'] }}">Valor histórico: {{ $est['tipo_participacion_estudiante'] }}</option>
-                                @endif
-                            </select>
-                            @error("estudiante_proyecto.$i.tipo_participacion_estudiante") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Hombres</label>
-                            <input type="number" wire:model.live.debounce.1000ms="estudiante_proyecto.{{ $i }}.cantidad_estudiantes_hombres" wire:change="updateEstudianteTotal({{ $i }})" min="0" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mujeres</label>
-                            <input type="number" wire:model.live.debounce.1000ms="estudiante_proyecto.{{ $i }}.cantidad_estudiantes_mujeres" wire:change="updateEstudianteTotal({{ $i }})" min="0" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
-                        </div>
-                    </div>
-                    @if(($est['tipo_participacion_estudiante'] ?? '') === 'Practica Asignatura')
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Asignatura</label>
-                            <select wire:model.live="estudiante_proyecto.{{ $i }}.asignatura_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
-                                <option value="">Seleccione...</option>
-                                @foreach($asignaturas as $id => $nombre)
-                                    <option value="{{ $id }}">{{ $nombre }}</option>
-                                @endforeach
-                            </select>
-                            @error("estudiante_proyecto.$i.asignatura_id") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Periodo Académico</label>
-                            <select wire:model.live="estudiante_proyecto.{{ $i }}.periodo_academico_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
-                                <option value="">Seleccione...</option>
-                                @foreach($periodosAcademicos as $id => $nombre)
-                                    <option value="{{ $id }}">{{ $nombre }}</option>
-                                @endforeach
-                            </select>
-                            @error("estudiante_proyecto.$i.periodo_academico_id") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                        </div>
-                    </div>
-                    @endif
-                    <div class="flex items-center justify-between mt-2">
-                        <span class="text-xs text-gray-500">Total: {{ $est['total_estudiantes'] ?? 0 }}</span>
-                        <button wire:click="removeEstudiante({{ $i }})" type="button" class="text-xs text-red-600 hover:text-red-800">Eliminar</button>
-                    </div>
                 </div>
                 @else
                 <p class="text-sm text-red-500 text-center py-4 border border-dashed border-red-300 rounded-lg">Sin grupos de estudiantes agregados. Este paso es obligatorio.</p>
@@ -561,15 +395,6 @@
                             @endforeach
                         </tbody>
                     </table>
-                @foreach($integrante_internacional_proyecto as $i => $int)
-                <div class="mb-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
-                    <select wire:model.live="integrante_internacional_proyecto.{{ $i }}.integrante_internacional_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
-                        <option value="">Seleccione...</option>
-                        @foreach($internacionales as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                    </select>
-                    <div class="mt-2 text-right">
-                        <button wire:click="removeInternacional({{ $i }})" type="button" class="text-xs text-red-600 hover:text-red-800">Eliminar</button>
-                    </div>
                 </div>
                 @else
                 <p class="text-sm text-gray-500 text-center py-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">Sin integrantes internacionales.</p>
@@ -807,73 +632,6 @@
                                     {{ str_replace('_', ' ', $inst['tipo_documento']) }}
                                     @if($inst['documento_url']) <span class="ml-1 text-green-600">✓</span> @endif
                                 </span>
-            @foreach($entidad_contraparte as $ci => $contraparte)
-            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <div class="flex items-center justify-between mb-3">
-                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Entidad {{ $ci + 1 }}</h4>
-                    @if(count($entidad_contraparte) > 1)
-                    <button wire:click="removeContraparte({{ $ci }})" type="button" class="text-xs text-red-600 hover:text-red-800">Eliminar</button>
-                    @endif
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre</label>
-                        <input type="text" wire:model.live.debounce.1000ms="entidad_contraparte.{{ $ci }}.nombre" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo de Entidad</label>
-                        <select wire:model.live="entidad_contraparte.{{ $ci }}.tipo_entidad" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
-                            <option value="">Seleccione...</option>
-                            <option value="internacional">Internacional</option>
-                            <option value="gobierno_nacional">Gobierno Nacional</option>
-                            <option value="gobierno_municipal">Gobierno Municipal</option>
-                            <option value="ong">ONG</option>
-                            <option value="sociedad_civil">Sociedad Civil</option>
-                            <option value="sector_privado">Sector Privado</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre de Contacto</label>
-                        <input type="text" wire:model.live.debounce.1000ms="entidad_contraparte.{{ $ci }}.nombre_contacto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Cargo de Contacto</label>
-                        <input type="text" wire:model.live.debounce.1000ms="entidad_contraparte.{{ $ci }}.cargo_contacto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Teléfono</label>
-                        <input type="text" wire:model.live.debounce.1000ms="entidad_contraparte.{{ $ci }}.telefono" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo</label>
-                        <input type="email" wire:model.live.debounce.1000ms="entidad_contraparte.{{ $ci }}.correo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
-                    </div>
-                    <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción de Acuerdos</label>
-                        <textarea wire:model.live.debounce.1000ms="entidad_contraparte.{{ $ci }}.descripcion_acuerdos" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
-                    </div>
-                </div>
-                <div class="mt-3">
-                    <div class="flex items-center justify-between mb-2">
-                        <p class="text-xs font-medium text-gray-600 dark:text-gray-400">Instrumentos de Formalización</p>
-                        <button wire:click="addInstrumento({{ $ci }})" type="button" class="text-xs text-blue-600 hover:text-blue-800">+ Agregar</button>
-                    </div>
-                    @foreach($contraparte['instrumento_formalizacion'] ?? [] as $ii => $inst)
-                    <div class="mb-3 rounded-md border border-gray-200 dark:border-gray-700 p-3">
-                        <div class="grid grid-cols-1 lg:grid-cols-[1fr_1fr_auto] gap-2 items-start">
-                            <div>
-                                <select wire:model.live="entidad_contraparte.{{ $ci }}.instrumento_formalizacion.{{ $ii }}.tipo_documento" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-sm focus:border-blue-500">
-                                    <option value="">Tipo de documento...</option>
-                                    <option value="carta_formal_solicitud">Carta formal de solicitud a la unidad académica</option>
-                                    <option value="carta_intenciones">Carta de intenciones con la UNAH</option>
-                                    <option value="convenio_marco">Convenio marco con la UNAH</option>
-                                </select>
-                                @error("entidad_contraparte.$ci.instrumento_formalizacion.$ii.tipo_documento") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <input type="file" wire:model="entidad_contraparte.{{ $ci }}.instrumento_formalizacion.{{ $ii }}.documento_file" class="w-full text-xs text-gray-600 dark:text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-                                @if(!empty($inst['documento_url']))
-                                    <a href="{{ Storage::url($inst['documento_url']) }}" target="_blank" class="mt-1 inline-block text-xs text-blue-600 hover:text-blue-800">Documento actual</a>
                                 @endif
                                 @endforeach
                             </div>
@@ -1046,10 +804,6 @@
                             {{ $editActividadIndex !== null ? 'Editar' : 'Nueva' }} Actividad
                         </h4>
                         <button wire:click="closeActividadModal" type="button" class="text-gray-500 hover:text-gray-800 text-lg leading-none">✕</button>
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción</label>
-                        <textarea wire:model.live.debounce.1000ms="actividades.{{ $i }}.descripcion" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
                     </div>
                     <div class="p-5 space-y-4">
                         <div>
@@ -1073,28 +827,11 @@
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Responsables</label>
-                            <div x-data="{
-                                open:false, query:'',
-                                selected: $wire.entangle('nuevaActividad.empleados').live,
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha Inicio</label>
-                            <input type="date" wire:model.live.debounce.1000ms="actividades.{{ $i }}.fecha_inicio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha Finalización</label>
-                            <input type="date" wire:model.live.debounce.1000ms="actividades.{{ $i }}.fecha_finalizacion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Horas</label>
-                            <input type="number" wire:model.live.debounce.1000ms="actividades.{{ $i }}.horas" min="0" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Responsables</label>
-                        <div
-                            x-data="{
-                                open: false,
-                                query: '',
-                                selected: $wire.entangle('actividades.{{ $i }}.empleados').live,
+                            <div
+                                x-data="{
+                                    open: false,
+                                    query: '',
+                                    selected: $wire.entangle('nuevaActividad.empleados').live,
                                 options: @js($responsablesOptions),
                                 normalize(){this.selected=(this.selected||[]).map(String).filter(Boolean);},
                                 toggle(id){this.normalize();id=String(id);const i=this.selected.indexOf(id);i===-1?this.selected=[...this.selected,id]:this.selected=this.selected.filter(x=>x!==id);},
@@ -1140,16 +877,6 @@
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 5: Descripción del Proyecto</h3>
         <div class="space-y-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Resumen del Proyecto</label>
-                <textarea wire:model="resumen" rows="4" placeholder="Describe brevemente el proyecto en 150-250 palabras..." class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de los Participantes</label>
-                <textarea wire:model="descripcion_participantes" rows="3" placeholder="¿Quiénes participan y cuál es su rol?" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Definición del Problema</label>
-                <textarea wire:model="definicion_problema" rows="3" placeholder="¿Cuál es el problema que se aborda?" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Resumen</label>
                 <textarea wire:model.live.debounce.1000ms="resumen" rows="4" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
@@ -1337,10 +1064,8 @@
             {{-- Objetivo General (full width) --}}
             <div class="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <label class="block text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">Objetivo General <span class="text-red-500">*</span></label>
-                <textarea wire:model="objetivo_general" rows="3" placeholder="Describe el propósito central del proyecto..."
+                <textarea wire:model.live.debounce.1000ms="objetivo_general" rows="3" placeholder="Describe el propósito central del proyecto..."
                     class="w-full rounded-md border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Objetivo General <span class="text-red-500">*</span></label>
-                <textarea wire:model.live.debounce.1000ms="objetivo_general" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 @error('objetivo_general') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
 
@@ -1375,42 +1100,6 @@
                                 @if(count($objetivosEspecificos) > 1)
                                 <button wire:click.stop="removeObjetivo({{ $oi }})" type="button" class="text-xs text-red-500 hover:text-red-700 shrink-0">✕</button>
                                 @endif
-                    <div class="mb-3">
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción <span class="text-red-500">*</span></label>
-                        <textarea wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $oi }}.descripcion" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
-                        @error("objetivosEspecificos.{$oi}.descripcion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                    </div>
-                    <div class="ml-4">
-                        <div class="flex items-center justify-between mb-2">
-                            <p class="text-xs font-medium text-gray-500">Resultados Esperados</p>
-                            <button wire:click="addResultado({{ $oi }})" type="button" class="text-xs text-blue-600 hover:text-blue-800">+ Agregar Resultado</button>
-                        </div>
-                        @foreach($objetivo['resultados'] ?? [] as $ri => $resultado)
-                        <div class="mb-2 p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-500 mb-1">Resultado</label>
-                                    <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $oi }}.resultados.{{ $ri }}.nombre_resultado" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-500 mb-1">Indicador</label>
-                                    <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $oi }}.resultados.{{ $ri }}.nombre_indicador" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-500 mb-1">Medio de Verificación</label>
-                                    <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $oi }}.resultados.{{ $ri }}.nombre_medio_verificacion" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-500 mb-1">Plazo</label>
-                                    <select wire:model.live="objetivosEspecificos.{{ $oi }}.resultados.{{ $ri }}.plazo" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500">
-                                        <option value="corto_plazo">Corto plazo</option>
-                                        <option value="mediano_plazo">Mediano plazo</option>
-                                        <option value="largo_plazo">Largo plazo</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="mt-1 text-right">
-                                <button wire:click="removeResultado({{ $oi }}, {{ $ri }})" type="button" class="text-xs text-red-600 hover:text-red-800">Eliminar</button>
                             </div>
                         </div>
                         @endforeach
@@ -1512,9 +1201,6 @@
                                 <td class="py-2 px-3"><input type="number" wire:model="aporte_institucional.{{ $i }}.cantidad" wire:change="updateAporteTotal({{ $i }})" min="0" @disabled(!($aporte['editable']??true)) class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
                                 <td class="py-2 px-3"><input type="number" wire:model="aporte_institucional.{{ $i }}.costo_unitario" wire:change="updateAporteTotal({{ $i }})" min="0" step="0.01" @disabled(!($aporte['editable']??true)) class="w-28 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
                                 <td class="py-2 px-3 text-center font-medium text-gray-900 dark:text-white">L. {{ number_format($aporte['costo_total'] ?? 0, 2) }}</td>
-                                <td class="py-2 px-3"><input type="number" wire:model.live.debounce.1000ms="aporte_institucional.{{ $i }}.cantidad" wire:change="updateAporteTotal({{ $i }})" min="0" @disabled(!($aporte['editable'] ?? true)) class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
-                                <td class="py-2 px-3"><input type="number" wire:model.live.debounce.1000ms="aporte_institucional.{{ $i }}.costo_unitario" wire:change="updateAporteTotal({{ $i }})" min="0" step="0.01" @disabled(!($aporte['editable'] ?? true)) class="w-28 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
-                                <td class="py-2 px-3 text-center font-medium text-gray-900 dark:text-white">{{ number_format($aporte['costo_total'] ?? 0, 2) }}</td>
                             </tr>
                             @endforeach
                             <tr class="border-t-2 border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-800">
@@ -1541,24 +1227,6 @@
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ $a['label'] }}</label>
                         <input type="number" wire:model="{{ $a['field'] }}" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Aporte Contraparte</label>
-                        <input type="number" wire:model.live.debounce.1000ms="aporte_contraparte" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Aporte Internacionales</label>
-                        <input type="number" wire:model.live.debounce.1000ms="aporte_internacionales" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Aporte Otras Universidades</label>
-                        <input type="number" wire:model.live.debounce.1000ms="aporte_otras_universidades" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Aporte Comunidad</label>
-                        <input type="number" wire:model.live.debounce.1000ms="aporte_comunidad" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Otros Aportes</label>
-                        <input type="number" wire:model.live.debounce.1000ms="otros_aportes" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                     </div>
                     @endforeach
                 </div>
@@ -1653,25 +1321,6 @@
                     @endif
                 </div>
                 @endforeach
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jefe de Departamento</label>
-                <select wire:model.live="jefe_empleado_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                    <option value="">Seleccione...</option>
-                    @foreach($empleadosMismoCentro as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Decano / Director de Centro</label>
-                <select wire:model.live="decano_empleado_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                    <option value="">Seleccione...</option>
-                    @foreach($empleadosMismoCentro as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Enlace de Vinculación</label>
-                <select wire:model.live="enlace_empleado_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                    <option value="">Seleccione...</option>
-                    @foreach($empleados as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                </select>
             </div>
 
             <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
@@ -1693,9 +1342,6 @@
                 @endif
             </div>
             <div class="flex items-center gap-3">
-                @if($currentStep === 10)
-                <button wire:click="borrador" type="button"
-                    class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50">
                 <span class="text-xs min-w-[78px] text-right">
                     @if($estadoAutoGuardado === 'guardando')
                         <span class="text-gray-500 dark:text-gray-400">Guardando...</span>
@@ -1705,8 +1351,9 @@
                         <span class="text-red-600 dark:text-red-400">Error al guardar</span>
                     @endif
                 </span>
-                @if($currentStep === 9)
-                <button wire:click="borrador" type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50">
+                @if($currentStep === 10)
+                <button wire:click="borrador" type="button"
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50">
                     Guardar como Borrador
                 </button>
                 <button wire:click="create" type="button"

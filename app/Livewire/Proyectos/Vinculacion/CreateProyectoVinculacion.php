@@ -486,6 +486,7 @@ class CreateProyectoVinculacion extends Component
             'recordId',
             'proyectoId',
             'metasDisponibles',
+            'metasContribuye',
             'showInternacionalModal',
             'nuevoIntegranteInternacional',
         ];
@@ -1594,26 +1595,6 @@ class CreateProyectoVinculacion extends Component
         array_splice($this->objetivosEspecificos[$oi]['resultados'], $ri, 1);
     }
 
-    // ─── Presupuesto Helpers (Step 8) ─────────────────────────────────────────
-
-    // Repeater helpers
-    public function addEmpleado(): void { $this->empleado_proyecto[] = ['empleado_id' => null, 'rol' => 'Integrante', 'nombre' => '']; $this->autoGuardarBorrador(); }
-    public function removeEmpleado(int $i): void { array_splice($this->empleado_proyecto, $i, 1); $this->autoGuardarBorrador(); }
-    public function addEstudiante(): void { $this->estudiante_proyecto[] = ['tipo_participacion_estudiante' => '', 'asignatura_id' => null, 'periodo_academico_id' => null, 'cantidad_estudiantes_hombres' => 0, 'cantidad_estudiantes_mujeres' => 0, 'total_estudiantes' => 0]; $this->autoGuardarBorrador(); }
-    public function removeEstudiante(int $i): void { array_splice($this->estudiante_proyecto, $i, 1); $this->autoGuardarBorrador(); }
-    public function updateEstudianteTotal(int $i): void { $h = (int)($this->estudiante_proyecto[$i]['cantidad_estudiantes_hombres'] ?? 0); $m = (int)($this->estudiante_proyecto[$i]['cantidad_estudiantes_mujeres'] ?? 0); $this->estudiante_proyecto[$i]['total_estudiantes'] = $h + $m; $this->autoGuardarBorrador(); }
-    public function addInternacional(): void { $this->integrante_internacional_proyecto[] = ['integrante_internacional_id' => null, 'nombre' => '']; $this->autoGuardarBorrador(); }
-    public function removeInternacional(int $i): void { array_splice($this->integrante_internacional_proyecto, $i, 1); $this->autoGuardarBorrador(); }
-    public function addContraparte(): void { $this->entidad_contraparte[] = ['nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '', 'cargo_contacto' => '', 'telefono' => '', 'correo' => '', 'descripcion_acuerdos' => '', 'instrumento_formalizacion' => []]; $this->autoGuardarBorrador(); }
-    public function removeContraparte(int $i): void { array_splice($this->entidad_contraparte, $i, 1); $this->autoGuardarBorrador(); }
-    public function addInstrumento(int $ci): void { $this->entidad_contraparte[$ci]['instrumento_formalizacion'][] = ['id' => null, 'tipo_documento' => '', 'documento_url' => null, 'documento_file' => null]; $this->autoGuardarBorrador(); }
-    public function removeInstrumento(int $ci, int $ii): void { array_splice($this->entidad_contraparte[$ci]['instrumento_formalizacion'], $ii, 1); $this->autoGuardarBorrador(); }
-    public function addActividad(): void { $this->actividades[] = ['descripcion' => '', 'empleados' => [], 'fecha_inicio' => '', 'fecha_finalizacion' => '', 'horas' => '']; $this->autoGuardarBorrador(); }
-    public function removeActividad(int $i): void { array_splice($this->actividades, $i, 1); $this->autoGuardarBorrador(); }
-    public function addObjetivo(): void { $this->objetivosEspecificos[] = ['descripcion' => '', 'resultados' => [['nombre_resultado' => '', 'nombre_indicador' => '', 'nombre_medio_verificacion' => '', 'plazo' => 'corto_plazo']]]; $this->autoGuardarBorrador(); }
-    public function removeObjetivo(int $i): void { array_splice($this->objetivosEspecificos, $i, 1); $this->autoGuardarBorrador(); }
-    public function addResultado(int $oi): void { $this->objetivosEspecificos[$oi]['resultados'][] = ['nombre_resultado' => '', 'nombre_indicador' => '', 'nombre_medio_verificacion' => '', 'plazo' => 'corto_plazo']; $this->autoGuardarBorrador(); }
-    public function removeResultado(int $oi, int $ri): void { array_splice($this->objetivosEspecificos[$oi]['resultados'], $ri, 1); $this->autoGuardarBorrador(); }
     public function updateAporteTotal(int $i): void
     {
         $this->aporte_institucional[$i]['costo_total'] = (float)($this->aporte_institucional[$i]['cantidad'] ?? 0) * (float)($this->aporte_institucional[$i]['costo_unitario'] ?? 0);
