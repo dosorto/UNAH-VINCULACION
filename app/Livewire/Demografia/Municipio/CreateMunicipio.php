@@ -2,80 +2,50 @@
 
 namespace App\Livewire\Demografia\Municipio;
 
-use App\Models\Demografia\Municipio;
-use Filament\Forms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
-use Livewire\Component;
-use Illuminate\Contracts\View\View;
-
-use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Select;
 use App\Models\Demografia\Departamento;
+use App\Models\Demografia\Municipio;
+use App\Support\Notification;
+use Illuminate\Contracts\View\View;
+use Livewire\Component;
 
-class CreateMunicipio extends Component implements HasForms
+class CreateMunicipio extends Component
 {
-    use InteractsWithForms;
+    public ?int $departamento_id = null;
+    public string $nombre = '';
+    public string $codigo_municipio = '';
 
-    public ?array $data = [];
+    protected array $rules = [
+        'departamento_id'  => 'required|exists:departamento,id',
+        'nombre'           => 'required|string|max:100',
+        'codigo_municipio' => 'nullable|numeric',
+    ];
 
-    public function mount(): void
-    {
-        $this->form->fill();
-    }
-
-    public function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                Section::make('Crear un nuevo municipio')
-                    ->description('Crea un nuevo municipio con sus datos asociados.')
-                    ->schema([
-                        Select::make('departamento_id')
-                            ->label('Departamento')
-                            ->options(
-                                Departamento::all()
-                                    ->pluck('nombre', 'id')
-                            ),
-                        TextInput::make('nombre')
-                            ->label('Nombre')
-                            ->required(), 
-                        TextInput::make('codigo_municipio')
-                            ->label('Código del Municipio')
-                            ->required(), 
-                ])
-                ->columns(2)
-                //
-            ])
-            
-            ->statePath('data')
-            ->model(Municipio::class);
-    }
+    protected array $messages = [
+        'departamento_id.required' => 'Selecciona un departamento.',
+        'nombre.required'          => 'El nombre es obligatorio.',
+        'codigo_municipio.numeric' => 'El código del municipio debe ser numérico.',
+    ];
 
     public function create(): void
     {
-        $data = $this->form->getState();
+        $data = $this->validate();
+        $data['codigo_municipio'] = $data['codigo_municipio'] ?: null;
 
-        $record = Municipio::create($data);
-
-        $this->form->model($record)->saveRelationships();
+        Municipio::create($data);
 
         Notification::make()
             ->title('¡Éxito!')
             ->body('Municipio creado correctamente.')
             ->success()
             ->send();
-        //$this->js('location.reload();');
-        // limpiar formulario
-        $this->data = [];
+
+        $this->reset(['departamento_id', 'nombre', 'codigo_municipio']);
     }
 
     public function render(): View
     {
-        return view('livewire.demografia.municipio.create-municipio')
-        ;//->layout('components.panel.modulos.modulo-demografia');
+        return view('livewire.demografia.municipio.create-municipio', [
+            'departamentos' => Departamento::orderBy('nombre')->pluck('nombre', 'id'),
+        ]);
     }
 }

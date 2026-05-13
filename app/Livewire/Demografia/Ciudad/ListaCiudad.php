@@ -3,89 +3,75 @@
 namespace App\Livewire\Demografia\Ciudad;
 
 use App\Models\Demografia\Ciudad;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
-use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
-
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use App\Models\Demografia\Pais;
-use App\Models\Demografia\Departamento;
 use App\Models\Demografia\Municipio;
+use App\Support\Notification;
+use Illuminate\Contracts\View\View;
+use Livewire\Component;
+use Livewire\WithPagination;
 
-
-class ListaCiudad extends Component implements HasForms, HasTable
+class ListaCiudad extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
-    public function table(Table $table): Table
+    public string $search = '';
+    public bool $editModal = false;
+    public ?int $editId = null;
+    public ?int $edit_municipio_id = null;
+    public string $edit_nombre = '';
+    public string $edit_codigo_postal = '';
+
+    public function updatingSearch(): void
     {
-        return $table
-            ->heading('Ciudades')
-            ->query(Ciudad::query())
-            ->columns([
-                Tables\Columns\TextColumn::make('municipio.nombre')
-                    ->label('Municipio')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('nombre')
-                    ->label('Nombre')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('codigo_postal')
-                    ->label('Código Postal') 
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                //
-                DeleteAction::make(),
+        $this->resetPage();
+    }
 
-                EditAction::make()
-                ->form([
-                    Select::make('municipio_id')
-                        ->label('Municipio')
-                        ->options(
-                            Municipio::All()
-                                ->pluck('nombre', 'id')
-                        ),
-                    TextInput::make('nombre')
-                        ->label('Nombre'),
-                    TextInput::make('codigo_postal')
-                        ->label('Código Postal') 
-                        ->columnSpanFull()
-                    // ...
-                ]),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //
-                ]),
-            ]);
+    public function openEdit(int $id): void
+    {
+        $ciudad = Ciudad::findOrFail($id);
+        $this->editId             = $id;
+        $this->edit_municipio_id  = $ciudad->municipio_id;
+        $this->edit_nombre        = $ciudad->nombre;
+        $this->edit_codigo_postal = $ciudad->codigo_postal;
+        $this->editModal          = true;
+    }
+
+    public function save(): void
+    {
+        $this->validate([
+            'edit_municipio_id'  => 'required|exists:municipios,id',
+            'edit_nombre'        => 'required|string|max:100',
+            'edit_codigo_postal' => 'required|string|max:20',
+        ]);
+
+        Ciudad::findOrFail($this->editId)->update([
+            'municipio_id'  => $this->edit_municipio_id,
+            'nombre'        => $this->edit_nombre,
+            'codigo_postal' => $this->edit_codigo_postal,
+        ]);
+
+        $this->editModal = false;
+        Notification::make()->title('Ciudad actualizada.')->success()->send();
+    }
+
+    public function delete(int $id): void
+    {
+        Ciudad::findOrFail($id)->delete();
+        Notification::make()->title('Ciudad eliminada.')->success()->send();
     }
 
     public function render(): View
     {
-        return view('livewire.demografia.ciudad.lista-ciudad')
-        ;//->layout('components.panel.modulos.modulo-demografia');
+        $records = Ciudad::with('municipio')
+            ->when($this->search, fn($q) =>
+                $q->where('nombre', 'like', '%'.$this->search.'%')
+                  ->orWhere('codigo_postal', 'like', '%'.$this->search.'%')
+            )
+            ->orderBy('nombre')
+            ->paginate(10);
+
+        return view('livewire.demografia.ciudad.lista-ciudad', [
+            'records'    => $records,
+            'municipios' => Municipio::orderBy('nombre')->pluck('nombre', 'id'),
+        ]);
     }
 }

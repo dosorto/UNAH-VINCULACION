@@ -2,48 +2,31 @@
 
 namespace App\Livewire\Personal\Permiso;
 
-use Spatie\Permission\Models\Permission;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
+use Livewire\Component;
+use Livewire\WithPagination;
+use Spatie\Permission\Models\Permission;
 
-class ListPermisos extends Component implements HasForms, HasTable
+class ListPermisos extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
-    public function table(Table $table): Table
+    public string $search = '';
+
+    public function updatingSearch(): void
     {
-        return $table
-            ->query(Permission::query())
-            ->columns([
-                Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('guard_name')
-                    ->searchable(),
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                //
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //
-                ]),
-            ]);
+        $this->resetPage();
     }
 
     public function render(): View
     {
-        return view('livewire.personal.permiso.list-permisos')
-        ;//->layout('components.panel.modulos.modulo-usuarios');
+        $records = Permission::when($this->search, fn($q) =>
+                $q->where('name', 'like', '%'.$this->search.'%')
+                  ->orWhere('display_name', 'like', '%'.$this->search.'%')
+            )
+            ->orderBy('name')
+            ->paginate(20);
+
+        return view('livewire.personal.permiso.list-permisos', compact('records'));
     }
 }

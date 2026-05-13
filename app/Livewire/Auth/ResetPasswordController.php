@@ -2,88 +2,68 @@
 
 namespace App\Livewire\Auth;
 
-use Filament\Forms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
-use Livewire\Component;
-use Illuminate\Http\Request;
+use App\Support\Notification;
 use Illuminate\Contracts\View\View;
-use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Validation\Rules\Password as PasswordValidation;
+use Livewire\Component;
 
-class ResetPasswordController extends Component implements HasForms
+class ResetPasswordController extends Component
 {
-    use InteractsWithForms;
+    public string $password = '';
+    public string $password_confirmation = '';
+    public string $token = '';
+    public string $email = '';
 
-    public ?array $data = [];
-    public $token, $email;
+    protected array $rules = [
+        'password'              => 'required|min:8|confirmed',
+        'password_confirmation' => 'required|min:8',
+    ];
 
-    public function mount($token, Request $request)
+    protected array $messages = [
+        'password.required'  => 'La contraseña es obligatoria.',
+        'password.min'       => 'La contraseña debe tener al menos 8 caracteres.',
+        'password.confirmed' => 'Las contraseñas no coinciden.',
+    ];
+
+    public function mount(string $token, Request $request): void
     {
-        // Almacena el token y el email desde la URL y el request
         $this->token = $token;
-        $this->email = $request->email; // Obtener el email pasado en la URL
-
-        $this->form->fill();
+        $this->email = $request->email ?? '';
     }
 
-    public function form(Form $form): Form
+    public function submit(): mixed
     {
-        return $form
-            ->schema([
-                TextInput::make('password')
-                    ->password()
-                    ->required()
-                    ->label('Contraseña')
-                    ->minLength(8) // Mínimo de 8 caracteres
-                    // ->dehydrateStateUsing(fn ($state) => bcrypt($state)) // Para encriptar la contraseña
-                    ->same('password_confirmation') // Validar que coincida con el campo de confirmación
-                    ->rules(['confirmed']), // Reglas de validación de Laravel
+        $this->validate();
 
-                TextInput::make('password_confirmation')
-                    ->password()
-                    ->required()
-                    ->label('Confirmar Contraseña')
-                    ->minLength(8),
-            ])
-            ->statePath('data'); 
-    }
-
-    public function submit()
-    {
-        $data = $this->form->getState();
-    
         $status = Password::reset(
             [
-                'password' => $data['password'],
-                'password_confirmation' => $data['password_confirmation'],
-                'email' => $this->email,
-                'token' => $this->token,
+                'password'              => $this->password,
+                'password_confirmation' => $this->password_confirmation,
+                'email'                 => $this->email,
+                'token'                 => $this->token,
             ],
             function ($user, $password) {
                 $user->password = Hash::make($password);
                 $user->save();
             }
         );
-    
+
         if ($status === Password::PASSWORD_RESET) {
             return redirect()->route('login')->with('status', 'Contraseña restablecida correctamente.');
-        } else {
-            Notification::make()
-                ->title('No se pudo recuperar la contraseña!')
-                ->danger()
-                ->send();
         }
+
+        Notification::make()
+            ->title('No se pudo recuperar la contraseña.')
+            ->danger()
+            ->send();
+
+        return null;
     }
-    
 
     public function render(): View
     {
-        // dd($this->email);
         return view('livewire.auth.reset-password-controller')->layout('components.layouts.login');
     }
 }

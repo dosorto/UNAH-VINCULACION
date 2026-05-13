@@ -18,31 +18,57 @@
         <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
             Estado: {{ $proyecto->estado?->tipoestado?->nombre ?? 'Sin estado' }}
         </h1>
-        <x-filament::section id="user-details">
-            <x-slot name="heading">
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-bold">Ficha del Proyecto</span>
-                    <div class="flex items-center gap-2 no-print">
-                        <x-filament::button
-                            color="info"
-                            icon="heroicon-o-arrow-down-tray"
-                            tag="a"
-                            href="{{ route('proyecto.perfil.pdf', ['proyecto' => $proyecto->id]) }}"
-                        >
-                            Descargar PDF
-                        </x-filament::button>
-                        @if ($esCoordinador && ($proyecto->estado?->tipoestado?->nombre == 'Borrador' || $proyecto->estado?->tipoestado?->nombre == 'Subsanacion' || $proyecto->estado?->tipoestado?->nombre == 'Autoguardado'))
-                        <x-filament::button 
-                            color="primary" 
-                            icon="heroicon-o-pencil-square"
-                            tag="a"
-                            href="{{ route('editarProyectoVinculacion', ['proyecto' => $proyecto->id]) }}">
-                            Continuar Editando
-                        </x-filament::button>
+        <div id="user-details" class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700">
+            <div class="flex flex-wrap justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 no-print gap-2">
+                <span class="text-xl font-bold dark:text-white">Ficha del Proyecto</span>
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="{{ route('proyecto.perfil.pdf', ['proyecto' => $proyecto->id]) }}"
+                       class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg">
+                        Descargar PDF
+                    </a>
+
+                    @if ($esCoordinador)
+                        @php $estadoNombre = $proyecto->estado?->tipoestado?->nombre; @endphp
+
+                        {{-- Continuar editando (Borrador / Autoguardado / Subsanacion) --}}
+                        @if (in_array($estadoNombre, ['Borrador', 'Autoguardado', 'Subsanacion']))
+                            <a href="{{ route('crearProyectoVinculacion', $proyecto) }}"
+                               class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
+                                {{ $estadoNombre === 'Subsanacion' ? 'Subsanar Proyecto' : 'Continuar Editando' }}
+                            </a>
                         @endif
-                    </div>
+
+                        {{-- Subir / Subsanar Informe Intermedio --}}
+                        @if ($estadoNombre === 'En curso' &&
+                             (is_null($proyecto->documento_intermedio()) ||
+                              $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre === 'Subsanacion'))
+                            <button wire:click="openSubirIntermedio()"
+                                    class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg">
+                                {{ $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre === 'Subsanacion' ? 'Subsanar Inf. Intermedio' : 'Subir Inf. Intermedio' }}
+                            </button>
+                        @endif
+
+                        {{-- Subir / Subsanar Informe Final --}}
+                        @if ($estadoNombre === 'En curso' &&
+                             (($proyecto->documento_intermedio()?->estado?->tipoestado?->nombre === 'Aprobado' &&
+                               is_null($proyecto->documento_final())) ||
+                              $proyecto->documento_final()?->estado?->tipoestado?->nombre === 'Subsanacion'))
+                            <button wire:click="openSubirFinal()"
+                                    class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg">
+                                {{ $proyecto->documento_final()?->estado?->tipoestado?->nombre === 'Subsanacion' ? 'Subsanar Inf. Final' : 'Subir Inf. Final' }}
+                            </button>
+                        @endif
+
+                        {{-- Actualizar equipo / fechas --}}
+                        @if ($estadoNombre === 'En curso')
+                            <a href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}"
+                               class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 rounded-lg">
+                                Actualizar Equipo o Fechas
+                            </a>
+                        @endif
+                    @endif
                 </div>
-            </x-slot>
+            </div>
 
             <div
                 style="display: flex; justify-content: center; margin-top: 20px; background-color: white; max-height: 80vh; overflow-y: auto;">
@@ -431,7 +457,7 @@
                                         @endforeach
                                     @else
                                         <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese el caserío" value="{{ $proyecto->caserio ?? '' }}"
+                                            placeholder="Ingrese el caserío" value="{{ $proyecto->caserio ?? ' }}"
                                             disabled>
                                     @endif
                                 </td>
@@ -446,7 +472,7 @@
                                         @endforeach
                                     @else
                                         <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese la región" value="{{ $proyecto->region ?? '' }}"
+                                            placeholder="Ingrese la región" value="{{ $proyecto->region ?? ' }}"
                                             disabled>
                                     @endif
                                 </td>
@@ -1195,27 +1221,24 @@
                                     </td>
                                     <td class="full-width
                                         " colspan="3">
-                                        <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
-                                            <x-slot name="heading">
-                                                Documento de formalización
-                                            </x-slot>
-                                            <x-slot name="trigger">
-                                                <x-filament::button>
-                                                    Ver documento
-                                                </x-filament::button>
-                                            </x-slot>
-
-
-                                            <iframe src="{{ Storage::url($instrumento->documento_url) }}"
-                                                style="width: 100%; height: 85vh; border: none;"></iframe>
-
-                                        </x-filament::modal>
-                                        <x-filament::button>
-                                            <a href="{{ Storage::url($instrumento->documento_url) }}" download
-                                                style="text-decoration: none; color: inherit;">
-                                                Descargar
-                                            </a>
-                                        </x-filament::button>
+                                        <div x-data="{ open: false }">
+                                            <button @click="open = true" class="px-3 py-1.5 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 rounded-lg">Ver documento</button>
+                                            <div x-show="open" x-cloak @keydown.escape.window="open = false" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                                                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-7xl max-h-[90vh] flex flex-col">
+                                                    <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                                                        <h3 class="text-lg font-semibold dark:text-white">Documento de formalización</h3>
+                                                        <button @click="open = false" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                                                    </div>
+                                                    <div class="flex-1 p-2">
+                                                        <iframe src="{{ Storage::url($instrumento->documento_url) }}" style="width: 100%; height: 85vh; border: none;"></iframe>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <a href="{{ Storage::url($instrumento->documento_url) }}" download
+                                           class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 rounded-lg">
+                                            Descargar
+                                        </a>
 
                                     </td>
                                 </tr>
@@ -1269,7 +1292,7 @@
                             </tr>
                             <tr>
                                 <td class="full-width" colspan="19">
-                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Descripción de participantes">{{ $proyecto->descripcion_participantes ?? '' }}</textarea>
+                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Descripción de participantes">{{ $proyecto->descripcion_participantes ?? ' }}</textarea>
                                 </td>
                             </tr>
 
@@ -1280,7 +1303,7 @@
                             </tr>
                             <tr>
                                 <td class="full-width" colspan="19">
-                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Definición del problema">{{ $proyecto->definicion_problema ?? '' }}</textarea>
+                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Definición del problema">{{ $proyecto->definicion_problema ?? ' }}</textarea>
                                 </td>
                             </tr>
 
@@ -1341,7 +1364,7 @@
                             </tr>
                             <tr>
                                 <td class="full-width" colspan="19">
-                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Metodología">{{ $proyecto->metodologia ?? '' }}</textarea>
+                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Metodología">{{ $proyecto->metodologia ?? ' }}</textarea>
                                 </td>
                             </tr>
                             <tr>
@@ -1349,7 +1372,7 @@
                             </tr>
                             <tr>
                                 <td class="full-width" colspan="19">
-                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Bibliografía">{{ $proyecto->bibliografia ?? '' }}</textarea>
+                                    <textarea disabled cols="30" rows="6" class="input-field" placeholder="Bibliografía">{{ $proyecto->bibliografia ?? ' }}</textarea>
                                 </td>
                             </tr>
                         </table>
@@ -1771,39 +1794,39 @@
 
                                 </td>
                                 <td class="" colspan="5">
-                                    <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
-                                        <x-slot name="heading">
-                                            Actividad
-                                        </x-slot>
-                                        <x-slot name="trigger">
-                                            <x-filament::button>
-                                                Ver Actividad
-                                            </x-filament::button>
-                                        </x-slot>
-
-                                        <div class="activity-container">
-                                            <div class="activity-header">Detalles de la Actividad</div>
-                                            <div class="activity-body">
-                                                <div class="row">
-                                                    <div class="column"><strong>Fecha de Inicio:</strong>
-                                                        {{ $actividad->fecha_inicio }} -
-                                                        {{ $actividad->fecha_finalizacion }}</div>
+                                    <div x-data="{ open: false }">
+                                        <button @click="open = true" class="px-3 py-1.5 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 rounded-lg">Ver Actividad</button>
+                                        <div x-show="open" x-cloak @keydown.escape.window="open = false" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl">
+                                                <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                                                    <h3 class="text-lg font-semibold dark:text-white">Actividad</h3>
+                                                    <button @click="open = false" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
                                                 </div>
-                                                <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}
-                                                </div>
-                                                <div class="highlight"><strong>Responsables:</strong>
-                                                    @forelse ($actividad->empleados as $responsable)
-                                                        <div>
-                                                            <div>{{ $responsable->nombre_completo }}</div>
+                                                <div class="p-4">
+                                                    <div class="activity-container">
+                                                        <div class="activity-header">Detalles de la Actividad</div>
+                                                        <div class="activity-body">
+                                                            <div class="row">
+                                                                <div class="column"><strong>Fecha de Inicio:</strong>
+                                                                    {{ $actividad->fecha_inicio }} -
+                                                                    {{ $actividad->fecha_finalizacion }}</div>
+                                                            </div>
+                                                            <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}</div>
+                                                            <div class="highlight"><strong>Responsables:</strong>
+                                                                @forelse ($actividad->empleados as $responsable)
+                                                                    <div>
+                                                                        <div>{{ $responsable->nombre_completo }}</div>
+                                                                    </div>
+                                                                @empty
+                                                                    No asignado
+                                                                @endforelse
+                                                            </div>
                                                         </div>
-                                                    @empty
-                                                        No asignado
-                                                    @endforelse
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-
-                                    </x-filament::modal>
+                                    </div>
 
                                 </td>
                             </tr>
@@ -2121,24 +2144,24 @@
                                         placeholder="Ingrese el departamento" value="ANEXO DEL PROYECTO" disabled>
                                 </td>
                                 <td class="full-width" colspan="11">
-                                    <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
-                                        <x-slot name="heading">
-                                            Anexo
-                                        </x-slot>
-                                        <x-slot name="trigger">
-                                            <x-filament::button>
-                                                Ver anexo
-                                            </x-filament::button>
-                                        </x-slot>
-                                        <iframe src="{{ Storage::url($anexo->documento_url) }}"
-                                            style="width: 100%; height: 85vh; border: none;"></iframe>
-                                    </x-filament::modal>
-                                    <x-filament::button>
-                                        <a href="{{ Storage::url($anexo->documento_url) }}" download
-                                            style="text-decoration: none; color: inherit;">
-                                            Descargar
-                                        </a>
-                                    </x-filament::button>
+                                    <div x-data="{ open: false }">
+                                        <button @click="open = true" class="px-3 py-1.5 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 rounded-lg">Ver anexo</button>
+                                        <div x-show="open" x-cloak @keydown.escape.window="open = false" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                                            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-7xl max-h-[90vh] flex flex-col">
+                                                <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                                                    <h3 class="text-lg font-semibold dark:text-white">Anexo</h3>
+                                                    <button @click="open = false" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                                                </div>
+                                                <div class="flex-1 p-2">
+                                                    <iframe src="{{ Storage::url($anexo->documento_url) }}" style="width: 100%; height: 85vh; border: none;"></iframe>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <a href="{{ Storage::url($anexo->documento_url) }}" download
+                                       class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 rounded-lg">
+                                        Descargar
+                                    </a>
 
                                 </td>
                             </tr>
@@ -2214,7 +2237,7 @@
                     </div> -->
                     </div>
                 </div>
-        </x-filament::section>
+        </div>
     </div>
     <div class="w-full md:w-2/5 lg:w-1/3">
         <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
@@ -2225,40 +2248,30 @@
             <div class="mb-4 flex flex-col gap-2">
                 {{-- Botón Actualizar Equipo o Fechas --}}
                 @if ($proyecto->estado?->tipoestado?->nombre == 'En curso')
-                    <x-filament::button
-                        color="success"
-                        icon="heroicon-o-document-text"
-                        tag="a"
-                        href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}"
-                        class="w-full">
+                    <a href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}"
+                       class="w-full inline-flex justify-center items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg">
                         Actualizar Equipo o Fechas
-                    </x-filament::button>
+                    </a>
                 @endif
-                
+
                 {{-- Botón para Informe Intermedio --}}
-                @if (($proyecto->estado?->tipoestado?->nombre == 'En curso' && is_null($proyecto->documento_intermedio())) || 
+                @if (($proyecto->estado?->tipoestado?->nombre == 'En curso' && is_null($proyecto->documento_intermedio())) ||
                      ($proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion'))
-                    <x-filament::button
-                        color="warning"
-                        icon="heroicon-o-document-arrow-up"
-                        wire:click="mountAction('subirInformeIntermedio')"
-                        class="w-full">
+                    <button wire:click="openSubirIntermedio()"
+                            class="w-full inline-flex justify-center items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg">
                         {{ $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion' ? 'Subsanar Informe Intermedio' : 'Subir Informe Intermedio' }}
-                    </x-filament::button>
+                    </button>
                 @endif
-                
+
                 {{-- Botón para Informe Final --}}
-                @if (($proyecto->estado?->tipoestado?->nombre == 'En curso' && 
-                      $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Aprobado' && 
-                      is_null($proyecto->documento_final())) || 
+                @if (($proyecto->estado?->tipoestado?->nombre == 'En curso' &&
+                      $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Aprobado' &&
+                      is_null($proyecto->documento_final())) ||
                      ($proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion'))
-                    <x-filament::button
-                        color="info"
-                        icon="heroicon-o-document-arrow-up"
-                        wire:click="mountAction('subirInformeFinal')"
-                        class="w-full">
+                    <button wire:click="openSubirFinal()"
+                            class="w-full inline-flex justify-center items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg">
                         {{ $proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion' ? 'Subsanar Informe Final' : 'Subir Informe Final' }}
-                    </x-filament::button>
+                    </button>
                 @endif
             </div>
         @endif
@@ -2266,29 +2279,40 @@
         <div class="mb-5">
             
             @if ($proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
-                <div class="mb-4">
-                    <x-filament::section collapsible collapsed persist-collapsed id="user-details">
-                        <x-slot name="heading">
-                            Informe Intermedio, Estado: {{ $proyecto->documento_intermedio()->estado?->tipoestado?->nombre ?? 'Sin estado' }}
-                        </x-slot>
-                        <x-slot name="description">
-                            {{ $proyecto->documento_intermedio()->estado?->comentario }}
-                        </x-slot>
-                        <iframe src="{{ asset('storage/' . $proyecto->documento_intermedio()->documento_url) }}" type="application/pdf" width="100%" height="600px"></iframe>
-                    </x-filament::section>
+                <div class="mb-4" x-data="{ open: false }">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700">
+                        <button @click="open = !open" class="w-full flex justify-between items-center p-4 text-left">
+                            <div>
+                                <span class="font-semibold dark:text-white">Informe Intermedio, Estado: {{ $proyecto->documento_intermedio()->estado?->tipoestado?->nombre ?? 'Sin estado' }}</span>
+                                @if($proyecto->documento_intermedio()->estado?->comentario)
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ $proyecto->documento_intermedio()->estado?->comentario }}</p>
+                                @endif
+                            </div>
+                            <svg :class="open ? 'rotate-180' : ''" class="w-5 h-5 text-gray-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div x-show="open" x-cloak class="px-4 pb-4">
+                            <iframe src="{{ asset('storage/' . $proyecto->documento_intermedio()->documento_url) }}" type="application/pdf" width="100%" height="600px"></iframe>
+                        </div>
+                    </div>
                 </div>
             @endif
             @if ($proyecto->documento_final() && $proyecto->documento_final()->documento_url != null)
-                <x-filament::section collapsible collapsed persist-collapsed id="user-details">
-                    <x-slot name="heading">
-                        Informe Final, Estado: {{ $proyecto->documento_final()->estado?->tipoestado?->nombre ?? 'Sin estado' }}
-                    </x-slot>
-                    <x-slot name="description">
-                        {{ $proyecto->documento_final()->estado?->comentario }}
-                    </x-slot>
-                    <iframe src="{{ asset('storage/' . $proyecto->documento_final()->documento_url) }}"
-                        type="application/pdf" width="100%" height="600px"></iframe>
-                </x-filament::section>
+                <div x-data="{ open: false }">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700">
+                        <button @click="open = !open" class="w-full flex justify-between items-center p-4 text-left">
+                            <div>
+                                <span class="font-semibold dark:text-white">Informe Final, Estado: {{ $proyecto->documento_final()->estado?->tipoestado?->nombre ?? 'Sin estado' }}</span>
+                                @if($proyecto->documento_final()->estado?->comentario)
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ $proyecto->documento_final()->estado?->comentario }}</p>
+                                @endif
+                            </div>
+                            <svg :class="open ? 'rotate-180' : ''" class="w-5 h-5 text-gray-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div x-show="open" x-cloak class="px-4 pb-4">
+                            <iframe src="{{ asset('storage/' . $proyecto->documento_final()->documento_url) }}" type="application/pdf" width="100%" height="600px"></iframe>
+                        </div>
+                    </div>
+                </div>
             @endif
         </div>
         <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
@@ -2342,5 +2366,67 @@
         </div>
     </div>
 
-    <x-filament-actions::modals />
+    {{-- Modal Subir Informe Intermedio --}}
+    @if ($informeIntermedioModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg">
+            <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold dark:text-white">Subir Informe Intermedio</h3>
+                <button wire:click="$set('informeIntermedioModal', false)" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Archivo PDF</label>
+                    <input type="file" wire:model="informeIntermedioFile" accept=".pdf"
+                           class="w-full text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    @error('informeIntermedioFile') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    <div wire:loading wire:target="informeIntermedioFile" class="mt-1 text-sm text-gray-500">Cargando archivo...</div>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button wire:click="$set('informeIntermedioModal', false)"
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Cancelar
+                    </button>
+                    <button wire:click="subirInformeIntermedio()" wire:loading.attr="disabled" wire:target="subirInformeIntermedio"
+                            class="px-4 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg disabled:opacity-50">
+                        <span wire:loading.remove wire:target="subirInformeIntermedio">Subir</span>
+                        <span wire:loading wire:target="subirInformeIntermedio">Subiendo...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Modal Subir Informe Final --}}
+    @if ($informeFinalModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg">
+            <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold dark:text-white">Subir Informe Final</h3>
+                <button wire:click="$set('informeFinalModal', false)" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Archivo PDF</label>
+                    <input type="file" wire:model="informeFinalFile" accept=".pdf"
+                           class="w-full text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    @error('informeFinalFile') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    <div wire:loading wire:target="informeFinalFile" class="mt-1 text-sm text-gray-500">Cargando archivo...</div>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button wire:click="$set('informeFinalModal', false)"
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Cancelar
+                    </button>
+                    <button wire:click="subirInformeFinal()" wire:loading.attr="disabled" wire:target="subirInformeFinal"
+                            class="px-4 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg disabled:opacity-50">
+                        <span wire:loading.remove wire:target="subirInformeFinal">Subir</span>
+                        <span wire:loading wire:target="subirInformeFinal">Subiendo...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

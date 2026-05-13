@@ -3,196 +3,174 @@
 namespace App\Livewire\UnidadAcademica\Carrera;
 
 use App\Models\UnidadAcademica\Carrera;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
+use App\Models\UnidadAcademica\DepartamentoAcademico;
+use App\Models\UnidadAcademica\FacultadCentro;
+use App\Support\AdminCsv;
+use App\Support\Notification;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
+use Livewire\Component;
+use Livewire\WithPagination;
 
-
-use Illuminate\Database\Eloquent\Model;
-
-use Filament\Tables\Actions\EditAction;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
-use Filament\Tables\Actions\DeleteAction;
-
-use Filament\Tables\Actions\RestoreAction;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Enums\FiltersLayout;
-
-use Filament\Forms\Components\TextInput;
-use Filament\Tables\Actions\CreateAction;
-use Filament\Notifications\Notification;
-use Filament\Forms\Components\Select;
-
-use App\Models\UnidadAcademica\CentroFacultad;
-
-
-
-
-class CarreraList extends Component implements HasForms, HasTable
+class CarreraList extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
-    public function table(Table $table): Table
+    public string $search = '';
+    public bool $showTrashed = false;
+    public ?int $filterCentroFacultad = null;
+
+    public bool $createModal = false;
+    public string $create_nombre = '';
+    public string $create_siglas = '';
+    public ?int $create_facultad_centro_id = null;
+    public ?int $create_departamento_academico_id = null;
+    public array $create_facultad_centros = [];
+
+    public bool $editModal = false;
+    public ?int $editId = null;
+    public string $edit_nombre = '';
+    public string $edit_siglas = '';
+    public ?int $edit_facultad_centro_id = null;
+    public ?int $edit_departamento_academico_id = null;
+    public array $edit_facultad_centros = [];
+
+    public function updatingSearch(): void
     {
-        return $table
-            ->query(Carrera::query())
-            ->striped()
-            ->headerActions([
-                CreateAction::make()
-                    ->label('Crear Carrera')
-                    ->form([
-                        TextInput::make('nombre')
-                            ->label('Nombre')
-                            ->required(),
-                        TextInput::make('siglas')
-                            ->label('Siglas')
-                            ->maxLength(10),
-                        Select::make('facultad_centro_id')
-                            ->label('Facultad a la que pertenece')
-                            ->relationship(
-                                name: 'facultadcentro',
-                                titleAttribute: 'nombre',
-                                modifyQueryUsing: function (\Illuminate\Database\Eloquent\Builder $query) {
-                                    return $query->where('es_facultad', 1);
-                                }
-                            ),
-                        Select::make('facultades_centros')
-                            ->label('Facultades o Centros')
-                            ->required()
-                            ->searchable()
-                            ->multiple()
-                            ->live()
-                            ->relationship(
-                                name: 'facultadCentros',
-                                titleAttribute: 'nombre',
-                                modifyQueryUsing: function (\Illuminate\Database\Eloquent\Builder $query) {
-                                    return $query->where('es_facultad', 0);
-                                }
-                            )
-                            ->preload(),
+        $this->resetPage();
+    }
 
-                        Select::make('departamento_academico_id')
-                            ->label('Departamento académico')
-                            ->required()
-                            ->relationship(
-                                name: 'departamentoAcademico',
-                                titleAttribute: 'nombre'
-                            )
-                            ->preload(),
+    public function updatingFilterCentroFacultad(): void
+    {
+        $this->resetPage();
+    }
 
-                        // ...
-                    ])
-                    ->using(function (array $data, string $model): Model {
-                        $carrera = $model::create($data);
-                        $carrera->facultadCentros()->sync($data['facultad_centro_id']);
-                        return  $carrera;
-                    })
-                    ->successNotification(
-                        Notification::make()
-                            ->success()
-                            ->title('Exito!')
-                            ->body('Carrera creada exitosamente.')
-                    ),
-                ExportAction::make()->exports([
-                    ExcelExport::make('table')
-                        ->fromTable()
+    public function openCreate(): void
+    {
+        $this->reset(['create_nombre', 'create_siglas', 'create_facultad_centro_id', 'create_departamento_academico_id', 'create_facultad_centros']);
+        $this->createModal = true;
+    }
 
-                        ->askForFilename('Carreras')
-                        ->askForWriterType(),
-                ])
-                    ->label('Exportar a Excel')
-                    ->color('success'),
+    public function store(): void
+    {
+        $this->validate([
+            'create_nombre'                    => 'required|string|max:255',
+            'create_siglas'                    => 'nullable|string|max:10',
+            'create_facultad_centro_id'        => 'nullable|exists:centro_facultad,id',
+            'create_departamento_academico_id' => 'required|exists:departamento_academico,id',
+            'create_facultad_centros'          => 'array',
+            'create_facultad_centros.*'        => 'exists:centro_facultad,id',
+        ]);
 
-            ])
-            ->columns([
-                Tables\Columns\TextColumn::make('nombre')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('siglas')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('facultadcentro.nombre')
-                    ->label('Facultad')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('departamentoAcademico.nombre')
-                    ->label('Departamento académico')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('facultadCentros.nombre')
-                    ->label('Facultad y centro en donde se imparte')
-                    ->separator(',')
-                    ->wrap()
-                    ->badge(),
-            ])
-            ->filters([
-                SelectFilter::make('centroFacultad')
-                    ->label('Centro/Facultad')
-                    ->multiple()
-                    ->relationship('facultadcentro', 'nombre')
-                    ->preload(),
-                    Tables\Filters\TrashedFilter::make(),
-            ],  layout: FiltersLayout::AboveContent)
-            ->actions([
-                EditAction::make()
-                    ->form([
-                        TextInput::make('nombre')
-                            ->label('Nombre')
-                            ->required(),
-                        TextInput::make('siglas')
-                            ->label('Siglas')
-                            ->maxLength(10),
-                        Select::make('facultad_centro_id')
-                            ->required()
-                            ->label('Facultad a la que pertenece')
-                            ->relationship(
-                                name: 'facultadcentro',
-                                titleAttribute: 'nombre',
-                                modifyQueryUsing: function (\Illuminate\Database\Eloquent\Builder $query) {
-                                    return $query->where('es_facultad', 1);
-                                }
-                            ),
-                        Select::make('departamento_academico_id')
-                            ->label('Departamento académico')
-                            ->required()
-                            ->relationship(
-                                name: 'departamentoAcademico',
-                                titleAttribute: 'nombre'
-                            )
-                            ->preload(),
-                        Select::make('facultades_centros')
-                            ->label('Facultades o Centros')
-                            ->searchable()
-                            ->multiple()
-                            ->live()
-                            ->relationship(
-                                name: 'facultadCentros',
-                                titleAttribute: 'nombre',
-                                modifyQueryUsing: function (\Illuminate\Database\Eloquent\Builder $query) {
-                                    return $query->where('es_facultad', 0);
-                                }
-                            )
-                            ->preload(),
-                        // ...
-                            ]),
-                DeleteAction::make(),
-                RestoreAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //
-                ]),
-            ]);
+        $carrera = Carrera::create([
+            'nombre'                   => $this->create_nombre,
+            'siglas'                   => $this->create_siglas,
+            'facultad_centro_id'       => $this->create_facultad_centro_id,
+            'departamento_academico_id'=> $this->create_departamento_academico_id,
+        ]);
+
+        $carrera->facultadCentros()->sync($this->create_facultad_centros);
+
+        $this->createModal = false;
+        Notification::make()->title('Carrera creada.')->success()->send();
+    }
+
+    public function openEdit(int $id): void
+    {
+        $carrera = Carrera::with('facultadCentros')->findOrFail($id);
+        $this->editId                        = $id;
+        $this->edit_nombre                   = $carrera->nombre;
+        $this->edit_siglas                   = $carrera->siglas ?? '';
+        $this->edit_facultad_centro_id       = $carrera->facultad_centro_id;
+        $this->edit_departamento_academico_id= $carrera->departamento_academico_id;
+        $this->edit_facultad_centros         = $carrera->facultadCentros->pluck('id')->toArray();
+        $this->editModal                     = true;
+    }
+
+    public function save(): void
+    {
+        $this->validate([
+            'edit_nombre'                    => 'required|string|max:255',
+            'edit_siglas'                    => 'nullable|string|max:10',
+            'edit_facultad_centro_id'        => 'nullable|exists:centro_facultad,id',
+            'edit_departamento_academico_id' => 'required|exists:departamento_academico,id',
+            'edit_facultad_centros'          => 'array',
+            'edit_facultad_centros.*'        => 'exists:centro_facultad,id',
+        ]);
+
+        $carrera = Carrera::findOrFail($this->editId);
+        $carrera->update([
+            'nombre'                   => $this->edit_nombre,
+            'siglas'                   => $this->edit_siglas,
+            'facultad_centro_id'       => $this->edit_facultad_centro_id,
+            'departamento_academico_id'=> $this->edit_departamento_academico_id,
+        ]);
+        $carrera->facultadCentros()->sync($this->edit_facultad_centros);
+
+        $this->editModal = false;
+        Notification::make()->title('Carrera actualizada.')->success()->send();
+    }
+
+    public function delete(int $id): void
+    {
+        Carrera::findOrFail($id)->delete();
+        Notification::make()->title('Carrera eliminada.')->success()->send();
+    }
+
+    public function restore(int $id): void
+    {
+        Carrera::withTrashed()->findOrFail($id)->restore();
+        Notification::make()->title('Carrera restaurada.')->success()->send();
+    }
+
+    public function exportExcel()
+    {
+        return AdminCsv::download('carreras-' . now()->format('Y-m-d') . '.csv', [
+            'Nombre',
+            'Siglas',
+            'Facultad',
+            'Departamento',
+            'Centros donde se imparte',
+        ], function () {
+            foreach ($this->recordsQuery()->lazy() as $carrera) {
+                yield [
+                    $carrera->nombre,
+                    $carrera->siglas,
+                    $carrera->facultadcentro?->nombre,
+                    $carrera->departamentoAcademico?->nombre,
+                    $carrera->facultadCentros->pluck('nombre')->implode(', '),
+                ];
+            }
+        });
+    }
+
+    private function recordsQuery()
+    {
+        return Carrera::with(['facultadcentro', 'departamentoAcademico', 'facultadCentros'])
+            ->when($this->showTrashed, fn($q) => $q->withTrashed())
+            ->when($this->search, fn($q) => $q->where(fn($query) => $query
+                ->where('nombre', 'like', '%'.$this->search.'%')
+                ->orWhere('siglas', 'like', '%'.$this->search.'%')
+            ))
+            ->when($this->filterCentroFacultad, fn($q) => $q->where(function ($query) {
+                $query->where('facultad_centro_id', $this->filterCentroFacultad)
+                    ->orWhereHas('facultadCentros', fn($fc) => $fc->where('centro_facultad.id', $this->filterCentroFacultad));
+            }))
+            ->orderBy('nombre');
     }
 
     public function render(): View
     {
-        return view('livewire.unidad-academica.carrera.carrera-list')
-            ;//->layout('components.panel.modulos.modulo-unidad-academica', ['title' => 'Campus']);
+        $records = $this->recordsQuery()
+            ->paginate(10);
+
+        $centrosFacultad = FacultadCentro::orderBy('nombre')->pluck('nombre', 'id');
+
+        return view('livewire.unidad-academica.carrera.carrera-list', [
+            'records'              => $records,
+            'facultades'           => FacultadCentro::where('es_facultad', 1)->orderBy('nombre')->pluck('nombre', 'id'),
+            'centros'              => FacultadCentro::where('es_facultad', 0)->orderBy('nombre')->pluck('nombre', 'id'),
+            'centrosFacultad'      => $centrosFacultad,
+            'departamentosAcad'    => DepartamentoAcademico::orderBy('nombre')->pluck('nombre', 'id'),
+        ]);
     }
 }

@@ -220,12 +220,12 @@
                 <p style="font-size: 16px; margin: 15px 0;">
                     {{ $accion === 'rechazo' ? 'Su proyecto ha sido rechazado y requiere subsanación.' : 'El estado de su proyecto ha sido actualizado exitosamente.' }}
                 </p>
-                <span class="status-badge {{ $accion === 'rechazo' ? 'rejected' : '' }}">
+                <span class="status-badge {{ $accion === 'rechazo' ? 'rejected' : ' }}">
                     {{ $nuevoEstado }}
                 </span>
             </div>
 
-            @if($comentario && trim($comentario) !== '')
+            @if($comentario && trim($comentario) !== ')
             <div class="comment-section">
                 <h4>Comentarios del revisor</h4>
                 <div class="comment-text">

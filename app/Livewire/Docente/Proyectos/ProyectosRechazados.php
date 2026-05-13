@@ -2,82 +2,30 @@
 
 namespace App\Livewire\Docente\Proyectos;
 
-use Filament\Tables;
-use Livewire\Component;
-use Filament\Tables\Table;
 use App\Models\Personal\Empleado;
-use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\FirmaProyecto;
 use Illuminate\Contracts\View\View;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables\Contracts\HasTable;
-use Illuminate\Database\Eloquent\Builder;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Tables\Concerns\InteractsWithTable;
+use Livewire\Component;
+use Livewire\WithPagination;
 
-class ProyectosRechazados extends Component implements HasForms, HasTable
+class ProyectosRechazados extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
     public Empleado $docente;
 
-    public function mount()
+    public function mount(): void
     {
-        // dd(auth()->user()->empleado);
         $this->docente = auth()->user()->empleado;
-        // dd($this->docente);
-    }
-
-    public function table(Table $table): Table
-    {
-        return $table
-            ->query(
-                $this->docente->firmaProyectoRechazado()
-                    ->getQuery()
-            )
-            ->columns([
-
-                Tables\Columns\TextColumn::make('proyecto.nombre_proyecto')
-                    ->label('Nombre del Proyecto')
-                    ->searchable()
-                    ->wrap()
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('cargo_firma.tipoCargoFirma.nombre')
-                    ->badge()
-                    ->color('info')
-                    ->separator(',')
-                    ->wrap()
-                    ->label('Cargo de firma')
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('estado_revision')
-                    ->label('Estado Firma')
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('cargo_firma.descripcion')
-                    ->badge()
-                    ->color('info')
-                    ->separator(',')
-                    ->wrap()
-                    ->label('Tipo Firma')
-                    ->searchable(),
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                //
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //
-                ]),
-            ]);
     }
 
     public function render(): View
     {
-        return view('livewire.docente.proyectos.proyectos-rechazados');
+        $records = FirmaProyecto::with(['proyecto', 'cargo_firma.tipoCargoFirma'])
+            ->where('empleado_id', $this->docente->id)
+            ->where('estado_revision', 'Pendiente')
+            ->paginate(10);
+
+        return view('livewire.docente.proyectos.proyectos-rechazados', compact('records'));
     }
 }

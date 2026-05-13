@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
 
 class SetRoleController extends Controller
 {

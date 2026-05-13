@@ -2,37 +2,34 @@
 
 namespace App\Livewire\Inicio\Cards;
 
-use Filament\Widgets\StatsOverviewWidget as BaseWidget;
-use Filament\Widgets\StatsOverviewWidget\Stat;
-
-use App\Models\User;
 use App\Models\Proyecto\Proyecto;
-
-use Illuminate\Support\Facades\DB;
 use App\Models\UnidadAcademica\FacultadCentro;
+use App\Models\User;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\DB;
+use Livewire\Component;
 
-class Cards extends BaseWidget
+class Cards extends Component
 {
-    protected function getStats(): array
-    {
+    public int $totalUsuarios = 0;
+    public int $totalProyectos = 0;
+    public int $totalCentros = 0;
+    public array $usuariosPorMes = [];
 
-        $usuariosPorMes = User::select(DB::raw('MONTH(created_at) as month, COUNT(*) as count'))
+    public function mount(): void
+    {
+        $this->totalUsuarios = User::count();
+        $this->totalProyectos = Proyecto::count();
+        $this->totalCentros = FacultadCentro::count();
+        $this->usuariosPorMes = User::select(DB::raw('MONTH(created_at) as month, COUNT(*) as count'))
             ->where('created_at', '>=', now()->subMonths(6))
             ->groupBy('month')
             ->pluck('count')
             ->toArray();
+    }
 
-        return [
-            Stat::make('Usuarios', User::count())
-                ->description('Usuarios registrados')
-                ->chart($usuariosPorMes)
-                ->descriptionIcon('heroicon-m-arrow-trending-up'),
-            Stat::make('Proyectos', Proyecto::count())
-                ->description('Proyectos registrados')
-                ->descriptionIcon('heroicon-m-arrow-trending-up'),
-            Stat::make('Centros y Facultades', FacultadCentro::count())
-                ->description('Centros y Facultades registrados')
-                ->descriptionIcon('heroicon-m-arrow-trending-up'),
-        ];
+    public function render(): View
+    {
+        return view('livewire.inicio.cards.cards');
     }
 }

@@ -2,78 +2,85 @@
 
 namespace App\Livewire\Personal\Empleado;
 
-use App\Livewire\Personal\Empleado\Formularios\FormularioEmpleado;
-use App\Livewire\User\Users;
+use App\Models\Personal\CategoriaEmpleado;
 use App\Models\Personal\Empleado;
-use Filament\Forms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
-use Livewire\Component;
+use App\Models\UnidadAcademica\DepartamentoAcademico;
+use App\Models\UnidadAcademica\FacultadCentro;
+use App\Models\User;
+use App\Support\Notification;
 use Illuminate\Contracts\View\View;
-use Filament\Notifications\Notification;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Select;
-use app\Models\User;
-use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\TextInput;
-// use Filament\Pages\Actions\CreateAction;
-// use Filament\Actions\Action;
-use Filament\Forms\Components\FileUpload;
-use Filament\Actions\Contracts\HasActions;
-use App\Models\Personal\FirmaSelloEmpleado;
-use Filament\Forms\Components\Actions\Action;
-use Filament\Actions\Concerns\InteractsWithActions;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
-use Filament\Forms\Components\CheckboxList;
-// importar modelo role de spatie
+use Livewire\Component;
 use Spatie\Permission\Models\Role;
 
-class CreateEmpleado extends Component implements HasForms
+class CreateEmpleado extends Component
 {
-    use InteractsWithForms;
+    public string $name = '';
+    public string $email = '';
+    public string $nombre_completo = '';
+    public string $numero_empleado = '';
+    public string $celular = '';
+    public ?int $categoria_id = null;
+    public ?int $centro_facultad_id = null;
+    public ?int $departamento_academico_id = null;
+    public array $create_roles = [];
 
-    public ?array $data = [];
+    protected array $rules = [
+        'name'               => 'required|string|max:255|unique:users,name',
+        'email'              => 'required|email|max:255|unique:users,email',
+        'nombre_completo'    => 'required|string|max:255',
+        'numero_empleado'    => 'required|numeric|unique:empleado,numero_empleado',
+        'celular'            => 'required|numeric',
+        'categoria_id'       => 'nullable|exists:categoria,id',
+        'centro_facultad_id' => 'required|exists:centro_facultad,id',
+    ];
 
-    public function mount(): void
+    public function updatingCentroFacultadId(): void
     {
-        $this->form->fill();
-    }
-
-    public function form(Form $form): Form
-    {
-        return $form
-            ->schema(FormularioEmpleado::form())
-            ->statePath('data')
-            ->model(User::class);
+        $this->departamento_academico_id = null;
     }
 
     public function create(): void
     {
-        $data = $this->form->getState();
-        $record = User::create($data);
-        $this->form->model($record)->saveRelationships();
+        $this->validate();
 
-        // cambiar el rol activo al primer rol que tenga asignado
-        $record->active_role_id = $record->roles->first()->id;
-        $record->save();
+        $user = User::create([
+            'name'     => $this->name,
+            'email'    => $this->email,
+            'password' => bcrypt(str()->random(12)),
+        ]);
 
-        
-        Notification::make()
-            ->title('Exito!')
-            ->body('Empleado creado correctamente.')
-            ->success()
-            ->send();
+        Empleado::create([
+            'user_id'                   => $user->id,
+            'nombre_completo'           => $this->nombre_completo,
+            'numero_empleado'           => $this->numero_empleado,
+            'celular'                   => $this->celular,
+            'categoria_id'              => $this->categoria_id,
+            'centro_facultad_id'        => $this->centro_facultad_id,
+            'departamento_academico_id' => $this->departamento_academico_id,
+        ]);
+
+        $roles = Role::whereIn('id', $this->create_roles)->pluck('name')->all();
+        $user->syncRoles($roles);
+        $primerRol = $user->roles()->first();
+        if ($primerRol) {
+            $user->active_role_id = $primerRol->id;
+            $user->save();
+        }
+
+        Notification::make()->title('Exito!')->body('Empleado creado correctamente.')->success()->send();
+
+        $this->reset(['name', 'email', 'nombre_completo', 'numero_empleado', 'celular', 'categoria_id', 'centro_facultad_id', 'departamento_academico_id', 'create_roles']);
         $this->js('location.reload();');
-        // limpiar formulario
-        $this->data = [];
     }
 
     public function render(): View
     {
-        return view('livewire.personal.empleado.create-empleado')
-            ;//->layout('components.panel.modulos.modulo-empleado');
+        $centros = FacultadCentro::orderBy('nombre')->pluck('nombre', 'id');
+        $categorias = CategoriaEmpleado::orderBy('nombre')->pluck('nombre', 'id');
+        $departamentos = $this->centro_facultad_id
+            ? DepartamentoAcademico::where('centro_facultad_id', $this->centro_facultad_id)->orderBy('nombre')->pluck('nombre', 'id')
+            : collect();
+        $allRoles = Role::orderBy('name')->get(['id', 'name']);
+        return view('livewire.personal.empleado.create-empleado', compact('centros', 'categorias', 'departamentos', 'allRoles'));
     }
 }

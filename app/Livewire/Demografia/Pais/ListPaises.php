@@ -3,79 +3,82 @@
 namespace App\Livewire\Demografia\Pais;
 
 use App\Models\Demografia\Pais;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
+use App\Support\Notification;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Columns\TextColumn;
+use Livewire\Component;
+use Livewire\WithPagination;
 
-use Filament\Tables\Actions\EditAction;
-use Filament\Forms\Components\TextInput;
-use Filament\Tables\Enums\FiltersLayout;
-
-class ListPaises extends Component implements HasForms, HasTable
+class ListPaises extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
-    public function table(Table $table): Table
+    public string $search = '';
+    public bool $editModal = false;
+    public ?int $editId = null;
+    public string $edit_codigo_area = '';
+    public string $edit_codigo_iso = '';
+    public string $edit_codigo_iso_numerico = '';
+    public string $edit_codigo_iso_alpha_2 = '';
+    public string $edit_nombre = '';
+    public string $edit_gentilicio = '';
+
+    public function updatingSearch(): void
     {
-        return $table
-            ->heading('Países')
-            ->query(Pais::query())
-            ->columns([
+        $this->resetPage();
+    }
 
-                TextColumn::make('nombre')
-                    ->label('País')
-                    ->searchable(),
+    public function openEdit(int $id): void
+    {
+        $pais = Pais::findOrFail($id);
+        $this->editId              = $id;
+        $this->edit_codigo_area    = (string) $pais->codigo_area;
+        $this->edit_codigo_iso     = $pais->codigo_iso;
+        $this->edit_codigo_iso_numerico = (string) $pais->codigo_iso_numerico;
+        $this->edit_codigo_iso_alpha_2  = $pais->codigo_iso_alpha_2;
+        $this->edit_nombre         = $pais->nombre;
+        $this->edit_gentilicio     = $pais->gentilicio;
+        $this->editModal           = true;
+    }
 
-                TextColumn::make('gentilicio')
-                    ->label('Gentilicio')
-            ])
-            ->filters([
-                Tables\Filters\TrashedFilter::make(),
-            ],  layout: FiltersLayout::AboveContent)
-            ->actions([
-                DeleteAction::make(),
-                Tables\Actions\ForceDeleteAction::make(),
-                Tables\Actions\RestoreAction::make(),
+    public function save(): void
+    {
+        $this->validate([
+            'edit_codigo_area'          => 'required|numeric',
+            'edit_codigo_iso'           => 'required|string|max:10',
+            'edit_codigo_iso_numerico'  => 'required|numeric',
+            'edit_codigo_iso_alpha_2'   => 'required|string|max:5',
+            'edit_nombre'               => 'required|string|max:100',
+            'edit_gentilicio'           => 'required|string|max:100',
+        ]);
 
-                EditAction::make()
-                ->form([
-                    TextInput::make('codigo_area')
-                        ->label('Código de área'),
-                    TextInput::make('codigo_iso')
-                        ->label('Código ISO'),
-                    TextInput::make('codigo_iso_numerico')
-                        ->label('Código ISO numérico'),
-                    TextInput::make('codigo_iso_alpha_2')
-                        ->label('Código ISO alpha 2'),
-                    TextInput::make('nombre')
-                        ->label('Nombre'),
-                    TextInput::make('gentilicio')
-                        ->label('Gentilicio')
-                    // ...
-                ]),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
-                    Tables\Actions\RestoreBulkAction::make(),
-                    // ...
-                ]),
-            ]);
+        Pais::findOrFail($this->editId)->update([
+            'codigo_area'          => $this->edit_codigo_area,
+            'codigo_iso'           => $this->edit_codigo_iso,
+            'codigo_iso_numerico'  => $this->edit_codigo_iso_numerico,
+            'codigo_iso_alpha_2'   => $this->edit_codigo_iso_alpha_2,
+            'nombre'               => $this->edit_nombre,
+            'gentilicio'           => $this->edit_gentilicio,
+        ]);
+
+        $this->editModal = false;
+        Notification::make()->title('País actualizado.')->success()->send();
+    }
+
+    public function delete(int $id): void
+    {
+        Pais::findOrFail($id)->delete();
+        Notification::make()->title('País eliminado.')->success()->send();
     }
 
     public function render(): View
     {
-        return view('livewire.demografia.pais.list-paises')
-           ;// ->layout('components.panel.modulos.modulo-demografia');
+        $records = Pais::when($this->search, fn($q) =>
+                $q->where('nombre', 'like', '%'.$this->search.'%')
+                  ->orWhere('gentilicio', 'like', '%'.$this->search.'%')
+            )
+            ->orderBy('nombre')
+            ->paginate(10);
+
+        return view('livewire.demografia.pais.list-paises', compact('records'));
     }
 }

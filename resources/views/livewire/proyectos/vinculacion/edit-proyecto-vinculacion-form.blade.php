@@ -1,31 +1,9 @@
-<div>
-    <div class="w-full  mx-auto rounded-lg border-2 border-gray-300 dark:border-gray-700 shadow-sm p-6 bg-white dark:bg-gray-800">
-        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">
-            Estado del proyecto:
-        </h2>
-        <p class="text-gray-700 dark:text-gray-300 mb-2">
-            <strong class="text-gray-900 dark:text-gray-200">Último estado:</strong> 
-            <span class="text-gray-800 dark:text-gray-100">  {{ $this->record->estado->tipoestado->nombre }} </span>
-        </p>
-        <p class="text-gray-700 dark:text-gray-300 mb-2">
-            <strong class="text-gray-900 dark:text-gray-200">Último estado realizado por:</strong>
-            <span class="text-gray-800 dark:text-gray-100">{{ $this->record->estado->empleado->nombre_completo }}</span>
-        </p>
-        <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg shadow-inner">
-            <p class="text-gray-700 dark:text-gray-200">
-                <strong class="text-gray-900 dark:text-gray-200">Comentario:</strong>
-                {{ $this->record->estado->comentario }}
-            </p>
-        </div>
+<div class="flex items-center justify-center py-12">
+    <div class="text-center">
+        <svg class="animate-spin h-8 w-8 text-blue-600 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Redirigiendo...</p>
     </div>
-    
-    
-    <br>
-
-    <form wire:submit="save">
-        {{ $this->form }}
-
-    </form>
-
-    <x-filament-actions::modals />
 </div>

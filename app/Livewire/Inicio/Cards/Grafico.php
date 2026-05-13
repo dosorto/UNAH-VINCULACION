@@ -2,21 +2,13 @@
 
 namespace App\Livewire\Inicio\Cards;
 
-use Filament\Widgets\ChartWidget;
+use Illuminate\Contracts\View\View;
+use Livewire\Component;
 
-class Grafico extends ChartWidget
+class Grafico extends Component
 {
-    protected static ?string $heading = 'Chart';
-
-    protected function getData(): array
+    public function render(): View
     {
-        return [
-            //
-        ];
-    }
-
-    protected function getType(): string
-    {
-        return 'bar';
+        return view('livewire.inicio.cards.grafico');
     }
 }

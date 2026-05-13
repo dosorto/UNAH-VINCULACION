@@ -32,9 +32,9 @@ class DasboardDocente extends Component
         $this->selectedYear = now()->year;
         $this->updateChartData();
         $this->updateChartDataUser();
-        // si el usuario autenticado tiene el permiso docente-cambiar-datos-personales
+        // si el usuario autenticado tiene el permiso perfil.editar
         // redirigirlo a la pagina de configuracion de su perfil
-        if (auth()->user()->can('docente-cambiar-datos-personales')) {
+        if (auth()->user()->can('perfil.editar')) {
             return redirect()->route('mi_perfil');
         };
     }

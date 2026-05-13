@@ -2,89 +2,76 @@
 
 namespace App\Livewire\Demografia\Municipio;
 
-use App\Models\Demografia\Municipio;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
-use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
-
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use App\Models\Demografia\Pais;
 use App\Models\Demografia\Departamento;
+use App\Models\Demografia\Municipio;
+use App\Support\Notification;
+use Illuminate\Contracts\View\View;
+use Livewire\Component;
+use Livewire\WithPagination;
 
-class ListaMunicipios extends Component implements HasForms, HasTable
+class ListaMunicipios extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
-    public function table(Table $table): Table
+    public string $search = '';
+    public bool $editModal = false;
+    public ?int $editId = null;
+    public ?int $edit_departamento_id = null;
+    public string $edit_nombre = '';
+    public string $edit_codigo_municipio = '';
+
+    public function updatingSearch(): void
     {
-        return $table
-            ->heading('Municipios')
-            ->query(Municipio::query())
-            ->columns([
-                Tables\Columns\TextColumn::make('departamento.nombre')
-                    ->label('Departamento')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('nombre')
-                    ->label('Municipio')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('codigo_municipio')
-                    ->label('Código del Municipio')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                DeleteAction::make(),
+        $this->resetPage();
+    }
 
-                EditAction::make()
-                ->form([
-                    Select::make('departamento_id')
-                        ->options(
-                            Departamento::All()
-                                ->pluck('nombre', 'id')
-                        )
-                        ->label('Departamento'),
-                    TextInput::make('nombre')
-                        ->label('Nombre'),
-                    TextInput::make('codigo_municipio')
-                        ->label('Código del Municipio')
-                        ->columnSpanFull()
-                    // ...
-                ]),
-                //
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //
-                ]),
-            ]);
+    public function openEdit(int $id): void
+    {
+        $municipio = Municipio::findOrFail($id);
+        $this->editId                = $id;
+        $this->edit_departamento_id  = $municipio->departamento_id;
+        $this->edit_nombre           = $municipio->nombre;
+        $this->edit_codigo_municipio = (string) ($municipio->codigo_municipio ?? '');
+        $this->editModal             = true;
+    }
+
+    public function save(): void
+    {
+        $this->validate([
+            'edit_departamento_id'  => 'required|exists:departamento,id',
+            'edit_nombre'           => 'required|string|max:100',
+            'edit_codigo_municipio' => 'nullable|numeric',
+        ]);
+
+        Municipio::findOrFail($this->editId)->update([
+            'departamento_id'  => $this->edit_departamento_id,
+            'nombre'           => $this->edit_nombre,
+            'codigo_municipio' => $this->edit_codigo_municipio ?: null,
+        ]);
+
+        $this->editModal = false;
+        Notification::make()->title('Municipio actualizado.')->success()->send();
+    }
+
+    public function delete(int $id): void
+    {
+        Municipio::findOrFail($id)->delete();
+        Notification::make()->title('Municipio eliminado.')->success()->send();
     }
 
     public function render(): View
     {
-        return view('livewire.demografia.municipio.lista-municipios')
-        ;//->layout('components.panel.modulos.modulo-demografia');
+        $records = Municipio::with('departamento')
+            ->when($this->search, fn($q) =>
+                $q->where('nombre', 'like', '%'.$this->search.'%')
+                  ->orWhere('codigo_municipio', 'like', '%'.$this->search.'%')
+            )
+            ->orderBy('nombre')
+            ->paginate(10);
+
+        return view('livewire.demografia.municipio.lista-municipios', [
+            'records'      => $records,
+            'departamentos' => Departamento::orderBy('nombre')->pluck('nombre', 'id'),
+        ]);
     }
 }

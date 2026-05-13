@@ -3,43 +3,29 @@
 namespace App\Livewire\CVinculacion\Proyectos;
 
 use App\Models\Proyecto\Proyecto;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
+use Livewire\Component;
+use Livewire\WithPagination;
 
-class CVinculacionProyectosList extends Component implements HasForms, HasTable
+class CVinculacionProyectosList extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
-    public function table(Table $table): Table
+    public string $search = '';
+
+    public function updatingSearch(): void
     {
-        return $table
-            ->query(Proyecto::query())
-            ->columns([
-                //
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                //
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //
-                ]),
-            ]);
+        $this->resetPage();
     }
 
     public function render(): View
     {
-        return view('livewire.c-vinculacion.proyectos.c-vinculacion-proyectos-list');
+        $records = Proyecto::when($this->search, fn($q) =>
+                $q->where('nombre_proyecto', 'like', '%'.$this->search.'%')
+            )
+            ->latest()
+            ->paginate(15);
+
+        return view('livewire.c-vinculacion.proyectos.c-vinculacion-proyectos-list', compact('records'));
     }
 }

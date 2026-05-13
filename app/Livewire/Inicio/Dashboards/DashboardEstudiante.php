@@ -3,73 +3,27 @@
 namespace App\Livewire\Inicio\Dashboards;
 
 use App\Models\Proyecto\Proyecto;
-use App\Models\Estudiante\EstudianteProyecto;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\TableComponent;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Contracts\View\View;
+use Livewire\Component;
+use Livewire\WithPagination;
 
-class DashboardEstudiante extends TableComponent
+class DashboardEstudiante extends Component
 {
-    use Tables\Concerns\InteractsWithTable;
+    use WithPagination;
 
-    protected function getTableQuery(): Builder
+    public function render(): View
     {
-        $estudiante = auth()->user()->estudiante;
+        $estudiante = auth()->user()?->estudiante;
 
-        if (!$estudiante) {
-            return Proyecto::query()->whereNull('id'); 
-        }
+        $proyectos = $estudiante
+            ? Proyecto::with('estudianteProyecto')
+                ->whereHas('estudianteProyecto', fn($q) => $q->where('estudiante_id', $estudiante->id))
+                ->paginate(10)
+            : collect()->paginate(10);
 
-        return Proyecto::query()
-            ->with('estudianteProyecto')
-            ->whereHas('estudianteProyecto', function ($query) use ($estudiante) {
-                $query->where('estudiante_id', $estudiante->id);
-            });
-    }
-
-    protected function getTableColumns(): array
-    {
-        return [
-            TextColumn::make('nombre_proyecto')
-                ->label('Nombre del Proyecto')
-                ->sortable()
-                ->searchable(),
-            TextColumn::make('estudianteProyecto.tipo_participacion_estudiante')
-                ->label('Tipo de Participación')
-                ->sortable()
-                ->searchable(),
-            TextColumn::make('fecha_inicio')
-                ->label('Fecha de Inicio')
-                ->date()
-                ->sortable(),
-            TextColumn::make('fecha_finalizacion')
-                ->label('Fecha de Finalización')
-                ->date()
-                ->sortable(),
-        ];
-    }
-
-    protected function getTableActions(): array
-    {
-        return [
-            Action::make('Constancia')
-                ->label('Descargar Constancia')
-                ->icon('heroicon-o-arrow-down-tray'),
-        ];
-    }
-
-    protected function getTableHeading(): string
-    {
-        $estudiante = auth()->user()->estudiante;
-        
-        return $estudiante ? 'Mis Proyectos' : 'No hay estudiante asociado.';
-    }
-
-    public function render()
-    {
-        return view('livewire.inicio.dashboards.dashboard-estudiante');
+        return view('livewire.inicio.dashboards.dashboard-estudiante', [
+            'proyectos'  => $proyectos,
+            'estudiante' => $estudiante,
+        ]);
     }
 }

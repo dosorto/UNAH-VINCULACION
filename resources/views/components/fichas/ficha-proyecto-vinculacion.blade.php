@@ -92,48 +92,57 @@
 
 <body style="background-color: #f2f2f2; ">
     @if (empty($isPdf) && $proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
-        <x-filament::section collapsible collapsed persist-collapsed id="user-details">
-            <x-slot name="heading">
-                Informe Intermedio, Estado: {{ $proyecto->documento_intermedio()->estado->tipoestado->nombre }}
-            </x-slot>
-            <x-slot name="description">
-                {{ $proyecto->documento_intermedio()->estado->comentario }}
-            </x-slot>
-            <embed src="{{ asset('storage/' . $proyecto->documento_intermedio()->documento_url) }}"
-                type="application/pdf" width="100%" height="600px" />
-        </x-filament::section>
+        <details class="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-x-4 px-6 py-4">
+                <div>
+                    <span class="text-sm font-semibold text-gray-900">Informe Intermedio, Estado: {{ $proyecto->documento_intermedio()->estado?->tipoestado?->nombre ?? 'No especificado' }}</span>
+                    <p class="mt-1 text-sm font-normal text-gray-500">{{ $proyecto->documento_intermedio()->estado?->comentario ?? 'Sin comentario' }}</p>
+                </div>
+                <svg class="h-5 w-5 flex-shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                </svg>
+            </summary>
+            <div class="border-t border-gray-200 px-6 py-4">
+                <embed src="{{ asset('storage/' . $proyecto->documento_intermedio()->documento_url) }}"
+                    type="application/pdf" width="100%" height="600px" />
+            </div>
+        </details>
     @endif
     @if (empty($isPdf) && $proyecto->documento_final() && $proyecto->documento_final()->documento_url != null)
-        <x-filament::section collapsible collapsed persist-collapsed id="user-details">
-            <x-slot name="heading">
-                Informe Final, Estado: {{ $proyecto->documento_final()->estado->tipoestado->nombre }}
-            </x-slot>
-            <x-slot name="description">
-                {{ $proyecto->documento_final()->estado->comentario }}
-            </x-slot>
-            <h1>Visualizador de PDF</h1>
-            <embed src="{{ asset('storage/' . $proyecto->documento_final()->documento_url) }}" type="application/pdf"
-                width="100%" height="600px" />
-        </x-filament::section>
+        <details class="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-x-4 px-6 py-4">
+                <div>
+                    <span class="text-sm font-semibold text-gray-900">Informe Final, Estado: {{ $proyecto->documento_final()->estado?->tipoestado?->nombre ?? 'No especificado' }}</span>
+                    <p class="mt-1 text-sm font-normal text-gray-500">{{ $proyecto->documento_final()->estado?->comentario ?? 'Sin comentario' }}</p>
+                </div>
+                <svg class="h-5 w-5 flex-shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                </svg>
+            </summary>
+            <div class="border-t border-gray-200 px-6 py-4">
+                <h1>Visualizador de PDF</h1>
+                <embed src="{{ asset('storage/' . $proyecto->documento_final()->documento_url) }}" type="application/pdf"
+                    width="100%" height="600px" />
+            </div>
+        </details>
     @endif
 
-    <x-filament::section id="user-details">
-        <x-slot name="heading">
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                <span>Ficha del proyecto</span>
-                @if (empty($isPdf))
-                    <x-filament::button
-                        color="info"
-                        icon="heroicon-o-arrow-down-tray"
-                        tag="a"
-                        class="no-print"
-                        href="{{ route('proyecto.perfil.pdf', ['proyecto' => $proyecto->id]) }}"
-                    >
-                        Descargar PDF
-                    </x-filament::button>
-                @endif
-            </div>
-        </x-slot>
+    <div class="rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+            <span class="text-sm font-semibold text-gray-900">Ficha del proyecto</span>
+            @if (empty($isPdf))
+                <a
+                    href="{{ route('proyecto.perfil.pdf', ['proyecto' => $proyecto->id]) }}"
+                    class="no-print inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                        <path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z"/>
+                        <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z"/>
+                    </svg>
+                    Descargar PDF
+                </a>
+            @endif
+        </div>
 
         <div style="display: flex; justify-content: center; margin-top: 20px; background-color: white;">
             <div class="container">
@@ -486,26 +495,28 @@
                     <tr>
                         <td class="sub-header" colspan="1">Región</td>
                         <td class="full-width" colspan="1">
-                            @if(is_array($proyecto->region) && count($proyecto->region) > 0)
-                                @foreach($proyecto->region as $region)
+                            @php $regionArr = is_array($proyecto->region) ? $proyecto->region : (array) $proyecto->region; @endphp
+                            @if(count($regionArr) > 0)
+                                @foreach($regionArr as $region)
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese la región" value="{{ $region }}" disabled>
                                 @endforeach
                             @else
                                 <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese la región" value="{{ $proyecto->region ?? '' }}" disabled>
+                                    placeholder="Ingrese la región" value="" disabled>
                             @endif
                         </td>
                         <td class="sub-header" colspan="1">País</td>
                         <td class="full-width" colspan="2">
-                            @if(is_array($proyecto->pais) && count($proyecto->pais) > 0)
-                                @foreach($proyecto->pais as $pais)
+                            @php $paisArr = is_array($proyecto->pais) ? $proyecto->pais : (array) $proyecto->pais; @endphp
+                            @if(count($paisArr) > 0)
+                                @foreach($paisArr as $pais)
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el país" value="{{ $pais }}" disabled>
                                 @endforeach
                             @else
                                 <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el país" value="{{ $proyecto->pais ?? '' }}" disabled>
+                                    placeholder="Ingrese el país" value="" disabled>
                             @endif
                         </td>
                     </tr>
@@ -631,6 +642,9 @@
                 </div>
 
                 <div class="section2">
+                    @php
+                        $coordinador = optional($proyecto->coordinador_proyecto->first())->empleado;
+                    @endphp
                     <div class="section-title">II. EQUIPO EJECUTOR DEL PROYECTO. </div>
                     <table class="table_datos1">
                         <!-- TABLA COORDINADOR DEL PROYECTO -->
@@ -639,38 +653,38 @@
                             <td class="sub-header">Nombre Completo:</td>
                             <td class="full-width" colspan="2">
                                 <textarea disabled rows="2" class="input-field-multiline"
-                                    placeholder="Ingrese el nombre completo">{{ $proyecto->coordinador->nombre_completo }}</textarea>
+                                    placeholder="Ingrese el nombre completo">{{ $coordinador?->nombre_completo ?? 'No especificado' }}</textarea>
                             </td>
                             <td class="sub-header">No. de empleado:</td>
                             <td class="full-width" colspan="2">
                                 <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el número de empleado"
-                                    value="{{ $proyecto->coordinador->numero_empleado }}" disabled>
+                                    value="{{ $coordinador?->numero_empleado ?? 'No especificado' }}" disabled>
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-header">Correo electrónico:</td>
                             <td class="full-width" colspan="2">
                                 <textarea disabled rows="2" class="input-field-multiline"
-                                    placeholder="Ingrese el correo electrónico">{{ $proyecto->coordinador->user->email }}</textarea>
+                                    placeholder="Ingrese el correo electrónico">{{ $coordinador?->user?->email ?? 'No especificado' }}</textarea>
                             </td>
                             <td class="sub-header">Celular:</td>
                             <td class="full-width" colspan="2">
                                 <input disabled type="email" class="input-field"
                                     placeholder="Ingrese el número de celular"
-                                    value="{{ $proyecto->coordinador->celular }}" disabled>
+                                    value="{{ $coordinador?->celular ?? 'No especificado' }}" disabled>
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-header">Categoria:</td>
                             <td class="full-width" colspan="2">
                                 <textarea disabled rows="2" class="input-field-multiline"
-                                    placeholder="Ingrese el número de celular">{{ $proyecto->coordinador->categoria->nombre }}</textarea>
+                                    placeholder="Ingrese el número de celular">{{ $coordinador?->categoria?->nombre ?? 'No especificado' }}</textarea>
                             </td>
                             <td class="sub-header">Departamento:</td>
                             <td class="full-width" colspan="2">
                                 <textarea disabled rows="2" class="input-field-multiline"
-                                    placeholder="Ingrese el número de celular">{{ $proyecto->coordinador->departamento_academico->nombre }}</textarea>
+                                    placeholder="Ingrese el número de celular">{{ $coordinador?->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
                             </td>
                         </tr>
 
@@ -711,23 +725,23 @@
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el correo electrónico">{{ $integrante->user->email }}</textarea>
+                                        placeholder="Ingrese el correo electrónico">{{ $integrante->user?->email ?? 'No especificado' }}</textarea>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese la categoría">{{ $integrante->categoria->nombre ?? 'Sin categoría' }}</textarea>
+                                        placeholder="Ingrese la categoría">{{ $integrante->categoria?->nombre ?? 'Sin categoría' }}</textarea>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el departamento">{{ $integrante->departamento_academico->nombre ?? 'Sin departamento' }}</textarea>
+                                        placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'Sin departamento' }}</textarea>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el departamento">{{ $integrante->departamento_academico->nombre }}</textarea>
+                                        placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el departamento">{{ $integrante->departamento_academico->nombre }}</textarea>
+                                        placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
                                 </td>
                             </tr>
                         @empty
@@ -1185,30 +1199,46 @@
                                 </td>
                                 <td class="full-width
                                     " colspan="3">
-                                    @if (empty($isPdf))
-                                        <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
-                                            <x-slot name="heading">
-                                                Documento de formalización
-                                            </x-slot>
-                                            <x-slot name="trigger">
-                                                <x-filament::button>
-                                                    Ver documento
-                                                </x-filament::button>
-                                            </x-slot>
-
-
-                                            <iframe src="{{ Storage::url($instrumento->documento_url) }}"
-                                                style="width: 100%; height: 85vh; border: none;"></iframe>
-
-                                        </x-filament::modal>
-                                        <x-filament::button>
-                                            <a href="{{ Storage::url($instrumento->documento_url) }}" download
-                                                style="text-decoration: none; color: inherit;">
-                                                Descargar
-                                            </a>
-                                        </x-filament::button>
-                                    @else
+                                    @if (empty($isPdf) && !empty($instrumento->documento_url))
+                                        <div x-data="{ open: false }">
+                                            <button type="button" @click="open = true"
+                                                class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition">
+                                                Ver documento
+                                            </button>
+                                            <div x-show="open" x-cloak class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+                                                <div class="fixed inset-0 bg-black/60" @click.self="open = false"></div>
+                                                <div class="relative flex min-h-full items-start justify-center p-4">
+                                                    <div class="relative w-full max-w-7xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl my-4">
+                                                        <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-3">
+                                                            <span class="text-sm font-semibold text-gray-900 dark:text-white">Documento de formalización</span>
+                                                            <button type="button" @click="open = false"
+                                                                class="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                                                                aria-label="Cerrar">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
+                                                                    <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                        <div class="p-0">
+                                                            <iframe src="{{ Storage::url($instrumento->documento_url) }}"
+                                                                style="width: 100%; height: 85vh; border: none;"></iframe>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <a href="{{ Storage::url($instrumento->documento_url) }}" download
+                                            class="inline-flex items-center gap-1.5 rounded-lg bg-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-300 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                                                <path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z"/>
+                                                <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z"/>
+                                            </svg>
+                                            Descargar
+                                        </a>
+                                    @elseif (!empty($instrumento->documento_url))
                                         <span>Documento adjunto</span>
+                                    @else
+                                        <span>No especificado</span>
                                     @endif
 
                                 </td>
@@ -1258,7 +1288,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 <textarea disabled cols="30" rows="6" class="input-field"
-                                    placeholder="Descripción de participantes">{{ $proyecto->descripcion_participantes ?? '' }}</textarea>
+                                    placeholder="Descripción de participantes">{{ $proyecto->descripcion_participantes ?? ' }}</textarea>
                             </td>
                         </tr>
 
@@ -1269,7 +1299,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 <textarea disabled cols="30" rows="6" class="input-field"
-                                    placeholder="Definición del problema">{{ $proyecto->definicion_problema ?? '' }}</textarea>
+                                    placeholder="Definición del problema">{{ $proyecto->definicion_problema ?? ' }}</textarea>
                             </td>
                         </tr>
                         
@@ -1327,7 +1357,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 <textarea disabled cols="30" rows="6" class="input-field" 
-                                    placeholder="Metodología">{{ $proyecto->metodologia ?? '' }}</textarea>
+                                    placeholder="Metodología">{{ $proyecto->metodologia ?? ' }}</textarea>
                             </td>
                         </tr>
                         <tr>
@@ -1336,7 +1366,7 @@
                         <tr>
                             <td class="full-width" colspan="19">
                                 <textarea disabled cols="30" rows="6" class="input-field" 
-                                    placeholder="Bibliografía">{{ $proyecto->bibliografia ?? '' }}</textarea>
+                                    placeholder="Bibliografía">{{ $proyecto->bibliografia ?? ' }}</textarea>
                             </td>
                         </tr>
                     </table>
@@ -1445,6 +1475,18 @@
                         @php
                             // Crear un array asociativo para fácil acceso a los conceptos
                             $conceptos = collect($proyecto->aporteInstitucional)->keyBy('concepto');
+                            $baseAporteInstitucional = collect([
+                                $conceptos->get('horas_trabajo_docentes'),
+                                $conceptos->get('horas_trabajo_estudiantes'),
+                                $conceptos->get('gastos_movilizacion'),
+                                $conceptos->get('utiles_materiales_oficina'),
+                                $conceptos->get('gastos_impresion'),
+                            ])->filter();
+                            $cantidadIndirecta = round($baseAporteInstitucional->sum('cantidad') * 0.05, 2);
+                            $costoUnitarioIndirecto = round($baseAporteInstitucional->sum('costo_unitario') * 0.05, 2);
+                            $costoTotalIndirecto = round($cantidadIndirecta * $costoUnitarioIndirecto, 2);
+                            $infraestructura = $conceptos->get('costos_indirectos_infraestructura');
+                            $servicios = $conceptos->get('costos_indirectos_servicios');
                         @endphp
                         
                         <!-- Horas de trabajo docentes -->
@@ -1453,15 +1495,15 @@
                             <td class="sub-header" colspan="3">Hra/profesores</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_docentes']?->cantidad ?? '' }}">
+                                    value="{{ $conceptos->get('horas_trabajo_docentes')?->cantidad ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_docentes']?->costo_unitario ?? '' }}">
+                                    value="{{ $conceptos->get('horas_trabajo_docentes')?->costo_unitario ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_docentes']?->costo_total ?? '' }}">
+                                    value="{{ $conceptos->get('horas_trabajo_docentes')?->costo_total ?? '' }}">
                             </td>
                         </tr>
                         
@@ -1471,15 +1513,15 @@
                             <td class="sub-header" colspan="3">Hra/estudiantes</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_estudiantes']?->cantidad ?? '' }}">
+                                    value="{{ $conceptos->get('horas_trabajo_estudiantes')?->cantidad ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? '' }}">
+                                    value="{{ $conceptos->get('horas_trabajo_estudiantes')?->costo_unitario ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['horas_trabajo_estudiantes']?->costo_total ?? '' }}">
+                                    value="{{ $conceptos->get('horas_trabajo_estudiantes')?->costo_total ?? '' }}">
                             </td>
                         </tr>
                         
@@ -1489,15 +1531,15 @@
                             <td class="sub-header" colspan="3">Global</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_movilizacion']?->cantidad ?? '' }}">
+                                    value="{{ $conceptos->get('gastos_movilizacion')?->cantidad ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_movilizacion']?->costo_unitario ?? '' }}">
+                                    value="{{ $conceptos->get('gastos_movilizacion')?->costo_unitario ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_movilizacion']?->costo_total ?? '' }}">
+                                    value="{{ $conceptos->get('gastos_movilizacion')?->costo_total ?? '' }}">
                             </td>
                         </tr>
                         
@@ -1507,15 +1549,15 @@
                             <td class="sub-header" colspan="3">Global</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['utiles_materiales_oficina']?->cantidad ?? '' }}">
+                                    value="{{ $conceptos->get('utiles_materiales_oficina')?->cantidad ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['utiles_materiales_oficina']?->costo_unitario ?? '' }}">
+                                    value="{{ $conceptos->get('utiles_materiales_oficina')?->costo_unitario ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['utiles_materiales_oficina']?->costo_total ?? '' }}">
+                                    value="{{ $conceptos->get('utiles_materiales_oficina')?->costo_total ?? '' }}">
                             </td>
                         </tr>
                         
@@ -1525,15 +1567,15 @@
                             <td class="sub-header" colspan="3">Global</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_impresion']?->cantidad ?? '' }}">
+                                    value="{{ $conceptos->get('gastos_impresion')?->cantidad ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_impresion']?->costo_unitario ?? '' }}">
+                                    value="{{ $conceptos->get('gastos_impresion')?->costo_unitario ?? '' }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos['gastos_impresion']?->costo_total ?? '' }}">
+                                    value="{{ $conceptos->get('gastos_impresion')?->costo_total ?? '' }}">
                             </td>
                         </tr>
                         
@@ -1543,53 +1585,15 @@
                             <td class="sub-header" colspan="3">%</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ number_format(
-    (
-        ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
-        ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
-        ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
-        ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
-        ($conceptos['gastos_impresion']?->cantidad ?? 0)
-    ) * 0.05,
-    2, '.', ','
-) }}">
+                                    value="{{ number_format($infraestructura?->cantidad ?? $cantidadIndirecta, 2, '.', ',') }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ number_format(
-    (
-        ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
-        ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
-        ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
-        ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
-        ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
-    ) * 0.05,
-    2, '.', ','
-) }}">
+                                    value="{{ number_format($infraestructura?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',') }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ number_format(
-        (
-            (
-                ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
-                ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
-                ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
-                ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
-                ($conceptos['gastos_impresion']?->cantidad ?? 0)
-            ) * 0.05
-        ) *
-        (
-            (
-                ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
-                ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
-                ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
-                ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
-                ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
-            ) * 0.05
-        ),
-        2, '.', ','
-    ) }}">
+                                    value="{{ number_format($infraestructura?->costo_total ?? $costoTotalIndirecto, 2, '.', ',') }}">
                             </td>
                         </tr>
                         
@@ -1599,53 +1603,15 @@
                             <td class="sub-header" colspan="3">%</td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ number_format(
-    (
-        ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
-        ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
-        ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
-        ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
-        ($conceptos['gastos_impresion']?->cantidad ?? 0)
-    ) * 0.05,
-    2, '.', ','
-) }}">
+                                    value="{{ number_format($servicios?->cantidad ?? $cantidadIndirecta, 2, '.', ',') }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ number_format(
-    (
-        ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
-        ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
-        ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
-        ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
-        ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
-    ) * 0.05,
-    2, '.', ','
-) }}">
+                                    value="{{ number_format($servicios?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',') }}">
                             </td>
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
-                                    value="{{ number_format(
-        (
-            (
-                ($conceptos['horas_trabajo_docentes']?->cantidad ?? 0) +
-                ($conceptos['horas_trabajo_estudiantes']?->cantidad ?? 0) +
-                ($conceptos['gastos_movilizacion']?->cantidad ?? 0) +
-                ($conceptos['utiles_materiales_oficina']?->cantidad ?? 0) +
-                ($conceptos['gastos_impresion']?->cantidad ?? 0)
-            ) * 0.05
-        ) *
-        (
-            (
-                ($conceptos['horas_trabajo_docentes']?->costo_unitario ?? 0) +
-                ($conceptos['horas_trabajo_estudiantes']?->costo_unitario ?? 0) +
-                ($conceptos['gastos_movilizacion']?->costo_unitario ?? 0) +
-                ($conceptos['utiles_materiales_oficina']?->costo_unitario ?? 0) +
-                ($conceptos['gastos_impresion']?->costo_unitario ?? 0)
-            ) * 0.05
-        ),
-        2, '.', ','
-    ) }}">
+                                    value="{{ number_format($servicios?->costo_total ?? $costoTotalIndirecto, 2, '.', ',') }}">
                             </td>
                         </tr>
                         
@@ -1746,37 +1712,50 @@
                             </td>
                                 <td class="" colspan="5">
                                     @if (empty($isPdf))
-                                        <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
-                                            <x-slot name="heading">
-                                                Actividad
-                                            </x-slot>
-                                            <x-slot name="trigger">
-                                                <x-filament::button>
-                                                    Ver Actividad
-                                                </x-filament::button>
-                                            </x-slot>
-
-                                        <div class="activity-container">
-                                            <div class="activity-header">Detalles de la Actividad</div>
-                                            <div class="activity-body">
-                                                <div class="row">
-                                                    <div class="column"><strong>Fecha de Inicio:</strong>
-                                                        {{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</div>
-                                                </div>
-                                                <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}</div>
-                                                <div class="highlight"><strong>Responsables:</strong>
-                                                    @forelse ($actividad->empleados as $responsable)
-                                                        <div>
-                                                            <div>{{ $responsable->nombre_completo }}</div>
+                                        <div x-data="{ open: false }">
+                                            <button type="button" @click="open = true"
+                                                class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition">
+                                                Ver Actividad
+                                            </button>
+                                            <div x-show="open" x-cloak class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+                                                <div class="fixed inset-0 bg-black/60" @click.self="open = false"></div>
+                                                <div class="relative flex min-h-full items-start justify-center p-4">
+                                                    <div class="relative w-full max-w-7xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl my-4">
+                                                        <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-3">
+                                                            <span class="text-sm font-semibold text-gray-900 dark:text-white">Actividad</span>
+                                                            <button type="button" @click="open = false"
+                                                                class="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                                                                aria-label="Cerrar">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
+                                                                    <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/>
+                                                                </svg>
+                                                            </button>
                                                         </div>
-                                                    @empty
-                                                        No asignado
-                                                    @endforelse
+                                                        <div class="p-6">
+                                                            <div class="activity-container">
+                                                                <div class="activity-header">Detalles de la Actividad</div>
+                                                                <div class="activity-body">
+                                                                    <div class="row">
+                                                                        <div class="column"><strong>Fecha de Inicio:</strong>
+                                                                            {{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</div>
+                                                                    </div>
+                                                                    <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}</div>
+                                                                    <div class="highlight"><strong>Responsables:</strong>
+                                                                        @forelse ($actividad->empleados as $responsable)
+                                                                            <div>
+                                                                                <div>{{ $responsable->nombre_completo }}</div>
+                                                                            </div>
+                                                                        @empty
+                                                                            No asignado
+                                                                        @endforelse
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-
-                                        </x-filament::modal>
                                     @else
                                         <span>Actividad registrada</span>
                                     @endif
@@ -2099,24 +2078,41 @@
                            </td>
                             <td class="full-width" colspan="11">
                                 @if (empty($isPdf))
-                                    <x-filament::modal width="7xl" :close-button="true" :close-by-escaping="false">
-                                        <x-slot name="heading">
-                                            Anexo
-                                        </x-slot>
-                                        <x-slot name="trigger">
-                                            <x-filament::button>
-                                                Ver anexo
-                                            </x-filament::button>
-                                        </x-slot>
-                                        <iframe src="{{ Storage::url($anexo->documento_url) }}"
-                                            style="width: 100%; height: 85vh; border: none;"></iframe>
-                                    </x-filament::modal>
-                                    <x-filament::button>
-                                        <a href="{{ Storage::url($anexo->documento_url) }}" download
-                                            style="text-decoration: none; color: inherit;">
-                                            Descargar
-                                        </a>
-                                    </x-filament::button>
+                                    <div x-data="{ open: false }">
+                                        <button type="button" @click="open = true"
+                                            class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition">
+                                            Ver anexo
+                                        </button>
+                                        <div x-show="open" x-cloak class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+                                            <div class="fixed inset-0 bg-black/60" @click.self="open = false"></div>
+                                            <div class="relative flex min-h-full items-start justify-center p-4">
+                                                <div class="relative w-full max-w-7xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl my-4">
+                                                    <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-3">
+                                                        <span class="text-sm font-semibold text-gray-900 dark:text-white">Anexo</span>
+                                                        <button type="button" @click="open = false"
+                                                            class="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                                                            aria-label="Cerrar">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
+                                                                <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                    <div class="p-0">
+                                                        <iframe src="{{ Storage::url($anexo->documento_url) }}"
+                                                            style="width: 100%; height: 85vh; border: none;"></iframe>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <a href="{{ Storage::url($anexo->documento_url) }}" download
+                                        class="inline-flex items-center gap-1.5 rounded-lg bg-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-300 transition">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+                                            <path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z"/>
+                                            <path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z"/>
+                                        </svg>
+                                        Descargar
+                                    </a>
                                 @else
                                     <span>Anexo adjunto</span>
                                 @endif
@@ -2193,7 +2189,7 @@
                 </div> -->
             </div>
         </div>
-    </x-filament::section>
+    </div>
 
 
 </body>

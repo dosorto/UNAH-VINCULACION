@@ -60,7 +60,6 @@
             display: none !important;
         }
     </style>
-    @filamentStyles
     @vite('resources/css/app.css')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -102,8 +101,7 @@
     <!-- Footer -->
     @include('partials.footer')
 
-    @livewire('notifications')
-    @filamentScripts
+    @livewire('components.notifications')
     @vite('resources/js/app.js')
     
 </body>

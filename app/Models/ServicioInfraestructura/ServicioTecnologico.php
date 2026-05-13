@@ -4,7 +4,6 @@ namespace App\Models\ServicioInfraestructura;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 use App\Models\Proyecto\Modalidad;
 use App\Models\Demografia\Departamento;
@@ -21,7 +20,7 @@ use App\Models\ServicioInfraestructura\ObjetivoEspecificoServicio;
 
 class ServicioTecnologico extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $table = 'servicios_tecnologicos';
 
@@ -92,7 +91,7 @@ class ServicioTecnologico extends Model
 
     public function carreras()
     {
-        return $this->belongsToMany(Carrera::class, 'servicio_carrera', 'servicio_tecnologico_id', 'carrera_id');
+        return $this->belongsToMany(Carrera::class, 'servicio_carrera', 'servicio_id', 'carrera_id');
     }
 
     //  Relación con Municipios

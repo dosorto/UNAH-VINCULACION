@@ -1,3 +1,42 @@
 <div>
-    {{ $this->table }}
+    <div class="mb-4">
+        <p class="text-zinc-950 dark:text-white font-bold mb-1">Permisos</p>
+        <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm">Listado de permisos del sistema.</p>
+    </div>
+
+    <div class="mb-3">
+        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar por nombre..."
+            class="w-full sm:w-80 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+    </div>
+
+    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Módulo</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Nombre técnico</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Nombre legible</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
+                @forelse ($records as $record)
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                {{ explode('.', $record->name)[0] }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300 font-mono text-xs">{{ $record->name }}</td>
+                        <td class="px-4 py-3 text-gray-900 dark:text-white">{{ $record->display_name ?? '—' }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="3" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">No se encontraron permisos.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4">{{ $records->links() }}</div>
 </div>

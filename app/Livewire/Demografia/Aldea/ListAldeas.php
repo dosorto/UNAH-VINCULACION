@@ -3,80 +3,70 @@
 namespace App\Livewire\Demografia\Aldea;
 
 use App\Models\Demografia\Aldea;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
-use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use App\Models\Demografia\Municipio;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
+use App\Support\Notification;
+use Illuminate\Contracts\View\View;
+use Livewire\Component;
+use Livewire\WithPagination;
 
-class ListAldeas extends Component implements HasForms, HasTable
+class ListAldeas extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
-    public function table(Table $table): Table
+    public string $search = '';
+    public bool $editModal = false;
+    public ?int $editId = null;
+    public ?int $edit_municipio_id = null;
+    public string $edit_nombre = '';
+
+    public function updatingSearch(): void
     {
-        return $table
-            ->heading('Aldeas')
-            ->query(Aldea::query())
-            ->columns([
-                Tables\Columns\TextColumn::make('municipio.nombre')
-                    ->label('Municipio')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('nombre')
-                    ->label('Aldea')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                DeleteAction::make(),
+        $this->resetPage();
+    }
 
-                EditAction::make()
-                ->form([
-                    Select::make('municipio_id')
-                        ->label('Municipio')
-                        ->options(
-                            Municipio::All()
-                                ->pluck('nombre', 'id')
-                        ),
-                    TextInput::make('nombre')
-                        ->label('Nombre Aldea')
-                        ->columnSpanFull()
-                    // ...
-                ]),
-                //
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //
-                ]),
-            ]);
+    public function openEdit(int $id): void
+    {
+        $aldea = Aldea::findOrFail($id);
+        $this->editId           = $id;
+        $this->edit_municipio_id = $aldea->municipio_id;
+        $this->edit_nombre      = $aldea->nombre;
+        $this->editModal        = true;
+    }
+
+    public function save(): void
+    {
+        $this->validate([
+            'edit_municipio_id' => 'required|exists:municipios,id',
+            'edit_nombre'       => 'required|string|max:100',
+        ]);
+
+        Aldea::findOrFail($this->editId)->update([
+            'municipio_id' => $this->edit_municipio_id,
+            'nombre'       => $this->edit_nombre,
+        ]);
+
+        $this->editModal = false;
+        Notification::make()->title('Aldea actualizada.')->success()->send();
+    }
+
+    public function delete(int $id): void
+    {
+        Aldea::findOrFail($id)->delete();
+        Notification::make()->title('Aldea eliminada.')->success()->send();
     }
 
     public function render(): View
     {
-        return view('livewire.demografia.aldea.list-aldeas')
-        ;//->layout('components.panel.modulos.modulo-demografia');
+        $records = Aldea::with('municipio')
+            ->when($this->search, fn($q) =>
+                $q->where('nombre', 'like', '%'.$this->search.'%')
+            )
+            ->orderBy('nombre')
+            ->paginate(10);
+
+        return view('livewire.demografia.aldea.list-aldeas', [
+            'records'    => $records,
+            'municipios' => Municipio::orderBy('nombre')->pluck('nombre', 'id'),
+        ]);
     }
 }

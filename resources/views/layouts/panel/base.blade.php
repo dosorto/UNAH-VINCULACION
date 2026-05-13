@@ -9,13 +9,13 @@
 
     <title>{{ config('app.name') }}</title>
     <link rel="icon" href="{{ asset('images/Image/logo_nexo.png') }}" type="image/png">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0" />
 
     <style>
         [x-cloak] {
             display: none !important;
         }
     </style>
-    @filamentStyles
     @vite('resources/css/app.css')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -100,15 +100,16 @@
             <div class="bg-white p-6 border border-gray-300 rounded-lg dark:bg-white/5 dark:border-gray-700 h-full">
                 @yield('titulo')
                 <div class="mt-4">
-                    @include('components.panel.navbar-horizontal.navbar')
+                    @if (empty($hideHorizontalNav))
+                        @include('components.panel.navbar-horizontal.navbar')
+                    @endif
                     @yield('main')
                 </div>
             </div>
         </main>
     </div>
    
-    @livewire('notifications')
-    @filamentScripts
+    @livewire('components.notifications')
     @vite('resources/js/app.js')
 </body>
 

@@ -2,76 +2,52 @@
 
 namespace App\Livewire\Login;
 
-use App\Models\User;
-use Filament\Forms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
-use Livewire\Component;
-use Illuminate\Contracts\View\View;
 use App\Models\Slide\Slide;
-
-use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
+use App\Support\Notification;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 
-class Login extends Component implements HasForms
+class Login extends Component
 {
-    use InteractsWithForms;
+    public string $email = '';
+    public string $password = '';
 
-    public ?array $data = [];
+    protected array $rules = [
+        'email'    => 'required|email',
+        'password' => 'required',
+    ];
 
-    public function mount(): void
+    protected array $messages = [
+        'email.required'    => 'El correo es obligatorio.',
+        'email.email'       => 'Ingresa un correo válido.',
+        'password.required' => 'La contraseña es obligatoria.',
+    ];
+
+    public function create(): void
     {
-        $this->form->fill();
-    }
+        $this->validate();
 
-    public function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                TextInput::make('email')
-                    ->label('Correo institucional')
-                    ->required(),
-                TextInput::make('password')
-                    ->label('Contraseña')
-                    ->revealable()
-                    ->password()
-                    ->required()
-            ])
-            ->statePath('data')
-            ->model(User::class);
-    }
-
-    public function create()
-    {
-        $data = $this->form->getState();
-
-        if (Auth::attempt(['email' => $data['email'], 'password' => $data['password']])) {
-            return redirect(route('inicio'));
+        if (Auth::attempt(['email' => $this->email, 'password' => $this->password])) {
+            $this->redirect(route('inicio'));
+            return;
         }
 
         Notification::make()
-            ->title('Correo o contraseña incorrectas!')
+            ->title('Correo o contraseña incorrectos.')
             ->danger()
             ->send();
     }
 
-    public function render()
+    public function render(): View
     {
-     
-        $slides = Slide::where('estado', true)
-                    ->get();
+        $slides = Slide::where('estado', true)->get();
+        $data   = ['slides' => $slides];
 
-        $data = ['slides' => $slides];
-
-        if(env('NUEVO_LOGIN') == false){
-           return view('livewire.login.login')
-           ->layout('aplicacion.login', $data);
+        if (env('NUEVO_LOGIN') == false) {
+            return view('livewire.login.login')->layout('aplicacion.login', $data);
         }
-        
-        return view('livewire.login.login')
-        ->layout('aplicacion.login2', $data);
-        
+
+        return view('livewire.login.login')->layout('aplicacion.login2', $data);
     }
 }

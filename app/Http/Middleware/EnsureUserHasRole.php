@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Spatie\Permission\Models\Role;
 
 class EnsureUserHasRole
 {
@@ -21,24 +20,26 @@ class EnsureUserHasRole
         $user = Auth::user();
         
         if ($user) {
-            // Verificar si el usuario no tiene ningún rol asignado
-            if (!$user->hasAnyRole(['admin', 'docente', 'Director/Enlace'])) {
-                // Asignar el rol de docente por defecto
-                $docenteRole = Role::where('name', 'docente')->first();
-                if ($docenteRole) {
-                    $user->assignRole('docente');
-                    
-                    // Si no tiene active_role_id, asignarlo
-                    if (!$user->active_role_id) {
-                        $user->active_role_id = $docenteRole->id;
-                        $user->save();
-                    }
+            $roles = $user->roles()->get();
+
+            if ($roles->isEmpty()) {
+                if ($user->active_role_id !== null) {
+                    $user->active_role_id = null;
+                    $user->save();
                 }
+
+                if (! $request->routeIs('logout')) {
+                    abort(403, 'Tu usuario no tiene roles asignados. Contacta al administrador del sistema.');
+                }
+
+                return $next($request);
             }
-            
-            // Asegurar que tiene un active_role_id válido
-            if (!$user->active_role_id && $user->roles->count() > 0) {
-                $user->active_role_id = $user->roles->first()->id;
+
+            $activeRoleIsAssigned = $user->active_role_id
+                && $roles->contains('id', (int) $user->active_role_id);
+
+            if (! $activeRoleIsAssigned) {
+                $user->active_role_id = $roles->first()->id;
                 $user->save();
             }
         }

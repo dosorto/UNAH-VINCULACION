@@ -3,143 +3,143 @@
 namespace App\Livewire\UnidadAcademica\DepartamentoAcademico;
 
 use App\Models\UnidadAcademica\DepartamentoAcademico;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
+use App\Models\UnidadAcademica\FacultadCentro;
+use App\Support\AdminCsv;
+use App\Support\Notification;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Enums\FiltersLayout;
+use Livewire\Component;
+use Livewire\WithPagination;
 
-use Filament\Forms\Components\TextInput;
-use Filament\Tables\Actions\CreateAction;
-use Filament\Notifications\Notification;
-use Filament\Forms\Components\Select;
-
-use App\Models\UnidadAcademica\CentroFacultad;
-
-use Illuminate\Database\Eloquent\Model;
-
-use Filament\Tables\Actions\EditAction;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
-use Filament\Tables\Actions\DeleteAction;
-
-use Filament\Tables\Actions\RestoreAction;
-
-
-
-
-class DepartamentoAcademicoList extends Component implements HasForms, HasTable
+class DepartamentoAcademicoList extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
-    public function table(Table $table): Table
+    public string $search = '';
+    public bool $showTrashed = false;
+    public ?int $filterCentroFacultad = null;
+
+    public bool $createModal = false;
+    public string $create_nombre = '';
+    public string $create_siglas = '';
+    public ?int $create_centro_facultad_id = null;
+
+    public bool $editModal = false;
+    public ?int $editId = null;
+    public string $edit_nombre = '';
+    public string $edit_siglas = '';
+    public ?int $edit_centro_facultad_id = null;
+
+    public function updatingSearch(): void
     {
-        return $table
-            ->query(DepartamentoAcademico::query())
-            ->striped()
-            ->headerActions([
-                CreateAction::make()
-                    ->label('Crear Departamento ')
-                    ->form([
-                        TextInput::make('nombre')
-                            ->label('Nombre')
-                            ->required(),
-                        TextInput::make('siglas')
-                            ->label('Siglas')
-                            ->maxLength(10),
-                        Select::make('centro_facultad_id')
-                            ->required()
-                            ->label('Centro/Facultad')
-                            ->relationship(name: 'centroFacultad', titleAttribute: 'nombre')
+        $this->resetPage();
+    }
 
-                        // ...
-                    ])
-                    ->using(function (array $data, string $model): Model {
-                        return $model::create($data);
-                    })
-                    ->successNotification(
-                        Notification::make()
-                            ->success()
-                            ->title('Exito!')
-                            ->body('Departamento Academico creado exitosamente.')
-                    ),
-                ExportAction::make()->exports([
-                    ExcelExport::make('table')
-                        ->fromTable()
-                        //->queue()->withChunkSize(100)
-                        ->askForFilename('Departamentos Academicos')
-                        ->askForWriterType(),
-                ])
-                    ->label('Exportar a Excel')
-                    ->color('success'),
+    public function updatingFilterCentroFacultad(): void
+    {
+        $this->resetPage();
+    }
 
-            ])
-            ->columns([
-                Tables\Columns\TextColumn::make('nombre')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('siglas')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('centroFacultad.nombre')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                SelectFilter::make('centroFacultad')
-                    ->label('Centro/Facultad')
-                    ->multiple()
-                    ->relationship('centroFacultad', 'nombre')
-                    ->preload(),
-                Tables\Filters\TrashedFilter::make(),
-            ],  layout: FiltersLayout::AboveContent)
-            ->actions([
-                EditAction::make()
-                    ->form([
-                        TextInput::make('nombre')
-                            ->label('Nombre')
-                            ->required(),
-                        TextInput::make('siglas')
-                            ->label('Siglas')
-                            ->maxLength(10),
-                        Select::make('centro_facultad_id')
-                            ->required()
-                            ->label('Centro/Facultad')
-                            ->relationship(name: 'centroFacultad', titleAttribute: 'nombre')
-                        // ...
-                    ]),
-                DeleteAction::make(),
-                RestoreAction::make(),
+    public function openCreate(): void
+    {
+        $this->reset(['create_nombre', 'create_siglas', 'create_centro_facultad_id']);
+        $this->createModal = true;
+    }
 
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //
-                ]),
-            ]);
+    public function store(): void
+    {
+        $this->validate([
+            'create_nombre'            => 'required|string|max:100',
+            'create_siglas'            => 'nullable|string|max:10',
+            'create_centro_facultad_id'=> 'required|exists:centro_facultad,id',
+        ]);
+
+        DepartamentoAcademico::create([
+            'nombre'            => $this->create_nombre,
+            'siglas'            => $this->create_siglas,
+            'centro_facultad_id'=> $this->create_centro_facultad_id,
+        ]);
+
+        $this->createModal = false;
+        Notification::make()->title('Departamento académico creado.')->success()->send();
+    }
+
+    public function openEdit(int $id): void
+    {
+        $dep = DepartamentoAcademico::findOrFail($id);
+        $this->editId                = $id;
+        $this->edit_nombre           = $dep->nombre;
+        $this->edit_siglas           = $dep->siglas ?? '';
+        $this->edit_centro_facultad_id = $dep->centro_facultad_id;
+        $this->editModal             = true;
+    }
+
+    public function save(): void
+    {
+        $this->validate([
+            'edit_nombre'            => 'required|string|max:100',
+            'edit_siglas'            => 'nullable|string|max:10',
+            'edit_centro_facultad_id'=> 'required|exists:centro_facultad,id',
+        ]);
+
+        DepartamentoAcademico::findOrFail($this->editId)->update([
+            'nombre'            => $this->edit_nombre,
+            'siglas'            => $this->edit_siglas,
+            'centro_facultad_id'=> $this->edit_centro_facultad_id,
+        ]);
+
+        $this->editModal = false;
+        Notification::make()->title('Departamento académico actualizado.')->success()->send();
+    }
+
+    public function delete(int $id): void
+    {
+        DepartamentoAcademico::findOrFail($id)->delete();
+        Notification::make()->title('Departamento académico eliminado.')->success()->send();
+    }
+
+    public function restore(int $id): void
+    {
+        DepartamentoAcademico::withTrashed()->findOrFail($id)->restore();
+        Notification::make()->title('Departamento académico restaurado.')->success()->send();
+    }
+
+    public function exportExcel()
+    {
+        return AdminCsv::download('departamentos-academicos-' . now()->format('Y-m-d') . '.csv', [
+            'Nombre',
+            'Siglas',
+            'Centro/Facultad',
+        ], function () {
+            foreach ($this->recordsQuery()->lazy() as $departamento) {
+                yield [
+                    $departamento->nombre,
+                    $departamento->siglas,
+                    $departamento->centroFacultad?->nombre,
+                ];
+            }
+        });
+    }
+
+    private function recordsQuery()
+    {
+        return DepartamentoAcademico::with('centroFacultad')
+            ->when($this->showTrashed, fn($q) => $q->withTrashed())
+            ->when($this->search, fn($q) => $q->where(fn($query) => $query
+                ->where('nombre', 'like', '%'.$this->search.'%')
+                ->orWhere('siglas', 'like', '%'.$this->search.'%')
+            ))
+            ->when($this->filterCentroFacultad, fn($q) => $q->where('centro_facultad_id', $this->filterCentroFacultad))
+            ->orderBy('nombre');
     }
 
     public function render(): View
     {
-        return view('livewire.unidad-academica.departamento-academico.departamento-academico-list')
-           ;// ->layout('components.panel.modulos.modulo-unidad-academica', ['title' => 'Campus']);
+        $records = $this->recordsQuery()
+            ->paginate(10);
+
+        return view('livewire.unidad-academica.departamento-academico.departamento-academico-list', [
+            'records'         => $records,
+            'centrosFacultad' => FacultadCentro::orderBy('nombre')->pluck('nombre', 'id'),
+        ]);
     }
 }

@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
 
 class AssignDefaultRole extends Command
 {
@@ -20,7 +19,7 @@ class AssignDefaultRole extends Command
      *
      * @var string
      */
-    protected $description = 'Assign default "docente" role to users without any role';
+    protected $description = 'Report users without roles and clear invalid active roles';
 
     /**
      * Execute the console command.
@@ -28,13 +27,6 @@ class AssignDefaultRole extends Command
     public function handle()
     {
         $this->info('Checking users without roles...');
-        
-        $docenteRole = Role::where('name', 'docente')->first();
-        
-        if (!$docenteRole) {
-            $this->error('Role "docente" not found. Please create it first.');
-            return 1;
-        }
         
         $usersWithoutRoles = User::whereDoesntHave('roles')->get();
         
@@ -45,19 +37,16 @@ class AssignDefaultRole extends Command
         
         $count = 0;
         foreach ($usersWithoutRoles as $user) {
-            $user->assignRole('docente');
-            
-            // Asignar active_role_id si no lo tiene
-            if (!$user->active_role_id) {
-                $user->active_role_id = $docenteRole->id;
+            if ($user->active_role_id !== null) {
+                $user->active_role_id = null;
                 $user->save();
             }
             
             $count++;
-            $this->line("✓ Assigned 'docente' role to user: {$user->name} ({$user->email})");
+            $this->line("User without roles: {$user->name} ({$user->email})");
         }
         
-        $this->info("Successfully assigned 'docente' role to {$count} users.");
+        $this->warn("No roles were assigned automatically. Review {$count} users manually.");
         
         return 0;
     }

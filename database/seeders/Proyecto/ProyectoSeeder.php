@@ -13,6 +13,8 @@ use App\Models\Estado\EstadoProyecto;
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Estado\TipoEstado;
 use App\Models\Proyecto\TipoCargoFirma;
+use App\Models\Proyecto\FlujoAprobacion;
+use Illuminate\Support\Str;
 
 
 
@@ -57,6 +59,41 @@ class ProyectoSeeder extends Seeder
                     'estado_siguiente_id' => TipoEstado::where('nombre', $firma['estado_siguiente'])->first()->id,
                 ]);
             });
+        });
+
+        $defaultFlow = FlujoAprobacion::updateOrCreate(
+            ['codigo' => 'PROYECTO_DEFAULT'],
+            [
+                'nombre' => 'Flujo de aprobacion de proyectos',
+                'proceso' => 'PROYECTO',
+                'descripcion' => 'Flujo configurable por defecto para proyectos.',
+                'activo' => true,
+            ]
+        );
+
+        $defaultFlow->etapas()->delete();
+
+        $defaultStages = collect(config('nexo.firmas_cargos.revisores_documento_proyecto') ?? []);
+        $defaultStages->each(function (array $stage, int $index) use ($defaultFlow) {
+            $cargo = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                ->where('tipo_cargo_firma.nombre', $stage['cargo'])
+                ->where('cargo_firma.descripcion', 'Proyecto')
+                ->select('cargo_firma.*')
+                ->first();
+
+            if (! $cargo) {
+                return;
+            }
+
+            $code = Str::of($stage['cargo'])->upper()->replaceMatches('/[^A-Z0-9]+/', '_')->trim('_')->value();
+
+            $defaultFlow->etapas()->create([
+                'orden' => $index + 1,
+                'codigo' => $code,
+                'nombre' => $stage['cargo'],
+                'cargo_firma_id' => $cargo->id,
+                'activo' => true,
+            ]);
         });
 
 

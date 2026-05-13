@@ -3,101 +3,64 @@
 namespace App\Livewire\Aplicacion\Contacto;
 
 use App\Models\Personal\Contacto as PersonalContacto;
-use Filament\Forms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
-use Livewire\Component;
-use Illuminate\Contracts\View\View;
-use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
-use Filament\Forms\Components\Textarea;
-
-
 use App\Services\Correos\EmailBuilder;
+use App\Support\Notification;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Mail;
-use phpseclib3\File\ASN1\Maps\PersonalName;
+use Livewire\Component;
 
-class Contacto extends Component implements HasForms
+class Contacto extends Component
 {
-    use InteractsWithForms;
+    public string $nombres = '';
+    public string $apellidos = '';
+    public string $institucion = '';
+    public string $email = '';
+    public string $telefono = '';
+    public string $mensaje = '';
 
-    public ?array $data = [];
+    protected array $rules = [
+        'nombres'     => 'required|string|max:255',
+        'apellidos'   => 'required|string|max:255',
+        'institucion' => 'required|string|max:255',
+        'email'       => 'required|email|max:255',
+        'telefono'    => 'required|string|max:15',
+        'mensaje'     => 'required|string',
+    ];
 
-    public function mount()
+    public function submit(): void
     {
-        $this->form->fill();
-    }
+        $this->validate();
 
-    public function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                TextInput::make('nombres')
-                    ->label('Nombres')
-                    ->required()
-                    ->maxLength(255),
-                TextInput::make('apellidos')
-                    ->label('Apellidos')
-                    ->required()
-                    ->maxLength(255),
-                TextInput::make('institucion')
-                    ->label('Institucion')
-                    ->required()
-                    ->maxLength(255),
-                TextInput::make('email')
-                    ->label('Email')
-                    ->required()
-                    ->email()
-                    ->maxLength(255),
-                TextInput::make('telefono')
-                    ->label('Teléfono')
-                    ->required()
-                    ->tel()
-                    ->maxLength(15),
+        $contacto = PersonalContacto::create([
+            'nombres'     => $this->nombres,
+            'apellidos'   => $this->apellidos,
+            'institucion' => $this->institucion,
+            'email'       => $this->email,
+            'telefono'    => $this->telefono,
+            'mensaje'     => $this->mensaje,
+        ]);
 
-                Textarea::make('mensaje')
-                    ->columnSpanFull()
+        $this->enviarCorreo($contacto);
 
-                    ->rows(5)
-                    ->required()
-                    ->cols(15)
+        Notification::make()->title('Exito')->body('Su mensaje ha sido enviado correctamente.')->success()->send();
 
-            ])
-            ->columns(2)
-            ->statePath('data');
+        $this->reset(['nombres', 'apellidos', 'institucion', 'email', 'telefono', 'mensaje']);
     }
 
     private function enviarCorreo(PersonalContacto $contacto): void
     {
         $correo = (new EmailBuilder())
-            ->setEstadoNombre("")
+            ->setEstadoNombre('')
             ->setEmpleadoNombre($contacto->nombres . ' ' . $contacto->apellidos)
-            ->setNombreProyecto("")
+            ->setNombreProyecto('')
             ->setActionUrl(route('home'))
             ->setLogoUrl(asset('images/logo_nuevo.png'))
             ->setAppName('NEXO-UNAH')
-            ->setMensaje("Gracias por ponerse en contacto con nosotros. Daremos respuesta a su consulta lo más pronto posible.")
-            ->setSubject('Confirmación de envío de consulta')
+            ->setMensaje('Gracias por ponerse en contacto con nosotros. Daremos respuesta a su consulta lo mas pronto posible.')
+            ->setSubject('Confirmacion de envio de consulta')
             ->build();
 
         Mail::to($contacto->email)->queue($correo);
-    }
-
-    public function submit(): void
-    {
-        $data = $this->form->getState();
-        $contacto = PersonalContacto::create($data);
-        $this->enviarCorreo($contacto);
-        Notification::make()
-            ->title('¡Éxito!')
-            ->body('su mensaje ha sido enviado correctamente.')
-            ->success()
-            ->send();
-
-        $this->js('location.reload();');
-
-        //
     }
 
     public function render(): View

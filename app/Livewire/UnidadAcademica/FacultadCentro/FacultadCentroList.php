@@ -2,163 +2,144 @@
 
 namespace App\Livewire\UnidadAcademica\FacultadCentro;
 
+use App\Models\UnidadAcademica\Campus;
 use App\Models\UnidadAcademica\FacultadCentro;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Tables;
-use Filament\Tables\Concerns\InteractsWithTable;
-use Filament\Tables\Contracts\HasTable;
-use Filament\Tables\Table;
-use Livewire\Component;
+use App\Support\AdminCsv;
+use App\Support\Notification;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Enums\FiltersLayout;
+use Livewire\Component;
+use Livewire\WithPagination;
 
-use Illuminate\Database\Eloquent\Model;
-use Filament\Tables\Actions\EditAction;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
-use Filament\Tables\Actions\DeleteAction;
-
-use Filament\Tables\Actions\RestoreAction;
-
-use Filament\Forms\Components\TextInput;
-use Filament\Tables\Actions\CreateAction;
-use Filament\Notifications\Notification;
-use Filament\Forms\Components\Select;
-
-use App\Models\UnidadAcademica\CentroFacultad;
-use Filament\Forms\Components\Toggle;
-
-use Filament\Tables\Filters\TernaryFilter;
-
-
-class FacultadCentroList extends Component implements HasForms, HasTable
+class FacultadCentroList extends Component
 {
-    use InteractsWithForms;
-    use InteractsWithTable;
+    use WithPagination;
 
-    public function table(Table $table): Table
+    public string $search = '';
+    public bool $showTrashed = false;
+
+    public bool $createModal = false;
+    public string $create_nombre = '';
+    public string $create_siglas = '';
+    public bool $create_es_facultad = false;
+    public ?int $create_campus_id = null;
+
+    public bool $editModal = false;
+    public ?int $editId = null;
+    public string $edit_nombre = '';
+    public string $edit_siglas = '';
+    public bool $edit_es_facultad = false;
+    public ?int $edit_campus_id = null;
+
+    public function updatingSearch(): void
     {
-        return $table
-            ->recordUrl(
-                fn(Model $record): string => route('proyectosCentroFacultad', $record->id)
-            )
-            ->query(FacultadCentro::query())
-            ->striped()
-            ->headerActions([
-                CreateAction::make()
-                    ->label('Crear Facultad/Centro')
-                    ->form([
-                        TextInput::make('nombre')
-                            ->label('Nombre')
-                            ->required(),
-                        TextInput::make('siglas')
-                            ->label('Siglas'),
-                        Toggle::make('es_facultad')
-                            ->label('Es Facultad'),
-                        Select::make('campus_id')
-                            ->required()
-                            ->label('Campus')
-                            ->relationship(
-                                name: 'campus',
-                                titleAttribute: 'nombre_campus',
+        $this->resetPage();
+    }
 
-                            ),
+    public function openCreate(): void
+    {
+        $this->reset(['create_nombre', 'create_siglas', 'create_es_facultad', 'create_campus_id']);
+        $this->createModal = true;
+    }
 
+    public function store(): void
+    {
+        $this->validate([
+            'create_nombre'     => 'required|string|max:255',
+            'create_siglas'     => 'nullable|string|max:20',
+            'create_campus_id'  => 'required|exists:campus,id',
+        ]);
 
-                        // ...
-                    ])
-                    ->using(function (array $data, string $model): Model {
-                        return  $model::create($data);
-                    })
-                    ->successNotification(
-                        Notification::make()
-                            ->success()
-                            ->title('Exito!')
-                            ->body('Facultad/Centro creado exitosamente.')
-                    ),
-                ExportAction::make()->exports([
-                    ExcelExport::make('table')
-                        ->fromTable()
+        FacultadCentro::create([
+            'nombre'      => $this->create_nombre,
+            'siglas'      => $this->create_siglas,
+            'es_facultad' => $this->create_es_facultad,
+            'campus_id'   => $this->create_campus_id,
+        ]);
 
-                        ->askForFilename('Facultades y Centros')
-                        ->askForWriterType(),
-                ])
-                    ->label('Exportar a Excel')
-                    ->color('success'),
+        $this->createModal = false;
+        Notification::make()->title('Facultad/Centro creado.')->success()->send();
+    }
 
-            ])
-            ->columns([
-                Tables\Columns\TextColumn::make('nombre')
-                    ->searchable(),
-                Tables\Columns\IconColumn::make('es_facultad')
-                    ->boolean(),
-                Tables\Columns\TextColumn::make('siglas')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('campus.nombre_campus')
-                    ->numeric()
-                    ->sortable(),
+    public function openEdit(int $id): void
+    {
+        $fc = FacultadCentro::findOrFail($id);
+        $this->editId          = $id;
+        $this->edit_nombre     = $fc->nombre;
+        $this->edit_siglas     = $fc->siglas ?? '';
+        $this->edit_es_facultad = (bool) $fc->es_facultad;
+        $this->edit_campus_id  = $fc->campus_id;
+        $this->editModal       = true;
+    }
 
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                // filtrar por campus
-                SelectFilter::make('campus')
-                    ->label('Campus')
-                    ->multiple()
-                    ->relationship('campus', 'nombre_campus')
-                    ->preload(),
-                TernaryFilter::make('es_facultad')
-                    ->label('Es Facultad'),
-                Tables\Filters\TrashedFilter::make(),
-            ],  layout: FiltersLayout::AboveContent)
-            ->actions([
-                EditAction::make()
-                    ->form([
-                        TextInput::make('nombre')
-                            ->label('Nombre')
-                            ->required(),
-                        TextInput::make('siglas')
-                            ->label('Siglas'),
-                        Toggle::make('es_facultad')
-                            ->label('Es Facultad'),
-                        Select::make('campus_id')
-                            ->required()
-                            ->label('Campus')
-                            ->relationship(
-                                name: 'campus',
-                                titleAttribute: 'nombre_campus',
+    public function save(): void
+    {
+        $this->validate([
+            'edit_nombre'    => 'required|string|max:255',
+            'edit_siglas'    => 'nullable|string|max:20',
+            'edit_campus_id' => 'required|exists:campus,id',
+        ]);
 
-                            ),
-                        // ...
-                        ]),
-                DeleteAction::make(),
-                RestoreAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    //
-                ]),
-            ]);
+        FacultadCentro::findOrFail($this->editId)->update([
+            'nombre'      => $this->edit_nombre,
+            'siglas'      => $this->edit_siglas,
+            'es_facultad' => $this->edit_es_facultad,
+            'campus_id'   => $this->edit_campus_id,
+        ]);
+
+        $this->editModal = false;
+        Notification::make()->title('Facultad/Centro actualizado.')->success()->send();
+    }
+
+    public function delete(int $id): void
+    {
+        FacultadCentro::findOrFail($id)->delete();
+        Notification::make()->title('Facultad/Centro eliminado.')->success()->send();
+    }
+
+    public function restore(int $id): void
+    {
+        FacultadCentro::withTrashed()->findOrFail($id)->restore();
+        Notification::make()->title('Facultad/Centro restaurado.')->success()->send();
+    }
+
+    public function exportExcel()
+    {
+        return AdminCsv::download('facultades-centros-' . now()->format('Y-m-d') . '.csv', [
+            'Nombre',
+            'Siglas',
+            'Tipo',
+            'Campus',
+        ], function () {
+            foreach ($this->recordsQuery()->lazy() as $facultadCentro) {
+                yield [
+                    $facultadCentro->nombre,
+                    $facultadCentro->siglas,
+                    $facultadCentro->es_facultad ? 'Facultad' : 'Centro',
+                    $facultadCentro->campus?->nombre_campus,
+                ];
+            }
+        });
+    }
+
+    private function recordsQuery()
+    {
+        return FacultadCentro::with('campus')
+            ->when($this->showTrashed, fn($q) => $q->withTrashed())
+            ->when($this->search, fn($q) => $q->where(fn($query) => $query
+                ->where('nombre', 'like', '%'.$this->search.'%')
+                ->orWhere('siglas', 'like', '%'.$this->search.'%')
+            ))
+            ->orderBy('nombre');
     }
 
     public function render(): View
     {
-        return view('livewire.unidad-academica.facultad-centro.facultad-centro-list')
-           ;// ->layout('components.panel.modulos.modulo-unidad-academica', ['title' => 'Campus']);
+        $records = $this->recordsQuery()
+            ->paginate(10);
+
+        return view('livewire.unidad-academica.facultad-centro.facultad-centro-list', [
+            'records'  => $records,
+            'campuses' => Campus::orderBy('nombre_campus')->pluck('nombre_campus', 'id'),
+        ]);
     }
 }
