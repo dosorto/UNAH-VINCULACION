@@ -10,6 +10,11 @@ use App\Livewire\Demografia\Pais\CreatePais;
 use App\Livewire\Demografia\Pais\ListPaises;
 use App\Livewire\Configuracion\Logs\ListLogs;
 use App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
+use App\Livewire\SGCU\Catalogos\SgcuCatalogos;
+use App\Livewire\SGCU\Flujos\FlujosProgramas;
+use App\Livewire\SGCU\Programas\ListBandejaRevision;
+use App\Livewire\SGCU\Programas\ListProgramas;
+use App\Livewire\SGCU\Programas\ListTiposPrograma;
 use App\Livewire\Personal\Perfil\EditPerfil;
 use App\Livewire\Personal\Permiso\ListPermisos;
 use App\Livewire\Personal\Empleado\ListEmpleado;
@@ -207,6 +212,19 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         Route::get('configuracion/flujos-proyectos', ConfiguracionFlujosProyectos::class)
             ->name('configuracion.flujos.proyectos')
             ->middleware('can:configuracion-admin-flujos');
+
+        Route::prefix('sgcu')->middleware('can:configuracion-admin-flujos')->group(function () {
+            Route::get('catalogos', SgcuCatalogos::class)
+                ->name('sgcu.catalogos');
+            Route::get('tipos-programa', ListTiposPrograma::class)
+                ->name('sgcu.tipos-programa');
+            Route::get('programas', ListProgramas::class)
+                ->name('sgcu.programas');
+            Route::get('bandeja-revision', ListBandejaRevision::class)
+                ->name('sgcu.bandeja-revision');
+            Route::get('flujos-programa', FlujosProgramas::class)
+                ->name('sgcu.flujos-programa');
+        });
     });
 
 

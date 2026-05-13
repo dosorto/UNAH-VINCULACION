@@ -175,6 +175,27 @@ return [
                     ['texto' => 'Contactanos', 'route' => 'contactanos', 'permiso' => 'configuracion-admin-contactanos']
                 ],
             ],
+            [
+                'titulo' => 'SGCU',
+                'route' => 'sgcu.catalogos',
+                'routes' => [
+                    'sgcu.catalogos',
+                    'sgcu.tipos-programa',
+                    'sgcu.programas',
+                    'sgcu.bandeja-revision',
+                ],
+                'icono' => 'heroicon-c-clipboard-document-list',
+                'permisos' => ['configuracion-admin-flujos'],
+                'children' => [
+                    ['texto' => 'Catalogos', 'route' => 'sgcu.catalogos', 'permiso' => 'configuracion-admin-flujos'],
+                    ['texto' => 'Tipos de programa', 'route' => 'sgcu.tipos-programa', 'permiso' => 'configuracion-admin-flujos'],
+                    ['texto' => 'Programas', 'route' => 'sgcu.programas', 'permiso' => 'configuracion-admin-flujos'],
+                    ['texto' => 'Bandeja revision', 'route' => 'sgcu.bandeja-revision', 'permiso' => 'configuracion-admin-flujos'],
+                ],
+                'funcion' => null,
+                'parametro' => null,
+                'can' => null,
+            ],
 
             // director enlace de vinculacion
             [
