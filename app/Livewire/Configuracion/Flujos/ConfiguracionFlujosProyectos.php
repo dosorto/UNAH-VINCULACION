@@ -10,6 +10,8 @@ use Livewire\Component;
 
 class ConfiguracionFlujosProyectos extends Component
 {
+    public ?int $selectedActionId = null;
+    public ?int $selectedSubactionId = null;
     public ?int $selectedWorkflowId = null;
     public ?int $workflowId = null;
 
@@ -25,18 +27,29 @@ class ConfiguracionFlujosProyectos extends Component
 
     public function mount(): void
     {
-        $flow = FlujoAprobacion::query()
-            ->where('proceso', 'PROYECTO')
+        $firstActionId = DB::table('vinculacion_tipos_accion')
+            ->orderBy('orden')
             ->orderBy('nombre')
-            ->first();
+            ->value('id');
 
-        if ($flow) {
-            $this->selectedWorkflowId = $flow->id;
-            $this->loadWorkflow($flow);
-
-            return;
+        if ($firstActionId) {
+            $this->selectedActionId = $firstActionId;
         }
 
+        $this->loadFirstWorkflow();
+    }
+
+    public function selectAction(int $actionId): void
+    {
+        $this->selectedActionId = $actionId;
+        $this->selectedSubactionId = null;
+        $this->loadFirstWorkflow();
+    }
+
+    public function selectSubaction(int $subactionId): void
+    {
+        $this->selectedSubactionId = $subactionId;
+        $this->selectedWorkflowId = null;
         $this->resetWorkflowForm();
     }
 
@@ -47,11 +60,18 @@ class ConfiguracionFlujosProyectos extends Component
             ->findOrFail($workflowId);
 
         $this->selectedWorkflowId = $flow->id;
+        $this->selectedActionId = $flow->tipo_accion_id;
+        $this->selectedSubactionId = $flow->tipo_accion_id;
         $this->loadWorkflow($flow);
     }
 
     public function newWorkflow(): void
     {
+        if (! $this->selectedSubactionId) {
+            $this->addError('workflow.nombre', 'Seleccione una subaccion para crear un flujo.');
+            return;
+        }
+
         $this->selectedWorkflowId = null;
         $this->resetWorkflowForm();
     }
@@ -112,6 +132,11 @@ class ConfiguracionFlujosProyectos extends Component
             'stages.*.activo' => ['boolean'],
         ]);
 
+        if (! $this->selectedSubactionId) {
+            $this->addError('workflow.nombre', 'Seleccione una subaccion para el flujo.');
+            return;
+        }
+
         $flow = DB::transaction(function () use ($validated) {
             $flow = FlujoAprobacion::updateOrCreate(
                 ['id' => $this->workflowId],
@@ -121,6 +146,7 @@ class ConfiguracionFlujosProyectos extends Component
                     'proceso' => 'PROYECTO',
                     'descripcion' => $validated['workflow']['descripcion'] ?? null,
                     'activo' => $validated['workflow']['activo'] ?? true,
+                    'tipo_accion_id' => $this->selectedSubactionId,
                 ]
             );
 
@@ -150,6 +176,12 @@ class ConfiguracionFlujosProyectos extends Component
     {
         $flows = FlujoAprobacion::query()
             ->where('proceso', 'PROYECTO')
+            ->when($this->selectedSubactionId, fn ($query) => $query->where('tipo_accion_id', $this->selectedSubactionId))
+            ->orderBy('nombre')
+            ->get();
+
+        $actions = DB::table('vinculacion_tipos_accion')
+            ->orderBy('orden')
             ->orderBy('nombre')
             ->get();
 
@@ -163,7 +195,32 @@ class ConfiguracionFlujosProyectos extends Component
         return view('livewire.configuracion.flujos.configuracion-flujos-proyectos', [
             'flows' => $flows,
             'cargos' => $cargos,
+            'actions' => $actions,
         ])->layout('layouts.app', ['hideHorizontalNav' => true]);
+    }
+
+    protected function loadFirstWorkflow(): void
+    {
+        if (! $this->selectedSubactionId) {
+            $this->selectedWorkflowId = null;
+            $this->resetWorkflowForm();
+            return;
+        }
+
+        $flow = FlujoAprobacion::query()
+            ->where('proceso', 'PROYECTO')
+            ->where('tipo_accion_id', $this->selectedSubactionId)
+            ->orderBy('nombre')
+            ->first();
+
+        if ($flow) {
+            $this->selectedWorkflowId = $flow->id;
+            $this->loadWorkflow($flow);
+            return;
+        }
+
+        $this->selectedWorkflowId = null;
+        $this->resetWorkflowForm();
     }
 
     protected function loadWorkflow(FlujoAprobacion $flow): void

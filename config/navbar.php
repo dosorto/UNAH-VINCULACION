@@ -173,6 +173,10 @@ return [
                     ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia.slides'],
                     ['texto' => 'Flujos de proyectos', 'route' => 'configuracion.flujos.proyectos', 'permiso' => 'configuracion.flujos'],
                     ['texto' => 'Contactanos', 'route' => 'contactanos', 'permiso' => 'configuracion.contactanos']
+                    ['texto' => 'Logs', 'route' => 'listarLogs', 'permiso' => 'configuracion-admin-logs'],
+                    ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia-admin-slides'],
+                    ['texto' => 'Flujos', 'route' => 'configuracion.flujos.proyectos', 'permiso' => 'configuracion-admin-flujos'],
+                    ['texto' => 'Contactanos', 'route' => 'contactanos', 'permiso' => 'configuracion-admin-contactanos']
                 ],
             ],
 

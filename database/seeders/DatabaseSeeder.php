@@ -7,6 +7,7 @@ use Database\Seeders\Demografia\PaisesSeeder;
 use Database\Seeders\Demografia\DepartamentoSeeder; 
 use Database\Seeders\UnidadAcademica\UnidadAcademicaSeeder;
 use Database\Seeders\Proyecto\ProyectoSeeder;
+use Database\Seeders\Proyecto\VinculacionTiposAccionSeeder;
 use Database\Seeders\Personal\PersonalSeeder;
 use Database\Seeders\Demografia\MunicipioSeeder;
 use Database\Seeders\Personal\PermisosSeeder;
@@ -27,6 +28,7 @@ class DatabaseSeeder extends Seeder
         $this->call(DepartamentoSeeder::class);
         $this->call(MunicipioSeeder::class);
         $this->call(UnidadAcademicaSeeder::class);
+        $this->call(VinculacionTiposAccionSeeder::class);
         $this->call(ProyectoSeeder::class);
         $this->call(PermisosSeeder::class);
         $this->call(PersonalSeeder::class);

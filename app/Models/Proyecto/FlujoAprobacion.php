@@ -16,6 +16,7 @@ class FlujoAprobacion extends Model
         'codigo',
         'nombre',
         'proceso',
+        'tipo_accion_id',
         'descripcion',
         'activo',
     ];

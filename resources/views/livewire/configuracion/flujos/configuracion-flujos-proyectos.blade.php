@@ -2,11 +2,10 @@
     <section class="flex flex-col gap-3 rounded-2xl bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <p class="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-400">Configuracion</p>
-            <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Flujos de aprobacion de proyectos</h1>
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Administra el orden de las etapas de aprobacion para proyectos institucionales.</p>
+            <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Flujos</h1>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Configura los flujos por tipo de accion.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-            <button wire:click="newWorkflow" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200">Nuevo flujo</button>
             <button wire:click="save" class="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white">Guardar flujo</button>
         </div>
     </section>
@@ -17,38 +16,77 @@
         </div>
     @endif
 
-    <section class="grid gap-6 xl:grid-cols-[280px,minmax(0,1fr)]">
-        <aside class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
-            <div class="mb-4">
-                <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Flujos disponibles</h2>
-                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Selecciona un flujo para editarlo o crea uno nuevo.</p>
+    <section class="flex flex-wrap items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+        <button class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-400 dark:border-slate-800" disabled>
+            Flujos de programa
+        </button>
+        <button class="rounded-full border border-emerald-500 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300">
+            Flujos de proyectos
+        </button>
+    </section>
+
+    <section class="grid gap-6 xl:grid-cols-[420px,minmax(0,1fr)]">
+        <aside class="space-y-6">
+            <div class="grid gap-4 lg:grid-cols-2">
+                <section class="min-h-[360px] rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+                    <div class="mb-4">
+                        <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Acciones</h2>
+                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Selecciona la accion principal.</p>
+                    </div>
+                    <div class="space-y-2">
+                        @forelse ($actions as $action)
+                            @php
+                                $actionLabel = preg_replace('/^Proyectos de\s+/i', '', $action->nombre);
+                                $actionLabel = $actionLabel ?: $action->nombre;
+                            @endphp
+                            <button
+                                wire:click="selectAction({{ $action->id }})"
+                                class="w-full rounded-2xl border px-3 py-2 text-left text-sm font-medium transition {{ $selectedActionId === $action->id ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-slate-200 text-slate-700 hover:border-primary/40 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/60' }}">
+                                <span class="whitespace-normal break-words leading-snug">{{ $actionLabel }}</span>
+                            </button>
+                        @empty
+                            <div class="rounded-2xl border border-dashed border-slate-300 px-3 py-4 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                                No hay acciones registradas.
+                            </div>
+                        @endforelse
+                    </div>
+                </section>
+
+                @if ($selectedActionId)
+                    <section class="min-h-[360px] rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+                        <div class="mb-4">
+                            <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Subacciones</h2>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Se despliegan al seleccionar una accion.</p>
+                        </div>
+                        <div class="space-y-2">
+                            @foreach ($actions as $subaction)
+                                @if ($subaction->id === $selectedActionId)
+                                    <button
+                                        wire:click="selectSubaction({{ $subaction->id }})"
+                                        class="w-full rounded-2xl border px-3 py-2 text-left text-sm font-medium transition {{ $selectedSubactionId === $subaction->id ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-slate-200 text-slate-700 hover:border-primary/40 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/60' }}">
+                                        <span class="whitespace-normal break-words leading-snug">{{ $subaction->nombre }}</span>
+                                    </button>
+                                @endif
+                            @endforeach
+                        </div>
+                    </section>
+                @else
+                    <section class="min-h-[360px] rounded-2xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                        Selecciona una accion para ver subacciones.
+                    </section>
+                @endif
             </div>
 
-            <div class="space-y-2">
-                @forelse ($flows as $flow)
-                    <button
-                        wire:click="selectWorkflow({{ $flow->id }})"
-                        class="w-full rounded-2xl border px-4 py-3 text-left transition {{ $selectedWorkflowId === $flow->id ? 'border-primary bg-primary/5' : 'border-slate-200 bg-white hover:border-primary/40 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800/60' }}">
-                        <div class="flex items-center justify-between gap-3">
-                            <div class="min-w-0">
-                                <div class="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $flow->nombre }}</div>
-                                <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">Flujo de proyecto</div>
-                            </div>
-                            <span class="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] {{ $selectedWorkflowId === $flow->id ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300' }}">
-                                {{ $selectedWorkflowId === $flow->id ? 'Activo' : 'Disponible' }}
-                            </span>
-                        </div>
-                    </button>
-                @empty
-                    <div class="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                        No hay flujos registrados.
-                    </div>
-                @endforelse
-            </div>
+            @if (! $selectedSubactionId)
+                <section class="rounded-2xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                    Selecciona una subaccion para configurar el flujo.
+                </section>
+            @endif
         </aside>
 
         <div class="space-y-6">
-            <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+            @if ($selectedSubactionId)
+                <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div>
                         <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
@@ -88,9 +126,9 @@
                         @error('workflow.descripcion')<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                     </label>
                 </div>
-            </section>
+                </section>
 
-            <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+                <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Etapas del flujo</h2>
@@ -183,7 +221,8 @@
                         </div>
                     @endforeach
                 </div>
-            </section>
+                </section>
+            @endif
         </div>
     </section>
 </div>

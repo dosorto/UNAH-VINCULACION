@@ -3,12 +3,20 @@
 namespace App\Livewire\Proyectos\Vinculacion;
 
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class CategoriaProyectoSelector extends Component
 {
     public function render(): View
     {
-        return view('livewire.proyectos.vinculacion.categorias-proyecto-selector');
+        $tiposAccion = DB::table('vinculacion_tipos_accion')
+            ->orderBy('orden')
+            ->orderBy('nombre')
+            ->get();
+
+        return view('livewire.proyectos.vinculacion.categorias-proyecto-selector', [
+            'tiposAccion' => $tiposAccion,
+        ]);
     }
 }
