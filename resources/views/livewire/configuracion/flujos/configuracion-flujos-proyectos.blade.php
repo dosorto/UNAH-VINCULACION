@@ -103,13 +103,13 @@
                 </div>
 
                 <div class="mt-5 grid gap-4 md:grid-cols-2">
-                    <label class="block space-y-2">
-                        <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Codigo *</span>
+                    <label class="block space-y-2" >
+                        <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400" >Codigo </span>
                         <input wire:model="workflow.codigo" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                         @error('workflow.codigo')<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                     </label>
                     <label class="block space-y-2">
-                        <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Nombre *</span>
+                        <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400" required uniqid>Nombre </span>
                         <input wire:model="workflow.nombre" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                         @error('workflow.nombre')<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                     </label>
@@ -133,7 +133,7 @@
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Etapas del flujo</h2>
-                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Ordena el recorrido. La primera tarjeta sera la primera etapa en ejecutarse.</p>
+                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Ordena el recorrido. La primera tarjeta sera la primera etapa en ejecutarse y la ultima sera el cierre del flujo.</p>
                     </div>
                     <button wire:click="addStage" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200">Agregar etapa</button>
                 </div>
@@ -192,6 +192,35 @@
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Nombre</span>
                                     <input wire:model="stages.{{ $index }}.nombre" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                                     @error("stages.$index.nombre")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                </label>
+                                <label class="block space-y-2">
+                                    <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Tipo</span>
+                                    <select wire:model="stages.{{ $index }}.tipo_etapa" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                        <option value="FORMULACION">Formulacion</option>
+                                        <option value="REVISION">Revision</option>
+                                        <option value="APROBACION">Aprobacion</option>
+                                    </select>
+                                    @error("stages.$index.tipo_etapa")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                </label>
+                                <label class="block space-y-2">
+                                    <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Rol con acceso</span>
+                                    <select wire:model="stages.{{ $index }}.rol_revisor_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                        <option value="">Seleccione</option>
+                                        @foreach ($roles as $role)
+                                            <option value="{{ $role->id }}">{{ $role->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error("stages.$index.rol_revisor_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                </label>
+                                <label class="block space-y-2">
+                                    <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Usuario responsable de asignacion</span>
+                                    <select wire:model="stages.{{ $index }}.usuario_responsable_id" @disabled(!($stage['requiere_asignacion'] ?? false) || ($stage['emisor_define_destinatario'] ?? false)) class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-800/60 dark:disabled:text-slate-500">
+                                        <option value="">Seleccione</option>
+                                        @foreach ($usuarios as $usuario)
+                                            <option value="{{ $usuario->id }}">{{ $usuario->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error("stages.$index.usuario_responsable_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                 </label>
                                 <label class="block space-y-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Cargo de firma</span>
@@ -282,6 +311,8 @@
                         @endif
                     </div>
 
+                    
+
                     @if ($selectedTipoPrograma)
                         <div class="mt-5 grid gap-4 md:grid-cols-2">
                             <label class="block space-y-2">
@@ -316,11 +347,30 @@
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                                 <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Etapas del flujo</h2>
-                                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Ordena el recorrido. La primera tarjeta sera la primera etapa en ejecutarse.</p>
+                                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Ordena el recorrido. La primera tarjeta sera la primera etapa en ejecutarse y la ultima sera el cierre del flujo.</p>
                             </div>
                             <button wire:click="addStage" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200">Agregar etapa</button>
                         </div>
+                
+                <div class="mt-5 space-y-4">
+                    @if (count($programStages) > 0)
+                        <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/50">
+                            <div class="flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                                <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">Inicio</span>
+                                <span class="material-symbols-outlined text-base text-slate-400">east</span>
+                                @foreach ($programStages as $stage)
+                                    <span class="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-700">{{ $stage['nombre'] ?: 'Etapa '.($loop->iteration) }}</span>
+                                    @if (! $loop->last)
+                                        <span class="material-symbols-outlined text-base text-slate-400">east</span>
+                                    @endif
+                                @endforeach
+                                <span class="material-symbols-outlined text-base text-slate-400">east</span>
+                                <span class="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">Final</span>
+                            </div>
+                        </div>
+                    @endif
 
+                
                         <div class="mt-5 space-y-4">
                             @foreach ($programStages as $index => $stage)
                                 <div class="relative overflow-hidden rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
@@ -348,6 +398,8 @@
                                         </div>
                                     </div>
 
+                                    
+
                                     <div class="mt-4 grid gap-4 pl-2 md:grid-cols-2 xl:grid-cols-3">
                                         <label class="block space-y-2">
                                             <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Codigo</span>
@@ -368,6 +420,26 @@
                                                 @endforeach
                                             </select>
                                             @error("programStages.$index.cargo_firma_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                        </label>
+                                        <label class="block space-y-2">
+                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Rol revisor</span>
+                                            <select wire:model="programStages.{{ $index }}.rol_revisor_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                                <option value="">Sin rol especifico</option>
+                                                @foreach ($roles as $role)
+                                                    <option value="{{ $role->id }}">{{ $role->name }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error("programStages.$index.rol_revisor_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                        </label>
+                                        <label class="block space-y-2">
+                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Responsable</span>
+                                            <select wire:model="programStages.{{ $index }}.usuario_responsable_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                                <option value="">Sin responsable fijo</option>
+                                                @foreach ($usuarios as $usuario)
+                                                    <option value="{{ $usuario->id }}">{{ $usuario->name }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error("programStages.$index.usuario_responsable_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                         </label>
                                     </div>
 

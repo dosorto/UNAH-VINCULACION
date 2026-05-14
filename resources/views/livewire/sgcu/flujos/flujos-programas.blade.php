@@ -1,11 +1,11 @@
 <div class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
     <section class="flex flex-col gap-3 rounded-2xl bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-400">Configuracion</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-400">Configuracion</p>
             <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Flujos de aprobacion por tipo de programa</h1>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Selecciona un tipo de programa en el panel izquierdo y configura el flujo institucional que se ejecutara cuando ese programa se envie a revision.</p>
         </div>
-        <button wire:click="save" class="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">Guardar flujo</button>
+        <button wire:click="save" class="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white">Guardar flujo</button>
     </section>
 
     @if (session('status'))
@@ -23,7 +23,7 @@
                 @forelse ($tiposPrograma as $tipo)
                     <button
                         wire:click="selectTipoPrograma({{ $tipo->id }})"
-                        class="w-full rounded-2xl border px-4 py-3 text-left transition {{ $selectedTipoProgramaId === $tipo->id ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-950/40' : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-emerald-700 dark:hover:bg-slate-800/60' }}">
+                        class="w-full rounded-2xl border px-4 py-3 text-left transition {{ $selectedTipoProgramaId === $tipo->id ? 'border-primary bg-primary/5' : 'border-slate-200 bg-white hover:border-primary/40 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800/60' }}">
                         <div class="flex items-center justify-between gap-3">
                             <div class="min-w-0">
                                 <div class="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $tipo->nombre }}</div>
@@ -83,7 +83,7 @@
                             <input value="PROGRAMA" type="text" disabled class="w-full rounded-xl border-slate-300 bg-slate-50 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                         </label>
                         <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                            <input wire:model="workflow.activo" type="checkbox" class="rounded border-slate-300 text-emerald-600 dark:border-slate-700 dark:bg-slate-800" />
+                            <input wire:model="workflow.activo" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
                             Flujo activo para este tipo
                         </label>
                         <label class="block space-y-2 md:col-span-2">
@@ -168,15 +168,15 @@
 
                                 <div class="mt-4 flex flex-wrap gap-4">
                                     <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        <input wire:model.live="stages.{{ $index }}.requiere_asignacion" type="checkbox" class="rounded border-slate-300 text-emerald-600 dark:border-slate-700 dark:bg-slate-800" />
+                                        <input wire:model.live="stages.{{ $index }}.requiere_asignacion" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
                                         Requiere asignacion del responsable
                                     </label>
                                     <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        <input wire:model.live="stages.{{ $index }}.emisor_define_destinatario" @disabled(!($stage['requiere_asignacion'] ?? false)) type="checkbox" class="rounded border-slate-300 text-emerald-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800" />
+                                        <input wire:model.live="stages.{{ $index }}.emisor_define_destinatario" @disabled(!($stage['requiere_asignacion'] ?? false)) type="checkbox" class="rounded border-slate-300 text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800" />
                                         El emisor define el destinatario al enviar
                                     </label>
                                     <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        <input wire:model="stages.{{ $index }}.activo" type="checkbox" class="rounded border-slate-300 text-emerald-600 dark:border-slate-700 dark:bg-slate-800" />
+                                        <input wire:model="stages.{{ $index }}.activo" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
                                         Etapa activa
                                     </label>
                                 </div>

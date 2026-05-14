@@ -1,7 +1,7 @@
 <div class="space-y-8">
     <section class="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800 md:flex-row md:items-end md:justify-between">
         <div>
-            <p class="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-700 dark:text-emerald-400">Configuracion</p>
+            <p class="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-700 dark:text-cyan-400">Configuracion</p>
             <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Tipos de programa</h1>
             <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Define los tipos de programa y carga la plantilla .docx del espacio de aprendizaje.</p>
         </div>
@@ -45,7 +45,7 @@
                 <label class="space-y-2">
                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Plantilla .docx *</span>
                     <div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center dark:border-slate-700 dark:bg-slate-800/50">
-                        <input wire:model="plantillaDocumento" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="w-full text-sm text-slate-600 file:mr-4 file:rounded-full file:border-0 file:bg-emerald-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-emerald-700 dark:text-slate-300" />
+                        <input wire:model="plantillaDocumento" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="w-full text-sm text-slate-600 file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-primary-container dark:text-slate-300" />
                         <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">Solo se permite .docx.</p>
                         @if ($editingTipoProgramaId)
                             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Si no subes un archivo nuevo, se conserva la plantilla actual.</p>
@@ -56,7 +56,7 @@
                 </label>
             </div>
 
-            <button wire:click="saveTipoPrograma" class="mt-5 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white">
+            <button wire:click="saveTipoPrograma" class="mt-5 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white">
                 {{ $editingTipoProgramaId ? 'Guardar cambios' : 'Guardar tipo de programa' }}
             </button>
         </section>
@@ -85,7 +85,7 @@
                                 <td class="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">{{ $tipo->horas_minimas ?? 0 }} - {{ $tipo->horas_maximas ?? 0 }} h</td>
                                 <td class="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">
                                     @if ($tipo->plantilla_docx_path)
-                                        <a href="{{ Storage::url($tipo->plantilla_docx_path) }}" class="font-medium text-emerald-700 hover:underline">Descargar plantilla</a>
+                                        <a href="{{ Storage::url($tipo->plantilla_docx_path) }}" class="font-medium text-primary hover:underline">Descargar plantilla</a>
                                     @else
                                         Sin plantilla
                                     @endif

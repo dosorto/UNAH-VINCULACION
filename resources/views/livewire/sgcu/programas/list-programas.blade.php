@@ -1,11 +1,11 @@
 <div class="space-y-8 px-4 py-8 sm:px-6 lg:px-8">
     <section class="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800 lg:flex-row lg:items-end lg:justify-between">
         <div>
-            <p class="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-700 dark:text-emerald-400">Fase 1</p>
+            <p class="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-700 dark:text-cyan-400">Fase 1</p>
             <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Programas y ediciones</h1>
             <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Gestiona la oferta academica base del SGCU antes de matricula, pagos y emision.</p>
         </div>
-        <button wire:click="openCreate" class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
+        <button wire:click="openCreate" class="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-container">
             Nuevo programa
         </button>
     </section>
@@ -41,7 +41,7 @@
                 @endforeach
             </select>
             <label class="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">
-                <input type="checkbox" wire:model.live="showTrashed" class="rounded border-slate-300 text-emerald-600 dark:border-slate-700 dark:bg-slate-800">
+                <input type="checkbox" wire:model.live="showTrashed" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800">
                 Eliminados
             </label>
             <a href="{{ route('sgcu.bandeja-revision') }}" class="inline-flex items-center justify-center rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">Bandeja de revision</a>
@@ -64,6 +64,7 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white dark:divide-slate-800 dark:bg-slate-900">
                         @forelse ($records as $row)
+                            @php($currentStage = $row->etapaActual())
                             <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/60 {{ $row->trashed() ? 'opacity-60' : '' }}">
                                 <td class="px-4 py-4 font-semibold text-slate-700 dark:text-slate-200">{{ $row->codigo ?: 'S/C' }}</td>
                                 <td class="px-4 py-4">
@@ -76,18 +77,23 @@
                                 <td class="px-4 py-4 text-slate-700 dark:text-slate-300">V{{ $row->version_actual }}</td>
                                 <td class="px-4 py-4 text-slate-700 dark:text-slate-300">{{ $row->centroFacultad?->nombre ?? 'Sin centro' }}</td>
                                 <td class="px-4 py-4"><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ str_replace('_', ' ', $row->estado_flujo ?? 'N/D') }}</span></td>
-                                <td class="px-4 py-4 text-slate-700 dark:text-slate-300">{{ $row->subsanacion_etapa_nombre ?? 'Sin etapa' }}</td>
+                                <td class="px-4 py-4 text-slate-700 dark:text-slate-300">{{ $currentStage?->etapa_nombre ?? $row->subsanacion_etapa_nombre ?? 'Sin etapa' }}</td>
                                 <td class="px-4 py-4 text-slate-500 dark:text-slate-400">{{ optional($row->created_at)->format('d/m/Y H:i') }}</td>
                                 <td class="px-4 py-4">
                                     <div class="flex justify-end gap-2">
                                         @if ($row->trashed())
-                                            <button wire:click="restorePrograma({{ $row->id }})" wire:confirm="¿Restaurar este programa?" class="rounded-full border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                                            <button wire:click="restorePrograma({{ $row->id }})" wire:confirm="¿Restaurar este programa?" class="rounded-full border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary">
                                                 Restaurar
                                             </button>
                                         @else
                                             <button wire:click="openEdit({{ $row->id }})" class="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">
                                                 Editar
                                             </button>
+                                            @if ($row->estaEditable())
+                                                <button wire:click="sendToReview({{ $row->id }})" wire:confirm="¿Enviar este programa a revision?" class="rounded-full border border-cyan-300 px-3 py-1.5 text-xs font-semibold text-cyan-700 dark:border-cyan-800 dark:text-cyan-300">
+                                                    Enviar
+                                                </button>
+                                            @endif
                                             <button wire:click="deletePrograma({{ $row->id }})" wire:confirm="¿Eliminar este programa?" class="rounded-full border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700">
                                                 Eliminar
                                             </button>
@@ -161,7 +167,7 @@
 
                 <div class="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
                     <button wire:click="cancelForm" class="rounded-2xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">Cancelar</button>
-                    <button wire:click="savePrograma" class="rounded-2xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                    <button wire:click="savePrograma" class="rounded-2xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-container">
                         Guardar programa
                     </button>
                 </div>

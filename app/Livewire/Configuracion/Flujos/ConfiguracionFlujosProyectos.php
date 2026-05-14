@@ -5,9 +5,11 @@ namespace App\Livewire\Configuracion\Flujos;
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\SGCU\TipoPrograma;
+use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Spatie\Permission\Models\Role;
 
 class ConfiguracionFlujosProyectos extends Component
 {
@@ -201,11 +203,27 @@ class ConfiguracionFlujosProyectos extends Component
             'stages' => ['required', 'array', 'min:1'],
             'stages.*.codigo' => ['required', 'string', 'max:80'],
             'stages.*.nombre' => ['required', 'string', 'max:180'],
+            'stages.*.tipo_etapa' => ['required', 'in:FORMULACION,REVISION,APROBACION'],
+            'stages.*.rol_revisor_id' => ['nullable', 'exists:roles,id'],
+            'stages.*.usuario_responsable_id' => ['nullable', 'exists:users,id'],
             'stages.*.cargo_firma_id' => ['required', 'exists:cargo_firma,id'],
             'stages.*.requiere_asignacion' => ['boolean'],
             'stages.*.emisor_define_destinatario' => ['boolean'],
             'stages.*.activo' => ['boolean'],
         ]);
+
+        foreach ($validated['stages'] as &$stage) {
+            $stage['codigo'] = strtoupper(trim($stage['codigo']));
+
+            if (! ($stage['requiere_asignacion'] ?? false)) {
+                $stage['usuario_responsable_id'] = null;
+                $stage['emisor_define_destinatario'] = false;
+            }
+
+            if ($stage['emisor_define_destinatario'] ?? false) {
+                $stage['usuario_responsable_id'] = null;
+            }
+        }
 
         if (! $this->selectedSubactionId) {
             $this->addError('workflow.nombre', 'Seleccione una subaccion para el flujo.');
@@ -230,8 +248,11 @@ class ConfiguracionFlujosProyectos extends Component
             foreach (array_values($validated['stages']) as $index => $stage) {
                 $flow->etapas()->create([
                     'orden' => $index + 1,
-                    'codigo' => strtoupper(trim($stage['codigo'])),
+                    'codigo' => $stage['codigo'],
                     'nombre' => $stage['nombre'],
+                    'tipo_etapa' => $stage['tipo_etapa'],
+                    'rol_revisor_id' => $stage['rol_revisor_id'] ?: null,
+                    'usuario_responsable_id' => $stage['usuario_responsable_id'] ?: null,
                     'cargo_firma_id' => $stage['cargo_firma_id'],
                     'requiere_asignacion' => (bool) ($stage['requiere_asignacion'] ?? false),
                     'emisor_define_destinatario' => (bool) ($stage['emisor_define_destinatario'] ?? false),
@@ -279,6 +300,8 @@ class ConfiguracionFlujosProyectos extends Component
         return view('livewire.configuracion.flujos.configuracion-flujos-proyectos', [
             'flows' => $flows,
             'cargos' => $cargos,
+            'roles' => Role::query()->orderBy('name')->get(),
+            'usuarios' => User::query()->orderBy('name')->get(),
             'actions' => $actions,
             'tiposPrograma' => $tiposPrograma,
             'selectedTipoPrograma' => $selectedTipoPrograma,
@@ -295,11 +318,23 @@ class ConfiguracionFlujosProyectos extends Component
             'programStages' => ['required', 'array', 'min:1'],
             'programStages.*.codigo' => ['required', 'string', 'max:80'],
             'programStages.*.nombre' => ['required', 'string', 'max:180'],
+            'programStages.*.rol_revisor_id' => ['nullable', 'exists:roles,id'],
+            'programStages.*.usuario_responsable_id' => ['nullable', 'exists:users,id'],
             'programStages.*.cargo_firma_id' => ['required', 'exists:cargo_firma,id'],
             'programStages.*.requiere_asignacion' => ['boolean'],
             'programStages.*.emisor_define_destinatario' => ['boolean'],
             'programStages.*.activo' => ['boolean'],
         ]);
+
+        foreach ($validated['programStages'] as &$stage) {
+            if (! ($stage['requiere_asignacion'] ?? false)) {
+                $stage['emisor_define_destinatario'] = false;
+            }
+
+            if ($stage['emisor_define_destinatario'] ?? false) {
+                $stage['usuario_responsable_id'] = null;
+            }
+        }
 
         if (! $this->programSelectedTipoProgramaId) {
             $this->addError('programWorkflow.nombre', 'Seleccione un tipo de programa.');
@@ -326,6 +361,9 @@ class ConfiguracionFlujosProyectos extends Component
                     'orden' => $index + 1,
                     'codigo' => strtoupper(trim($stage['codigo'])),
                     'nombre' => $stage['nombre'],
+                    'tipo_etapa' => 'REVISION',
+                    'rol_revisor_id' => $stage['rol_revisor_id'] ?: null,
+                    'usuario_responsable_id' => $stage['usuario_responsable_id'] ?: null,
                     'cargo_firma_id' => $stage['cargo_firma_id'],
                     'requiere_asignacion' => (bool) ($stage['requiere_asignacion'] ?? false),
                     'emisor_define_destinatario' => (bool) ($stage['emisor_define_destinatario'] ?? false),
@@ -380,6 +418,9 @@ class ConfiguracionFlujosProyectos extends Component
             ->map(fn ($stage) => [
                 'codigo' => $stage->codigo,
                 'nombre' => $stage->nombre,
+                'tipo_etapa' => $stage->tipo_etapa ?? 'REVISION',
+                'rol_revisor_id' => (string) ($stage->rol_revisor_id ?? ''),
+                'usuario_responsable_id' => (string) ($stage->usuario_responsable_id ?? ''),
                 'cargo_firma_id' => (string) $stage->cargo_firma_id,
                 'requiere_asignacion' => (bool) $stage->requiere_asignacion,
                 'emisor_define_destinatario' => (bool) $stage->emisor_define_destinatario,
@@ -411,6 +452,9 @@ class ConfiguracionFlujosProyectos extends Component
         return [
             'codigo' => 'ETAPA_'.$order,
             'nombre' => '',
+            'tipo_etapa' => 'REVISION',
+            'rol_revisor_id' => '',
+            'usuario_responsable_id' => '',
             'cargo_firma_id' => '',
             'requiere_asignacion' => true,
             'emisor_define_destinatario' => false,
@@ -471,6 +515,8 @@ class ConfiguracionFlujosProyectos extends Component
             ->map(fn ($stage) => [
                 'codigo' => $stage->codigo,
                 'nombre' => $stage->nombre,
+                'rol_revisor_id' => (string) ($stage->rol_revisor_id ?? ''),
+                'usuario_responsable_id' => (string) ($stage->usuario_responsable_id ?? ''),
                 'cargo_firma_id' => (string) $stage->cargo_firma_id,
                 'requiere_asignacion' => (bool) $stage->requiere_asignacion,
                 'emisor_define_destinatario' => (bool) $stage->emisor_define_destinatario,
