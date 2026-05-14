@@ -16,6 +16,7 @@ use App\Models\Proyecto\MetaContribuye;
 use App\Models\Proyecto\IntegranteInternacional;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Estado\TipoEstado;
+use App\Models\Demografia\Pais;
 use App\Models\Asignatura;
 use App\Models\PeriodoAcademico;
 use App\Models\UnidadAcademica\FacultadCentro;
@@ -25,6 +26,10 @@ use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Renderless;
 use App\Mail\ProyectoCreado;
 
 class CreateProyectoVinculacion extends Component
@@ -58,6 +63,8 @@ class CreateProyectoVinculacion extends Component
     public array $empleado_proyecto = [];
     public array $estudiante_proyecto = [];
     public array $integrante_internacional_proyecto = [];
+    public array $asignaturasDisponibles = [];
+    public array $periodosAcademicosDisponibles = [];
 
     // Step 2 – modals
     public bool $showEmpleadoModal = false;
@@ -67,6 +74,7 @@ class CreateProyectoVinculacion extends Component
     public ?int $editEstudianteIndex = null;
     public array $nuevoEstudiante = [
         'tipo_participacion_estudiante' => '',
+        'carrera_id' => null,
         'asignatura_id' => null,
         'periodo_academico_id' => null,
         'cantidad_estudiantes_hombres' => 0,
@@ -75,6 +83,7 @@ class CreateProyectoVinculacion extends Component
     ];
 
     public bool $showInternacionalModal = false;
+    public $integranteInternacionalSeleccionadoId = null;
     public array $nuevoIntegranteInternacional = [
         'nombre_completo' => '',
         'documento_identidad' => '',
@@ -192,6 +201,7 @@ class CreateProyectoVinculacion extends Component
             }
         }
         $this->initDefaults();
+        $this->cargarOpcionesPracticaAsignatura();
         $this->cargarMetasPorOds();
     }
 
@@ -235,7 +245,11 @@ class CreateProyectoVinculacion extends Component
         $this->programa_pertenece = $record->programa_pertenece ?? '';
         $this->lineas_investigacion_academica = $record->lineas_investigacion_academica ?? '';
         $this->ods = $record->ods->pluck('id')->toArray();
-        $this->metasContribuye = $record->metasContribuye->pluck('id')->toArray();
+        $this->metasContribuye = $record->metasContribuye()
+            ->pluck('metas_contribuye.id')
+            ->map(fn($id) => (string) $id)
+            ->toArray();
+
         $this->fecha_inicio = $this->dateForInput($record->fecha_inicio);
         $this->fecha_finalizacion = $this->dateForInput($record->fecha_finalizacion);
         $this->loadFirmasFromRecord($record);
@@ -248,6 +262,7 @@ class CreateProyectoVinculacion extends Component
 
         $this->estudiante_proyecto = $record->estudiante_proyecto->map(fn($ep) => [
             'tipo_participacion_estudiante' => $this->normalizeTipoParticipacionEstudiante($ep->tipo_participacion_estudiante) ?: $ep->tipo_participacion_estudiante,
+            'carrera_id' => $ep->carrera_id,
             'asignatura_id' => $ep->asignatura_id,
             'periodo_academico_id' => $ep->periodo_academico_id,
             'cantidad_estudiantes_hombres' => $ep->cantidad_estudiantes_hombres ?? 0,
@@ -357,8 +372,13 @@ class CreateProyectoVinculacion extends Component
 
     public function nextStep(): void
     {
-        $this->saveCurrentStep();
-        if ($this->getErrorBag()->isEmpty() && $this->currentStep < 10) {
+        $this->resetErrorBag();
+
+        if (!$this->validarPasoActualParaNavegacion()) {
+            return;
+        }
+
+        if ($this->currentStep < 10) {
             $this->currentStep++;
             $this->selectedObjetivoIndex = 0;
         }
@@ -374,10 +394,117 @@ class CreateProyectoVinculacion extends Component
 
     public function goToStep(int $step): void
     {
-        if ($this->recordId && $step >= 1 && $step <= 10) {
-            $this->currentStep = $step;
-            $this->selectedObjetivoIndex = 0;
+        if (!$this->recordId || $step < 1 || $step > 10 || $step === $this->currentStep) {
+            return;
         }
+
+        if ($step > $this->currentStep) {
+            $this->resetErrorBag();
+
+            if (!$this->validarPasoActualParaNavegacion()) {
+                return;
+            }
+        }
+
+        $this->currentStep = $step;
+        $this->selectedObjetivoIndex = 0;
+    }
+
+    private function validarPasoActualParaNavegacion(): bool
+    {
+        try {
+            $this->validate($this->rulesPasoActualParaNavegacion());
+        } catch (ValidationException $e) {
+            throw $e;
+        }
+
+        return $this->validacionesAdicionalesPasoActualParaNavegacion();
+    }
+
+    private function rulesPasoActualParaNavegacion(): array
+    {
+        return match ($this->currentStep) {
+            1 => [
+                'nombre_proyecto' => 'required|string|max:255',
+                'modalidad_id' => 'required|integer',
+                'categoria' => 'required|array|min:1',
+                'ejes_prioritarios_unah' => 'required|array|min:1',
+                'facultades_centros' => 'required|array|min:1',
+                'facultades_centros.*' => 'integer|exists:centro_facultad,id',
+                'departamentos_academicos' => 'required|array|min:1',
+                'departamentos_academicos.*' => 'integer|exists:departamento_academico,id',
+                'carreras' => 'required|array|min:1',
+                'carreras.*' => 'integer|exists:carrera,id',
+                'programa_pertenece' => 'required|string',
+                'lineas_investigacion_academica' => 'required|string',
+                'ods' => 'required|array|min:1',
+                'fecha_inicio' => 'required|date',
+                'fecha_finalizacion' => 'required|date|after_or_equal:fecha_inicio',
+            ],
+            2 => [
+                'estudiante_proyecto' => 'required|array|min:1',
+                'estudiante_proyecto.*.tipo_participacion_estudiante' => 'required|string',
+                'estudiante_proyecto.*.carrera_id' => 'nullable|exists:carrera,id',
+                'estudiante_proyecto.*.asignatura_id' => 'nullable|exists:asignaturas,id',
+                'estudiante_proyecto.*.periodo_academico_id' => 'nullable|string|max:50',
+            ],
+            3 => [
+                'entidad_contraparte' => 'required|array|min:1',
+                'entidad_contraparte.*.nombre' => 'required|string',
+            ],
+            4 => [
+                'actividades' => 'required|array|min:1',
+                'actividades.*.descripcion' => 'required|string',
+            ],
+            5 => [
+                'resumen' => 'required|string',
+                'descripcion_participantes' => 'required|string',
+                'definicion_problema' => 'required|string',
+            ],
+            7 => [
+                'objetivo_general' => 'required|string',
+                'objetivosEspecificos' => 'required|array|min:1',
+                'objetivosEspecificos.*.descripcion' => 'required|string',
+                'objetivosEspecificos.*.resultados.*.plazo' => 'nullable|in:' . implode(',', $this->plazoOpciones),
+            ],
+            default => [],
+        };
+    }
+
+    private function validacionesAdicionalesPasoActualParaNavegacion(): bool
+    {
+        if ($this->currentStep === 2) {
+            foreach ($this->estudiante_proyecto as $i => $item) {
+                $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '')
+                    ?: ($item['tipo_participacion_estudiante'] ?? '');
+
+                if ($this->isTipoParticipacionAsignatura($tipo)) {
+                    if (empty($this->carreras)) {
+                        $this->addError("estudiante_proyecto.$i.carrera_id", 'Seleccione primero una carrera en Información General.');
+                    }
+
+                    if (empty($item['asignatura_id'])) {
+                        $this->addError("estudiante_proyecto.$i.asignatura_id", 'Seleccione la asignatura.');
+                    } elseif (!$this->asignaturaPerteneceACarrerasSeleccionadas($item['asignatura_id'])) {
+                        $this->addError("estudiante_proyecto.$i.asignatura_id", 'La asignatura no corresponde a la carrera seleccionada.');
+                    }
+
+                    if (empty($item['periodo_academico_id'])) {
+                        $this->addError("estudiante_proyecto.$i.periodo_academico_id", 'Seleccione el periodo académico.');
+                    }
+                }
+            }
+        }
+
+        if ($this->currentStep === 6 && empty($this->departamento_geo) && $this->poblacion_participante <= 0) {
+            $this->addError('departamento_geo', 'Complete la zona de impacto o registre beneficiarios para continuar.');
+        }
+
+        if ($this->currentStep === 8 && collect($this->aporte_institucional)->sum('costo_total') <= 0) {
+            $this->addError('aporte_institucional', 'Registre al menos un aporte institucional para continuar.');
+        }
+
+        return $this->getErrorBag()->isEmpty();
     }
 
     protected function saveCurrentStep(): void
@@ -406,6 +533,8 @@ class CreateProyectoVinculacion extends Component
                 && !empty($this->categoria)
                 && !empty($this->ejes_prioritarios_unah)
                 && !empty($this->facultades_centros)
+                && !empty($this->departamentos_academicos)
+                && !empty($this->carreras)
                 && !empty($this->fecha_inicio)
                 && !empty($this->fecha_finalizacion)
                 && !empty($this->programa_pertenece)
@@ -470,11 +599,26 @@ class CreateProyectoVinculacion extends Component
     // ─── Save Steps ──────────────────────────────────────────────────────────
     public function updated(string $propertyName): void
     {
+        if ($this->esPropiedadAcademicaDependiente($propertyName)) {
+            $this->limpiarRelacionesDependientes();
+        }
+
         if (!$this->autoguardadoActivo || !$this->debeAutoguardar($propertyName)) {
             return;
         }
 
         $this->autoGuardarBorrador();
+    }
+
+    private function esPropiedadAcademicaDependiente(string $propertyName): bool
+    {
+        foreach (['facultades_centros', 'departamentos_academicos', 'carreras'] as $propiedad) {
+            if ($propertyName === $propiedad || str_starts_with($propertyName, $propiedad . '.')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function debeAutoguardar(string $propertyName): bool
@@ -486,7 +630,6 @@ class CreateProyectoVinculacion extends Component
             'recordId',
             'proyectoId',
             'metasDisponibles',
-            'metasContribuye',
             'showInternacionalModal',
             'nuevoIntegranteInternacional',
         ];
@@ -498,6 +641,39 @@ class CreateProyectoVinculacion extends Component
         }
 
         return true;
+    }
+
+    #[Renderless]
+    public function guardarMetasContribuyeSeleccionadas(array $ids): void
+    {
+        $metasSeleccionadas = collect($ids)
+            ->filter(fn($id) => $id !== null && $id !== '')
+            ->map(fn($id) => (int) $id)
+            ->filter(fn($id) => $id > 0)
+            ->unique()
+            ->values();
+
+        $odsSeleccionados = $this->ids($this->ods);
+
+        $metasQuery = MetaContribuye::whereIn('id', $metasSeleccionadas->all());
+        if (!empty($odsSeleccionados)) {
+            $metasQuery->whereIn('ods_id', $odsSeleccionados);
+        }
+
+        $this->metasContribuye = $metasQuery
+            ->pluck('id')
+            ->map(fn($id) => (string) $id)
+            ->values()
+            ->toArray();
+
+        try {
+            $record = $this->ensureRecord();
+            $record->metasContribuye()->sync($this->ids($this->metasContribuye));
+            $this->estadoAutoGuardado = 'guardado';
+        } catch (\Throwable $e) {
+            report($e);
+            $this->estadoAutoGuardado = 'error';
+        }
     }
 
     public function autoGuardarBorrador(): void
@@ -568,7 +744,6 @@ class CreateProyectoVinculacion extends Component
         $record->departamentos_academicos()->sync($this->ids($this->departamentos_academicos));
         $record->carreras()->sync($this->ids($this->carreras));
         $record->ods()->sync($this->ids($this->ods));
-        $record->metasContribuye()->sync($this->ids($this->metasContribuye));
         $record->departamento()->sync($this->ids($this->departamento_geo));
         $record->municipio()->sync($this->ids($this->municipio_geo));
 
@@ -612,22 +787,54 @@ class CreateProyectoVinculacion extends Component
             $isAsignatura = $this->isTipoParticipacionAsignatura($tipo);
             $hombres = (int) ($item['cantidad_estudiantes_hombres'] ?? 0);
             $mujeres = (int) ($item['cantidad_estudiantes_mujeres'] ?? 0);
+            $carreraId = $isAsignatura ? $this->carreraIdParaAsignatura($item['asignatura_id'] ?? null) : null;
 
             $this->estudiante_proyecto[$i]['tipo_participacion_estudiante'] = $tipo;
+            $this->estudiante_proyecto[$i]['carrera_id'] = $carreraId;
             $this->estudiante_proyecto[$i]['total_estudiantes'] = $hombres + $mujeres;
 
-            $record->estudiante_proyecto()->create([
+            $data = [
                 'tipo_participacion_estudiante' => $tipo,
+                'carrera_id' => $carreraId,
                 'asignatura_id' => $isAsignatura ? $this->nullableInt($item['asignatura_id'] ?? null) : null,
-                'periodo_academico_id' => $isAsignatura ? $this->nullableInt($item['periodo_academico_id'] ?? null) : null,
+                'periodo_academico_id' => $isAsignatura ? $this->stringOrNull($item['periodo_academico_id'] ?? null) : null,
                 'cantidad_estudiantes_hombres' => $hombres,
                 'cantidad_estudiantes_mujeres' => $mujeres,
                 'total_estudiantes' => $hombres + $mujeres,
-            ]);
+            ];
+
+            if (!Schema::hasColumn('estudiante_proyecto', 'carrera_id')) {
+                unset($data['carrera_id']);
+            }
+
+            $record->estudiante_proyecto()->create($data);
         }
 
-        $record->integrante_internacional_proyecto()->delete();
-        foreach ($this->ids(collect($this->integrante_internacional_proyecto)->pluck('integrante_internacional_id')->all()) as $integranteId) {
+        $integranteIds = $this->ids(collect($this->integrante_internacional_proyecto)->pluck('integrante_internacional_id')->all());
+        if (empty($integranteIds)) {
+            $record->integrante_internacional_proyecto()->delete();
+            return;
+        }
+
+        $record->integrante_internacional_proyecto()
+            ->whereNotIn('integrante_internacional_id', $integranteIds)
+            ->delete();
+
+        foreach ($integranteIds as $integranteId) {
+            $integranteProyecto = $record->integrante_internacional_proyecto()
+                ->withTrashed()
+                ->where('integrante_internacional_id', $integranteId)
+                ->first();
+
+            if ($integranteProyecto) {
+                if ($integranteProyecto->trashed()) {
+                    $integranteProyecto->restore();
+                }
+
+                $integranteProyecto->update(['rol' => 'Integrante']);
+                continue;
+            }
+
             $record->integrante_internacional_proyecto()->create([
                 'integrante_internacional_id' => $integranteId,
                 'rol' => 'Integrante',
@@ -869,6 +1076,9 @@ class CreateProyectoVinculacion extends Component
 
             $this->carreras = collect($this->carreras)->map(fn($id) => (string) $id)->intersect($carrerasValidas)->values()->toArray();
         }
+
+        $this->cargarOpcionesPracticaAsignatura();
+        $this->limpiarAsignaturasIncompatibles();
     }
 
     private function ids(array $values): array
@@ -885,6 +1095,111 @@ class CreateProyectoVinculacion extends Component
     private function nullableInt(mixed $value): ?int
     {
         return $value === null || $value === '' ? null : (int) $value;
+    }
+
+    private function stringOrNull(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (string) $value;
+    }
+
+    private function cargarOpcionesPracticaAsignatura(): void
+    {
+        $carreras = $this->ids($this->carreras);
+
+        if (empty($carreras) || !Schema::hasColumn('asignaturas', 'carrera_id')) {
+            $this->asignaturasDisponibles = [];
+        } else {
+            $this->asignaturasDisponibles = Asignatura::whereIn('carrera_id', $carreras)
+                ->orderBy('codigo')
+                ->orderBy('nombre')
+                ->get()
+                ->mapWithKeys(fn($asignatura) => [
+                    $asignatura->id => trim("{$asignatura->codigo} - {$asignatura->nombre}", ' -'),
+                ])
+                ->toArray();
+        }
+
+        $periodos = PeriodoAcademico::orderBy('nombre')->pluck('nombre', 'id')->toArray();
+
+        $this->periodosAcademicosDisponibles = !empty($periodos)
+            ? $periodos
+            : collect($this->periodosAcademicosBase())->mapWithKeys(fn($periodo) => [$periodo => $periodo])->toArray();
+    }
+
+    private function limpiarAsignaturasIncompatibles(): void
+    {
+        $validas = array_map('strval', array_keys($this->asignaturasDisponibles));
+
+        foreach ($this->estudiante_proyecto as $i => $item) {
+            $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '')
+                ?: ($item['tipo_participacion_estudiante'] ?? '');
+
+            if (!$this->isTipoParticipacionAsignatura($tipo)) {
+                $this->estudiante_proyecto[$i]['carrera_id'] = null;
+                $this->estudiante_proyecto[$i]['asignatura_id'] = null;
+                $this->estudiante_proyecto[$i]['periodo_academico_id'] = null;
+                continue;
+            }
+
+            $asignaturaId = (string) ($item['asignatura_id'] ?? '');
+            if ($asignaturaId === '' || !in_array($asignaturaId, $validas, true)) {
+                $this->estudiante_proyecto[$i]['carrera_id'] = null;
+                $this->estudiante_proyecto[$i]['asignatura_id'] = null;
+            }
+        }
+
+        if ($this->isTipoParticipacionAsignatura($this->nuevoEstudiante['tipo_participacion_estudiante'] ?? '')) {
+            $asignaturaId = (string) ($this->nuevoEstudiante['asignatura_id'] ?? '');
+            if ($asignaturaId === '' || !in_array($asignaturaId, $validas, true)) {
+                $this->nuevoEstudiante['carrera_id'] = null;
+                $this->nuevoEstudiante['asignatura_id'] = null;
+            }
+        }
+    }
+
+    private function asignaturaPerteneceACarrerasSeleccionadas(mixed $asignaturaId): bool
+    {
+        $asignaturaId = $this->nullableInt($asignaturaId);
+        $carreras = $this->ids($this->carreras);
+
+        if (!$asignaturaId || empty($carreras) || !Schema::hasColumn('asignaturas', 'carrera_id')) {
+            return false;
+        }
+
+        return Asignatura::whereKey($asignaturaId)
+            ->whereIn('carrera_id', $carreras)
+            ->exists();
+    }
+
+    private function carreraIdParaAsignatura(mixed $asignaturaId): ?int
+    {
+        $asignaturaId = $this->nullableInt($asignaturaId);
+        $carreras = $this->ids($this->carreras);
+
+        if (!$asignaturaId || empty($carreras) || !Schema::hasColumn('asignaturas', 'carrera_id')) {
+            return null;
+        }
+
+        $carreraId = Asignatura::whereKey($asignaturaId)
+            ->whereIn('carrera_id', $carreras)
+            ->value('carrera_id');
+
+        return $carreraId ? (int) $carreraId : null;
+    }
+
+    private function periodosAcademicosBase(): array
+    {
+        return [
+            'Primer Periodo',
+            'Segundo Periodo',
+            'Tercer Periodo',
+            'Primer Semestre',
+            'Segundo Semestre',
+        ];
     }
 
     private function dateOrNull(mixed $value): ?string
@@ -910,6 +1225,11 @@ class CreateProyectoVinculacion extends Component
             'categoria' => 'required|array|min:1',
             'ejes_prioritarios_unah' => 'required|array|min:1',
             'facultades_centros' => 'required|array|min:1',
+            'facultades_centros.*' => 'integer|exists:centro_facultad,id',
+            'departamentos_academicos' => 'required|array|min:1',
+            'departamentos_academicos.*' => 'integer|exists:departamento_academico,id',
+            'carreras' => 'required|array|min:1',
+            'carreras.*' => 'integer|exists:carrera,id',
             'fecha_inicio' => 'required|date',
             'fecha_finalizacion' => 'required|date|after_or_equal:fecha_inicio',
             'programa_pertenece' => 'required|string',
@@ -931,7 +1251,6 @@ class CreateProyectoVinculacion extends Component
         $record->departamentos_academicos()->sync($this->departamentos_academicos ?? []);
         $record->carreras()->sync($this->carreras ?? []);
         $record->ods()->sync($this->ods);
-        $record->metasContribuye()->sync($this->metasContribuye ?? []);
         Notification::make()->title('Paso I guardado')->success()->send();
     }
 
@@ -948,6 +1267,14 @@ class CreateProyectoVinculacion extends Component
             ->map(fn($id) => (int) $id)
             ->unique()
             ->values();
+
+        if ($odsSeleccionados->isEmpty() && !empty($this->metasContribuye)) {
+            $odsSeleccionados = MetaContribuye::whereIn('id', $this->ids($this->metasContribuye))
+                ->pluck('ods_id')
+                ->map(fn($id) => (int) $id)
+                ->unique()
+                ->values();
+        }
 
         $this->ods = $odsSeleccionados->map(fn($id) => (string) $id)->toArray();
 
@@ -969,7 +1296,7 @@ class CreateProyectoVinculacion extends Component
             ])
             ->toArray();
 
-        $metasValidas = array_keys($this->metasDisponibles);
+        $metasValidas = array_map('strval', array_keys($this->metasDisponibles));
 
         $this->metasContribuye = collect($this->metasContribuye)
             ->filter(fn($id) => $id !== null && $id !== '')
@@ -993,8 +1320,9 @@ class CreateProyectoVinculacion extends Component
         $this->validate([
             'empleado_proyecto.*.empleado_id' => 'nullable|exists:empleado,id',
             'estudiante_proyecto.*.tipo_participacion_estudiante' => 'nullable|string',
+            'estudiante_proyecto.*.carrera_id' => 'nullable|exists:carrera,id',
             'estudiante_proyecto.*.asignatura_id' => 'nullable|exists:asignaturas,id',
-            'estudiante_proyecto.*.periodo_academico_id' => 'nullable|exists:periodos_academicos,id',
+            'estudiante_proyecto.*.periodo_academico_id' => 'nullable|string|max:50',
             'estudiante_proyecto.*.cantidad_estudiantes_hombres' => 'nullable|integer|min:0',
             'estudiante_proyecto.*.cantidad_estudiantes_mujeres' => 'nullable|integer|min:0',
             'integrante_internacional_proyecto.*.integrante_internacional_id' => 'nullable|exists:integrante_internacional,id',
@@ -1012,15 +1340,25 @@ class CreateProyectoVinculacion extends Component
             }
 
             if ($this->isTipoParticipacionAsignatura($tipo)) {
+                if (empty($this->carreras)) {
+                    $this->addError("estudiante_proyecto.$i.carrera_id", 'Seleccione primero una carrera en Información General.');
+                    $hasInvalidStudentRows = true;
+                }
                 if (empty($item['asignatura_id'])) {
                     $this->addError("estudiante_proyecto.$i.asignatura_id", 'Seleccione la asignatura.');
+                    $hasInvalidStudentRows = true;
+                } elseif (!$this->asignaturaPerteneceACarrerasSeleccionadas($item['asignatura_id'])) {
+                    $this->addError("estudiante_proyecto.$i.asignatura_id", 'La asignatura no corresponde a la carrera seleccionada.');
                     $hasInvalidStudentRows = true;
                 }
                 if (empty($item['periodo_academico_id'])) {
                     $this->addError("estudiante_proyecto.$i.periodo_academico_id", 'Seleccione el periodo académico.');
                     $hasInvalidStudentRows = true;
                 }
+
+                $this->estudiante_proyecto[$i]['carrera_id'] = $this->carreraIdParaAsignatura($item['asignatura_id'] ?? null);
             } else {
+                $this->estudiante_proyecto[$i]['carrera_id'] = null;
                 $this->estudiante_proyecto[$i]['asignatura_id'] = null;
                 $this->estudiante_proyecto[$i]['periodo_academico_id'] = null;
             }
@@ -1045,14 +1383,21 @@ class CreateProyectoVinculacion extends Component
             $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '') ?: ($item['tipo_participacion_estudiante'] ?? '');
             if (!empty($tipo)) {
                 $isAsignatura = $this->isTipoParticipacionAsignatura($tipo);
-                $record->estudiante_proyecto()->create([
+                $data = [
                     'tipo_participacion_estudiante' => $tipo,
+                    'carrera_id' => $isAsignatura ? $this->carreraIdParaAsignatura($item['asignatura_id'] ?? null) : null,
                     'asignatura_id' => $isAsignatura ? ($item['asignatura_id'] ?? null) : null,
                     'periodo_academico_id' => $isAsignatura ? ($item['periodo_academico_id'] ?? null) : null,
                     'cantidad_estudiantes_hombres' => $item['cantidad_estudiantes_hombres'] ?? 0,
                     'cantidad_estudiantes_mujeres' => $item['cantidad_estudiantes_mujeres'] ?? 0,
                     'total_estudiantes' => ($item['cantidad_estudiantes_hombres'] ?? 0) + ($item['cantidad_estudiantes_mujeres'] ?? 0),
-                ]);
+                ];
+
+                if (!Schema::hasColumn('estudiante_proyecto', 'carrera_id')) {
+                    unset($data['carrera_id']);
+                }
+
+                $record->estudiante_proyecto()->create($data);
             }
         }
         foreach ($this->integrante_internacional_proyecto as $item) {
@@ -1079,7 +1424,7 @@ class CreateProyectoVinculacion extends Component
 
         $this->validate([
             'entidad_contraparte.*.instrumento_formalizacion.*.tipo_documento' => 'nullable|in:' . implode(',', $this->instrumentoTipos),
-            'entidad_contraparte.*.instrumento_formalizacion.*.documento_file' => 'nullable|file|max:10240',
+            'entidad_contraparte.*.instrumento_formalizacion.*.documento_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
         ]);
 
         $hasMissingDocument = false;
@@ -1307,6 +1652,7 @@ class CreateProyectoVinculacion extends Component
         $this->empleado_proyecto[] = ['empleado_id' => $empleadoId, 'rol' => 'Integrante', 'nombre' => $nombre];
         $this->showEmpleadoModal = false;
         $this->empleadoModalSearch = '';
+        $this->autoGuardarBorrador();
     }
 
     // ─── Estudiante Modal (Step 2) ────────────────────────────────────────────
@@ -1314,11 +1660,13 @@ class CreateProyectoVinculacion extends Component
     public function openEstudianteModal(?int $index = null): void
     {
         $this->resetErrorBag();
+        $this->cargarOpcionesPracticaAsignatura();
+
         if ($index !== null && isset($this->estudiante_proyecto[$index])) {
             $this->nuevoEstudiante = $this->estudiante_proyecto[$index];
             $this->editEstudianteIndex = $index;
         } else {
-            $this->nuevoEstudiante = ['tipo_participacion_estudiante' => '', 'asignatura_id' => null, 'periodo_academico_id' => null, 'cantidad_estudiantes_hombres' => 0, 'cantidad_estudiantes_mujeres' => 0, 'total_estudiantes' => 0];
+            $this->nuevoEstudiante = ['tipo_participacion_estudiante' => '', 'carrera_id' => null, 'asignatura_id' => null, 'periodo_academico_id' => null, 'cantidad_estudiantes_hombres' => 0, 'cantidad_estudiantes_mujeres' => 0, 'total_estudiantes' => 0];
             $this->editEstudianteIndex = null;
         }
         $this->showEstudianteModal = true;
@@ -1340,15 +1688,45 @@ class CreateProyectoVinculacion extends Component
         $this->nuevoEstudiante['tipo_participacion_estudiante'] = $tipo;
 
         if ($this->isTipoParticipacionAsignatura($tipo)) {
+            if (empty($this->carreras)) {
+                $this->addError('nuevoEstudiante.asignatura_id', 'Seleccione primero una carrera en Información General.');
+                return;
+            }
+
+            if (empty($this->asignaturasDisponibles)) {
+                $this->addError('nuevoEstudiante.asignatura_id', 'No hay asignaturas registradas para la carrera seleccionada.');
+                return;
+            }
+
             if (empty($this->nuevoEstudiante['asignatura_id'])) {
                 $this->addError('nuevoEstudiante.asignatura_id', 'Seleccione la asignatura.');
                 return;
             }
+
+            if (!array_key_exists((int) $this->nuevoEstudiante['asignatura_id'], $this->asignaturasDisponibles)) {
+                $this->addError('nuevoEstudiante.asignatura_id', 'Seleccione una asignatura válida para la carrera seleccionada.');
+                return;
+            }
+
+            $carreraId = $this->carreraIdParaAsignatura($this->nuevoEstudiante['asignatura_id']);
+            if (!$carreraId) {
+                $this->addError('nuevoEstudiante.asignatura_id', 'La asignatura no corresponde a la carrera seleccionada.');
+                return;
+            }
+            $this->nuevoEstudiante['carrera_id'] = $carreraId;
+
             if (empty($this->nuevoEstudiante['periodo_academico_id'])) {
                 $this->addError('nuevoEstudiante.periodo_academico_id', 'Seleccione el periodo académico.');
                 return;
             }
+
+            $periodosValidos = array_map('strval', array_keys($this->periodosAcademicosDisponibles));
+            if (!in_array((string) $this->nuevoEstudiante['periodo_academico_id'], $periodosValidos, true)) {
+                $this->addError('nuevoEstudiante.periodo_academico_id', 'Seleccione un periodo académico válido.');
+                return;
+            }
         } else {
+            $this->nuevoEstudiante['carrera_id'] = null;
             $this->nuevoEstudiante['asignatura_id'] = null;
             $this->nuevoEstudiante['periodo_academico_id'] = null;
         }
@@ -1365,13 +1743,14 @@ class CreateProyectoVinculacion extends Component
 
         $this->showEstudianteModal = false;
         $this->editEstudianteIndex = null;
-        $this->nuevoEstudiante = ['tipo_participacion_estudiante' => '', 'asignatura_id' => null, 'periodo_academico_id' => null, 'cantidad_estudiantes_hombres' => 0, 'cantidad_estudiantes_mujeres' => 0, 'total_estudiantes' => 0];
+        $this->nuevoEstudiante = ['tipo_participacion_estudiante' => '', 'carrera_id' => null, 'asignatura_id' => null, 'periodo_academico_id' => null, 'cantidad_estudiantes_hombres' => 0, 'cantidad_estudiantes_mujeres' => 0, 'total_estudiantes' => 0];
         $this->autoGuardarBorrador();
     }
 
     public function removeEstudiante(int $i): void
     {
         array_splice($this->estudiante_proyecto, $i, 1);
+        $this->autoGuardarBorrador();
     }
 
     // ─── Internacional Modal (Step 2) ─────────────────────────────────────────
@@ -1379,13 +1758,47 @@ class CreateProyectoVinculacion extends Component
     public function openInternacionalModal(): void
     {
         $this->resetErrorBag();
+        $this->integranteInternacionalSeleccionadoId = null;
         $this->showInternacionalModal = true;
     }
 
     public function closeInternacionalModal(): void
     {
         $this->showInternacionalModal = false;
+        $this->integranteInternacionalSeleccionadoId = null;
         $this->resetNuevoIntegranteInternacional();
+    }
+
+    public function agregarIntegranteInternacionalExistente(): void
+    {
+        $this->resetErrorBag('integranteInternacionalSeleccionadoId');
+
+        if (empty($this->integranteInternacionalSeleccionadoId)) {
+            $this->addError('integranteInternacionalSeleccionadoId', 'Seleccione un integrante internacional.');
+            return;
+        }
+
+        $integrante = IntegranteInternacional::find($this->integranteInternacionalSeleccionadoId);
+
+        if (!$integrante) {
+            $this->addError('integranteInternacionalSeleccionadoId', 'El integrante seleccionado no existe.');
+            return;
+        }
+
+        $yaExiste = collect($this->integrante_internacional_proyecto)
+            ->contains(fn($item) => (int)($item['integrante_internacional_id'] ?? 0) === (int)$integrante->id);
+
+        $this->integranteInternacionalSeleccionadoId = null;
+
+        if ($yaExiste) {
+            Notification::make()->title('Integrante internacional ya agregado')->info()->send();
+            return;
+        }
+
+        $this->selectIntegranteInternacional((int)$integrante->id);
+        $this->showInternacionalModal = false;
+        $this->resetNuevoIntegranteInternacional();
+        $this->autoGuardarBorrador();
     }
 
     public function saveNuevoIntegranteInternacional(): void
@@ -1395,7 +1808,7 @@ class CreateProyectoVinculacion extends Component
             'nuevoIntegranteInternacional.documento_identidad' => 'required|string|max:255',
             'nuevoIntegranteInternacional.sexo' => 'nullable|in:masculino,femenino,otro',
             'nuevoIntegranteInternacional.email' => 'required|email|max:255',
-            'nuevoIntegranteInternacional.pais' => 'required|string|max:255',
+            'nuevoIntegranteInternacional.pais' => ['required', 'string', 'max:255', Rule::exists('pais', 'nombre')->whereNull('deleted_at')],
             'nuevoIntegranteInternacional.institucion' => 'required|string|max:255',
         ])['nuevoIntegranteInternacional'];
 
@@ -1447,6 +1860,7 @@ class CreateProyectoVinculacion extends Component
     public function removeInternacional(int $i): void
     {
         array_splice($this->integrante_internacional_proyecto, $i, 1);
+        $this->autoGuardarBorrador();
     }
 
     // ─── Contraparte Modal (Step 3) ───────────────────────────────────────────
@@ -1472,15 +1886,32 @@ class CreateProyectoVinculacion extends Component
 
     public function saveContraparte(): void
     {
-        if (empty($this->nuevaContraparte['nombre'])) {
-            $this->addError('nuevaContraparte.nombre', 'El nombre de la entidad es obligatorio.');
+        $this->resetErrorBag();
+        $this->normalizarInstrumentosContraparteModal();
+
+        $this->validate([
+            'nuevaContraparte.nombre' => 'required|string|max:255',
+            'nuevaContraparte.tipo_entidad' => 'required|string',
+            'nuevaContraparte.nombre_contacto' => 'nullable|string|max:255',
+            'nuevaContraparte.cargo_contacto' => 'nullable|string|max:255',
+            'nuevaContraparte.telefono' => 'nullable|string|max:255',
+            'nuevaContraparte.correo' => 'nullable|email|max:255',
+            'nuevaContraparte.descripcion_acuerdos' => 'nullable|string',
+            'nuevaContraparte.instrumento_formalizacion.*.tipo_documento' => 'nullable|in:' . implode(',', $this->instrumentoTipos),
+            'nuevaContraparte.instrumento_formalizacion.*.documento_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
+        ]);
+
+        if (!$this->validarInstrumentosContraparteModal()) {
             return;
         }
+
         if ($this->editContraparteIndex !== null) {
             $this->entidad_contraparte[$this->editContraparteIndex] = $this->nuevaContraparte;
         } else {
             $this->entidad_contraparte[] = $this->nuevaContraparte;
         }
+
+        $this->autoGuardarBorrador();
         $this->showContraparteModal = false;
         $this->editContraparteIndex = null;
     }
@@ -1488,6 +1919,7 @@ class CreateProyectoVinculacion extends Component
     public function removeContraparte(int $i): void
     {
         array_splice($this->entidad_contraparte, $i, 1);
+        $this->autoGuardarBorrador();
     }
 
     public function addInstrumentoToModal(): void
@@ -1509,6 +1941,40 @@ class CreateProyectoVinculacion extends Component
     public function removeInstrumento(int $ci, int $ii): void
     {
         array_splice($this->entidad_contraparte[$ci]['instrumento_formalizacion'], $ii, 1);
+    }
+
+    private function normalizarInstrumentosContraparteModal(): void
+    {
+        foreach ($this->nuevaContraparte['instrumento_formalizacion'] ?? [] as $ii => $inst) {
+            $tipo = $this->normalizeInstrumentoTipo($inst['tipo_documento'] ?? '');
+            $this->nuevaContraparte['instrumento_formalizacion'][$ii]['tipo_documento'] = $tipo;
+            $this->nuevaContraparte['instrumento_formalizacion'][$ii]['documento_url'] = $inst['documento_url'] ?? null;
+            $this->nuevaContraparte['instrumento_formalizacion'][$ii]['documento_file'] = $inst['documento_file'] ?? null;
+            $this->nuevaContraparte['instrumento_formalizacion'][$ii]['id'] = $inst['id'] ?? null;
+        }
+    }
+
+    private function validarInstrumentosContraparteModal(): bool
+    {
+        $valido = true;
+
+        foreach ($this->nuevaContraparte['instrumento_formalizacion'] ?? [] as $ii => $inst) {
+            $tipo = $inst['tipo_documento'] ?? '';
+            $hasStoredDocument = !empty($inst['documento_url']);
+            $hasUploadedDocument = isset($inst['documento_file']) && is_object($inst['documento_file']);
+
+            if ($tipo === '') {
+                $this->addError("nuevaContraparte.instrumento_formalizacion.$ii.tipo_documento", 'Seleccione el tipo de instrumento.');
+                $valido = false;
+            }
+
+            if (!$hasStoredDocument && !$hasUploadedDocument) {
+                $this->addError("nuevaContraparte.instrumento_formalizacion.$ii.documento_file", 'Seleccione el documento del instrumento.');
+                $valido = false;
+            }
+        }
+
+        return $valido;
     }
 
     // ─── Actividad Modal (Step 4) ─────────────────────────────────────────────
@@ -1569,6 +2035,7 @@ class CreateProyectoVinculacion extends Component
     public function removeEmpleado(int $i): void
     {
         array_splice($this->empleado_proyecto, $i, 1);
+        $this->autoGuardarBorrador();
     }
 
     // ─── Objetivo / Resultado Helpers (Step 7) ────────────────────────────────
@@ -1630,6 +2097,7 @@ class CreateProyectoVinculacion extends Component
         $tipo = $this->normalizeTipoParticipacionEstudiante($value) ?: (string) $value;
         $this->estudiante_proyecto[$index]['tipo_participacion_estudiante'] = $tipo;
         if (!$this->isTipoParticipacionAsignatura($tipo)) {
+            $this->estudiante_proyecto[$index]['carrera_id'] = null;
             $this->estudiante_proyecto[$index]['asignatura_id'] = null;
             $this->estudiante_proyecto[$index]['periodo_academico_id'] = null;
         }
@@ -1897,9 +2365,10 @@ class CreateProyectoVinculacion extends Component
             'empleadosModal' => $empleadosModal,
             'responsablesOptions' => $this->responsableOptions($record),
             'internacionales' => IntegranteInternacional::orderBy('nombre_completo')->get()->mapWithKeys(fn($i) => [$i->id => "{$i->nombre_completo} ({$i->pais})"]),
+            'paises' => Pais::orderBy('nombre')->pluck('nombre', 'id'),
             'tiposParticipacionEstudiante' => $this->tipoParticipacionEstudianteOpciones,
-            'asignaturas' => Asignatura::orderBy('codigo')->orderBy('nombre')->get()->mapWithKeys(fn($a) => [$a->id => trim("{$a->codigo} - {$a->nombre}", ' -')]),
-            'periodosAcademicos' => PeriodoAcademico::orderBy('nombre')->pluck('nombre', 'id'),
+            'asignaturas' => $this->asignaturasDisponibles,
+            'periodosAcademicos' => $this->periodosAcademicosDisponibles,
             'departamentosGeo' => \App\Models\Demografia\Departamento::orderBy('nombre')->pluck('nombre', 'id'),
             'municipiosGeo' => empty($this->departamento_geo)
                 ? collect()

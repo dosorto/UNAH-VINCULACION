@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\PeriodoAcademico;
+use App\Models\UnidadAcademica\Carrera;
 
 class Asignatura extends Model
 {
@@ -24,6 +25,7 @@ class Asignatura extends Model
     protected $fillable = [
         'codigo',
         'nombre',
+        'carrera_id',
         'periodo_academico_id',
     ];
 
@@ -37,6 +39,11 @@ class Asignatura extends Model
     public function periodoAcademico()
     {
         return $this->belongsTo(PeriodoAcademico::class);
+    }
+
+    public function carrera()
+    {
+        return $this->belongsTo(Carrera::class, 'carrera_id');
     }
 
     public function estudianteProyectos()

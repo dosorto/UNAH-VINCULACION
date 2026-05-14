@@ -72,14 +72,6 @@
                 @error('modalidad_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
 
-            @php
-            $multiSelectFields = [
-                ['wire' => 'categoria',                'label' => 'Categorías',                   'opts' => $categorias,           'req' => true],
-                ['wire' => 'ejes_prioritarios_unah',   'label' => 'Ejes Prioritarios UNAH',       'opts' => $ejesPrioritarios,      'req' => true],
-                ['wire' => 'facultades_centros',        'label' => 'Facultades / Centros',         'opts' => $facultadesCentros,     'req' => true, 'live' => true],
-            ];
-            @endphp
-            
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categorías <span class="text-red-500">*</span></label>
                 <div x-data="{
@@ -119,60 +111,144 @@
                 @error('categoria') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
 
-            @if($departamentosAcademicos->count())
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departamentos Académicos</label>
-                <div x-data="{open:false,selected:$wire.entangle('departamentos_academicos').live,options:@js($departamentosAcademicos),toggle(id){id=String(id);let c=(this.selected||[]).map(String);const i=c.indexOf(id);i===-1?c.push(id):c.splice(i,1);this.selected=c;},isSelected(id){return(this.selected||[]).map(String).includes(String(id));},getName(id){return this.options[id]??this.options[String(id)]??id;}}" @click.outside="open=false" class="relative">
-                    <div @click="open=!open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
-                        <template x-for="id in (selected||[])" :key="id"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"><span x-text="getName(id)"></span><button type="button" @click.stop="toggle(id)" class="font-bold leading-none">×</button></span></template>
-                        <span x-show="!selected||selected.length===0" class="text-gray-400 text-sm">Seleccione...</span>
-                        <span class="ml-auto text-gray-400 text-xs" x-text="open?'▴':'▾'"></span>
-                    </div>
-                    <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                        <template x-for="[id,name] in Object.entries(options)" :key="id"><div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between" :class="isSelected(id)?'bg-blue-50 text-blue-700 font-medium':'text-gray-700 dark:text-gray-300'"><span x-text="name"></span><span x-show="isSelected(id)" class="text-blue-600 text-xs">✓</span></div></template>
-                    </div>
-                </div>
-            </div>
-            @endif
-            @if($carrerasOpts->count())
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carreras</label>
-                <div x-data="{
+            @php
+                $academicMultiSelects = [
+                    [
+                        'field' => 'ejes_prioritarios_unah',
+                        'label' => 'Ejes Prioritarios UNAH',
+                        'options' => $ejesPrioritarios,
+                        'placeholder' => 'Buscar o seleccionar ejes prioritarios...',
+                        'disabled' => false,
+                        'emptyMessage' => 'No hay ejes prioritarios disponibles.',
+                    ],
+                    [
+                        'field' => 'facultades_centros',
+                        'label' => 'Facultad o Centros',
+                        'options' => $facultadesCentros,
+                        'placeholder' => 'Buscar o seleccionar facultades/centros...',
+                        'disabled' => false,
+                        'emptyMessage' => 'No hay facultades o centros disponibles.',
+                    ],
+                    [
+                        'field' => 'departamentos_academicos',
+                        'label' => 'Departamentos Académicos',
+                        'options' => $departamentosAcademicos,
+                        'placeholder' => 'Buscar o seleccionar departamentos...',
+                        'disabled' => empty($facultades_centros) || !$departamentosAcademicos->count(),
+                        'emptyMessage' => empty($facultades_centros)
+                            ? 'Seleccione primero Facultad o Centros.'
+                            : 'No hay departamentos para la Facultad o Centro seleccionado.',
+                    ],
+                    [
+                        'field' => 'carreras',
+                        'label' => 'Carreras',
+                        'options' => $carrerasOpts,
+                        'placeholder' => 'Buscar o seleccionar carreras...',
+                        'disabled' => empty($departamentos_academicos) || !$carrerasOpts->count(),
+                        'emptyMessage' => empty($departamentos_academicos)
+                            ? 'Seleccione primero Departamentos Académicos.'
+                            : 'No hay carreras para el Departamento Académico seleccionado.',
+                    ],
+                ];
+            @endphp
+
+            @foreach($academicMultiSelects as $field)
+            <div wire:key="academico-{{ $field['field'] }}-{{ md5(json_encode($field['options'])) }}">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ $field['label'] }} <span class="text-red-500">*</span></label>
+                <div
+                    x-data="{
                         open: false,
-                        selected: $wire.entangle('carreras').live,
-                        options: @js($carrerasOpts),
-                        toggle(id) {
-                            id = String(id);
-                            let curr = (this.selected || []).map(String);
-                            const i = curr.indexOf(id);
-                            if (i === -1) curr.push(id); else curr.splice(i, 1);
-                            this.selected = curr;
+                        search: '',
+                        selected: $wire.entangle('{{ $field['field'] }}').live,
+                        options: @js($field['options']),
+                        disabled: @js($field['disabled']),
+                        placeholder: @js($field['placeholder']),
+                        emptyMessage: @js($field['emptyMessage']),
+                        values() {
+                            return Object.entries(this.options || {});
                         },
-                        isSelected(id) { return (this.selected || []).map(String).includes(String(id)); },
-                        getName(id) { return this.options[id] ?? this.options[String(id)] ?? id; }
-                    }" @click.outside="open = false" class="relative">
-                    <div @click="open = !open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
-                        <template x-for="id in (selected || [])" :key="id">
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-                                <span x-text="getName(id)"></span>
-                                <button type="button" @click.stop="toggle(id)" class="ml-0.5 font-bold leading-none hover:text-orange-900">×</button>
+                        selectedValues() {
+                            return (this.selected || []).map(String);
+                        },
+                        filteredOptions() {
+                            const term = this.search.trim().toLowerCase();
+                            return this.values().filter(([id, name]) => {
+                                return !term || String(name).toLowerCase().includes(term);
+                            });
+                        },
+                        toggle(id) {
+                            if (this.disabled) return;
+                            id = String(id);
+                            const current = this.selectedValues();
+                            const index = current.indexOf(id);
+                            if (index === -1) current.push(id); else current.splice(index, 1);
+                            this.selected = current;
+                            this.search = '';
+                            this.$nextTick(() => this.$refs.search?.focus());
+                        },
+                        remove(id) {
+                            id = String(id);
+                            this.selected = this.selectedValues().filter(value => value !== id);
+                        },
+                        isSelected(id) {
+                            return this.selectedValues().includes(String(id));
+                        },
+                        getName(id) {
+                            return this.options[id] ?? this.options[String(id)] ?? id;
+                        }
+                    }"
+                    @click.outside="open = false"
+                    class="relative"
+                >
+                    <div
+                        @click="if (!disabled) { open = true; $nextTick(() => $refs.search?.focus()) }"
+                        class="min-h-[42px] w-full rounded-md border px-3 py-2 flex flex-wrap gap-1.5 items-center transition"
+                        :class="disabled
+                            ? 'border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/60 cursor-not-allowed'
+                            : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-text focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500'"
+                    >
+                        <template x-for="id in selectedValues()" :key="id">
+                            <span class="inline-flex max-w-full items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                <span class="truncate" x-text="getName(id)"></span>
+                                <button type="button" @click.stop="remove(id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
                             </span>
                         </template>
-                        <span x-show="!selected || selected.length === 0" class="text-gray-400 text-sm">Seleccione una opción</span>
-                        <span class="ml-auto text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
+                        <input
+                            x-ref="search"
+                            x-model="search"
+                            @focus="if (!disabled) open = true"
+                            @keydown.escape="open = false"
+                            :disabled="disabled"
+                            :placeholder="selectedValues().length ? '' : placeholder"
+                            class="min-w-[180px] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 disabled:cursor-not-allowed disabled:text-gray-500 dark:text-white"
+                            type="text"
+                        />
+                        <span class="ml-auto text-gray-400 text-xs" x-text="open && !disabled ? '▴' : '▾'"></span>
                     </div>
-                    <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                        <template x-for="[id,name] in Object.entries(options)" :key="id">
-                            <div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
-                                :class="isSelected(id) ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 font-medium' : 'text-gray-700 dark:text-gray-300'">
+                    <div
+                        x-show="open && !disabled"
+                        x-cloak
+                        class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-56 overflow-y-auto"
+                    >
+                        <template x-if="filteredOptions().length === 0">
+                            <div class="px-3 py-2 text-sm text-gray-500">Sin resultados.</div>
+                        </template>
+                        <template x-for="[id, name] in filteredOptions()" :key="id">
+                            <div
+                                @click="toggle(id)"
+                                class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between gap-3"
+                                :class="isSelected(id) ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium' : 'text-gray-700 dark:text-gray-300'"
+                            >
                                 <span x-text="name"></span>
-                                <span x-show="isSelected(id)" class="text-orange-600 dark:text-orange-400 text-xs">✓</span>
+                                <span x-show="isSelected(id)" class="text-blue-600 dark:text-blue-300 text-xs">✓</span>
                             </div>
                         </template>
                     </div>
+                    <p x-show="disabled" class="text-xs text-gray-500 dark:text-gray-400 mt-1" x-text="emptyMessage"></p>
                 </div>
+                @error($field['field']) <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
-            @endif
+            @endforeach
 
             {{-- Programa / Líneas --}}
             <div>
@@ -191,12 +267,12 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ODS <span class="text-red-500">*</span></label>
                 <div wire:ignore x-data="{open:false,selected:($wire.get('ods')||[]).map(String),options:@js($odsList),toggle(id){id=String(id);let c=(this.selected||[]).map(String);const i=c.indexOf(id);i===-1?c.push(id):c.splice(i,1);this.selected=c;$wire.set('ods',c,true);},isSelected(id){return(this.selected||[]).map(String).includes(String(id));},getName(id){return this.options[id]??this.options[String(id)]??id;}}" @click.outside="open=false" class="relative">
                     <div @click="open=!open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
-                        <template x-for="id in (selected||[])" :key="id"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"><span x-text="getName(id)"></span><button type="button" @click.stop="toggle(id)" class="font-bold">×</button></span></template>
+                        <template x-for="id in (selected||[])" :key="id"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"><span x-text="getName(id)"></span><button type="button" @click.stop="toggle(id)" class="font-bold">×</button></span></template>
                         <span x-show="!selected||selected.length===0" class="text-gray-400 text-sm">Seleccione los ODS...</span>
                         <span class="ml-auto text-gray-400 text-xs" x-text="open?'▴':'▾'"></span>
                     </div>
                     <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-56 overflow-y-auto">
-                        <template x-for="[id,name] in Object.entries(options)" :key="id"><div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between" :class="isSelected(id)?'bg-green-50 text-green-700 font-medium':'text-gray-700 dark:text-gray-300'"><span x-text="name"></span><span x-show="isSelected(id)" class="text-xs">✓</span></div></template>
+                        <template x-for="[id,name] in Object.entries(options)" :key="id"><div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between" :class="isSelected(id)?'bg-blue-50 text-blue-700 font-medium':'text-gray-700 dark:text-gray-300'"><span x-text="name"></span><span x-show="isSelected(id)" class="text-xs">✓</span></div></template>
                     </div>
                 </div>
                 @error('ods') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
@@ -206,36 +282,79 @@
             @if($metasList->count())
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metas que Contribuye</label>
-                <div wire:key="metas-contribuye-{{ md5(json_encode($metasDisponibles)) }}" wire:ignore x-data="{
+                <div wire:key="metas-contribuye-{{ md5(json_encode($metasDisponibles)) }}" x-data="{
                         open: false,
+                        search: '',
                         selected: @js($metasContribuye),
                         options: @js($metasDisponibles),
+                        values() {
+                            return Object.entries(this.options || {});
+                        },
+                        selectedValues() {
+                            return (this.selected || []).map(String);
+                        },
+                        filteredOptions() {
+                            const term = this.search.trim().toLowerCase();
+                            return this.values().filter(([id, name]) => {
+                                return !term || String(name).toLowerCase().includes(term);
+                            });
+                        },
                         toggle(id) {
                             id = String(id);
-                            let curr = (this.selected || []).map(String);
-                            const i = curr.indexOf(id);
-                            if (i === -1) curr.push(id); else curr.splice(i, 1);
-                            this.selected = curr;
-                            @this.set('metasContribuye', curr, false);
+                            const current = this.selectedValues();
+                            const index = current.indexOf(id);
+                            if (index === -1) current.push(id); else current.splice(index, 1);
+                            this.selected = current;
+                            this.search = '';
+                            this.syncSelection();
+                            this.$nextTick(() => this.$refs.search?.focus());
                         },
-                        isSelected(id) { return (this.selected || []).map(String).includes(String(id)); },
-                        getName(id) { return this.options[id] ?? this.options[String(id)] ?? id; }
+                        remove(id) {
+                            id = String(id);
+                            this.selected = this.selectedValues().filter(value => value !== id);
+                            this.syncSelection();
+                        },
+                        syncSelection() {
+                            const values = this.selectedValues();
+                            this.$wire.set('metasContribuye', values, false);
+                            this.$wire.call('guardarMetasContribuyeSeleccionadas', values);
+                        },
+                        isSelected(id) {
+                            return this.selectedValues().includes(String(id));
+                        },
+                        getName(id) {
+                            return this.options[id] ?? this.options[String(id)] ?? id;
+                        }
                     }" @click.outside="open = false" class="relative">
-                    <div @click="open = !open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
-                        <template x-for="id in (selected || [])" :key="id">
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-                                <span x-text="getName(id)"></span>
-                                <button type="button" @click.stop="toggle(id)" class="ml-0.5 font-bold leading-none hover:text-orange-900">×</button>
+                    <div
+                        @click="open = true; $nextTick(() => $refs.search?.focus())"
+                        class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-text flex flex-wrap gap-1.5 items-center focus-within:border-green-500 focus-within:ring-1 focus-within:ring-green-500"
+                    >
+                        <template x-for="id in selectedValues()" :key="id">
+                            <span class="inline-flex max-w-full items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                <span class="truncate" x-text="getName(id)"></span>
+                                <button type="button" @click.stop="remove(id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
                             </span>
                         </template>
-                        <span x-show="!selected || selected.length === 0" class="text-gray-400 text-sm">Seleccione una opción</span>
+                        <input
+                            x-ref="search"
+                            x-model="search"
+                            @focus="open = true"
+                            @keydown.escape="open = false"
+                            :placeholder="selectedValues().length ? '' : 'Buscar o seleccionar metas...'"
+                            class="min-w-[180px] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 dark:text-white"
+                            type="text"
+                        />
                         <span class="ml-auto text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
                     </div>
-                    <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 rounded-md shadow-lg max-h-56 overflow-y-auto">
-                        <template x-for="[id,name] in Object.entries(options)" :key="id"><div @click="toggle(id)" class="px-3 py-2 text-xs cursor-pointer hover:bg-green-50 flex items-start gap-2" :class="isSelected(id)?'bg-green-50 text-green-700 font-medium':'text-gray-700 dark:text-gray-300'"><span class="mt-0.5 shrink-0" x-show="isSelected(id)">✓</span><span x-text="name"></span></div></template>
+                    <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 rounded-md shadow-lg max-h-56 overflow-y-auto">
+                        <template x-if="filteredOptions().length === 0">
+                            <div class="px-3 py-2 text-sm text-gray-500">Sin resultados.</div>
+                        </template>
+                        <template x-for="[id,name] in filteredOptions()" :key="id"><div @click="toggle(id)" class="px-3 py-2 text-xs cursor-pointer hover:bg-blue-50 flex items-start gap-2" :class="isSelected(id)?'bg-blue-50 text-blue-700 font-medium':'text-gray-700 dark:text-gray-300'"><span class="mt-0.5 shrink-0" x-show="isSelected(id)">✓</span><span x-text="name"></span></div></template>
                     </div>
                 </div>
-                <p class="text-xs text-green-600 mt-1">{{ $metasList->count() }} metas disponibles para los ODS seleccionados.</p>
+
             </div>
             @endif
 
@@ -312,7 +431,7 @@
                         <p class="text-xs text-gray-500 mt-0.5">Debe agregar al menos un grupo para continuar.</p>
                     </div>
                     <button wire:click="openEstudianteModal" type="button"
-                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-purple-600 text-white hover:bg-purple-700">
+                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
                         + Agregar grupo
                     </button>
                 </div>
@@ -333,11 +452,16 @@
                             @foreach($estudiante_proyecto as $i => $est)
                             <tr>
                                 <td class="px-4 py-2 text-gray-900 dark:text-white">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                                         {{ $est['tipo_participacion_estudiante'] ?: '-' }}
                                     </span>
                                     @if(($est['tipo_participacion_estudiante'] ?? '') === 'Practica Asignatura')
-                                    <p class="text-xs text-gray-500 mt-0.5">Asignatura requerida</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">
+                                        {{ $asignaturas[$est['asignatura_id'] ?? ''] ?? 'Asignatura pendiente' }}
+                                    </p>
+                                    <p class="text-xs text-gray-500">
+                                        {{ $periodosAcademicos[$est['periodo_academico_id'] ?? ''] ?? ($est['periodo_academico_id'] ?? 'Periodo pendiente') }}
+                                    </p>
                                     @endif
                                 </td>
                                 <td class="px-4 py-2 text-center text-gray-700 dark:text-gray-300">{{ $est['cantidad_estudiantes_hombres'] ?? 0 }}</td>
@@ -369,7 +493,7 @@
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Integrantes Internacionales</h4>
                     <button wire:click="openInternacionalModal" type="button"
-                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-orange-600 text-white hover:bg-orange-700">
+                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
                         + Agregar internacional
                     </button>
                 </div>
@@ -482,17 +606,31 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Asignatura <span class="text-red-500">*</span></label>
-                                <select wire:model="nuevoEstudiante.asignatura_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
-                                    <option value="">Seleccione...</option>
-                                    @foreach($asignaturas as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
+                                <select wire:model.live="nuevoEstudiante.asignatura_id"
+                                    @disabled(empty($carreras) || empty($asignaturas))
+                                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800/60">
+                                    @if(empty($carreras))
+                                        <option value="">Seleccione primero una carrera en Información General</option>
+                                    @elseif(empty($asignaturas))
+                                        <option value="">No hay asignaturas para la carrera seleccionada</option>
+                                    @else
+                                        <option value="">Seleccione...</option>
+                                        @foreach($asignaturas as $id => $nombre)
+                                            <option value="{{ $id }}">{{ $nombre }}</option>
+                                        @endforeach
+                                    @endif
                                 </select>
                                 @error('nuevoEstudiante.asignatura_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Periodo Académico <span class="text-red-500">*</span></label>
-                                <select wire:model="nuevoEstudiante.periodo_academico_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
+                                <select wire:model.live="nuevoEstudiante.periodo_academico_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
                                     <option value="">Seleccione...</option>
-                                    @foreach($periodosAcademicos as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
+                                    @forelse($periodosAcademicos as $id => $nombre)
+                                        <option value="{{ $id }}">{{ $nombre }}</option>
+                                    @empty
+                                        <option value="" disabled>No hay periodos registrados</option>
+                                    @endforelse
                                 </select>
                                 @error('nuevoEstudiante.periodo_academico_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -516,14 +654,14 @@
                     </div>
                     <div class="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 px-5 py-3">
                         <button wire:click="closeEstudianteModal" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 hover:bg-gray-200">Cancelar</button>
-                        <button wire:click="saveEstudiante" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-purple-600 text-white hover:bg-purple-700">Guardar</button>
+                        <button wire:click="saveEstudiante" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">Guardar</button>
                     </div>
                 </div>
             </div>
         </div>
         @endif
 
-        {{-- Modal: Crear integrante internacional --}}
+        {{-- Modal: Crear / Seleccionar integrante internacional --}}
         @if($showInternacionalModal)
         <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog">
             <div class="fixed inset-0 bg-black/50"></div>
@@ -534,21 +672,41 @@
                         <button wire:click="closeInternacionalModal" type="button" class="text-gray-500 hover:text-gray-800 text-lg leading-none">✕</button>
                     </div>
                     <div class="p-5 space-y-4">
+                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                            <h5 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Seleccionar integrante existente</h5>
+                            <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start">
+                                <div>
+                                    <label class="sr-only" for="integrante-internacional-existente">Seleccione un integrante internacional</label>
+                                    <select id="integrante-internacional-existente" wire:model="integranteInternacionalSeleccionadoId"
+                                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500">
+                                        <option value="">Seleccione un integrante internacional</option>
+                                        @foreach($internacionales as $id => $nombre)
+                                            <option value="{{ $id }}">{{ $nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('integranteInternacionalSeleccionadoId') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                                <button wire:click="agregarIntegranteInternacionalExistente" type="button"
+                                    class="inline-flex items-center justify-center px-3 py-2 text-xs font-medium rounded-md bg-orange-600 text-white hover:bg-orange-700">
+                                    Agregar seleccionado
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">O crear nuevo integrante</span>
+                            <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+                        </div>
+
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div class="sm:col-span-2">
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre completo <span class="text-red-500">*</span></label>
-                                <input type="text" wire:model="nuevoIntegranteInternacional.nombre_completo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
-                                @error('nuevoIntegranteInternacional.nombre_completo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Pasaporte / Documento <span class="text-red-500">*</span></label>
-                                <input type="text" wire:model="nuevoIntegranteInternacional.documento_identidad" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre completo</label>
                                 <input type="text" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.nombre_completo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                                 @error('nuevoIntegranteInternacional.nombre_completo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Pasaporte / Documento</label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Pasaporte / Documento <span class="text-red-500">*</span></label>
                                 <input type="text" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.documento_identidad" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                                 @error('nuevoIntegranteInternacional.documento_identidad') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -563,28 +721,21 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo electrónico <span class="text-red-500">*</span></label>
-                                <input type="email" wire:model="nuevoIntegranteInternacional.email" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
-                                @error('nuevoIntegranteInternacional.email') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">País <span class="text-red-500">*</span></label>
-                                <input type="text" wire:model="nuevoIntegranteInternacional.pais" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
-                                @error('nuevoIntegranteInternacional.pais') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                            </div>
-                            <div class="sm:col-span-2">
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Institución <span class="text-red-500">*</span></label>
-                                <input type="text" wire:model="nuevoIntegranteInternacional.institucion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo electrónico</label>
                                 <input type="email" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.email" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                                 @error('nuevoIntegranteInternacional.email') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">País</label>
-                                <input type="text" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.pais" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">País <span class="text-red-500">*</span></label>
+                                <select wire:model.live="nuevoIntegranteInternacional.pais" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500">
+                                    <option value="">Seleccione un país</option>
+                                    @foreach($paises as $id => $nombre)
+                                        <option value="{{ $nombre }}">{{ $nombre }}</option>
+                                    @endforeach
+                                </select>
                                 @error('nuevoIntegranteInternacional.pais') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div class="sm:col-span-2">
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Institución</label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Institución <span class="text-red-500">*</span></label>
                                 <input type="text" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.institucion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                                 @error('nuevoIntegranteInternacional.institucion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -677,7 +828,7 @@
                                 @error('nuevaContraparte.nombre') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo de Entidad</label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo de Entidad <span class="text-red-500">*</span></label>
                                 <select wire:model="nuevaContraparte.tipo_entidad" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
                                     <option value="">Seleccione...</option>
                                     <option value="internacional">Internacional</option>
@@ -687,6 +838,7 @@
                                     <option value="sociedad_civil">Sociedad Civil</option>
                                     <option value="sector_privado">Sector Privado</option>
                                 </select>
+                                @error('nuevaContraparte.tipo_entidad') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre Contacto</label>
@@ -717,14 +869,24 @@
                             </div>
                             @foreach($nuevaContraparte['instrumento_formalizacion'] ?? [] as $ii => $inst)
                             <div class="mb-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-600">
-                                <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-start">
-                                    <select wire:model="nuevaContraparte.instrumento_formalizacion.{{ $ii }}.tipo_documento" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm focus:border-blue-500">
-                                        <option value="">Tipo de documento...</option>
-                                        <option value="carta_formal_solicitud">Carta formal de solicitud</option>
-                                        <option value="carta_intenciones">Carta de intenciones</option>
-                                        <option value="convenio_marco">Convenio marco</option>
-                                    </select>
-                                    <button wire:click="removeInstrumentoFromModal({{ $ii }})" type="button" class="text-xs text-red-600 hover:text-red-800 whitespace-nowrap">Eliminar</button>
+                                <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-start">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo de instrumento <span class="text-red-500">*</span></label>
+                                        <select wire:model="nuevaContraparte.instrumento_formalizacion.{{ $ii }}.tipo_documento" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm focus:border-blue-500">
+                                            <option value="">Tipo de documento...</option>
+                                            <option value="carta_formal_solicitud">Carta formal de solicitud</option>
+                                            <option value="carta_intenciones">Carta de intenciones</option>
+                                            <option value="convenio_marco">Convenio marco</option>
+                                        </select>
+                                        @error("nuevaContraparte.instrumento_formalizacion.$ii.tipo_documento") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Documento <span class="text-red-500">*</span></label>
+                                        <input type="file" wire:model="nuevaContraparte.instrumento_formalizacion.{{ $ii }}.documento_file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                            class="w-full text-xs text-gray-600 dark:text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                                        @error("nuevaContraparte.instrumento_formalizacion.$ii.documento_file") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                    </div>
+                                    <button wire:click="removeInstrumentoFromModal({{ $ii }})" type="button" class="mt-6 text-xs text-red-600 hover:text-red-800 whitespace-nowrap">Eliminar</button>
                                 </div>
                                 @if(!empty($inst['documento_url']))
                                     <a href="{{ Storage::url($inst['documento_url']) }}" target="_blank" class="mt-1 inline-block text-xs text-blue-600 hover:text-blue-800">Ver documento actual</a>
@@ -996,6 +1158,13 @@
                             ];
                             @endphp
                             @foreach($grupos as $g)
+                            @php
+                                $hKey = $g['h'] ?? null;
+                                $mKey = $g['m'] ?? null;
+                                $hValue = $hKey ? (int) ($this->{$hKey} ?? 0) : 0;
+                                $mValue = $mKey ? (int) ($this->{$mKey} ?? 0) : 0;
+                                $total = $hValue + $mValue;
+                            @endphp
                             <tr class="bg-white dark:bg-gray-900">
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-xs">{{ $g['label'] }}</td>
                                 <td class="px-4 py-2 text-center">
@@ -1007,7 +1176,7 @@
                                         class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center focus:border-blue-500" />
                                 </td>
                                 <td class="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">
-                                    {{ ($this->$g['h'] ?? 0) + ($this->$g['m'] ?? 0) }}
+                                    {{ $total }}
                                 </td>
                             </tr>
                             @endforeach
