@@ -15,6 +15,7 @@ use App\Models\Proyecto\Od;
 use App\Models\Proyecto\MetaContribuye;
 use App\Models\Proyecto\IntegranteInternacional;
 use App\Models\Proyecto\FlujoAprobacion;
+use App\Models\Demografia\Municipio;
 use App\Models\Estado\TipoEstado;
 use App\Models\Demografia\Pais;
 use App\Models\Asignatura;
@@ -27,9 +28,11 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Renderless;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use App\Mail\ProyectoCreado;
 
 class CreateProyectoVinculacion extends Component
@@ -296,6 +299,7 @@ class CreateProyectoVinculacion extends Component
         ])->toArray();
 
         $this->actividades = $record->actividades->map(fn($a) => [
+            'id' => $a->id,
             'descripcion' => $a->descripcion,
             'empleados' => $a->empleados->pluck('id')->toArray(),
             'fecha_inicio' => $this->dateForInput($a->fecha_inicio),
@@ -319,6 +323,7 @@ class CreateProyectoVinculacion extends Component
         $this->region = $record->region ?? [];
         $this->departamento_geo = $record->departamento?->pluck('id')->toArray() ?? [];
         $this->municipio_geo = $record->municipio?->pluck('id')->toArray() ?? [];
+        $this->filtrarMunicipiosImpactoSeleccionados();
         $this->caserio = $record->caserio ?? '';
         $this->aldea = $record->aldea ?? '';
         $this->alineamiento_reforma = $record->alineamiento_reforma ?? '';
@@ -328,8 +333,12 @@ class CreateProyectoVinculacion extends Component
 
         $this->objetivo_general = $record->objetivo_general ?? '';
         $this->objetivosEspecificos = $record->objetivosEspecificos->map(fn($obj) => [
+            'id' => $obj->id,
+            'wire_key' => (string) Str::uuid(),
             'descripcion' => $obj->descripcion,
             'resultados' => $obj->resultados->map(fn($r) => [
+                'id' => $r->id,
+                'wire_key' => (string) Str::uuid(),
                 'nombre_resultado' => $r->nombre_resultado,
                 'nombre_indicador' => $r->nombre_indicador,
                 'nombre_medio_verificacion' => $r->nombre_medio_verificacion,
@@ -366,7 +375,7 @@ class CreateProyectoVinculacion extends Component
         $this->aporte_institucional = $this->normalizeAporteRows($this->aporte_institucional);
         $this->recalculateAporteInstitucional();
         if (empty($this->objetivosEspecificos)) {
-            $this->objetivosEspecificos = [['descripcion' => '', 'resultados' => [['nombre_resultado' => '', 'nombre_indicador' => '', 'nombre_medio_verificacion' => '', 'plazo' => 'corto_plazo']]]];
+            $this->objetivosEspecificos = [$this->nuevoObjetivoEspecifico()];
         }
     }
 
@@ -414,8 +423,12 @@ class CreateProyectoVinculacion extends Component
 
     private function validarPasoActualParaNavegacion(): bool
     {
+        $rules = $this->rulesPasoActualParaNavegacion();
+
         try {
-            $this->validate($this->rulesPasoActualParaNavegacion());
+            if (!empty($rules)) {
+                $this->validate($rules);
+            }
         } catch (ValidationException $e) {
             throw $e;
         }
@@ -462,6 +475,20 @@ class CreateProyectoVinculacion extends Component
                 'resumen' => 'required|string',
                 'descripcion_participantes' => 'required|string',
                 'definicion_problema' => 'required|string',
+            ],
+            6 => [
+                'indigenas_hombres' => 'nullable|integer|min:0',
+                'indigenas_mujeres' => 'nullable|integer|min:0',
+                'afroamericanos_hombres' => 'nullable|integer|min:0',
+                'afroamericanos_mujeres' => 'nullable|integer|min:0',
+                'mestizos_hombres' => 'nullable|integer|min:0',
+                'mestizos_mujeres' => 'nullable|integer|min:0',
+                'departamento_geo' => 'nullable|array',
+                'departamento_geo.*' => 'integer|exists:departamento,id',
+                'municipio_geo' => 'nullable|array',
+                'municipio_geo.*' => 'integer|exists:municipio,id',
+                'aldea' => 'nullable|string|max:255',
+                'caserio' => 'nullable|string|max:255',
             ],
             7 => [
                 'objetivo_general' => 'required|string',
@@ -634,6 +661,9 @@ class CreateProyectoVinculacion extends Component
             'metasDisponibles',
             'showInternacionalModal',
             'nuevoIntegranteInternacional',
+            'showActividadModal',
+            'editActividadIndex',
+            'nuevaActividad',
         ];
 
         foreach ($propiedadesIgnoradas as $ignorada) {
@@ -708,6 +738,7 @@ class CreateProyectoVinculacion extends Component
         $this->limpiarRelacionesDependientes();
         $this->calcTotales();
         $this->recalculateAporteInstitucional();
+        $this->filtrarMunicipiosImpactoSeleccionados();
 
         $record->update([
             'nombre_proyecto' => trim($this->nombre_proyecto) !== '' ? $this->nombre_proyecto : 'Borrador sin título',
@@ -880,10 +911,10 @@ class CreateProyectoVinculacion extends Component
 
             foreach ($item['instrumento_formalizacion'] ?? [] as $ii => $inst) {
                 $tipo = $this->normalizeInstrumentoTipo($inst['tipo_documento'] ?? '');
-                $documentoUrl = $inst['documento_url'] ?? null;
+                $documentoUrl = $this->normalizarRutaDocumentoInstrumento($inst['documento_url'] ?? null);
 
-                if (isset($inst['documento_file']) && is_object($inst['documento_file'])) {
-                    $documentoUrl = $inst['documento_file']->store('instrumentos-formalizacion', 'public');
+                if ($this->instrumentoTieneArchivoNuevo($inst)) {
+                    $documentoUrl = $this->guardarDocumentoInstrumento($inst['documento_file']);
                 }
 
                 if ($tipo === '' && empty($documentoUrl)) {
@@ -906,9 +937,7 @@ class CreateProyectoVinculacion extends Component
     private function guardarActividadesParcial(Proyecto $record): void
     {
         $validEmpleados = $this->responsableIdsDisponibles($record);
-
-        $record->actividades()->each(fn($actividad) => $actividad->empleados()->detach());
-        $record->actividades()->delete();
+        $actividadIdsEnEstado = [];
 
         foreach ($this->actividades as $i => $item) {
             $tieneDatos = trim((string) ($item['descripcion'] ?? '')) !== ''
@@ -921,12 +950,23 @@ class CreateProyectoVinculacion extends Component
                 continue;
             }
 
-            $actividad = $record->actividades()->create([
+            $actividadId = $this->nullableInt($item['id'] ?? null);
+            $actividad = $actividadId
+                ? $record->actividades()->whereKey($actividadId)->first()
+                : null;
+
+            $data = [
                 'descripcion' => trim((string) ($item['descripcion'] ?? '')) !== '' ? $item['descripcion'] : 'Actividad sin descripción',
                 'fecha_inicio' => $this->dateOrNull($item['fecha_inicio'] ?? null),
                 'fecha_finalizacion' => $this->dateOrNull($item['fecha_finalizacion'] ?? null),
                 'horas' => (int) ($item['horas'] ?? 0),
-            ]);
+            ];
+
+            if ($actividad) {
+                $actividad->update($data);
+            } else {
+                $actividad = $record->actividades()->create($data);
+            }
 
             $ids = collect($item['empleados'] ?? [])
                 ->filter()
@@ -937,53 +977,116 @@ class CreateProyectoVinculacion extends Component
                 ->toArray();
 
             $this->actividades[$i]['empleados'] = array_map('strval', $ids);
+            $actividad->empleados()->sync($ids);
 
-            if (!empty($ids)) {
-                $actividad->empleados()->sync($ids);
-            }
+            $this->actividades[$i]['id'] = $actividad->id;
+            $this->actividades[$i]['fecha_inicio'] = $this->dateForInput($actividad->fecha_inicio);
+            $this->actividades[$i]['fecha_finalizacion'] = $this->dateForInput($actividad->fecha_finalizacion);
+            $this->actividades[$i]['horas'] = $actividad->horas ?? '';
+            $actividadIdsEnEstado[] = $actividad->id;
+        }
+
+        $actividadesAEliminar = $record->actividades()
+            ->when(!empty($actividadIdsEnEstado), fn($query) => $query->whereNotIn('id', $actividadIdsEnEstado))
+            ->get();
+
+        foreach ($actividadesAEliminar as $actividad) {
+            $actividad->empleados()->detach();
+            $actividad->delete();
         }
     }
 
     private function guardarMarcoLogicoParcial(Proyecto $record): void
     {
-        $record->objetivosEspecificos()->each(fn($objetivo) => $objetivo->resultados()->delete());
-        $record->objetivosEspecificos()->delete();
+        $record->update(['objetivo_general' => $this->objetivo_general]);
+        $objetivoIdsEnEstado = [];
 
         foreach ($this->objetivosEspecificos as $oi => $objData) {
             $descripcion = trim((string) ($objData['descripcion'] ?? ''));
+            $objetivoId = $this->nullableInt($objData['id'] ?? null);
             $resultados = collect($objData['resultados'] ?? []);
             $tieneResultados = $resultados->contains(function ($resultado) {
+                if ($this->nullableInt($resultado['id'] ?? null)) {
+                    return true;
+                }
+
                 return trim((string) ($resultado['nombre_resultado'] ?? '')) !== ''
                     || trim((string) ($resultado['nombre_indicador'] ?? '')) !== ''
                     || trim((string) ($resultado['nombre_medio_verificacion'] ?? '')) !== '';
             });
 
-            if ($descripcion === '' && !$tieneResultados) {
+            if (!$objetivoId && $descripcion === '' && !$tieneResultados) {
                 continue;
             }
 
-            $objetivo = $record->objetivosEspecificos()->create([
+            $objetivo = $objetivoId
+                ? $record->objetivosEspecificos()->whereKey($objetivoId)->first()
+                : null;
+
+            $objetivoData = [
                 'descripcion' => $descripcion !== '' ? $descripcion : 'Objetivo específico sin descripción',
                 'orden' => $oi + 1,
-            ]);
+            ];
+
+            if ($objetivo) {
+                $objetivo->update($objetivoData);
+            } else {
+                $objetivo = $record->objetivosEspecificos()->create($objetivoData);
+            }
+
+            $this->objetivosEspecificos[$oi]['id'] = $objetivo->id;
+            $objetivoIdsEnEstado[] = $objetivo->id;
+            $resultadoIdsEnEstado = [];
 
             foreach ($objData['resultados'] ?? [] as $ri => $rData) {
+                $resultadoId = $this->nullableInt($rData['id'] ?? null);
                 $tieneDatos = trim((string) ($rData['nombre_resultado'] ?? '')) !== ''
                     || trim((string) ($rData['nombre_indicador'] ?? '')) !== ''
                     || trim((string) ($rData['nombre_medio_verificacion'] ?? '')) !== '';
 
-                if (!$tieneDatos) {
+                if (!$resultadoId && !$tieneDatos) {
                     continue;
                 }
 
-                $objetivo->resultados()->create([
+                $resultado = $resultadoId
+                    ? $objetivo->resultados()->whereKey($resultadoId)->first()
+                    : null;
+
+                $resultadoData = [
                     'nombre_resultado' => $rData['nombre_resultado'] ?: 'Resultado sin nombre',
                     'nombre_indicador' => $rData['nombre_indicador'] ?? '',
                     'nombre_medio_verificacion' => $rData['nombre_medio_verificacion'] ?? '',
                     'plazo' => $this->normalizePlazo($rData['plazo'] ?? '') ?: 'corto_plazo',
                     'orden' => $ri + 1,
-                ]);
+                ];
+
+                if ($resultado) {
+                    $resultado->update($resultadoData);
+                } else {
+                    $resultado = $objetivo->resultados()->create($resultadoData);
+                }
+
+                $this->objetivosEspecificos[$oi]['resultados'][$ri]['id'] = $resultado->id;
+                $this->objetivosEspecificos[$oi]['resultados'][$ri]['plazo'] = $resultadoData['plazo'];
+                $resultadoIdsEnEstado[] = $resultado->id;
             }
+
+            $resultadosAEliminar = $objetivo->resultados()
+                ->when(!empty($resultadoIdsEnEstado), fn($query) => $query->whereNotIn('id', $resultadoIdsEnEstado))
+                ->get();
+
+            foreach ($resultadosAEliminar as $resultado) {
+                $resultado->delete();
+            }
+        }
+
+        $objetivosAEliminar = $record->objetivosEspecificos()
+            ->when(!empty($objetivoIdsEnEstado), fn($query) => $query->whereNotIn('id', $objetivoIdsEnEstado))
+            ->get();
+
+        foreach ($objetivosAEliminar as $objetivo) {
+            $objetivo->resultados()->delete();
+            $objetivo->delete();
         }
     }
 
@@ -1096,6 +1199,53 @@ class CreateProyectoVinculacion extends Component
             ->unique()
             ->values()
             ->toArray();
+    }
+
+    private function idsComoStrings(array $values): array
+    {
+        return collect($this->ids($values))
+            ->map(fn($id) => (string) $id)
+            ->values()
+            ->toArray();
+    }
+
+    private function municipiosValidosImpacto(): array
+    {
+        $departamentos = $this->ids($this->departamento_geo);
+
+        if (empty($departamentos)) {
+            return [];
+        }
+
+        return Municipio::whereIn('departamento_id', $departamentos)
+            ->pluck('id')
+            ->map(fn($id) => (string) $id)
+            ->toArray();
+    }
+
+    private function filtrarMunicipiosImpactoSeleccionados(): void
+    {
+        $validos = $this->municipiosValidosImpacto();
+
+        $this->departamento_geo = $this->idsComoStrings($this->departamento_geo);
+        $this->municipio_geo = collect($this->idsComoStrings($this->municipio_geo))
+            ->intersect($validos)
+            ->values()
+            ->toArray();
+    }
+
+    public function actualizarDepartamentosImpacto(array $ids): void
+    {
+        $this->departamento_geo = $this->idsComoStrings($ids);
+        $this->filtrarMunicipiosImpactoSeleccionados();
+        $this->autoGuardarBorrador();
+    }
+
+    public function actualizarMunicipiosImpacto(array $ids): void
+    {
+        $this->municipio_geo = $this->idsComoStrings($ids);
+        $this->filtrarMunicipiosImpactoSeleccionados();
+        $this->autoGuardarBorrador();
     }
 
     private function nullableInt(mixed $value): ?int
@@ -1439,7 +1589,7 @@ class CreateProyectoVinculacion extends Component
                 if (empty($inst['tipo_documento'])) continue;
                 $isExisting = !empty($inst['id']);
                 $hasStoredDocument = !empty($inst['documento_url']);
-                $hasUploadedDocument = isset($inst['documento_file']) && is_object($inst['documento_file']);
+                $hasUploadedDocument = $this->instrumentoTieneArchivoNuevo($inst);
                 if (!$isExisting && !$hasStoredDocument && !$hasUploadedDocument) {
                     $this->addError("entidad_contraparte.$ci.instrumento_formalizacion.$ii.documento_file", 'El documento es obligatorio para instrumentos nuevos.');
                     $hasMissingDocument = true;
@@ -1464,9 +1614,9 @@ class CreateProyectoVinculacion extends Component
                 ]);
                 foreach ($item['instrumento_formalizacion'] ?? [] as $ii => $inst) {
                     if (!empty($inst['tipo_documento'])) {
-                        $documentoUrl = $inst['documento_url'] ?? null;
-                        if (isset($inst['documento_file']) && is_object($inst['documento_file'])) {
-                            $documentoUrl = $inst['documento_file']->store('instrumentos-formalizacion', 'public');
+                        $documentoUrl = $this->normalizarRutaDocumentoInstrumento($inst['documento_url'] ?? null);
+                        if ($this->instrumentoTieneArchivoNuevo($inst)) {
+                            $documentoUrl = $this->guardarDocumentoInstrumento($inst['documento_file']);
                         }
                         $instrumento = $entidad->instrumento_formalizacion()->create([
                             'tipo_documento' => $inst['tipo_documento'],
@@ -1499,20 +1649,7 @@ class CreateProyectoVinculacion extends Component
         }
         if ($hasInvalidResponsables) return;
 
-        $record->actividades()->each(fn($a) => $a->empleados()->detach());
-        $record->actividades()->delete();
-        foreach ($this->actividades as $item) {
-            if (!empty($item['descripcion'])) {
-                $actividad = $record->actividades()->create([
-                    'descripcion' => $item['descripcion'],
-                    'fecha_inicio' => $item['fecha_inicio'] ?: null,
-                    'fecha_finalizacion' => $item['fecha_finalizacion'] ?: null,
-                    'horas' => $item['horas'] ?? 0,
-                ]);
-                $ids = collect($item['empleados'] ?? [])->filter()->map(fn($id) => (int) $id)->unique()->values()->toArray();
-                if (!empty($ids)) $actividad->empleados()->sync($ids);
-            }
-        }
+        DB::transaction(fn() => $this->guardarActividadesParcial($record));
         Notification::make()->title('Paso IV guardado')->success()->send();
     }
 
@@ -1550,8 +1687,9 @@ class CreateProyectoVinculacion extends Component
             'caserio' => $this->caserio,
             'aldea' => $this->aldea,
         ]);
-        if (!empty($this->departamento_geo)) $record->departamento()->sync($this->departamento_geo);
-        if (!empty($this->municipio_geo)) $record->municipio()->sync($this->municipio_geo);
+        $this->filtrarMunicipiosImpactoSeleccionados();
+        $record->departamento()->sync($this->ids($this->departamento_geo));
+        $record->municipio()->sync($this->ids($this->municipio_geo));
         Notification::make()->title('Paso VI guardado')->success()->send();
     }
 
@@ -1564,22 +1702,7 @@ class CreateProyectoVinculacion extends Component
             'objetivosEspecificos.*.resultados.*.plazo' => 'nullable|in:' . implode(',', $this->plazoOpciones),
         ]);
         $record = $this->ensureRecord();
-        $record->update(['objetivo_general' => $this->objetivo_general]);
-        $record->objetivosEspecificos()->each(fn($obj) => $obj->resultados()->delete());
-        $record->objetivosEspecificos()->delete();
-        foreach ($this->objetivosEspecificos as $objData) {
-            $obj = $record->objetivosEspecificos()->create(['descripcion' => $objData['descripcion']]);
-            foreach ($objData['resultados'] ?? [] as $rData) {
-                if (!empty($rData['nombre_resultado'])) {
-                    $obj->resultados()->create([
-                        'nombre_resultado' => $rData['nombre_resultado'],
-                        'nombre_indicador' => $rData['nombre_indicador'] ?? '',
-                        'nombre_medio_verificacion' => $rData['nombre_medio_verificacion'] ?? '',
-                        'plazo' => $this->normalizePlazo($rData['plazo'] ?? '') ?: 'corto_plazo',
-                    ]);
-                }
-            }
-        }
+        DB::transaction(fn() => $this->guardarMarcoLogicoParcial($record));
         Notification::make()->title('Paso VII guardado')->success()->send();
     }
 
@@ -1954,7 +2077,7 @@ class CreateProyectoVinculacion extends Component
         foreach ($this->nuevaContraparte['instrumento_formalizacion'] ?? [] as $ii => $inst) {
             $tipo = $this->normalizeInstrumentoTipo($inst['tipo_documento'] ?? '');
             $this->nuevaContraparte['instrumento_formalizacion'][$ii]['tipo_documento'] = $tipo;
-            $this->nuevaContraparte['instrumento_formalizacion'][$ii]['documento_url'] = $inst['documento_url'] ?? null;
+            $this->nuevaContraparte['instrumento_formalizacion'][$ii]['documento_url'] = $this->normalizarRutaDocumentoInstrumento($inst['documento_url'] ?? null);
             $this->nuevaContraparte['instrumento_formalizacion'][$ii]['documento_file'] = $inst['documento_file'] ?? null;
             $this->nuevaContraparte['instrumento_formalizacion'][$ii]['id'] = $inst['id'] ?? null;
         }
@@ -1967,7 +2090,7 @@ class CreateProyectoVinculacion extends Component
         foreach ($this->nuevaContraparte['instrumento_formalizacion'] ?? [] as $ii => $inst) {
             $tipo = $inst['tipo_documento'] ?? '';
             $hasStoredDocument = !empty($inst['documento_url']);
-            $hasUploadedDocument = isset($inst['documento_file']) && is_object($inst['documento_file']);
+            $hasUploadedDocument = $this->instrumentoTieneArchivoNuevo($inst);
 
             if ($tipo === '') {
                 $this->addError("nuevaContraparte.instrumento_formalizacion.$ii.tipo_documento", 'Seleccione el tipo de instrumento.');
@@ -1983,6 +2106,61 @@ class CreateProyectoVinculacion extends Component
         return $valido;
     }
 
+    private function instrumentoTieneArchivoNuevo(array $instrumento): bool
+    {
+        return ($instrumento['documento_file'] ?? null) instanceof TemporaryUploadedFile;
+    }
+
+    private function guardarDocumentoInstrumento(TemporaryUploadedFile $documento): string
+    {
+        return $documento->store('proyectos/contrapartes/instrumentos', 'public');
+    }
+
+    private function normalizarRutaDocumentoInstrumento(?string $ruta): ?string
+    {
+        if (empty($ruta)) {
+            return null;
+        }
+
+        if (filter_var($ruta, FILTER_VALIDATE_URL)) {
+            return $ruta;
+        }
+
+        $ruta = ltrim($ruta, '/');
+
+        if (str_starts_with($ruta, 'storage/')) {
+            $ruta = substr($ruta, strlen('storage/'));
+        }
+
+        if (str_starts_with($ruta, 'public/')) {
+            $ruta = substr($ruta, strlen('public/'));
+        }
+
+        if (str_starts_with($ruta, 'app/public/')) {
+            $ruta = substr($ruta, strlen('app/public/'));
+        }
+
+        return $ruta;
+    }
+
+    public function instrumentoDocumentoUrl(?int $id, ?string $ruta): ?string
+    {
+        $ruta = $this->normalizarRutaDocumentoInstrumento($ruta);
+
+        if (empty($id) || empty($ruta)) {
+            return null;
+        }
+
+        return route('instrumentos-formalizacion.documento', ['instrumento' => $id], false);
+    }
+
+    public function instrumentoDocumentoNombre(?string $ruta): string
+    {
+        $ruta = $this->normalizarRutaDocumentoInstrumento($ruta);
+
+        return $ruta ? basename($ruta) : 'Documento cargado';
+    }
+
     // ─── Actividad Modal (Step 4) ─────────────────────────────────────────────
 
     public function openActividadModal(?int $index = null): void
@@ -1992,7 +2170,7 @@ class CreateProyectoVinculacion extends Component
             $this->nuevaActividad = $this->actividades[$index];
             $this->editActividadIndex = $index;
         } else {
-            $this->nuevaActividad = ['descripcion' => '', 'empleados' => [], 'fecha_inicio' => '', 'fecha_finalizacion' => '', 'horas' => ''];
+            $this->nuevaActividad = ['id' => null, 'descripcion' => '', 'empleados' => [], 'fecha_inicio' => '', 'fecha_finalizacion' => '', 'horas' => ''];
             $this->editActividadIndex = null;
         }
         $this->showActividadModal = true;
@@ -2002,6 +2180,7 @@ class CreateProyectoVinculacion extends Component
     {
         $this->showActividadModal = false;
         $this->editActividadIndex = null;
+        $this->nuevaActividad = ['id' => null, 'descripcion' => '', 'empleados' => [], 'fecha_inicio' => '', 'fecha_finalizacion' => '', 'horas' => ''];
     }
 
     public function saveActividad(): void
@@ -2010,6 +2189,51 @@ class CreateProyectoVinculacion extends Component
             $this->addError('nuevaActividad.descripcion', 'La descripción de la actividad es obligatoria.');
             return;
         }
+
+        $record = $this->ensureRecord();
+        $validEmpleados = $this->responsableIdsDisponibles($record);
+        $ids = collect($this->nuevaActividad['empleados'] ?? [])
+            ->filter()
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($ids->diff($validEmpleados)->isNotEmpty()) {
+            $this->addError('nuevaActividad.empleados', 'Seleccione únicamente responsables del equipo ejecutor.');
+            return;
+        }
+
+        DB::transaction(function () use ($record, $ids) {
+            $actividadId = $this->editActividadIndex !== null
+                ? $this->nullableInt($this->actividades[$this->editActividadIndex]['id'] ?? null)
+                : null;
+            $actividadId = $actividadId ?: $this->nullableInt($this->nuevaActividad['id'] ?? null);
+            $actividad = $actividadId
+                ? $record->actividades()->whereKey($actividadId)->first()
+                : null;
+
+            $data = [
+                'descripcion' => trim((string) $this->nuevaActividad['descripcion']),
+                'fecha_inicio' => $this->dateOrNull($this->nuevaActividad['fecha_inicio'] ?? null),
+                'fecha_finalizacion' => $this->dateOrNull($this->nuevaActividad['fecha_finalizacion'] ?? null),
+                'horas' => (int) ($this->nuevaActividad['horas'] ?? 0),
+            ];
+
+            if ($actividad) {
+                $actividad->update($data);
+            } else {
+                $actividad = $record->actividades()->create($data);
+            }
+
+            $actividad->empleados()->sync($ids->all());
+
+            $this->nuevaActividad['id'] = $actividad->id;
+            $this->nuevaActividad['empleados'] = $ids->map(fn($id) => (string) $id)->all();
+            $this->nuevaActividad['fecha_inicio'] = $this->dateForInput($actividad->fecha_inicio);
+            $this->nuevaActividad['fecha_finalizacion'] = $this->dateForInput($actividad->fecha_finalizacion);
+            $this->nuevaActividad['horas'] = $actividad->horas ?? '';
+        });
+
         if ($this->editActividadIndex !== null) {
             $this->actividades[$this->editActividadIndex] = $this->nuevaActividad;
         } else {
@@ -2017,10 +2241,26 @@ class CreateProyectoVinculacion extends Component
         }
         $this->showActividadModal = false;
         $this->editActividadIndex = null;
+        $this->nuevaActividad = ['id' => null, 'descripcion' => '', 'empleados' => [], 'fecha_inicio' => '', 'fecha_finalizacion' => '', 'horas' => ''];
     }
 
     public function removeActividad(int $i): void
     {
+        $actividadId = $this->nullableInt($this->actividades[$i]['id'] ?? null);
+
+        if ($actividadId) {
+            $record = $this->ensureRecord();
+
+            DB::transaction(function () use ($record, $actividadId) {
+                $actividad = $record->actividades()->whereKey($actividadId)->first();
+
+                if ($actividad) {
+                    $actividad->empleados()->detach();
+                    $actividad->delete();
+                }
+            });
+        }
+
         array_splice($this->actividades, $i, 1);
     }
 
@@ -2028,6 +2268,11 @@ class CreateProyectoVinculacion extends Component
 
     public function selectObjetivo(int $index): void
     {
+        if (!array_key_exists($index, $this->objetivosEspecificos)) {
+            $this->normalizarObjetivoSeleccionado();
+            return;
+        }
+
         $this->selectedObjetivoIndex = $index;
     }
 
@@ -2048,24 +2293,117 @@ class CreateProyectoVinculacion extends Component
 
     public function addObjetivo(): void
     {
-        $this->objetivosEspecificos[] = ['descripcion' => '', 'resultados' => [['nombre_resultado' => '', 'nombre_indicador' => '', 'nombre_medio_verificacion' => '', 'plazo' => 'corto_plazo']]];
+        $this->objetivosEspecificos[] = $this->nuevoObjetivoEspecifico();
         $this->selectedObjetivoIndex = count($this->objetivosEspecificos) - 1;
     }
 
     public function removeObjetivo(int $i): void
     {
+        if (!array_key_exists($i, $this->objetivosEspecificos)) {
+            $this->normalizarObjetivoSeleccionado();
+            return;
+        }
+
+        $objetivoId = $this->nullableInt($this->objetivosEspecificos[$i]['id'] ?? null);
+        $selectedBeforeRemoval = $this->selectedObjetivoIndex;
+
+        if ($objetivoId && $this->recordId) {
+            DB::transaction(function () use ($objetivoId) {
+                $record = $this->ensureRecord();
+                $objetivo = $record->objetivosEspecificos()->whereKey($objetivoId)->first();
+
+                if ($objetivo) {
+                    $objetivo->resultados()->delete();
+                    $objetivo->delete();
+                }
+            });
+        }
+
         array_splice($this->objetivosEspecificos, $i, 1);
-        $this->selectedObjetivoIndex = max(0, min($this->selectedObjetivoIndex, count($this->objetivosEspecificos) - 1));
+
+        if (empty($this->objetivosEspecificos)) {
+            $this->objetivosEspecificos[] = $this->nuevoObjetivoEspecifico();
+        }
+
+        if ($selectedBeforeRemoval === $i) {
+            $this->selectedObjetivoIndex = min($i, count($this->objetivosEspecificos) - 1);
+        } elseif ($selectedBeforeRemoval > $i) {
+            $this->selectedObjetivoIndex = $selectedBeforeRemoval - 1;
+        }
+
+        $this->normalizarObjetivoSeleccionado();
+        $this->autoGuardarBorrador();
     }
 
     public function addResultado(int $oi): void
     {
-        $this->objetivosEspecificos[$oi]['resultados'][] = ['nombre_resultado' => '', 'nombre_indicador' => '', 'nombre_medio_verificacion' => '', 'plazo' => 'corto_plazo'];
+        if (!array_key_exists($oi, $this->objetivosEspecificos)) {
+            $this->normalizarObjetivoSeleccionado();
+            return;
+        }
+
+        $this->objetivosEspecificos[$oi]['resultados'][] = $this->nuevoResultadoEsperado();
     }
 
     public function removeResultado(int $oi, int $ri): void
     {
+        if (!array_key_exists($oi, $this->objetivosEspecificos)
+            || !array_key_exists($ri, $this->objetivosEspecificos[$oi]['resultados'] ?? [])) {
+            $this->normalizarObjetivoSeleccionado();
+            return;
+        }
+
+        $objetivoId = $this->nullableInt($this->objetivosEspecificos[$oi]['id'] ?? null);
+        $resultadoId = $this->nullableInt($this->objetivosEspecificos[$oi]['resultados'][$ri]['id'] ?? null);
+
+        if ($objetivoId && $resultadoId && $this->recordId) {
+            DB::transaction(function () use ($objetivoId, $resultadoId) {
+                $record = $this->ensureRecord();
+                $objetivo = $record->objetivosEspecificos()->whereKey($objetivoId)->first();
+
+                if ($objetivo) {
+                    $objetivo->resultados()->whereKey($resultadoId)->delete();
+                }
+            });
+        }
+
         array_splice($this->objetivosEspecificos[$oi]['resultados'], $ri, 1);
+        $this->autoGuardarBorrador();
+    }
+
+    private function nuevoObjetivoEspecifico(): array
+    {
+        return [
+            'id' => null,
+            'wire_key' => (string) Str::uuid(),
+            'descripcion' => '',
+            'resultados' => [$this->nuevoResultadoEsperado()],
+        ];
+    }
+
+    private function nuevoResultadoEsperado(): array
+    {
+        return [
+            'id' => null,
+            'wire_key' => (string) Str::uuid(),
+            'nombre_resultado' => '',
+            'nombre_indicador' => '',
+            'nombre_medio_verificacion' => '',
+            'plazo' => 'corto_plazo',
+        ];
+    }
+
+    private function normalizarObjetivoSeleccionado(): void
+    {
+        if (empty($this->objetivosEspecificos)) {
+            $this->selectedObjetivoIndex = 0;
+            return;
+        }
+
+        $this->selectedObjetivoIndex = max(0, min(
+            $this->selectedObjetivoIndex,
+            count($this->objetivosEspecificos) - 1,
+        ));
     }
 
     public function updateAporteTotal(int $i): void
@@ -2378,7 +2716,7 @@ class CreateProyectoVinculacion extends Component
             'departamentosGeo' => \App\Models\Demografia\Departamento::orderBy('nombre')->pluck('nombre', 'id'),
             'municipiosGeo' => empty($this->departamento_geo)
                 ? collect()
-                : \App\Models\Demografia\Municipio::whereIn('departamento_id', $this->departamento_geo)->orderBy('nombre')->pluck('nombre', 'id'),
+                : Municipio::whereIn('departamento_id', $this->ids($this->departamento_geo))->orderBy('nombre')->pluck('nombre', 'id'),
             'firmantesOpts' => $firmantesOpts,
             'record' => $record,
             'coordNombre' => auth()->user()->empleado?->nombre_completo ?? auth()->user()->name,

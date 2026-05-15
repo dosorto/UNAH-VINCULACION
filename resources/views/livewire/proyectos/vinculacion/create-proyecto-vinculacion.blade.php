@@ -763,49 +763,98 @@
                 </button>
             </div>
 
-            @if(count(array_filter(array_column($entidad_contraparte, 'nombre'))))
-            <div class="space-y-3">
-                @foreach($entidad_contraparte as $ci => $contraparte)
-                @if(!empty($contraparte['nombre']))
-                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $contraparte['nombre'] }}</p>
-                            <p class="text-xs text-gray-500 mt-0.5">
-                                {{ $contraparte['tipo_entidad'] ? ucfirst(str_replace('_', ' ', $contraparte['tipo_entidad'])) : 'Tipo no definido' }}
-                                @if($contraparte['nombre_contacto']) · {{ $contraparte['nombre_contacto'] }} @endif
-                            </p>
-                            @if(count($contraparte['instrumento_formalizacion'] ?? []))
-                            <div class="mt-2 flex flex-wrap gap-1">
-                                @foreach($contraparte['instrumento_formalizacion'] as $inst)
-                                @if($inst['tipo_documento'])
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                                    {{ str_replace('_', ' ', $inst['tipo_documento']) }}
-                                    @if($inst['documento_url']) <span class="ml-1 text-green-600">✓</span> @endif
-                                </span>
-                                @endif
-                                @endforeach
-                            </div>
-                            @endif
-                        </div>
-                        <div class="flex items-center gap-2 ml-3 shrink-0">
-                            <button wire:click="openContraparteModal({{ $ci }})" type="button"
-                                class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400">
-                                Editar
-                            </button>
-                            <button wire:click="removeContraparte({{ $ci }})" type="button" wire:confirm="¿Eliminar esta entidad contraparte?"
-                                class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400">
-                                Eliminar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                @endif
-                @endforeach
+            @php
+                $contrapartesConNombre = collect($entidad_contraparte)->filter(fn($contraparte) => !empty($contraparte['nombre'] ?? null));
+                $instrumentoLabels = [
+                    'carta_formal_solicitud' => 'Carta formal de solicitud',
+                    'carta_intenciones' => 'Carta de intenciones',
+                    'convenio_marco' => 'Convenio marco',
+                ];
+            @endphp
+
+            <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-800">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Nombre</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Tipo de entidad</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Contacto</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Cargo</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Teléfono</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Correo</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Instrumentos</th>
+                            <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 bg-white dark:divide-gray-700 dark:bg-gray-900">
+                        @forelse($contrapartesConNombre as $ci => $contraparte)
+                            <tr class="align-top hover:bg-gray-50 dark:hover:bg-gray-800/70">
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                                    {{ $contraparte['nombre'] ?? 'Sin nombre' }}
+                                </td>
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    {{ !empty($contraparte['tipo_entidad']) ? ucfirst(str_replace('_', ' ', $contraparte['tipo_entidad'])) : 'No especificado' }}
+                                </td>
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    {{ !empty($contraparte['nombre_contacto'] ?? null) ? $contraparte['nombre_contacto'] : 'No especificado' }}
+                                </td>
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    {{ !empty($contraparte['cargo_contacto'] ?? null) ? $contraparte['cargo_contacto'] : 'No especificado' }}
+                                </td>
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    {{ !empty($contraparte['telefono'] ?? null) ? $contraparte['telefono'] : 'No especificado' }}
+                                </td>
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    {{ !empty($contraparte['correo'] ?? null) ? $contraparte['correo'] : 'No especificado' }}
+                                </td>
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    @if(count($contraparte['instrumento_formalizacion'] ?? []))
+                                        <ul class="space-y-1">
+                                            @foreach($contraparte['instrumento_formalizacion'] as $inst)
+                                                @if(!empty($inst['tipo_documento']))
+                                                    @php
+                                                        $documentoUrl = $this->instrumentoDocumentoUrl($inst['id'] ?? null, $inst['documento_url'] ?? null);
+                                                    @endphp
+                                                    <li>
+                                                        <span class="block text-xs font-medium text-gray-700 dark:text-gray-200">
+                                                            {{ $instrumentoLabels[$inst['tipo_documento']] ?? ucfirst(str_replace('_', ' ', $inst['tipo_documento'])) }}
+                                                        </span>
+                                                        @if($documentoUrl)
+                                                            <a href="{{ $documentoUrl }}" target="_blank" rel="noopener" class="text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                                                                Ver documento
+                                                            </a>
+                                                        @endif
+                                                    </li>
+                                                @endif
+                                            @endforeach
+                                        </ul>
+                                    @else
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">Sin instrumentos</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <button wire:click="openContraparteModal({{ $ci }})" type="button"
+                                            class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400">
+                                            Editar
+                                        </button>
+                                        <button wire:click="removeContraparte({{ $ci }})" type="button" wire:confirm="¿Eliminar esta entidad contraparte?"
+                                            class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400">
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                                    No hay entidades contraparte agregadas.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
-            @else
-            <p class="text-sm text-gray-500 text-center py-6 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">Sin entidades contraparte agregadas.</p>
-            @endif
         </div>
 
         {{-- Modal: Crear/Editar Contraparte --}}
@@ -882,14 +931,39 @@
                                     </div>
                                     <div>
                                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Documento <span class="text-red-500">*</span></label>
-                                        <input type="file" wire:model="nuevaContraparte.instrumento_formalizacion.{{ $ii }}.documento_file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                                            class="w-full text-xs text-gray-600 dark:text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                                        <input id="instrumento-documento-{{ $ii }}" type="file" wire:model="nuevaContraparte.instrumento_formalizacion.{{ $ii }}.documento_file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="hidden" />
+                                        <label for="instrumento-documento-{{ $ii }}" class="inline-flex cursor-pointer items-center rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50">
+                                            Seleccionar archivo
+                                        </label>
+                                        <div wire:loading wire:target="nuevaContraparte.instrumento_formalizacion.{{ $ii }}.documento_file" class="mt-1 text-xs text-blue-600">
+                                            Cargando documento...
+                                        </div>
                                         @error("nuevaContraparte.instrumento_formalizacion.$ii.documento_file") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                     </div>
                                     <button wire:click="removeInstrumentoFromModal({{ $ii }})" type="button" class="mt-6 text-xs text-red-600 hover:text-red-800 whitespace-nowrap">Eliminar</button>
                                 </div>
-                                @if(!empty($inst['documento_url']))
-                                    <a href="{{ Storage::url($inst['documento_url']) }}" target="_blank" class="mt-1 inline-block text-xs text-blue-600 hover:text-blue-800">Ver documento actual</a>
+                                @php
+                                    $documentoActualUrl = $this->instrumentoDocumentoUrl($inst['id'] ?? null, $inst['documento_url'] ?? null);
+                                    $documentoSeleccionado = $inst['documento_file'] ?? null;
+                                    $tieneDocumentoGuardado = !empty($inst['documento_url'] ?? null);
+                                @endphp
+                                @if(is_object($documentoSeleccionado))
+                                    <p class="mt-1 text-xs text-green-700 dark:text-green-400">
+                                        Documento seleccionado: {{ method_exists($documentoSeleccionado, 'getClientOriginalName') ? $documentoSeleccionado->getClientOriginalName() : 'archivo listo para guardar' }}
+                                    </p>
+                                @elseif($tieneDocumentoGuardado)
+                                    <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                                        <span class="rounded bg-green-100 px-2 py-1 font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                                            Documento cargado: {{ $this->instrumentoDocumentoNombre($inst['documento_url'] ?? null) }}
+                                        </span>
+                                        @if($documentoActualUrl)
+                                            <a href="{{ $documentoActualUrl }}" target="_blank" rel="noopener" class="font-medium text-blue-600 hover:text-blue-800">
+                                                Ver documento actual
+                                            </a>
+                                        @endif
+                                    </div>
+                                @else
+                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">No hay documento cargado</p>
                                 @endif
                             </div>
                             @endforeach
@@ -897,7 +971,7 @@
                     </div>
                     <div class="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 px-5 py-3">
                         <button wire:click="closeContraparteModal" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 hover:bg-gray-200">Cancelar</button>
-                        <button wire:click="saveContraparte" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">Guardar</button>
+                        <button wire:click="saveContraparte" wire:loading.attr="disabled" wire:target="nuevaContraparte.instrumento_formalizacion" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">Guardar</button>
                     </div>
                 </div>
             </div>
@@ -917,42 +991,77 @@
                 </button>
             </div>
 
-            @if(count(array_filter(array_column($actividades, 'descripcion'))))
-            <div class="space-y-3">
-                @foreach($actividades as $i => $actividad)
-                @if(!empty($actividad['descripcion']))
-                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Act. {{ $i + 1 }}</span>
-                                <p class="text-sm text-gray-900 dark:text-white font-medium truncate">{{ Str::limit($actividad['descripcion'], 80) }}</p>
-                            </div>
-                            <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500">
-                                @if($actividad['fecha_inicio']) <span>Inicio: {{ $actividad['fecha_inicio'] }}</span> @endif
-                                @if($actividad['fecha_finalizacion']) <span>Fin: {{ $actividad['fecha_finalizacion'] }}</span> @endif
-                                @if($actividad['horas']) <span>{{ $actividad['horas'] }} hrs</span> @endif
-                                @if(count($actividad['empleados'] ?? [])) <span>{{ count($actividad['empleados']) }} responsable(s)</span> @endif
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2 shrink-0">
-                            <button wire:click="openActividadModal({{ $i }})" type="button"
-                                class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400">
-                                Editar
-                            </button>
-                            <button wire:click="removeActividad({{ $i }})" type="button" wire:confirm="¿Eliminar esta actividad?"
-                                class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400">
-                                Eliminar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                @endif
-                @endforeach
+            @php
+                $actividadesConDescripcion = collect($actividades)->filter(fn($actividad) => !empty($actividad['descripcion'] ?? null));
+            @endphp
+
+            <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-800">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">No.</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Actividad</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Fecha inicio</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Fecha fin</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Horas</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Responsables</th>
+                            <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 bg-white dark:divide-gray-700 dark:bg-gray-900">
+                        @forelse($actividadesConDescripcion as $i => $actividad)
+                            <tr class="align-top hover:bg-gray-50 dark:hover:bg-gray-800/70">
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    {{ $loop->iteration }}
+                                </td>
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                                    {{ $actividad['descripcion'] ?? 'Sin descripción' }}
+                                </td>
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    {{ !empty($actividad['fecha_inicio'] ?? null) ? $actividad['fecha_inicio'] : 'No definida' }}
+                                </td>
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    {{ !empty($actividad['fecha_finalizacion'] ?? null) ? $actividad['fecha_finalizacion'] : 'No definida' }}
+                                </td>
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    {{ $actividad['horas'] ?? 0 }} hrs
+                                </td>
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    @if(count($actividad['empleados'] ?? []))
+                                        <ul class="space-y-1">
+                                            @foreach($actividad['empleados'] as $empleadoId)
+                                                <li class="text-xs text-gray-700 dark:text-gray-200">
+                                                    {{ $responsablesOptions[$empleadoId] ?? $responsablesOptions[(int) $empleadoId] ?? "#{$empleadoId}" }}
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    @else
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">Sin responsables</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <button wire:click="openActividadModal({{ $i }})" type="button"
+                                            class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400">
+                                            Editar
+                                        </button>
+                                        <button wire:click="removeActividad({{ $i }})" type="button" wire:confirm="¿Eliminar esta actividad?"
+                                            class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400">
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                                    No hay actividades agregadas.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
-            @else
-            <p class="text-sm text-gray-500 text-center py-6 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">Sin actividades agregadas.</p>
-            @endif
         </div>
 
         {{-- Modal: Crear/Editar Actividad --}}
@@ -1050,69 +1159,7 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Definición del Problema</label>
                 <textarea wire:model.live.debounce.1000ms="definicion_problema" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
-            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Beneficiarios por Etnia</h4>
-                <div class="overflow-x-auto">
-                    <table class="text-sm">
-                        <thead>
-                            <tr class="text-xs text-gray-500">
-                                <th class="text-left py-1 pr-6">Grupo</th>
-                                <th class="text-center py-1 px-3">Hombres</th>
-                                <th class="text-center py-1 px-3">Mujeres</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="py-1 pr-6 text-gray-700 dark:text-gray-300">Indígenas</td>
-                                <td class="py-1 px-3"><input type="number" wire:model.live.debounce.1000ms="indigenas_hombres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
-                                <td class="py-1 px-3"><input type="number" wire:model.live.debounce.1000ms="indigenas_mujeres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
-                            </tr>
-                            <tr>
-                                <td class="py-1 pr-6 text-gray-700 dark:text-gray-300">Afroamericanos</td>
-                                <td class="py-1 px-3"><input type="number" wire:model.live.debounce.1000ms="afroamericanos_hombres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
-                                <td class="py-1 px-3"><input type="number" wire:model.live.debounce.1000ms="afroamericanos_mujeres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
-                            </tr>
-                            <tr>
-                                <td class="py-1 pr-6 text-gray-700 dark:text-gray-300">Mestizos</td>
-                                <td class="py-1 px-3"><input type="number" wire:model.live.debounce.1000ms="mestizos_hombres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
-                                <td class="py-1 px-3"><input type="number" wire:model.live.debounce.1000ms="mestizos_mujeres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
-                            </tr>
-                            <tr class="border-t border-gray-300 dark:border-gray-600 font-semibold">
-                                <td class="py-1 pr-6 text-gray-900 dark:text-white">Total</td>
-                                <td class="py-1 px-3 text-center text-gray-900 dark:text-white">{{ $hombres }}</td>
-                                <td class="py-1 px-3 text-center text-gray-900 dark:text-white">{{ $mujeres }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <p class="text-sm mt-2 text-gray-700 dark:text-gray-300">Población Participante Total: <strong>{{ $poblacion_participante }}</strong></p>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departamento(s)</label>
-                    <select wire:model.live="departamento_geo" multiple size="4" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                        @foreach($departamentosGeo as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                    </select>
-                    <p class="text-xs text-gray-500 mt-1">Ctrl+click para seleccionar múltiples</p>
-                </div>
-                @if($municipiosGeo->count())
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Municipio(s)</label>
-                    <select wire:model.live="municipio_geo" multiple size="4" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                        @foreach($municipiosGeo as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                    </select>
-                    <p class="text-xs text-gray-500 mt-1">Ctrl+click para seleccionar múltiples</p>
-                </div>
-                @endif
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aldea</label>
-                    <input type="text" wire:model.live.debounce.1000ms="aldea" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500" />
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Caserío</label>
-                    <input type="text" wire:model.live.debounce.1000ms="caserio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500" />
-                </div>
-            </div>
+
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alineamiento a la Reforma</label>
                 <textarea wire:model.live.debounce.1000ms="alineamiento_reforma" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
@@ -1197,29 +1244,165 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departamento(s)</label>
-                        <select wire:model.live="departamento_geo" multiple size="5"
-                            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                            @foreach($departamentosGeo as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                        </select>
-                        <p class="text-xs text-gray-500 mt-1">Ctrl+clic para múltiples.</p>
+                        <div wire:key="departamentos-impacto" x-data="{
+                            open: false,
+                            search: '',
+                            selected: @js(collect($departamento_geo)->map(fn($id) => (string) $id)->values()->toArray()),
+                            options: Object.entries(@js($departamentosGeo)).map(([id, label]) => ({ id: String(id), label: String(label) })),
+                            values() { return this.options || []; },
+                            selectedValues() {
+                                const validIds = this.values().map(option => option.id);
+                                return [...new Set((this.selected || []).map(String).filter(id => id !== '' && validIds.includes(id)))];
+                            },
+                            selectedLabels() {
+                                return this.selectedValues()
+                                    .map(id => this.values().find(option => option.id === id))
+                                    .filter(Boolean);
+                            },
+                            filteredOptions() {
+                                const term = this.search.trim().toLowerCase();
+                                return this.values().filter(option => !term || option.label.toLowerCase().includes(term));
+                            },
+                            toggle(id) {
+                                id = String(id);
+                                const current = this.selectedValues();
+                                const index = current.indexOf(id);
+                                index === -1 ? current.push(id) : current.splice(index, 1);
+                                this.selected = current;
+                                this.search = '';
+                                this.syncSelection();
+                                this.$nextTick(() => this.$refs.search?.focus());
+                            },
+                            remove(id) {
+                                this.selected = this.selectedValues().filter(value => value !== String(id));
+                                this.syncSelection();
+                            },
+                            syncSelection() {
+                                const values = this.selectedValues();
+                                this.$wire.set('departamento_geo', values, false);
+                                this.$wire.call('actualizarDepartamentosImpacto', values);
+                            },
+                            isSelected(id) { return this.selectedValues().includes(String(id)); },
+                            getName(id) { return this.values().find(option => option.id === String(id))?.label ?? ''; }
+                        }" @click.outside="open = false" class="relative">
+                            <div @click="open = true; $nextTick(() => $refs.search?.focus())"
+                                class="min-h-[42px] max-h-24 w-full overflow-y-auto rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-2 cursor-text focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+                                <div class="flex min-w-0 flex-wrap items-center gap-1.5 pr-4">
+                                    <template x-for="item in selectedLabels()" :key="item.id">
+                                        <span class="inline-flex max-w-[180px] items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                            <span class="truncate" x-text="item.label"></span>
+                                            <button type="button" @click.stop="remove(item.id)" class="shrink-0 font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
+                                        </span>
+                                    </template>
+                                    <input x-ref="search" x-model="search" @focus="open = true" @keydown.escape="open = false"
+                                        :placeholder="selectedValues().length ? '' : 'Buscar departamentos...'"
+                                        class="min-w-[140px] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 dark:text-white"
+                                        type="text" />
+                                    <span class="ml-auto shrink-0 text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
+                                </div>
+                            </div>
+                            <div x-show="open" x-cloak class="absolute left-0 right-0 z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
+                                <template x-if="filteredOptions().length === 0">
+                                    <div class="px-3 py-2 text-sm text-gray-500">Sin resultados.</div>
+                                </template>
+                                <template x-for="option in filteredOptions()" :key="option.id">
+                                    <div @click="toggle(option.id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-700 flex items-center justify-between"
+                                        :class="isSelected(option.id) ? 'bg-blue-50 text-blue-700 font-medium dark:bg-blue-900/30 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'">
+                                        <span x-text="option.label"></span>
+                                        <span x-show="isSelected(option.id)" class="text-xs">✓</span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
                     </div>
-                    @if($municipiosGeo->count())
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Municipio(s)</label>
-                        <select wire:model="municipio_geo" multiple size="5"
-                            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                            @foreach($municipiosGeo as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                        </select>
-                        <p class="text-xs text-gray-500 mt-1">Ctrl+clic para múltiples.</p>
+                        <div wire:key="municipios-impacto-{{ md5(json_encode($departamento_geo)) }}-{{ md5(json_encode($municipiosGeo->keys()->values()->toArray())) }}" x-data="{
+                            open: false,
+                            search: '',
+                            selected: @js(collect($municipio_geo)->map(fn($id) => (string) $id)->values()->toArray()),
+                            options: Object.entries(@js($municipiosGeo)).map(([id, label]) => ({ id: String(id), label: String(label) })),
+                            values() { return this.options || []; },
+                            selectedValues() {
+                                const validIds = this.values().map(option => option.id);
+                                return [...new Set((this.selected || []).map(String).filter(id => id !== '' && validIds.includes(id)))];
+                            },
+                            selectedLabels() {
+                                return this.selectedValues()
+                                    .map(id => this.values().find(option => option.id === id))
+                                    .filter(Boolean);
+                            },
+                            normalizeSelection() {
+                                this.selected = this.selectedValues();
+                                this.$wire.set('municipio_geo', this.selected, false);
+                            },
+                            filteredOptions() {
+                                const term = this.search.trim().toLowerCase();
+                                return this.values().filter(option => !term || option.label.toLowerCase().includes(term));
+                            },
+                            toggle(id) {
+                                if (!this.values().length) return;
+                                id = String(id);
+                                const current = this.selectedValues();
+                                const index = current.indexOf(id);
+                                index === -1 ? current.push(id) : current.splice(index, 1);
+                                this.selected = current;
+                                this.search = '';
+                                this.syncSelection();
+                                this.$nextTick(() => this.$refs.search?.focus());
+                            },
+                            remove(id) {
+                                this.selected = this.selectedValues().filter(value => value !== String(id));
+                                this.syncSelection();
+                            },
+                            syncSelection() {
+                                const values = this.selectedValues();
+                                this.selected = values;
+                                this.$wire.set('municipio_geo', values, false);
+                                this.$wire.call('actualizarMunicipiosImpacto', values);
+                            },
+                            isSelected(id) { return this.selectedValues().includes(String(id)); },
+                            getName(id) { return this.values().find(option => option.id === String(id))?.label ?? ''; }
+                        }" x-init="normalizeSelection()" @click.outside="open = false" class="relative">
+                            <div @click="if (values().length) { open = true; $nextTick(() => $refs.search?.focus()) }"
+                                class="min-h-[42px] max-h-24 w-full overflow-y-auto rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500"
+                                :class="values().length ? 'cursor-text' : 'cursor-not-allowed opacity-70'">
+                                <div class="flex min-w-0 flex-wrap items-center gap-1.5 pr-4">
+                                    <template x-for="item in selectedLabels()" :key="item.id">
+                                        <span class="inline-flex max-w-[180px] items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                            <span class="truncate" x-text="item.label"></span>
+                                            <button type="button" @click.stop="remove(item.id)" class="shrink-0 font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
+                                        </span>
+                                    </template>
+                                    <input x-ref="search" x-model="search" @focus="if (values().length) open = true" @keydown.escape="open = false"
+                                        :disabled="!values().length"
+                                        :placeholder="values().length ? (selectedValues().length ? '' : 'Buscar municipios...') : 'Seleccione departamentos primero'"
+                                        class="min-w-[140px] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 disabled:cursor-not-allowed dark:text-white"
+                                        type="text" />
+                                    <span class="ml-auto shrink-0 text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
+                                </div>
+                            </div>
+                            <div x-show="open" x-cloak class="absolute left-0 right-0 z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
+                                <template x-if="filteredOptions().length === 0">
+                                    <div class="px-3 py-2 text-sm text-gray-500">Sin resultados.</div>
+                                </template>
+                                <template x-for="option in filteredOptions()" :key="option.id">
+                                    <div @click="toggle(option.id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-700 flex items-center justify-between"
+                                        :class="isSelected(option.id) ? 'bg-blue-50 text-blue-700 font-medium dark:bg-blue-900/30 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'">
+                                        <span x-text="option.label"></span>
+                                        <span x-show="isSelected(option.id)" class="text-xs">✓</span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
                     </div>
-                    @endif
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aldea</label>
-                        <input type="text" wire:model="aldea" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                        <input type="text" wire:model.live.debounce.1000ms="aldea" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Caserío</label>
-                        <input type="text" wire:model="caserio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                        <input type="text" wire:model.live.debounce.1000ms="caserio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                     </div>
                 </div>
             </div>
@@ -1251,7 +1434,7 @@
                     </div>
                     <div class="space-y-2 max-h-[520px] overflow-y-auto pr-1">
                         @foreach($objetivosEspecificos as $oi => $objetivo)
-                        <div wire:click="selectObjetivo({{ $oi }})" class="cursor-pointer rounded-lg border-2 p-3 transition-colors
+                        <div wire:key="objetivo-{{ $objetivo['wire_key'] ?? $objetivo['id'] ?? 'nuevo-'.$oi }}" wire:click="selectObjetivo({{ $oi }})" class="cursor-pointer rounded-lg border-2 p-3 transition-colors
                             {{ $selectedObjetivoIndex === $oi
                                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                                 : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-blue-300' }}">
@@ -1278,7 +1461,8 @@
                 {{-- Right: Selected Objetivo Detail + Resultados --}}
                 @php $objActivo = $objetivosEspecificos[$selectedObjetivoIndex] ?? null; @endphp
                 @if($objActivo !== null)
-                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
+                @php $objetivoActivoKey = $objActivo['wire_key'] ?? $objActivo['id'] ?? 'nuevo-'.$selectedObjetivoIndex; @endphp
+                <div wire:key="objetivo-detalle-{{ $objetivoActivoKey }}" class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
                     <div class="flex items-center justify-between mb-1">
                         <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
                             Objetivo Específico {{ $selectedObjetivoIndex + 1 }}
@@ -1286,7 +1470,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción <span class="text-red-500">*</span></label>
-                        <textarea wire:model="objetivosEspecificos.{{ $selectedObjetivoIndex }}.descripcion" rows="3"
+                        <textarea wire:key="objetivo-descripcion-{{ $objetivoActivoKey }}" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.descripcion" rows="3"
                             class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
                         @error("objetivosEspecificos.{$selectedObjetivoIndex}.descripcion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
@@ -1300,7 +1484,7 @@
                         </div>
                         <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
                             @foreach($objActivo['resultados'] ?? [] as $ri => $resultado)
-                            <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                            <div wire:key="resultado-{{ $objetivoActivoKey }}-{{ $resultado['wire_key'] ?? $resultado['id'] ?? 'nuevo-'.$ri }}" class="p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="text-xs font-semibold text-gray-500">R{{ $ri + 1 }}</span>
                                     <button wire:click="removeResultado({{ $selectedObjetivoIndex }}, {{ $ri }})" type="button"
@@ -1309,22 +1493,22 @@
                                 <div class="grid grid-cols-1 gap-2">
                                     <div>
                                         <label class="block text-xs text-gray-500 mb-0.5">Resultado</label>
-                                        <input type="text" wire:model="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_resultado"
+                                        <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_resultado"
                                             class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
                                     </div>
                                     <div>
                                         <label class="block text-xs text-gray-500 mb-0.5">Indicador</label>
-                                        <input type="text" wire:model="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_indicador"
+                                        <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_indicador"
                                             class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
                                     </div>
                                     <div>
                                         <label class="block text-xs text-gray-500 mb-0.5">Medio de Verificación</label>
-                                        <input type="text" wire:model="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_medio_verificacion"
+                                        <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_medio_verificacion"
                                             class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
                                     </div>
                                     <div>
                                         <label class="block text-xs text-gray-500 mb-0.5">Plazo</label>
-                                        <select wire:model="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.plazo"
+                                        <select wire:model.live="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.plazo"
                                             class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500">
                                             <option value="corto_plazo">Corto plazo</option>
                                             <option value="mediano_plazo">Mediano plazo</option>

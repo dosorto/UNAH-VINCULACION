@@ -62,6 +62,8 @@ use App\Livewire\Personal\Contacto\ListContactos;
 
 use App\Livewire\ServicioTecnologico\CreateServicioTecnologico;
 use App\Livewire\ServicioTecnologico\ListServiciosTecnologicos;
+use App\Models\Proyecto\InstrumenFormalizacion;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('/acercade', function () {
     $slides = Slide::where('estado', true)
@@ -245,6 +247,23 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         Route::get('/crearProyectoVinculacion/{record?}', CreateProyectoVinculacion::class)
             ->name('crearProyectoVinculacion')
             ->middleware('permission:docente.crear-proyecto');
+
+        Route::get('/instrumentos-formalizacion/{instrumento}/documento', function (InstrumenFormalizacion $instrumento) {
+            $proyecto = $instrumento->entidadContraparte?->proyecto;
+            abort_unless($proyecto && $proyecto->coordinadorIsCurrentUser(), 403);
+
+            $path = $instrumento->documento_url;
+            abort_unless($path, 404);
+
+            $path = ltrim($path, '/');
+            $path = preg_replace('#^storage/#', '', $path);
+            $path = preg_replace('#^public/#', '', $path);
+            $path = preg_replace('#^app/public/#', '', $path);
+
+            abort_unless(Storage::disk('public')->exists($path), 404);
+
+            return Storage::disk('public')->response($path);
+        })->name('instrumentos-formalizacion.documento');
 
         // editar un proyecto ya sea en borrador o en subsanacion
         Route::get('editarProyectoVinculacion/{proyecto}', EditProyectoVinculacionForm::class)
