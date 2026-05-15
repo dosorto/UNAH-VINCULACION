@@ -29,7 +29,7 @@ class ListProyectos extends Component
         $user = auth()->user();
         $facultadCentro = $user->empleado->centro_facultad;
 
-        if ($user->hasPermissionTo('admin_centro_facultad-proyectos') && !$user->hasPermissionTo('proyectos-admin-proyectos')) {
+        if ($user->hasPermissionTo('director.proyectos') && !$user->hasPermissionTo('proyectos.historial')) {
             if ($user->empleado->centro_facultad_id !== $facultadCentro->id) {
                 abort(403);
             }

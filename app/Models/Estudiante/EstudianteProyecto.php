@@ -31,6 +31,7 @@ class EstudianteProyecto extends Model
         'estudiante_id', 
         'proyecto_id', 
         'tipo_participacion_estudiante',
+        'carrera_id',
         'asignatura_id',
         'periodo_academico_id',
         'cantidad_estudiantes_hombres',
@@ -56,6 +57,11 @@ class EstudianteProyecto extends Model
     public function asignatura()
     {
         return $this->belongsTo(\App\Models\Asignatura::class);
+    }
+
+    public function carrera()
+    {
+        return $this->belongsTo(\App\Models\UnidadAcademica\Carrera::class, 'carrera_id');
     }
 
     // La relación con periodoAcademico se removió porque ahora periodo_academico_id es un campo de texto

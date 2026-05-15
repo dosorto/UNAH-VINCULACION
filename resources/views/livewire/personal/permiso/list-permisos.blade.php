@@ -13,19 +13,25 @@
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
             <thead class="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Nombre</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Guard</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Módulo</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Nombre técnico</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Nombre legible</th>
                 </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
                 @forelse ($records as $record)
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                        <td class="px-4 py-3 text-gray-900 dark:text-white">{{ $record->name }}</td>
-                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $record->guard_name }}</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                {{ explode('.', $record->name)[0] }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300 font-mono text-xs">{{ $record->name }}</td>
+                        <td class="px-4 py-3 text-gray-900 dark:text-white">{{ $record->display_name ?? '—' }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="2" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">No se encontraron permisos.</td>
+                        <td colspan="3" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">No se encontraron permisos.</td>
                     </tr>
                 @endforelse
             </tbody>

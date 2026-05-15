@@ -157,7 +157,7 @@ class EditPerfilDocente extends Component
 
     public function save(): void
     {
-        $canEdit = Auth::user()->can('cambiar-datos-personales');
+        $canEdit = Auth::user()->can('perfil.editar');
         if (!$canEdit) {
             return;
         }
@@ -188,7 +188,7 @@ class EditPerfilDocente extends Component
             $this->record->active_role_id = Role::where('name', 'docente')->first()?->id;
         }
 
-        $this->record->revokePermissionTo('cambiar-datos-personales');
+        $this->record->revokePermissionTo('perfil.editar');
         $this->record->save();
 
         Notification::make()->title('Exito!')->body('Perfil actualizado correctamente.')->success()->send();

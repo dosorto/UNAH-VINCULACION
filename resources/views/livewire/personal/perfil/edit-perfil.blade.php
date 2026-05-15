@@ -1,5 +1,5 @@
 <div>
-    @can('cambiar-datos-personales')
+    @can('perfil.editar')
         <div class="border-l-4 border-red-500 pl-2 mb-4">
             <p class="text-zinc-950 dark:text-white font-bold mb-1">
                 Completa tu perfil

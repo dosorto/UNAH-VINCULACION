@@ -25,7 +25,7 @@ class Roles extends Component
     public array $edit_permissions = [];
 
     private array $protectedRoles = [
-        'admin', 'docente', 'admin_centro_facultad', 'estudiante', 'Validador',
+        'admin', 'docente', 'Director/Enlace', 'estudiante',
     ];
 
     public function updatingSearch(): void
@@ -76,6 +76,14 @@ class Roles extends Component
             'edit_permissions.*' => 'exists:permissions,id',
         ]);
 
+        if ($this->isProtected($this->edit_name)) {
+            $original = Role::findOrFail($this->editId);
+            if ($original->name !== $this->edit_name) {
+                Notification::make()->title('No se puede renombrar un rol del sistema.')->danger()->send();
+                return;
+            }
+        }
+
         $role = Role::findOrFail($this->editId);
         $role->update(['name' => $this->edit_name]);
         $role->syncPermissions($this->edit_permissions);
@@ -100,15 +108,17 @@ class Roles extends Component
     public function render(): View
     {
         $records = Role::withCount('users')
-            ->when($this->search, fn($q) =>
-                $q->where('name', 'like', '%'.$this->search.'%')
-            )
+            ->when($this->search, fn($q) => $q->where('name', 'like', '%'.$this->search.'%'))
             ->orderBy('name')
             ->paginate(15);
 
+        $permissionsGrouped = Permission::orderBy('name')
+            ->get(['id', 'name', 'display_name'])
+            ->groupBy(fn($p) => explode('.', $p->name)[0]);
+
         return view('livewire.user.roles', [
-            'records'     => $records,
-            'permissions' => Permission::orderBy('name')->get(['id', 'name']),
+            'records'            => $records,
+            'permissionsGrouped' => $permissionsGrouped,
         ]);
     }
 }

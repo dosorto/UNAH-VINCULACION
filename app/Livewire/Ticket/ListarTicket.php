@@ -85,7 +85,7 @@ class ListarTicket extends Component
             'estado'    => 'abierto',
         ]);
 
-        $esAdmin = Auth::user()?->can('admin-tickets-administrar-tickets');
+        $esAdmin = Auth::user()?->can('tickets.administrar');
         if ($esAdmin && $ticket->estado === 'abierto') {
             $ticket->update(['estado' => 'en proceso']);
         }
@@ -95,7 +95,7 @@ class ListarTicket extends Component
 
     public function finalizarTicket(): void
     {
-        if (!$this->viewTicketId || !Auth::user()?->can('admin-tickets-administrar-tickets')) return;
+        if (!$this->viewTicketId || !Auth::user()?->can('tickets.administrar')) return;
 
         Ticket::findOrFail($this->viewTicketId)->update(['estado' => 'cerrado']);
 
@@ -117,7 +117,7 @@ class ListarTicket extends Component
         $user = Auth::user();
         $query = Ticket::with('mensajes')
             ->where('estado', '!=', 'cerrado')
-            ->when(!$user->can('admin-tickets-administrar-tickets'), fn($q) => $q->where('user_id', $user->id))
+            ->when(!$user->can('tickets.administrar'), fn($q) => $q->where('user_id', $user->id))
             ->when($this->filtroTipo,   fn($q) => $q->where('tipo_ticket', $this->filtroTipo))
             ->when($this->filtroEstado, fn($q) => $q->where('estado', $this->filtroEstado))
             ->latest();

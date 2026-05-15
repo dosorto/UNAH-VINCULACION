@@ -1,5 +1,5 @@
 <div>
-    @php $canEdit = auth()->user()->can('cambiar-datos-personales'); @endphp
+    @php $canEdit = auth()->user()->can('perfil.editar'); @endphp
 
     <form wire:submit.prevent="save" class="space-y-6">
         <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 {{ !$canEdit ? 'opacity-60' : '' }}">

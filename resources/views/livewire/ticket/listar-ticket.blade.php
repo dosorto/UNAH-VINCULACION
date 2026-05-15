@@ -2,7 +2,7 @@
     <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
             <p class="text-zinc-950 dark:text-white font-bold mb-1">Tickets</p>
-            @if(auth()->user()->can('admin-tickets-administrar-tickets'))
+            @if(auth()->user()->can('tickets.administrar'))
                 <p class="text-zinc-500 dark:text-gray-400 text-sm">Gestiona y responde los tickets de los usuarios.</p>
             @else
                 <p class="text-zinc-500 dark:text-gray-400 text-sm">Envía tickets para soporte técnico, consultas o sugerencias.</p>
@@ -13,7 +13,7 @@
                 class="inline-flex items-center px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded-lg">
                 Historial
             </a>
-            @can('tickets-ver-modulo')
+            @can('tickets.ver')
                 <button wire:click="openCreate"
                     class="inline-flex items-center px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium rounded-lg">
                     + Nuevo Ticket
@@ -129,7 +129,7 @@
                         <div class="font-semibold">{{ $ticket->tipo_ticket }}</div>
                         <div class="text-gray-500">{{ $ticket->asunto }}</div>
                     </div>
-                    @if(auth()->user()->can('admin-tickets-administrar-tickets') && $ticket->estado !== 'cerrado')
+                    @if(auth()->user()->can('tickets.administrar') && $ticket->estado !== 'cerrado')
                         <button wire:click="finalizarTicket"
                             class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg">
                             Finalizar Ticket

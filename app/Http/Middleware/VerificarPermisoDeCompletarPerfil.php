@@ -11,7 +11,7 @@ class VerificarPermisoDeCompletarPerfil
     {
         $user = Auth::user();
        
-        if ($user && $user->hasPermissionTo('cambiar-datos-personales')) {
+        if ($user && $user->hasPermissionTo('perfil.editar')) {
           
             // Evita un bucle infinito si ya está en la ruta de completar perfil
             if (!$request->is('mi_perfil')) {
