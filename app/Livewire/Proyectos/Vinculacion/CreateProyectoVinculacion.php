@@ -28,6 +28,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Renderless;
@@ -331,9 +332,11 @@ class CreateProyectoVinculacion extends Component
         $this->objetivo_general = $record->objetivo_general ?? '';
         $this->objetivosEspecificos = $record->objetivosEspecificos->map(fn($obj) => [
             'id' => $obj->id,
+            'wire_key' => (string) Str::uuid(),
             'descripcion' => $obj->descripcion,
             'resultados' => $obj->resultados->map(fn($r) => [
                 'id' => $r->id,
+                'wire_key' => (string) Str::uuid(),
                 'nombre_resultado' => $r->nombre_resultado,
                 'nombre_indicador' => $r->nombre_indicador,
                 'nombre_medio_verificacion' => $r->nombre_medio_verificacion,
@@ -370,17 +373,7 @@ class CreateProyectoVinculacion extends Component
         $this->aporte_institucional = $this->normalizeAporteRows($this->aporte_institucional);
         $this->recalculateAporteInstitucional();
         if (empty($this->objetivosEspecificos)) {
-            $this->objetivosEspecificos = [[
-                'id' => null,
-                'descripcion' => '',
-                'resultados' => [[
-                    'id' => null,
-                    'nombre_resultado' => '',
-                    'nombre_indicador' => '',
-                    'nombre_medio_verificacion' => '',
-                    'plazo' => 'corto_plazo',
-                ]],
-            ]];
+            $this->objetivosEspecificos = [$this->nuevoObjetivoEspecifico()];
         }
     }
 
@@ -2269,6 +2262,11 @@ class CreateProyectoVinculacion extends Component
 
     public function selectObjetivo(int $index): void
     {
+        if (!array_key_exists($index, $this->objetivosEspecificos)) {
+            $this->normalizarObjetivoSeleccionado();
+            return;
+        }
+
         $this->selectedObjetivoIndex = $index;
     }
 
@@ -2289,23 +2287,19 @@ class CreateProyectoVinculacion extends Component
 
     public function addObjetivo(): void
     {
-        $this->objetivosEspecificos[] = [
-            'id' => null,
-            'descripcion' => '',
-            'resultados' => [[
-                'id' => null,
-                'nombre_resultado' => '',
-                'nombre_indicador' => '',
-                'nombre_medio_verificacion' => '',
-                'plazo' => 'corto_plazo',
-            ]],
-        ];
+        $this->objetivosEspecificos[] = $this->nuevoObjetivoEspecifico();
         $this->selectedObjetivoIndex = count($this->objetivosEspecificos) - 1;
     }
 
     public function removeObjetivo(int $i): void
     {
+        if (!array_key_exists($i, $this->objetivosEspecificos)) {
+            $this->normalizarObjetivoSeleccionado();
+            return;
+        }
+
         $objetivoId = $this->nullableInt($this->objetivosEspecificos[$i]['id'] ?? null);
+        $selectedBeforeRemoval = $this->selectedObjetivoIndex;
 
         if ($objetivoId && $this->recordId) {
             DB::transaction(function () use ($objetivoId) {
@@ -2322,36 +2316,37 @@ class CreateProyectoVinculacion extends Component
         array_splice($this->objetivosEspecificos, $i, 1);
 
         if (empty($this->objetivosEspecificos)) {
-            $this->objetivosEspecificos[] = [
-                'id' => null,
-                'descripcion' => '',
-                'resultados' => [[
-                    'id' => null,
-                    'nombre_resultado' => '',
-                    'nombre_indicador' => '',
-                    'nombre_medio_verificacion' => '',
-                    'plazo' => 'corto_plazo',
-                ]],
-            ];
+            $this->objetivosEspecificos[] = $this->nuevoObjetivoEspecifico();
         }
 
-        $this->selectedObjetivoIndex = max(0, min($this->selectedObjetivoIndex, count($this->objetivosEspecificos) - 1));
+        if ($selectedBeforeRemoval === $i) {
+            $this->selectedObjetivoIndex = min($i, count($this->objetivosEspecificos) - 1);
+        } elseif ($selectedBeforeRemoval > $i) {
+            $this->selectedObjetivoIndex = $selectedBeforeRemoval - 1;
+        }
+
+        $this->normalizarObjetivoSeleccionado();
         $this->autoGuardarBorrador();
     }
 
     public function addResultado(int $oi): void
     {
-        $this->objetivosEspecificos[$oi]['resultados'][] = [
-            'id' => null,
-            'nombre_resultado' => '',
-            'nombre_indicador' => '',
-            'nombre_medio_verificacion' => '',
-            'plazo' => 'corto_plazo',
-        ];
+        if (!array_key_exists($oi, $this->objetivosEspecificos)) {
+            $this->normalizarObjetivoSeleccionado();
+            return;
+        }
+
+        $this->objetivosEspecificos[$oi]['resultados'][] = $this->nuevoResultadoEsperado();
     }
 
     public function removeResultado(int $oi, int $ri): void
     {
+        if (!array_key_exists($oi, $this->objetivosEspecificos)
+            || !array_key_exists($ri, $this->objetivosEspecificos[$oi]['resultados'] ?? [])) {
+            $this->normalizarObjetivoSeleccionado();
+            return;
+        }
+
         $objetivoId = $this->nullableInt($this->objetivosEspecificos[$oi]['id'] ?? null);
         $resultadoId = $this->nullableInt($this->objetivosEspecificos[$oi]['resultados'][$ri]['id'] ?? null);
 
@@ -2368,6 +2363,41 @@ class CreateProyectoVinculacion extends Component
 
         array_splice($this->objetivosEspecificos[$oi]['resultados'], $ri, 1);
         $this->autoGuardarBorrador();
+    }
+
+    private function nuevoObjetivoEspecifico(): array
+    {
+        return [
+            'id' => null,
+            'wire_key' => (string) Str::uuid(),
+            'descripcion' => '',
+            'resultados' => [$this->nuevoResultadoEsperado()],
+        ];
+    }
+
+    private function nuevoResultadoEsperado(): array
+    {
+        return [
+            'id' => null,
+            'wire_key' => (string) Str::uuid(),
+            'nombre_resultado' => '',
+            'nombre_indicador' => '',
+            'nombre_medio_verificacion' => '',
+            'plazo' => 'corto_plazo',
+        ];
+    }
+
+    private function normalizarObjetivoSeleccionado(): void
+    {
+        if (empty($this->objetivosEspecificos)) {
+            $this->selectedObjetivoIndex = 0;
+            return;
+        }
+
+        $this->selectedObjetivoIndex = max(0, min(
+            $this->selectedObjetivoIndex,
+            count($this->objetivosEspecificos) - 1,
+        ));
     }
 
     public function updateAporteTotal(int $i): void

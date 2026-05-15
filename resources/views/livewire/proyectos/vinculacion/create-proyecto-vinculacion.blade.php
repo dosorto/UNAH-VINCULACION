@@ -1434,7 +1434,7 @@
                     </div>
                     <div class="space-y-2 max-h-[520px] overflow-y-auto pr-1">
                         @foreach($objetivosEspecificos as $oi => $objetivo)
-                        <div wire:key="objetivo-{{ $objetivo['id'] ?? 'nuevo-'.$oi }}" wire:click="selectObjetivo({{ $oi }})" class="cursor-pointer rounded-lg border-2 p-3 transition-colors
+                        <div wire:key="objetivo-{{ $objetivo['wire_key'] ?? $objetivo['id'] ?? 'nuevo-'.$oi }}" wire:click="selectObjetivo({{ $oi }})" class="cursor-pointer rounded-lg border-2 p-3 transition-colors
                             {{ $selectedObjetivoIndex === $oi
                                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                                 : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-blue-300' }}">
@@ -1461,7 +1461,8 @@
                 {{-- Right: Selected Objetivo Detail + Resultados --}}
                 @php $objActivo = $objetivosEspecificos[$selectedObjetivoIndex] ?? null; @endphp
                 @if($objActivo !== null)
-                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
+                @php $objetivoActivoKey = $objActivo['wire_key'] ?? $objActivo['id'] ?? 'nuevo-'.$selectedObjetivoIndex; @endphp
+                <div wire:key="objetivo-detalle-{{ $objetivoActivoKey }}" class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
                     <div class="flex items-center justify-between mb-1">
                         <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
                             Objetivo Específico {{ $selectedObjetivoIndex + 1 }}
@@ -1469,7 +1470,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción <span class="text-red-500">*</span></label>
-                        <textarea wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.descripcion" rows="3"
+                        <textarea wire:key="objetivo-descripcion-{{ $objetivoActivoKey }}" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.descripcion" rows="3"
                             class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
                         @error("objetivosEspecificos.{$selectedObjetivoIndex}.descripcion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
@@ -1483,7 +1484,7 @@
                         </div>
                         <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
                             @foreach($objActivo['resultados'] ?? [] as $ri => $resultado)
-                            <div wire:key="resultado-{{ $resultado['id'] ?? 'nuevo-'.$selectedObjetivoIndex.'-'.$ri }}" class="p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                            <div wire:key="resultado-{{ $objetivoActivoKey }}-{{ $resultado['wire_key'] ?? $resultado['id'] ?? 'nuevo-'.$ri }}" class="p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="text-xs font-semibold text-gray-500">R{{ $ri + 1 }}</span>
                                     <button wire:click="removeResultado({{ $selectedObjetivoIndex }}, {{ $ri }})" type="button"
