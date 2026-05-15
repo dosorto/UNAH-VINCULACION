@@ -6,6 +6,24 @@
     <meta name="application-name" content="{{ config('app.name') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+        (() => {
+            const storedTheme = localStorage.getItem('theme');
+            const legacyTheme = localStorage.getItem('color-theme');
+            const theme = storedTheme || legacyTheme;
+
+            if (!storedTheme && legacyTheme) {
+                localStorage.setItem('theme', legacyTheme);
+                localStorage.removeItem('color-theme');
+            }
+
+            if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
 
     <title>{{ config('app.name') }}</title>
     <link rel="icon" href="{{ asset('images/Image/logo_nexo.png') }}" type="image/png">
@@ -69,8 +87,8 @@
     @endif
 
     <!-- Contenedor principal -->
-    <div class="flex-1 flex">
-        <div class="sm:flex w-full flex-col sm:flex-row" >
+    <div class="flex-1 flex min-w-0">
+        <div class="sm:flex w-full min-w-0 flex-col sm:flex-row" >
             <!-- Remover banner móvil anterior -->
             <x-panel.navbar.navbar />
             <!-- Barra superior en dispositivos móviles -->
@@ -95,7 +113,7 @@
         </div>
 
         <!-- Etiqueta principal-->
-        <main class="w-full flex flex-col p-2 sm:py-4 sm:pl-2 sm:pr-4 overflow-x-auto ">
+        <main class="w-full sm:flex-1 sm:min-w-0 flex flex-col p-2 sm:py-4 sm:pl-2 sm:pr-4 overflow-x-auto ">
             <!-- Contenido del main -->
             <div class="bg-white p-6 border border-gray-300 rounded-lg dark:bg-white/5 dark:border-gray-700 h-full">
                 @yield('titulo')

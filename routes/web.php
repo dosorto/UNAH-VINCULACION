@@ -213,9 +213,9 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
         Route::get('configuracion/flujos-proyectos', ConfiguracionFlujosProyectos::class)
             ->name('configuracion.flujos.proyectos')
-            ->middleware('can:configuracion-admin-flujos');
+            ->middleware('can:configuracion.flujos');
 
-        Route::prefix('sgcu')->middleware('can:configuracion-admin-flujos')->group(function () {
+        Route::prefix('sgcu')->middleware('can:configuracion.flujos')->group(function () {
             Route::get('catalogos', SgcuCatalogos::class)
                 ->name('sgcu.catalogos');
             Route::get('tipos-programa', ListTiposPrograma::class)

@@ -18,7 +18,7 @@
 
     <section class="flex flex-wrap items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
         <button type="button" wire:click="showProgramFlows" class="rounded-full border px-4 py-2 text-sm font-semibold transition {{ $activeFlowTab === 'programas' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/60' }}">
-            Flujos de programa
+            Flujos de programa  NO EDUCACION FORMALLLL
         </button>
         <button type="button" wire:click="showProjectFlows" class="rounded-full border px-4 py-2 text-sm font-semibold transition {{ $activeFlowTab === 'proyectos' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/60' }}">
             Flujos de proyectos

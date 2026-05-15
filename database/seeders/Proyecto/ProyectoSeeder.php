@@ -124,8 +124,8 @@ class ProyectoSeeder extends Seeder
 
         Categoria::insert([
            // ['nombre' => 'APS'],
-            //['nombre' => 'Desarrollo Regional'],
-            //['nombre' => 'Desarrollo Local'],
+            ['nombre' => 'Desarrollo Regional'],
+            ['nombre' => 'Desarrollo Local'],
            /* ['nombre' => 'Volunt. Académico'],
             ['nombre' => 'Seguim. a egresados'],
             ['nombre' => 'I + D + i'],
