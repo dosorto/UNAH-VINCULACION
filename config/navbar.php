@@ -149,10 +149,12 @@ return [
                     'unidad-academica.carrera',
                     'unidad-academica.departamento',
                     'unidad-academica.facultad',
+                    'unidad-academica.asignatura',
                 ],
                 'children' => [
                     ['texto' => 'Campus', 'route' => 'campus', 'permiso' => 'unidad-academica.campus'],
                     ['texto' => 'Carrera', 'route' => 'carrera', 'permiso' => 'unidad-academica.carrera'],
+                    ['texto' => 'Asignatura', 'route' => 'asignatura', 'permiso' => 'unidad-academica.asignatura'],
                     ['texto' => 'Departamento Academico', 'route' => 'departamento-academico', 'permiso' => 'unidad-academica.departamento'],
                     ['texto' => 'Facultad Centro', 'route' => 'facultad-centro', 'permiso' => 'unidad-academica.facultad'],
                 ],

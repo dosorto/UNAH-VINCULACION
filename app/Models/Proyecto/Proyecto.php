@@ -424,6 +424,12 @@ class Proyecto extends Model
         return $this->belongsToMany(MetaContribuye::class, 'proyecto_meta_contribuye', 'proyecto_id', 'meta_contribuye_id');
     }
 
+    // relacion muchos a muchos con asignaturas
+    public function asignaturas()
+    {
+        return $this->belongsToMany(\App\Models\Asignatura::class, 'proyecto_asignatura', 'proyecto_id', 'asignatura_id');
+    }
+
     // relacion muchos a muchos con el modelo categoria
     public function categoria()
     {

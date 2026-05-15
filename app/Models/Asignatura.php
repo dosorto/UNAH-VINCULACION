@@ -2,48 +2,36 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\PeriodoAcademico;
-use App\Models\UnidadAcademica\Carrera;
 
 class Asignatura extends Model
 {
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
+    use HasFactory;
+
     protected $table = 'asignaturas';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
-        'codigo',
         'nombre',
+        'codigo',
+        'descripcion',
         'carrera_id',
-        'periodo_academico_id',
+        'departamento_academico_id',
     ];
-
-    /**
-     * Indicates if the model should be timestamped.
-     *
-     * @var bool
-     */
-    public $timestamps = true;
-
-    public function periodoAcademico()
-    {
-        return $this->belongsTo(PeriodoAcademico::class);
-    }
 
     public function carrera()
     {
-        return $this->belongsTo(Carrera::class, 'carrera_id');
+        return $this->belongsTo(\App\Models\UnidadAcademica\Carrera::class, 'carrera_id');
+    }
+
+    public function departamentoAcademico()
+    {
+        return $this->belongsTo(\App\Models\UnidadAcademica\DepartamentoAcademico::class, 'departamento_academico_id');
+    }
+
+    public function proyectos()
+    {
+        return $this->belongsToMany(\App\Models\Proyecto\Proyecto::class, 'proyecto_asignatura', 'asignatura_id', 'proyecto_id');
     }
 
     public function estudianteProyectos()

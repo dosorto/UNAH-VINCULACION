@@ -45,6 +45,7 @@ class CreateProyectoVinculacion extends Component
 
     // Step 1
     public string $nombre_proyecto = '';
+    public array $asignaturas = [];
     public ?int $modalidad_id = null;
     public array $categoria = [];
     public array $ejes_prioritarios_unah = [];
@@ -242,6 +243,7 @@ class CreateProyectoVinculacion extends Component
         $this->facultades_centros = $record->facultades_centros->pluck('id')->toArray();
         $this->departamentos_academicos = $record->departamentos_academicos->pluck('id')->toArray();
         $this->carreras = $record->carreras->pluck('id')->toArray();
+        $this->asignaturas = $record->asignaturas->pluck('id')->toArray();
         $this->programa_pertenece = $record->programa_pertenece ?? '';
         $this->lineas_investigacion_academica = $record->lineas_investigacion_academica ?? '';
         $this->ods = $record->ods->pluck('id')->toArray();
@@ -743,6 +745,10 @@ class CreateProyectoVinculacion extends Component
         $record->facultades_centros()->sync($this->ids($this->facultades_centros));
         $record->departamentos_academicos()->sync($this->ids($this->departamentos_academicos));
         $record->carreras()->sync($this->ids($this->carreras));
+        // sincronizar asignaturas seleccionadas (si existe la tabla)
+        if (Schema::hasTable('proyecto_asignatura')) {
+            $record->asignaturas()->sync($this->ids($this->asignaturas));
+        }
         $record->ods()->sync($this->ids($this->ods));
         $record->departamento()->sync($this->ids($this->departamento_geo));
         $record->municipio()->sync($this->ids($this->municipio_geo));
