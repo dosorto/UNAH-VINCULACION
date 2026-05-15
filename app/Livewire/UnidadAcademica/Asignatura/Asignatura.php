@@ -40,7 +40,10 @@ class Asignatura extends Component
 
     public function openCreate(): void
     {
-        $this->reset(['create_nombre', 'create_codigo', 'create_descripcion']);
+        // Se limpia todo el estado del formulario para evitar que se reutilicen
+        // valores o errores de una creación anterior al abrir el modal otra vez.
+        $this->reset(['create_nombre', 'create_codigo', 'create_descripcion', 'create_carrera_id']);
+        $this->resetValidation();
         $this->createModal = true;
     }
 
@@ -59,6 +62,8 @@ class Asignatura extends Component
             'carrera_id' => $this->create_carrera_id,
         ]);
 
+        // Dejamos el formulario listo para una nueva alta sin arrastrar datos.
+        $this->reset(['create_nombre', 'create_codigo', 'create_descripcion', 'create_carrera_id']);
         $this->createModal = false;
         Notification::make()->title('Asignatura creada')->success()->send();
     }
