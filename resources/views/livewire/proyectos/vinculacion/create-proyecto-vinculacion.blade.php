@@ -605,7 +605,14 @@
                         @if(($nuevoEstudiante['tipo_participacion_estudiante'] ?? '') === 'Practica Asignatura')
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Asignatura <span class="text-red-500">*</span></label>
+                                <div class="mb-1 flex items-center justify-between gap-3">
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Asignatura <span class="text-red-500">*</span></label>
+                                    @if(!empty($carreras))
+                                        <button wire:click="{{ $showCrearAsignaturaInline ? 'closeCrearAsignaturaInline' : 'openCrearAsignaturaInline' }}" type="button" class="text-[11px] font-medium text-blue-600 hover:text-blue-800">
+                                            {{ $showCrearAsignaturaInline ? 'Ocultar formulario' : '+ Nueva asignatura' }}
+                                        </button>
+                                    @endif
+                                </div>
                                 <select wire:model.live="nuevoEstudiante.asignatura_id"
                                     @disabled(empty($carreras) || empty($asignaturas))
                                     class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800/60">
@@ -621,6 +628,9 @@
                                     @endif
                                 </select>
                                 @error('nuevoEstudiante.asignatura_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                @if(empty($asignaturas) && !empty($carreras))
+                                    <p class="text-xs text-amber-600 mt-1">Cree una asignatura asociada a una de las carreras seleccionadas para poder usarla aqui.</p>
+                                @endif
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Periodo Académico <span class="text-red-500">*</span></label>
@@ -635,6 +645,35 @@
                                 @error('nuevoEstudiante.periodo_academico_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
+                        @if($showCrearAsignaturaInline)
+                        <div class="rounded-lg border border-blue-200 bg-blue-50/70 dark:border-blue-800 dark:bg-blue-900/10 p-3 space-y-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Carrera <span class="text-red-500">*</span></label>
+                                    <select wire:model="nuevaAsignaturaCarreraId" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
+                                        <option value="">Seleccione...</option>
+                                        @foreach($carrerasSeleccionadas as $id => $nombre)
+                                            <option value="{{ $id }}">{{ $nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('nuevaAsignaturaCarreraId') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Codigo</label>
+                                    <input type="text" wire:model="nuevaAsignaturaCodigo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                    @error('nuevaAsignaturaCodigo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre <span class="text-red-500">*</span></label>
+                                    <input type="text" wire:model="nuevaAsignaturaNombre" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                    @error('nuevaAsignaturaNombre') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+                            <div class="flex justify-end">
+                                <button wire:click="crearAsignaturaInline" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">Crear asignatura</button>
+                            </div>
+                        </div>
+                        @endif
                         @endif
                         <div class="grid grid-cols-2 gap-4">
                             <div>

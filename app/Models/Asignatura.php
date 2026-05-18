@@ -14,7 +14,6 @@ class Asignatura extends Model
     protected $fillable = [
         'nombre',
         'codigo',
-        'descripcion',
         'carrera_id',
         'departamento_academico_id',
     ];

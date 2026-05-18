@@ -2,8 +2,8 @@
 
 namespace Database\Seeders\UnidadAcademica;
 
-use Illuminate\Database\Seeder;
 use App\Models\Asignatura;
+use Illuminate\Database\Seeder;
 
 class AsignaturaSeeder extends Seeder
 {
@@ -13,9 +13,9 @@ class AsignaturaSeeder extends Seeder
     public function run(): void
     {
         $sample = [
-            ['codigo' => 'MAT101', 'nombre' => 'Matemáticas I', 'descripcion' => 'Fundamentos de matemáticas básicas', 'carrera_id' => null],
-            ['codigo' => 'FIS101', 'nombre' => 'Física I', 'descripcion' => 'Introducción a la física', 'carrera_id' => null],
-            ['codigo' => 'PROG101', 'nombre' => 'Introducción a la Programación', 'descripcion' => 'Conceptos básicos de programación', 'carrera_id' => null],
+            ['codigo' => 'MAT101', 'nombre' => 'Matematicas I', 'carrera_id' => null],
+            ['codigo' => 'FIS101', 'nombre' => 'Fisica I', 'carrera_id' => null],
+            ['codigo' => 'PROG101', 'nombre' => 'Introduccion a la Programacion', 'carrera_id' => null],
         ];
 
         foreach ($sample as $row) {
