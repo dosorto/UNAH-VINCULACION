@@ -6,6 +6,7 @@ use App\Livewire\User\Users;
 use App\Livewire\Login\Login;
 use App\Livewire\Inicio\InicioAdmin;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Livewire\Demografia\Pais\CreatePais;
 use App\Livewire\Demografia\Pais\ListPaises;
 use App\Livewire\Configuracion\Logs\ListLogs;
@@ -53,6 +54,7 @@ use App\Livewire\UnidadAcademica\Campus\CampusList;
 use App\Livewire\UnidadAcademica\Carrera\CarreraList;
 use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList;
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
+use App\Livewire\UnidadAcademica\Asignatura\Asignatura;
 use App\Http\Controllers\PDFController;
 
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
@@ -90,8 +92,8 @@ Route::get('/constancia/{constancia:hash}/pdf', [PDFController::class, 'generate
     ->name('constancia.pdf');
 
 Route::get('/logout', function () {
-    if (auth()->check()) {
-        auth()->logout();
+    if (Auth::check()) {
+        Auth::logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
     }
@@ -123,6 +125,10 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
     Route::get('carrera', CarreraList::class)
         ->name('carrera')
         ->middleware('can:unidad-academica.carrera');
+
+    Route::get('asignatura', Asignatura::class)
+        ->name('asignatura')
+        ->middleware('can:unidad-academica.asignatura');
 
     Route::get('departamento-academico', DepartamentoAcademicoList::class)
         ->name('departamento-academico')

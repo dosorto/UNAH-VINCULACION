@@ -1,0 +1,1259 @@
+// ============================================================
+// UNAH-VINCULACION - Database Diagram
+// Generado desde migraciones Laravel
+// Tablas: ~100 | Módulos: Auth, Geografía, Académico,
+//         Proyectos, Servicios Tecnológicos, Presupuesto,
+//         Constancias, Tickets, Comentarios, Internacionales
+// ============================================================
+
+// ─────────────────────────────────────────
+// MÓDULO: AUTH / USUARIOS
+// ─────────────────────────────────────────
+
+Table users {
+  id            bigint        [pk, increment]
+  name          varchar
+  microsoft_id  varchar       [null]
+  given_name    varchar       [null]
+  surname       varchar       [null]
+  email         varchar       [unique, not null]
+  email_verified_at timestamp [null]
+  active_role_id bigint       [null, ref: > roles.id]
+  password      varchar       [null]
+  remember_token varchar      [null]
+  deleted_at    timestamp     [null]
+  created_at    timestamp     [null]
+  updated_at    timestamp     [null]
+}
+
+Table password_reset_tokens {
+  email      varchar   [pk]
+  token      varchar   [not null]
+  created_at timestamp [null]
+}
+
+Table sessions {
+  id            varchar   [pk]
+  user_id       bigint    [null, ref: > users.id]
+  ip_address    varchar   [null]
+  user_agent    text      [null]
+  payload       longtext  [not null]
+  last_activity int       [not null]
+}
+
+Table cache {
+  key        varchar    [pk]
+  value      mediumtext [not null]
+  expiration int        [not null]
+}
+
+Table cache_locks {
+  key        varchar [pk]
+  owner      varchar [not null]
+  expiration int     [not null]
+}
+
+Table jobs {
+  id           bigint  [pk, increment]
+  queue        varchar [not null, note: 'indexed']
+  payload      longtext
+  attempts     tinyint [not null]
+  reserved_at  int     [null]
+  available_at int     [not null]
+  created_at   int     [not null]
+}
+
+Table job_batches {
+  id             varchar [pk]
+  name           varchar [not null]
+  total_jobs     int     [not null]
+  pending_jobs   int     [not null]
+  failed_jobs    int     [not null]
+  failed_job_ids longtext
+  options        mediumtext [null]
+  cancelled_at   int     [null]
+  created_at     int     [not null]
+  finished_at    int     [null]
+}
+
+Table failed_jobs {
+  id         bigint    [pk, increment]
+  uuid       varchar   [unique, not null]
+  connection text      [not null]
+  queue      text      [not null]
+  payload    longtext  [not null]
+  exception  longtext  [not null]
+  failed_at  timestamp [not null]
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: PERMISOS Y ROLES (Spatie)
+// ─────────────────────────────────────────
+
+Table permissions {
+  id         bigint  [pk, increment]
+  name       varchar [not null]
+  guard_name varchar [not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+
+  indexes {
+    (name, guard_name) [unique]
+  }
+}
+
+Table roles {
+  id               bigint  [pk, increment]
+  team_foreign_key bigint  [null]
+  name             varchar [not null]
+  guard_name       varchar [not null]
+  created_at       timestamp [null]
+  updated_at       timestamp [null]
+}
+
+Table model_has_permissions {
+  permission_id    bigint  [not null, ref: > permissions.id]
+  model_type       varchar [not null]
+  model_id         bigint  [not null]
+  team_foreign_key bigint  [null]
+}
+
+Table model_has_roles {
+  role_id          bigint  [not null, ref: > roles.id]
+  model_type       varchar [not null]
+  model_id         bigint  [not null]
+  team_foreign_key bigint  [null]
+}
+
+Table role_has_permissions {
+  permission_id bigint [not null, ref: > permissions.id]
+  role_id       bigint [not null, ref: > roles.id]
+
+  indexes {
+    (permission_id, role_id) [pk]
+  }
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: GEOGRAFÍA
+// ─────────────────────────────────────────
+
+Table pais {
+  id                   bigint  [pk, increment]
+  codigo_area          varchar [null]
+  codigo_iso           varchar [null]
+  codigo_iso_numerico  varchar [null]
+  codigo_iso_alpha_2   varchar [null]
+  nombre               varchar [not null]
+  gentilicio           varchar [null]
+  deleted_at           timestamp [null]
+  created_at           timestamp [null]
+  updated_at           timestamp [null]
+}
+
+Table departamento {
+  id                  bigint  [pk, increment]
+  pais_id             bigint  [not null, ref: > pais.id]
+  nombre              varchar [not null]
+  codigo_departamento varchar [null]
+  deleted_at          timestamp [null]
+  created_at          timestamp [null]
+  updated_at          timestamp [null]
+}
+
+Table municipio {
+  id               bigint  [pk, increment]
+  departamento_id  bigint  [not null, ref: > departamento.id]
+  nombre           varchar [not null]
+  codigo_municipio varchar [null]
+  deleted_at       timestamp [null]
+  created_at       timestamp [null]
+  updated_at       timestamp [null]
+}
+
+Table aldea {
+  id           bigint  [pk, increment]
+  municipio_id bigint  [not null, ref: > municipio.id]
+  nombre       varchar [not null]
+  deleted_at   timestamp [null]
+  created_at   timestamp [null]
+  updated_at   timestamp [null]
+}
+
+Table ciudad {
+  id             bigint  [pk, increment]
+  municipio_id   bigint  [not null, ref: > municipio.id]
+  nombre         varchar [not null]
+  codigo_postal  varchar [null]
+  deleted_at     timestamp [null]
+  created_at     timestamp [null]
+  updated_at     timestamp [null]
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: UNIDAD ACADÉMICA
+// ─────────────────────────────────────────
+
+Table campus {
+  id           bigint  [pk, increment]
+  nombre_campus varchar [not null]
+  siglas       varchar [null]
+  direccion    varchar [null]
+  telefono     varchar [null]
+  url          varchar [null]
+  deleted_at   timestamp [null]
+  created_at   timestamp [null]
+  updated_at   timestamp [null]
+}
+
+Table centro_facultad {
+  id           bigint   [pk, increment]
+  nombre       varchar  [not null]
+  es_facultad  boolean  [not null, default: false]
+  siglas       varchar  [null]
+  campus_id    bigint   [not null, ref: > campus.id]
+  deleted_at   timestamp [null]
+  created_at   timestamp [null]
+  updated_at   timestamp [null]
+}
+
+Table administrador_centro_facultad {
+  id                bigint  [pk, increment]
+  centro_facultad_id bigint [not null, ref: > centro_facultad.id]
+  user_id           bigint  [not null, ref: > users.id]
+  es_director       boolean [not null, default: false]
+  estado            boolean [not null, default: true]
+  deleted_at        timestamp [null]
+  created_at        timestamp [null]
+  updated_at        timestamp [null]
+}
+
+Table departamento_academico {
+  id                bigint  [pk, increment]
+  centro_facultad_id bigint [not null, ref: > centro_facultad.id]
+  nombre            varchar [not null]
+  siglas            varchar [null]
+  deleted_at        timestamp [null]
+  created_at        timestamp [null]
+  updated_at        timestamp [null]
+}
+
+Table carrera {
+  id                      bigint  [pk, increment]
+  nombre                  varchar [not null]
+  siglas                  varchar [null]
+  facultad_centro_id      bigint  [not null, ref: > centro_facultad.id]
+  departamento_academico_id bigint [null, ref: > departamento_academico.id]
+  deleted_at              timestamp [null]
+  created_at              timestamp [null]
+  updated_at              timestamp [null]
+}
+
+Table carrera_facultad_centro {
+  id                bigint [pk, increment]
+  carrera_id        bigint [not null, ref: > carrera.id]
+  facultad_centro_id bigint [not null, ref: > centro_facultad.id]
+  deleted_at        timestamp [null]
+  created_at        timestamp [null]
+  updated_at        timestamp [null]
+}
+
+Table carrera_departamento_academico {
+  id                      bigint [pk, increment]
+  carrera_id              bigint [not null, ref: > carrera.id]
+  departamento_academico_id bigint [not null, ref: > departamento_academico.id]
+  deleted_at              timestamp [null]
+  created_at              timestamp [null]
+  updated_at              timestamp [null]
+}
+
+Table periodos_academicos {
+  id         bigint  [pk, increment]
+  nombre     varchar [not null, unique, note: 'enum: Primer Periodo, Segundo Periodo, Tercer Periodo, Primer Semestre, Segundo Semestre']
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table asignaturas {
+  id         bigint  [pk, increment]
+  codigo     varchar [unique, not null]
+  nombre     varchar [not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: PERSONAL / EMPLEADOS
+// ─────────────────────────────────────────
+
+Table categoria {
+  id          bigint  [pk, increment]
+  nombre      varchar [not null]
+  descripcion varchar [null]
+  deleted_at  timestamp [null]
+  created_at  timestamp [null]
+  updated_at  timestamp [null]
+}
+
+Table empleado {
+  id                       bigint  [pk, increment]
+  nombre_completo          varchar [not null]
+  numero_empleado          varchar [unique, not null]
+  celular                  varchar [null]
+  sexo                     varchar [not null, note: 'enum: M, F']
+  tipo_empleado            varchar [not null, default: 'docente', note: 'enum: docente, administrativo']
+  categoria_id             bigint  [null, ref: > categoria.id]
+  user_id                  bigint  [null, ref: > users.id]
+  centro_facultad_id       bigint  [null, ref: > centro_facultad.id]
+  departamento_academico_id bigint [null, ref: > departamento_academico.id]
+  carrera_id               bigint  [null, ref: > carrera.id]
+  deleted_at               timestamp [null]
+  created_at               timestamp [null]
+  updated_at               timestamp [null]
+}
+
+Table firma_sello_empleado {
+  id           bigint  [pk, increment]
+  empleado_id  bigint  [not null, ref: > empleado.id]
+  tipo         varchar [not null]
+  ruta_storage varchar [not null]
+  estado       boolean [not null, default: true]
+  deleted_at   timestamp [null]
+  created_at   timestamp [null]
+  updated_at   timestamp [null]
+}
+
+Table empleado_codigos_investigacion {
+  id                   bigint  [pk, increment]
+  empleado_id          bigint  [not null, ref: > empleado.id]
+  codigo_proyecto      varchar [not null]
+  nombre_proyecto      varchar [not null]
+  descripcion          text    [null]
+  rol_docente          varchar [null]
+  año                  year    [null]
+  estado_verificacion  varchar [not null, default: 'pendiente', note: 'enum: pendiente, verificado, rechazado']
+  observaciones_admin  text    [null]
+  verificado_por       bigint  [null, ref: > users.id]
+  fecha_verificacion   timestamp [null]
+  deleted_at           timestamp [null]
+  created_at           timestamp [null]
+  updated_at           timestamp [null]
+
+  indexes {
+    (codigo_proyecto, empleado_id) [unique]
+  }
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: ESTADOS Y FLUJO DE APROBACIÓN
+// ─────────────────────────────────────────
+
+Table tipo_estado {
+  id         bigint  [pk, increment]
+  nombre     varchar [not null]
+  deleted_at timestamp [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table tipo_cargo_firma {
+  id         bigint  [pk, increment]
+  nombre     varchar [not null]
+  deleted_at timestamp [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table cargo_firma {
+  id                  bigint  [pk, increment]
+  descripcion         varchar [null]
+  tipo_cargo_firma_id bigint  [null, ref: > tipo_cargo_firma.id]
+  tipo_estado_id      bigint  [null, ref: > tipo_estado.id]
+  estado_siguiente_id bigint  [null, ref: > tipo_estado.id]
+  deleted_at          timestamp [null]
+  created_at          timestamp [null]
+  updated_at          timestamp [null]
+}
+
+Table cargo_servicio {
+  id                  bigint  [pk, increment]
+  descripcion         varchar [null]
+  tipo_cargo_firma_id bigint  [null, ref: > tipo_cargo_firma.id]
+  tipo_estado_id      bigint  [null, ref: > tipo_estado.id]
+  estado_siguiente_id bigint  [null, ref: > tipo_estado.id]
+  deleted_at          timestamp [null]
+  created_at          timestamp [null]
+  updated_at          timestamp [null]
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: PROYECTOS
+// ─────────────────────────────────────────
+
+Table modalidad {
+  id         bigint  [pk, increment]
+  nombre     varchar [not null]
+  deleted_at timestamp [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table ods {
+  id         bigint  [pk, increment]
+  nombre     varchar [unique, not null]
+  deleted_at timestamp [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table categorias {
+  id         bigint  [pk, increment]
+  nombre     varchar [unique, not null]
+  deleted_at timestamp [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table ejes_prioritarios_unah {
+  id         bigint  [pk, increment]
+  nombre     varchar [not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table metas_contribuye {
+  id              bigint  [pk, increment]
+  ods_id          bigint  [not null, ref: > ods.id]
+  numero_meta     varchar [not null]
+  descripcion     text    [not null]
+  created_at      timestamp [null]
+  updated_at      timestamp [null]
+}
+
+Table proyecto {
+  id                          bigint   [pk, increment]
+  codigo_proyecto             varchar  [unique, null]
+  nombre_proyecto             varchar  [not null]
+  modalidad_id                bigint   [null, ref: > modalidad.id]
+  aldea                       varchar  [null]
+  programa_pertenece          text     [null]
+  lineas_investigacion_academica text  [null]
+  resumen                     text     [null]
+  descripcion_participantes   text     [null]
+  definicion_problema         text     [null]
+  objetivo_general            text     [null]
+  objetivos_especificos       text     [null]
+  fecha_inicio                date     [null]
+  fecha_finalizacion          date     [null]
+  evaluacion_intermedia       date     [null]
+  evaluacion_final            date     [null]
+  poblacion_participante      decimal(15,2) [null]
+  hombres                     int      [null]
+  mujeres                     int      [null]
+  otros                       int      [null]
+  indigenas_hombres           int      [null]
+  indigenas_mujeres           int      [null]
+  afroamericanos_hombres      int      [null]
+  afroamericanos_mujeres      int      [null]
+  mestizos_hombres            int      [null]
+  mestizos_mujeres            int      [null]
+  modalidad_ejecucion         varchar  [null, note: 'enum: presencial, virtual, mixta']
+  pais                        json     [null]
+  region                      json     [null]
+  caserio                     json     [null]
+  resultados_esperados        text     [null]
+  indicadores_medicion_resultados text [null]
+  impacto_deseado             text     [null]
+  alineamiento_reforma        text     [null]
+  metodologia                 text     [null]
+  bibliografia                text     [null]
+  fecha_aprobacion            date     [null]
+  fecha_registro              date     [null]
+  numero_libro                varchar  [null]
+  numero_tomo                 varchar  [null]
+  numero_folio                varchar  [null]
+  numero_dictamen             varchar  [unique, null]
+  total_aporte_institucional  decimal(12,2) [null]
+  aporte_contraparte          decimal(10,2) [null]
+  aporte_fondos_internacionales decimal(10,2) [null]
+  aporte_otras_universidades  decimal(10,2) [null]
+  aporte_beneficiarios        decimal(10,2) [null]
+  otros_aportes               decimal(10,2) [null]
+  responsable_revision_id     bigint   [null, ref: > empleado.id]
+  deleted_at                  timestamp [null]
+  created_at                  timestamp [null]
+  updated_at                  timestamp [null]
+}
+
+Table estado_proyecto {
+  id              bigint  [pk, increment]
+  empleado_id     bigint  [not null, ref: > empleado.id]
+  tipo_estado_id  bigint  [not null, ref: > tipo_estado.id]
+  fecha           date    [not null]
+  comentario      text    [null]
+  es_actual       boolean [not null, default: true]
+  estadoable_id   bigint  [not null, note: 'polymorphic']
+  estadoable_type varchar [not null, note: 'polymorphic']
+  deleted_at      timestamp [null]
+  created_at      timestamp [null]
+  updated_at      timestamp [null]
+}
+
+Table firma_proyecto {
+  id               bigint  [pk, increment]
+  empleado_id      bigint  [not null, ref: > empleado.id]
+  cargo_firma_id   bigint  [not null, ref: > cargo_firma.id]
+  firma_id         bigint  [null, ref: > firma_sello_empleado.id]
+  sello_id         bigint  [null, ref: > firma_sello_empleado.id]
+  fecha_firma      timestamp [not null]
+  estado_revision  varchar [not null, default: 'Pendiente', note: 'enum: Pendiente, Rechazado, Aprobado']
+  hash             varchar [null]
+  firmable_id      bigint  [not null, note: 'polymorphic']
+  firmable_type    varchar [not null, note: 'polymorphic']
+  deleted_at       timestamp [null]
+  created_at       timestamp [null]
+  updated_at       timestamp [null]
+}
+
+Table anexo {
+  id            bigint  [pk, increment]
+  proyecto_id   bigint  [not null, ref: > proyecto.id]
+  documento_url varchar [not null]
+  deleted_at    timestamp [null]
+  created_at    timestamp [null]
+  updated_at    timestamp [null]
+}
+
+Table entidad_contraparte {
+  id                   bigint  [pk, increment]
+  proyecto_id          bigint  [not null, ref: > proyecto.id]
+  nombre               varchar [not null]
+  nombre_contacto      varchar [null]
+  correo               varchar [null]
+  telefono             varchar [null]
+  tipo_entidad         varchar [null, note: 'enum: internacional, gobierno_nacional, gobierno_municipal, ong, sociedad_civil, sector_privado']
+  cargo_contacto       varchar [null]
+  descripcion_acuerdos text    [null]
+  deleted_at           timestamp [null]
+  created_at           timestamp [null]
+  updated_at           timestamp [null]
+}
+
+Table instrumento_formalizacion {
+  id                    bigint  [pk, increment]
+  entidad_contraparte_id bigint [not null, ref: > entidad_contraparte.id]
+  documento_url         varchar [not null]
+  tipo_documento        varchar [null, note: 'enum: carta_formal_solicitud, carta_intenciones, convenio_marco']
+  deleted_at            timestamp [null]
+  created_at            timestamp [null]
+  updated_at            timestamp [null]
+}
+
+Table empleado_proyecto {
+  id           bigint  [pk, increment]
+  empleado_id  bigint  [not null, ref: > empleado.id]
+  proyecto_id  bigint  [not null, ref: > proyecto.id]
+  rol          varchar [not null, note: 'enum: Coordinador, Subcoordinador, Integrante']
+  hash         varchar [null]
+  deleted_at   timestamp [null]
+  created_at   timestamp [null]
+  updated_at   timestamp [null]
+}
+
+Table actividades {
+  id               bigint  [pk, increment]
+  proyecto_id      bigint  [not null, ref: > proyecto.id]
+  descripcion      longtext [not null]
+  fecha_inicio     date    [not null]
+  fecha_finalizacion date  [not null]
+  objetivos        text    [null]
+  resultados       text    [null]
+  horas            int     [null]
+  deleted_at       timestamp [null]
+  created_at       timestamp [null]
+  updated_at       timestamp [null]
+}
+
+Table actividad_empleado {
+  id           bigint [pk, increment]
+  actividad_id bigint [not null, ref: > actividades.id]
+  empleado_id  bigint [not null, ref: > empleado.id]
+  created_at   timestamp [null]
+  updated_at   timestamp [null]
+}
+
+Table proyecto_documento {
+  id             bigint  [pk, increment]
+  proyecto_id    bigint  [not null, ref: > proyecto.id]
+  tipo_documento varchar [not null]
+  documento_url  varchar [not null]
+  deleted_at     timestamp [null]
+  created_at     timestamp [null]
+  updated_at     timestamp [null]
+}
+
+// Tablas de relación N:M del proyecto
+Table proyecto_centro_facultad {
+  id                bigint [pk, increment]
+  proyecto_id       bigint [not null, ref: > proyecto.id]
+  centro_facultad_id bigint [not null, ref: > centro_facultad.id]
+  deleted_at        timestamp [null]
+  created_at        timestamp [null]
+  updated_at        timestamp [null]
+}
+
+Table proyecto_depto_ac {
+  id                      bigint [pk, increment]
+  proyecto_id             bigint [not null, ref: > proyecto.id]
+  departamento_academico_id bigint [not null, ref: > departamento_academico.id]
+  deleted_at              timestamp [null]
+  created_at              timestamp [null]
+  updated_at              timestamp [null]
+}
+
+Table proyecto_departamento {
+  id              bigint [pk, increment]
+  proyecto_id     bigint [not null, ref: > proyecto.id]
+  departamento_id bigint [not null, ref: > departamento.id]
+  deleted_at      timestamp [null]
+  created_at      timestamp [null]
+  updated_at      timestamp [null]
+}
+
+Table proyecto_municipio {
+  id           bigint [pk, increment]
+  proyecto_id  bigint [not null, ref: > proyecto.id]
+  municipio_id bigint [not null, ref: > municipio.id]
+  deleted_at   timestamp [null]
+  created_at   timestamp [null]
+  updated_at   timestamp [null]
+}
+
+Table proyecto_categoria {
+  id           bigint [pk, increment]
+  proyecto_id  bigint [not null, ref: > proyecto.id]
+  categoria_id bigint [not null, ref: > categorias.id]
+  deleted_at   timestamp [null]
+  created_at   timestamp [null]
+  updated_at   timestamp [null]
+}
+
+Table proyecto_ods {
+  id          bigint [pk, increment]
+  proyecto_id bigint [not null, ref: > proyecto.id]
+  ods_id      bigint [not null, ref: > ods.id]
+  deleted_at  timestamp [null]
+  created_at  timestamp [null]
+  updated_at  timestamp [null]
+}
+
+Table proyecto_carrera {
+  id          bigint [pk, increment]
+  proyecto_id bigint [not null, ref: > proyecto.id]
+  carrera_id  bigint [not null, ref: > carrera.id]
+  created_at  timestamp [null]
+  updated_at  timestamp [null]
+}
+
+Table eje_prioritario_proyecto {
+  id                      bigint [pk, increment]
+  proyecto_id             bigint [not null, ref: > proyecto.id]
+  ejes_prioritarios_unah_id bigint [not null, ref: > ejes_prioritarios_unah.id]
+  created_at              timestamp [null]
+  updated_at              timestamp [null]
+}
+
+Table proyecto_meta_contribuye {
+  id                  bigint [pk, increment]
+  proyecto_id         bigint [not null, ref: > proyecto.id]
+  meta_contribuye_id  bigint [not null, ref: > metas_contribuye.id]
+  created_at          timestamp [null]
+  updated_at          timestamp [null]
+
+  indexes {
+    (proyecto_id, meta_contribuye_id) [unique]
+  }
+}
+
+Table superavit_proyecto {
+  id          bigint         [pk, increment]
+  proyecto_id bigint         [not null, ref: > proyecto.id]
+  inversion   decimal(15,2)  [null]
+  monto       decimal(15,2)  [null]
+  deleted_at  timestamp      [null]
+  created_at  timestamp      [null]
+  updated_at  timestamp      [null]
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: MARCO LÓGICO (Proyectos)
+// ─────────────────────────────────────────
+
+Table objetivo_especifico {
+  id          bigint   [pk, increment]
+  proyecto_id bigint   [not null, ref: > proyecto.id]
+  descripcion longtext [not null]
+  orden       int      [not null, default: 1]
+  deleted_at  timestamp [null]
+  created_at  timestamp [null]
+  updated_at  timestamp [null]
+}
+
+Table resultado_esperado {
+  id                       bigint  [pk, increment]
+  objetivo_especifico_id   bigint  [not null, ref: > objetivo_especifico.id]
+  nombre_resultado         varchar [not null]
+  nombre_indicador         varchar [not null]
+  nombre_medio_verificacion varchar [not null]
+  plazo                    varchar [not null, default: 'corto_plazo', note: 'enum: corto_plazo, mediano_plazo, largo_plazo']
+  orden                    int     [not null, default: 1]
+  deleted_at               timestamp [null]
+  created_at               timestamp [null]
+  updated_at               timestamp [null]
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: PRESUPUESTO (Proyectos)
+// ─────────────────────────────────────────
+
+Table presupuesto {
+  id                              bigint        [pk, increment]
+  proyecto_id                     bigint        [unique, not null, ref: - proyecto.id]
+  aporte_estudiantes              decimal(10,2) [null]
+  aporte_profesores               decimal(10,2) [null]
+  aporte_internacionales          decimal(10,2) [null]
+  aporte_otras_universidades      decimal(10,2) [null]
+  aporte_academico_unah           decimal(10,2) [null]
+  aporte_transporte_unah          decimal(10,2) [null]
+  aporte_contraparte              decimal(10,2) [null]
+  aporte_comunidad                decimal(10,2) [null]
+  otros_aportes                   decimal(10,2) [null]
+  cantidad_horas_docentes         decimal(10,2) [null, default: 0]
+  costo_unitario_docentes         decimal(10,2) [null, default: 0]
+  costo_total_docentes            decimal(10,2) [null, default: 0]
+  cantidad_horas_estudiantes      decimal(10,2) [null, default: 0]
+  costo_unitario_estudiantes      decimal(10,2) [null, default: 0]
+  costo_total_estudiantes         decimal(10,2) [null, default: 0]
+  cantidad_movilizacion           decimal(10,2) [null, default: 0]
+  costo_unitario_movilizacion     decimal(10,2) [null, default: 0]
+  costo_total_movilizacion        decimal(10,2) [null, default: 0]
+  cantidad_utiles                 decimal(10,2) [null, default: 0]
+  costo_unitario_utiles           decimal(10,2) [null, default: 0]
+  costo_total_utiles              decimal(10,2) [null, default: 0]
+  cantidad_impresion              decimal(10,2) [null, default: 0]
+  costo_unitario_impresion        decimal(10,2) [null, default: 0]
+  costo_total_impresion           decimal(10,2) [null, default: 0]
+  cantidad_infraestructura        decimal(10,2) [null, default: 0]
+  costo_unitario_infraestructura  decimal(10,2) [null, default: 0]
+  costo_total_infraestructura     decimal(10,2) [null, default: 0]
+  cantidad_servicios              decimal(10,2) [null, default: 0]
+  costo_unitario_servicios        decimal(10,2) [null, default: 0]
+  costo_total_servicios           decimal(10,2) [null, default: 0]
+  deleted_at                      timestamp     [null]
+  created_at                      timestamp     [null]
+  updated_at                      timestamp     [null]
+}
+
+Table aporte_institucional {
+  id             bigint        [pk, increment]
+  proyecto_id    bigint        [not null, ref: > proyecto.id]
+  concepto       varchar       [not null, note: 'enum: horas_docente, horas_estudiante, movilizacion, utiles, impresion, infraestructura, servicios']
+  unidad         varchar       [not null]
+  cantidad       decimal(10,2) [not null, default: 0]
+  costo_unitario decimal(10,2) [not null, default: 0]
+  costo_total    decimal(10,2) [not null, default: 0]
+  deleted_at     timestamp     [null]
+  created_at     timestamp     [null]
+  updated_at     timestamp     [null]
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: ESTUDIANTES
+// ─────────────────────────────────────────
+
+Table estudiante {
+  id                bigint  [pk, increment]
+  user_id           bigint  [null, ref: > users.id]
+  nombre            varchar [not null]
+  apellido          varchar [not null]
+  cuenta            varchar [not null]
+  sexo              varchar [not null, note: 'enum: M, F']
+  centro_facultad_id bigint [null, ref: > centro_facultad.id]
+  carrera_id        bigint  [null, ref: > carrera.id]
+  deleted_at        timestamp [null]
+  created_at        timestamp [null]
+  updated_at        timestamp [null]
+}
+
+Table estudiante_proyecto {
+  id                           bigint  [pk, increment]
+  estudiante_id                bigint  [null, ref: > estudiante.id]
+  proyecto_id                  bigint  [not null, ref: > proyecto.id]
+  tipo_participacion_estudiante varchar [not null, note: 'enum: Servicio Social o PPS, Practica Profesional, Voluntariado, Practica Asignatura']
+  asignatura_id                bigint  [null, ref: > asignaturas.id]
+  periodo_academico_id         varchar(50) [null, note: 'string libre tras quitar FK']
+  cantidad_estudiantes_hombres int     [not null, default: 0]
+  cantidad_estudiantes_mujeres int     [not null, default: 0]
+  total_estudiantes            int     [not null, default: 0]
+  deleted_at                   timestamp [null]
+  created_at                   timestamp [null]
+  updated_at                   timestamp [null]
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: INTERNACIONALES
+// ─────────────────────────────────────────
+
+Table integrante_internacional {
+  id                  bigint  [pk, increment]
+  nombre_completo     varchar [not null]
+  documento_identidad varchar [not null]
+  sexo                varchar [null, note: 'enum: masculino, femenino, otro']
+  email               varchar [unique, not null]
+  pais                varchar [not null]
+  institucion         varchar [not null]
+  created_at          timestamp [null]
+  updated_at          timestamp [null]
+}
+
+Table integrante_internacional_proyecto {
+  id                         bigint  [pk, increment]
+  proyecto_id                bigint  [not null, ref: > proyecto.id]
+  integrante_internacional_id bigint [not null, ref: > integrante_internacional.id]
+  rol                        varchar [not null, default: 'Cooperante Internacional']
+  deleted_at                 timestamp [null]
+  created_at                 timestamp [null]
+  updated_at                 timestamp [null]
+
+  indexes {
+    (proyecto_id, integrante_internacional_id) [unique]
+  }
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: FICHAS DE ACTUALIZACIÓN
+// ─────────────────────────────────────────
+
+Table ficha_actualizacion {
+  id                              bigint  [pk, increment]
+  fecha_registro                  timestamp [null]
+  empleado_id                     bigint  [not null, ref: > empleado.id]
+  proyecto_id                     bigint  [not null, ref: > proyecto.id]
+  integrantes_baja                json    [null]
+  motivo_baja                     text    [null]
+  fecha_baja                      date    [null]
+  fecha_ampliacion                date    [null]
+  motivo_ampliacion               text    [null]
+  motivo_responsabilidades_nuevos text    [null]
+  motivo_razones_cambio           text    [null]
+  fecha_finalizacion_actual       date    [null]
+  cambios_cantidades_estudiantes  json    [null]
+  estado_estudiantes_en_momento_ficha json [null]
+  created_at                      timestamp [null]
+  updated_at                      timestamp [null]
+}
+
+Table equipo_ejecutor_bajas {
+  id                   bigint  [pk, increment]
+  proyecto_id          bigint  [not null, ref: > proyecto.id]
+  tipo_integrante      varchar [not null]
+  integrante_id        bigint  [not null]
+  fecha_baja           date    [not null]
+  motivo_baja          varchar [not null]
+  rol_anterior         varchar [null]
+  usuario_baja_id      bigint  [null, ref: > users.id]
+  estado_baja          varchar [not null, default: 'pendiente', note: 'enum: pendiente, aplicada']
+  ficha_actualizacion_id bigint [null, ref: > ficha_actualizacion.id]
+  fecha_cancelacion    timestamp [null]
+  motivo_cancelacion   text    [null]
+  created_at           timestamp [null]
+  updated_at           timestamp [null]
+}
+
+Table equipo_ejecutor_nuevos {
+  id                      bigint  [pk, increment]
+  proyecto_id             bigint  [not null, ref: > proyecto.id]
+  integrante_id           bigint  [not null]
+  tipo_integrante         varchar [not null, note: 'enum: empleado, estudiante, internacional']
+  nombre_integrante       varchar [not null]
+  rol_nuevo               varchar [not null]
+  motivo_incorporacion    text    [not null]
+  fecha_solicitud         timestamp [not null]
+  usuario_solicitud_id    bigint  [not null, ref: > users.id]
+  estado_incorporacion    varchar [not null, default: 'pendiente', note: 'enum: pendiente, aplicado']
+  ficha_actualizacion_id  bigint  [null, ref: > ficha_actualizacion.id]
+  fecha_cancelacion       timestamp [null]
+  motivo_cancelacion      text    [null]
+  created_at              timestamp [null]
+  updated_at              timestamp [null]
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: SERVICIOS TECNOLÓGICOS
+// ─────────────────────────────────────────
+
+Table servicios_tecnologicos {
+  id                           bigint  [pk, increment]
+  nombre_accion                varchar [not null]
+  modalidad_id                 bigint  [null, ref: > modalidad.id]
+  aldea                        varchar [null]
+  hombres                      int     [null]
+  mujeres                      int     [null]
+  otros                        int     [null]
+  indigenas_hombres            int     [null]
+  indigenas_mujeres            int     [null]
+  afroamericanos_hombres       int     [null]
+  afroamericanos_mujeres       int     [null]
+  mestizos_hombres             int     [null]
+  mestizos_mujeres             int     [null]
+  descripcion_servicio         text    [null]
+  descripcion_problema         text    [null]
+  descripcion_participante     text    [null]
+  objetivo_general             text    [null]
+  objetivo_especifico          text    [null]
+  resultados_esperados         text    [null]
+  indicadores_resultados       text    [null]
+  descripcion_ser_infraestructura text [null]
+  ubicacion                    varchar [null]
+  unidad_gestora               varchar [null]
+  fecha_inicio                 date    [null]
+  fecha_finalizacion           date    [null]
+  created_at                   timestamp [null]
+  updated_at                   timestamp [null]
+}
+
+Table estado_servicio_tecnologico {
+  id              bigint  [pk, increment]
+  empleado_id     bigint  [not null, ref: > empleado.id]
+  tipo_estado_id  bigint  [not null, ref: > tipo_estado.id]
+  fecha           date    [not null]
+  comentario      text    [null]
+  es_actual       boolean [not null, default: true]
+  estadoable_id   bigint  [not null, note: 'polymorphic']
+  estadoable_type varchar [not null, note: 'polymorphic']
+  deleted_at      timestamp [null]
+  created_at      timestamp [null]
+  updated_at      timestamp [null]
+}
+
+Table firma_servicio {
+  id               bigint  [pk, increment]
+  empleado_id      bigint  [not null, ref: > empleado.id]
+  cargo_firma_id   bigint  [not null, ref: > cargo_servicio.id]
+  firma_id         bigint  [null, ref: > firma_sello_empleado.id]
+  sello_id         bigint  [null, ref: > firma_sello_empleado.id]
+  fecha_firma      timestamp [not null]
+  estado_revision  varchar [not null, default: 'Pendiente', note: 'enum: Pendiente, Rechazado, Aprobado']
+  hash             varchar [null]
+  firmable_id      bigint  [not null, note: 'polymorphic']
+  firmable_type    varchar [not null, note: 'polymorphic']
+  deleted_at       timestamp [null]
+  created_at       timestamp [null]
+  updated_at       timestamp [null]
+}
+
+Table empleado_servicio {
+  id                    bigint  [pk, increment]
+  empleado_id           bigint  [not null, ref: > empleado.id]
+  servicio_tecnologico_id bigint [not null, ref: > servicios_tecnologicos.id]
+  rol                   varchar [not null, note: 'enum: Coordinador, Subcoordinador, Integrante']
+  hash                  varchar [null]
+  deleted_at            timestamp [null]
+  created_at            timestamp [null]
+  updated_at            timestamp [null]
+}
+
+Table servicio_centro_facultad {
+  id                    bigint [pk, increment]
+  servicio_tecnologico_id bigint [not null, ref: > servicios_tecnologicos.id]
+  centro_facultad_id    bigint [not null, ref: > centro_facultad.id]
+  deleted_at            timestamp [null]
+  created_at            timestamp [null]
+  updated_at            timestamp [null]
+}
+
+Table servicio_depto_ac {
+  id                      bigint [pk, increment]
+  servicio_tecnologico_id bigint [not null, ref: > servicios_tecnologicos.id]
+  departamento_academico_id bigint [not null, ref: > departamento_academico.id]
+  deleted_at              timestamp [null]
+  created_at              timestamp [null]
+  updated_at              timestamp [null]
+}
+
+Table servicio_carrera {
+  id                    bigint [pk, increment]
+  servicio_id           bigint [not null, ref: > servicios_tecnologicos.id]
+  carrera_id            bigint [not null, ref: > carrera.id]
+  created_at            timestamp [null]
+  updated_at            timestamp [null]
+}
+
+Table servicio_departamento {
+  id                    bigint [pk, increment]
+  servicio_tecnologico_id bigint [not null, ref: > servicios_tecnologicos.id]
+  departamento_id       bigint [not null, ref: > departamento.id]
+  deleted_at            timestamp [null]
+  created_at            timestamp [null]
+  updated_at            timestamp [null]
+}
+
+Table servicio_municipio {
+  id                    bigint [pk, increment]
+  servicio_tecnologico_id bigint [not null, ref: > servicios_tecnologicos.id]
+  municipio_id          bigint [not null, ref: > municipio.id]
+  deleted_at            timestamp [null]
+  created_at            timestamp [null]
+  updated_at            timestamp [null]
+}
+
+Table estudiante_servicio {
+  id                           bigint  [pk, increment]
+  estudiante_id                bigint  [not null, ref: > estudiante.id]
+  servicio_tecnologico_id      bigint  [not null, ref: > servicios_tecnologicos.id]
+  tipo_participacion_estudiante varchar [not null, note: 'enum: Servicio Social o PPS, Practica Profesional, Voluntariado']
+  deleted_at                   timestamp [null]
+  created_at                   timestamp [null]
+  updated_at                   timestamp [null]
+}
+
+Table actividades_servicio {
+  id                    bigint   [pk, increment]
+  servicio_tecnologico_id bigint [not null, ref: > servicios_tecnologicos.id]
+  descripcion           longtext [not null]
+  fecha_inicio          date     [not null]
+  fecha_finalizacion    date     [not null]
+  objetivos             text     [null]
+  resultados            text     [null]
+  horas                 int      [null]
+  deleted_at            timestamp [null]
+  created_at            timestamp [null]
+  updated_at            timestamp [null]
+}
+
+Table acti_empleado_srvc {
+  id           bigint [pk, increment]
+  actividad_id bigint [not null, ref: > actividades_servicio.id]
+  empleado_id  bigint [not null, ref: > empleado.id]
+  created_at   timestamp [null]
+  updated_at   timestamp [null]
+}
+
+// Marco Lógico de Servicios Tecnológicos
+
+Table objetivo_especifico_S {
+  id                    bigint   [pk, increment]
+  servicio_tecnologico_id bigint [not null, ref: > servicios_tecnologicos.id]
+  descripcion           longtext [not null]
+  orden                 int      [not null, default: 1]
+  deleted_at            timestamp [null]
+  created_at            timestamp [null]
+  updated_at            timestamp [null]
+}
+
+Table resultado_esperado_S {
+  id                     bigint   [pk, increment]
+  objetivo_especifico_id bigint   [not null, ref: > objetivo_especifico_S.id]
+  descripcion            longtext [not null]
+  orden                  int      [not null, default: 1]
+  deleted_at             timestamp [null]
+  created_at             timestamp [null]
+  updated_at             timestamp [null]
+}
+
+Table indicador_resultado_S {
+  id                     bigint   [pk, increment]
+  objetivo_especifico_id bigint   [not null, ref: > objetivo_especifico_S.id]
+  nombre                 varchar  [not null]
+  descripcion            longtext [not null]
+  meta                   varchar  [null]
+  orden                  int      [not null, default: 1]
+  deleted_at             timestamp [null]
+  created_at             timestamp [null]
+  updated_at             timestamp [null]
+}
+
+// Presupuesto de Servicios Tecnológicos
+
+Table presupuesto_servicio {
+  id                      bigint        [pk, increment]
+  servicio_tecnologico_id bigint        [not null, ref: - servicios_tecnologicos.id]
+  descripcion_excedente   text          [null]
+  total_ingresos          decimal(12,2) [not null, default: 0]
+  total_egresos           decimal(12,2) [not null, default: 0]
+  excedente               decimal(12,2) [not null, default: 0]
+  total_aporte_unah       decimal(12,2) [not null, default: 0]
+  created_at              timestamp     [null]
+  updated_at              timestamp     [null]
+}
+
+Table ingresos {
+  id                     bigint        [pk, increment]
+  presupuesto_servicio_id bigint       [not null, ref: > presupuesto_servicio.id]
+  descripcion            varchar       [not null]
+  unidad                 varchar       [not null]
+  cantidad               int           [not null, default: 0]
+  costo_unitario         decimal(12,2) [not null, default: 0]
+  costo_total            decimal(12,2) [not null, default: 0]
+  created_at             timestamp     [null]
+  updated_at             timestamp     [null]
+}
+
+Table egresos {
+  id                     bigint        [pk, increment]
+  presupuesto_servicio_id bigint       [not null, ref: > presupuesto_servicio.id]
+  descripcion            varchar       [not null]
+  unidad                 varchar       [not null]
+  cantidad               int           [not null, default: 0]
+  costo_unitario         decimal(12,2) [not null, default: 0]
+  costo_total            decimal(12,2) [not null, default: 0]
+  created_at             timestamp     [null]
+  updated_at             timestamp     [null]
+}
+
+Table aportes_unah {
+  id                     bigint        [pk, increment]
+  presupuesto_servicio_id bigint       [not null, ref: > presupuesto_servicio.id]
+  descripcion            varchar       [not null]
+  unidad                 varchar       [not null]
+  cantidad               int           [not null, default: 0]
+  costo_unitario         decimal(12,2) [not null, default: 0]
+  costo_total            decimal(12,2) [not null, default: 0]
+  created_at             timestamp     [null]
+  updated_at             timestamp     [null]
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: CONSTANCIAS
+// ─────────────────────────────────────────
+
+Table tipos_constancia {
+  id          bigint  [pk, increment]
+  nombre      varchar [not null]
+  descripcion varchar [null]
+  created_at  timestamp [null]
+  updated_at  timestamp [null]
+}
+
+Table constancia {
+  id                 bigint  [pk, increment]
+  origen_id          bigint  [not null, note: 'polymorphic']
+  origen_type        varchar [not null, note: 'polymorphic']
+  destinatario_type  varchar [not null]
+  destinatario_id    bigint  [not null]
+  tipo_constancia_id bigint  [not null, ref: > tipos_constancia.id]
+  hash               varchar(25) [unique, not null]
+  correlativo        varchar(50) [unique, null]
+  status             boolean [not null, default: true]
+  validaciones       int     [not null, default: 0]
+  created_at         timestamp [null]
+  updated_at         timestamp [null]
+}
+
+Table descarga_constancia {
+  id            bigint    [pk, increment]
+  constancia_id bigint    [not null, ref: > constancia.id]
+  user_id       bigint    [null, ref: > users.id]
+  descargado_en timestamp [not null]
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: TICKETS / SOPORTE
+// ─────────────────────────────────────────
+
+Table ticket {
+  id             bigint  [pk, increment]
+  user_id        bigint  [not null, ref: > users.id]
+  tipo_ticket    varchar [not null, note: 'enum tipo de ticket']
+  asunto         text    [not null]
+  estado         varchar [not null, default: 'abierto', note: 'enum: abierto, en proceso, cerrado, eliminado']
+  fecha_creacion timestamp [not null]
+  fecha_cierre   timestamp [null]
+  created_at     timestamp [null]
+  updated_at     timestamp [null]
+}
+
+Table ticket_sugerencia {
+  id          bigint    [pk, increment]
+  ticket_id   bigint    [not null, ref: > ticket.id]
+  user_id     bigint    [not null, ref: > users.id]
+  mensaje     text      [not null]
+  fecha_envio timestamp [not null]
+  estado      varchar   [not null, note: 'enum estado del mensaje']
+  created_at  timestamp [null]
+  updated_at  timestamp [null]
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: COMENTARIOS
+// ─────────────────────────────────────────
+
+Table categoria_comentario {
+  id               bigint  [pk, increment]
+  nombre_categoria varchar [not null]
+  created_at       timestamp [null]
+  updated_at       timestamp [null]
+}
+
+Table comentario {
+  id                     bigint  [pk, increment]
+  contenido              text    [not null]
+  empleado_id            bigint  [not null, ref: > empleado.id]
+  categoria_comentario_id bigint [not null, ref: > categoria_comentario.id]
+  visto                  boolean [not null, default: false]
+  created_at             timestamp [null]
+  updated_at             timestamp [null]
+}
+
+Table respuesta_comentario {
+  id           bigint  [pk, increment]
+  contenido    text    [not null]
+  empleado_id  bigint  [not null, ref: > empleado.id]
+  comentario_id bigint [not null, ref: > comentario.id]
+  created_at   timestamp [null]
+  updated_at   timestamp [null]
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: CONTACTO / CMS
+// ─────────────────────────────────────────
+
+Table slide {
+  id         bigint  [pk, increment]
+  image_url  varchar [not null]
+  estado     boolean [not null, default: true]
+  deleted_at timestamp [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+}
+
+Table contactanos {
+  id          bigint  [pk, increment]
+  nombres     varchar [not null]
+  apellidos   varchar [not null]
+  institucion varchar [null]
+  email       varchar [not null]
+  telefono    varchar [null]
+  mensaje     text    [not null]
+  created_at  timestamp [null]
+  updated_at  timestamp [null]
+}
+
+// ─────────────────────────────────────────
+// MÓDULO: AUDITORÍA / ACTIVIDAD
+// ─────────────────────────────────────────
+
+Table activity_log {
+  id           bigint  [pk, increment]
+  log_name     varchar [null, note: 'indexed']
+  description  text    [not null]
+  subject_id   bigint  [null, note: 'polymorphic']
+  subject_type varchar [null, note: 'polymorphic']
+  event        varchar [null]
+  causer_id    bigint  [null, note: 'polymorphic']
+  causer_type  varchar [null, note: 'polymorphic']
+  properties   json    [null]
+  batch_uuid   uuid    [null]
+  created_at   timestamp [null]
+  updated_at   timestamp [null]
+}
