@@ -16,14 +16,12 @@ class Asignatura extends Component
     public bool $createModal = false;
     public string $create_nombre = '';
     public string $create_codigo = '';
-    public string $create_descripcion = '';
     public ?int $create_carrera_id = null;
 
     public bool $editModal = false;
     public ?int $editId = null;
     public string $edit_nombre = '';
     public string $edit_codigo = '';
-    public string $edit_descripcion = '';
     public ?int $edit_carrera_id = null;
 
     public array $carrerasList = [];
@@ -42,7 +40,7 @@ class Asignatura extends Component
     {
         // Se limpia todo el estado del formulario para evitar que se reutilicen
         // valores o errores de una creación anterior al abrir el modal otra vez.
-        $this->reset(['create_nombre', 'create_codigo', 'create_descripcion', 'create_carrera_id']);
+        $this->reset(['create_nombre', 'create_codigo', 'create_carrera_id']);
         $this->resetValidation();
         $this->createModal = true;
     }
@@ -58,12 +56,11 @@ class Asignatura extends Component
         AsignaturaModel::create([
             'nombre' => $this->create_nombre,
             'codigo' => $this->create_codigo,
-            'descripcion' => $this->create_descripcion,
             'carrera_id' => $this->create_carrera_id,
         ]);
 
         // Dejamos el formulario listo para una nueva alta sin arrastrar datos.
-        $this->reset(['create_nombre', 'create_codigo', 'create_descripcion', 'create_carrera_id']);
+        $this->reset(['create_nombre', 'create_codigo', 'create_carrera_id']);
         $this->createModal = false;
         Notification::make()->title('Asignatura creada')->success()->send();
     }
@@ -74,7 +71,6 @@ class Asignatura extends Component
         $this->editId = $r->id;
         $this->edit_nombre = $r->nombre;
         $this->edit_codigo = $r->codigo ?? '';
-        $this->edit_descripcion = $r->descripcion ?? '';
         $this->edit_carrera_id = $r->carrera_id;
         $this->editModal = true;
     }
@@ -91,7 +87,6 @@ class Asignatura extends Component
         $r->update([
             'nombre' => $this->edit_nombre,
             'codigo' => $this->edit_codigo,
-            'descripcion' => $this->edit_descripcion,
             'carrera_id' => $this->edit_carrera_id,
         ]);
 

@@ -85,6 +85,10 @@ class CreateProyectoVinculacion extends Component
         'cantidad_estudiantes_mujeres' => 0,
         'total_estudiantes' => 0,
     ];
+    public bool $showCrearAsignaturaInline = false;
+    public string $nuevaAsignaturaCodigo = '';
+    public string $nuevaAsignaturaNombre = '';
+    public ?int $nuevaAsignaturaCarreraId = null;
 
     public bool $showInternacionalModal = false;
     public $integranteInternacionalSeleccionadoId = null;
@@ -1286,6 +1290,20 @@ class CreateProyectoVinculacion extends Component
             : collect($this->periodosAcademicosBase())->mapWithKeys(fn($periodo) => [$periodo => $periodo])->toArray();
     }
 
+    private function carrerasSeleccionadasOptions(): array
+    {
+        $carreras = $this->ids($this->carreras);
+
+        if (empty($carreras)) {
+            return [];
+        }
+
+        return Carrera::whereIn('id', $carreras)
+            ->orderBy('nombre')
+            ->pluck('nombre', 'id')
+            ->toArray();
+    }
+
     private function limpiarAsignaturasIncompatibles(): void
     {
         $validas = array_map('strval', array_keys($this->asignaturasDisponibles));
@@ -1790,6 +1808,7 @@ class CreateProyectoVinculacion extends Component
     {
         $this->resetErrorBag();
         $this->cargarOpcionesPracticaAsignatura();
+        $this->resetFormularioAsignaturaInline();
 
         if ($index !== null && isset($this->estudiante_proyecto[$index])) {
             $this->nuevoEstudiante = $this->estudiante_proyecto[$index];
@@ -1805,6 +1824,73 @@ class CreateProyectoVinculacion extends Component
     {
         $this->showEstudianteModal = false;
         $this->editEstudianteIndex = null;
+        $this->resetFormularioAsignaturaInline();
+    }
+
+    public function openCrearAsignaturaInline(): void
+    {
+        $this->resetErrorBag();
+        $this->showCrearAsignaturaInline = true;
+
+        if (empty($this->ids($this->carreras))) {
+            $this->addError('nuevaAsignaturaCarreraId', 'Seleccione primero una carrera en Información General.');
+            return;
+        }
+
+        if ($this->nuevaAsignaturaCarreraId === null) {
+            $this->nuevaAsignaturaCarreraId = count($this->ids($this->carreras)) === 1
+                ? $this->ids($this->carreras)[0]
+                : null;
+        }
+    }
+
+    public function closeCrearAsignaturaInline(): void
+    {
+        $this->resetFormularioAsignaturaInline();
+    }
+
+    public function crearAsignaturaInline(): void
+    {
+        $carrerasValidas = $this->ids($this->carreras);
+
+        if (empty($carrerasValidas)) {
+            $this->addError('nuevaAsignaturaCarreraId', 'Seleccione primero una carrera en Información General.');
+            return;
+        }
+
+        $this->validate([
+            'nuevaAsignaturaCodigo' => 'nullable|string|max:50',
+            'nuevaAsignaturaNombre' => 'required|string|max:255',
+            'nuevaAsignaturaCarreraId' => 'required|integer|exists:carrera,id',
+        ]);
+
+        if (!in_array((int) $this->nuevaAsignaturaCarreraId, $carrerasValidas, true)) {
+            $this->addError('nuevaAsignaturaCarreraId', 'La carrera debe ser una de las seleccionadas en Información General.');
+            return;
+        }
+
+        $asignatura = Asignatura::create([
+            'codigo' => $this->stringOrNull($this->nuevaAsignaturaCodigo),
+            'nombre' => trim($this->nuevaAsignaturaNombre),
+            'carrera_id' => (int) $this->nuevaAsignaturaCarreraId,
+        ]);
+
+        $this->cargarOpcionesPracticaAsignatura();
+        $this->nuevoEstudiante['asignatura_id'] = $asignatura->id;
+        $this->nuevoEstudiante['carrera_id'] = $asignatura->carrera_id;
+        $this->resetFormularioAsignaturaInline();
+
+        Notification::make()->title('Asignatura creada')->success()->send();
+    }
+
+    private function resetFormularioAsignaturaInline(): void
+    {
+        $this->showCrearAsignaturaInline = false;
+        $this->nuevaAsignaturaCodigo = '';
+        $this->nuevaAsignaturaNombre = '';
+        $this->nuevaAsignaturaCarreraId = count($this->ids($this->carreras)) === 1
+            ? $this->ids($this->carreras)[0]
+            : null;
     }
 
     public function saveEstudiante(): void
@@ -2712,6 +2798,7 @@ class CreateProyectoVinculacion extends Component
             'paises' => Pais::orderBy('nombre')->pluck('nombre', 'id'),
             'tiposParticipacionEstudiante' => $this->tipoParticipacionEstudianteOpciones,
             'asignaturas' => $this->asignaturasDisponibles,
+            'carrerasSeleccionadas' => $this->carrerasSeleccionadasOptions(),
             'periodosAcademicos' => $this->periodosAcademicosDisponibles,
             'departamentosGeo' => \App\Models\Demografia\Departamento::orderBy('nombre')->pluck('nombre', 'id'),
             'municipiosGeo' => empty($this->departamento_geo)

@@ -57,6 +57,7 @@ class PermisosSeeder extends Seeder
             // Unidad Academica
             ['name' => 'unidad-academica.campus',       'display_name' => 'Administrar Campus'],
             ['name' => 'unidad-academica.carrera',      'display_name' => 'Administrar Carreras'],
+            ['name' => 'unidad-academica.asignatura',   'display_name' => 'Administrar Asignaturas'],
             ['name' => 'unidad-academica.departamento', 'display_name' => 'Administrar Departamentos Academicos'],
             ['name' => 'unidad-academica.facultad',     'display_name' => 'Administrar Facultades y Centros'],
             // Global
@@ -90,7 +91,7 @@ class PermisosSeeder extends Seeder
             'inicio.admin', 'dashboard.admin',
             'constancia.constancias',
             'unidad-academica.campus', 'unidad-academica.carrera',
-            'unidad-academica.departamento', 'unidad-academica.facultad',
+            'unidad-academica.asignatura', 'unidad-academica.departamento', 'unidad-academica.facultad',
             'global.set-role',
             'apariencia.slides',
             'estudiante.admin',
@@ -100,6 +101,7 @@ class PermisosSeeder extends Seeder
         $roleDocente->syncPermissions([
             'inicio.docente', 'dashboard.docente',
             'docente.proyectos', 'docente.crear-proyecto',
+            'unidad-academica.asignatura',
             'configuracion.perfil', 'global.set-role',
             'tickets.ver',
         ]);
