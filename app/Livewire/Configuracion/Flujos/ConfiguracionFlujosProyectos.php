@@ -8,11 +8,16 @@ use App\Models\SGCU\TipoPrograma;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Spatie\Permission\Models\Role;
 
 class ConfiguracionFlujosProyectos extends Component
 {
+    private const PROJECT_DEFAULT_CODE = 'PROYECTO_DEFAULT';
+
+    protected array $cargoFirmaCache = [];
+
     public string $activeFlowTab = 'proyectos';
 
     public ?int $selectedActionId = null;
@@ -52,6 +57,7 @@ class ConfiguracionFlujosProyectos extends Component
 
         if ($firstActionId) {
             $this->selectedActionId = $firstActionId;
+            $this->selectedSubactionId = $firstActionId;
         }
 
         $this->loadFirstWorkflow();
@@ -74,7 +80,6 @@ class ConfiguracionFlujosProyectos extends Component
     public function selectAction(int $actionId): void
     {
         $this->selectedActionId = $actionId;
-        $this->selectedSubactionId = null;
         $this->loadFirstWorkflow();
     }
 
@@ -82,14 +87,12 @@ class ConfiguracionFlujosProyectos extends Component
     {
         $this->selectedSubactionId = $subactionId;
         $this->selectedWorkflowId = null;
-        $this->resetWorkflowForm();
+        $this->loadFirstWorkflow();
     }
 
     public function selectWorkflow(int $workflowId): void
     {
-        $flow = FlujoAprobacion::query()
-            ->where('proceso', 'PROYECTO')
-            ->findOrFail($workflowId);
+        $flow = $this->principalProjectWorkflow();
 
         $this->selectedWorkflowId = $flow->id;
         $this->selectedActionId = $flow->tipo_accion_id;
@@ -99,13 +102,8 @@ class ConfiguracionFlujosProyectos extends Component
 
     public function newWorkflow(): void
     {
-        if (! $this->selectedSubactionId) {
-            $this->addError('workflow.nombre', 'Seleccione una subaccion para crear un flujo.');
-            return;
-        }
-
-        $this->selectedWorkflowId = null;
-        $this->resetWorkflowForm();
+        $this->loadFirstWorkflow();
+        session()->flash('status', 'La configuracion usa un unico flujo principal de proyectos.');
     }
 
     public function addStage(): void
@@ -118,6 +116,28 @@ class ConfiguracionFlujosProyectos extends Component
 
         $this->stages[] = $this->blankStage(count($this->stages) + 1);
         $this->normalizeStageCodes();
+    }
+
+    public function updated(string $property, mixed $value): void
+    {
+        if (preg_match('/^stages\.(\d+)\.rol_revisor_id$/', $property, $matches)) {
+            $this->clearInvalidResponsible($this->stages, (int) $matches[1]);
+            return;
+        }
+
+        if (preg_match('/^programStages\.(\d+)\.rol_revisor_id$/', $property, $matches)) {
+            $this->clearInvalidResponsible($this->programStages, (int) $matches[1]);
+            return;
+        }
+
+        if (preg_match('/^stages\.(\d+)\.(requiere_asignacion|emisor_define_destinatario)$/', $property, $matches)) {
+            $this->syncResponsibleAvailability($this->stages, (int) $matches[1]);
+            return;
+        }
+
+        if (preg_match('/^programStages\.(\d+)\.(requiere_asignacion|emisor_define_destinatario)$/', $property, $matches)) {
+            $this->syncResponsibleAvailability($this->programStages, (int) $matches[1]);
+        }
     }
 
     public function removeStage(int $index): void
@@ -195,35 +215,32 @@ class ConfiguracionFlujosProyectos extends Component
             return;
         }
 
+        if (! $this->workflowId) {
+            $this->loadFirstWorkflow();
+        }
+
+        $this->workflow['codigo'] = $this->workflow['codigo'] ?: self::PROJECT_DEFAULT_CODE;
+        $this->normalizeStageCodes();
+
         $validated = $this->validate([
-            'workflow.codigo' => ['required', 'string', 'max:80'],
+            'workflow.codigo' => ['required', 'string', 'max:80', Rule::unique('flujos_aprobacion', 'codigo')->ignore($this->workflowId)],
             'workflow.nombre' => ['required', 'string', 'max:180'],
             'workflow.descripcion' => ['nullable', 'string'],
             'workflow.activo' => ['boolean'],
             'stages' => ['required', 'array', 'min:1'],
+            'stages.*.id' => ['nullable', 'integer', 'exists:flujos_aprobacion_etapas,id'],
             'stages.*.codigo' => ['required', 'string', 'max:80'],
             'stages.*.nombre' => ['required', 'string', 'max:180'],
             'stages.*.tipo_etapa' => ['required', 'in:FORMULACION,REVISION,APROBACION'],
             'stages.*.rol_revisor_id' => ['nullable', 'exists:roles,id'],
             'stages.*.usuario_responsable_id' => ['nullable', 'exists:users,id'],
-            'stages.*.cargo_firma_id' => ['required', 'exists:cargo_firma,id'],
+            'stages.*.cargo_firma_id' => ['nullable', 'exists:cargo_firma,id'],
             'stages.*.requiere_asignacion' => ['boolean'],
             'stages.*.emisor_define_destinatario' => ['boolean'],
             'stages.*.activo' => ['boolean'],
         ]);
 
-        foreach ($validated['stages'] as &$stage) {
-            $stage['codigo'] = strtoupper(trim($stage['codigo']));
-
-            if (! ($stage['requiere_asignacion'] ?? false)) {
-                $stage['usuario_responsable_id'] = null;
-                $stage['emisor_define_destinatario'] = false;
-            }
-
-            if ($stage['emisor_define_destinatario'] ?? false) {
-                $stage['usuario_responsable_id'] = null;
-            }
-        }
+        $validated['stages'] = $this->prepareStagesForSave($validated['stages']);
 
         if (! $this->selectedSubactionId) {
             $this->addError('workflow.nombre', 'Seleccione una subaccion para el flujo.');
@@ -239,26 +256,11 @@ class ConfiguracionFlujosProyectos extends Component
                     'proceso' => 'PROYECTO',
                     'descripcion' => $validated['workflow']['descripcion'] ?? null,
                     'activo' => $validated['workflow']['activo'] ?? true,
-                    'tipo_accion_id' => $this->selectedSubactionId,
+                    'tipo_accion_id' => $this->selectedSubactionId ?: $this->selectedActionId,
                 ]
             );
 
-            $flow->etapas()->delete();
-
-            foreach (array_values($validated['stages']) as $index => $stage) {
-                $flow->etapas()->create([
-                    'orden' => $index + 1,
-                    'codigo' => $stage['codigo'],
-                    'nombre' => $stage['nombre'],
-                    'tipo_etapa' => $stage['tipo_etapa'],
-                    'rol_revisor_id' => $stage['rol_revisor_id'] ?: null,
-                    'usuario_responsable_id' => $stage['usuario_responsable_id'] ?: null,
-                    'cargo_firma_id' => $stage['cargo_firma_id'],
-                    'requiere_asignacion' => (bool) ($stage['requiere_asignacion'] ?? false),
-                    'emisor_define_destinatario' => (bool) ($stage['emisor_define_destinatario'] ?? false),
-                    'activo' => $stage['activo'] ?? true,
-                ]);
-            }
+            $this->syncFlowStages($flow, $validated['stages']);
 
             return $flow;
         });
@@ -276,32 +278,18 @@ class ConfiguracionFlujosProyectos extends Component
 
     public function render(): View
     {
-        $flows = FlujoAprobacion::query()
-            ->where('proceso', 'PROYECTO')
-            ->when($this->selectedSubactionId, fn ($query) => $query->where('tipo_accion_id', $this->selectedSubactionId))
-            ->orderBy('nombre')
-            ->get();
-
         $actions = DB::table('vinculacion_tipos_accion')
             ->orderBy('orden')
             ->orderBy('nombre')
             ->get();
 
-        $cargos = CargoFirma::query()
-            ->join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-            ->where('cargo_firma.descripcion', 'Proyecto')
-            ->orderBy('tipo_cargo_firma.nombre')
-            ->select('cargo_firma.*', 'tipo_cargo_firma.nombre as cargo_nombre')
-            ->get();
-
         $tiposPrograma = TipoPrograma::with('flujoAprobacion')->orderBy('nombre')->get();
         $selectedTipoPrograma = $tiposPrograma->firstWhere('id', $this->programSelectedTipoProgramaId);
+        $roles = Role::query()->orderBy('name')->get();
 
         return view('livewire.configuracion.flujos.configuracion-flujos-proyectos', [
-            'flows' => $flows,
-            'cargos' => $cargos,
-            'roles' => Role::query()->orderBy('name')->get(),
-            'usuarios' => User::query()->orderBy('name')->get(),
+            'roles' => $roles,
+            'usuariosPorRol' => $this->usersGroupedByRole($roles),
             'actions' => $actions,
             'tiposPrograma' => $tiposPrograma,
             'selectedTipoPrograma' => $selectedTipoPrograma,
@@ -310,31 +298,28 @@ class ConfiguracionFlujosProyectos extends Component
 
     protected function saveProgramFlow(): void
     {
+        $this->programWorkflow['codigo'] = $this->programWorkflow['codigo']
+            ?: $this->generateUniqueFlowCode('PROGRAMA_'.$this->programSelectedTipoProgramaId, $this->programWorkflowId);
+        $this->normalizeProgramStageCodes();
+
         $validated = $this->validate([
-            'programWorkflow.codigo' => ['required', 'string', 'max:80'],
+            'programWorkflow.codigo' => ['required', 'string', 'max:80', Rule::unique('flujos_aprobacion', 'codigo')->ignore($this->programWorkflowId)],
             'programWorkflow.nombre' => ['required', 'string', 'max:180'],
             'programWorkflow.descripcion' => ['nullable', 'string'],
             'programWorkflow.activo' => ['boolean'],
             'programStages' => ['required', 'array', 'min:1'],
+            'programStages.*.id' => ['nullable', 'integer', 'exists:flujos_aprobacion_etapas,id'],
             'programStages.*.codigo' => ['required', 'string', 'max:80'],
             'programStages.*.nombre' => ['required', 'string', 'max:180'],
             'programStages.*.rol_revisor_id' => ['nullable', 'exists:roles,id'],
             'programStages.*.usuario_responsable_id' => ['nullable', 'exists:users,id'],
-            'programStages.*.cargo_firma_id' => ['required', 'exists:cargo_firma,id'],
+            'programStages.*.cargo_firma_id' => ['nullable', 'exists:cargo_firma,id'],
             'programStages.*.requiere_asignacion' => ['boolean'],
             'programStages.*.emisor_define_destinatario' => ['boolean'],
             'programStages.*.activo' => ['boolean'],
         ]);
 
-        foreach ($validated['programStages'] as &$stage) {
-            if (! ($stage['requiere_asignacion'] ?? false)) {
-                $stage['emisor_define_destinatario'] = false;
-            }
-
-            if ($stage['emisor_define_destinatario'] ?? false) {
-                $stage['usuario_responsable_id'] = null;
-            }
-        }
+        $validated['programStages'] = $this->prepareStagesForSave($validated['programStages'], 'REVISION');
 
         if (! $this->programSelectedTipoProgramaId) {
             $this->addError('programWorkflow.nombre', 'Seleccione un tipo de programa.');
@@ -354,22 +339,7 @@ class ConfiguracionFlujosProyectos extends Component
                 ]
             );
 
-            $flow->etapas()->delete();
-
-            foreach (array_values($validated['programStages']) as $index => $stage) {
-                $flow->etapas()->create([
-                    'orden' => $index + 1,
-                    'codigo' => strtoupper(trim($stage['codigo'])),
-                    'nombre' => $stage['nombre'],
-                    'tipo_etapa' => 'REVISION',
-                    'rol_revisor_id' => $stage['rol_revisor_id'] ?: null,
-                    'usuario_responsable_id' => $stage['usuario_responsable_id'] ?: null,
-                    'cargo_firma_id' => $stage['cargo_firma_id'],
-                    'requiere_asignacion' => (bool) ($stage['requiere_asignacion'] ?? false),
-                    'emisor_define_destinatario' => (bool) ($stage['emisor_define_destinatario'] ?? false),
-                    'activo' => $stage['activo'] ?? true,
-                ]);
-            }
+            $this->syncFlowStages($flow, $validated['programStages']);
 
             $this->programWorkflowId = $flow->id;
         });
@@ -380,26 +350,63 @@ class ConfiguracionFlujosProyectos extends Component
 
     protected function loadFirstWorkflow(): void
     {
+        $flow = $this->principalProjectWorkflow();
+
         if (! $this->selectedSubactionId) {
-            $this->selectedWorkflowId = null;
-            $this->resetWorkflowForm();
-            return;
+            $this->selectedSubactionId = $flow->tipo_accion_id ?: $this->selectedActionId;
         }
 
+        if (! $this->selectedActionId && $flow->tipo_accion_id) {
+            $this->selectedActionId = $flow->tipo_accion_id;
+        }
+
+        $this->selectedWorkflowId = $flow->id;
+        $this->loadWorkflow($flow);
+    }
+
+    protected function principalProjectWorkflow(): FlujoAprobacion
+    {
         $flow = FlujoAprobacion::query()
             ->where('proceso', 'PROYECTO')
-            ->where('tipo_accion_id', $this->selectedSubactionId)
-            ->orderBy('nombre')
+            ->where('codigo', self::PROJECT_DEFAULT_CODE)
             ->first();
 
-        if ($flow) {
-            $this->selectedWorkflowId = $flow->id;
-            $this->loadWorkflow($flow);
-            return;
+        if (! $flow) {
+            $flow = FlujoAprobacion::query()
+                ->where('proceso', 'PROYECTO')
+                ->orderBy('id')
+                ->first();
         }
 
-        $this->selectedWorkflowId = null;
-        $this->resetWorkflowForm();
+        if ($flow) {
+            return $flow->load('etapas');
+        }
+
+        return DB::transaction(function () {
+            $flow = FlujoAprobacion::create([
+                'codigo' => self::PROJECT_DEFAULT_CODE,
+                'nombre' => 'Flujo de aprobacion de proyectos',
+                'proceso' => 'PROYECTO',
+                'tipo_accion_id' => $this->selectedSubactionId ?: $this->selectedActionId,
+                'descripcion' => 'Flujo configurable para aprobacion de proyectos.',
+                'activo' => true,
+            ]);
+
+            $flow->etapas()->create([
+                'orden' => 1,
+                'codigo' => 'ETAPA_1',
+                'nombre' => 'Etapa 1',
+                'tipo_etapa' => 'REVISION',
+                'rol_revisor_id' => null,
+                'usuario_responsable_id' => null,
+                'cargo_firma_id' => $this->fallbackCargoFirmaId('REVISION'),
+                'requiere_asignacion' => true,
+                'emisor_define_destinatario' => false,
+                'activo' => true,
+            ]);
+
+            return $flow->load('etapas');
+        });
     }
 
     protected function loadWorkflow(FlujoAprobacion $flow): void
@@ -416,6 +423,7 @@ class ConfiguracionFlujosProyectos extends Component
         $this->stages = $flow->etapas
             ->sortBy('orden')
             ->map(fn ($stage) => [
+                'id' => $stage->id,
                 'codigo' => $stage->codigo,
                 'nombre' => $stage->nombre,
                 'tipo_etapa' => $stage->tipo_etapa ?? 'REVISION',
@@ -438,7 +446,7 @@ class ConfiguracionFlujosProyectos extends Component
     {
         $this->workflowId = null;
         $this->workflow = [
-            'codigo' => 'PROYECTO_DEFAULT',
+            'codigo' => self::PROJECT_DEFAULT_CODE,
             'nombre' => 'Flujo de aprobacion de proyectos',
             'proceso' => 'PROYECTO',
             'descripcion' => 'Flujo configurable para aprobacion de proyectos.',
@@ -450,12 +458,13 @@ class ConfiguracionFlujosProyectos extends Component
     protected function blankStage(int $order): array
     {
         return [
+            'id' => null,
             'codigo' => 'ETAPA_'.$order,
             'nombre' => '',
             'tipo_etapa' => 'REVISION',
             'rol_revisor_id' => '',
             'usuario_responsable_id' => '',
-            'cargo_firma_id' => '',
+            'cargo_firma_id' => (string) $this->fallbackCargoFirmaId('REVISION'),
             'requiere_asignacion' => true,
             'emisor_define_destinatario' => false,
             'activo' => true,
@@ -464,11 +473,25 @@ class ConfiguracionFlujosProyectos extends Component
 
     protected function normalizeStageCodes(): void
     {
+        $used = [];
+
         foreach ($this->stages as $index => $stage) {
-            $codigo = $stage['codigo'] ?? '';
+            $codigo = $this->normalizeCode($stage['codigo'] ?? '');
+
             if ($codigo === '') {
-                $this->stages[$index]['codigo'] = 'ETAPA_'.($index + 1);
+                $codigo = 'ETAPA_'.($index + 1);
             }
+
+            $base = $codigo;
+            $suffix = 2;
+
+            while (in_array($codigo, $used, true)) {
+                $codigo = $base.'_'.$suffix;
+                $suffix++;
+            }
+
+            $used[] = $codigo;
+            $this->stages[$index]['codigo'] = $codigo;
         }
     }
 
@@ -476,7 +499,7 @@ class ConfiguracionFlujosProyectos extends Component
     {
         $this->programWorkflowId = null;
         $this->programWorkflow = [
-            'codigo' => 'PROGRAMA_DEFAULT',
+            'codigo' => $this->generateUniqueFlowCode('PROGRAMA_'.$this->programSelectedTipoProgramaId, $this->programWorkflowId),
             'nombre' => 'Flujo de aprobacion de programas',
             'proceso' => 'PROGRAMA',
             'descripcion' => '',
@@ -513,8 +536,10 @@ class ConfiguracionFlujosProyectos extends Component
         $this->programStages = $flow->etapas
             ->sortBy('orden')
             ->map(fn ($stage) => [
+                'id' => $stage->id,
                 'codigo' => $stage->codigo,
                 'nombre' => $stage->nombre,
+                'tipo_etapa' => $stage->tipo_etapa ?? 'REVISION',
                 'rol_revisor_id' => (string) ($stage->rol_revisor_id ?? ''),
                 'usuario_responsable_id' => (string) ($stage->usuario_responsable_id ?? ''),
                 'cargo_firma_id' => (string) $stage->cargo_firma_id,
@@ -532,11 +557,223 @@ class ConfiguracionFlujosProyectos extends Component
 
     protected function normalizeProgramStageCodes(): void
     {
+        $used = [];
+
         foreach ($this->programStages as $index => $stage) {
-            $codigo = $stage['codigo'] ?? '';
+            $codigo = $this->normalizeCode($stage['codigo'] ?? '');
+
             if ($codigo === '') {
-                $this->programStages[$index]['codigo'] = 'ETAPA_'.($index + 1);
+                $codigo = 'ETAPA_'.($index + 1);
             }
+
+            $base = $codigo;
+            $suffix = 2;
+
+            while (in_array($codigo, $used, true)) {
+                $codigo = $base.'_'.$suffix;
+                $suffix++;
+            }
+
+            $used[] = $codigo;
+            $this->programStages[$index]['codigo'] = $codigo;
         }
+    }
+
+    protected function prepareStagesForSave(array $stages, string $defaultType = 'REVISION'): array
+    {
+        $prepared = [];
+        $usedCodes = [];
+
+        foreach (array_values($stages) as $index => $stage) {
+            $tipoEtapa = $stage['tipo_etapa'] ?? $defaultType;
+            $codigo = $this->normalizeCode($stage['codigo'] ?? '') ?: 'ETAPA_'.($index + 1);
+            $baseCode = $codigo;
+            $suffix = 2;
+
+            while (in_array($codigo, $usedCodes, true)) {
+                $codigo = $baseCode.'_'.$suffix;
+                $suffix++;
+            }
+
+            $usedCodes[] = $codigo;
+
+            $rolId = $stage['rol_revisor_id'] ?: null;
+            $responsableId = $stage['usuario_responsable_id'] ?: null;
+            $requiereAsignacion = (bool) ($stage['requiere_asignacion'] ?? false);
+            $emisorDefine = (bool) ($stage['emisor_define_destinatario'] ?? false);
+
+            if (! $requiereAsignacion) {
+                $responsableId = null;
+                $emisorDefine = false;
+            }
+
+            if ($emisorDefine || ! $rolId || ! $this->userBelongsToRole($responsableId, $rolId)) {
+                $responsableId = null;
+            }
+
+            $prepared[] = [
+                'id' => $stage['id'] ?? null,
+                'orden' => $index + 1,
+                'codigo' => $codigo,
+                'nombre' => $stage['nombre'],
+                'tipo_etapa' => $tipoEtapa,
+                'rol_revisor_id' => $rolId,
+                'usuario_responsable_id' => $responsableId,
+                'cargo_firma_id' => $this->fallbackCargoFirmaId($tipoEtapa, $stage['cargo_firma_id'] ?? null),
+                'requiere_asignacion' => $requiereAsignacion,
+                'emisor_define_destinatario' => $emisorDefine,
+                'activo' => (bool) ($stage['activo'] ?? true),
+            ];
+        }
+
+        return $prepared;
+    }
+
+    protected function syncFlowStages(FlujoAprobacion $flow, array $stages): void
+    {
+        $existing = $flow->etapas()->get()->keyBy('id');
+        $keptIds = collect();
+
+        $existing->each(function ($stage) {
+            $stage->update([
+                'orden' => 100000 + (int) $stage->id,
+                'codigo' => 'TMP_'.$stage->id.'_'.substr(md5((string) microtime(true)), 0, 12),
+            ]);
+        });
+
+        foreach ($stages as $stage) {
+            $payload = [
+                'orden' => $stage['orden'],
+                'codigo' => $stage['codigo'],
+                'nombre' => $stage['nombre'],
+                'tipo_etapa' => $stage['tipo_etapa'],
+                'rol_revisor_id' => $stage['rol_revisor_id'],
+                'usuario_responsable_id' => $stage['usuario_responsable_id'],
+                'cargo_firma_id' => $stage['cargo_firma_id'],
+                'requiere_asignacion' => $stage['requiere_asignacion'],
+                'emisor_define_destinatario' => $stage['emisor_define_destinatario'],
+                'activo' => $stage['activo'],
+            ];
+
+            $stageModel = $stage['id'] ? $existing->get((int) $stage['id']) : null;
+
+            if ($stageModel) {
+                $stageModel->update($payload);
+                $keptIds->push($stageModel->id);
+                continue;
+            }
+
+            $keptIds->push($flow->etapas()->create($payload)->id);
+        }
+
+        $flow->etapas()->whereNotIn('id', $keptIds->all())->delete();
+    }
+
+    protected function usersGroupedByRole($roles): array
+    {
+        $users = User::query()
+            ->with('roles')
+            ->whereHas('roles', fn ($query) => $query->whereIn('roles.id', $roles->pluck('id')))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return $roles
+            ->mapWithKeys(fn ($role) => [
+                (string) $role->id => $users
+                    ->filter(fn (User $user) => $user->hasRole($role->name))
+                    ->map(fn (User $user) => ['id' => $user->id, 'name' => $user->name])
+                    ->values()
+                    ->all(),
+            ])
+            ->all();
+    }
+
+    protected function clearInvalidResponsible(array &$stages, int $index): void
+    {
+        if (! isset($stages[$index])) {
+            return;
+        }
+
+        $roleId = $stages[$index]['rol_revisor_id'] ?? null;
+        $userId = $stages[$index]['usuario_responsable_id'] ?? null;
+
+        if (! $roleId || ! $this->userBelongsToRole($userId, $roleId)) {
+            $stages[$index]['usuario_responsable_id'] = '';
+        }
+    }
+
+    protected function syncResponsibleAvailability(array &$stages, int $index): void
+    {
+        if (! isset($stages[$index])) {
+            return;
+        }
+
+        if (! ($stages[$index]['requiere_asignacion'] ?? false)) {
+            $stages[$index]['emisor_define_destinatario'] = false;
+            $stages[$index]['usuario_responsable_id'] = '';
+            return;
+        }
+
+        if ($stages[$index]['emisor_define_destinatario'] ?? false) {
+            $stages[$index]['usuario_responsable_id'] = '';
+        }
+    }
+
+    protected function userBelongsToRole(mixed $userId, mixed $roleId): bool
+    {
+        if (! $userId || ! $roleId) {
+            return false;
+        }
+
+        return User::query()
+            ->whereKey($userId)
+            ->whereHas('roles', fn ($query) => $query->where('roles.id', $roleId))
+            ->exists();
+    }
+
+    protected function fallbackCargoFirmaId(string $tipoEtapa = 'REVISION', mixed $currentCargoId = null): int
+    {
+        if ($currentCargoId && CargoFirma::whereKey($currentCargoId)->exists()) {
+            return (int) $currentCargoId;
+        }
+
+        $cargoName = match ($tipoEtapa) {
+            'FORMULACION' => 'Coordinador Proyecto',
+            'APROBACION' => 'Director Vinculacion',
+            default => 'Revisor Vinculacion',
+        };
+
+        return $this->cargoFirmaCache[$cargoName] ??= (int) (CargoFirma::query()
+            ->join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+            ->where('cargo_firma.descripcion', 'Proyecto')
+            ->where('tipo_cargo_firma.nombre', $cargoName)
+            ->value('cargo_firma.id')
+            ?? CargoFirma::where('descripcion', 'Proyecto')->orderBy('id')->value('id'));
+    }
+
+    protected function generateUniqueFlowCode(string $base, ?int $ignoreId = null): string
+    {
+        $base = $this->normalizeCode($base) ?: 'FLUJO';
+        $candidate = $base;
+        $suffix = 2;
+
+        while (FlujoAprobacion::query()
+            ->where('codigo', $candidate)
+            ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
+            ->exists()
+        ) {
+            $candidate = $base.'_'.$suffix;
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
+    protected function normalizeCode(string $value): string
+    {
+        $value = strtoupper(trim($value));
+        $value = preg_replace('/[^A-Z0-9]+/', '_', $value) ?? '';
+
+        return trim($value, '_');
     }
 }
