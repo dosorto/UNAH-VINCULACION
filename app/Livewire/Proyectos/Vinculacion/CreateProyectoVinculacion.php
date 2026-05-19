@@ -2797,7 +2797,7 @@ class CreateProyectoVinculacion extends Component
             'internacionales' => IntegranteInternacional::orderBy('nombre_completo')->get()->mapWithKeys(fn($i) => [$i->id => "{$i->nombre_completo} ({$i->pais})"]),
             'paises' => Pais::orderBy('nombre')->pluck('nombre', 'id'),
             'tiposParticipacionEstudiante' => $this->tipoParticipacionEstudianteOpciones,
-            'asignaturas' => $this->asignaturasDisponibles,
+            'asignaturasOpciones' => $this->asignaturasDisponibles,
             'carrerasSeleccionadas' => $this->carrerasSeleccionadasOptions(),
             'periodosAcademicos' => $this->periodosAcademicosDisponibles,
             'departamentosGeo' => \App\Models\Demografia\Departamento::orderBy('nombre')->pluck('nombre', 'id'),

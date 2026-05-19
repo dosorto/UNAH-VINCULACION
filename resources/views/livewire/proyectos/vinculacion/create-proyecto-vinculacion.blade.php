@@ -457,7 +457,7 @@
                                     </span>
                                     @if(($est['tipo_participacion_estudiante'] ?? '') === 'Practica Asignatura')
                                     <p class="text-xs text-gray-500 mt-0.5">
-                                        {{ $asignaturas[$est['asignatura_id'] ?? ''] ?? 'Asignatura pendiente' }}
+                                        {{ $asignaturasOpciones[$est['asignatura_id'] ?? ''] ?? 'Asignatura pendiente' }}
                                     </p>
                                     <p class="text-xs text-gray-500">
                                         {{ $periodosAcademicos[$est['periodo_academico_id'] ?? ''] ?? ($est['periodo_academico_id'] ?? 'Periodo pendiente') }}
@@ -614,21 +614,21 @@
                                     @endif
                                 </div>
                                 <select wire:model.live="nuevoEstudiante.asignatura_id"
-                                    @disabled(empty($carreras) || empty($asignaturas))
+                                    @disabled(empty($carreras) || empty($asignaturasOpciones))
                                     class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800/60">
                                     @if(empty($carreras))
                                         <option value="">Seleccione primero una carrera en Información General</option>
-                                    @elseif(empty($asignaturas))
+                                    @elseif(empty($asignaturasOpciones))
                                         <option value="">No hay asignaturas para la carrera seleccionada</option>
                                     @else
                                         <option value="">Seleccione...</option>
-                                        @foreach($asignaturas as $id => $nombre)
+                                        @foreach($asignaturasOpciones as $id => $nombre)
                                             <option value="{{ $id }}">{{ $nombre }}</option>
                                         @endforeach
                                     @endif
                                 </select>
                                 @error('nuevoEstudiante.asignatura_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                                @if(empty($asignaturas) && !empty($carreras))
+                                @if(empty($asignaturasOpciones) && !empty($carreras))
                                     <p class="text-xs text-amber-600 mt-1">Cree una asignatura asociada a una de las carreras seleccionadas para poder usarla aqui.</p>
                                 @endif
                             </div>

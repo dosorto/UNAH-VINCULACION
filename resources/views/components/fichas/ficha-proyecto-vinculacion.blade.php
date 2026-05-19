@@ -37,13 +37,84 @@
             }
             .table_datos1, .table_datos2, .table_datos3, .table_datos4, .table_datos5, .table_datos6, .table_datos7 {
                 width: 100% !important;
-                table-layout: fixed !important;
                 border-collapse: collapse !important;
-                page-break-inside: auto;
             }
-            .table_datos1 tr, .table_datos2 tr, .table_datos3 tr, .table_datos4 tr, .table_datos5 tr, .table_datos6 tr, .table_datos7 tr {
-                page-break-inside: avoid;
-                page-break-after: auto;
+            .header-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                table-layout: fixed !important;
+                margin-bottom: 8px !important;
+            }
+            .logos-cell {
+                text-align: center !important;
+                padding-bottom: 12px !important;
+            }
+            .header-logo {
+                width: 500px !important;
+                max-width: 100% !important;
+                height: auto !important;
+            }
+            .title-cell {
+                width: 78% !important;
+                font-size: 12px !important;
+                font-weight: bold !important;
+                line-height: 1.25 !important;
+                text-align: center !important;
+                vertical-align: top !important;
+                padding-right: 10px !important;
+                white-space: normal !important;
+                word-break: normal !important;
+            }
+            .contact-cell {
+                width: 22% !important;
+                font-size: 8.5px !important;
+                font-weight: bold !important;
+                color: #001b5d !important;
+                line-height: 1.2 !important;
+                text-align: right !important;
+                vertical-align: top !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+            }
+            .pdf-content-wrapper {
+                display: block !important;
+                margin-top: 0 !important;
+                background: #fff !important;
+            }
+            .pdf-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+            .info-general-table {
+                table-layout: fixed !important;
+            }
+            .info-general-table .info-col-label {
+                width: 20% !important;
+            }
+            .info-general-table .info-col-detail {
+                width: 16% !important;
+            }
+            .info-general-table th,
+            .info-general-table td,
+            .info-general-table .full-width,
+            .info-general-table .full-width1,
+            .info-general-table .sub-header,
+            .info-general-table .sub-header1 {
+                width: auto !important;
+            }
+            .pdf-table td,
+            .pdf-table th {
+                border: 1px solid #000 !important;
+                padding: 3px 5px !important;
+                vertical-align: top !important;
+                line-height: 1.15 !important;
+            }
+            .pdf-section-avoid-break {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            .section-title {
+                page-break-after: avoid !important;
             }
             .table_datos1 td, .table_datos1 th,
             .table_datos2 td, .table_datos2 th,
@@ -127,10 +198,10 @@
         </details>
     @endif
 
-    <div class="rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-            <span class="text-sm font-semibold text-gray-900">Ficha del proyecto</span>
-            @if (empty($isPdf))
+    <div class="{{ empty($isPdf) ? 'rounded-xl border border-gray-200 bg-white shadow-sm' : '' }}">
+        @if (empty($isPdf))
+            <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 no-print">
+                <span class="text-sm font-semibold text-gray-900">Ficha del proyecto</span>
                 <a
                     href="{{ route('proyecto.perfil.pdf', ['proyecto' => $proyecto->id]) }}"
                     class="no-print inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition"
@@ -141,29 +212,46 @@
                     </svg>
                     Descargar PDF
                 </a>
-            @endif
-        </div>
+            </div>
+        @endif
 
-        <div style="display: flex; justify-content: center; margin-top: 20px; background-color: white;">
+        <div class="{{ !empty($isPdf) ? 'pdf-content-wrapper' : '' }}" style="display: flex; justify-content: center; margin-top: 20px; background-color: white;">
             <div class="container">
                 <div class="header">
-                    <div class="logo-space">
-                        <img src="{{ !empty($isPdf) ? public_path('images/Image/Imagen1.jpg') : asset('images/Image/Imagen1.jpg') }}"
-                            width="500px" height="120px" alt="Escudo de la UNAH">
-                        <div class="contact-info">
-                            <a href="vinculacion.sociedad@unah.edu.hn">vinculacion.sociedad@unah.edu.hn</a><br>
-                            Tel. 2216-7070 Ext. 110576
-                        </div>
-                    </div>
-                    <h1>FORM-DVUS-001 - FORMULARIO DE REGISTRO DE PROYECTO DE VINCULACIÓN DE DESARROLLO LOCAL Y REGIONAL</h1>
+                    <table class="header-table">
+                        <tr>
+                            <td class="logos-cell" colspan="2">
+                                <img class="header-logo" src="{{ !empty($isPdf) ? public_path('images/Image/Imagen1.jpg') : asset('images/Image/Imagen1.jpg') }}"
+                                    width="500px" height="120px" alt="Escudo de la UNAH">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="title-cell">
+                                FORM-DVUS-001 - FORMULARIO DE REGISTRO DE PROYECTO DE VINCULACIÓN<br>
+                                DE DESARROLLO LOCAL Y REGIONAL
+                            </td>
+                            <td class="contact-cell">
+                                <a href="mailto:vinculacion.sociedad@unah.edu.hn">vinculacion.sociedad@unah.edu.hn</a><br>
+                                Tel. 2216-7070 Ext. 110576
+                            </td>
+                        </tr>
+                    </table>
                 </div>
 
                 <div class="section1">
                     <div class="section-title">I. INFORMACIÓN GENERAL DEL PROYECTO </div>
-                    <table class="table_datos1">
+                    <table class="table_datos1 info-general-table">
+                        <colgroup>
+                            <col class="info-col-label">
+                            <col class="info-col-detail">
+                            <col class="info-col-detail">
+                            <col class="info-col-detail">
+                            <col class="info-col-detail">
+                            <col class="info-col-detail">
+                        </colgroup>
                         <tr>
                             <th class="full-width1" rowspan="2">Fecha de solicitud de registro:</th> 
-                            <td class="full-width1" colspan="4">
+                            <td class="full-width1" colspan="5">
                                 <div class="date-container">
                                     <div class="date-part">
                                         <span class="date-label">Día</span>
@@ -178,7 +266,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="full-width" colspan="4">
+                            <td class="full-width" colspan="5">
                                 <div class="date-container">
                                     <div class="date-part">
                                         <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_registro ? $proyecto->fecha_registro->format('d') : '' }}">
@@ -262,7 +350,7 @@
                                 <input disabled type="checkbox" class="No"
                                     @if ($proyecto->modalidad?->nombre == 'Interdisciplinar') checked @endif>
                             </td>
-                            <td class="sub-header1" colspan="1">Transdisciplinar<br>
+                            <td class="sub-header1" colspan="2">Transdisciplinar<br>
                                 <input disabled type="checkbox" class="No"
                                     @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>
                             </td>
@@ -281,7 +369,7 @@
                                 <input disabled type="checkbox" class="No"
                                     @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Población y condiciones de vida')) checked @endif>
                             </td>
-                            <td class="sub-header1" colspan="1">Ambiente, biodiversidad y desarrollo<br>
+                            <td class="sub-header1" colspan="2">Ambiente, biodiversidad y desarrollo<br>
                                 <input disabled type="checkbox" class="No"
                                     @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Ambiente, biodiversidad y desarrollo')) checked @endif>
                             </td>
@@ -295,7 +383,7 @@
                                 <input disabled type="checkbox" class="No"
                                     @if ($proyecto->categoria->contains('nombre', 'Desarrollo Local')) checked @endif>
                             </td>
-                            <td class="sub-header1" colspan="2">Desarrollo Regional<br>
+                            <td class="sub-header1" colspan="3">Desarrollo Regional<br>
                                 <input disabled type="checkbox" class="No"
                                     @if ($proyecto->categoria->contains('nombre', 'Desarrollo Regional')) checked @endif>
                             </td>
@@ -332,7 +420,7 @@
                         <tr>
                             <th class="full-width1" rowspan="1">6. Fechas de ejecución del proyecto:</th>
                             <td class="sub-header" colspan="1">Fecha de inicio:</td>   
-                            <td class="full-width" colspan="1">
+                            <td class="full-width" colspan="2">
                                 <div class="date-container">
                                     <div class="date-part">
                                         <span class="date-label">Día</span>
@@ -442,7 +530,10 @@
                             </td>
                         </tr>
         
-                    <!-- Sitio de ejecución del proyecto --> 
+                    </table>
+
+                    <!-- Sitio de ejecución del proyecto -->
+                    <table class="table_datos1 pdf-table pdf-section-avoid-break section-site-execution">
                     <tr>
                         <th class="full-width1" colspan="6">8. Sitio de ejecución del proyecto</th>
                     </tr>
@@ -460,7 +551,7 @@
                                 @endforelse
                         </td>
                         <td class="sub-header" colspan="1">Aldea (incluye ciudad)</td>
-                        <td class="full-width" colspan="2">
+                        <td class="full-width" colspan="3">
                             <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el nombre de la entidad" value="{{ $proyecto->aldea }}"
                                     disabled>
@@ -480,7 +571,7 @@
                                 @endforelse
                         </td>
                         <td class="sub-header" colspan="1">Caserío</td>
-                        <td class="full-width" colspan="2">
+                        <td class="full-width" colspan="3">
                             @if(is_array($proyecto->caserio) && count($proyecto->caserio) > 0)
                                 @foreach($proyecto->caserio as $caserio)
                                     <input disabled type="text" class="input-field"
@@ -507,7 +598,7 @@
                             @endif
                         </td>
                         <td class="sub-header" colspan="1">País</td>
-                        <td class="full-width" colspan="2">
+                        <td class="full-width" colspan="3">
                             @php $paisArr = is_array($proyecto->pais) ? $proyecto->pais : (array) $proyecto->pais; @endphp
                             @if(count($paisArr) > 0)
                                 @foreach($paisArr as $pais)
@@ -521,9 +612,12 @@
                         </td>
                     </tr>
 
+                    </table>
+
                     <!-- TABLA DE PRESUPUESTO DEL PROYECTO -->
+                    <table class="table_datos1 pdf-table pdf-section-avoid-break section-budget">
                      <tr>
-                            <th class="full-width1" colspan="6"> 9. Presupuesto del Proyecto</th>
+                            <th class="full-width1" colspan="8"> 9. Presupuesto del Proyecto</th>
                         </tr>
                         <tr>
                             <td class="sub-header" colspan="2">Aporte académico de la UNAH:</td>
