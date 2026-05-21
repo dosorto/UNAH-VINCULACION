@@ -2555,6 +2555,7 @@ class CreateProyectoVinculacion extends Component
         try {
             $this->saveFirmas($record);
             $record->agregarFirma(cargoFirma: 'Coordinador Proyecto', empleado: $empleado);
+            $record->sincronizarFirmasDelFlujo();
             $cargoFirma = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
                 ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
                 ->where('cargo_firma.descripcion', 'Proyecto')
