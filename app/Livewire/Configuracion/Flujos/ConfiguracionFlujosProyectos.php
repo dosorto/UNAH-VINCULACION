@@ -4,6 +4,7 @@ namespace App\Livewire\Configuracion\Flujos;
 
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\FlujoAprobacion;
+use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\SGCU\TipoPrograma;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -114,7 +115,10 @@ class ConfiguracionFlujosProyectos extends Component
             return;
         }
 
-        $this->stages[] = $this->blankStage(count($this->stages) + 1);
+        $this->stages[] = $this->blankStage(
+            count($this->stages) + 1,
+            $this->generateUniqueStageCode($this->stages, $this->workflowId)
+        );
         $this->normalizeStageCodes();
     }
 
@@ -240,7 +244,7 @@ class ConfiguracionFlujosProyectos extends Component
             'stages.*.activo' => ['boolean'],
         ]);
 
-        $validated['stages'] = $this->prepareStagesForSave($validated['stages']);
+        $validated['stages'] = $this->prepareStagesForSave($validated['stages'], 'REVISION', $this->workflowId);
 
         if (! $this->selectedSubactionId) {
             $this->addError('workflow.nombre', 'Seleccione una subaccion para el flujo.');
@@ -455,11 +459,11 @@ class ConfiguracionFlujosProyectos extends Component
         $this->stages = [$this->blankStage(1)];
     }
 
-    protected function blankStage(int $order): array
+    protected function blankStage(int $order, ?string $codigo = null): array
     {
         return [
             'id' => null,
-            'codigo' => 'ETAPA_'.$order,
+            'codigo' => $codigo ?: 'ETAPA_'.$order,
             'nombre' => '',
             'tipo_etapa' => 'REVISION',
             'rol_revisor_id' => '',
@@ -579,14 +583,15 @@ class ConfiguracionFlujosProyectos extends Component
         }
     }
 
-    protected function prepareStagesForSave(array $stages, string $defaultType = 'REVISION'): array
+    protected function prepareStagesForSave(array $stages, string $defaultType = 'REVISION', ?int $flowId = null): array
     {
         $prepared = [];
         $usedCodes = [];
 
         foreach (array_values($stages) as $index => $stage) {
             $tipoEtapa = $stage['tipo_etapa'] ?? $defaultType;
-            $codigo = $this->normalizeCode($stage['codigo'] ?? '') ?: 'ETAPA_'.($index + 1);
+            $codigo = $this->normalizeCode($stage['codigo'] ?? '')
+                ?: ($flowId ? $this->generateUniqueStageCode($prepared, $flowId) : 'ETAPA_'.($index + 1));
             $baseCode = $codigo;
             $suffix = 2;
 
@@ -627,6 +632,44 @@ class ConfiguracionFlujosProyectos extends Component
         }
 
         return $prepared;
+    }
+
+    protected function generateUniqueStageCode(array $stages = [], ?int $flowId = null): string
+    {
+        $codes = collect($stages)
+            ->pluck('codigo')
+            ->map(fn ($code) => $this->normalizeCode((string) $code))
+            ->filter()
+            ->values();
+
+        if ($flowId) {
+            $codes = $codes->merge(
+                FlujoAprobacionEtapa::query()
+                    ->where('flujo_aprobacion_id', $flowId)
+                    ->pluck('codigo')
+                    ->map(fn ($code) => $this->normalizeCode((string) $code))
+                    ->filter()
+                    ->values()
+            );
+        }
+
+        $maxNumericSuffix = $codes
+            ->map(function (string $code) {
+                return preg_match('/^ETAPA_(\d+)$/', $code, $matches)
+                    ? (int) $matches[1]
+                    : null;
+            })
+            ->filter()
+            ->max();
+
+        $next = max((int) $maxNumericSuffix + 1, count($stages) + 1);
+
+        do {
+            $candidate = sprintf('ETAPA_%02d', $next);
+            $next++;
+        } while ($codes->contains($candidate));
+
+        return $candidate;
     }
 
     protected function syncFlowStages(FlujoAprobacion $flow, array $stages): void

@@ -177,7 +177,7 @@
                                         <span class="text-sm font-bold">{{ $index + 1 }}</span>
                                     </div>
                                     <div>
-                                        <div class="text-sm font-semibold text-slate-900 dark:text-slate-100">Etapa {{ $index + 1 }}</div>
+                                        <div class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $stage['nombre'] ?: 'Etapa '.($index + 1) }}</div>
                                         <div class="text-xs uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                                             {{ $loop->first ? 'Primera en ejecutarse' : ($loop->last ? 'Cierre del flujo' : 'Etapa intermedia') }}
                                         </div>
