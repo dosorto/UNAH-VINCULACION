@@ -17,6 +17,53 @@ body {
     text-align: center;
     margin-bottom: 20px;
 }
+.header-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin-bottom: 8px;
+}
+
+.logos-cell {
+    text-align: center;
+    padding-bottom: 18px;
+}
+
+.header-logo {
+    width: 500px;
+    max-width: 100%;
+    height: auto;
+}
+
+.title-cell {
+    width: 78%;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1.25;
+    text-align: center;
+    vertical-align: top;
+    padding-right: 10px;
+    word-wrap: break-word;
+    white-space: normal;
+}
+
+.contact-cell {
+    width: 22%;
+    font-size: 9px;
+    font-weight: bold;
+    color: #001b5d;
+    line-height: 1.2;
+    text-align: right;
+    vertical-align: top;
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+.contact-cell a {
+    color: inherit;
+    text-decoration: none;
+}
+
 .logo-space {
     height: 100px;
     background-color: #fff;
@@ -113,6 +160,46 @@ p {
 .section-title {
     font-weight: bold;
     margin-bottom: 0px;
+    page-break-after: avoid;
+}
+
+.pdf-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.info-general-table {
+    table-layout: fixed;
+}
+
+.info-general-table .info-col-label {
+    width: 20%;
+}
+
+.info-general-table .info-col-detail {
+    width: 16%;
+}
+
+.info-general-table th,
+.info-general-table td,
+.info-general-table .full-width,
+.info-general-table .full-width1,
+.info-general-table .sub-header,
+.info-general-table .sub-header1 {
+    width: auto;
+}
+
+.pdf-table td,
+.pdf-table th {
+    border: 1px solid #000;
+    padding: 3px 5px;
+    vertical-align: top;
+    line-height: 1.15;
+}
+
+.pdf-section-avoid-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
 }
 
 

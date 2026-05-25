@@ -9,6 +9,7 @@ use App\Models\Personal\Empleado;
 use App\Models\Estudiante\Estudiante;
 
 use App\Models\Personal\CategoriaEmpleado;
+use Spatie\Permission\Models\Role;
 
 
 class PersonalSeeder extends Seeder
@@ -107,6 +108,93 @@ class PersonalSeeder extends Seeder
             'ruta_storage' => 'images/firmas/Sello_Victor.png',
             'estado' => true
         ]);
+
+        $usuariosPruebaVinculacion = [
+            [
+                'name' => 'Coordinador Proyecto Prueba',
+                'email' => 'coordinador.proyecto@unah.hn',
+                'given_name' => 'Coordinador',
+                'surname' => 'Proyecto',
+                'role' => 'Coordinador Proyecto',
+                'numero_empleado' => '900001',
+            ],
+            [
+                'name' => 'Enlace Vinculacion Prueba',
+                'email' => 'enlace.vinculacion@unah.hn',
+                'given_name' => 'Enlace',
+                'surname' => 'Vinculacion',
+                'role' => 'Enlace Vinculacion',
+                'numero_empleado' => '900002',
+            ],
+            [
+                'name' => 'Jefe Departamento Prueba',
+                'email' => 'jefe.departamento@unah.hn',
+                'given_name' => 'Jefe',
+                'surname' => 'Departamento',
+                'role' => 'Jefe Departamento',
+                'numero_empleado' => '900003',
+            ],
+            [
+                'name' => 'Director Centro Prueba',
+                'email' => 'director.centro@unah.hn',
+                'given_name' => 'Director',
+                'surname' => 'Centro',
+                'role' => 'Director centro',
+                'numero_empleado' => '900004',
+            ],
+            [
+                'name' => 'Revisor Vinculacion Prueba',
+                'email' => 'revisor.vinculacion@unah.hn',
+                'given_name' => 'Revisor',
+                'surname' => 'Vinculacion',
+                'role' => 'Revisor Vinculacion',
+                'numero_empleado' => '900005',
+            ],
+            [
+                'name' => 'Director Vinculacion Prueba',
+                'email' => 'director.vinculacion@unah.hn',
+                'given_name' => 'Director',
+                'surname' => 'Vinculacion',
+                'role' => 'Director Vinculacion',
+                'numero_empleado' => '900006',
+            ],
+        ];
+
+        $categoriaAdministrativoId = CategoriaEmpleado::where('nombre', 'Administrativo')->value('id') ?? 9;
+
+        foreach ($usuariosPruebaVinculacion as $usuarioRol) {
+            $role = Role::firstOrCreate([
+                'name' => $usuarioRol['role'],
+                'guard_name' => 'web',
+            ]);
+
+            $usuario = User::updateOrCreate(
+                ['email' => $usuarioRol['email']],
+                [
+                    'name' => $usuarioRol['name'],
+                    'password' => bcrypt('123'),
+                    'surname' => $usuarioRol['surname'],
+                    'given_name' => $usuarioRol['given_name'],
+                    'active_role_id' => $role->id,
+                ]
+            );
+
+            $usuario->syncRoles([$role->name]);
+
+            Empleado::updateOrCreate(
+                ['numero_empleado' => $usuarioRol['numero_empleado']],
+                [
+                    'nombre_completo' => $usuarioRol['name'],
+                    'celular' => '99999999',
+                    'sexo' => 'Masculino',
+                    'user_id' => $usuario->id,
+                    'centro_facultad_id' => 4,
+                    'departamento_academico_id' => 9,
+                    'categoria_id' => $categoriaAdministrativoId,
+                    'tipo_empleado' => 'administrativo',
+                ]
+            );
+        }
 
         if (app()->environment('local')) {
 

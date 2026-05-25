@@ -17,6 +17,7 @@ class FlujoAprobacion extends Model
         'nombre',
         'proceso',
         'tipo_accion_id',
+        'tipo_programa_id',
         'descripcion',
         'activo',
     ];
@@ -29,6 +30,11 @@ class FlujoAprobacion extends Model
     {
         return $this->hasMany(FlujoAprobacionEtapa::class, 'flujo_aprobacion_id')
             ->orderBy('orden');
+    }
+
+    public function tipoPrograma()
+    {
+        return $this->belongsTo(\App\Models\SGCU\TipoPrograma::class, 'tipo_programa_id');
     }
 
     public static function defaultForProyectos(): ?self

@@ -57,6 +57,7 @@ class PermisosSeeder extends Seeder
             // Unidad Academica
             ['name' => 'unidad-academica.campus',       'display_name' => 'Administrar Campus'],
             ['name' => 'unidad-academica.carrera',      'display_name' => 'Administrar Carreras'],
+            ['name' => 'unidad-academica.asignatura',   'display_name' => 'Administrar Asignaturas'],
             ['name' => 'unidad-academica.departamento', 'display_name' => 'Administrar Departamentos Academicos'],
             ['name' => 'unidad-academica.facultad',     'display_name' => 'Administrar Facultades y Centros'],
             // Global
@@ -78,6 +79,12 @@ class PermisosSeeder extends Seeder
         $roleDocente    = Role::firstOrCreate(['name' => 'docente',         'guard_name' => 'web']);
         $roleDirector   = Role::firstOrCreate(['name' => 'Director/Enlace', 'guard_name' => 'web']);
         $roleEstudiante = Role::firstOrCreate(['name' => 'estudiante',      'guard_name' => 'web']);
+        $roleCoordinadorProyecto = Role::firstOrCreate(['name' => 'Coordinador Proyecto', 'guard_name' => 'web']);
+        $roleEnlaceVinculacion = Role::firstOrCreate(['name' => 'Enlace Vinculacion', 'guard_name' => 'web']);
+        $roleJefeDepartamento = Role::firstOrCreate(['name' => 'Jefe Departamento', 'guard_name' => 'web']);
+        $roleDirectorCentro = Role::firstOrCreate(['name' => 'Director centro', 'guard_name' => 'web']);
+        $roleRevisorVinculacion = Role::firstOrCreate(['name' => 'Revisor Vinculacion', 'guard_name' => 'web']);
+        $roleDirectorVinculacion = Role::firstOrCreate(['name' => 'Director Vinculacion', 'guard_name' => 'web']);
 
         $role->syncPermissions([
             'demografia.pais', 'demografia.departamento', 'demografia.municipio',
@@ -90,7 +97,7 @@ class PermisosSeeder extends Seeder
             'inicio.admin', 'dashboard.admin',
             'constancia.constancias',
             'unidad-academica.campus', 'unidad-academica.carrera',
-            'unidad-academica.departamento', 'unidad-academica.facultad',
+            'unidad-academica.asignatura', 'unidad-academica.departamento', 'unidad-academica.facultad',
             'global.set-role',
             'apariencia.slides',
             'estudiante.admin',
@@ -100,6 +107,7 @@ class PermisosSeeder extends Seeder
         $roleDocente->syncPermissions([
             'inicio.docente', 'dashboard.docente',
             'docente.proyectos', 'docente.crear-proyecto',
+            'unidad-academica.asignatura',
             'configuracion.perfil', 'global.set-role',
             'tickets.ver',
         ]);
@@ -113,6 +121,45 @@ class PermisosSeeder extends Seeder
             'inicio.estudiante', 'dashboard.estudiante',
             'constancia.constancias', 'global.set-role',
             'tickets.ver',
+        ]);
+
+        $roleCoordinadorProyecto->syncPermissions([
+            'inicio.docente', 'dashboard.docente',
+            'docente.proyectos', 'docente.crear-proyecto',
+            'unidad-academica.asignatura',
+            'configuracion.perfil', 'global.set-role',
+            'tickets.ver',
+        ]);
+
+        $roleEnlaceVinculacion->syncPermissions([
+            'director.proyectos', 'docente.proyectos', 'inicio.admin',
+            'dashboard.director', 'global.set-role',
+            'configuracion.perfil', 'tickets.ver',
+        ]);
+
+        $roleJefeDepartamento->syncPermissions([
+            'director.proyectos', 'docente.proyectos', 'inicio.admin',
+            'dashboard.director', 'global.set-role',
+            'configuracion.perfil', 'tickets.ver',
+        ]);
+
+        $roleDirectorCentro->syncPermissions([
+            'director.proyectos', 'docente.proyectos', 'inicio.admin',
+            'dashboard.director', 'global.set-role',
+            'configuracion.perfil', 'tickets.ver',
+        ]);
+
+        $roleRevisorVinculacion->syncPermissions([
+            'proyectos.historial', 'proyectos.solicitados', 'proyectos.informes', 'docente.proyectos',
+            'inicio.admin', 'dashboard.admin',
+            'global.set-role', 'configuracion.perfil', 'tickets.ver',
+        ]);
+
+        $roleDirectorVinculacion->syncPermissions([
+            'proyectos.historial', 'proyectos.aprobados', 'proyectos.firma-director',
+            'proyectos.revision-final', 'proyectos.informes', 'docente.proyectos',
+            'inicio.admin', 'dashboard.director',
+            'global.set-role', 'configuracion.perfil', 'tickets.ver',
         ]);
     }
 }

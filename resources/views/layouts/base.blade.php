@@ -5,45 +5,54 @@
     <meta charset="utf-8">
     <script>
         // Evitar parpadeo al detectar y aplicar modo oscuro
-        if (
-            localStorage.getItem('theme') === 'dark' ||
-            (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
-        ) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
+        (() => {
+            const storedTheme = localStorage.getItem('theme');
+            const legacyTheme = localStorage.getItem('color-theme');
+            const theme = storedTheme || legacyTheme;
+
+            if (!storedTheme && legacyTheme) {
+                localStorage.setItem('theme', legacyTheme);
+                localStorage.removeItem('color-theme');
+            }
+
+            if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
     </script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const themeToggle = document.getElementById('theme-toggle');
         const htmlElement = document.documentElement;
+        const storedTheme = localStorage.getItem('theme');
 
         // Verificar preferencia guardada
-        if (localStorage.getItem('theme') === 'dark' || 
-           (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        if (storedTheme === 'dark' ||
+           (!storedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             htmlElement.classList.add('dark');
         } else {
             htmlElement.classList.remove('dark');
         }
 
         // Alternar tema
-        themeToggle.addEventListener('click', () => {
-            htmlElement.classList.toggle('dark');
-            // Guardar preferencia
-            if (htmlElement.classList.contains('dark')) {
-                localStorage.setItem('theme', 'dark');
-            } else {
-                localStorage.setItem('theme', 'light');
-            }
-        });
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                htmlElement.classList.toggle('dark');
+                localStorage.setItem('theme', htmlElement.classList.contains('dark') ? 'dark' : 'light');
+                localStorage.removeItem('color-theme');
+            });
+        }
 
         // Menú móvil (ya lo tenías, lo dejo aquí junto)
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
-        mobileMenuButton.addEventListener('click', function () {
-            mobileMenu.classList.toggle('hidden');
-        });
+        if (mobileMenuButton && mobileMenu) {
+            mobileMenuButton.addEventListener('click', function () {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
     });
 </script>
 
@@ -157,5 +166,3 @@
 
 @yield('scripts')
 </html>
-
-

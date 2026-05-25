@@ -20,8 +20,8 @@ class VinculacionTiposAccionSeeder extends Seeder
                 'orden' => 1,
             ],
             [
-                'codigo' => 'ASESORAMIENTO_CONSULTORIA',
-                'nombre' => 'Asesoramiento y consultoría',
+                'codigo' => 'SEGUMIENTO_A_EGRESADOS',
+                'nombre' => 'Seguimiento a egresados',
                 'descripcion' => 'Son las acciones de vinculación que tienen como propósito brindar experticia académica y técnica para resolver problemas específicos o mejorar procesos para el fortalecimiento de organizaciones, empresas, instituciones públicas o comunidades.',
                 'badge' => 'Proximamente',
                 'icono' => 'asesoria',

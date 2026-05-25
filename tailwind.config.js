@@ -1,3 +1,6 @@
+import defaultTheme from 'tailwindcss/defaultTheme';
+import forms from '@tailwindcss/forms';
+
 export default {
     content: [
         "./resources/**/**/*.blade.php",
@@ -10,4 +13,54 @@ export default {
         "/app/Livewire/**/*.php",
     ],
     darkMode: 'class',
+    theme: {
+        extend: {
+            colors: {
+                background: '#f6f2e9',
+                surface: '#fbfaf7',
+                'surface-dim': '#ded8ca',
+                'surface-bright': '#fffdf8',
+                'surface-container-lowest': '#ffffff',
+                'surface-container-low': '#f1ede4',
+                'surface-container': '#e9e2d5',
+                'surface-container-high': '#ded5c4',
+                'surface-container-highest': '#d2c6b2',
+                'surface-variant': '#e5dece',
+                'on-surface': '#121826',
+                'on-surface-variant': '#4d5668',
+                primary: '#001b3d',
+                'primary-container': '#0a2e5c',
+                'primary-fixed': '#d8e6ff',
+                'primary-fixed-dim': '#a9c6f5',
+                'on-primary': '#ffffff',
+                'on-primary-container': '#d8e6ff',
+                secondary: '#a77a00',
+                'secondary-container': '#f4d06f',
+                tertiary: '#4a3200',
+                'tertiary-container': '#7b5400',
+                outline: '#6f7380',
+                'outline-variant': '#c8c0ae',
+                error: '#b42318',
+                'error-container': '#fee4d8',
+            },
+            fontFamily: {
+                sans: ['"Helvetica Neue"', 'Arial', ...defaultTheme.fontFamily.sans],
+                body: ['"Helvetica Neue"', 'Arial', ...defaultTheme.fontFamily.sans],
+                headline: ['"Helvetica Neue"', 'Arial', ...defaultTheme.fontFamily.sans],
+                label: ['"Helvetica Neue"', 'Arial', ...defaultTheme.fontFamily.sans],
+            },
+            borderRadius: {
+                DEFAULT: '0.125rem',
+                lg: '0.25rem',
+                xl: '0.5rem',
+                '2xl': '0.75rem',
+                '3xl': '1rem',
+            },
+            boxShadow: {
+                soft: '0 18px 45px rgba(0, 27, 61, 0.10)',
+                institutional: '0 24px 70px rgba(0, 27, 61, 0.16)',
+            },
+        },
+    },
+    plugins: [forms],
 }

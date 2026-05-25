@@ -1,4 +1,3 @@
-@php use App\Http\Controllers\Docente\VerificarConstancia; @endphp
 <div>
     <div class="w-full flex justify-between items-center mb-4">
         <div>
@@ -70,12 +69,21 @@
                         $rowClass = $esSubsanacion ? 'bg-red-50 dark:bg-red-950 border-l-4 border-red-500' : '';
                         $rolDocente = $proyecto->docentes_proyecto()->where('empleado_id', $docente->id)->first()?->rol ?? '-';
                         $esCoordinador = $proyecto->coordinador?->id === $docente->id;
+                        $puedeSeguirEditando = $esCoordinador && (
+                            in_array($estado, ['Borrador', 'Subsanacion', 'Subsanación'], true)
+                            || $proyecto->proyectoIsInEstadoByName('Autoguardado')
+                        );
+                        $puedeBorrar = $esCoordinador && (
+                            in_array($estado, ['Autoguardado', 'Borrador', 'Subsanacion', 'Subsanación'], true)
+                        );
                     @endphp
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 {{ $rowClass }}">
+                    <tr class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 {{ $rowClass }}">
                         <td class="px-4 py-3 text-gray-900 dark:text-white">{{ $proyecto->codigo_proyecto ?: '-' }}</td>
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $proyecto->numero_dictamen ?: '-' }}</td>
                         <td class="px-4 py-3 text-gray-900 dark:text-white max-w-xs">
-                            <a href="{{ route('historialproyecto', $proyecto) }}" class="hover:underline text-blue-600 dark:text-blue-400">
+                            <a href="{{ $puedeSeguirEditando ? route('crearProyectoVinculacion', $proyecto) : route('historialproyecto', $proyecto) }}"
+                               class="font-medium text-blue-600 hover:text-blue-800 hover:underline dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer"
+                               title="{{ $puedeSeguirEditando ? 'Seguir editando' : 'Ver proyecto' }}">
                                 {{ Str::limit($proyecto->nombre_proyecto, 60) }}
                             </a>
                         </td>
@@ -84,101 +92,48 @@
                             <span class="px-2 py-1 text-xs font-medium rounded-full {{ $estadoBadge }}">{{ $estado ?: '-' }}</span>
                         </td>
                         <td class="px-4 py-3">
-                            <div x-data="{
-                                    open: false,
-                                    top: 0,
-                                    right: 0,
-                                    toggle(btn) {
-                                        this.open = !this.open;
-                                        if (this.open) {
-                                            const r = btn.getBoundingClientRect();
-                                            this.top = r.bottom + 4;
-                                            this.right = window.innerWidth - r.right;
-                                        }
-                                    }
-                                }" @click.outside="open = false">
-                                <button @click="toggle($event.currentTarget)"
-                                        class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
-                                    Acciones ▾
-                                </button>
-                                <div x-show="open" x-cloak
-                                     :style="`position:fixed;top:${top}px;right:${right}px;z-index:9999;`"
-                                     class="w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
+                            <div class="flex items-center gap-2">
+                                <a href="{{ route('historialproyecto', $proyecto) }}"
+                                   class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:bg-gray-50 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-blue-300"
+                                   title="Ver proyecto"
+                                   aria-label="Ver proyecto">
+                                    @svg('heroicon-o-eye', ['class' => 'h-4 w-4'])
+                                </a>
 
-                                    {{-- Ver historial --}}
-                                    <a href="{{ route('historialproyecto', $proyecto) }}"
-                                       class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                        Ver Proyecto
+                                @if ($puedeSeguirEditando)
+                                    <a href="{{ route('crearProyectoVinculacion', $proyecto) }}"
+                                       class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-blue-700 shadow-sm transition hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900/60 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                                       title="Seguir editando"
+                                       aria-label="Seguir editando">
+                                        @svg('heroicon-o-pencil-square', ['class' => 'h-4 w-4'])
                                     </a>
+                                @else
+                                    <button type="button"
+                                            class="inline-flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-md border border-gray-200 bg-gray-100 text-gray-400 dark:border-gray-700 dark:bg-gray-800/70 dark:text-gray-600"
+                                            title="Edición no disponible"
+                                            aria-label="Edición no disponible"
+                                            disabled>
+                                        @svg('heroicon-o-pencil-square', ['class' => 'h-4 w-4'])
+                                    </button>
+                                @endif
 
-                                    @if ($esCoordinador)
-                                        {{-- Subir Informe Intermedio --}}
-                                        @if (($estado === 'En curso' && is_null($proyecto->documento_intermedio())) ||
-                                             ($proyecto->documento_intermedio()?->estado?->tipoestado?->nombre === 'Subsanacion'))
-                                            <button wire:click="openSubirIntermedio({{ $proyecto->id }})" @click="open = false"
-                                                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                {{ $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre === 'Subsanacion' ? 'Subsanar Inf. Intermedio' : 'Subir Inf. Intermedio' }}
-                                            </button>
-                                        @endif
-
-                                        {{-- Subir Informe Final --}}
-                                        @if (($estado === 'En curso' &&
-                                              $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre === 'Aprobado' &&
-                                              is_null($proyecto->documento_final())) ||
-                                             ($proyecto->documento_final()?->estado?->tipoestado?->nombre === 'Subsanacion'))
-                                            <button wire:click="openSubirFinal({{ $proyecto->id }})" @click="open = false"
-                                                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                {{ $proyecto->documento_final()?->estado?->tipoestado?->nombre === 'Subsanacion' ? 'Subsanar Inf. Final' : 'Subir Inf. Final' }}
-                                            </button>
-                                        @endif
-
-                                        {{-- Actualizar equipo --}}
-                                        @if ($estado === 'En curso')
-                                            <a href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}"
-                                               class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                Actualizar Equipo o Fechas
-                                            </a>
-                                        @endif
-
-                                        {{-- Editar borrador / Subsanar --}}
-                                        @if (in_array($estado, ['Borrador', 'Subsanacion']))
-                                            <a href="{{ route('crearProyectoVinculacion', $proyecto) }}"
-                                               class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                {{ $estado === 'Subsanacion' ? 'Subsanar' : 'Editar Borrador' }}
-                                            </a>
-                                        @endif
-
-                                        {{-- Continuar editando (Autoguardado) --}}
-                                        @if ($proyecto->proyectoIsInEstadoByName('Autoguardado'))
-                                            <a href="{{ route('crearProyectoVinculacion', $proyecto) }}"
-                                               class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                Continuar Editando
-                                            </a>
-                                        @endif
-
-                                        {{-- Borrar proyecto --}}
-                                        @if (in_array($estado, ['Autoguardado', 'Borrador', 'Subsanacion', 'Subsanación']))
-                                            <button wire:click="openDelete({{ $proyecto->id }})" @click="open = false"
-                                                    class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                Borrar Proyecto
-                                            </button>
-                                        @endif
-                                    @endif
-
-                                    {{-- Constancias --}}
-                                    @if (VerificarConstancia::validarConstancia($proyecto->docentes_proyecto()->where('empleado_id', $docente->id)->first()))
-                                        <button wire:click="constanciaInscripcion({{ $proyecto->id }})"
-                                                class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                            Constancia de Inscripción
-                                        </button>
-                                    @endif
-                                    @if (VerificarConstancia::validarConstancia($proyecto->docentes_proyecto()->where('empleado_id', $docente->id)->first(), 'finalizacion'))
-                                        <button wire:click="constanciaFinalizacion({{ $proyecto->id }})"
-                                                class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                            Constancia de Finalización
-                                        </button>
-                                    @endif
-                                </div>
+                                @if ($puedeBorrar)
+                                    <button type="button"
+                                            wire:click="openDelete({{ $proyecto->id }})"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-200 bg-red-50 text-red-700 shadow-sm transition hover:bg-red-100 hover:text-red-800 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/40"
+                                            title="Borrar proyecto"
+                                            aria-label="Borrar proyecto">
+                                        @svg('heroicon-o-trash', ['class' => 'h-4 w-4'])
+                                    </button>
+                                @else
+                                    <button type="button"
+                                            class="inline-flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-md border border-gray-200 bg-gray-100 text-gray-400 dark:border-gray-700 dark:bg-gray-800/70 dark:text-gray-600"
+                                            title="Borrado no disponible"
+                                            aria-label="Borrado no disponible"
+                                            disabled>
+                                        @svg('heroicon-o-trash', ['class' => 'h-4 w-4'])
+                                    </button>
+                                @endif
                             </div>
                         </td>
                     </tr>

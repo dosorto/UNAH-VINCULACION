@@ -46,6 +46,7 @@ use App\Models\Proyecto\EquipoEjecutorBaja;
 use App\Models\Proyecto\EquipoEjecutorNuevo;
 use DragonCode\Contracts\Cashier\Config\Payments\Statuses;
 use App\Models\Proyecto\FlujoAprobacion;
+use App\Models\User;
 use Illuminate\Support\Collection;
 
 class Proyecto extends Model
@@ -422,6 +423,12 @@ class Proyecto extends Model
     public function metasContribuye()
     {
         return $this->belongsToMany(MetaContribuye::class, 'proyecto_meta_contribuye', 'proyecto_id', 'meta_contribuye_id');
+    }
+
+    // relacion muchos a muchos con asignaturas
+    public function asignaturas()
+    {
+        return $this->belongsToMany(\App\Models\Asignatura::class, 'proyecto_asignatura', 'proyecto_id', 'asignatura_id');
     }
 
     // relacion muchos a muchos con el modelo categoria
@@ -888,6 +895,50 @@ class Proyecto extends Model
             ]
         );
         return $firmaP;
+    }
+
+    public function sincronizarFirmasDelFlujo(): void
+    {
+        $etapas = $this->flujoEtapasOrdenadas();
+
+        foreach ($etapas as $etapa) {
+            if (! $etapa->activo || ! $etapa->cargo_firma_id) {
+                continue;
+            }
+
+            $firmaExistente = $this->firma_proyecto()
+                ->where('cargo_firma_id', $etapa->cargo_firma_id)
+                ->first();
+
+            if ($firmaExistente?->estado_revision === 'Aprobado') {
+                continue;
+            }
+
+            $usuario = $etapa->usuarioResponsable;
+
+            if (! $usuario && $etapa->rolRevisor?->name) {
+                $usuario = User::role($etapa->rolRevisor->name)
+                    ->whereHas('empleado')
+                    ->with('empleado')
+                    ->orderBy('name')
+                    ->first();
+            }
+
+            $empleado = $usuario?->empleado;
+
+            if (! $empleado) {
+                continue;
+            }
+
+            $this->firma_proyecto()->updateOrCreate(
+                ['cargo_firma_id' => $etapa->cargo_firma_id],
+                [
+                    'empleado_id' => $empleado->id,
+                    'estado_revision' => 'Pendiente',
+                    'hash' => 'hash',
+                ]
+            );
+        }
     }
 
 

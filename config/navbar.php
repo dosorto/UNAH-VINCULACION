@@ -149,10 +149,12 @@ return [
                     'unidad-academica.carrera',
                     'unidad-academica.departamento',
                     'unidad-academica.facultad',
+                    'unidad-academica.asignatura',
                 ],
                 'children' => [
                     ['texto' => 'Campus', 'route' => 'campus', 'permiso' => 'unidad-academica.campus'],
                     ['texto' => 'Carrera', 'route' => 'carrera', 'permiso' => 'unidad-academica.carrera'],
+                    ['texto' => 'Asignatura', 'route' => 'asignatura', 'permiso' => 'unidad-academica.asignatura'],
                     ['texto' => 'Departamento Academico', 'route' => 'departamento-academico', 'permiso' => 'unidad-academica.departamento'],
                     ['texto' => 'Facultad Centro', 'route' => 'facultad-centro', 'permiso' => 'unidad-academica.facultad'],
                 ],
@@ -173,11 +175,30 @@ return [
                     ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia.slides'],
                     ['texto' => 'Flujos de proyectos', 'route' => 'configuracion.flujos.proyectos', 'permiso' => 'configuracion.flujos'],
                     ['texto' => 'Contactanos', 'route' => 'contactanos', 'permiso' => 'configuracion.contactanos']
-                    ['texto' => 'Logs', 'route' => 'listarLogs', 'permiso' => 'configuracion-admin-logs'],
-                    ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia-admin-slides'],
-                    ['texto' => 'Flujos', 'route' => 'configuracion.flujos.proyectos', 'permiso' => 'configuracion-admin-flujos'],
-                    ['texto' => 'Contactanos', 'route' => 'contactanos', 'permiso' => 'configuracion-admin-contactanos']
                 ],
+            ],
+            [
+                'titulo' => 'SGCU',
+                'route' => 'sgcu.catalogos',
+                'routes' => [
+                    'sgcu.catalogos',
+                    'sgcu.tipos-programa',
+                    'sgcu.programas',
+                    'sgcu.bandeja-revision',
+                    'sgcu.flujos-programa',
+                ],
+                'icono' => 'heroicon-c-clipboard-document-list',
+                'permisos' => ['configuracion.flujos'],
+                'children' => [
+                    ['texto' => 'Catalogos', 'route' => 'sgcu.catalogos', 'permiso' => 'configuracion.flujos'],
+                    ['texto' => 'Tipos de programa', 'route' => 'sgcu.tipos-programa', 'permiso' => 'configuracion.flujos'],
+                    ['texto' => 'Programas', 'route' => 'sgcu.programas', 'permiso' => 'configuracion.flujos'],
+                    ['texto' => 'Bandeja revision', 'route' => 'sgcu.bandeja-revision', 'permiso' => 'configuracion.flujos'],
+                    ['texto' => 'Flujos de programa', 'route' => 'sgcu.flujos-programa', 'permiso' => 'configuracion.flujos'],
+                ],
+                'funcion' => null,
+                'parametro' => null,
+                'can' => null,
             ],
 
             // director enlace de vinculacion

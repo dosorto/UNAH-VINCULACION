@@ -124,8 +124,8 @@ class ProyectoSeeder extends Seeder
 
         Categoria::insert([
            // ['nombre' => 'APS'],
-            //['nombre' => 'Desarrollo Regional'],
-            //['nombre' => 'Desarrollo Local'],
+            ['nombre' => 'Desarrollo Regional'],
+            ['nombre' => 'Desarrollo Local'],
            /* ['nombre' => 'Volunt. Académico'],
             ['nombre' => 'Seguim. a egresados'],
             ['nombre' => 'I + D + i'],
@@ -137,7 +137,7 @@ class ProyectoSeeder extends Seeder
             ODS en el que se enmarca el proyecto: Utilizar el documento Agenda 20/45 y objetivos de desarrollo sostenible.
         */
 
-        /*Od::insert([
+        Od::insert([
             ['nombre' => '1. Fin de la pobreza'],
             ['nombre' => '2. Hambre cero'],
             ['nombre' => '3. Salud y bienestar'],
@@ -155,7 +155,7 @@ class ProyectoSeeder extends Seeder
             ['nombre' => '15. Vida de ecosistemas terrestres'],
             ['nombre' => '16. Paz, justicia e instituciones sólidas'],
             ['nombre' => '17. Alianzas para lograr los objetivos'],
-        ]);*/
+        ]);
 
         TipoConstancia::insert([
             ['nombre' => 'Inscripcion', 'descripcion' => 'Se emite cuando un proyecto alcanza el estado en curso'],

@@ -6,10 +6,16 @@ use App\Livewire\User\Users;
 use App\Livewire\Login\Login;
 use App\Livewire\Inicio\InicioAdmin;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Livewire\Demografia\Pais\CreatePais;
 use App\Livewire\Demografia\Pais\ListPaises;
 use App\Livewire\Configuracion\Logs\ListLogs;
 use App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
+use App\Livewire\SGCU\Catalogos\SgcuCatalogos;
+use App\Livewire\SGCU\Flujos\FlujosProgramas;
+use App\Livewire\SGCU\Programas\ListBandejaRevision;
+use App\Livewire\SGCU\Programas\ListProgramas;
+use App\Livewire\SGCU\Programas\ListTiposPrograma;
 use App\Livewire\Personal\Perfil\EditPerfil;
 use App\Livewire\Personal\Permiso\ListPermisos;
 use App\Livewire\Personal\Empleado\ListEmpleado;
@@ -48,6 +54,7 @@ use App\Livewire\UnidadAcademica\Campus\CampusList;
 use App\Livewire\UnidadAcademica\Carrera\CarreraList;
 use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList;
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
+use App\Livewire\UnidadAcademica\Asignatura\Asignatura;
 use App\Http\Controllers\PDFController;
 
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
@@ -60,6 +67,8 @@ use App\Livewire\Personal\Contacto\ListContactos;
 
 use App\Livewire\ServicioTecnologico\CreateServicioTecnologico;
 use App\Livewire\ServicioTecnologico\ListServiciosTecnologicos;
+use App\Models\Proyecto\InstrumenFormalizacion;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('/acercade', function () {
     $slides = Slide::where('estado', true)
@@ -83,8 +92,8 @@ Route::get('/constancia/{constancia:hash}/pdf', [PDFController::class, 'generate
     ->name('constancia.pdf');
 
 Route::get('/logout', function () {
-    if (auth()->check()) {
-        auth()->logout();
+    if (Auth::check()) {
+        Auth::logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
     }
@@ -116,6 +125,10 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
     Route::get('carrera', CarreraList::class)
         ->name('carrera')
         ->middleware('can:unidad-academica.carrera');
+
+    Route::get('asignatura', Asignatura::class)
+        ->name('asignatura')
+        ->middleware('can:unidad-academica.asignatura');
 
     Route::get('departamento-academico', DepartamentoAcademicoList::class)
         ->name('departamento-academico')
@@ -207,6 +220,19 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         Route::get('configuracion/flujos-proyectos', ConfiguracionFlujosProyectos::class)
             ->name('configuracion.flujos.proyectos')
             ->middleware('can:configuracion.flujos');
+
+        Route::prefix('sgcu')->middleware('can:configuracion.flujos')->group(function () {
+            Route::get('catalogos', SgcuCatalogos::class)
+                ->name('sgcu.catalogos');
+            Route::get('tipos-programa', ListTiposPrograma::class)
+                ->name('sgcu.tipos-programa');
+            Route::get('programas', ListProgramas::class)
+                ->name('sgcu.programas');
+            Route::get('bandeja-revision', ListBandejaRevision::class)
+                ->name('sgcu.bandeja-revision');
+            Route::get('flujos-programa', FlujosProgramas::class)
+                ->name('sgcu.flujos-programa');
+        });
     });
 
 
@@ -239,6 +265,23 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         Route::get('/crearProyectoVinculacion/{record?}', CreateProyectoVinculacion::class)
             ->name('crearProyectoVinculacion')
             ->middleware('permission:docente.crear-proyecto');
+
+        Route::get('/instrumentos-formalizacion/{instrumento}/documento', function (InstrumenFormalizacion $instrumento) {
+            $proyecto = $instrumento->entidadContraparte?->proyecto;
+            abort_unless($proyecto && $proyecto->coordinadorIsCurrentUser(), 403);
+
+            $path = $instrumento->documento_url;
+            abort_unless($path, 404);
+
+            $path = ltrim($path, '/');
+            $path = preg_replace('#^storage/#', '', $path);
+            $path = preg_replace('#^public/#', '', $path);
+            $path = preg_replace('#^app/public/#', '', $path);
+
+            abort_unless(Storage::disk('public')->exists($path), 404);
+
+            return Storage::disk('public')->response($path);
+        })->name('instrumentos-formalizacion.documento');
 
         // editar un proyecto ya sea en borrador o en subsanacion
         Route::get('editarProyectoVinculacion/{proyecto}', EditProyectoVinculacionForm::class)
