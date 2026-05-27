@@ -6,8 +6,10 @@ use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Models\Estado\TipoEstado;
 use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FirmaProyecto;
+use App\Models\Proyecto\Proyecto;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -163,23 +165,19 @@ class ListInformesSolicitado extends Component
 
     public function render(): View
     {
-        $estadoRevisionId = TipoEstado::where('nombre', 'En revision')->first()->id;
         $user = Auth::user();
         $activeRoleName = $user?->activeRole?->name;
         $isAdmin = (bool) $user?->hasRole('admin');
 
-        $records = DocumentoProyecto::query()
-            ->whereIn('id', function ($query) use ($estadoRevisionId) {
+        $candidates = DocumentoProyecto::query()
+            ->whereIn('id', function ($query) {
                 $query->select('estadoable_id')
                     ->from('estado_proyecto')
                     ->where('estadoable_type', DocumentoProyecto::class)
-                    ->where('tipo_estado_id', $estadoRevisionId)
                     ->where('es_actual', true);
             })
-            ->whereHas('firma_documento', function ($query) use ($estadoRevisionId, $activeRoleName, $isAdmin) {
-                $query
-                    ->where('estado_revision', 'Pendiente')
-                    ->whereHas('cargo_firma', fn ($cargoQuery) => $cargoQuery->where('tipo_estado_id', $estadoRevisionId));
+            ->whereHas('firma_documento', function ($query) use ($activeRoleName, $isAdmin) {
+                $query->where('estado_revision', 'Pendiente');
 
                 if (! $isAdmin) {
                     $query->whereHas('cargo_firma.tipoCargoFirma', fn ($roleQuery) => $roleQuery->where('nombre', $activeRoleName));
@@ -189,7 +187,12 @@ class ListInformesSolicitado extends Component
                 $q2->where('nombre_proyecto', 'like', '%' . $this->search . '%')
             ))
             ->with(['proyecto', 'estadoActual.tipoestado', 'firma_documento.cargo_firma.tipoCargoFirma'])
-            ->paginate(10);
+            ->orderByDesc('created_at')
+            ->get()
+            ->filter(fn (DocumentoProyecto $documento) => (bool) $this->firmaPendienteDelDocumento($documento))
+            ->values();
+
+        $records = $this->paginateCollection($candidates);
 
         $viewDocumento = $this->viewDocumentoId
             ? DocumentoProyecto::with(['proyecto', 'estadoActual.tipoestado', 'firma_documento.cargo_firma.tipoCargoFirma'])->find($this->viewDocumentoId)
@@ -222,14 +225,14 @@ class ListInformesSolicitado extends Component
         $estadoActual = $documento->estadoActual ?? $documento->estado;
         $estadoActualId = $estadoActual?->tipo_estado_id;
 
-        if (! $estadoActualId || $estadoActual?->tipoestado?->nombre !== 'En revision') {
+        if (! $estadoActualId) {
             return null;
         }
 
         $activeRoleName = $user->activeRole?->name;
         $isAdmin = $user->hasRole('admin');
 
-        return $documento
+        $firma = $documento
             ->firma_documento()
             ->with('cargo_firma.tipoCargoFirma')
             ->where('estado_revision', 'Pendiente')
@@ -243,5 +246,33 @@ class ListInformesSolicitado extends Component
                 return filled($activeRoleName)
                     && $activeRoleName === $firma->cargo_firma?->tipoCargoFirma?->nombre;
             });
+
+        if (! $firma) {
+            return null;
+        }
+
+        $proceso = Proyecto::procesoFlujoParaDocumento($documento->tipo_documento);
+
+        if ($proceso && ! $documento->proyecto?->isLastCargoFirmaForProceso($firma->cargo_firma_id, $proceso)) {
+            return null;
+        }
+
+        return $firma;
+    }
+
+    private function paginateCollection($items, int $perPage = 10): LengthAwarePaginator
+    {
+        $page = $this->getPage();
+
+        return new LengthAwarePaginator(
+            $items->forPage($page, $perPage)->values(),
+            $items->count(),
+            $perPage,
+            $page,
+            [
+                'path' => request()->url(),
+                'pageName' => 'page',
+            ]
+        );
     }
 }

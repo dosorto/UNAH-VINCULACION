@@ -5,7 +5,6 @@ namespace App\Livewire\Docente\Proyectos;
 use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
-use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\Proyecto;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
@@ -58,36 +57,14 @@ class ProyectosDocenteList extends Component
         $this->validate(['informeIntermedioFile' => 'required|file|mimes:pdf|max:10240']);
 
         $proyecto = Proyecto::findOrFail($this->informeIntermedioProyectoId);
-
-        $proyecto->documentos()->where('tipo_documento', 'Informe Intermedio')
-            ->each(function ($doc) {
-                $doc->firma_documento()->delete();
-                $doc->estado_documento()->delete();
-            });
-        $proyecto->documentos()->where('tipo_documento', 'Informe Intermedio')->delete();
-
         $path = $this->informeIntermedioFile->store('documentos', 'public');
-        $doc = $proyecto->documentos()->create([
-            'tipo_documento' => 'Informe Intermedio',
-            'documento_url'  => $path,
-        ]);
 
-        CargoFirma::where('descripcion', 'Documento_intermedio')->get()
-            ->each(function ($cargo) use ($proyecto, $doc) {
-                $doc->firma_documento()->create([
-                    'empleado_id'   => $proyecto->getFirmabyCargo($cargo->tipoCargoFirma->nombre)->empleado->id,
-                    'cargo_firma_id' => $cargo->id,
-                    'estado_revision' => 'Pendiente',
-                    'hash'          => 'hash',
-                ]);
-            });
-
-        $doc->estado_documento()->create([
-            'empleado_id'   => auth()->user()->empleado->id,
-            'tipo_estado_id' => TipoEstado::where('nombre', 'Enlace Vinculacion')->first()->id,
-            'fecha'         => now(),
-            'comentario'    => 'Documento creado',
-        ]);
+        try {
+            $proyecto->registrarDocumentoDesdeFlujo('Informe Intermedio', $path, auth()->user()->empleado);
+        } catch (\Throwable $e) {
+            Notification::make()->title('No se pudo enviar el informe')->body($e->getMessage())->danger()->send();
+            return;
+        }
 
         $this->informeIntermedioModal = false;
         $this->informeIntermedioFile = null;
@@ -106,36 +83,14 @@ class ProyectosDocenteList extends Component
         $this->validate(['informeFinalFile' => 'required|file|mimes:pdf|max:10240']);
 
         $proyecto = Proyecto::findOrFail($this->informeFinalProyectoId);
-
-        $proyecto->documentos()->where('tipo_documento', 'Informe Final')
-            ->each(function ($doc) {
-                $doc->firma_documento()->delete();
-                $doc->estado_documento()->delete();
-            });
-        $proyecto->documentos()->where('tipo_documento', 'Informe Final')->delete();
-
         $path = $this->informeFinalFile->store('documentos', 'public');
-        $doc = $proyecto->documentos()->create([
-            'tipo_documento' => 'Informe Final',
-            'documento_url'  => $path,
-        ]);
 
-        CargoFirma::where('descripcion', 'Documento_final')->get()
-            ->each(function ($cargo) use ($proyecto, $doc) {
-                $doc->firma_documento()->create([
-                    'empleado_id'   => $proyecto->getFirmabyCargo($cargo->tipoCargoFirma->nombre)->empleado->id,
-                    'cargo_firma_id' => $cargo->id,
-                    'estado_revision' => 'Pendiente',
-                    'hash'          => 'hash',
-                ]);
-            });
-
-        $doc->estado_documento()->create([
-            'empleado_id'   => auth()->user()->empleado->id,
-            'tipo_estado_id' => TipoEstado::where('nombre', 'Enlace Vinculacion')->first()->id,
-            'fecha'         => now(),
-            'comentario'    => 'Documento creado',
-        ]);
+        try {
+            $proyecto->registrarDocumentoDesdeFlujo('Informe Final', $path, auth()->user()->empleado);
+        } catch (\Throwable $e) {
+            Notification::make()->title('No se pudo enviar el informe')->body($e->getMessage())->danger()->send();
+            return;
+        }
 
         $this->informeFinalModal = false;
         $this->informeFinalFile = null;

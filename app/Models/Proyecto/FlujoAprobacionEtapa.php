@@ -17,6 +17,9 @@ class FlujoAprobacionEtapa extends Model
         'flujo_aprobacion_id',
         'orden',
         'codigo',
+        'aplica_inscripcion',
+        'aplica_informe_intermedio',
+        'aplica_cierre_proyecto',
         'nombre',
         'tipo_etapa',
         'rol_revisor_id',
@@ -28,6 +31,9 @@ class FlujoAprobacionEtapa extends Model
     ];
 
     protected $casts = [
+        'aplica_inscripcion' => 'boolean',
+        'aplica_informe_intermedio' => 'boolean',
+        'aplica_cierre_proyecto' => 'boolean',
         'requiere_asignacion' => 'boolean',
         'emisor_define_destinatario' => 'boolean',
         'activo' => 'boolean',

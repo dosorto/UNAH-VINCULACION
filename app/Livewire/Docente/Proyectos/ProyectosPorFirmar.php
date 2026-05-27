@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Docente\Proyectos;
 
+use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\DocumentoProyecto;
@@ -122,14 +123,28 @@ class ProyectosPorFirmar extends Component
                 'estado_revision' => 'Aprobado',
                 'firma_id'        => auth()->user()?->empleado?->firma?->id,
                 'sello_id'        => auth()->user()?->empleado?->sello?->id,
+                'fecha_firma'     => now(),
             ]);
 
-            $firma->documento_proyecto->estado_documento()->create([
-                'empleado_id'    => $this->docente->id,
-                'tipo_estado_id' => $firma->cargo_firma->estado_siguiente_id,
-                'fecha'          => now(),
-                'comentario'     => 'Firmado y aprobado en este estado',
-            ]);
+            $documento = $firma->documento_proyecto;
+            $proceso = $documento?->tipo_documento
+                ? Proyecto::procesoFlujoParaDocumento($documento->tipo_documento)
+                : null;
+
+            $nextEstadoId = $proceso
+                ? $documento?->proyecto?->nextEstadoIdForCargo($firma->cargo_firma_id, $proceso)
+                : $firma->cargo_firma->estado_siguiente_id;
+
+            if ($nextEstadoId) {
+                $documento->estado_documento()->create([
+                    'empleado_id'    => $this->docente->id,
+                    'tipo_estado_id' => $nextEstadoId,
+                    'fecha'          => now(),
+                    'comentario'     => 'Firmado y aprobado en este estado',
+                ]);
+            } elseif ($documento) {
+                $this->marcarDocumentoAprobado($documento);
+            }
         }
 
         $this->viewModal = false;
@@ -228,6 +243,29 @@ class ProyectosPorFirmar extends Component
         abort_unless($this->canActOnFirma($firma), 403);
 
         return $firma;
+    }
+
+    private function marcarDocumentoAprobado(DocumentoProyecto $documento): void
+    {
+        if ($documento->tipo_documento === 'Informe Final') {
+            $proyecto = $documento->proyecto;
+
+            $proyecto->estado_proyecto()->create([
+                'empleado_id' => auth()->user()->empleado->id,
+                'tipo_estado_id' => TipoEstado::where('nombre', 'Finalizado')->first()->id,
+                'fecha' => now(),
+                'comentario' => 'El informe ha sido aprobado correctamente',
+            ]);
+
+            VerificarConstancia::makeConstanciasProyecto($proyecto);
+        }
+
+        $documento->estado_documento()->create([
+            'empleado_id' => auth()->user()->empleado->id,
+            'tipo_estado_id' => TipoEstado::where('nombre', 'Aprobado')->first()->id,
+            'fecha' => now(),
+            'comentario' => 'El informe ha sido aprobado correctamente',
+        ]);
     }
 
     private function canActOnFirma(FirmaProyecto $firma): bool

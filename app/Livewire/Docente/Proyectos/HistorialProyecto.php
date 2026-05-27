@@ -6,7 +6,6 @@ use App\Models\Estado\EstadoProyecto;
 use App\Models\Proyecto\EmpleadoProyecto;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\DocumentoProyecto;
-use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Estado\TipoEstado;
 use App\Support\Notification;
@@ -77,33 +76,12 @@ class HistorialProyecto extends Component
         $path = $this->informeIntermedioFile->store('documentos', 'public');
         $proyecto = $this->proyecto;
 
-        $proyecto->documentos()->where('tipo_documento', 'Informe Intermedio')->each(function ($doc) {
-            $doc->firma_documento()->delete();
-            $doc->estado_documento()->delete();
-        });
-        $proyecto->documentos()->where('tipo_documento', 'Informe Intermedio')->delete();
-
-        $documento = $proyecto->documentos()->create([
-            'tipo_documento' => 'Informe Intermedio',
-            'documento_url'  => $path,
-        ]);
-
-        $cargosFirmas = CargoFirma::where('descripcion', 'Documento_intermedio')->get();
-        $cargosFirmas->each(function ($cargo) use ($proyecto, $documento) {
-            $documento->firma_documento()->create([
-                'empleado_id'    => $proyecto->getFirmabyCargo($cargo->tipoCargoFirma->nombre)->empleado->id,
-                'cargo_firma_id' => $cargo->id,
-                'estado_revision' => 'Pendiente',
-                'hash'           => 'hash',
-            ]);
-        });
-
-        $documento->estado_documento()->create([
-            'empleado_id'    => auth()->user()->empleado->id,
-            'tipo_estado_id' => TipoEstado::where('nombre', 'Enlace Vinculacion')->first()->id,
-            'fecha'          => now(),
-            'comentario'     => 'Documento creado',
-        ]);
+        try {
+            $proyecto->registrarDocumentoDesdeFlujo('Informe Intermedio', $path, auth()->user()->empleado);
+        } catch (\Throwable $e) {
+            Notification::make()->title('No se pudo enviar el informe')->body($e->getMessage())->danger()->send();
+            return;
+        }
 
         $this->informeIntermedioModal = false;
         $this->informeIntermedioFile = null;
@@ -124,33 +102,12 @@ class HistorialProyecto extends Component
         $path = $this->informeFinalFile->store('documentos', 'public');
         $proyecto = $this->proyecto;
 
-        $proyecto->documentos()->where('tipo_documento', 'Informe Final')->each(function ($doc) {
-            $doc->firma_documento()->delete();
-            $doc->estado_documento()->delete();
-        });
-        $proyecto->documentos()->where('tipo_documento', 'Informe Final')->delete();
-
-        $documento = $proyecto->documentos()->create([
-            'tipo_documento' => 'Informe Final',
-            'documento_url'  => $path,
-        ]);
-
-        $cargosFirmas = CargoFirma::where('descripcion', 'Documento_final')->get();
-        $cargosFirmas->each(function ($cargo) use ($proyecto, $documento) {
-            $documento->firma_documento()->create([
-                'empleado_id'    => $proyecto->getFirmabyCargo($cargo->tipoCargoFirma->nombre)->empleado->id,
-                'cargo_firma_id' => $cargo->id,
-                'estado_revision' => 'Pendiente',
-                'hash'           => 'hash',
-            ]);
-        });
-
-        $documento->estado_documento()->create([
-            'empleado_id'    => auth()->user()->empleado->id,
-            'tipo_estado_id' => TipoEstado::where('nombre', 'Enlace Vinculacion')->first()->id,
-            'fecha'          => now(),
-            'comentario'     => 'Documento creado',
-        ]);
+        try {
+            $proyecto->registrarDocumentoDesdeFlujo('Informe Final', $path, auth()->user()->empleado);
+        } catch (\Throwable $e) {
+            Notification::make()->title('No se pudo enviar el informe')->body($e->getMessage())->danger()->send();
+            return;
+        }
 
         $this->informeFinalModal = false;
         $this->informeFinalFile = null;
