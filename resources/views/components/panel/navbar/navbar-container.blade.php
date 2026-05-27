@@ -55,10 +55,7 @@
                                                 dark:bg-gray-900 dark:ring-gray-700 dark:divide-gray-700
                                     ">
                                 @php
-                                    // Obtiene el rol actual de la sesión o del usuario autenticado
-                                    // Valida que el usuario tenga roles antes de intentar acceder
-                                    $primerRol = Auth::user()->roles->first();
-                                    $rolActual = session('rol_actual_id') ?? ($primerRol ? $primerRol->id : null);
+                                    $rolActual = Auth::user()->active_role_id;
                                 @endphp
 
                                 @forelse ($roles as $rol)

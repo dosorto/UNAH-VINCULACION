@@ -878,23 +878,42 @@ class Proyecto extends Model
         string $cargoFirma,
         Empleado $empleado
     ): FirmaProyecto {
-        $firmaP = $this->firma_proyecto()->updateOrCreate(
-            [
+        $cargoFirmaId = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+            ->where('tipo_cargo_firma.nombre', $cargoFirma)
+            ->where('cargo_firma.descripcion', 'Proyecto')
+            ->first()
+            ->id;
+
+        return $this->guardarFirmaDeCargo($cargoFirmaId, $empleado, [
+            'estado_revision' => 'Aprobado',
+            'firma_id' => $empleado?->firma?->id,
+            'sello_id' => $empleado?->sello?->id,
+            'fecha_firma' => now(),
+        ]);
+    }
+
+    public function guardarFirmaDeCargo(int $cargoFirmaId, Empleado $empleado, array $attributes = []): FirmaProyecto
+    {
+        $firma = $this->firma_proyecto()->updateOrCreate(
+            ['cargo_firma_id' => $cargoFirmaId],
+            array_merge([
                 'empleado_id' => $empleado->id,
-                'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                    ->where('tipo_cargo_firma.nombre', $cargoFirma)
-                    ->where('cargo_firma.descripcion', 'Proyecto')
-                    ->first()->id,
-            ],
-            [
-                'estado_revision' => 'Aprobado',
-                'firma_id' => $empleado?->firma?->id,
-                'sello_id' => $empleado?->sello?->id,
                 'hash' => 'hash',
-                'fecha_firma' => now(),
-            ]
+            ], $attributes)
         );
-        return $firmaP;
+
+        $this->anularFirmasPendientesDuplicadasDeCargo($cargoFirmaId, $firma->id);
+
+        return $firma;
+    }
+
+    public function anularFirmasPendientesDuplicadasDeCargo(int $cargoFirmaId, ?int $firmaPrincipalId = null): void
+    {
+        $this->firma_proyecto()
+            ->where('cargo_firma_id', $cargoFirmaId)
+            ->when($firmaPrincipalId, fn ($query) => $query->where('id', '!=', $firmaPrincipalId))
+            ->where('estado_revision', 'Pendiente')
+            ->update(['estado_revision' => 'Anulado']);
     }
 
     public function sincronizarFirmasDelFlujo(): void
@@ -911,6 +930,7 @@ class Proyecto extends Model
                 ->first();
 
             if ($firmaExistente?->estado_revision === 'Aprobado') {
+                $this->anularFirmasPendientesDuplicadasDeCargo($etapa->cargo_firma_id, $firmaExistente->id);
                 continue;
             }
 
@@ -930,14 +950,12 @@ class Proyecto extends Model
                 continue;
             }
 
-            $this->firma_proyecto()->updateOrCreate(
-                ['cargo_firma_id' => $etapa->cargo_firma_id],
-                [
-                    'empleado_id' => $empleado->id,
-                    'estado_revision' => 'Pendiente',
-                    'hash' => 'hash',
-                ]
-            );
+            $this->guardarFirmaDeCargo($etapa->cargo_firma_id, $empleado, [
+                'estado_revision' => 'Pendiente',
+                'firma_id' => null,
+                'sello_id' => null,
+                'fecha_firma' => null,
+            ]);
         }
     }
 

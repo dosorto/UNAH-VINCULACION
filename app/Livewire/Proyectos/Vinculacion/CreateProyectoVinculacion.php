@@ -1156,14 +1156,12 @@ class CreateProyectoVinculacion extends Component
                 continue;
             }
 
-            $record->firma_proyecto()->updateOrCreate(
-                ['cargo_firma_id' => $cargo->id],
-                [
-                    'empleado_id' => (int) $empId,
-                    'estado_revision' => 'Pendiente',
-                    'hash' => 'hash',
-                ]
-            );
+            $record->guardarFirmaDeCargo($cargo->id, \App\Models\Personal\Empleado::findOrFail((int) $empId), [
+                'estado_revision' => 'Pendiente',
+                'firma_id' => null,
+                'sello_id' => null,
+                'fecha_firma' => null,
+            ]);
         }
     }
 
@@ -2554,22 +2552,21 @@ class CreateProyectoVinculacion extends Component
         $empleado = auth()->user()->empleado;
         try {
             $this->saveFirmas($record);
-            $record->agregarFirma(cargoFirma: 'Coordinador Proyecto', empleado: $empleado);
             $record->sincronizarFirmasDelFlujo();
             $cargoFirma = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
                 ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
                 ->where('cargo_firma.descripcion', 'Proyecto')
                 ->first();
 
-            $nextEstadoId = $cargoFirma
-                ? $record->nextEstadoIdForCargo($cargoFirma->id)
-                : null;
+            if ($cargoFirma) {
+                $record->guardarFirmaDeCargo($cargoFirma->id, $empleado, [
+                    'estado_revision' => 'Pendiente',
+                    'firma_id' => null,
+                    'sello_id' => null,
+                    'fecha_firma' => null,
+                ]);
 
-            if (!$nextEstadoId) {
-                $nextEstadoId = TipoEstado::where('nombre', 'Enlace Vinculacion')->first()?->id;
-            }
-            if ($nextEstadoId) {
-                $record->agregarEstado(empleado: $empleado, tipoEstadoId: $nextEstadoId, comentario: 'Proyecto enviado para firma');
+                $record->agregarEstado(empleado: $empleado, tipoEstadoId: $cargoFirma->tipo_estado_id, comentario: 'Proyecto enviado para firma');
             }
         } catch (\Exception $e) {
             Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
@@ -2588,10 +2585,12 @@ class CreateProyectoVinculacion extends Component
             $cargo = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
                 ->where('tipo_cargo_firma.nombre', $nombre)->select('cargo_firma.*')->first();
             if ($cargo) {
-                $record->firma_proyecto()->updateOrCreate(
-                    ['cargo_firma_id' => $cargo->id, 'empleado_id' => $empId],
-                    ['estado_revision' => 'Pendiente', 'hash' => 'hash']
-                );
+                $record->guardarFirmaDeCargo($cargo->id, \App\Models\Personal\Empleado::findOrFail((int) $empId), [
+                    'estado_revision' => 'Pendiente',
+                    'firma_id' => null,
+                    'sello_id' => null,
+                    'fecha_firma' => null,
+                ]);
             }
         }
     }

@@ -13,6 +13,7 @@
         use Carbon\Carbon;
         $diasTranscurridos = intval(Carbon::parse($proyecto->created_at)->diffInDays(now()));
         $projectStartDate = Carbon::parse($proyecto->created_at);
+        $firmaRevisionPendiente = $this->firmaPendienteRevision();
     @endphp
     <div class="w-full md:w-3/5 lg:w-2/3">
         <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
@@ -26,6 +27,18 @@
                        class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg">
                         Descargar PDF
                     </a>
+
+                    @if ($firmaRevisionPendiente)
+                        <button wire:click="openSubsanar"
+                                class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg">
+                            Subsanar
+                        </button>
+                        <button wire:click="aprobarFirmaPendiente"
+                                wire:confirm="¿Aprobar esta etapa y avanzar el proyecto?"
+                                class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg">
+                            Aprobar
+                        </button>
+                    @endif
 
                     @if ($esCoordinador)
                         @php $estadoNombre = $proyecto->estado?->tipoestado?->nombre; @endphp
@@ -2365,6 +2378,38 @@
             @endif
         </div>
     </div>
+
+    {{-- Modal Subsanar Proyecto --}}
+    @if ($subsanarModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg">
+            <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold dark:text-white">Enviar a subsanacion</h3>
+                <button wire:click="$set('subsanarModal', false)" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Correcciones requeridas <span class="text-red-500">*</span>
+                    </label>
+                    <textarea wire:model="subsanarComentario" rows="5"
+                              class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm"></textarea>
+                    @error('subsanarComentario') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button wire:click="$set('subsanarModal', false)"
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Cancelar
+                    </button>
+                    <button wire:click="subsanar"
+                            class="px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg">
+                        Subsanar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- Modal Subir Informe Intermedio --}}
     @if ($informeIntermedioModal)

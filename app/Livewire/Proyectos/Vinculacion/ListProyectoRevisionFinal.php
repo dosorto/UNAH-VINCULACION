@@ -139,19 +139,12 @@ class ListProyectoRevisionFinal extends Component
         ]);
 
         if ($cargoFirma) {
-            $proyecto->firma_proyecto()->updateOrCreate(
-                [
-                    'empleado_id'   => auth()->user()->empleado->id,
-                    'cargo_firma_id' => $cargoFirma->id,
-                ],
-                [
-                    'estado_revision' => 'Aprobado',
-                    'firma_id'        => auth()->user()?->empleado?->firma?->id,
-                    'sello_id'        => auth()->user()?->empleado?->sello?->id,
-                    'hash'            => 'hash',
-                    'fecha_firma'     => now(),
-                ]
-            );
+            $proyecto->guardarFirmaDeCargo($cargoFirma->id, auth()->user()->empleado, [
+                'estado_revision' => 'Aprobado',
+                'firma_id'        => auth()->user()?->empleado?->firma?->id,
+                'sello_id'        => auth()->user()?->empleado?->sello?->id,
+                'fecha_firma'     => now(),
+            ]);
         }
         $proyecto->save();
 

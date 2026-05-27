@@ -65,23 +65,29 @@
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" wire:click.self="closeView">
             <div class="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-7xl max-h-[90vh] overflow-y-auto mx-4">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Ficha del Proyecto</h3>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                        {{ $viewDocumento ? $viewDocumento->tipo_documento : 'Ficha del Proyecto' }}
+                    </h3>
                     <button wire:click="closeView" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
                 </div>
                 <div class="p-6">
-                    @if ($viewProyecto)
+                    @if ($viewDocumento)
+                        @include('components.fichas.informe', ['documentoProyecto' => $viewDocumento])
+                    @elseif ($viewProyecto)
                         @include('components.fichas.ficha-proyecto-vinculacion', ['proyecto' => $viewProyecto])
                     @endif
                 </div>
                 <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-                    <button wire:click="openRechazar({{ $viewFirma->id }})"
-                        class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-red-600 text-white hover:bg-red-700">
-                        Rechazar
-                    </button>
-                    <button wire:click="aprobar({{ $viewFirma->id }})" wire:confirm="¿Estás seguro de que deseas aprobar la firma de este proyecto?"
-                        class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-green-600 text-white hover:bg-green-700">
-                        Aprobar
-                    </button>
+                    @if ($this->puedeSubsanar($viewFirma->id))
+                        <button wire:click="openRechazar({{ $viewFirma->id }})"
+                            class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700">
+                            Subsanar
+                        </button>
+                        <button wire:click="aprobar({{ $viewFirma->id }})" wire:confirm="¿Estás seguro de que deseas aprobar la firma de este proyecto?"
+                            class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-green-600 text-white hover:bg-green-700">
+                            Aprobar
+                        </button>
+                    @endif
                     <button wire:click="closeView"
                         class="px-4 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">
                         Cerrar
@@ -91,17 +97,17 @@
         </div>
     @endif
 
-    {{-- Modal Rechazar --}}
+    {{-- Modal Subsanar --}}
     @if ($rechazarModal)
         <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
             <div class="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-xl mx-4">
                 <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Confirmar Rechazo</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">¿Estás seguro de que deseas rechazar la firma de este proyecto?</p>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Enviar a subsanacion</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">¿Estás seguro de que deseas devolver este proyecto para correcciones?</p>
                 </div>
                 <div class="p-6">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Comentario: Indique el motivo de rechazo <span class="text-red-500">*</span>
+                        Comentario: Indique las correcciones requeridas <span class="text-red-500">*</span>
                     </label>
                     <textarea wire:model="rechazarComentario" rows="5"
                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500"></textarea>
@@ -113,8 +119,8 @@
                         Cancelar
                     </button>
                     <button wire:click="rechazar"
-                        class="px-4 py-2 text-sm font-medium rounded-md bg-red-600 text-white hover:bg-red-700">
-                        Rechazar
+                        class="px-4 py-2 text-sm font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700">
+                        Subsanar
                     </button>
                 </div>
             </div>

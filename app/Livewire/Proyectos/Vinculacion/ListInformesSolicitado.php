@@ -5,6 +5,7 @@ namespace App\Livewire\Proyectos\Vinculacion;
 use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Models\Estado\TipoEstado;
 use App\Models\Proyecto\DocumentoProyecto;
+use App\Models\Proyecto\FirmaProyecto;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -43,6 +44,8 @@ class ListInformesSolicitado extends Component
 
     public function openRechazar(int $id): void
     {
+        $this->authorizeInformeAction($id);
+
         $this->rechazarDocumentoId = $id;
         $this->rechazarComentario = '';
         $this->rechazarModal = true;
@@ -53,6 +56,7 @@ class ListInformesSolicitado extends Component
         $this->validate(['rechazarComentario' => 'required|string']);
 
         $doc = DocumentoProyecto::findOrFail($this->rechazarDocumentoId);
+        $this->authorizeInformeAction($doc);
 
         $doc->firma_documento()->update([
             'estado_revision' => 'Pendiente',
@@ -87,6 +91,8 @@ class ListInformesSolicitado extends Component
 
     public function openAprobar(int $id): void
     {
+        $this->authorizeInformeAction($id);
+
         $this->aprobarDocumentoId = $id;
         $this->aprobarModal = true;
     }
@@ -94,6 +100,14 @@ class ListInformesSolicitado extends Component
     public function aprobar(): void
     {
         $doc = DocumentoProyecto::findOrFail($this->aprobarDocumentoId);
+        $firma = $this->authorizeInformeAction($doc);
+
+        $firma->update([
+            'estado_revision' => 'Aprobado',
+            'firma_id'        => Auth::user()?->empleado?->firma?->id,
+            'sello_id'        => Auth::user()?->empleado?->sello?->id,
+            'fecha_firma'     => now(),
+        ]);
 
         if ($doc->tipo_documento === 'Informe Final') {
             $proyecto = $doc->proyecto;
@@ -135,26 +149,99 @@ class ListInformesSolicitado extends Component
         Notification::make()->title('¡Realizado!')->body('Informe aprobado correctamente.')->success()->send();
     }
 
+    public function puedeAprobarInforme(DocumentoProyecto $documento): bool
+    {
+        return (bool) $this->firmaPendienteDelDocumento($documento);
+    }
+
+    public function textoAprobarInforme(DocumentoProyecto $documento): string
+    {
+        return $documento->tipo_documento === 'Informe Final'
+            ? 'Aprobar y finalizar'
+            : 'Aprobar informe';
+    }
+
     public function render(): View
     {
+        $estadoRevisionId = TipoEstado::where('nombre', 'En revision')->first()->id;
+        $user = Auth::user();
+        $activeRoleName = $user?->activeRole?->name;
+        $isAdmin = (bool) $user?->hasRole('admin');
+
         $records = DocumentoProyecto::query()
-            ->whereIn('id', function ($query) {
+            ->whereIn('id', function ($query) use ($estadoRevisionId) {
                 $query->select('estadoable_id')
                     ->from('estado_proyecto')
                     ->where('estadoable_type', DocumentoProyecto::class)
-                    ->where('tipo_estado_id', TipoEstado::where('nombre', 'En revision')->first()->id)
+                    ->where('tipo_estado_id', $estadoRevisionId)
                     ->where('es_actual', true);
+            })
+            ->whereHas('firma_documento', function ($query) use ($estadoRevisionId, $activeRoleName, $isAdmin) {
+                $query
+                    ->where('estado_revision', 'Pendiente')
+                    ->whereHas('cargo_firma', fn ($cargoQuery) => $cargoQuery->where('tipo_estado_id', $estadoRevisionId));
+
+                if (! $isAdmin) {
+                    $query->whereHas('cargo_firma.tipoCargoFirma', fn ($roleQuery) => $roleQuery->where('nombre', $activeRoleName));
+                }
             })
             ->when($this->search, fn($q) => $q->whereHas('proyecto', fn($q2) =>
                 $q2->where('nombre_proyecto', 'like', '%' . $this->search . '%')
             ))
-            ->with(['proyecto', 'estado.tipoestado'])
+            ->with(['proyecto', 'estadoActual.tipoestado', 'firma_documento.cargo_firma.tipoCargoFirma'])
             ->paginate(10);
 
         $viewDocumento = $this->viewDocumentoId
-            ? DocumentoProyecto::with(['proyecto'])->find($this->viewDocumentoId)
+            ? DocumentoProyecto::with(['proyecto', 'estadoActual.tipoestado', 'firma_documento.cargo_firma.tipoCargoFirma'])->find($this->viewDocumentoId)
             : null;
 
         return view('livewire.proyectos.vinculacion.list-informes-solicitado', compact('records', 'viewDocumento'));
+    }
+
+    private function authorizeInformeAction(int|DocumentoProyecto $documento): FirmaProyecto
+    {
+        $documento = $documento instanceof DocumentoProyecto
+            ? $documento
+            : DocumentoProyecto::with(['estadoActual.tipoestado', 'firma_documento.cargo_firma.tipoCargoFirma'])->findOrFail($documento);
+
+        $firma = $this->firmaPendienteDelDocumento($documento);
+
+        abort_unless($firma, 403);
+
+        return $firma;
+    }
+
+    private function firmaPendienteDelDocumento(DocumentoProyecto $documento): ?FirmaProyecto
+    {
+        $user = Auth::user();
+
+        if (! $user || ! $user->can('proyectos.informes')) {
+            return null;
+        }
+
+        $estadoActual = $documento->estadoActual ?? $documento->estado;
+        $estadoActualId = $estadoActual?->tipo_estado_id;
+
+        if (! $estadoActualId || $estadoActual?->tipoestado?->nombre !== 'En revision') {
+            return null;
+        }
+
+        $activeRoleName = $user->activeRole?->name;
+        $isAdmin = $user->hasRole('admin');
+
+        return $documento
+            ->firma_documento()
+            ->with('cargo_firma.tipoCargoFirma')
+            ->where('estado_revision', 'Pendiente')
+            ->whereHas('cargo_firma', fn ($query) => $query->where('tipo_estado_id', $estadoActualId))
+            ->get()
+            ->first(function (FirmaProyecto $firma) use ($activeRoleName, $isAdmin) {
+                if ($isAdmin) {
+                    return true;
+                }
+
+                return filled($activeRoleName)
+                    && $activeRoleName === $firma->cargo_firma?->tipoCargoFirma?->nombre;
+            });
     }
 }

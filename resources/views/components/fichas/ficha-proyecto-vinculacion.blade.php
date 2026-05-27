@@ -162,7 +162,7 @@
 </head>
 
 <body style="background-color: #f2f2f2; ">
-    @if (empty($isPdf) && $proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
+    @if (empty($isPdf) && empty($hideEmbeddedDocuments) && $proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
         <details class="rounded-xl border border-gray-200 bg-white shadow-sm">
             <summary class="flex cursor-pointer list-none items-center justify-between gap-x-4 px-6 py-4">
                 <div>
@@ -179,7 +179,7 @@
             </div>
         </details>
     @endif
-    @if (empty($isPdf) && $proyecto->documento_final() && $proyecto->documento_final()->documento_url != null)
+    @if (empty($isPdf) && empty($hideEmbeddedDocuments) && $proyecto->documento_final() && $proyecto->documento_final()->documento_url != null)
         <details class="rounded-xl border border-gray-200 bg-white shadow-sm">
             <summary class="flex cursor-pointer list-none items-center justify-between gap-x-4 px-6 py-4">
                 <div>
