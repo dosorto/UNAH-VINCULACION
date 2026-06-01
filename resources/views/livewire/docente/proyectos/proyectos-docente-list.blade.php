@@ -76,6 +76,19 @@
                         $puedeBorrar = $esCoordinador && (
                             in_array($estado, ['Autoguardado', 'Borrador', 'Subsanacion', 'Subsanación'], true)
                         );
+                        $tieneFlujoIntermedio = $proyecto->tieneFlujoInformeIntermedio();
+                        $tieneFlujoCierre = $proyecto->tieneFlujoCierreProyecto();
+                        $documentoIntermedioEstado = $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre;
+                        $documentoFinalEstado = $proyecto->documento_final()?->estado?->tipoestado?->nombre;
+                        $intermedioPendiente = $tieneFlujoIntermedio && $documentoIntermedioEstado !== 'Aprobado';
+                        $puedeSubirIntermedio = $esCoordinador
+                            && $tieneFlujoIntermedio
+                            && $estado === 'En curso'
+                            && (is_null($proyecto->documento_intermedio()) || $documentoIntermedioEstado === 'Subsanacion');
+                        $puedeSubirFinal = $esCoordinador
+                            && $tieneFlujoCierre
+                            && $estado === 'En curso'
+                            && ((! $intermedioPendiente && is_null($proyecto->documento_final())) || $documentoFinalEstado === 'Subsanacion');
                     @endphp
                     <tr class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 {{ $rowClass }}">
                         <td class="px-4 py-3 text-gray-900 dark:text-white">{{ $proyecto->codigo_proyecto ?: '-' }}</td>
@@ -132,6 +145,26 @@
                                             aria-label="Borrado no disponible"
                                             disabled>
                                         @svg('heroicon-o-trash', ['class' => 'h-4 w-4'])
+                                    </button>
+                                @endif
+
+                                @if ($puedeSubirIntermedio)
+                                    <button type="button"
+                                            wire:click="openSubirIntermedio({{ $proyecto->id }})"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-yellow-200 bg-yellow-50 text-yellow-700 shadow-sm transition hover:bg-yellow-100 hover:text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-900/20 dark:text-yellow-300 dark:hover:bg-yellow-900/40"
+                                            title="{{ $documentoIntermedioEstado === 'Subsanacion' ? 'Subsanar informe intermedio' : 'Subir informe intermedio' }}"
+                                            aria-label="{{ $documentoIntermedioEstado === 'Subsanacion' ? 'Subsanar informe intermedio' : 'Subir informe intermedio' }}">
+                                        @svg('heroicon-o-arrow-up-tray', ['class' => 'h-4 w-4'])
+                                    </button>
+                                @endif
+
+                                @if ($puedeSubirFinal)
+                                    <button type="button"
+                                            wire:click="openSubirFinal({{ $proyecto->id }})"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+                                            title="{{ $documentoFinalEstado === 'Subsanacion' ? 'Subsanar informe final' : 'Subir informe final' }}"
+                                            aria-label="{{ $documentoFinalEstado === 'Subsanacion' ? 'Subsanar informe final' : 'Subir informe final' }}">
+                                        @svg('heroicon-o-arrow-up-tray', ['class' => 'h-4 w-4'])
                                     </button>
                                 @endif
                             </div>

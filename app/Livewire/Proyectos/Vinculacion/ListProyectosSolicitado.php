@@ -112,17 +112,17 @@ class ListProyectosSolicitado extends Component
             ->where('cargo_firma.descripcion', 'Proyecto')
             ->first();
 
+        $proyecto->sincronizarFirmasDelFlujo();
+
         $nextEstadoId = $cargoFirma
-            ? $proyecto->nextEstadoIdForCargo($cargoFirma->id)
+            ? $proyecto->nextEstadoIdEnFlujo($cargoFirma->id)
             : null;
 
-        if (! $nextEstadoId) {
-            $nextEstadoId = TipoEstado::where('nombre', 'En revision final')->first()?->id;
-        }
+        $nextEstadoId ??= $proyecto->estadoFinalProcesoId(Proyecto::FLUJO_INSCRIPCION);
 
         $nextEstadoNombre = $nextEstadoId
             ? TipoEstado::find($nextEstadoId)?->nombre
-            : 'En revision final';
+            : 'En curso';
 
         $proyecto->estado_proyecto()->create([
             'empleado_id'   => Auth::user()->empleado->id,
@@ -151,7 +151,7 @@ class ListProyectosSolicitado extends Component
             $proyecto->load(['coordinador_proyecto.empleado.user']);
             if ($proyecto->coordinador?->user) {
                 Mail::to($proyecto->coordinador->user->email)->send(
-                    new ProyectoEstadoCambiado($proyecto, $proyecto->coordinador->user, 'En revisión final', 'Su proyecto fue aprobado y enviado a revisión final.', 'aprobación')
+                    new ProyectoEstadoCambiado($proyecto, $proyecto->coordinador->user, $nextEstadoNombre, 'Su proyecto fue aprobado y enviado a '.$nextEstadoNombre.'.', 'aprobación')
                 );
             }
         } catch (\Exception $e) {
@@ -160,7 +160,7 @@ class ListProyectosSolicitado extends Component
 
         $this->aprobarModal = false;
         $this->viewModal = false;
-        Notification::make()->title('¡Realizado!')->body('Proyecto aprobado y enviado a revisión final.')->success()->send();
+        Notification::make()->title('¡Realizado!')->body('Proyecto aprobado y enviado a '.$nextEstadoNombre.'.')->success()->send();
     }
 
     public function exportExcel()

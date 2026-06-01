@@ -42,7 +42,14 @@
                     @endif
 
                     @if ($esCoordinador)
-                        @php $estadoNombre = $proyecto->estado?->tipoestado?->nombre; @endphp
+                        @php
+                            $estadoNombre = $proyecto->estado?->tipoestado?->nombre;
+                            $tieneFlujoIntermedio = $proyecto->tieneFlujoInformeIntermedio();
+                            $tieneFlujoCierre = $proyecto->tieneFlujoCierreProyecto();
+                            $documentoIntermedioEstado = $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre;
+                            $documentoFinalEstado = $proyecto->documento_final()?->estado?->tipoestado?->nombre;
+                            $intermedioPendiente = $tieneFlujoIntermedio && $documentoIntermedioEstado !== 'Aprobado';
+                        @endphp
 
                         {{-- Continuar editando (Borrador / Autoguardado / Subsanacion) --}}
                         @if (in_array($estadoNombre, ['Borrador', 'Autoguardado', 'Subsanacion']))
@@ -53,23 +60,23 @@
                         @endif
 
                         {{-- Subir / Subsanar Informe Intermedio --}}
-                        @if ($estadoNombre === 'En curso' &&
-                             (is_null($proyecto->documento_intermedio()) ||
-                              $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre === 'Subsanacion'))
+                        @if ($tieneFlujoIntermedio &&
+                             $estadoNombre === 'En curso' &&
+                             (is_null($proyecto->documento_intermedio()) || $documentoIntermedioEstado === 'Subsanacion'))
                             <button wire:click="openSubirIntermedio()"
                                     class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg">
-                                {{ $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre === 'Subsanacion' ? 'Subsanar Inf. Intermedio' : 'Subir Inf. Intermedio' }}
+                                {{ $documentoIntermedioEstado === 'Subsanacion' ? 'Subsanar Inf. Intermedio' : 'Subir Inf. Intermedio' }}
                             </button>
                         @endif
 
                         {{-- Subir / Subsanar Informe Final --}}
-                        @if ($estadoNombre === 'En curso' &&
-                             (($proyecto->documento_intermedio()?->estado?->tipoestado?->nombre === 'Aprobado' &&
-                               is_null($proyecto->documento_final())) ||
-                              $proyecto->documento_final()?->estado?->tipoestado?->nombre === 'Subsanacion'))
+                        @if ($tieneFlujoCierre &&
+                             $estadoNombre === 'En curso' &&
+                             ((! $intermedioPendiente && is_null($proyecto->documento_final())) ||
+                              $documentoFinalEstado === 'Subsanacion'))
                             <button wire:click="openSubirFinal()"
                                     class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg">
-                                {{ $proyecto->documento_final()?->estado?->tipoestado?->nombre === 'Subsanacion' ? 'Subsanar Inf. Final' : 'Subir Inf. Final' }}
+                                {{ $documentoFinalEstado === 'Subsanacion' ? 'Subsanar Inf. Final' : 'Subir Inf. Final' }}
                             </button>
                         @endif
 
@@ -2267,43 +2274,45 @@
                     {{-- Botón Actualizar Equipo o Fechas --}}
 
 
-                    {{-- Botón para Informe Intermedio --}}
-                    @if (($proyecto->estado?->tipoestado?->nombre == 'En curso' && is_null($proyecto->documento_intermedio())) ||
-                         ($proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion'))
-                        <button wire:click="openSubirIntermedio()"
-                                class="w-full inline-flex justify-center items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg">
-                            {{ $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion' ? 'Subsanar Informe Intermedio' : 'Subir Informe Intermedio' }}
-                        </button>
-                    @endif
-
-                    {{-- Botón para Informe Final --}}
-                    @if (($proyecto->estado?->tipoestado?->nombre == 'En curso' &&
-                          $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Aprobado' &&
-                          is_null($proyecto->documento_final())) ||
-                         ($proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion'))
-                        <button wire:click="openSubirFinal()"
-                                class="w-full inline-flex justify-center items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg">
-                            {{ $proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion' ? 'Subsanar Informe Final' : 'Subir Informe Final' }}
-                        </button>
-                    @endif
-                </div>
-            @endif
-
-            <div>
+                {{-- Botón para Informe Intermedio --}}
                 @php
-                    $documentosPanel = array_filter([
-                        $proyecto->documento_intermedio(),
-                        $proyecto->documento_final(),
-                    ], fn ($documento) => $documento && $documento->documento_url);
+                    $estadoNombre = $proyecto->estado?->tipoestado?->nombre;
+                    $tieneFlujoIntermedio = $proyecto->tieneFlujoInformeIntermedio();
+                    $tieneFlujoCierre = $proyecto->tieneFlujoCierreProyecto();
+                    $documentoIntermedioEstado = $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre;
+                    $documentoFinalEstado = $proyecto->documento_final()?->estado?->tipoestado?->nombre;
+                    $intermedioPendiente = $tieneFlujoIntermedio && $documentoIntermedioEstado !== 'Aprobado';
                 @endphp
 
-                @foreach ($documentosPanel as $documentoProyecto)
-                    @php
-                        $urlDocumento = asset('storage/' . $documentoProyecto->documento_url);
-                    @endphp
+                @if ($tieneFlujoIntermedio &&
+                     (($estadoNombre == 'En curso' && is_null($proyecto->documento_intermedio())) ||
+                     $documentoIntermedioEstado == 'Subsanacion'))
+                    <button wire:click="openSubirIntermedio()"
+                            class="w-full inline-flex justify-center items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg">
+                        {{ $documentoIntermedioEstado == 'Subsanacion' ? 'Subsanar Informe Intermedio' : 'Subir Informe Intermedio' }}
+                    </button>
+                @endif
 
-                    <div class="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                        <div class="flex items-start justify-between gap-3">
+                {{-- Botón para Informe Final --}}
+                @if ($tieneFlujoCierre &&
+                     (($estadoNombre == 'En curso' &&
+                      ! $intermedioPendiente &&
+                      is_null($proyecto->documento_final())) ||
+                     $documentoFinalEstado == 'Subsanacion'))
+                    <button wire:click="openSubirFinal()"
+                            class="w-full inline-flex justify-center items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg">
+                        {{ $documentoFinalEstado == 'Subsanacion' ? 'Subsanar Informe Final' : 'Subir Informe Final' }}
+                    </button>
+                @endif
+            </div>
+        @endif
+        
+        <div class="mb-5">
+            
+            @if ($proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
+                <div class="mb-4" x-data="{ open: false }">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700">
+                        <button @click="open = !open" class="w-full flex justify-between items-center p-4 text-left">
                             <div>
                                 <h3 class="text-base font-semibold text-gray-900 dark:text-white">
                                     {{ $documentoProyecto->tipo_documento ?: 'Documento del proyecto' }}

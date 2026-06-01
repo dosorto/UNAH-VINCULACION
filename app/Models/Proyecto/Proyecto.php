@@ -737,6 +737,22 @@ class Proyecto extends Model
             : collect();
     }
 
+    public function procesoTieneEtapasConfiguradas(string $proceso): bool
+    {
+        return $this->flujoEtapasOrdenadas($proceso)
+            ->contains(fn ($etapa) => $etapa->activo && $etapa->cargo_firma_id);
+    }
+
+    public function tieneFlujoInformeIntermedio(): bool
+    {
+        return $this->procesoTieneEtapasConfiguradas(self::FLUJO_INFORME_INTERMEDIO);
+    }
+
+    public function tieneFlujoCierreProyecto(): bool
+    {
+        return $this->procesoTieneEtapasConfiguradas(self::FLUJO_CIERRE_PROYECTO);
+    }
+
     public function nextCargoFirmaId(?int $cargoFirmaId, ?string $proceso = null): ?int
     {
         if (! $cargoFirmaId) {
@@ -770,6 +786,26 @@ class Proyecto extends Model
         }
 
         return $cargoActual->estado_siguiente_id;
+    }
+
+    public function nextEstadoIdEnFlujo(?int $cargoFirmaId, ?string $proceso = null): ?int
+    {
+        $nextCargoId = $this->nextCargoFirmaId($cargoFirmaId, $proceso);
+
+        return $nextCargoId
+            ? CargoFirma::find($nextCargoId)?->tipo_estado_id
+            : null;
+    }
+
+    public function estadoFinalProcesoId(string $proceso): ?int
+    {
+        $estadoNombre = match ($proceso) {
+            self::FLUJO_INFORME_INTERMEDIO,
+            self::FLUJO_CIERRE_PROYECTO => 'Aprobado',
+            default => 'En curso',
+        };
+
+        return TipoEstado::where('nombre', $estadoNombre)->value('id');
     }
 
     public function firstEstadoIdForProceso(string $proceso): ?int
