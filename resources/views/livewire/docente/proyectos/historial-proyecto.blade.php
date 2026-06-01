@@ -1,4 +1,4 @@
-<div class="flex flex-col md:flex-row lg:flex-row gap-4">
+<div class="flex flex-col gap-6 xl:flex-row xl:items-start">
     @push('styles')
         <link rel="stylesheet" href="{{ asset('css/app/fichaHistorial.css') }}">
         <style>
@@ -15,18 +15,19 @@
         $projectStartDate = Carbon::parse($proyecto->created_at);
         $firmaRevisionPendiente = $this->firmaPendienteRevision();
     @endphp
-    <div class="w-full md:w-3/5 lg:w-2/3">
+    <section class="min-w-0 xl:flex-1">
         <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
             Estado: {{ $proyecto->estado?->tipoestado?->nombre ?? 'Sin estado' }}
         </h1>
-        <div id="user-details" class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700">
-            <div class="flex flex-wrap justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 no-print gap-2">
-                <span class="text-xl font-bold dark:text-white">Ficha del Proyecto</span>
-                <div class="flex flex-wrap items-center gap-2">
-                    <a href="{{ route('proyecto.perfil.pdf', ['proyecto' => $proyecto->id]) }}"
-                       class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg">
-                        Descargar PDF
-                    </a>
+        <div class="overflow-x-auto rounded-xl">
+            <div id="user-details" class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700">
+                <div class="flex flex-wrap justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 no-print gap-2">
+                    <span class="text-xl font-bold dark:text-white">Ficha del Proyecto</span>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <a href="{{ route('proyecto.perfil.pdf', ['proyecto' => $proyecto->id]) }}"
+                           class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg">
+                            Descargar PDF
+                        </a>
 
                     @if ($firmaRevisionPendiente)
                         <button wire:click="openSubsanar"
@@ -85,7 +86,7 @@
 
             <div
                 style="display: flex; justify-content: center; margin-top: 20px; background-color: white; max-height: 80vh; overflow-y: auto;">
-                <div class="container">
+                <div class="ficha-historial-container">
                     <div class="header">
                         <div class="logo-space">
                             <img src="{{ asset('images/Image/Imagen1.jpg') }}" width="500px" height="120px"
@@ -2251,133 +2252,146 @@
                     </div>
                 </div>
         </div>
-    </div>
-    <div class="w-full md:w-2/5 lg:w-1/3">
-        <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
-            Documentos del proyecto
-        </h1>
-        
-        @if ($esCoordinador)
-            <div class="mb-4 flex flex-col gap-2">
-                {{-- Botón Actualizar Equipo o Fechas --}}
-                @if ($proyecto->estado?->tipoestado?->nombre == 'En curso')
-                    <a href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}"
-                       class="w-full inline-flex justify-center items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg">
-                        Actualizar Equipo o Fechas
-                    </a>
-                @endif
 
-                {{-- Botón para Informe Intermedio --}}
-                @if (($proyecto->estado?->tipoestado?->nombre == 'En curso' && is_null($proyecto->documento_intermedio())) ||
-                     ($proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion'))
-                    <button wire:click="openSubirIntermedio()"
-                            class="w-full inline-flex justify-center items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg">
-                        {{ $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion' ? 'Subsanar Informe Intermedio' : 'Subir Informe Intermedio' }}
-                    </button>
-                @endif
+        </div>
+    </section>
 
-                {{-- Botón para Informe Final --}}
-                @if (($proyecto->estado?->tipoestado?->nombre == 'En curso' &&
-                      $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Aprobado' &&
-                      is_null($proyecto->documento_final())) ||
-                     ($proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion'))
-                    <button wire:click="openSubirFinal()"
-                            class="w-full inline-flex justify-center items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg">
-                        {{ $proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion' ? 'Subsanar Informe Final' : 'Subir Informe Final' }}
-                    </button>
+    <aside class="w-full shrink-0 space-y-6 xl:w-[380px] xl:sticky xl:top-6">
+        <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+            <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
+                Documentos del proyecto
+            </h1>
+
+            @if ($esCoordinador)
+                <div class="mb-4 flex flex-col gap-2">
+                    {{-- Botón Actualizar Equipo o Fechas --}}
+
+
+                    {{-- Botón para Informe Intermedio --}}
+                    @if (($proyecto->estado?->tipoestado?->nombre == 'En curso' && is_null($proyecto->documento_intermedio())) ||
+                         ($proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion'))
+                        <button wire:click="openSubirIntermedio()"
+                                class="w-full inline-flex justify-center items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg">
+                            {{ $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Subsanacion' ? 'Subsanar Informe Intermedio' : 'Subir Informe Intermedio' }}
+                        </button>
+                    @endif
+
+                    {{-- Botón para Informe Final --}}
+                    @if (($proyecto->estado?->tipoestado?->nombre == 'En curso' &&
+                          $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre == 'Aprobado' &&
+                          is_null($proyecto->documento_final())) ||
+                         ($proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion'))
+                        <button wire:click="openSubirFinal()"
+                                class="w-full inline-flex justify-center items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg">
+                            {{ $proyecto->documento_final()?->estado?->tipoestado?->nombre == 'Subsanacion' ? 'Subsanar Informe Final' : 'Subir Informe Final' }}
+                        </button>
+                    @endif
+                </div>
+            @endif
+
+            <div>
+                @php
+                    $documentosPanel = array_filter([
+                        $proyecto->documento_intermedio(),
+                        $proyecto->documento_final(),
+                    ], fn ($documento) => $documento && $documento->documento_url);
+                @endphp
+
+                @foreach ($documentosPanel as $documentoProyecto)
+                    @php
+                        $urlDocumento = asset('storage/' . $documentoProyecto->documento_url);
+                    @endphp
+
+                    <div class="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <h3 class="text-base font-semibold text-gray-900 dark:text-white">
+                                    {{ $documentoProyecto->tipo_documento ?: 'Documento del proyecto' }}
+                                </h3>
+
+                                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                    Estado:
+                                    <span class="font-medium">
+                                        {{ $documentoProyecto->estado?->tipoestado?->nombre ?? 'Sin estado' }}
+                                    </span>
+                                </p>
+
+                                @if($documentoProyecto->estado?->comentario)
+                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                        {{ $documentoProyecto->estado?->comentario }}
+                                    </p>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="mt-4 flex flex-col gap-2">
+                            <a href="{{ $urlDocumento }}"
+                               target="_blank"
+                               class="inline-flex w-full justify-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                                Ver documento
+                            </a>
+
+                            <a href="{{ $urlDocumento }}"
+                               download
+                               class="inline-flex w-full justify-center rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600">
+                                Descargar
+                            </a>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+
+        <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+            <h1 class="text-xl font-bold dark:text-white text-gray-900 mb-3">
+                Historial de movimientos
+            </h1>
+
+            <div class="overflow-y-auto max-h-[77vh] dark:bg-gray-800 bg-white rounded-lg xl:max-h-[calc(100vh-9rem)]">
+                @if (count($estados) > 0)
+                    <ol class="relative border-s border-yellow-600">
+                        @foreach ($estados as $index => $estado)
+                            <li class="{{ $index < count($estados) - 1 ? 'mb-10' : '' }} ms-4">
+                                <div
+                                    class="absolute w-3 h-3 bg-yellow-600 rounded-full mt-1.5 -start-1.5 border border-white">
+                                </div>
+                                <div class="flex items-center">
+                                    <time class="text-sm font-normal leading-none text-yellow-600">
+                                        {{ Carbon::parse($estado->created_at)->format('d') }} de
+                                        {{ Carbon::parse($estado->created_at)->translatedFormat('F') }} del
+                                        {{ Carbon::parse($estado->created_at)->format('Y') }}
+                                    </time>
+                                    <span
+                                        class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full {{ $estado->estadoable_type === \App\Models\Proyecto\Proyecto::class ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' }}">
+                                        @if ($estado->estadoable_type === \App\Models\Proyecto\Proyecto::class)
+                                            Proyecto
+                                        @elseif($estado->estadoable_type === \App\Models\Proyecto\DocumentoProyecto::class)
+                                            Informe/Documento
+                                        @else
+                                            Otro
+                                        @endif
+                                    </span>
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-200 mt-2">
+                                    Estado: {{ $estado->tipoestado?->nombre ?? 'Cambio de estado' }}
+                                </h3>
+                                <p class="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">
+                                    @if ($estado->empleado)
+                                        Realizado por: {{ $estado->empleado->nombre_completo }}
+                                    @endif
+                                    {{ $estado->comentario ? '— ' . $estado->comentario : '' }}
+                                </p>
+                            </li>
+                        @endforeach
+                    </ol>
+                @else
+                    <div class="flex items-center justify-center h-full">
+                        <p class="text-gray-500">No hay movimientos registrados para este proyecto.</p>
+                    </div>
                 @endif
             </div>
-        @endif
-        
-        <div class="mb-5">
-            
-            @if ($proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
-                <div class="mb-4" x-data="{ open: false }">
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700">
-                        <button @click="open = !open" class="w-full flex justify-between items-center p-4 text-left">
-                            <div>
-                                <span class="font-semibold dark:text-white">Informe Intermedio, Estado: {{ $proyecto->documento_intermedio()->estado?->tipoestado?->nombre ?? 'Sin estado' }}</span>
-                                @if($proyecto->documento_intermedio()->estado?->comentario)
-                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ $proyecto->documento_intermedio()->estado?->comentario }}</p>
-                                @endif
-                            </div>
-                            <svg :class="open ? 'rotate-180' : ''" class="w-5 h-5 text-gray-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-                        <div x-show="open" x-cloak class="px-4 pb-4">
-                            <iframe src="{{ asset('storage/' . $proyecto->documento_intermedio()->documento_url) }}" type="application/pdf" width="100%" height="600px"></iframe>
-                        </div>
-                    </div>
-                </div>
-            @endif
-            @if ($proyecto->documento_final() && $proyecto->documento_final()->documento_url != null)
-                <div x-data="{ open: false }">
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700">
-                        <button @click="open = !open" class="w-full flex justify-between items-center p-4 text-left">
-                            <div>
-                                <span class="font-semibold dark:text-white">Informe Final, Estado: {{ $proyecto->documento_final()->estado?->tipoestado?->nombre ?? 'Sin estado' }}</span>
-                                @if($proyecto->documento_final()->estado?->comentario)
-                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ $proyecto->documento_final()->estado?->comentario }}</p>
-                                @endif
-                            </div>
-                            <svg :class="open ? 'rotate-180' : ''" class="w-5 h-5 text-gray-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-                        <div x-show="open" x-cloak class="px-4 pb-4">
-                            <iframe src="{{ asset('storage/' . $proyecto->documento_final()->documento_url) }}" type="application/pdf" width="100%" height="600px"></iframe>
-                        </div>
-                    </div>
-                </div>
-            @endif
-        </div>
-        <h1 class="text-2xl font-bold dark:text-white text-gray-900 mb-4">
-            Historial de movimientos
-        </h1>
-        <p class="text-gray-600 mb-2">
-            Días desde la creación del proyecto: <span class="font-bold">{{ $diasTranscurridos }}</span>
-        </p>
-        <div class="overflow-y-auto max-h-[77vh] dark:bg-gray-800 bg-white p-4 rounded-lg shadow">
-            @if (count($estados) > 0)
-                <ol class="relative border-s border-yellow-600">
-                    @foreach ($estados as $index => $estado)
-                        <li class="{{ $index < count($estados) - 1 ? 'mb-10' : '' }} ms-4">
-                            <div
-                                class="absolute w-3 h-3 bg-yellow-600 rounded-full mt-1.5 -start-1.5 border border-white">
-                            </div>
-                            <div class="flex items-center">
-                                <time class="text-sm font-normal leading-none text-yellow-600">
-                                    {{ Carbon::parse($estado->created_at)->format('d') }} de
-                                    {{ Carbon::parse($estado->created_at)->translatedFormat('F') }} del
-                                    {{ Carbon::parse($estado->created_at)->format('Y') }}
-                                </time>
-                                <span
-                                    class="ml-2 px-2 py-0.5 text-xs font-medium rounded-full {{ $estado->estadoable_type === \App\Models\Proyecto\Proyecto::class ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' }}">
-                                    @if ($estado->estadoable_type === \App\Models\Proyecto\Proyecto::class)
-                                        Proyecto
-                                    @elseif($estado->estadoable_type === \App\Models\Proyecto\DocumentoProyecto::class)
-                                        Informe/Documento
-                                    @else
-                                        Otro
-                                    @endif
-                                </span>
-                            </div>
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-200 mt-2">
-                                Estado: {{ $estado->tipoestado?->nombre ?? 'Cambio de estado' }}
-                            </h3>
-                            <p class="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">
-                                @if ($estado->empleado)
-                                    Realizado por: {{ $estado->empleado->nombre_completo }}
-                                @endif
-                                {{ $estado->comentario ? '— ' . $estado->comentario : '' }}
-                            </p>
-                        </li>
-                    @endforeach
-                </ol>
-            @else
-                <div class="flex items-center justify-center h-full">
-                    <p class="text-gray-500">No hay movimientos registrados para este proyecto.</p>
-                </div>
-            @endif
-        </div>
-    </div>
+        </section>
+    </aside>
 
     {{-- Modal Subsanar Proyecto --}}
     @if ($subsanarModal)

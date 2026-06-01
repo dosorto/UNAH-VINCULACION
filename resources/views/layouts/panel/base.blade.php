@@ -88,7 +88,14 @@
 
     <!-- Contenedor principal -->
     <div class="flex-1 flex min-w-0">
-        <div class="sm:flex w-full min-w-0 flex-col sm:flex-row" >
+        <div
+            x-data="{
+                desktopSidebarOpen: localStorage.getItem('nexoSidebarOpen') !== 'false',
+                mobileSidebarOpen: false,
+            }"
+            x-init="$watch('desktopSidebarOpen', value => localStorage.setItem('nexoSidebarOpen', value ? 'true' : 'false'))"
+            @keydown.escape.window="mobileSidebarOpen = false"
+            class="sm:flex w-full min-w-0 flex-col sm:flex-row">
             <!-- Remover banner móvil anterior -->
             <x-panel.navbar.navbar />
             <!-- Barra superior en dispositivos móviles -->
@@ -101,7 +108,7 @@
                 </div>
                 
             </div>
-            <button id="menu-button" class="focus:outline-none">
+            <button type="button" @click="mobileSidebarOpen = ! mobileSidebarOpen" class="focus:outline-none">
                 <svg class="w-6 h-6
                     dark:text-gray-200
                 " fill="none"
@@ -114,6 +121,19 @@
 
         <!-- Etiqueta principal-->
         <main class="w-full sm:flex-1 sm:min-w-0 flex flex-col p-2 sm:py-4 sm:pl-2 sm:pr-4 overflow-x-auto ">
+            <div class="mb-3 hidden sm:flex">
+                <button type="button"
+                    @click="desktopSidebarOpen = ! desktopSidebarOpen"
+                    :aria-label="desktopSidebarOpen ? 'Ocultar menú lateral' : 'Mostrar menú lateral'"
+                    :title="desktopSidebarOpen ? 'Ocultar menú lateral' : 'Mostrar menú lateral'"
+                    class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-white/10">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
             <!-- Contenido del main -->
             <div class="bg-white p-6 border border-gray-300 rounded-lg dark:bg-white/5 dark:border-gray-700 h-full">
                 @yield('titulo')
