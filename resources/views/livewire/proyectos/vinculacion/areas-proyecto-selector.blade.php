@@ -55,11 +55,11 @@
                 </div>
             </a>
             <!-- Tarjeta Proyecto de Voluntariado -->
-            <a href="javascript:void(0)"
-                class="group relative block bg-white dark:bg-gray-800 border border-yellow-200 dark:border-yellow-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300 pointer-events-none opacity-20"">
+            <a href="{{ route('crearPpsServicioSocial') }}"
+                class="group relative block bg-white dark:bg-gray-800 border border-yellow-200 dark:border-yellow-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300">
                 <span
                     class="absolute top-4 right-4 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 px-3 py-1 rounded-full text-xs font-semibold group-hover:bg-yellow-200 dark:group-hover:bg-yellow-800 transition">
-                    Proximamente
+                    Disponible
                 </span>
                 <br>
                 <div class="flex flex-col items-center">

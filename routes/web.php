@@ -42,6 +42,10 @@ use App\Livewire\Proyectos\Vinculacion\ListProyectosSolicitado;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
 
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
+use App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial;
+use App\Livewire\Proyectos\Vinculacion\EditPpsServicioSocial;
+use App\Livewire\Proyectos\Vinculacion\ListPpsServicioSocial;
+use App\Livewire\Proyectos\Vinculacion\ShowPpsServicioSocial;
 use App\Livewire\Proyectos\Actualizacion\EditProyectoActualizacion;
 use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
 
@@ -265,6 +269,22 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         Route::get('/crearProyectoVinculacion/{record?}', CreateProyectoVinculacion::class)
             ->name('crearProyectoVinculacion')
             ->middleware('permission:docente.crear-proyecto');
+
+        Route::get('/crearPpsServicioSocial', CreatePpsServicioSocial::class)
+            ->name('crearPpsServicioSocial')
+            ->middleware('permission:docente.crear-proyecto');
+
+        Route::get('/pps-servicio-social', ListPpsServicioSocial::class)
+            ->name('pps-servicio-social.index')
+            ->middleware('permission:docente.crear-proyecto|docente.proyectos|director.proyectos|proyectos.historial');
+
+        Route::get('/pps-servicio-social/{id}/editar', EditPpsServicioSocial::class)
+            ->name('pps-servicio-social.edit')
+            ->middleware('permission:docente.crear-proyecto|docente.proyectos');
+
+        Route::get('/pps-servicio-social/{id}', ShowPpsServicioSocial::class)
+            ->name('pps-servicio-social.show')
+            ->middleware('permission:docente.crear-proyecto|docente.proyectos|director.proyectos|proyectos.historial');
 
         Route::get('/instrumentos-formalizacion/{instrumento}/documento', function (InstrumenFormalizacion $instrumento) {
             $proyecto = $instrumento->entidadContraparte?->proyecto;
