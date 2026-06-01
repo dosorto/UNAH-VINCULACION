@@ -188,8 +188,10 @@ class HistorialProyecto extends Component
 
         $this->proyecto->anularFirmasPendientesDuplicadasDeCargo($firma->cargo_firma_id, $firma->id);
 
-        $nextEstadoId = $this->proyecto->nextEstadoIdForCargo($firma->cargo_firma_id)
-            ?? $firma->cargo_firma?->estado_siguiente_id;
+        $this->proyecto->sincronizarFirmasDelFlujo();
+
+        $nextEstadoId = $this->proyecto->nextEstadoIdEnFlujo($firma->cargo_firma_id)
+            ?? $this->proyecto->estadoFinalProcesoId(Proyecto::FLUJO_INSCRIPCION);
 
         if ($nextEstadoId) {
             $this->proyecto->estado_proyecto()->create([

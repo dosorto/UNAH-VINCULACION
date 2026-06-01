@@ -109,8 +109,10 @@ class ProyectosPorFirmar extends Component
 
             $firma->proyecto?->anularFirmasPendientesDuplicadasDeCargo($firma->cargo_firma_id, $firma->id);
 
-            $nextEstadoId = $firma->proyecto?->nextEstadoIdForCargo($firma->cargo_firma_id)
-                ?? $firma->cargo_firma->estado_siguiente_id;
+            $firma->proyecto?->sincronizarFirmasDelFlujo();
+
+            $nextEstadoId = $firma->proyecto?->nextEstadoIdEnFlujo($firma->cargo_firma_id)
+                ?? $firma->proyecto?->estadoFinalProcesoId(Proyecto::FLUJO_INSCRIPCION);
 
             $firma->proyecto->estado_proyecto()->create([
                 'empleado_id'    => auth()->user()->empleado->id,
@@ -131,9 +133,13 @@ class ProyectosPorFirmar extends Component
                 ? Proyecto::procesoFlujoParaDocumento($documento->tipo_documento)
                 : null;
 
+            if ($proceso) {
+                $documento?->proyecto?->sincronizarFirmasDelFlujo($proceso, $documento);
+            }
+
             $nextEstadoId = $proceso
-                ? $documento?->proyecto?->nextEstadoIdForCargo($firma->cargo_firma_id, $proceso)
-                : $firma->cargo_firma->estado_siguiente_id;
+                ? $documento?->proyecto?->nextEstadoIdEnFlujo($firma->cargo_firma_id, $proceso)
+                : null;
 
             if ($nextEstadoId) {
                 $documento->estado_documento()->create([
