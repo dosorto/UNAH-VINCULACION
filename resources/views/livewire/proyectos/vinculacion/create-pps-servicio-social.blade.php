@@ -59,6 +59,16 @@
                 @endif
             @endforeach
         </div>
+
+        <div class="mt-3 flex min-h-5 justify-end text-xs font-medium">
+            @if($estadoAutoGuardado === 'guardando')
+                <span class="text-gray-500 dark:text-gray-400">Guardando...</span>
+            @elseif($estadoAutoGuardado === 'guardado')
+                <span class="text-green-600 dark:text-green-400">Guardado</span>
+            @elseif($estadoAutoGuardado === 'error')
+                <span class="text-red-600 dark:text-red-400">Error al guardar</span>
+            @endif
+        </div>
     </div>
 
     <form wire:submit.prevent="guardar" class="rounded-lg bg-white p-6 shadow dark:bg-gray-900">

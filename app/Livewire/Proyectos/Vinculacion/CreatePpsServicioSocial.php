@@ -23,6 +23,9 @@ class CreatePpsServicioSocial extends Component
     public int $currentStep = 1;
     public int $totalSteps = 10;
     public bool $registroGuardado = false;
+    public ?int $registroId = null;
+    public string $estadoAutoGuardado = '';
+    public bool $autoguardadoActivo = true;
 
     // Paso 1: Informacion general
     public ?int $facultad_centro_id = null;
@@ -184,6 +187,10 @@ class CreatePpsServicioSocial extends Component
         $this->resetErrorBag();
         $this->validateCurrentStep();
 
+        if (!$this->autoGuardarBorrador()) {
+            return;
+        }
+
         if ($this->currentStep < $this->totalSteps) {
             $this->currentStep++;
         }
@@ -218,6 +225,11 @@ class CreatePpsServicioSocial extends Component
     {
         $this->resetErrorBag();
         $this->validateCurrentStep();
+
+        if (!$this->autoGuardarBorrador()) {
+            return;
+        }
+
         $this->currentStep = 10;
     }
 
@@ -226,67 +238,43 @@ class CreatePpsServicioSocial extends Component
         $this->resetErrorBag();
         $this->validate($this->rules(), [], $this->validationAttributes());
 
-        // TODO: Confirmar politica final de almacenamiento y retencion de adjuntos FORM-DVUS-015/016.
-        $archivoCarta = $this->carta_formalizacion_archivo
-            ? $this->carta_formalizacion_archivo->store('pps-servicio-social/documentos', 'public')
-            : null;
+        if (!$this->autoGuardarBorrador()) {
+            return;
+        }
 
-        $archivoConvenio = $this->convenio_marco_archivo
-            ? $this->convenio_marco_archivo->store('pps-servicio-social/documentos', 'public')
-            : null;
+        try {
+            $registro = $this->ensureRegistroBorrador();
+            $payload = $this->payloadParcial();
 
-        PpsServicioSocial::create([
-            'codigo_registro' => $this->generarCodigoRegistro(),
-            'estado' => 'borrador',
-            'facultad_centro' => $this->nombreFacultadCentro(),
-            'carrera' => $this->nombreCarrera(),
-            'numero_cuenta' => $this->numero_cuenta,
-            'nombre_estudiante' => $this->estudiante_nombre_completo,
-            'celular_estudiante' => $this->estudiante_celular,
-            'correo_institucional' => $this->estudiante_correo_institucional,
-            'correo_personal' => $this->estudiante_correo_personal ?: null,
-            'tipo_pps_ss' => $this->tipo_pps_ss,
-            'fecha_inicio' => $this->fecha_inicio,
-            'fecha_finalizacion' => $this->fecha_finalizacion,
-            'tipo_instrumento' => $this->instrumentoOpciones[$this->tipo_instrumento] ?? $this->tipo_instrumento,
-            'territorio_ejecucion' => $this->territorio_ejecucion,
-            'departamento' => $this->territorio_ejecucion === 'Nacional' ? $this->nombreDepartamento() : null,
-            'municipio' => $this->territorio_ejecucion === 'Nacional' ? $this->nombreMunicipio() : null,
-            'aldea_ciudad' => $this->territorio_ejecucion === 'Nacional' ? $this->nombreAldeaCiudad() : null,
-            'caserio' => $this->territorio_ejecucion === 'Nacional' ? ($this->caserio ?: null) : null,
-            'descripcion_tipo_pps' => $this->descripcion_tipo_pps ?: null,
-            'total_horas' => (int) $this->total_horas,
-            'area_realizacion' => $this->area_realizacion ?: null,
-            'resumen_responsabilidades' => $this->resumen_responsabilidades ?: null,
-            'modalidad_ejecucion' => $this->modalidad_ejecucion,
-            'nombre_institucion' => $this->institucion_nombre,
-            'compromisos_institucion' => $this->institucion_compromisos ?: null,
-            'direccion_institucion' => $this->institucion_direccion ?: null,
-            'representante_legal' => $this->institucion_representante ?: null,
-            'telefono_representante' => $this->institucion_telefono ?: null,
-            'correo_rrhh' => $this->institucion_correo_rrhh ?: null,
-            'tipo_institucion' => $this->tipoInstitucionOpciones[$this->institucion_tipo] ?? ($this->institucion_tipo ?: null),
-            'sector_institucion' => $this->sectorOpciones[$this->institucion_sector] ?? ($this->institucion_sector ?: null),
-            'nombre_jefe_directo' => $this->jefe_directo_nombre,
-            'celular_jefe_directo' => $this->jefe_directo_celular ?: null,
-            'correo_jefe_directo' => $this->jefe_directo_correo ?: null,
-            'cargo_jefe_directo' => $this->jefe_directo_cargo ?: null,
-            'grado_academico_jefe_directo' => $this->jefe_directo_grado ?: null,
-            'nombre_docente_supervisor' => $this->docente_supervisor_nombre,
-            'numero_empleado_docente' => $this->docente_numero_empleado ?: null,
-            'celular_docente' => $this->docente_celular ?: null,
-            'correo_docente' => $this->docente_correo ?: null,
-            'categoria_docente' => $this->docente_categoria ?: null,
-            'departamento_docente' => $this->docente_departamento ?: null,
-            'jornada_laboral_docente' => $this->docente_jornada ?: null,
-            'ubicacion_cubiculo_docente' => $this->docente_cubiculo ?: null,
-            'adjunta_carta_formalizacion' => $this->carta_formalizacion_aplica === 'Si',
-            'archivo_carta_formalizacion' => $archivoCarta,
-            'adjunta_convenio_marco' => $this->convenio_marco_aplica === 'Si',
-            'archivo_convenio_marco' => $archivoConvenio,
-            'created_by' => auth()->id(),
-            'updated_by' => auth()->id(),
-        ]);
+            // TODO: Confirmar politica final de almacenamiento y retencion de adjuntos FORM-DVUS-015/016.
+            $payload['archivo_carta_formalizacion'] = $registro->archivo_carta_formalizacion;
+            if ($this->carta_formalizacion_aplica === 'No') {
+                $payload['archivo_carta_formalizacion'] = null;
+            } elseif ($this->carta_formalizacion_archivo) {
+                $payload['archivo_carta_formalizacion'] = $this->carta_formalizacion_archivo->store('pps-servicio-social/documentos', 'public');
+            }
+
+            $payload['archivo_convenio_marco'] = $registro->archivo_convenio_marco;
+            if ($this->convenio_marco_aplica === 'No') {
+                $payload['archivo_convenio_marco'] = null;
+            } elseif ($this->convenio_marco_archivo) {
+                $payload['archivo_convenio_marco'] = $this->convenio_marco_archivo->store('pps-servicio-social/documentos', 'public');
+            }
+
+            $registro->update($payload);
+            $this->estadoAutoGuardado = 'guardado';
+        } catch (\Throwable $e) {
+            report($e);
+            $this->estadoAutoGuardado = 'error';
+
+            Notification::make()
+                ->title('Error')
+                ->body('No se pudo guardar el registro. Intente nuevamente.')
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         Notification::make()
             ->title('Registro guardado')
@@ -296,6 +284,113 @@ class CreatePpsServicioSocial extends Component
 
         $this->registroGuardado = true;
         $this->redirectRoute('inicio');
+    }
+
+    public function autoGuardarBorrador(): bool
+    {
+        if (!$this->autoguardadoActivo) {
+            return true;
+        }
+
+        try {
+            $this->estadoAutoGuardado = 'guardando';
+            $registro = $this->ensureRegistroBorrador();
+            $registro->update($this->payloadParcial());
+            $this->estadoAutoGuardado = 'guardado';
+
+            return true;
+        } catch (\Throwable $e) {
+            report($e);
+            $this->estadoAutoGuardado = 'error';
+
+            return false;
+        }
+    }
+
+    protected function ensureRegistroBorrador(): PpsServicioSocial
+    {
+        if ($this->registroId) {
+            $registro = PpsServicioSocial::findOrFail($this->registroId);
+
+            if ($registro->estado !== 'borrador') {
+                throw new \RuntimeException('Solo los registros en borrador pueden autoguardarse.');
+            }
+
+            return $registro;
+        }
+
+        $registro = PpsServicioSocial::create(array_merge($this->payloadParcial(), [
+            'codigo_registro' => $this->generarCodigoRegistro(),
+            'estado' => 'borrador',
+            'created_by' => auth()->id(),
+            'updated_by' => auth()->id(),
+        ]));
+
+        $this->registroId = $registro->id;
+        $this->registroGuardado = true;
+
+        return $registro;
+    }
+
+    protected function payloadParcial(): array
+    {
+        $fechaInicio = $this->fecha_inicio ?: now()->toDateString();
+        $fechaFinalizacion = $this->fecha_finalizacion ?: $fechaInicio;
+
+        return [
+            'facultad_centro' => $this->textoBorrador($this->nombreFacultadCentro()),
+            'carrera' => $this->textoBorrador($this->nombreCarrera()),
+            'numero_cuenta' => $this->textoBorrador($this->numero_cuenta),
+            'nombre_estudiante' => $this->textoBorrador($this->estudiante_nombre_completo),
+            'celular_estudiante' => $this->textoBorrador($this->estudiante_celular),
+            'correo_institucional' => $this->textoBorrador($this->estudiante_correo_institucional, 'pendiente@unah.edu.hn'),
+            'correo_personal' => $this->estudiante_correo_personal ?: null,
+            'tipo_pps_ss' => $this->textoBorrador($this->tipo_pps_ss),
+            'fecha_inicio' => $fechaInicio,
+            'fecha_finalizacion' => $fechaFinalizacion,
+            'tipo_instrumento' => $this->instrumentoOpciones[$this->tipo_instrumento] ?? $this->textoBorrador($this->tipo_instrumento),
+            'territorio_ejecucion' => $this->territorio_ejecucion ?: 'Nacional',
+            'departamento' => $this->territorio_ejecucion === 'Nacional' ? $this->nombreDepartamento() : null,
+            'municipio' => $this->territorio_ejecucion === 'Nacional' ? $this->nombreMunicipio() : null,
+            'aldea_ciudad' => $this->territorio_ejecucion === 'Nacional' ? $this->nombreAldeaCiudad() : null,
+            'caserio' => $this->territorio_ejecucion === 'Nacional' ? ($this->caserio ?: null) : null,
+            'descripcion_tipo_pps' => $this->descripcion_tipo_pps ?: null,
+            'total_horas' => max(1, (int) $this->total_horas),
+            'area_realizacion' => $this->area_realizacion ?: null,
+            'resumen_responsabilidades' => $this->resumen_responsabilidades ?: null,
+            'modalidad_ejecucion' => $this->textoBorrador($this->modalidad_ejecucion),
+            'nombre_institucion' => $this->textoBorrador($this->institucion_nombre),
+            'compromisos_institucion' => $this->institucion_compromisos ?: null,
+            'direccion_institucion' => $this->institucion_direccion ?: null,
+            'representante_legal' => $this->institucion_representante ?: null,
+            'telefono_representante' => $this->institucion_telefono ?: null,
+            'correo_rrhh' => $this->institucion_correo_rrhh ?: null,
+            'tipo_institucion' => $this->tipoInstitucionOpciones[$this->institucion_tipo] ?? ($this->institucion_tipo ?: null),
+            'sector_institucion' => $this->sectorOpciones[$this->institucion_sector] ?? ($this->institucion_sector ?: null),
+            'nombre_jefe_directo' => $this->textoBorrador($this->jefe_directo_nombre),
+            'celular_jefe_directo' => $this->jefe_directo_celular ?: null,
+            'correo_jefe_directo' => $this->jefe_directo_correo ?: null,
+            'cargo_jefe_directo' => $this->jefe_directo_cargo ?: null,
+            'grado_academico_jefe_directo' => $this->jefe_directo_grado ?: null,
+            'nombre_docente_supervisor' => $this->textoBorrador($this->docente_supervisor_nombre),
+            'numero_empleado_docente' => $this->docente_numero_empleado ?: null,
+            'celular_docente' => $this->docente_celular ?: null,
+            'correo_docente' => $this->docente_correo ?: null,
+            'categoria_docente' => $this->docente_categoria ?: null,
+            'departamento_docente' => $this->docente_departamento ?: null,
+            'jornada_laboral_docente' => $this->docente_jornada ?: null,
+            'ubicacion_cubiculo_docente' => $this->docente_cubiculo ?: null,
+            'adjunta_carta_formalizacion' => $this->carta_formalizacion_aplica === 'Si',
+            'adjunta_convenio_marco' => $this->convenio_marco_aplica === 'Si',
+            'updated_by' => auth()->id(),
+        ];
+    }
+
+    protected function textoBorrador(?string $value, string $fallback = 'Pendiente'): string
+    {
+        $value = trim((string) $value);
+
+        return $value !== '' ? $value : $fallback;
     }
 
     protected function validateCurrentStep(): void

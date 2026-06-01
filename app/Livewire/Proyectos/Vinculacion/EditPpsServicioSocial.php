@@ -22,6 +22,8 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
     {
         $registro = PpsServicioSocial::findOrFail($id);
         $this->registro = $registro;
+        $this->registroId = $registro->id;
+        $this->registroGuardado = true;
 
         if ($registro->estado !== 'borrador') {
             Notification::make()
@@ -38,6 +40,29 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         abort_unless($this->canEditRecord($registro), 403);
 
         $this->fillFromRegistro($registro);
+    }
+
+    public function autoGuardarBorrador(): bool
+    {
+        $this->registro->refresh();
+
+        if ($this->registro->estado !== 'borrador') {
+            $this->estadoAutoGuardado = 'error';
+
+            Notification::make()
+                ->title('Edicion bloqueada')
+                ->body('El registro ya no esta en borrador y no puede modificarse.')
+                ->danger()
+                ->send();
+
+            $this->redirectRoute('pps-servicio-social.show', ['id' => $this->registro->id]);
+
+            return false;
+        }
+
+        abort_unless($this->canEditRecord($this->registro), 403);
+
+        return parent::autoGuardarBorrador();
     }
 
     public function guardar(): void
@@ -61,70 +86,43 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         $this->resetErrorBag();
         $this->validate($this->rules(), [], $this->validationAttributes());
 
-        // TODO: Definir si se deben eliminar archivos antiguos cuando el usuario reemplaza un adjunto.
-        $archivoCarta = $this->archivo_carta_formalizacion_actual;
-        if ($this->carta_formalizacion_aplica === 'No') {
-            $archivoCarta = null;
-        } elseif ($this->carta_formalizacion_archivo) {
-            $archivoCarta = $this->carta_formalizacion_archivo->store('pps-servicio-social/documentos', 'public');
+        if (!$this->autoGuardarBorrador()) {
+            return;
         }
 
-        $archivoConvenio = $this->archivo_convenio_marco_actual;
-        if ($this->convenio_marco_aplica === 'No') {
-            $archivoConvenio = null;
-        } elseif ($this->convenio_marco_archivo) {
-            $archivoConvenio = $this->convenio_marco_archivo->store('pps-servicio-social/documentos', 'public');
-        }
+        try {
+            $this->registro = PpsServicioSocial::findOrFail($this->registroId);
+            $payload = $this->payloadParcial();
 
-        $this->registro->update([
-            'facultad_centro' => $this->nombreFacultadCentro(),
-            'carrera' => $this->nombreCarrera(),
-            'numero_cuenta' => $this->numero_cuenta,
-            'nombre_estudiante' => $this->estudiante_nombre_completo,
-            'celular_estudiante' => $this->estudiante_celular,
-            'correo_institucional' => $this->estudiante_correo_institucional,
-            'correo_personal' => $this->estudiante_correo_personal ?: null,
-            'tipo_pps_ss' => $this->tipo_pps_ss,
-            'fecha_inicio' => $this->fecha_inicio,
-            'fecha_finalizacion' => $this->fecha_finalizacion,
-            'tipo_instrumento' => $this->instrumentoOpciones[$this->tipo_instrumento] ?? $this->tipo_instrumento,
-            'territorio_ejecucion' => $this->territorio_ejecucion,
-            'departamento' => $this->territorio_ejecucion === 'Nacional' ? $this->nombreDepartamento() : null,
-            'municipio' => $this->territorio_ejecucion === 'Nacional' ? $this->nombreMunicipio() : null,
-            'aldea_ciudad' => $this->territorio_ejecucion === 'Nacional' ? $this->nombreAldeaCiudad() : null,
-            'caserio' => $this->territorio_ejecucion === 'Nacional' ? ($this->caserio ?: null) : null,
-            'descripcion_tipo_pps' => $this->descripcion_tipo_pps ?: null,
-            'total_horas' => (int) $this->total_horas,
-            'area_realizacion' => $this->area_realizacion ?: null,
-            'resumen_responsabilidades' => $this->resumen_responsabilidades ?: null,
-            'modalidad_ejecucion' => $this->modalidad_ejecucion,
-            'nombre_institucion' => $this->institucion_nombre,
-            'compromisos_institucion' => $this->institucion_compromisos ?: null,
-            'direccion_institucion' => $this->institucion_direccion ?: null,
-            'representante_legal' => $this->institucion_representante ?: null,
-            'telefono_representante' => $this->institucion_telefono ?: null,
-            'correo_rrhh' => $this->institucion_correo_rrhh ?: null,
-            'tipo_institucion' => $this->tipoInstitucionOpciones[$this->institucion_tipo] ?? ($this->institucion_tipo ?: null),
-            'sector_institucion' => $this->sectorOpciones[$this->institucion_sector] ?? ($this->institucion_sector ?: null),
-            'nombre_jefe_directo' => $this->jefe_directo_nombre,
-            'celular_jefe_directo' => $this->jefe_directo_celular ?: null,
-            'correo_jefe_directo' => $this->jefe_directo_correo ?: null,
-            'cargo_jefe_directo' => $this->jefe_directo_cargo ?: null,
-            'grado_academico_jefe_directo' => $this->jefe_directo_grado ?: null,
-            'nombre_docente_supervisor' => $this->docente_supervisor_nombre,
-            'numero_empleado_docente' => $this->docente_numero_empleado ?: null,
-            'celular_docente' => $this->docente_celular ?: null,
-            'correo_docente' => $this->docente_correo ?: null,
-            'categoria_docente' => $this->docente_categoria ?: null,
-            'departamento_docente' => $this->docente_departamento ?: null,
-            'jornada_laboral_docente' => $this->docente_jornada ?: null,
-            'ubicacion_cubiculo_docente' => $this->docente_cubiculo ?: null,
-            'adjunta_carta_formalizacion' => $this->carta_formalizacion_aplica === 'Si',
-            'archivo_carta_formalizacion' => $archivoCarta,
-            'adjunta_convenio_marco' => $this->convenio_marco_aplica === 'Si',
-            'archivo_convenio_marco' => $archivoConvenio,
-            'updated_by' => auth()->id(),
-        ]);
+            // TODO: Definir si se deben eliminar archivos antiguos cuando el usuario reemplaza un adjunto.
+            $payload['archivo_carta_formalizacion'] = $this->archivo_carta_formalizacion_actual;
+            if ($this->carta_formalizacion_aplica === 'No') {
+                $payload['archivo_carta_formalizacion'] = null;
+            } elseif ($this->carta_formalizacion_archivo) {
+                $payload['archivo_carta_formalizacion'] = $this->carta_formalizacion_archivo->store('pps-servicio-social/documentos', 'public');
+            }
+
+            $payload['archivo_convenio_marco'] = $this->archivo_convenio_marco_actual;
+            if ($this->convenio_marco_aplica === 'No') {
+                $payload['archivo_convenio_marco'] = null;
+            } elseif ($this->convenio_marco_archivo) {
+                $payload['archivo_convenio_marco'] = $this->convenio_marco_archivo->store('pps-servicio-social/documentos', 'public');
+            }
+
+            $this->registro->update($payload);
+            $this->estadoAutoGuardado = 'guardado';
+        } catch (\Throwable $e) {
+            report($e);
+            $this->estadoAutoGuardado = 'error';
+
+            Notification::make()
+                ->title('Error')
+                ->body('No se pudo actualizar el registro. Intente nuevamente.')
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         Notification::make()
             ->title('Registro actualizado')
