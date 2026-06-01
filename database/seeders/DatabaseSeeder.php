@@ -9,6 +9,7 @@ use Database\Seeders\UnidadAcademica\UnidadAcademicaSeeder;
 use Database\Seeders\Proyecto\ProyectoSeeder;
 use Database\Seeders\Proyecto\VinculacionTiposAccionSeeder;
 use Database\Seeders\Personal\PersonalSeeder;
+use Database\Seeders\Personal\NotificacionesPoaRolesSeeder;
 use Database\Seeders\Demografia\MunicipioSeeder;
 use Database\Seeders\Personal\PermisosSeeder;
 use Database\Seeders\EjesPrioritariosUnahSeeder;
@@ -32,6 +33,7 @@ class DatabaseSeeder extends Seeder
         $this->call(ProyectoSeeder::class);
         $this->call(PermisosSeeder::class);
         $this->call(PersonalSeeder::class);
+        $this->call(NotificacionesPoaRolesSeeder::class);
         $this->call(EjesPrioritariosUnahSeeder::class);
         $this->call(CarreraDepartamentoSeeder::class);
         $this->call(MetasContribuyeSeeder::class);

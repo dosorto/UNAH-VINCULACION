@@ -62,6 +62,12 @@ class DocumentoProyecto extends Model
         return $this->morphMany(EstadoProyecto::class, 'estadoable');
     }
 
+    public function estadoActual()
+    {
+        return $this->morphOne(EstadoProyecto::class, 'estadoable')
+            ->where('es_actual', true);
+    }
+
     // relacion uno a uno inversa con el modelo Proyecto
     public function proyecto()
     {

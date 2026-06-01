@@ -237,6 +237,27 @@
                                 </label>
                             </div>
 
+                            <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+                                <div class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Procesos donde aplica esta etapa</div>
+                                <div class="mt-3 flex flex-wrap gap-4">
+                                    <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        <input wire:model.live="stages.{{ $index }}.aplica_inscripcion" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                        Inscripcion
+                                    </label>
+                                    <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        <input wire:model.live="stages.{{ $index }}.aplica_informe_intermedio" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                        Informe intermedio
+                                    </label>
+                                    <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        <input wire:model.live="stages.{{ $index }}.aplica_cierre_proyecto" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                        Cierre de proyecto
+                                    </label>
+                                </div>
+                                @error("stages.$index.aplica_inscripcion")<p class="mt-2 text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                @error("stages.$index.aplica_informe_intermedio")<p class="mt-2 text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                @error("stages.$index.aplica_cierre_proyecto")<p class="mt-2 text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                            </div>
+
                             <div class="mt-4 flex flex-wrap gap-4">
                                 <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
                                     <input wire:model.live="stages.{{ $index }}.requiere_asignacion" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />

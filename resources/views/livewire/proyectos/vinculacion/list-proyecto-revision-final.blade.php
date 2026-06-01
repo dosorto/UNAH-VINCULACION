@@ -72,7 +72,10 @@
                 <button wire:click="$set('viewModal', false)" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
             </div>
             <div class="flex-1 overflow-y-auto p-4">
-                @include('components.fichas.ficha-proyecto-vinculacion', ['proyecto' => $viewProyecto])
+                @include('components.fichas.ficha-proyecto-vinculacion', [
+                    'proyecto' => $viewProyecto,
+                    'hideEmbeddedDocuments' => true,
+                ])
             </div>
             <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
                 <button wire:click="openRechazar({{ $viewProyecto->id }})"

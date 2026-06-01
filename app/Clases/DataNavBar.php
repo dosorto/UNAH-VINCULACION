@@ -4,6 +4,7 @@ namespace App\Clases;
 
 use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\FichaActualizacion;
+use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\ProyectoEstado;
 use App\Models\Estado\TipoEstado;
 use App\Models\Proyecto\DocumentoProyecto;
@@ -90,8 +91,47 @@ public static function obtenerCantidadInformesSolicitados()
     // metodo para obtener la cantidad de proyectos del usuario logueado
     public static function obtenerCantidadProyectosPorFirmar()
     {
-        return auth()->user()->empleado->firmaProyectoPendientes()
-            ->where('firmable_type', '!=', FichaActualizacion::class)
+        $user = auth()->user();
+
+        if (! $user) {
+            return 0;
+        }
+
+        $activeRoleName = $user->activeRole?->name;
+        $empleadoId = $user->empleado?->id;
+
+        return FirmaProyecto::query()
+            ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
+            ->where('firma_proyecto.estado_revision', 'Pendiente')
+            ->where('firma_proyecto.firmable_type', '!=', FichaActualizacion::class)
+            ->where(function ($query) use ($activeRoleName, $empleadoId) {
+                if ($activeRoleName) {
+                    $query->whereHas('cargo_firma.tipoCargoFirma', fn ($roleQuery) => $roleQuery->where('nombre', $activeRoleName));
+                    return;
+                }
+
+                if ($empleadoId) {
+                    $query->where('firma_proyecto.empleado_id', $empleadoId);
+                    return;
+                }
+
+                $query->whereRaw('1 = 0');
+            })
+            ->where(function ($query) {
+                $query->where(function ($projectQuery) {
+                    $projectQuery
+                        ->where('firma_proyecto.firmable_type', Proyecto::class)
+                        ->whereExists(function ($estadoQuery) {
+                            $estadoQuery
+                                ->selectRaw('1')
+                                ->from('estado_proyecto')
+                                ->whereColumn('estado_proyecto.estadoable_id', 'firma_proyecto.firmable_id')
+                                ->where('estado_proyecto.estadoable_type', Proyecto::class)
+                                ->where('estado_proyecto.es_actual', true)
+                                ->whereColumn('estado_proyecto.tipo_estado_id', 'cargo_firma.tipo_estado_id');
+                        });
+                })->orWhere('firma_proyecto.firmable_type', '!=', Proyecto::class);
+            })
             ->count();
     }
 

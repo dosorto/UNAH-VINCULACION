@@ -48,12 +48,17 @@ use DragonCode\Contracts\Cashier\Config\Payments\Statuses;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class Proyecto extends Model
 {
     use HasFactory;
     use SoftDeletes;
     use LogsActivity;
+
+    public const FLUJO_INSCRIPCION = 'inscripcion';
+    public const FLUJO_INFORME_INTERMEDIO = 'informe_intermedio';
+    public const FLUJO_CIERRE_PROYECTO = 'cierre_proyecto';
 
     protected static $logAttributes = [
         'nombre_proyecto',
@@ -718,22 +723,27 @@ class Proyecto extends Model
             ->first();
     }
 
-    public function flujoEtapasOrdenadas(): Collection
+    public function flujoEtapasOrdenadas(?string $proceso = null): Collection
     {
         $flujo = $this->resolveFlujoAprobacion();
+        $proceso = $proceso ?: self::FLUJO_INSCRIPCION;
+        $columnaAplicacion = self::columnaAplicacionFlujo($proceso);
 
         return $flujo?->etapas
-            ? $flujo->etapas->sortBy('orden')->values()
+            ? $flujo->etapas
+                ->filter(fn ($etapa) => (bool) ($etapa->{$columnaAplicacion} ?? false))
+                ->sortBy('orden')
+                ->values()
             : collect();
     }
 
-    public function nextCargoFirmaId(?int $cargoFirmaId): ?int
+    public function nextCargoFirmaId(?int $cargoFirmaId, ?string $proceso = null): ?int
     {
         if (! $cargoFirmaId) {
             return null;
         }
 
-        $etapas = $this->flujoEtapasOrdenadas();
+        $etapas = $this->flujoEtapasOrdenadas($proceso);
         $currentIndex = $etapas->search(fn ($etapa) => (int) $etapa->cargo_firma_id === (int) $cargoFirmaId);
 
         if ($currentIndex === false) {
@@ -743,7 +753,7 @@ class Proyecto extends Model
         return $etapas->get($currentIndex + 1)?->cargo_firma_id;
     }
 
-    public function nextEstadoIdForCargo(?int $cargoFirmaId): ?int
+    public function nextEstadoIdForCargo(?int $cargoFirmaId, ?string $proceso = null): ?int
     {
         if (! $cargoFirmaId) {
             return null;
@@ -754,12 +764,45 @@ class Proyecto extends Model
             return null;
         }
 
-        $nextCargoId = $this->nextCargoFirmaId($cargoFirmaId);
+        $nextCargoId = $this->nextCargoFirmaId($cargoFirmaId, $proceso);
         if ($nextCargoId) {
             return CargoFirma::find($nextCargoId)?->tipo_estado_id;
         }
 
         return $cargoActual->estado_siguiente_id;
+    }
+
+    public function firstEstadoIdForProceso(string $proceso): ?int
+    {
+        return $this->flujoEtapasOrdenadas($proceso)
+            ->first()
+            ?->cargoFirma
+            ?->tipo_estado_id;
+    }
+
+    public function isLastCargoFirmaForProceso(?int $cargoFirmaId, string $proceso): bool
+    {
+        return filled($cargoFirmaId)
+            && $this->flujoEtapasOrdenadas($proceso)->isNotEmpty()
+            && $this->nextCargoFirmaId($cargoFirmaId, $proceso) === null;
+    }
+
+    public static function procesoFlujoParaDocumento(string $tipoDocumento): ?string
+    {
+        return match ($tipoDocumento) {
+            'Informe Intermedio' => self::FLUJO_INFORME_INTERMEDIO,
+            'Informe Final' => self::FLUJO_CIERRE_PROYECTO,
+            default => null,
+        };
+    }
+
+    protected static function columnaAplicacionFlujo(string $proceso): string
+    {
+        return match ($proceso) {
+            self::FLUJO_INFORME_INTERMEDIO => 'aplica_informe_intermedio',
+            self::FLUJO_CIERRE_PROYECTO => 'aplica_cierre_proyecto',
+            default => 'aplica_inscripcion',
+        };
     }
 
 
@@ -878,39 +921,82 @@ class Proyecto extends Model
         string $cargoFirma,
         Empleado $empleado
     ): FirmaProyecto {
-        $firmaP = $this->firma_proyecto()->updateOrCreate(
-            [
-                'empleado_id' => $empleado->id,
-                'cargo_firma_id' => CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                    ->where('tipo_cargo_firma.nombre', $cargoFirma)
-                    ->where('cargo_firma.descripcion', 'Proyecto')
-                    ->first()->id,
-            ],
-            [
-                'estado_revision' => 'Aprobado',
-                'firma_id' => $empleado?->firma?->id,
-                'sello_id' => $empleado?->sello?->id,
-                'hash' => 'hash',
-                'fecha_firma' => now(),
-            ]
-        );
-        return $firmaP;
+        $cargoFirmaId = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+            ->where('tipo_cargo_firma.nombre', $cargoFirma)
+            ->where('cargo_firma.descripcion', 'Proyecto')
+            ->first()
+            ->id;
+
+        return $this->guardarFirmaDeCargo($cargoFirmaId, $empleado, [
+            'estado_revision' => 'Aprobado',
+            'firma_id' => $empleado?->firma?->id,
+            'sello_id' => $empleado?->sello?->id,
+            'fecha_firma' => now(),
+        ]);
     }
 
-    public function sincronizarFirmasDelFlujo(): void
+    public function guardarFirmaDeCargo(
+        int $cargoFirmaId,
+        Empleado $empleado,
+        array $attributes = [],
+        ?DocumentoProyecto $documento = null
+    ): FirmaProyecto
     {
-        $etapas = $this->flujoEtapasOrdenadas();
+        $relation = $documento
+            ? $documento->firma_documento()
+            : $this->firma_proyecto();
+
+        $firma = $relation->updateOrCreate(
+            ['cargo_firma_id' => $cargoFirmaId],
+            array_merge([
+                'empleado_id' => $empleado->id,
+                'hash' => 'hash',
+            ], $attributes)
+        );
+
+        $this->anularFirmasPendientesDuplicadasDeCargo($cargoFirmaId, $firma->id, $documento);
+
+        return $firma;
+    }
+
+    public function anularFirmasPendientesDuplicadasDeCargo(
+        int $cargoFirmaId,
+        ?int $firmaPrincipalId = null,
+        ?DocumentoProyecto $documento = null
+    ): void
+    {
+        $relation = $documento
+            ? $documento->firma_documento()
+            : $this->firma_proyecto();
+
+        $relation
+            ->where('cargo_firma_id', $cargoFirmaId)
+            ->when($firmaPrincipalId, fn ($query) => $query->where('id', '!=', $firmaPrincipalId))
+            ->where('estado_revision', 'Pendiente')
+            ->update(['estado_revision' => 'Anulado']);
+    }
+
+    public function sincronizarFirmasDelFlujo(
+        string $proceso = self::FLUJO_INSCRIPCION,
+        ?DocumentoProyecto $documento = null
+    ): void
+    {
+        $etapas = $this->flujoEtapasOrdenadas($proceso);
+        $firmaRelation = fn () => $documento
+            ? $documento->firma_documento()
+            : $this->firma_proyecto();
 
         foreach ($etapas as $etapa) {
             if (! $etapa->activo || ! $etapa->cargo_firma_id) {
                 continue;
             }
 
-            $firmaExistente = $this->firma_proyecto()
+            $firmaExistente = $firmaRelation()
                 ->where('cargo_firma_id', $etapa->cargo_firma_id)
                 ->first();
 
             if ($firmaExistente?->estado_revision === 'Aprobado') {
+                $this->anularFirmasPendientesDuplicadasDeCargo($etapa->cargo_firma_id, $firmaExistente->id, $documento);
                 continue;
             }
 
@@ -930,15 +1016,79 @@ class Proyecto extends Model
                 continue;
             }
 
-            $this->firma_proyecto()->updateOrCreate(
-                ['cargo_firma_id' => $etapa->cargo_firma_id],
-                [
-                    'empleado_id' => $empleado->id,
-                    'estado_revision' => 'Pendiente',
-                    'hash' => 'hash',
-                ]
+            $this->guardarFirmaDeCargo($etapa->cargo_firma_id, $empleado, [
+                'estado_revision' => 'Pendiente',
+                'firma_id' => null,
+                'sello_id' => null,
+                'fecha_firma' => null,
+            ], $documento);
+        }
+    }
+
+    public function registrarDocumentoDesdeFlujo(string $tipoDocumento, string $path, Empleado $empleado): DocumentoProyecto
+    {
+        $proceso = self::procesoFlujoParaDocumento($tipoDocumento);
+
+        if (! $proceso) {
+            throw new \RuntimeException('El tipo de documento no tiene un proceso de flujo configurable.');
+        }
+
+        $etapas = $this->flujoEtapasOrdenadas($proceso)
+            ->filter(fn ($etapa) => $etapa->activo && $etapa->cargo_firma_id)
+            ->values();
+
+        if ($etapas->isEmpty()) {
+            throw new \RuntimeException(
+                $proceso === self::FLUJO_INFORME_INTERMEDIO
+                    ? 'No hay etapas configuradas para Informe Intermedio.'
+                    : 'No hay etapas configuradas para Cierre de Proyecto.'
             );
         }
+
+        $primerEstadoId = $etapas->first()?->cargoFirma?->tipo_estado_id;
+
+        if (! $primerEstadoId) {
+            throw new \RuntimeException('La primera etapa configurada no tiene un estado asociado.');
+        }
+
+        return DB::transaction(function () use ($tipoDocumento, $path, $empleado, $proceso, $etapas, $primerEstadoId) {
+            $this->documentos()->where('tipo_documento', $tipoDocumento)->each(function ($documento) {
+                $documento->firma_documento()->delete();
+                $documento->estado_documento()->delete();
+            });
+
+            $this->documentos()->where('tipo_documento', $tipoDocumento)->delete();
+
+            $documento = $this->documentos()->create([
+                'tipo_documento' => $tipoDocumento,
+                'documento_url' => $path,
+            ]);
+
+            $this->sincronizarFirmasDelFlujo($proceso, $documento);
+
+            $firmasCreadas = $documento->firma_documento()
+                ->pluck('cargo_firma_id')
+                ->map(fn ($id) => (int) $id);
+
+            $faltantes = $etapas
+                ->pluck('cargo_firma_id')
+                ->map(fn ($id) => (int) $id)
+                ->diff($firmasCreadas)
+                ->values();
+
+            if ($faltantes->isNotEmpty()) {
+                throw new \RuntimeException('No se pudieron crear todas las firmas del flujo. Revise roles y responsables configurados.');
+            }
+
+            $documento->estado_documento()->create([
+                'empleado_id' => $empleado->id,
+                'tipo_estado_id' => $primerEstadoId,
+                'fecha' => now(),
+                'comentario' => 'Documento creado',
+            ]);
+
+            return $documento;
+        });
     }
 
 
