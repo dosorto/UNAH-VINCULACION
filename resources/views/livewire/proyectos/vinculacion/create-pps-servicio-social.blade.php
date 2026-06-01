@@ -18,6 +18,7 @@
         $errorClass = 'text-red-500 text-xs mt-1';
         $cardClass = 'rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 shadow-sm';
         $modoEdicion = $modoEdicion ?? false;
+        $registroEdicion = $registroEdicion ?? null;
     @endphp
 
     <div class="mb-5">
@@ -29,6 +30,24 @@
             {{ $modoEdicion ? 'Actualice la informacion del borrador antes de enviarlo a revision.' : 'Complete la informacion del FORM-DVUS-015/016 para guardarla como borrador.' }}
         </p>
     </div>
+
+    @if($modoEdicion && $registroEdicion && filled($registroEdicion->motivo_rechazo))
+        <div class="mb-6 rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-800 shadow-sm dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-200">
+            <p class="font-semibold">Este registro fue rechazado anteriormente.</p>
+            <p class="mt-1">Corrija las observaciones indicadas antes de reenviarlo a revision.</p>
+
+            @if($registroEdicion->fecha_revision)
+                <p class="mt-3 text-xs font-semibold uppercase tracking-wide text-red-700 dark:text-red-300">
+                    Fecha de revision: {{ $registroEdicion->fecha_revision->format('d/m/Y H:i') }}
+                </p>
+            @endif
+
+            <div class="mt-3 rounded-lg border border-red-200 bg-white/70 p-3 dark:border-red-900/60 dark:bg-gray-900/60">
+                <p class="text-xs font-semibold uppercase tracking-wide text-red-700 dark:text-red-300">Motivo de rechazo</p>
+                <p class="mt-1 whitespace-pre-line text-sm">{{ $registroEdicion->motivo_rechazo }}</p>
+            </div>
+        </div>
+    @endif
 
     <div class="mb-6 rounded-lg bg-white p-4 shadow dark:bg-gray-900">
         <div class="flex items-center overflow-x-auto gap-0.5">

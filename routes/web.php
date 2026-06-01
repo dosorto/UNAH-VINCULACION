@@ -60,6 +60,7 @@ use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
 use App\Livewire\UnidadAcademica\Asignatura\Asignatura;
 use App\Http\Controllers\PDFController;
+use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialPdfController;
 
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
 use App\Livewire\Constancia\ListConstancias;
@@ -276,15 +277,19 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
         Route::get('/pps-servicio-social', ListPpsServicioSocial::class)
             ->name('pps-servicio-social.index')
-            ->middleware('permission:docente.crear-proyecto|docente.proyectos|director.proyectos|proyectos.historial');
+            ->middleware('permission:docente.crear-proyecto|docente.proyectos|director.proyectos|proyectos.historial|proyectos.revision-final');
 
         Route::get('/pps-servicio-social/{id}/editar', EditPpsServicioSocial::class)
             ->name('pps-servicio-social.edit')
             ->middleware('permission:docente.crear-proyecto|docente.proyectos');
 
+        Route::get('/pps-servicio-social/{id}/pdf', PpsServicioSocialPdfController::class)
+            ->name('pps-servicio-social.pdf')
+            ->middleware('permission:docente.crear-proyecto|docente.proyectos|director.proyectos|proyectos.historial|proyectos.revision-final');
+
         Route::get('/pps-servicio-social/{id}', ShowPpsServicioSocial::class)
             ->name('pps-servicio-social.show')
-            ->middleware('permission:docente.crear-proyecto|docente.proyectos|director.proyectos|proyectos.historial');
+            ->middleware('permission:docente.crear-proyecto|docente.proyectos|director.proyectos|proyectos.historial|proyectos.revision-final');
 
         Route::get('/instrumentos-formalizacion/{instrumento}/documento', function (InstrumenFormalizacion $instrumento) {
             $proyecto = $instrumento->entidadContraparte?->proyecto;

@@ -209,12 +209,57 @@ class ShowPpsServicioSocial extends Component
             ->send();
     }
 
+    public function iniciarSubsanacion(): void
+    {
+        $this->registro->refresh();
+
+        if ($this->registro->estado !== PpsServicioSocial::ESTADO_RECHAZADO) {
+            Notification::make()
+                ->title('Subsanacion no disponible')
+                ->body('Solo los registros rechazados pueden pasar a subsanacion.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        abort_unless($this->registro->puedeSubsanarse(auth()->id()), 403);
+
+        try {
+            $this->registro->update([
+                'estado' => PpsServicioSocial::ESTADO_BORRADOR,
+                'updated_by' => auth()->id(),
+            ]);
+
+            $this->registro->refresh();
+        } catch (\Throwable $e) {
+            report($e);
+
+            Notification::make()
+                ->title('Error')
+                ->body('No se pudo iniciar la subsanacion. Intente nuevamente.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        Notification::make()
+            ->title('Subsanacion iniciada')
+            ->body('El registro volvio a borrador para que pueda corregirlo.')
+            ->success()
+            ->send();
+
+        $this->redirectRoute('pps-servicio-social.edit', ['id' => $this->registro->id]);
+    }
+
     private function canViewRecord(PpsServicioSocial $registro): bool
     {
         $user = auth()->user();
 
         if (
             $user?->can('proyectos.historial')
+            || $user?->can('proyectos.revision-final')
             || $user?->can('director.proyectos')
             || $user?->hasRole(['admin', 'Director/Enlace'])
         ) {

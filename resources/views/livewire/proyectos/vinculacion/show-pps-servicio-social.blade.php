@@ -13,6 +13,9 @@
         $puedeEnviarRevision = $registro->puedeEnviarse(auth()->id());
         $puedeEditar = $puedeEnviarRevision;
         $puedeRevisar = $registro->puedeRevisarse(auth()->id(), auth()->user());
+        $puedeSubsanar = $registro->puedeSubsanarse(auth()->id());
+        $puedeDescargarPdf = $registro->puedeDescargarPdf(auth()->id(), auth()->user());
+        $puedeCrearRegistro = (bool) auth()->user()?->can('docente.crear-proyecto');
 
         $sections = [
             [
@@ -158,10 +161,29 @@
                     Rechazar
                 </button>
             @endif
-            <a href="{{ route('crearPpsServicioSocial') }}" wire:navigate
-               class="inline-flex items-center justify-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800">
-                Nuevo registro
-            </a>
+            @if($puedeSubsanar)
+                <button type="button"
+                        wire:click="iniciarSubsanacion"
+                        wire:confirm="Desea iniciar la subsanacion? El registro volvera a borrador para editarlo."
+                        wire:loading.attr="disabled"
+                        wire:target="iniciarSubsanacion"
+                        class="inline-flex items-center justify-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70">
+                    <span wire:loading.remove wire:target="iniciarSubsanacion">Subsanar</span>
+                    <span wire:loading wire:target="iniciarSubsanacion">Abriendo...</span>
+                </button>
+            @endif
+            @if($puedeDescargarPdf)
+                <a href="{{ route('pps-servicio-social.pdf', $registro->id) }}"
+                   class="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white">
+                    Descargar PDF
+                </a>
+            @endif
+            @if($puedeCrearRegistro)
+                <a href="{{ route('crearPpsServicioSocial') }}" wire:navigate
+                   class="inline-flex items-center justify-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800">
+                    Nuevo registro
+                </a>
+            @endif
         </div>
     </div>
 
@@ -173,6 +195,13 @@
                     <li>{{ $campo }}</li>
                 @endforeach
             </ul>
+        </div>
+    @endif
+
+    @if($registro->estado === 'rechazado')
+        <div class="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-200">
+            <p class="font-semibold">Este registro fue rechazado.</p>
+            <p class="mt-1">Revise el motivo y realice las correcciones necesarias.</p>
         </div>
     @endif
 

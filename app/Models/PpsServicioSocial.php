@@ -118,6 +118,21 @@ class PpsServicioSocial extends Model
         return $this->puedeRevisarse($userId, $user);
     }
 
+    public function puedeSubsanarse(?int $userId): bool
+    {
+        return $this->estado === self::ESTADO_RECHAZADO
+            && $this->perteneceAlUsuario($userId);
+    }
+
+    public function puedeDescargarPdf(?int $userId, ?object $user = null): bool
+    {
+        return $this->estado === self::ESTADO_APROBADO
+            && (
+                $this->perteneceAlUsuario($userId)
+                || $this->usuarioPuedeRevisar($user)
+            );
+    }
+
     public function camposFaltantesParaEnvio(): array
     {
         $faltantes = [];
