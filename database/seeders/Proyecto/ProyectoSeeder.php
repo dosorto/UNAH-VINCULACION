@@ -91,7 +91,7 @@ class ProyectoSeeder extends Seeder
             if (! $cargo) {
                 return;
             }
-
+ 
             $code = Str::of($stage['cargo'])->upper()->replaceMatches('/[^A-Z0-9]+/', '_')->trim('_')->value();
 
             $defaultFlow->etapas()->create([
