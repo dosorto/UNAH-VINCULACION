@@ -113,6 +113,9 @@ return [
                     'listarProyectosSolicitado',
                     'listarProyectoRevisionFinal',
                     'listarInformesSolicitado',
+                    'pps-servicio-social.index',
+                    'pps-servicio-social.show',
+                    'pps-servicio-social.edit',
                     'proyectos.revision-final',
                     'proyectos.informes',
                     'proyectos.historial',
@@ -129,6 +132,7 @@ return [
                 ],
                 'children' => [
                     ['texto' => 'Historial Vinculación', 'route' => 'listarProyectosVinculacion', 'permiso' => 'proyectos.historial'],
+                    ['texto' => 'PPS / Servicio Social', 'route' => 'pps-servicio-social.index', 'permiso' => 'proyectos.historial'],
                     ['texto' => 'Revisión DVUS', 'route' => 'listarProyectosSolicitado', 'permiso' => 'proyectos.solicitados', 'funcion' => 'obtenerCantidadProyectosEnRevision'],
                     ['texto' => 'Revisión de Informes', 'route' => 'listarInformesSolicitado', 'permiso' => 'proyectos.informes', 'funcion' => 'obtenerCantidadInformesSolicitados'],
                     ['texto' => 'Firma Director DVUS', 'route' => 'listarProyectoRevisionFinal', 'permiso' => 'proyectos.revision-final', 'funcion' => 'obtenerCantidadProyectosEnRevisionFinal'],
@@ -166,7 +170,7 @@ return [
             [
                 'titulo' => 'Configuración',
                 'route' => 'listarLogs',
-                'routes' => ['listarLogs', 'slides', 'configuracion.flujos.proyectos'],
+                'routes' => ['listarLogs', 'slides', 'configuracion.flujos.proyectos', 'configuracion.flujos-pps-servicio-social'],
                 'icono' => 'heroicon-c-cog-6-tooth',
                 'class' => 'mb-4',
                 'permisos' => ['configuracion.logs', 'apariencia.slides', 'configuracion.flujos'],
@@ -174,6 +178,7 @@ return [
                     ['texto' => 'Logs', 'route' => 'listarLogs', 'permiso' => 'configuracion.logs'],
                     ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia.slides'],
                     ['texto' => 'Flujos de proyectos', 'route' => 'configuracion.flujos.proyectos', 'permiso' => 'configuracion.flujos'],
+                    ['texto' => 'Flujos PPS/SS', 'route' => 'configuracion.flujos-pps-servicio-social', 'permiso' => 'configuracion.flujos'],
                     ['texto' => 'Contactanos', 'route' => 'contactanos', 'permiso' => 'configuracion.contactanos']
                 ],
             ],
@@ -205,10 +210,13 @@ return [
             [
                 'titulo' => 'Historial Vinculación',
                 'route' => 'proyectosCentroFacultad',
-                'routes' => ['proyectosCentroFacultad'],
+                'routes' => ['proyectosCentroFacultad', 'pps-servicio-social.index', 'pps-servicio-social.show', 'pps-servicio-social.edit'],
                 'icono' => 'heroicon-o-academic-cap',
                 'permisos' => ['director.proyectos'],
-                'children' => [],
+                'children' => [
+                    ['texto' => 'Historial Vinculación', 'route' => 'proyectosCentroFacultad', 'permiso' => 'director.proyectos'],
+                    ['texto' => 'PPS / Servicio Social', 'route' => 'pps-servicio-social.index', 'permiso' => 'director.proyectos'],
+                ],
                 'funcion' => null,
                 'can' => 'director.proyectos',
             ],
@@ -216,11 +224,12 @@ return [
             [
                 'titulo' => 'Vinculación',
                 'route' => 'proyectosDocente',
-                'routes' => ['proyectosDocente', 'crearProyectoVinculacion'],
+                'routes' => ['proyectosDocente', 'crearProyectoVinculacion', 'crearPpsServicioSocial', 'pps-servicio-social.index', 'pps-servicio-social.show', 'pps-servicio-social.edit'],
                 'icono' => 'heroicon-o-academic-cap',
                 'permisos' => ['docente.proyectos'],
                 'children' => [
                     ['texto' => 'Registrar Acción', 'route' => 'selectorTipoAccion', 'permiso' => 'docente.proyectos'],
+                    ['texto' => 'Mis PPS / Servicio Social', 'route' => 'pps-servicio-social.index', 'permiso' => 'docente.proyectos'],
                     ['texto' => 'Mi Historial Vinculación', 'route' => 'proyectosDocente', 'permiso' => 'docente.proyectos'],
                     ['texto' => 'Mis Fichas de Actualización', 'route' => 'FichasActualizacionDocente', 'permiso' => 'docente.proyectos'],
                     ['texto' => 'Vinculaciones Antes del Sistema', 'route' => 'proyectosAntesDelSistema', 'permiso' => 'docente.proyectos'],

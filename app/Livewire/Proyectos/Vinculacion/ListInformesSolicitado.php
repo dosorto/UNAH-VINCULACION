@@ -111,28 +111,53 @@ class ListInformesSolicitado extends Component
             'fecha_firma'     => now(),
         ]);
 
-        if ($doc->tipo_documento === 'Informe Final') {
-            $proyecto = $doc->proyecto;
-            $proyecto->estado_proyecto()->create([
+        $proceso = Proyecto::procesoFlujoParaDocumento($doc->tipo_documento);
+
+        if ($proceso) {
+            $doc->proyecto?->sincronizarFirmasDelFlujo($proceso, $doc);
+        }
+
+        $nextEstadoId = $proceso
+            ? $doc->proyecto?->nextEstadoIdEnFlujo($firma->cargo_firma_id, $proceso)
+            : null;
+
+        if ($nextEstadoId) {
+            $nextEstadoNombre = TipoEstado::find($nextEstadoId)?->nombre ?? 'la siguiente etapa';
+
+            $doc->estado_documento()->create([
                 'empleado_id'   => Auth::user()->empleado->id,
-                'tipo_estado_id' => TipoEstado::where('nombre', 'Finalizado')->first()->id,
+                'tipo_estado_id' => $nextEstadoId,
+                'fecha'         => now(),
+                'comentario'    => 'Firmado y aprobado en este estado',
+            ]);
+        } else {
+            if ($doc->tipo_documento === 'Informe Final') {
+                $proyecto = $doc->proyecto;
+                $proyecto->estado_proyecto()->create([
+                    'empleado_id'   => Auth::user()->empleado->id,
+                    'tipo_estado_id' => TipoEstado::where('nombre', 'Finalizado')->first()->id,
+                    'fecha'         => now(),
+                    'comentario'    => 'El informe ha sido aprobado correctamente',
+                ]);
+                VerificarConstancia::makeConstanciasProyecto($proyecto);
+            }
+
+            $doc->estado_documento()->create([
+                'empleado_id'   => Auth::user()->empleado->id,
+                'tipo_estado_id' => TipoEstado::where('nombre', 'Aprobado')->first()->id,
                 'fecha'         => now(),
                 'comentario'    => 'El informe ha sido aprobado correctamente',
             ]);
-            VerificarConstancia::makeConstanciasProyecto($proyecto);
         }
 
-        $doc->estado_documento()->create([
-            'empleado_id'   => Auth::user()->empleado->id,
-            'tipo_estado_id' => TipoEstado::where('nombre', 'Aprobado')->first()->id,
-            'fecha'         => now(),
-            'comentario'    => 'El informe ha sido aprobado correctamente',
-        ]);
-
-        $estadoInforme = $doc->tipo_documento . ' Aprobado';
-        $mensajeAprobacion = $doc->tipo_documento === 'Informe Final'
-            ? 'Su ' . $doc->tipo_documento . ' ha sido aprobado. El proyecto ha sido marcado como FINALIZADO.'
-            : 'Su ' . $doc->tipo_documento . ' ha sido aprobado. Puede continuar con las siguientes etapas.';
+        $estadoInforme = $nextEstadoId
+            ? $doc->tipo_documento . ' en ' . $nextEstadoNombre
+            : $doc->tipo_documento . ' Aprobado';
+        $mensajeAprobacion = $nextEstadoId
+            ? 'Su ' . $doc->tipo_documento . ' fue aprobado en esta etapa y avanzo a ' . $nextEstadoNombre . '.'
+            : ($doc->tipo_documento === 'Informe Final'
+                ? 'Su ' . $doc->tipo_documento . ' ha sido aprobado. El proyecto ha sido marcado como FINALIZADO.'
+                : 'Su ' . $doc->tipo_documento . ' ha sido aprobado. Puede continuar con las siguientes etapas.');
 
         try {
             $doc->refresh();
@@ -248,12 +273,6 @@ class ListInformesSolicitado extends Component
             });
 
         if (! $firma) {
-            return null;
-        }
-
-        $proceso = Proyecto::procesoFlujoParaDocumento($documento->tipo_documento);
-
-        if ($proceso && ! $documento->proyecto?->isLastCargoFirmaForProceso($firma->cargo_firma_id, $proceso)) {
             return null;
         }
 

@@ -76,38 +76,48 @@ class PersonalSeeder extends Seeder
         ]);
 
 
-        $user = User::create([
-            'name' => 'NOTIFICACIONES  POA',
-            'email' => 'notificacionespoa@unah.edu.hn',
-            'microsoft_id' => "0d887b9b-9589-4e2c-8d65-4ced9d5d6c87",
-            'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
-            'surname' => 'POA',
-            'given_name' => 'NOTIFICACIONES',
-            'active_role_id' => 1
-        ])->assignRole(['admin', 'docente', 'Director/Enlace']);
+        $user = User::updateOrCreate(
+            ['microsoft_id' => "0d887b9b-9589-4e2c-8d65-4ced9d5d6c87"],
+            [
+                'name' => 'NOTIFICACIONES  POA',
+                'email' => 'notificacionespoa@unah.edu.hn',
+                'password' => bcrypt('123'), // Asegurarse de encriptar la contraseña
+                'surname' => 'POA',
+                'given_name' => 'NOTIFICACIONES',
+                'active_role_id' => 1
+            ]
+        );
+        $user->syncRoles(['admin', 'docente', 'Director/Enlace']);
 
-        $adminUser = Empleado::create([
-            'nombre_completo' => 'NOTIFICACIONES POA',
-            'numero_empleado' => '12280',
-            'celular' => '99999999',
-            'sexo' => 'Masculino',
-            'user_id' => $user->id,
-            'centro_facultad_id' => 4,
-            'departamento_academico_id' => 9,
-            'categoria_id' => 2
-        ]);
+        $adminUser = Empleado::updateOrCreate(
+            ['numero_empleado' => '12280'],
+            [
+                'nombre_completo' => 'NOTIFICACIONES POA',
+                'celular' => '99999999',
+                'sexo' => 'Masculino',
+                'user_id' => $user->id,
+                'centro_facultad_id' => 4,
+                'departamento_academico_id' => 9,
+                'categoria_id' => 2
+            ]
+        );
 
-        $adminUser->firma()->create([
-            'tipo' => 'firma',
-            'ruta_storage' => 'images/firmas/Firma_Oscar.png',
-            'estado' => true
-        ]);
+        // Agregar firmas solo si no existen
+        if (!$adminUser->firma()->where('tipo', 'firma')->exists()) {
+            $adminUser->firma()->create([
+                'tipo' => 'firma',
+                'ruta_storage' => 'images/firmas/Firma_Oscar.png',
+                'estado' => true
+            ]);
+        }
 
-        $adminUser->firma()->create([
-            'tipo' => 'sello',
-            'ruta_storage' => 'images/firmas/Sello_Victor.png',
-            'estado' => true
-        ]);
+        if (!$adminUser->firma()->where('tipo', 'sello')->exists()) {
+            $adminUser->firma()->create([
+                'tipo' => 'sello',
+                'ruta_storage' => 'images/firmas/Sello_Victor.png',
+                'estado' => true
+            ]);
+        }
 
         $usuariosPruebaVinculacion = [
             [
@@ -198,46 +208,54 @@ class PersonalSeeder extends Seeder
 
         if (app()->environment('local')) {
 
-            $user2 = User::create([
-                'name' => 'Usuario Ejemplo',
-                'email' => 'usuario.ejemplo@unah.hn',
-                'password' => bcrypt('123'),
-                'surname' => 'Ernesto',
-                'given_name' => 'Moncada Valladares',
-            ]);
+            $user2 = User::updateOrCreate(
+                ['email' => 'usuario.ejemplo@unah.hn'],
+                [
+                    'name' => 'Usuario Ejemplo',
+                    'password' => bcrypt('123'),
+                    'surname' => 'Ernesto',
+                    'given_name' => 'Moncada Valladares',
+                ]
+            );
 
-            Empleado::create([
-                'nombre_completo' => 'Usuario Ejemplo',
-                'numero_empleado' => '1228asdfasdf0',
-                'celular' => '99999999',
-                'sexo' => 'Masculino',
-                'user_id' => $user2->id,
-                'centro_facultad_id' => 4,
-                'departamento_academico_id' => 9,
-                'categoria_id' => 2
-            ]);
+            Empleado::updateOrCreate(
+                ['numero_empleado' => '1228asdfasdf0'],
+                [
+                    'nombre_completo' => 'Usuario Ejemplo',
+                    'celular' => '99999999',
+                    'sexo' => 'Masculino',
+                    'user_id' => $user2->id,
+                    'centro_facultad_id' => 4,
+                    'departamento_academico_id' => 9,
+                    'categoria_id' => 2
+                ]
+            );
 
             $user2->givePermissionTo('perfil.editar');
             $user2->givePermissionTo('configuracion.perfil');
 
-            $user3 = User::create([
-                'name' => 'Estudiante  POA',
-                'email' => 'estudiante@unah.hn',
-                'password' => bcrypt('123'),
-                'surname' => 'POA',
-                'given_name' => 'NOTIFICACIONES',
-            ]);
+            $user3 = User::updateOrCreate(
+                ['email' => 'estudiante@unah.hn'],
+                [
+                    'name' => 'Estudiante  POA',
+                    'password' => bcrypt('123'),
+                    'surname' => 'POA',
+                    'given_name' => 'NOTIFICACIONES',
+                ]
+            );
 
-            $user3 = Estudiante::create([
-                'cuenta' => '123123',
-                'user_id' => $user3->id,
-                'nombre' => 'nombre',
-                'apellido' => 'apellido',
-                'sexo' => 'Masculino',
-            ]);
+            $estudiante = Estudiante::updateOrCreate(
+                ['cuenta' => '123123'],
+                [
+                    'user_id' => $user3->id,
+                    'nombre' => 'nombre',
+                    'apellido' => 'apellido',
+                    'sexo' => 'Masculino',
+                ]
+            );
 
-            $user3->user->givePermissionTo('perfil.editar');
-            $user3->user->givePermissionTo('configuracion.perfil');
+            $user3->givePermissionTo('perfil.editar');
+            $user3->givePermissionTo('configuracion.perfil');
         }
     }
 }

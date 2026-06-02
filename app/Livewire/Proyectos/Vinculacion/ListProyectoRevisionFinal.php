@@ -119,13 +119,13 @@ class ListProyectoRevisionFinal extends Component
             ->where('cargo_firma.descripcion', 'Proyecto')
             ->first();
 
+        $proyecto->sincronizarFirmasDelFlujo();
+
         $nextEstadoId = $cargoFirma
-            ? $proyecto->nextEstadoIdForCargo($cargoFirma->id)
+            ? $proyecto->nextEstadoIdEnFlujo($cargoFirma->id)
             : null;
 
-        if (! $nextEstadoId) {
-            $nextEstadoId = TipoEstado::where('nombre', 'En curso')->first()?->id;
-        }
+        $nextEstadoId ??= $proyecto->estadoFinalProcesoId(Proyecto::FLUJO_INSCRIPCION);
 
         $nextEstadoNombre = $nextEstadoId
             ? TipoEstado::find($nextEstadoId)?->nombre
@@ -152,7 +152,7 @@ class ListProyectoRevisionFinal extends Component
             $coordinador = $proyecto->coordinador_proyecto->first()?->empleado->user ?? null;
             if ($coordinador) {
                 Mail::to($coordinador->email)->send(
-                    new ProyectoEstadoCambiado($proyecto, $coordinador, 'Proyecto Aprobado', 'Su proyecto ha sido aprobado en revisión final y cambió a "En curso".', 'aprobación')
+                    new ProyectoEstadoCambiado($proyecto, $coordinador, $nextEstadoNombre, 'Su proyecto fue aprobado y cambio a '.$nextEstadoNombre.'.', 'aprobación')
                 );
             }
         } catch (\Exception $e) {

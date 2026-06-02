@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Livewire\Demografia\Pais\CreatePais;
 use App\Livewire\Demografia\Pais\ListPaises;
 use App\Livewire\Configuracion\Logs\ListLogs;
+use App\Livewire\Configuracion\Flujos\ConfiguracionFlujosPpsServicioSocial;
 use App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
 use App\Livewire\SGCU\Catalogos\SgcuCatalogos;
 use App\Livewire\SGCU\Flujos\FlujosProgramas;
@@ -42,6 +43,10 @@ use App\Livewire\Proyectos\Vinculacion\ListProyectosSolicitado;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
 
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
+use App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial;
+use App\Livewire\Proyectos\Vinculacion\EditPpsServicioSocial;
+use App\Livewire\Proyectos\Vinculacion\ListPpsServicioSocial;
+use App\Livewire\Proyectos\Vinculacion\ShowPpsServicioSocial;
 use App\Livewire\Proyectos\Actualizacion\EditProyectoActualizacion;
 use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
 
@@ -56,6 +61,7 @@ use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
 use App\Livewire\UnidadAcademica\Asignatura\Asignatura;
 use App\Http\Controllers\PDFController;
+use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialPdfController;
 
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
 use App\Livewire\Constancia\ListConstancias;
@@ -221,6 +227,10 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('configuracion.flujos.proyectos')
             ->middleware('can:configuracion.flujos');
 
+        Route::get('configuracion/flujos-pps-servicio-social', ConfiguracionFlujosPpsServicioSocial::class)
+            ->name('configuracion.flujos-pps-servicio-social')
+            ->middleware('can:configuracion.flujos');
+
         Route::prefix('sgcu')->middleware('can:configuracion.flujos')->group(function () {
             Route::get('catalogos', SgcuCatalogos::class)
                 ->name('sgcu.catalogos');
@@ -265,6 +275,26 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         Route::get('/crearProyectoVinculacion/{record?}', CreateProyectoVinculacion::class)
             ->name('crearProyectoVinculacion')
             ->middleware('permission:docente.crear-proyecto');
+
+        Route::get('/crearPpsServicioSocial', CreatePpsServicioSocial::class)
+            ->name('crearPpsServicioSocial')
+            ->middleware('permission:docente.crear-proyecto');
+
+        Route::get('/pps-servicio-social', ListPpsServicioSocial::class)
+            ->name('pps-servicio-social.index')
+            ->middleware('permission:docente.crear-proyecto|docente.proyectos|director.proyectos|proyectos.historial|proyectos.revision-final');
+
+        Route::get('/pps-servicio-social/{id}/editar', EditPpsServicioSocial::class)
+            ->name('pps-servicio-social.edit')
+            ->middleware('permission:docente.crear-proyecto|docente.proyectos');
+
+        Route::get('/pps-servicio-social/{id}/pdf', PpsServicioSocialPdfController::class)
+            ->name('pps-servicio-social.pdf')
+            ->middleware('permission:docente.crear-proyecto|docente.proyectos|director.proyectos|proyectos.historial|proyectos.revision-final');
+
+        Route::get('/pps-servicio-social/{id}', ShowPpsServicioSocial::class)
+            ->name('pps-servicio-social.show')
+            ->middleware('permission:docente.crear-proyecto|docente.proyectos|director.proyectos|proyectos.historial|proyectos.revision-final');
 
         Route::get('/instrumentos-formalizacion/{instrumento}/documento', function (InstrumenFormalizacion $instrumento) {
             $proyecto = $instrumento->entidadContraparte?->proyecto;
