@@ -6,6 +6,11 @@
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Configura los flujos por tipo de accion.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
+            @if ($activeFlowTab === 'proyectos' && $isPpsActionSelected)
+                <button type="button" wire:click="cargarEtapasSugeridas" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-primary hover:text-primary dark:border-slate-700 dark:text-slate-200">
+                    Cargar sugeridas
+                </button>
+            @endif
             <button wire:click="save" class="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white">Guardar flujo</button>
         </div>
     </section>
@@ -13,6 +18,12 @@
     @if (session('status'))
         <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300">
             {{ session('status') }}
+        </div>
+    @endif
+
+    @if ($errors->has('stages'))
+        <div class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
+            {{ $errors->first('stages') }}
         </div>
     @endif
 
@@ -60,15 +71,26 @@
                             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Se despliegan al seleccionar una accion.</p>
                         </div>
                         <div class="space-y-2">
-                            @foreach ($actions as $subaction)
-                                @if ($subaction->id === $selectedActionId)
+                            @if ($isPpsActionSelected)
+                                @foreach ($ppsSubactions as $subaction)
                                     <button
-                                        wire:click="selectSubaction({{ $subaction->id }})"
-                                        class="w-full rounded-2xl border px-3 py-2 text-left text-sm font-medium transition {{ $selectedSubactionId === $subaction->id ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-slate-200 text-slate-700 hover:border-primary/40 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/60' }}">
-                                        <span class="whitespace-normal break-words leading-snug">{{ $subaction->nombre }}</span>
+                                        type="button"
+                                        wire:click="selectSubaction({{ $subaction['id'] }})"
+                                        class="w-full rounded-2xl border px-3 py-2 text-left text-sm font-medium transition {{ $selectedSubactionId === $subaction['id'] ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-slate-200 text-slate-700 hover:border-primary/40 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/60' }}">
+                                        <span class="whitespace-normal break-words leading-snug">{{ $subaction['nombre'] }}</span>
                                     </button>
-                                @endif
-                            @endforeach
+                                @endforeach
+                            @else
+                                @foreach ($actions as $subaction)
+                                    @if ($subaction->id === $selectedActionId)
+                                        <button
+                                            wire:click="selectSubaction({{ $subaction->id }})"
+                                            class="w-full rounded-2xl border px-3 py-2 text-left text-sm font-medium transition {{ $selectedSubactionId === $subaction->id ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-slate-200 text-slate-700 hover:border-primary/40 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/60' }}">
+                                            <span class="whitespace-normal break-words leading-snug">{{ $subaction->nombre }}</span>
+                                        </button>
+                                    @endif
+                                @endforeach
+                            @endif
                         </div>
                     </section>
                 @else
@@ -86,7 +108,7 @@
                 <section class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
                     <div>
                         <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Flujo principal</h2>
-                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Esta pantalla configura un unico flujo de proyectos.</p>
+                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ $isPpsActionSelected ? 'Esta pantalla configura el flujo PPS / Servicio Social.' : 'Esta pantalla configura un unico flujo de proyectos.' }}</p>
                     </div>
 
                     <div class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-3 dark:border-emerald-900/60 dark:bg-emerald-950/30">
@@ -117,7 +139,7 @@
                 <div class="mt-5 grid gap-4 md:grid-cols-2">
                     <label class="block space-y-2" >
                         <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400" >Codigo </span>
-                        <input wire:model="workflow.codigo" type="text" readonly class="w-full cursor-not-allowed rounded-xl border-slate-300 bg-slate-50 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300" />
+                        <input wire:model="workflow.codigo" type="text" {{ $isPpsActionSelected ? '' : 'readonly' }} class="w-full rounded-xl border-slate-300 text-sm {{ $isPpsActionSelected ? 'bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100' : 'cursor-not-allowed bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300' }}" />
                         @error('workflow.codigo')<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                     </label>
                     <label class="block space-y-2">
@@ -127,7 +149,7 @@
                     </label>
                     <label class="block space-y-2">
                         <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Proceso</span>
-                        <input value="PROYECTO" type="text" disabled class="w-full rounded-xl border-slate-300 bg-slate-50 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                        <input value="{{ $workflow['proceso'] ?? 'PROYECTO' }}" type="text" disabled class="w-full rounded-xl border-slate-300 bg-slate-50 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                     </label>
                     <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
                         <input wire:model="workflow.activo" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
@@ -197,7 +219,7 @@
                             <div class="mt-4 grid gap-4 pl-2 md:grid-cols-2 xl:grid-cols-3">
                                 <label class="block space-y-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Codigo</span>
-                                    <input wire:model="stages.{{ $index }}.codigo" type="text" readonly class="w-full cursor-not-allowed rounded-xl border-slate-300 bg-slate-50 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300" />
+                                    <input wire:model.live.debounce.300ms="stages.{{ $index }}.codigo" type="text" {{ $isPpsActionSelected ? '' : 'readonly' }} class="w-full rounded-xl border-slate-300 text-sm {{ $isPpsActionSelected ? 'bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100' : 'cursor-not-allowed bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300' }}" />
                                     @error("stages.$index.codigo")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                 </label>
                                 <label class="block space-y-2 xl:col-span-2">
@@ -226,47 +248,87 @@
                                 </label>
                                 <label class="block space-y-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Usuario responsable de asignacion</span>
-                                    @php($usuariosEtapa = $usuariosPorRol[(string) ($stage['rol_revisor_id'] ?? '')] ?? [])
-                                    <select wire:model="stages.{{ $index }}.usuario_responsable_id" @disabled(!($stage['rol_revisor_id'] ?? null) || !($stage['requiere_asignacion'] ?? false) || ($stage['emisor_define_destinatario'] ?? false)) class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-800/60 dark:disabled:text-slate-500">
-                                        <option value="">{{ ($stage['rol_revisor_id'] ?? null) ? 'Sin responsable fijo' : 'Seleccione un rol primero' }}</option>
-                                        @foreach ($usuariosEtapa as $usuario)
-                                            <option value="{{ $usuario['id'] }}">{{ $usuario['name'] }}</option>
-                                        @endforeach
-                                    </select>
+                                    @if ($isPpsActionSelected)
+                                        @php($usuariosEtapa = $usuariosPorRol[(string) ($stage['rol_revisor_id'] ?? '')] ?? [])
+                                        <select wire:model.live="stages.{{ $index }}.usuario_responsable_id" @disabled(!($stage['rol_revisor_id'] ?? null) || !($stage['requiere_asignacion'] ?? false)) class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-800/60 dark:disabled:text-slate-500">
+                                            <option value="">{{ ($stage['rol_revisor_id'] ?? null) ? 'Sin responsable fijo' : 'Seleccione un rol primero' }}</option>
+                                            @foreach ($usuariosEtapa as $usuario)
+                                                <option value="{{ $usuario['id'] }}">{{ $usuario['name'] }}</option>
+                                            @endforeach
+                                        </select>
+                                    @else
+                                        @php($usuariosEtapa = $usuariosPorRol[(string) ($stage['rol_revisor_id'] ?? '')] ?? [])
+                                        <select wire:model="stages.{{ $index }}.usuario_responsable_id" @disabled(!($stage['rol_revisor_id'] ?? null) || !($stage['requiere_asignacion'] ?? false) || ($stage['emisor_define_destinatario'] ?? false)) class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-800/60 dark:disabled:text-slate-500">
+                                            <option value="">{{ ($stage['rol_revisor_id'] ?? null) ? 'Sin responsable fijo' : 'Seleccione un rol primero' }}</option>
+                                            @foreach ($usuariosEtapa as $usuario)
+                                                <option value="{{ $usuario['id'] }}">{{ $usuario['name'] }}</option>
+                                            @endforeach
+                                        </select>
+                                    @endif
                                     @error("stages.$index.usuario_responsable_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                 </label>
                             </div>
 
-                            <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
-                                <div class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Procesos donde aplica esta etapa</div>
-                                <div class="mt-3 flex flex-wrap gap-4">
-                                    <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        <input wire:model.live="stages.{{ $index }}.aplica_inscripcion" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
-                                        Inscripcion
-                                    </label>
-                                    <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        <input wire:model.live="stages.{{ $index }}.aplica_informe_intermedio" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
-                                        Informe intermedio
-                                    </label>
-                                    <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        <input wire:model.live="stages.{{ $index }}.aplica_cierre_proyecto" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
-                                        Cierre de proyecto
+                            @if ($isPpsActionSelected)
+                                <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+                                    <label class="block space-y-2">
+                                        <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Estado resultante</span>
+                                        <select wire:model="stages.{{ $index }}.estado_resultante" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                            <option value="">Seleccione</option>
+                                            @foreach ($estadoOpciones as $value => $label)
+                                                <option value="{{ $value }}">{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error("stages.$index.estado_resultante")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                     </label>
                                 </div>
-                                @error("stages.$index.aplica_inscripcion")<p class="mt-2 text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
-                                @error("stages.$index.aplica_informe_intermedio")<p class="mt-2 text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
-                                @error("stages.$index.aplica_cierre_proyecto")<p class="mt-2 text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
-                            </div>
+                            @else
+                                <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+                                    <div class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Procesos donde aplica esta etapa</div>
+                                    <div class="mt-3 flex flex-wrap gap-4">
+                                        <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                                            <input wire:model.live="stages.{{ $index }}.aplica_inscripcion" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                            Inscripcion
+                                        </label>
+                                        <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                                            <input wire:model.live="stages.{{ $index }}.aplica_informe_intermedio" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                            Informe intermedio
+                                        </label>
+                                        <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                                            <input wire:model.live="stages.{{ $index }}.aplica_cierre_proyecto" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                            Cierre de proyecto
+                                        </label>
+                                    </div>
+                                    @error("stages.$index.aplica_inscripcion")<p class="mt-2 text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                    @error("stages.$index.aplica_informe_intermedio")<p class="mt-2 text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                    @error("stages.$index.aplica_cierre_proyecto")<p class="mt-2 text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                </div>
+                            @endif
 
                             <div class="mt-4 flex flex-wrap gap-4">
                                 <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
                                     <input wire:model.live="stages.{{ $index }}.requiere_asignacion" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
                                     Requiere asignacion del responsable
                                 </label>
-                                <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                    <input wire:model.live="stages.{{ $index }}.emisor_define_destinatario" @disabled(!($stage['requiere_asignacion'] ?? false)) type="checkbox" class="rounded border-slate-300 text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800" />
-                                    El emisor define el destinatario al enviar
-                                </label>
+                                @if ($isPpsActionSelected)
+                                    <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        <input wire:model.live="stages.{{ $index }}.permite_edicion" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                        Permite edicion
+                                    </label>
+                                    <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        <input wire:model.live="stages.{{ $index }}.permite_rechazo" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                        Permite rechazo
+                                    </label>
+                                    <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        <input wire:model.live="stages.{{ $index }}.es_estado_final_aprobado" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                        Final aprobado
+                                    </label>
+                                @else
+                                    <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        <input wire:model.live="stages.{{ $index }}.emisor_define_destinatario" @disabled(!($stage['requiere_asignacion'] ?? false)) type="checkbox" class="rounded border-slate-300 text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800" />
+                                        El emisor define el destinatario al enviar
+                                    </label>
+                                @endif
                                 <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
                                     <input wire:model="stages.{{ $index }}.activo" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
                                     Etapa activa

@@ -2,8 +2,6 @@
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
-use App\Models\Demografia\Aldea;
-use App\Models\Demografia\Ciudad;
 use App\Models\Demografia\Departamento;
 use App\Models\Demografia\Municipio;
 use App\Models\PpsServicioSocial;
@@ -230,23 +228,14 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
 
     protected function fillAldeaCiudad(?string $aldeaCiudad): void
     {
-        if (!$aldeaCiudad || !$this->municipio_id) {
+        if (!$aldeaCiudad) {
             return;
         }
 
-        foreach (array_map('trim', explode('/', $aldeaCiudad)) as $nombre) {
-            if (!$this->aldea_id) {
-                $this->aldea_id = $this->findIdByName(Aldea::class, $nombre, [
-                    'municipio_id' => $this->municipio_id,
-                ]);
-            }
+        [$aldea, $ciudad] = array_pad(array_map('trim', explode('/', $aldeaCiudad, 2)), 2, '');
 
-            if (!$this->ciudad_id) {
-                $this->ciudad_id = $this->findIdByName(Ciudad::class, $nombre, [
-                    'municipio_id' => $this->municipio_id,
-                ]);
-            }
-        }
+        $this->aldea = $aldea;
+        $this->ciudad = $ciudad;
     }
 
     protected function optionKeyFromStoredValue(array $options, ?string $storedValue): string

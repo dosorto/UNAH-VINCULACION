@@ -207,6 +207,10 @@ class PersonalSeeder extends Seeder
         }
 
         if (app()->environment('local')) {
+            $rolUsuarioEjemplo = Role::firstOrCreate([
+                'name' => 'docente',
+                'guard_name' => 'web',
+            ]);
 
             $user2 = User::updateOrCreate(
                 ['email' => 'usuario.ejemplo@unah.hn'],
@@ -215,8 +219,11 @@ class PersonalSeeder extends Seeder
                     'password' => bcrypt('123'),
                     'surname' => 'Ernesto',
                     'given_name' => 'Moncada Valladares',
+                    'active_role_id' => $rolUsuarioEjemplo->id,
                 ]
             );
+
+            $user2->syncRoles([$rolUsuarioEjemplo->name]);
 
             Empleado::updateOrCreate(
                 ['numero_empleado' => '1228asdfasdf0'],

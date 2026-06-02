@@ -170,7 +170,7 @@ return [
             [
                 'titulo' => 'Configuración',
                 'route' => 'listarLogs',
-                'routes' => ['listarLogs', 'slides', 'configuracion.flujos.proyectos', 'configuracion.flujos-pps-servicio-social'],
+                'routes' => ['listarLogs', 'slides', 'configuracion.flujos.proyectos'],
                 'icono' => 'heroicon-c-cog-6-tooth',
                 'class' => 'mb-4',
                 'permisos' => ['configuracion.logs', 'apariencia.slides', 'configuracion.flujos'],
@@ -178,7 +178,6 @@ return [
                     ['texto' => 'Logs', 'route' => 'listarLogs', 'permiso' => 'configuracion.logs'],
                     ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia.slides'],
                     ['texto' => 'Flujos de proyectos', 'route' => 'configuracion.flujos.proyectos', 'permiso' => 'configuracion.flujos'],
-                    ['texto' => 'Flujos PPS/SS', 'route' => 'configuracion.flujos-pps-servicio-social', 'permiso' => 'configuracion.flujos'],
                     ['texto' => 'Contactanos', 'route' => 'contactanos', 'permiso' => 'configuracion.contactanos']
                 ],
             ],

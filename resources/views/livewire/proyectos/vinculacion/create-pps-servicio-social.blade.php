@@ -256,24 +256,14 @@
 
                         <div>
                             <label class="{{ $labelClass }}">Aldea</label>
-                            <select wire:model="aldea_id" class="{{ $inputClass }}" @disabled(!$municipio_id || $aldeas->isEmpty())>
-                                <option value="">Seleccione...</option>
-                                @foreach($aldeas as $id => $nombre)
-                                    <option value="{{ $id }}">{{ $nombre }}</option>
-                                @endforeach
-                            </select>
-                            @error('aldea_id') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                            <input type="text" wire:model.live.debounce.500ms="aldea" maxlength="255" placeholder="Ingrese la aldea" class="{{ $inputClass }}">
+                            @error('aldea') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                         </div>
 
                         <div>
                             <label class="{{ $labelClass }}">Ciudad</label>
-                            <select wire:model="ciudad_id" class="{{ $inputClass }}" @disabled(!$municipio_id || $ciudades->isEmpty())>
-                                <option value="">Seleccione...</option>
-                                @foreach($ciudades as $id => $nombre)
-                                    <option value="{{ $id }}">{{ $nombre }}</option>
-                                @endforeach
-                            </select>
-                            @error('ciudad_id') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
+                            <input type="text" wire:model.live.debounce.500ms="ciudad" maxlength="255" placeholder="Ingrese la ciudad" class="{{ $inputClass }}">
+                            @error('ciudad') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                         </div>
 
                         <div class="md:col-span-2">

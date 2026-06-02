@@ -2,8 +2,6 @@
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
-use App\Models\Demografia\Aldea;
-use App\Models\Demografia\Ciudad;
 use App\Models\Demografia\Departamento;
 use App\Models\Demografia\Municipio;
 use App\Models\Personal\Empleado;
@@ -48,8 +46,8 @@ class CreatePpsServicioSocial extends Component
     // Paso 4: Datos territoriales
     public ?int $departamento_id = null;
     public ?int $municipio_id = null;
-    public ?int $aldea_id = null;
-    public ?int $ciudad_id = null;
+    public string $aldea = '';
+    public string $ciudad = '';
     public string $caserio = '';
 
     // Paso 5: Alcance de la PPS / Servicio Social
@@ -132,14 +130,14 @@ class CreatePpsServicioSocial extends Component
     public function updatedDepartamentoId(): void
     {
         $this->municipio_id = null;
-        $this->aldea_id = null;
-        $this->ciudad_id = null;
+        $this->aldea = '';
+        $this->ciudad = '';
     }
 
     public function updatedMunicipioId(): void
     {
-        $this->aldea_id = null;
-        $this->ciudad_id = null;
+        $this->aldea = '';
+        $this->ciudad = '';
     }
 
     public function updatedTerritorioEjecucion(string $value): void
@@ -147,10 +145,20 @@ class CreatePpsServicioSocial extends Component
         if ($value === 'Internacional') {
             $this->departamento_id = null;
             $this->municipio_id = null;
-            $this->aldea_id = null;
-            $this->ciudad_id = null;
+            $this->aldea = '';
+            $this->ciudad = '';
             $this->caserio = '';
         }
+    }
+
+    public function updatedAldea(): void
+    {
+        $this->autoGuardarCampoTerritorialManual();
+    }
+
+    public function updatedCiudad(): void
+    {
+        $this->autoGuardarCampoTerritorialManual();
     }
 
     public function updatedDocenteSupervisorId($docenteId): void
@@ -426,8 +434,8 @@ class CreatePpsServicioSocial extends Component
             4 => [
                 'departamento_id' => 'required_if:territorio_ejecucion,Nacional|nullable|integer|exists:departamento,id',
                 'municipio_id' => 'required_if:territorio_ejecucion,Nacional|nullable|integer|exists:municipio,id',
-                'aldea_id' => 'nullable|integer|exists:aldea,id',
-                'ciudad_id' => 'nullable|integer|exists:ciudad,id',
+                'aldea' => 'nullable|string|max:255',
+                'ciudad' => 'nullable|string|max:255',
                 'caserio' => 'nullable|string|max:255',
             ],
             5 => [
@@ -521,6 +529,8 @@ class CreatePpsServicioSocial extends Component
             'fecha_finalizacion' => 'fecha de finalizacion',
             'departamento_id' => 'departamento',
             'municipio_id' => 'municipio',
+            'aldea' => 'aldea',
+            'ciudad' => 'ciudad',
             'total_horas' => 'total de horas',
             'modalidad_ejecucion' => 'modalidad de ejecucion',
             'institucion_nombre' => 'institucion u organizacion',
@@ -560,10 +570,19 @@ class CreatePpsServicioSocial extends Component
 
     protected function nombreAldeaCiudad(): ?string
     {
-        $aldea = $this->aldea_id ? Aldea::find($this->aldea_id)?->nombre : null;
-        $ciudad = $this->ciudad_id ? Ciudad::find($this->ciudad_id)?->nombre : null;
+        $aldea = trim($this->aldea);
+        $ciudad = trim($this->ciudad);
 
         return collect([$aldea, $ciudad])->filter()->implode(' / ') ?: null;
+    }
+
+    protected function autoGuardarCampoTerritorialManual(): void
+    {
+        if ($this->currentStep !== 4 || $this->territorio_ejecucion !== 'Nacional') {
+            return;
+        }
+
+        $this->autoGuardarBorrador();
     }
 
     public function render(): View
@@ -586,14 +605,6 @@ class CreatePpsServicioSocial extends Component
             ? Municipio::where('departamento_id', $this->departamento_id)->orderBy('nombre')->pluck('nombre', 'id')
             : collect();
 
-        $aldeas = $this->municipio_id
-            ? Aldea::where('municipio_id', $this->municipio_id)->orderBy('nombre')->pluck('nombre', 'id')
-            : collect();
-
-        $ciudades = $this->municipio_id
-            ? Ciudad::where('municipio_id', $this->municipio_id)->orderBy('nombre')->pluck('nombre', 'id')
-            : collect();
-
         $docentes = Empleado::docentes()
             ->with(['user', 'categoria', 'departamento_academico'])
             ->orderBy('nombre_completo')
@@ -605,8 +616,6 @@ class CreatePpsServicioSocial extends Component
             'carreras' => $carreras,
             'departamentos' => $departamentos,
             'municipios' => $municipios,
-            'aldeas' => $aldeas,
-            'ciudades' => $ciudades,
             'docentes' => $docentes,
         ]);
     }

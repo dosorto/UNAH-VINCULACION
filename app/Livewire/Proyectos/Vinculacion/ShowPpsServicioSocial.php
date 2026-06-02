@@ -6,6 +6,7 @@ use App\Models\PpsServicioSocial;
 use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 
 class ShowPpsServicioSocial extends Component
@@ -67,7 +68,22 @@ class ShowPpsServicioSocial extends Component
 
             return;
         } catch (\Throwable $e) {
-            report($e);
+            Log::error('Error enviando PPS/SS a revision', [
+                'registro_id' => $this->registro?->id,
+                'estado' => $this->registro?->estado,
+                'method' => 'enviarRevision',
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => collect($e->getTrace())
+                    ->take(8)
+                    ->map(fn (array $frame): array => [
+                        'file' => $frame['file'] ?? null,
+                        'line' => $frame['line'] ?? null,
+                        'function' => $frame['function'] ?? null,
+                    ])
+                    ->all(),
+            ]);
 
             Notification::make()
                 ->title('Error')

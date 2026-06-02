@@ -2,13 +2,19 @@
 
 namespace App\Services\PpsServicioSocial;
 
+use App\Mail\PpsServicioSocialRevisionPendiente;
 use App\Models\PpsServicioSocial;
 use App\Models\PpsServicioSocialRevisionHistorial;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Collection;
 use RuntimeException;
 
 class PpsServicioSocialWorkflowService
@@ -22,7 +28,7 @@ class PpsServicioSocialWorkflowService
                 $this->hasColumn('flujos_aprobacion', 'activo'),
                 fn (Builder $query) => $query->where('activo', true)
             )
-            ->with(['etapas' => function (Builder $query): void {
+            ->with(['etapas' => function (Relation $query): void {
                 $this->aplicarFiltroEtapasActivas($query);
                 $this->aplicarOrdenEtapas($query);
             }])
@@ -76,15 +82,39 @@ class PpsServicioSocialWorkflowService
             $this->validarUsuarioRevisor($registro, $userId, $user);
 
             $etapaActual = $this->validarEtapaActualDelFlujo($registro);
+            $estadoOrigen = $registro->estado;
+
+            if ((bool) ($etapaActual->es_estado_final_aprobado ?? false)) {
+                $estadoDestino = $this->estadoResultanteParaAprobacion($etapaActual);
+
+                $registro->forceFill([
+                    'estado' => $estadoDestino,
+                    'fecha_revision' => now(),
+                    'revisado_por' => $userId,
+                    'motivo_rechazo' => null,
+                    'updated_by' => $userId,
+                ])->save();
+
+                $this->registrarHistorial($registro, 'aprobar_final', [
+                    'flujo_aprobacion_id' => $registro->flujo_aprobacion_id,
+                    'etapa_origen_id' => $etapaActual->id,
+                    'etapa_destino_id' => $etapaActual->id,
+                    'estado_origen' => $estadoOrigen,
+                    'estado_destino' => $estadoDestino,
+                    'comentario' => 'Registro aprobado en etapa final mediante flujo configurable PPS/SS.',
+                    'realizado_por' => $userId,
+                ]);
+
+                return $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
+            }
+
             $siguienteEtapa = $this->obtenerSiguienteEtapaDesdeActual($registro);
 
             if (!$siguienteEtapa) {
                 throw new RuntimeException('No se encontro la siguiente etapa del flujo PPS/SS.');
             }
 
-            $estadoDestino = $this->estadoResultanteParaAprobacion($siguienteEtapa);
-            $estadoOrigen = $registro->estado;
-            $esAprobacionFinal = (bool) ($siguienteEtapa->es_estado_final_aprobado ?? false);
+            $estadoDestino = $this->estadoResultanteParaAvance($etapaActual, $siguienteEtapa);
 
             $payload = [
                 'etapa_actual_id' => $siguienteEtapa->id,
@@ -92,25 +122,19 @@ class PpsServicioSocialWorkflowService
                 'updated_by' => $userId,
             ];
 
-            if ($esAprobacionFinal) {
-                $payload['fecha_revision'] = now();
-                $payload['revisado_por'] = $userId;
-                $payload['motivo_rechazo'] = null;
-            }
-
             $registro->forceFill($payload)->save();
 
-            $this->registrarHistorial($registro, $esAprobacionFinal ? 'aprobar_final' : 'aprobar_etapa', [
+            $this->registrarHistorial($registro, 'aprobar_etapa', [
                 'flujo_aprobacion_id' => $registro->flujo_aprobacion_id,
                 'etapa_origen_id' => $etapaActual->id,
                 'etapa_destino_id' => $siguienteEtapa->id,
                 'estado_origen' => $estadoOrigen,
                 'estado_destino' => $estadoDestino,
-                'comentario' => $esAprobacionFinal
-                    ? 'Registro aprobado en etapa final mediante flujo configurable PPS/SS.'
-                    : 'Registro avanzado a la siguiente etapa mediante flujo configurable PPS/SS.',
+                'comentario' => 'Registro avanzado a la siguiente etapa mediante flujo configurable PPS/SS.',
                 'realizado_por' => $userId,
             ]);
+
+            $this->notificarRevisionPendiente($registro, $siguienteEtapa, 'avance_etapa');
 
             return $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
         });
@@ -267,6 +291,8 @@ class PpsServicioSocialWorkflowService
                 'realizado_por' => $userId,
             ]);
 
+            $this->notificarRevisionPendiente($registro, $primeraEtapa, 'envio_revision');
+
             return $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
         });
     }
@@ -328,10 +354,7 @@ class PpsServicioSocialWorkflowService
     {
         $etapaActual = $this->validarFlujoYEtapaActual($registro);
 
-        if ($this->hasColumn('flujos_aprobacion_etapas', 'estado_resultante')
-            && filled($etapaActual->estado_resultante)
-            && $registro->estado !== $etapaActual->estado_resultante
-        ) {
+        if (!$this->estadoDelRegistroCoincideConEtapa($registro, $etapaActual)) {
             throw new RuntimeException('El estado actual del registro no coincide con la etapa actual del flujo PPS/SS.');
         }
 
@@ -507,6 +530,35 @@ class PpsServicioSocialWorkflowService
         return $estadoResultante;
     }
 
+    private function estadoResultanteParaAvance(FlujoAprobacionEtapa $etapaActual, FlujoAprobacionEtapa $siguienteEtapa): string
+    {
+        $estadoActual = $this->estadoResultanteParaEtapa($etapaActual, 'La etapa actual del flujo PPS/SS');
+        $estadoSiguiente = $this->estadoResultanteParaEtapa($siguienteEtapa, 'La siguiente etapa del flujo PPS/SS');
+        $siguienteEsFinal = (bool) ($siguienteEtapa->es_estado_final_aprobado ?? false);
+
+        if ($estadoActual === PpsServicioSocial::ESTADO_APROBADO) {
+            throw new RuntimeException('Solo una etapa final puede dejar el registro aprobado.');
+        }
+
+        if ($siguienteEsFinal) {
+            if ($estadoSiguiente !== PpsServicioSocial::ESTADO_APROBADO) {
+                throw new RuntimeException('La etapa final aprobada del flujo PPS/SS debe usar estado aprobado.');
+            }
+
+            return $estadoActual;
+        }
+
+        if ($estadoSiguiente === PpsServicioSocial::ESTADO_APROBADO) {
+            throw new RuntimeException('Solo una etapa marcada como aprobacion final puede usar estado aprobado.');
+        }
+
+        if (in_array($estadoSiguiente, [PpsServicioSocial::ESTADO_BORRADOR, PpsServicioSocial::ESTADO_RECHAZADO, 'subsanacion'], true)) {
+            throw new RuntimeException('La siguiente etapa del flujo PPS/SS debe representar una revision o aprobacion final.');
+        }
+
+        return $estadoSiguiente;
+    }
+
     private function estadoResultanteParaSubsanacion(FlujoAprobacionEtapa $etapa): string
     {
         $estadoResultante = $this->estadoResultanteParaEtapa($etapa, 'La etapa editable del flujo PPS/SS');
@@ -541,6 +593,87 @@ class PpsServicioSocialWorkflowService
 
         if (!$registro->usuarioPuedeRevisar($user ?? auth()->user())) {
             throw new RuntimeException('El usuario no tiene permisos para revisar registros PPS/SS.');
+        }
+    }
+
+    private function notificarRevisionPendiente(PpsServicioSocial $registro, FlujoAprobacionEtapa $etapa, string $evento): void
+    {
+        $destinatarios = $this->usuariosResponsablesDeEtapa($etapa);
+        $registroParaCorreo = $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
+
+        foreach ($destinatarios as $destinatario) {
+            Mail::to($destinatario->email)->queue(
+                new PpsServicioSocialRevisionPendiente($registroParaCorreo, $etapa, $destinatario)
+            );
+        }
+
+        Log::info('Notificacion PPS/SS de revision pendiente enviada', [
+            'registro_id' => $registro->id,
+            'codigo_registro' => $registro->codigo_registro,
+            'evento' => $evento,
+            'etapa_id' => $etapa->id,
+            'etapa_nombre' => $etapa->nombre,
+            'rol_revisor_id' => $etapa->rol_revisor_id,
+            'requiere_asignacion' => (bool) $etapa->requiere_asignacion,
+            'usuario_responsable_id' => $etapa->usuario_responsable_id,
+            'destinatarios' => $destinatarios
+                ->map(fn (User $user): array => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                ])
+                ->values()
+                ->all(),
+        ]);
+    }
+
+    private function usuariosResponsablesDeEtapa(FlujoAprobacionEtapa $etapa): Collection
+    {
+        $query = User::query()->select(['id', 'name', 'email']);
+        $this->aplicarFiltroUsuariosActivos($query);
+
+        if ((bool) $etapa->requiere_asignacion) {
+            if (!$etapa->usuario_responsable_id) {
+                throw new RuntimeException("La etapa {$etapa->nombre} requiere asignacion pero no tiene usuario responsable configurado.");
+            }
+
+            $query->whereKey($etapa->usuario_responsable_id);
+        } else {
+            if (!$etapa->rol_revisor_id) {
+                throw new RuntimeException("La etapa {$etapa->nombre} no tiene rol revisor configurado.");
+            }
+
+            $query->whereHas('roles', fn (Builder $roleQuery) => $roleQuery->where('roles.id', $etapa->rol_revisor_id));
+        }
+
+        $usuarios = $query
+            ->get()
+            ->filter(fn (User $user): bool => filled($user->email) && filter_var($user->email, FILTER_VALIDATE_EMAIL))
+            ->values();
+
+        if ($usuarios->isEmpty()) {
+            Log::warning('Etapa PPS/SS sin destinatarios validos para notificar', [
+                'etapa_id' => $etapa->id,
+                'etapa_nombre' => $etapa->nombre,
+                'rol_revisor_id' => $etapa->rol_revisor_id,
+                'requiere_asignacion' => (bool) $etapa->requiere_asignacion,
+                'usuario_responsable_id' => $etapa->usuario_responsable_id,
+            ]);
+
+            throw new RuntimeException("La etapa {$etapa->nombre} no tiene usuarios responsables con correo valido para notificar.");
+        }
+
+        return $usuarios;
+    }
+
+    private function aplicarFiltroUsuariosActivos(Builder $query): void
+    {
+        if ($this->hasColumn('users', 'activo')) {
+            $query->where('activo', true);
+        }
+
+        if ($this->hasColumn('users', 'active')) {
+            $query->where('active', true);
         }
     }
 
@@ -579,6 +712,25 @@ class PpsServicioSocialWorkflowService
         return $this->etapasDelFlujoQuery($flujoId)->first();
     }
 
+    private function estadoDelRegistroCoincideConEtapa(PpsServicioSocial $registro, FlujoAprobacionEtapa $etapaActual): bool
+    {
+        if (!$this->hasColumn('flujos_aprobacion_etapas', 'estado_resultante') || blank($etapaActual->estado_resultante)) {
+            return true;
+        }
+
+        if ($registro->estado === $etapaActual->estado_resultante) {
+            return true;
+        }
+
+        return (bool) ($etapaActual->es_estado_final_aprobado ?? false)
+            && $registro->estado !== PpsServicioSocial::ESTADO_APROBADO
+            && !in_array($registro->estado, [
+                PpsServicioSocial::ESTADO_BORRADOR,
+                PpsServicioSocial::ESTADO_RECHAZADO,
+                'subsanacion',
+            ], true);
+    }
+
     private function asignarEtapaInicialSiFalta(PpsServicioSocial $registro): void
     {
         if ($registro->etapa_actual_id || !$registro->flujo_aprobacion_id) {
@@ -607,14 +759,14 @@ class PpsServicioSocialWorkflowService
         return $query;
     }
 
-    private function aplicarFiltroEtapasActivas(Builder $query): void
+    private function aplicarFiltroEtapasActivas(Builder|Relation $query): void
     {
         if ($this->hasColumn('flujos_aprobacion_etapas', 'activo')) {
             $query->where('activo', true);
         }
     }
 
-    private function aplicarOrdenEtapas(Builder $query): void
+    private function aplicarOrdenEtapas(Builder|Relation $query): void
     {
         if ($this->hasColumn('flujos_aprobacion_etapas', 'orden')) {
             $query->orderBy('orden');

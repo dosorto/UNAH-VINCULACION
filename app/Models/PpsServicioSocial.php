@@ -273,17 +273,31 @@ class PpsServicioSocial extends Model
             return false;
         }
 
-        $puedePorPermiso = method_exists($user, 'can')
-            && (
-                $user->can('proyectos.revision-final')
-                || $user->can('proyectos.historial')
-                || $user->can('director.proyectos')
-            );
+        if (method_exists($user, 'hasRole') && $user->hasRole('admin')) {
+            return true;
+        }
 
-        $puedePorRol = method_exists($user, 'hasRole')
-            && $user->hasRole(['admin', 'Director/Enlace']);
+        $etapaActual = $this->relationLoaded('etapaActual')
+            ? $this->etapaActual
+            : $this->etapaActual()->first();
 
-        return $puedePorPermiso || $puedePorRol;
+        if (!$etapaActual || !($etapaActual->activo ?? true)) {
+            return false;
+        }
+
+        if ((bool) ($etapaActual->requiere_asignacion ?? false)) {
+            return $etapaActual->usuario_responsable_id !== null
+                && isset($user->id)
+                && (int) $etapaActual->usuario_responsable_id === (int) $user->id;
+        }
+
+        if (!$etapaActual->rol_revisor_id || !method_exists($user, 'roles')) {
+            return false;
+        }
+
+        return $user->roles()
+            ->where('roles.id', $etapaActual->rol_revisor_id)
+            ->exists();
     }
 
     private function fechaParaComparar(mixed $value): Carbon

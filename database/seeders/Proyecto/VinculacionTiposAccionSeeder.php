@@ -55,6 +55,15 @@ class VinculacionTiposAccionSeeder extends Seeder
                 'activo' => false,
                 'orden' => 5,
             ],
+            [
+                'codigo' => 'PPS_VOLUNTARIADO_GESTION_RIESGO',
+                'nombre' => 'PPS, Voluntariado y Gestión del Riesgo',
+                'descripcion' => 'Acciones de práctica profesional supervisada, servicio social, voluntariado y gestión del riesgo.',
+                'badge' => 'Disponible',
+                'icono' => 'reloj',
+                'activo' => true,
+                'orden' => 6,
+            ],
         ];
 
         foreach ($tiposAccion as $tipoAccion) {
