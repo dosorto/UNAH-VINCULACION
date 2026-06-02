@@ -25,10 +25,10 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         $this->registroId = $registro->id;
         $this->registroGuardado = true;
 
-        if ($registro->estado !== 'borrador') {
+        if (!$this->estadoPermiteEdicion($registro)) {
             Notification::make()
                 ->title('Edicion no disponible')
-                ->body('Solo los registros en estado borrador pueden editarse.')
+                ->body('Solo los registros en estado borrador o subsanacion editable pueden editarse.')
                 ->warning()
                 ->send();
 
@@ -46,12 +46,12 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
     {
         $this->registro->refresh();
 
-        if ($this->registro->estado !== 'borrador') {
+        if (!$this->estadoPermiteEdicion($this->registro)) {
             $this->estadoAutoGuardado = 'error';
 
             Notification::make()
                 ->title('Edicion bloqueada')
-                ->body('El registro ya no esta en borrador y no puede modificarse.')
+                ->body('El registro ya no esta en una etapa editable y no puede modificarse.')
                 ->danger()
                 ->send();
 
@@ -69,10 +69,10 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
     {
         $this->registro->refresh();
 
-        if ($this->registro->estado !== 'borrador') {
+        if (!$this->estadoPermiteEdicion($this->registro)) {
             Notification::make()
                 ->title('Edicion bloqueada')
-                ->body('El registro ya no esta en borrador y no puede modificarse.')
+                ->body('El registro ya no esta en una etapa editable y no puede modificarse.')
                 ->danger()
                 ->send();
 
@@ -133,11 +133,39 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         $this->redirectRoute('pps-servicio-social.show', ['id' => $this->registro->id]);
     }
 
+    protected function ensureRegistroBorrador(): PpsServicioSocial
+    {
+        $registro = PpsServicioSocial::findOrFail($this->registroId);
+
+        if (!$this->estadoPermiteEdicion($registro)) {
+            throw new \RuntimeException('Solo los registros en borrador o subsanacion editable pueden autoguardarse.');
+        }
+
+        return $registro;
+    }
+
     protected function canEditRecord(PpsServicioSocial $registro): bool
     {
         return $registro->created_by !== null
             && auth()->id() !== null
             && (int) $registro->created_by === (int) auth()->id();
+    }
+
+    private function estadoPermiteEdicion(PpsServicioSocial $registro): bool
+    {
+        if ($registro->estado === PpsServicioSocial::ESTADO_BORRADOR) {
+            return true;
+        }
+
+        if ($registro->estado !== 'subsanacion' || !$registro->flujo_aprobacion_id || !$registro->etapa_actual_id) {
+            return false;
+        }
+
+        $etapaActual = $registro->etapaActual;
+
+        return $etapaActual !== null
+            && (int) $etapaActual->flujo_aprobacion_id === (int) $registro->flujo_aprobacion_id
+            && (bool) $etapaActual->permite_edicion;
     }
 
     protected function fillFromRegistro(PpsServicioSocial $registro): void

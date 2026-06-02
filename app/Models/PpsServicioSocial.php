@@ -2,8 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Proyecto\FlujoAprobacion;
+use App\Models\Proyecto\FlujoAprobacionEtapa;
+use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -17,12 +22,15 @@ class PpsServicioSocial extends Model
     public const ESTADO_ENVIADO = 'enviado';
     public const ESTADO_APROBADO = 'aprobado';
     public const ESTADO_RECHAZADO = 'rechazado';
+    public const PROCESO_FLUJO = 'PPS_SERVICIO_SOCIAL';
 
     protected $table = 'pps_servicio_social';
 
     protected $fillable = [
         'codigo_registro',
         'estado',
+        'flujo_aprobacion_id',
+        'etapa_actual_id',
         'fecha_envio',
         'fecha_revision',
         'facultad_centro',
@@ -88,6 +96,22 @@ class PpsServicioSocial extends Model
         'adjunta_convenio_marco' => 'boolean',
     ];
 
+    public function flujoAprobacion(): BelongsTo
+    {
+        return $this->belongsTo(FlujoAprobacion::class, 'flujo_aprobacion_id');
+    }
+
+    public function etapaActual(): BelongsTo
+    {
+        return $this->belongsTo(FlujoAprobacionEtapa::class, 'etapa_actual_id');
+    }
+
+    public function historialRevisiones(): HasMany
+    {
+        return $this->hasMany(PpsServicioSocialRevisionHistorial::class, 'pps_servicio_social_id')
+            ->latest();
+    }
+
     public function perteneceAlUsuario(?int $userId): bool
     {
         return $this->created_by !== null
@@ -103,9 +127,17 @@ class PpsServicioSocial extends Model
 
     public function puedeRevisarse(?int $userId, ?object $user = null): bool
     {
-        return $this->estado === self::ESTADO_ENVIADO
-            && !$this->perteneceAlUsuario($userId)
-            && $this->usuarioPuedeRevisar($user);
+        if ($this->perteneceAlUsuario($userId) || !$this->usuarioPuedeRevisar($user)) {
+            return false;
+        }
+
+        try {
+            app(PpsServicioSocialWorkflowService::class)->validarEtapaActualDelFlujo($this);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return true;
     }
 
     public function puedeAprobarse(?int $userId, ?object $user = null): bool
@@ -115,18 +147,32 @@ class PpsServicioSocial extends Model
 
     public function puedeRechazarse(?int $userId, ?object $user = null): bool
     {
-        return $this->puedeRevisarse($userId, $user);
+        return $this->puedeRevisarse($userId, $user)
+            && app(PpsServicioSocialWorkflowService::class)->puedeRechazarEtapaActual($this);
     }
 
     public function puedeSubsanarse(?int $userId): bool
     {
-        return $this->estado === self::ESTADO_RECHAZADO
-            && $this->perteneceAlUsuario($userId);
+        if ($this->estado !== self::ESTADO_RECHAZADO || !$this->perteneceAlUsuario($userId)) {
+            return false;
+        }
+
+        if (!$this->flujo_aprobacion_id || !$this->etapa_actual_id) {
+            return false;
+        }
+
+        try {
+            app(PpsServicioSocialWorkflowService::class)->obtenerEtapaEditable($this);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return true;
     }
 
     public function puedeDescargarPdf(?int $userId, ?object $user = null): bool
     {
-        return $this->estado === self::ESTADO_APROBADO
+        return app(PpsServicioSocialWorkflowService::class)->esEstadoFinalAprobado($this)
             && (
                 $this->perteneceAlUsuario($userId)
                 || $this->usuarioPuedeRevisar($user)
@@ -221,7 +267,7 @@ class PpsServicioSocial extends Model
         return !in_array($normalizado, ['pendiente', 'borrador sin titulo', 'null'], true);
     }
 
-    private function usuarioPuedeRevisar(?object $user): bool
+    public function usuarioPuedeRevisar(?object $user): bool
     {
         if (!$user) {
             return false;

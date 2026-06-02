@@ -12,7 +12,6 @@ class PpsServicioSocialPdfController extends Controller
     {
         $registro = PpsServicioSocial::findOrFail($id);
 
-        abort_unless($registro->estado === PpsServicioSocial::ESTADO_APROBADO, 403);
         abort_unless($registro->puedeDescargarPdf(auth()->id(), auth()->user()), 403);
 
         $pdf = PDF::loadView('pdf.pps-servicio-social.form-015-016', [

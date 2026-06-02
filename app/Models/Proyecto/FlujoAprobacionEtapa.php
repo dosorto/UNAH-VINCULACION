@@ -28,6 +28,10 @@ class FlujoAprobacionEtapa extends Model
         'requiere_asignacion',
         'emisor_define_destinatario',
         'activo',
+        'estado_resultante',
+        'permite_edicion',
+        'permite_rechazo',
+        'es_estado_final_aprobado',
     ];
 
     protected $casts = [
@@ -37,6 +41,9 @@ class FlujoAprobacionEtapa extends Model
         'requiere_asignacion' => 'boolean',
         'emisor_define_destinatario' => 'boolean',
         'activo' => 'boolean',
+        'permite_edicion' => 'boolean',
+        'permite_rechazo' => 'boolean',
+        'es_estado_final_aprobado' => 'boolean',
     ];
 
     public function flujo(): BelongsTo

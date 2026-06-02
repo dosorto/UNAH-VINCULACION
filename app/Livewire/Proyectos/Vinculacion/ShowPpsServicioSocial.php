@@ -3,6 +3,7 @@
 namespace App\Livewire\Proyectos\Vinculacion;
 
 use App\Models\PpsServicioSocial;
+use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
@@ -54,15 +55,17 @@ class ShowPpsServicioSocial extends Component
         }
 
         try {
-            $this->registro->update([
-                'estado' => PpsServicioSocial::ESTADO_ENVIADO,
-                'fecha_envio' => now(),
-                'enviado_por' => auth()->id(),
-                'updated_by' => auth()->id(),
-            ]);
-
-            $this->registro->refresh();
+            $this->registro = app(PpsServicioSocialWorkflowService::class)
+                ->enviarARevision($this->registro, auth()->id());
             $this->camposFaltantesEnvio = [];
+        } catch (\RuntimeException $e) {
+            Notification::make()
+                ->title('Flujo PPS/SS incompleto')
+                ->body($e->getMessage())
+                ->warning()
+                ->send();
+
+            return;
         } catch (\Throwable $e) {
             report($e);
 
@@ -85,29 +88,35 @@ class ShowPpsServicioSocial extends Component
     public function aprobar(): void
     {
         $this->registro->refresh();
+        $user = auth()->user();
 
-        if ($this->registro->estado !== PpsServicioSocial::ESTADO_ENVIADO) {
+        abort_unless(
+            !$this->registro->perteneceAlUsuario(auth()->id())
+            && $this->registro->usuarioPuedeRevisar($user),
+            403
+        );
+
+        if (!$this->registro->puedeAprobarse(auth()->id(), $user)) {
             Notification::make()
                 ->title('Revision no disponible')
-                ->body('Solo los registros enviados pueden aprobarse.')
+                ->body('El registro no esta en una etapa revisable del flujo PPS/SS.')
                 ->warning()
                 ->send();
 
             return;
         }
 
-        abort_unless($this->registro->puedeAprobarse(auth()->id(), auth()->user()), 403);
-
         try {
-            $this->registro->update([
-                'estado' => PpsServicioSocial::ESTADO_APROBADO,
-                'fecha_revision' => now(),
-                'revisado_por' => auth()->id(),
-                'motivo_rechazo' => null,
-                'updated_by' => auth()->id(),
-            ]);
+            $this->registro = app(PpsServicioSocialWorkflowService::class)
+                ->aprobarEtapa($this->registro, auth()->id(), $user);
+        } catch (\RuntimeException $e) {
+            Notification::make()
+                ->title('Flujo PPS/SS incompleto')
+                ->body($e->getMessage())
+                ->warning()
+                ->send();
 
-            $this->registro->refresh();
+            return;
         } catch (\Throwable $e) {
             report($e);
 
@@ -120,9 +129,13 @@ class ShowPpsServicioSocial extends Component
             return;
         }
 
+        $esAprobacionFinal = $this->registro->estado === PpsServicioSocial::ESTADO_APROBADO;
+
         Notification::make()
-            ->title('Registro aprobado')
-            ->body('El FORM-DVUS-015/016 fue aprobado correctamente.')
+            ->title($esAprobacionFinal ? 'Registro aprobado' : 'Etapa aprobada')
+            ->body($esAprobacionFinal
+                ? 'El FORM-DVUS-015/016 fue aprobado correctamente.'
+                : 'El registro avanzo a la siguiente etapa del flujo PPS/SS.')
             ->success()
             ->send();
     }
@@ -130,18 +143,23 @@ class ShowPpsServicioSocial extends Component
     public function abrirModalRechazo(): void
     {
         $this->registro->refresh();
+        $user = auth()->user();
 
-        if ($this->registro->estado !== PpsServicioSocial::ESTADO_ENVIADO) {
+        abort_unless(
+            !$this->registro->perteneceAlUsuario(auth()->id())
+            && $this->registro->usuarioPuedeRevisar($user),
+            403
+        );
+
+        if (!$this->registro->puedeRechazarse(auth()->id(), $user)) {
             Notification::make()
                 ->title('Revision no disponible')
-                ->body('Solo los registros enviados pueden rechazarse.')
+                ->body('La etapa actual del flujo PPS/SS no permite rechazo.')
                 ->warning()
                 ->send();
 
             return;
         }
-
-        abort_unless($this->registro->puedeRechazarse(auth()->id(), auth()->user()), 403);
 
         $this->resetErrorBag('motivoRechazo');
         $this->motivoRechazo = '';
@@ -158,20 +176,23 @@ class ShowPpsServicioSocial extends Component
     public function rechazar(): void
     {
         $this->registro->refresh();
+        $user = auth()->user();
 
-        if ($this->registro->estado !== PpsServicioSocial::ESTADO_ENVIADO) {
-            $this->cerrarModalRechazo();
+        abort_unless(
+            !$this->registro->perteneceAlUsuario(auth()->id())
+            && $this->registro->usuarioPuedeRevisar($user),
+            403
+        );
 
+        if (!$this->registro->puedeRechazarse(auth()->id(), $user)) {
             Notification::make()
                 ->title('Revision no disponible')
-                ->body('Solo los registros enviados pueden rechazarse.')
+                ->body('La etapa actual del flujo PPS/SS no permite rechazo.')
                 ->warning()
                 ->send();
 
             return;
         }
-
-        abort_unless($this->registro->puedeRechazarse(auth()->id(), auth()->user()), 403);
 
         $this->validate([
             'motivoRechazo' => 'required|string|min:5|max:5000',
@@ -180,16 +201,17 @@ class ShowPpsServicioSocial extends Component
         ]);
 
         try {
-            $this->registro->update([
-                'estado' => PpsServicioSocial::ESTADO_RECHAZADO,
-                'fecha_revision' => now(),
-                'revisado_por' => auth()->id(),
-                'motivo_rechazo' => trim($this->motivoRechazo),
-                'updated_by' => auth()->id(),
-            ]);
-
-            $this->registro->refresh();
+            $this->registro = app(PpsServicioSocialWorkflowService::class)
+                ->rechazar($this->registro, $this->motivoRechazo, auth()->id(), $user);
             $this->cerrarModalRechazo();
+        } catch (\RuntimeException $e) {
+            Notification::make()
+                ->title('Revision no disponible')
+                ->body($e->getMessage())
+                ->warning()
+                ->send();
+
+            return;
         } catch (\Throwable $e) {
             report($e);
 
@@ -213,25 +235,27 @@ class ShowPpsServicioSocial extends Component
     {
         $this->registro->refresh();
 
-        if ($this->registro->estado !== PpsServicioSocial::ESTADO_RECHAZADO) {
+        if (!$this->registro->puedeSubsanarse(auth()->id())) {
             Notification::make()
                 ->title('Subsanacion no disponible')
-                ->body('Solo los registros rechazados pueden pasar a subsanacion.')
+                ->body('Solo el usuario creador puede subsanar registros rechazados con flujo PPS/SS valido.')
                 ->warning()
                 ->send();
 
             return;
         }
 
-        abort_unless($this->registro->puedeSubsanarse(auth()->id()), 403);
-
         try {
-            $this->registro->update([
-                'estado' => PpsServicioSocial::ESTADO_BORRADOR,
-                'updated_by' => auth()->id(),
-            ]);
+            $this->registro = app(PpsServicioSocialWorkflowService::class)
+                ->iniciarSubsanacion($this->registro, auth()->id());
+        } catch (\RuntimeException $e) {
+            Notification::make()
+                ->title('Subsanacion no disponible')
+                ->body($e->getMessage())
+                ->warning()
+                ->send();
 
-            $this->registro->refresh();
+            return;
         } catch (\Throwable $e) {
             report($e);
 

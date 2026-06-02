@@ -6,13 +6,16 @@
         $estadoBadge = match($registro->estado) {
             'borrador' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200',
             'enviado' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
+            'en_revision' => 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-200',
             'aprobado' => 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200',
             'rechazado' => 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200',
+            'subsanacion' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
             default => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
         };
         $puedeEnviarRevision = $registro->puedeEnviarse(auth()->id());
         $puedeEditar = $puedeEnviarRevision;
-        $puedeRevisar = $registro->puedeRevisarse(auth()->id(), auth()->user());
+        $puedeAprobar = $registro->puedeAprobarse(auth()->id(), auth()->user());
+        $puedeRechazar = $registro->puedeRechazarse(auth()->id(), auth()->user());
         $puedeSubsanar = $registro->puedeSubsanarse(auth()->id());
         $puedeDescargarPdf = $registro->puedeDescargarPdf(auth()->id(), auth()->user());
         $puedeCrearRegistro = (bool) auth()->user()?->can('docente.crear-proyecto');
@@ -145,7 +148,7 @@
                     <span wire:loading wire:target="enviarRevision">Enviando...</span>
                 </button>
             @endif
-            @if($puedeRevisar)
+            @if($puedeAprobar)
                 <button type="button"
                         wire:click="aprobar"
                         wire:confirm="Desea aprobar este registro PPS / Servicio Social?"
@@ -155,6 +158,8 @@
                     <span wire:loading.remove wire:target="aprobar">Aprobar</span>
                     <span wire:loading wire:target="aprobar">Aprobando...</span>
                 </button>
+            @endif
+            @if($puedeRechazar)
                 <button type="button"
                         wire:click="abrirModalRechazo"
                         class="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 shadow-sm transition hover:bg-red-100 dark:border-red-900/60 dark:bg-red-900/30 dark:text-red-200 dark:hover:bg-red-900/50">
