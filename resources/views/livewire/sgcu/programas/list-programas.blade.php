@@ -5,9 +5,9 @@
             <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Programas y ediciones</h1>
             <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Gestiona la oferta academica base del SGCU antes de matricula, pagos y emision.</p>
         </div>
-        <button wire:click="openCreate" class="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-container">
+        <a href="{{ route('sgcu.programas.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-container">
             Nuevo programa
-        </button>
+        </a>
     </section>
 
     @if (session('programas_status'))
@@ -65,7 +65,10 @@
                     <tbody class="divide-y divide-slate-100 bg-white dark:divide-slate-800 dark:bg-slate-900">
                         @forelse ($records as $row)
                             @php($currentStage = $row->etapaActual())
-                            <tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/60 {{ $row->trashed() ? 'opacity-60' : '' }}">
+                            <tr
+                                class="{{ $row->trashed() ? 'opacity-60' : 'cursor-pointer' }} transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                                @unless ($row->trashed()) onclick="window.location='{{ route('sgcu.programas.edit', $row) }}'" @endunless
+                            >
                                 <td class="px-4 py-4 font-semibold text-slate-700 dark:text-slate-200">{{ $row->codigo ?: 'S/C' }}</td>
                                 <td class="px-4 py-4">
                                     <div class="font-semibold text-slate-900 dark:text-slate-100">{{ $row->nombre }}</div>
@@ -82,19 +85,19 @@
                                 <td class="px-4 py-4">
                                     <div class="flex justify-end gap-2">
                                         @if ($row->trashed())
-                                            <button wire:click="restorePrograma({{ $row->id }})" wire:confirm="¿Restaurar este programa?" class="rounded-full border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary">
+                                            <button wire:click="restorePrograma({{ $row->id }})" wire:confirm="¿Restaurar este programa?" onclick="event.stopPropagation()" class="rounded-full border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary">
                                                 Restaurar
                                             </button>
                                         @else
-                                            <button wire:click="openEdit({{ $row->id }})" class="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">
+                                            <a href="{{ route('sgcu.programas.edit', $row) }}" wire:navigate onclick="event.stopPropagation()" class="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">
                                                 Editar
-                                            </button>
+                                            </a>
                                             @if ($row->estaEditable())
-                                                <button wire:click="sendToReview({{ $row->id }})" wire:confirm="¿Enviar este programa a revision?" class="rounded-full border border-cyan-300 px-3 py-1.5 text-xs font-semibold text-cyan-700 dark:border-cyan-800 dark:text-cyan-300">
+                                                <button wire:click="sendToReview({{ $row->id }})" wire:confirm="¿Enviar este programa a revision?" onclick="event.stopPropagation()" class="rounded-full border border-cyan-300 px-3 py-1.5 text-xs font-semibold text-cyan-700 dark:border-cyan-800 dark:text-cyan-300">
                                                     Enviar
                                                 </button>
                                             @endif
-                                            <button wire:click="deletePrograma({{ $row->id }})" wire:confirm="¿Eliminar este programa?" class="rounded-full border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700">
+                                            <button wire:click="deletePrograma({{ $row->id }})" wire:confirm="¿Eliminar este programa?" onclick="event.stopPropagation()" class="rounded-full border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700">
                                                 Eliminar
                                             </button>
                                         @endif
@@ -112,66 +115,4 @@
         <div class="mt-6">{{ $records->links() }}</div>
     </section>
 
-    @if ($formModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6" wire:click.self="cancelForm">
-            <section class="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
-                <div class="flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-800 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">{{ $editingProgramaId ? 'Editar programa' : 'Nuevo programa' }}</h2>
-                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Completa los datos base para administrar el programa dentro de SGCU.</p>
-                    </div>
-                    <button wire:click="cancelForm" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">Cerrar</button>
-                </div>
-
-                <div class="mt-6 grid gap-5 lg:grid-cols-2">
-                    <label class="space-y-2">
-                        <span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Centro / facultad principal *</span>
-                        <select wire:model="programaForm.centro_facultad_id" class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                            <option value="">Seleccione un centro</option>
-                            @foreach ($centrosFacultad as $centro)
-                                <option value="{{ $centro->id }}">{{ $centro->nombre }}</option>
-                            @endforeach
-                        </select>
-                        @error('programaForm.centro_facultad_id') <p class="text-xs font-medium text-rose-600">{{ $message }}</p> @enderror
-                    </label>
-
-                    <label class="space-y-2">
-                        <span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Codigo *</span>
-                        <input wire:model="programaForm.codigo" type="text" class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
-                        @error('programaForm.codigo') <p class="text-xs font-medium text-rose-600">{{ $message }}</p> @enderror
-                    </label>
-
-                    <label class="space-y-2">
-                        <span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Tipo de programa *</span>
-                        <select wire:model="programaForm.tipo_programa_id" class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                            <option value="">Seleccione un tipo</option>
-                            @foreach ($tiposPrograma as $tipo)
-                                <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
-                            @endforeach
-                        </select>
-                        @error('programaForm.tipo_programa_id') <p class="text-xs font-medium text-rose-600">{{ $message }}</p> @enderror
-                    </label>
-
-                    <label class="space-y-2">
-                        <span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Nombre *</span>
-                        <input wire:model="programaForm.nombre" type="text" class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
-                        @error('programaForm.nombre') <p class="text-xs font-medium text-rose-600">{{ $message }}</p> @enderror
-                    </label>
-
-                    <label class="space-y-2 lg:col-span-2">
-                        <span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Descripcion</span>
-                        <textarea wire:model="programaForm.descripcion" rows="3" class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"></textarea>
-                        @error('programaForm.descripcion') <p class="text-xs font-medium text-rose-600">{{ $message }}</p> @enderror
-                    </label>
-                </div>
-
-                <div class="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
-                    <button wire:click="cancelForm" class="rounded-2xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">Cancelar</button>
-                    <button wire:click="savePrograma" class="rounded-2xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-container">
-                        Guardar programa
-                    </button>
-                </div>
-            </section>
-        </div>
-    @endif
 </div>

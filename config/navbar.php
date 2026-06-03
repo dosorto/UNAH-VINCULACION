@@ -188,6 +188,8 @@ return [
                     'sgcu.catalogos',
                     'sgcu.tipos-programa',
                     'sgcu.programas',
+                    'sgcu.programas.create',
+                    'sgcu.programas.edit',
                     'sgcu.bandeja-revision',
                     'sgcu.flujos-programa',
                 ],

@@ -105,12 +105,12 @@ class ConfiguracionFlujosProyectos extends Component
     {
         $this->selectedSubactionId = $subactionId;
         $this->selectedWorkflowId = null;
-        $this->loadFirstWorkflow();
+        $this->loadWorkflowForSelectedSubaction();
     }
 
     public function selectWorkflow(int $workflowId): void
     {
-        $flow = $this->principalProjectWorkflow();
+        $flow = FlujoAprobacion::with('etapas')->findOrFail($workflowId);
 
         $this->selectedWorkflowId = $flow->id;
         $this->selectedActionId = $flow->tipo_accion_id;
@@ -120,8 +120,8 @@ class ConfiguracionFlujosProyectos extends Component
 
     public function newWorkflow(): void
     {
-        $this->loadFirstWorkflow();
-        session()->flash('status', 'La configuracion usa un unico flujo principal de proyectos.');
+        $this->resetWorkflowForm();
+        session()->flash('status', 'Nuevo flujo para la accion seleccionada.');
     }
 
     public function addStage(): void
@@ -301,7 +301,8 @@ class ConfiguracionFlujosProyectos extends Component
             $this->loadFirstWorkflow();
         }
 
-        $this->workflow['codigo'] = $this->workflow['codigo'] ?: self::PROJECT_DEFAULT_CODE;
+        $this->workflow['codigo'] = $this->workflow['codigo']
+            ?: $this->generateProjectFlowCode($this->selectedSubactionId);
         $this->normalizeStageCodes();
 
         $validated = $this->validate([
@@ -327,14 +328,11 @@ class ConfiguracionFlujosProyectos extends Component
 
         $validated['stages'] = $this->prepareStagesForSave($validated['stages'], 'REVISION', $this->workflowId);
 
-        if (! $this->selectedSubactionId) {
-            $this->addError('workflow.nombre', 'Seleccione una subaccion para el flujo.');
-            return;
-        }
-
         $flow = DB::transaction(function () use ($validated) {
             $flow = FlujoAprobacion::updateOrCreate(
-                ['id' => $this->workflowId],
+                $this->workflowId
+                    ? ['id' => $this->workflowId]
+                    : ['proceso' => 'PROYECTO', 'tipo_accion_id' => $this->selectedSubactionId],
                 [
                     'codigo' => strtoupper(trim($validated['workflow']['codigo'])),
                     'nombre' => $validated['workflow']['nombre'],
@@ -414,7 +412,9 @@ class ConfiguracionFlujosProyectos extends Component
 
         DB::transaction(function () use ($validated) {
             $flow = FlujoAprobacion::updateOrCreate(
-                ['id' => $this->programWorkflowId],
+                $this->programWorkflowId
+                    ? ['id' => $this->programWorkflowId]
+                    : ['proceso' => 'PROGRAMA', 'tipo_programa_id' => $this->programSelectedTipoProgramaId],
                 [
                     'codigo' => strtoupper(trim($validated['programWorkflow']['codigo'])),
                     'nombre' => $validated['programWorkflow']['nombre'],
@@ -610,8 +610,46 @@ class ConfiguracionFlujosProyectos extends Component
             return;
         }
 
-        $flow = $this->principalProjectWorkflow();
+        if ($this->selectedSubactionId) {
+            $this->loadWorkflowForSelectedSubaction();
+            return;
+        }
 
+        $this->applyFlowSelection($this->principalProjectWorkflow());
+    }
+
+    protected function loadWorkflowForSelectedSubaction(): void
+    {
+        if ($this->isPpsActionSelected()) {
+            $this->selectedSubactionId = self::PPS_SUBACTION_ID;
+            $this->loadPpsWorkflow();
+            return;
+        }
+
+        if (! $this->selectedSubactionId) {
+            $this->selectedSubactionId = $this->selectedActionId;
+        }
+
+        if (! $this->selectedSubactionId) {
+            $this->applyFlowSelection($this->principalProjectWorkflow());
+            return;
+        }
+
+        $flow = FlujoAprobacion::with('etapas')
+            ->where('proceso', 'PROYECTO')
+            ->where('tipo_accion_id', $this->selectedSubactionId)
+            ->first();
+
+        if (! $flow) {
+            $this->resetWorkflowForm();
+            return;
+        }
+
+        $this->applyFlowSelection($flow);
+    }
+
+    protected function applyFlowSelection(FlujoAprobacion $flow): void
+    {
         if (! $this->selectedSubactionId) {
             $this->selectedSubactionId = $flow->tipo_accion_id ?: $this->selectedActionId;
         }
@@ -675,6 +713,7 @@ class ConfiguracionFlujosProyectos extends Component
     protected function loadWorkflow(FlujoAprobacion $flow): void
     {
         $this->workflowId = $flow->id;
+        $this->selectedWorkflowId = $flow->id;
         $this->workflow = [
             'codigo' => $flow->codigo,
             'nombre' => $flow->nombre,
@@ -711,9 +750,10 @@ class ConfiguracionFlujosProyectos extends Component
     protected function resetWorkflowForm(): void
     {
         $this->workflowId = null;
+        $this->selectedWorkflowId = null;
         $this->workflow = [
-            'codigo' => self::PROJECT_DEFAULT_CODE,
-            'nombre' => 'Flujo de aprobacion de proyectos',
+            'codigo' => $this->selectedSubactionId ? $this->generateProjectFlowCode($this->selectedSubactionId) : '',
+            'nombre' => 'Flujo de aprobacion de '.($this->selectedActionName() ?: 'proyectos'),
             'proceso' => 'PROYECTO',
             'descripcion' => 'Flujo configurable para aprobacion de proyectos.',
             'activo' => true,
@@ -1364,6 +1404,26 @@ class ConfiguracionFlujosProyectos extends Component
         }
 
         return $candidate;
+    }
+
+    protected function generateProjectFlowCode(int $actionId): string
+    {
+        $actionCode = (string) DB::table('vinculacion_tipos_accion')
+            ->where('id', $actionId)
+            ->value('codigo');
+
+        return $this->generateUniqueFlowCode('PROYECTO_'.$actionCode, $this->workflowId);
+    }
+
+    protected function selectedActionName(): ?string
+    {
+        if (! $this->selectedSubactionId) {
+            return null;
+        }
+
+        return DB::table('vinculacion_tipos_accion')
+            ->where('id', $this->selectedSubactionId)
+            ->value('nombre');
     }
 
     protected function normalizeCode(string $value): string

@@ -42,6 +42,7 @@ class CreateProyectoVinculacion extends Component
     public int $currentStep = 1;
     public ?int $recordId = null;
     public ?int $proyectoId = null;
+    public ?int $tipo_accion_id = null;
     public string $estadoAutoGuardado = 'idle';
     public bool $autoguardadoActivo = true;
     private bool $autoGuardando = false;
@@ -196,6 +197,8 @@ class CreateProyectoVinculacion extends Component
 
     public function mount(?int $record = null): void
     {
+        $this->tipo_accion_id = request()->integer('tipo_accion_id') ?: null;
+
         if ($record !== null) {
             $proyecto = Proyecto::find($record);
             if ($proyecto) {
@@ -205,6 +208,7 @@ class CreateProyectoVinculacion extends Component
                 }
                 $this->recordId = $proyecto->id;
                 $this->proyectoId = $proyecto->id;
+                $this->tipo_accion_id = $proyecto->tipo_accion_id ?: $this->tipo_accion_id;
                 $this->loadFromRecord($proyecto);
             }
         }
@@ -607,12 +611,14 @@ class CreateProyectoVinculacion extends Component
 
         $record = Proyecto::create([
             'nombre_proyecto' => $nombreProyecto,
+            'tipo_accion_id' => $this->tipo_accion_id,
             'modalidad_id' => $this->modalidad_id,
             'fecha_inicio' => $this->fecha_inicio ?: null,
             'fecha_finalizacion' => $this->fecha_finalizacion ?: null,
             'programa_pertenece' => $this->programa_pertenece,
             'lineas_investigacion_academica' => $this->lineas_investigacion_academica,
-            'flujo_aprobacion_id' => FlujoAprobacion::defaultForProyectos()?->id,
+            'flujo_aprobacion_id' => FlujoAprobacion::defaultForProyectos($this->tipo_accion_id)?->id
+                ?? FlujoAprobacion::defaultForProyectos()?->id,
         ]);
         $record->coordinador_proyecto()->firstOrCreate(
             ['empleado_id' => $empleado->id],
