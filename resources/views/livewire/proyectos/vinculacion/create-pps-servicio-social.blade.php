@@ -516,7 +516,12 @@
                             @error('carta_formalizacion_archivo') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                             @if($modoEdicion && isset($archivo_carta_formalizacion_actual) && filled($archivo_carta_formalizacion_actual))
                                 <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                                    Archivo actual: {{ basename($archivo_carta_formalizacion_actual) }}
+                                    Archivo actual:
+                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($archivo_carta_formalizacion_actual) }}"
+                                       target="_blank"
+                                       class="font-semibold text-blue-700 hover:underline dark:text-blue-300">
+                                        {{ basename($archivo_carta_formalizacion_actual) }}
+                                    </a>
                                 </p>
                             @endif
                             @if($carta_formalizacion_archivo)
@@ -543,7 +548,12 @@
                             @error('convenio_marco_archivo') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                             @if($modoEdicion && isset($archivo_convenio_marco_actual) && filled($archivo_convenio_marco_actual))
                                 <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                                    Archivo actual: {{ basename($archivo_convenio_marco_actual) }}
+                                    Archivo actual:
+                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($archivo_convenio_marco_actual) }}"
+                                       target="_blank"
+                                       class="font-semibold text-blue-700 hover:underline dark:text-blue-300">
+                                        {{ basename($archivo_convenio_marco_actual) }}
+                                    </a>
                                 </p>
                             @endif
                             @if($convenio_marco_archivo)
@@ -631,10 +641,56 @@
                     </div>
 
                     <div class="{{ $cardClass }} lg:col-span-2">
+                        @php
+                            $archivoCartaActual = ($modoEdicion && isset($archivo_carta_formalizacion_actual)) ? $archivo_carta_formalizacion_actual : null;
+                            $archivoConvenioActual = ($modoEdicion && isset($archivo_convenio_marco_actual)) ? $archivo_convenio_marco_actual : null;
+                            $cartaTieneDocumento = (bool) $carta_formalizacion_archivo || filled($archivoCartaActual);
+                            $convenioTieneDocumento = (bool) $convenio_marco_archivo || filled($archivoConvenioActual);
+                            $cartaResumen = ($carta_formalizacion_aplica === 'Si' || $cartaTieneDocumento) ? 'Si' : 'No';
+                            $convenioResumen = ($convenio_marco_aplica === 'Si' || $convenioTieneDocumento) ? 'Si' : 'No';
+                            $cartaNombre = $carta_formalizacion_archivo
+                                ? $carta_formalizacion_archivo->getClientOriginalName()
+                                : (filled($archivoCartaActual) ? basename($archivoCartaActual) : null);
+                            $convenioNombre = $convenio_marco_archivo
+                                ? $convenio_marco_archivo->getClientOriginalName()
+                                : (filled($archivoConvenioActual) ? basename($archivoConvenioActual) : null);
+                        @endphp
                         <h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Documentos</h3>
                         <dl class="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
-                            <div><dt class="text-gray-500">Carta formalizacion</dt><dd class="text-gray-900 dark:text-white">{{ $carta_formalizacion_aplica }}</dd></div>
-                            <div><dt class="text-gray-500">Convenio marco</dt><dd class="text-gray-900 dark:text-white">{{ $convenio_marco_aplica }}</dd></div>
+                            <div>
+                                <dt class="text-gray-500">Carta formalizacion</dt>
+                                <dd class="text-gray-900 dark:text-white">{{ $cartaResumen }}</dd>
+                                @if($cartaNombre)
+                                    <dd class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        @if(filled($archivoCartaActual) && !$carta_formalizacion_archivo)
+                                            <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($archivoCartaActual) }}"
+                                               target="_blank"
+                                               class="font-semibold text-blue-700 hover:underline dark:text-blue-300">
+                                                {{ $cartaNombre }}
+                                            </a>
+                                        @else
+                                            {{ $cartaNombre }}
+                                        @endif
+                                    </dd>
+                                @endif
+                            </div>
+                            <div>
+                                <dt class="text-gray-500">Convenio marco</dt>
+                                <dd class="text-gray-900 dark:text-white">{{ $convenioResumen }}</dd>
+                                @if($convenioNombre)
+                                    <dd class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        @if(filled($archivoConvenioActual) && !$convenio_marco_archivo)
+                                            <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($archivoConvenioActual) }}"
+                                               target="_blank"
+                                               class="font-semibold text-blue-700 hover:underline dark:text-blue-300">
+                                                {{ $convenioNombre }}
+                                            </a>
+                                        @else
+                                            {{ $convenioNombre }}
+                                        @endif
+                                    </dd>
+                                @endif
+                            </div>
                         </dl>
                     </div>
                 </div>

@@ -13,8 +13,8 @@ class ShowPpsServicioSocial extends Component
 {
     public PpsServicioSocial $registro;
     public array $camposFaltantesEnvio = [];
-    public bool $rechazoModal = false;
-    public string $motivoRechazo = '';
+    public bool $subsanarModal = false;
+    public string $subsanarComentario = '';
 
     public function mount(int $id): void
     {
@@ -103,14 +103,15 @@ class ShowPpsServicioSocial extends Component
 
     public function aprobar(): void
     {
+        $this->aprobarEtapa();
+    }
+
+    public function aprobarEtapa(): void
+    {
         $this->registro->refresh();
         $user = auth()->user();
 
-        abort_unless(
-            !$this->registro->perteneceAlUsuario(auth()->id())
-            && $this->registro->usuarioPuedeRevisar($user),
-            403
-        );
+        abort_unless($this->registro->usuarioPuedeRevisar($user), 403);
 
         if (!$this->registro->puedeAprobarse(auth()->id(), $user)) {
             Notification::make()
@@ -158,52 +159,59 @@ class ShowPpsServicioSocial extends Component
 
     public function abrirModalRechazo(): void
     {
+        $this->abrirModalSubsanacion();
+    }
+
+    public function abrirModalSubsanacion(): void
+    {
         $this->registro->refresh();
         $user = auth()->user();
 
-        abort_unless(
-            !$this->registro->perteneceAlUsuario(auth()->id())
-            && $this->registro->usuarioPuedeRevisar($user),
-            403
-        );
+        abort_unless($this->registro->usuarioPuedeRevisar($user), 403);
 
         if (!$this->registro->puedeRechazarse(auth()->id(), $user)) {
             Notification::make()
                 ->title('Revision no disponible')
-                ->body('La etapa actual del flujo PPS/SS no permite rechazo.')
+                ->body('La etapa actual del flujo PPS/SS no permite enviar a subsanacion.')
                 ->warning()
                 ->send();
 
             return;
         }
 
-        $this->resetErrorBag('motivoRechazo');
-        $this->motivoRechazo = '';
-        $this->rechazoModal = true;
+        $this->resetErrorBag('subsanarComentario');
+        $this->subsanarComentario = '';
+        $this->subsanarModal = true;
     }
 
     public function cerrarModalRechazo(): void
     {
-        $this->rechazoModal = false;
-        $this->motivoRechazo = '';
-        $this->resetErrorBag('motivoRechazo');
+        $this->cerrarModalSubsanacion();
+    }
+
+    public function cerrarModalSubsanacion(): void
+    {
+        $this->subsanarModal = false;
+        $this->subsanarComentario = '';
+        $this->resetErrorBag('subsanarComentario');
     }
 
     public function rechazar(): void
     {
+        $this->enviarASubsanar();
+    }
+
+    public function enviarASubsanar(): void
+    {
         $this->registro->refresh();
         $user = auth()->user();
 
-        abort_unless(
-            !$this->registro->perteneceAlUsuario(auth()->id())
-            && $this->registro->usuarioPuedeRevisar($user),
-            403
-        );
+        abort_unless($this->registro->usuarioPuedeRevisar($user), 403);
 
         if (!$this->registro->puedeRechazarse(auth()->id(), $user)) {
             Notification::make()
                 ->title('Revision no disponible')
-                ->body('La etapa actual del flujo PPS/SS no permite rechazo.')
+                ->body('La etapa actual del flujo PPS/SS no permite enviar a subsanacion.')
                 ->warning()
                 ->send();
 
@@ -211,15 +219,15 @@ class ShowPpsServicioSocial extends Component
         }
 
         $this->validate([
-            'motivoRechazo' => 'required|string|min:5|max:5000',
+            'subsanarComentario' => 'required|string|min:5|max:5000',
         ], [], [
-            'motivoRechazo' => 'motivo de rechazo',
+            'subsanarComentario' => 'observaciones',
         ]);
 
         try {
             $this->registro = app(PpsServicioSocialWorkflowService::class)
-                ->rechazar($this->registro, $this->motivoRechazo, auth()->id(), $user);
-            $this->cerrarModalRechazo();
+                ->rechazar($this->registro, $this->subsanarComentario, auth()->id(), $user);
+            $this->cerrarModalSubsanacion();
         } catch (\RuntimeException $e) {
             Notification::make()
                 ->title('Revision no disponible')
@@ -233,7 +241,7 @@ class ShowPpsServicioSocial extends Component
 
             Notification::make()
                 ->title('Error')
-                ->body('No se pudo rechazar el registro. Intente nuevamente.')
+                ->body('No se pudo enviar el registro a subsanacion. Intente nuevamente.')
                 ->danger()
                 ->send();
 
@@ -241,9 +249,9 @@ class ShowPpsServicioSocial extends Component
         }
 
         Notification::make()
-            ->title('Registro rechazado')
-            ->body('El FORM-DVUS-015/016 fue rechazado correctamente.')
-            ->success()
+            ->title('Registro enviado a subsanacion')
+            ->body('El FORM-DVUS-015/016 fue devuelto para correcciones.')
+            ->warning()
             ->send();
     }
 
@@ -296,17 +304,18 @@ class ShowPpsServicioSocial extends Component
     private function canViewRecord(PpsServicioSocial $registro): bool
     {
         $user = auth()->user();
+        $activeRole = $user?->activeRole;
 
         if (
-            $user?->can('proyectos.historial')
-            || $user?->can('proyectos.revision-final')
-            || $user?->can('director.proyectos')
-            || $user?->hasRole(['admin', 'Director/Enlace'])
+            $activeRole?->hasPermissionTo('proyectos.historial')
+            || $activeRole?->hasPermissionTo('proyectos.revision-final')
+            || in_array($activeRole?->name, ['admin', 'Director/Enlace'], true)
         ) {
             return true;
         }
 
-        return $registro->perteneceAlUsuario(auth()->id());
+        return $registro->perteneceAlUsuario(auth()->id())
+            || $registro->usuarioPuedeRevisar($user);
     }
 
     public function render(): View

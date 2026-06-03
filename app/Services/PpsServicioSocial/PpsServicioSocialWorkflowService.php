@@ -587,10 +587,6 @@ class PpsServicioSocialWorkflowService
 
     private function validarUsuarioRevisor(PpsServicioSocial $registro, ?int $userId, ?object $user = null): void
     {
-        if ($registro->perteneceAlUsuario($userId)) {
-            throw new RuntimeException('El usuario creador no puede aprobar ni rechazar su propio registro.');
-        }
-
         if (!$registro->usuarioPuedeRevisar($user ?? auth()->user())) {
             throw new RuntimeException('El usuario no tiene permisos para revisar registros PPS/SS.');
         }

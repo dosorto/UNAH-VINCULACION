@@ -127,10 +127,15 @@ class PpsServicioSocial extends Model
 
     public function puedeRevisarse(?int $userId, ?object $user = null): bool
     {
-        if ($this->perteneceAlUsuario($userId) || !$this->usuarioPuedeRevisar($user)) {
+        if (!$this->usuarioPuedeRevisar($user)) {
             return false;
         }
 
+        return $this->estaEnRevision();
+    }
+
+    public function estaEnRevision(): bool
+    {
         try {
             app(PpsServicioSocialWorkflowService::class)->validarEtapaActualDelFlujo($this);
         } catch (\Throwable) {
@@ -273,7 +278,19 @@ class PpsServicioSocial extends Model
             return false;
         }
 
-        if (method_exists($user, 'hasRole') && $user->hasRole('admin')) {
+        if (empty($user->active_role_id)) {
+            return false;
+        }
+
+        $activeRole = $user->activeRole ?? null;
+
+        if (!$activeRole) {
+            return false;
+        }
+
+        $activeRoleId = (int) $activeRole->id;
+
+        if ($activeRole?->name === 'admin') {
             return true;
         }
 
@@ -286,18 +303,26 @@ class PpsServicioSocial extends Model
         }
 
         if ((bool) ($etapaActual->requiere_asignacion ?? false)) {
-            return $etapaActual->usuario_responsable_id !== null
+            $usuarioAsignado = $etapaActual->usuario_responsable_id !== null
                 && isset($user->id)
                 && (int) $etapaActual->usuario_responsable_id === (int) $user->id;
+
+            if (!$usuarioAsignado) {
+                return false;
+            }
+
+            if (!$etapaActual->rol_revisor_id) {
+                return true;
+            }
+
+            return (int) $etapaActual->rol_revisor_id === $activeRoleId;
         }
 
-        if (!$etapaActual->rol_revisor_id || !method_exists($user, 'roles')) {
+        if (!$etapaActual->rol_revisor_id) {
             return false;
         }
 
-        return $user->roles()
-            ->where('roles.id', $etapaActual->rol_revisor_id)
-            ->exists();
+        return (int) $etapaActual->rol_revisor_id === $activeRoleId;
     }
 
     private function fechaParaComparar(mixed $value): Carbon

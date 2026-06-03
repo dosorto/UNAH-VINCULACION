@@ -92,20 +92,26 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
             $this->registro = PpsServicioSocial::findOrFail($this->registroId);
             $payload = $this->payloadParcial();
 
-            // TODO: Definir si se deben eliminar archivos antiguos cuando el usuario reemplaza un adjunto.
             $payload['archivo_carta_formalizacion'] = $this->archivo_carta_formalizacion_actual;
-            if ($this->carta_formalizacion_aplica === 'No') {
-                $payload['archivo_carta_formalizacion'] = null;
-            } elseif ($this->carta_formalizacion_archivo) {
+            if ($this->carta_formalizacion_archivo) {
                 $payload['archivo_carta_formalizacion'] = $this->carta_formalizacion_archivo->store('pps-servicio-social/documentos', 'public');
+                $this->carta_formalizacion_aplica = 'Si';
+            } elseif ($this->carta_formalizacion_aplica === 'No') {
+                $payload['archivo_carta_formalizacion'] = null;
             }
 
             $payload['archivo_convenio_marco'] = $this->archivo_convenio_marco_actual;
-            if ($this->convenio_marco_aplica === 'No') {
-                $payload['archivo_convenio_marco'] = null;
-            } elseif ($this->convenio_marco_archivo) {
+            if ($this->convenio_marco_archivo) {
                 $payload['archivo_convenio_marco'] = $this->convenio_marco_archivo->store('pps-servicio-social/documentos', 'public');
+                $this->convenio_marco_aplica = 'Si';
+            } elseif ($this->convenio_marco_aplica === 'No') {
+                $payload['archivo_convenio_marco'] = null;
             }
+
+            $payload['adjunta_carta_formalizacion'] = $this->carta_formalizacion_aplica === 'Si'
+                || filled($payload['archivo_carta_formalizacion']);
+            $payload['adjunta_convenio_marco'] = $this->convenio_marco_aplica === 'Si'
+                || filled($payload['archivo_convenio_marco']);
 
             $this->registro->update($payload);
             $this->estadoAutoGuardado = 'guardado';
@@ -220,10 +226,10 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         $this->docente_jornada = $registro->jornada_laboral_docente ?? '';
         $this->docente_cubiculo = $registro->ubicacion_cubiculo_docente ?? '';
 
-        $this->carta_formalizacion_aplica = $registro->adjunta_carta_formalizacion ? 'Si' : 'No';
-        $this->convenio_marco_aplica = $registro->adjunta_convenio_marco ? 'Si' : 'No';
         $this->archivo_carta_formalizacion_actual = $registro->archivo_carta_formalizacion;
         $this->archivo_convenio_marco_actual = $registro->archivo_convenio_marco;
+        $this->carta_formalizacion_aplica = ($registro->adjunta_carta_formalizacion || filled($this->archivo_carta_formalizacion_actual)) ? 'Si' : 'No';
+        $this->convenio_marco_aplica = ($registro->adjunta_convenio_marco || filled($this->archivo_convenio_marco_actual)) ? 'Si' : 'No';
     }
 
     protected function fillAldeaCiudad(?string $aldeaCiudad): void

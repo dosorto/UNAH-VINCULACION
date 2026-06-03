@@ -190,6 +190,20 @@ class CreatePpsServicioSocial extends Component
         $this->docente_departamento = $docente->departamento_academico?->nombre ?? '';
     }
 
+    public function updatedCartaFormalizacionArchivo(): void
+    {
+        if ($this->carta_formalizacion_archivo) {
+            $this->carta_formalizacion_aplica = 'Si';
+        }
+    }
+
+    public function updatedConvenioMarcoArchivo(): void
+    {
+        if ($this->convenio_marco_archivo) {
+            $this->convenio_marco_aplica = 'Si';
+        }
+    }
+
     public function nextStep(): void
     {
         $this->resetErrorBag();
@@ -254,20 +268,26 @@ class CreatePpsServicioSocial extends Component
             $registro = $this->ensureRegistroBorrador();
             $payload = $this->payloadParcial();
 
-            // TODO: Confirmar politica final de almacenamiento y retencion de adjuntos FORM-DVUS-015/016.
             $payload['archivo_carta_formalizacion'] = $registro->archivo_carta_formalizacion;
-            if ($this->carta_formalizacion_aplica === 'No') {
-                $payload['archivo_carta_formalizacion'] = null;
-            } elseif ($this->carta_formalizacion_archivo) {
+            if ($this->carta_formalizacion_archivo) {
                 $payload['archivo_carta_formalizacion'] = $this->carta_formalizacion_archivo->store('pps-servicio-social/documentos', 'public');
+                $this->carta_formalizacion_aplica = 'Si';
+            } elseif ($this->carta_formalizacion_aplica === 'No') {
+                $payload['archivo_carta_formalizacion'] = null;
             }
 
             $payload['archivo_convenio_marco'] = $registro->archivo_convenio_marco;
-            if ($this->convenio_marco_aplica === 'No') {
-                $payload['archivo_convenio_marco'] = null;
-            } elseif ($this->convenio_marco_archivo) {
+            if ($this->convenio_marco_archivo) {
                 $payload['archivo_convenio_marco'] = $this->convenio_marco_archivo->store('pps-servicio-social/documentos', 'public');
+                $this->convenio_marco_aplica = 'Si';
+            } elseif ($this->convenio_marco_aplica === 'No') {
+                $payload['archivo_convenio_marco'] = null;
             }
+
+            $payload['adjunta_carta_formalizacion'] = $this->carta_formalizacion_aplica === 'Si'
+                || filled($payload['archivo_carta_formalizacion']);
+            $payload['adjunta_convenio_marco'] = $this->convenio_marco_aplica === 'Si'
+                || filled($payload['archivo_convenio_marco']);
 
             $registro->update($payload);
             $this->estadoAutoGuardado = 'guardado';
@@ -388,8 +408,8 @@ class CreatePpsServicioSocial extends Component
             'departamento_docente' => $this->docente_departamento ?: null,
             'jornada_laboral_docente' => $this->docente_jornada ?: null,
             'ubicacion_cubiculo_docente' => $this->docente_cubiculo ?: null,
-            'adjunta_carta_formalizacion' => $this->carta_formalizacion_aplica === 'Si',
-            'adjunta_convenio_marco' => $this->convenio_marco_aplica === 'Si',
+            'adjunta_carta_formalizacion' => $this->carta_formalizacion_aplica === 'Si' || (bool) $this->carta_formalizacion_archivo,
+            'adjunta_convenio_marco' => $this->convenio_marco_aplica === 'Si' || (bool) $this->convenio_marco_archivo,
             'updated_by' => auth()->id(),
         ];
     }

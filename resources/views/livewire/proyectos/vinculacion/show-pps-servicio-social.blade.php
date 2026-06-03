@@ -14,8 +14,9 @@
         };
         $puedeEnviarRevision = $registro->puedeEnviarse(auth()->id());
         $puedeEditar = $puedeEnviarRevision;
-        $puedeAprobar = $registro->puedeAprobarse(auth()->id(), auth()->user());
-        $puedeRechazar = $registro->puedeRechazarse(auth()->id(), auth()->user());
+        $puedeRevisarEtapa = $registro->usuarioPuedeRevisar(auth()->user()) && $registro->estaEnRevision();
+        $puedeAprobar = $puedeRevisarEtapa && $registro->puedeAprobarse(auth()->id(), auth()->user());
+        $puedeRechazar = $puedeRevisarEtapa && $registro->puedeRechazarse(auth()->id(), auth()->user());
         $puedeSubsanar = $registro->puedeSubsanarse(auth()->id());
         $puedeDescargarPdf = $registro->puedeDescargarPdf(auth()->id(), auth()->user());
         $puedeCrearRegistro = (bool) auth()->user()?->can('docente.crear-proyecto');
@@ -149,21 +150,27 @@
                 </button>
             @endif
             @if($puedeAprobar)
+                @if($puedeRechazar)
+                    <button type="button"
+                            wire:click="abrirModalSubsanacion"
+                            class="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700">
+                        Enviar a subsanacion
+                    </button>
+                @endif
                 <button type="button"
-                        wire:click="aprobar"
-                        wire:confirm="Desea aprobar este registro PPS / Servicio Social?"
+                        wire:click="aprobarEtapa"
+                        wire:confirm="Desea aprobar esta etapa del registro PPS / Servicio Social?"
                         wire:loading.attr="disabled"
-                        wire:target="aprobar"
-                        class="inline-flex items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-70">
-                    <span wire:loading.remove wire:target="aprobar">Aprobar</span>
-                    <span wire:loading wire:target="aprobar">Aprobando...</span>
+                        wire:target="aprobarEtapa"
+                        class="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-70">
+                    <span wire:loading.remove wire:target="aprobarEtapa">Aprobar</span>
+                    <span wire:loading wire:target="aprobarEtapa">Aprobando...</span>
                 </button>
-            @endif
-            @if($puedeRechazar)
+            @elseif($puedeRechazar)
                 <button type="button"
-                        wire:click="abrirModalRechazo"
-                        class="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 shadow-sm transition hover:bg-red-100 dark:border-red-900/60 dark:bg-red-900/30 dark:text-red-200 dark:hover:bg-red-900/50">
-                    Rechazar
+                        wire:click="abrirModalSubsanacion"
+                        class="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700">
+                    Enviar a subsanacion
                 </button>
             @endif
             @if($puedeSubsanar)
@@ -205,7 +212,7 @@
 
     @if($registro->estado === 'rechazado')
         <div class="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-200">
-            <p class="font-semibold">Este registro fue rechazado.</p>
+            <p class="font-semibold">Este registro fue devuelto para subsanacion.</p>
             <p class="mt-1">Revise el motivo y realice las correcciones necesarias.</p>
         </div>
     @endif
@@ -252,7 +259,7 @@
 
     @if($registro->motivo_rechazo)
         <div class="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-200">
-            <p class="font-semibold">Motivo de rechazo</p>
+            <p class="font-semibold">Observaciones de subsanacion</p>
             <p class="mt-2 whitespace-pre-line">{{ $registro->motivo_rechazo }}</p>
         </div>
     @endif
@@ -273,39 +280,46 @@
         @endforeach
     </div>
 
-    @if($rechazoModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/60 p-4">
-            <div class="w-full max-w-xl rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900">
-                <div class="mb-4">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-red-600 dark:text-red-300">Revision FORM-DVUS-015/016</p>
-                    <h2 class="mt-1 text-xl font-bold text-gray-950 dark:text-white">Rechazar registro</h2>
-                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        Indique el motivo del rechazo. Este texto quedara visible en el detalle del registro.
-                    </p>
+    @if($subsanarModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-gray-800">
+                <div class="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Enviar a subsanacion</h3>
+                    <button type="button"
+                            wire:click="cerrarModalSubsanacion"
+                            class="text-2xl leading-none text-gray-400 hover:text-gray-600">
+                        &times;
+                    </button>
                 </div>
 
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Motivo de rechazo <span class="text-red-500">*</span></label>
-                <textarea wire:model="motivoRechazo"
-                          rows="5"
-                          class="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-red-500 focus:ring-1 focus:ring-red-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
-                @error('motivoRechazo')
-                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
-                @enderror
+                <div class="space-y-4 p-4">
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Correcciones requeridas <span class="text-red-500">*</span>
+                        </label>
+                        <textarea wire:model="subsanarComentario"
+                                  rows="5"
+                                  class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
+                        @error('subsanarComentario')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                    <button type="button"
-                            wire:click="cerrarModalRechazo"
-                            class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800">
-                        Cancelar
-                    </button>
-                    <button type="button"
-                            wire:click="rechazar"
-                            wire:loading.attr="disabled"
-                            wire:target="rechazar"
-                            class="inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70">
-                        <span wire:loading.remove wire:target="rechazar">Confirmar rechazo</span>
-                        <span wire:loading wire:target="rechazar">Rechazando...</span>
-                    </button>
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button type="button"
+                                wire:click="cerrarModalSubsanacion"
+                                class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50">
+                            Cancelar
+                        </button>
+                        <button type="button"
+                                wire:click="enviarASubsanar"
+                                wire:loading.attr="disabled"
+                                wire:target="enviarASubsanar"
+                                class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70">
+                            <span wire:loading.remove wire:target="enviarASubsanar">Subsanar</span>
+                            <span wire:loading wire:target="enviarASubsanar">Enviando...</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

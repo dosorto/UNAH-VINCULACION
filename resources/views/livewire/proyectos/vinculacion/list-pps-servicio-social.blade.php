@@ -1,13 +1,34 @@
 <div>
+    @php
+        $descripcionVista = match($viewMode) {
+            'pendientes' => 'Registros enviados que estan en una etapa activa asignada a tu usuario y rol activo, o a tu rol activo.',
+            'todos' => 'Vista administrativa con todos los registros PPS/Servicio Social.',
+            default => 'Registros PPS/Servicio Social creados por tu usuario.',
+        };
+
+        $tituloVacio = match($viewMode) {
+            'pendientes' => 'No hay registros pendientes de revision.',
+            'todos' => 'No hay registros PPS/Servicio Social.',
+            default => 'No hay registros creados por tu usuario.',
+        };
+
+        $textoVacio = match($viewMode) {
+            'pendientes' => 'Cuando un registro llegue a una etapa asignada a tu rol, aparecera aqui.',
+            'todos' => $canCreateRecord
+                ? 'Crea el primer registro desde el boton "Nuevo registro".'
+                : 'Aun no existen registros PPS/Servicio Social.',
+            default => $canCreateRecord
+                ? 'Crea el primer registro desde el boton "Nuevo registro".'
+                : 'No registraste PPS/Servicio Social con este usuario.',
+        };
+    @endphp
+
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">FORM-DVUS-015/016</p>
             <h1 class="text-2xl font-bold text-gray-950 dark:text-white">PPS / Servicio Social</h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Listado de registros guardados para Practica Profesional Supervisada y Servicio Social.
-                @unless($canViewAllRecords)
-                    Se muestran solamente los registros creados por tu usuario.
-                @endunless
+                {{ $descripcionVista }}
             </p>
         </div>
 
@@ -16,6 +37,31 @@
                class="inline-flex items-center justify-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800">
                 Nuevo registro
             </a>
+        @endif
+    </div>
+
+    <div class="mb-4 flex flex-wrap gap-2 border-b border-gray-200 pb-3 dark:border-gray-700">
+        <button type="button"
+                wire:click="$set('viewMode', 'mis')"
+                class="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition {{ $viewMode === 'mis' ? 'bg-blue-700 text-white shadow-sm' : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800' }}">
+            <span>Mis registros</span>
+            <span class="rounded-full px-2 py-0.5 text-xs {{ $viewMode === 'mis' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' }}">{{ $ownRecordsCount }}</span>
+        </button>
+
+        <button type="button"
+                wire:click="$set('viewMode', 'pendientes')"
+                class="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition {{ $viewMode === 'pendientes' ? 'bg-blue-700 text-white shadow-sm' : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800' }}">
+            <span>Pendientes de revision</span>
+            <span class="rounded-full px-2 py-0.5 text-xs {{ $viewMode === 'pendientes' ? 'bg-white/20 text-white' : ($pendingReviewCount > 0 ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300') }}">{{ $pendingReviewCount }}</span>
+        </button>
+
+        @if($canViewAllRecords)
+            <button type="button"
+                    wire:click="$set('viewMode', 'todos')"
+                    class="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition {{ $viewMode === 'todos' ? 'bg-blue-700 text-white shadow-sm' : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800' }}">
+                <span>Todos</span>
+                <span class="rounded-full px-2 py-0.5 text-xs {{ $viewMode === 'todos' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' }}">{{ $allRecordsCount }}</span>
+            </button>
         @endif
     </div>
 
@@ -66,8 +112,10 @@
                         $estadoBadge = match($record->estado) {
                             'borrador' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200',
                             'enviado' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
+                            'en_revision' => 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-200',
                             'aprobado' => 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200',
                             'rechazado' => 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200',
+                            'subsanacion' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
                             default => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
                         };
                     @endphp
@@ -93,6 +141,11 @@
                             <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $estadoBadge }}">
                                 {{ ucfirst($record->estado ?: 'sin estado') }}
                             </span>
+                            @if($viewMode === 'pendientes' && $record->etapaActual)
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Etapa: {{ $record->etapaActual->nombre }}
+                                </p>
+                            @endif
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex flex-wrap gap-2">
@@ -112,8 +165,8 @@
                 @empty
                     <tr>
                         <td colspan="8" class="px-4 py-10 text-center">
-                            <p class="font-medium text-gray-700 dark:text-gray-200">No hay registros PPS/Servicio Social.</p>
-                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Crea el primer registro desde el boton "Nuevo registro".</p>
+                            <p class="font-medium text-gray-700 dark:text-gray-200">{{ $tituloVacio }}</p>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $textoVacio }}</p>
                         </td>
                     </tr>
                 @endforelse
