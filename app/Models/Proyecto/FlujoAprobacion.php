@@ -37,11 +37,17 @@ class FlujoAprobacion extends Model
         return $this->belongsTo(\App\Models\SGCU\TipoPrograma::class, 'tipo_programa_id');
     }
 
-    public static function defaultForProyectos(): ?self
+    public function tipoAccion()
+    {
+        return $this->belongsTo(VinculacionTipoAccion::class, 'tipo_accion_id');
+    }
+
+    public static function defaultForProyectos(?int $tipoAccionId = null): ?self
     {
         return self::query()
             ->where('proceso', 'PROYECTO')
             ->where('activo', true)
+            ->when($tipoAccionId, fn ($query) => $query->where('tipo_accion_id', $tipoAccionId))
             ->orderBy('id')
             ->first();
     }

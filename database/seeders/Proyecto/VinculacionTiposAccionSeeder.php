@@ -20,13 +20,22 @@ class VinculacionTiposAccionSeeder extends Seeder
                 'orden' => 1,
             ],
             [
+                'codigo' => 'EDUCACION_NO_FORMAL',
+                'nombre' => 'Educacion No Formal / Educacion Continua',
+                'descripcion' => 'Registra diplomados, cursos, talleres, seminarios, conferencias, webinars, programas de educacion continua, certificados y microcertificados.',
+                'badge' => 'Disponible',
+                'icono' => 'asesoria',
+                'activo' => true,
+                'orden' => 2,
+            ],
+            [
                 'codigo' => 'SEGUMIENTO_A_EGRESADOS',
                 'nombre' => 'Seguimiento a egresados',
                 'descripcion' => 'Son las acciones de vinculación que tienen como propósito brindar experticia académica y técnica para resolver problemas específicos o mejorar procesos para el fortalecimiento de organizaciones, empresas, instituciones públicas o comunidades.',
                 'badge' => 'Proximamente',
                 'icono' => 'asesoria',
                 'activo' => false,
-                'orden' => 2,
+                'orden' => 3,
             ],
             [
                 'codigo' => 'PRESTACION_SERVICIOS_TECNICOS',
@@ -35,7 +44,7 @@ class VinculacionTiposAccionSeeder extends Seeder
                 'badge' => 'Proximamente',
                 'icono' => 'reloj',
                 'activo' => false,
-                'orden' => 3,
+                'orden' => 4,
             ],
             [
                 'codigo' => 'ALINEAMIENTO_CURRICULAR',
@@ -44,7 +53,7 @@ class VinculacionTiposAccionSeeder extends Seeder
                 'badge' => 'Proximamente',
                 'icono' => 'megafono',
                 'activo' => false,
-                'orden' => 4,
+                'orden' => 5,
             ],
             [
                 'codigo' => 'PRACTICAS_EDUCATIVAS_INTEGRALES',
@@ -53,7 +62,7 @@ class VinculacionTiposAccionSeeder extends Seeder
                 'badge' => 'Proximamente',
                 'icono' => 'graduacion',
                 'activo' => false,
-                'orden' => 5,
+                'orden' => 6,
             ],
         ];
 

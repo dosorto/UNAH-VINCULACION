@@ -158,6 +158,8 @@ class Proyecto extends Model
     protected $fillable = [
         'nombre_proyecto',
         'codigo_proyecto',
+        'tipo_accion_id',
+        'tipo_accion_opcion_id',
         'modalidad_id',
         'municipio_id',
         'departamento_id',
@@ -619,6 +621,11 @@ class Proyecto extends Model
         return $this->belongsTo(FlujoAprobacion::class, 'flujo_aprobacion_id');
     }
 
+    public function tipoAccion()
+    {
+        return $this->belongsTo(VinculacionTipoAccion::class, 'tipo_accion_id');
+    }
+
     public function firma_coodinador_proyecto()
     {
         return $this->morphMany(FirmaProyecto::class, 'firmable')
@@ -719,6 +726,7 @@ class Proyecto extends Model
             ->with('etapas.cargoFirma.tipoCargoFirma')
             ->where('proceso', 'PROYECTO')
             ->where('activo', true)
+            ->when($this->tipo_accion_id, fn ($query) => $query->where('tipo_accion_id', $this->tipo_accion_id))
             ->orderBy('id')
             ->first();
     }

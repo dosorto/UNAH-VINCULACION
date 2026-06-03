@@ -45,6 +45,11 @@ class Asignatura extends Model
         return $this->belongsToMany(\App\Models\Proyecto\Proyecto::class, 'proyecto_asignatura', 'asignatura_id', 'proyecto_id');
     }
 
+    public function carrera()
+    {
+        return $this->belongsTo(\App\Models\UnidadAcademica\Carrera::class, 'carrera_id');
+    }
+
     public function estudianteProyectos()
     {
         return $this->hasMany(\App\Models\Estudiante\EstudianteProyecto::class);
@@ -70,4 +75,3 @@ class Asignatura extends Model
         )->withTimestamps();
     }
 }
-

@@ -14,6 +14,7 @@ use Database\Seeders\Demografia\MunicipioSeeder;
 use Database\Seeders\Personal\PermisosSeeder;
 use Database\Seeders\EjesPrioritariosUnahSeeder;
 use Database\Seeders\Proyecto\MetasContribuyeSeeder;
+use Database\Seeders\ENF\EnfCatalogoSeeder;
 
 
 
@@ -37,5 +38,6 @@ class DatabaseSeeder extends Seeder
         $this->call(EjesPrioritariosUnahSeeder::class);
         $this->call(CarreraDepartamentoSeeder::class);
         $this->call(MetasContribuyeSeeder::class);
+        $this->call(EnfCatalogoSeeder::class);
     }
 }

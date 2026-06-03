@@ -158,8 +158,8 @@
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $proyecto->fecha_inicio?->format('d/m/Y') ?? '-' }}</td>
                         <td class="px-4 py-3">
                             <div class="flex gap-2">
-                                <button wire:click="openView({{ $proyecto->id }})"
-                                        class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Ver</button>
+                                <a href="{{ route('historialproyecto', $proyecto) }}"
+                                   class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Ver</a>
                                 @if(auth()->user()->hasRole(['admin', 'Director/Enlace']))
                                 <button wire:click="openFirmas({{ $proyecto->id }})"
                                         class="px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg">Firmas</button>

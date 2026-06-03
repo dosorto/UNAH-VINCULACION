@@ -16,6 +16,7 @@ use App\Livewire\SGCU\Flujos\FlujosProgramas;
 use App\Livewire\SGCU\Programas\ListBandejaRevision;
 use App\Livewire\SGCU\Programas\ListProgramas;
 use App\Livewire\SGCU\Programas\ListTiposPrograma;
+use App\Livewire\SGCU\Programas\ProgramaForm;
 use App\Livewire\Personal\Perfil\EditPerfil;
 use App\Livewire\Personal\Permiso\ListPermisos;
 use App\Livewire\Personal\Empleado\ListEmpleado;
@@ -56,6 +57,12 @@ use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
 use App\Livewire\UnidadAcademica\Asignatura\Asignatura;
 use App\Http\Controllers\PDFController;
+use App\Http\Controllers\ENF\EnfAccionController;
+use App\Http\Controllers\ENF\EnfPresupuestoController;
+use App\Http\Controllers\ENF\EnfCronogramaController;
+use App\Http\Controllers\ENF\EnfInformeFinalController;
+use App\Http\Controllers\ENF\EnfSistematizacionController;
+use App\Http\Controllers\ENF\EnfDocumentoController;
 
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
 use App\Livewire\Constancia\ListConstancias;
@@ -111,6 +118,22 @@ Route::middleware(['guest'])->group(function () {
 
     Route::get('password/reset/{token}', \App\Livewire\Auth\ResetPasswordController::class)
         ->name('password.reset');
+});
+
+Route::middleware(['auth'])->prefix('enf')->name('enf.')->group(function () {
+    Route::get('tipos', [EnfAccionController::class, 'tipos'])->name('tipos');
+    Route::resource('acciones', EnfAccionController::class)
+        ->parameters(['acciones' => 'accion']);
+    Route::resource('presupuestos', EnfPresupuestoController::class)
+        ->parameters(['presupuestos' => 'presupuesto']);
+    Route::resource('cronograma', EnfCronogramaController::class)
+        ->parameters(['cronograma' => 'cronograma']);
+    Route::resource('informes-finales', EnfInformeFinalController::class)
+        ->parameters(['informes-finales' => 'informeFinal']);
+    Route::resource('sistematizaciones', EnfSistematizacionController::class)
+        ->parameters(['sistematizaciones' => 'sistematizacion']);
+    Route::resource('documentos', EnfDocumentoController::class)
+        ->parameters(['documentos' => 'documento']);
 });
 
 // Rutas para redireccionar a los usuario  no autenticados
@@ -228,6 +251,10 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
                 ->name('sgcu.tipos-programa');
             Route::get('programas', ListProgramas::class)
                 ->name('sgcu.programas');
+            Route::get('programas/crear', ProgramaForm::class)
+                ->name('sgcu.programas.create');
+            Route::get('programas/{programa}/editar', ProgramaForm::class)
+                ->name('sgcu.programas.edit');
             Route::get('bandeja-revision', ListBandejaRevision::class)
                 ->name('sgcu.bandeja-revision');
             Route::get('flujos-programa', FlujosProgramas::class)

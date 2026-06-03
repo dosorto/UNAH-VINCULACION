@@ -74,12 +74,12 @@
                     <p class="text-gray-600 dark:text-gray-300 text-center text-base">Registra proyectos de acciones solidarias y participación social universitaria.</p>
                 </div>
             </a>
-            <!-- Tarjeta Proyecto de Comunicación -->
-            <a href="javascript:void(0)"
-                class="group relative block bg-white dark:bg-gray-800 border border-orange-200 dark:border-orange-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300 pointer-events-none opacity-20"">
+            <!-- Tarjeta Proyecto de Educación No Formal -->
+            <a href="{{ route('enf.tipos') }}"
+                class="group relative block bg-white dark:bg-gray-800 border border-orange-200 dark:border-orange-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300">
                 <span
                     class="absolute top-4 right-4 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-full text-xs font-semibold group-hover:bg-orange-200 dark:group-hover:bg-orange-800 transition">
-                    Proximamente
+                    Disponible
                 </span>
                 <br>
                 <div class="flex flex-col items-center">
@@ -91,7 +91,7 @@
                         </svg>
                     </div>
                     <h3 class="text-xl font-bold text-orange-900 dark:text-orange-200 mb-2 text-center">Educación no formal</h3>
-                    <p class="text-gray-600 dark:text-gray-300 text-center text-base">Registra proyectos de divulgación y estrategias comunicacionales institucionales.</p>
+                    <p class="text-gray-600 dark:text-gray-300 text-center text-base">Registra cursos, talleres, diplomados, congresos, seminarios y educación continua.</p>
                 </div>
             </a>
             <!-- Tarjeta Proyecto de Comunicación -->
