@@ -11,6 +11,7 @@ use App\Models\UnidadAcademica\FacultadCentro;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -44,21 +45,35 @@ class CreatePpsServicioSocial extends Component
     public string $territorio_ejecucion = 'Nacional';
 
     // Paso 4: Datos territoriales
+    public string $modalidad_ejecucion = '';
+    public string $region = '';
+    public string $pais = '';
+    public string $departamento_provincia = '';
     public ?int $departamento_id = null;
     public ?int $municipio_id = null;
+    public string $municipio_texto = '';
+    public string $aldea_ciudad = '';
     public string $aldea = '';
     public string $ciudad = '';
     public string $caserio = '';
+    public string $pais_sede_principal = '';
+    public string $departamento_provincia_sede_principal = '';
+    public string $municipio_sede_principal = '';
+    public string $aldea_ciudad_sede_principal = '';
+    public string $horas_presenciales = '';
+    public string $horas_teletrabajo = '';
 
     // Paso 5: Alcance de la PPS / Servicio Social
     public string $descripcion_tipo_pps = '';
+    public string $descripcion_horas_tipo_pps_ss = '';
     public string $total_horas = '';
     public string $area_realizacion = '';
     public string $resumen_responsabilidades = '';
-    public string $modalidad_ejecucion = '';
 
     // Paso 6: Institucion / Organizacion
     public string $institucion_nombre = '';
+    public string $institucion_nacionalidad = '';
+    public string $institucion_pais = '';
     public string $institucion_compromisos = '';
     public string $institucion_direccion = '';
     public string $institucion_representante = '';
@@ -92,14 +107,20 @@ class CreatePpsServicioSocial extends Component
     public $convenio_marco_archivo = null;
 
     public array $tipoPpsOpciones = [
-        'Practica Profesional Supervisada',
-        'Servicio Social',
+        'Practica Profesional Supervisada' => 'Práctica Profesional Supervisada',
+        'Servicio Social' => 'Servicio Social',
     ];
 
     public array $instrumentoOpciones = [
-        'carta_formal_solicitud' => 'Carta formal de solicitud a la unidad academica',
+        'carta_formal_solicitud' => 'Carta formal de solicitud a la unidad académica',
         'carta_intenciones' => 'Carta de intenciones con la UNAH',
         'convenio_marco' => 'Convenio marco con la UNAH',
+    ];
+
+    public array $modalidadOpciones = [
+        'Presencial' => '100% presencial',
+        'Hibrida' => 'Híbrida',
+        '100% virtual' => 'Teletrabajo',
     ];
 
     public array $tipoInstitucionOpciones = [
@@ -122,6 +143,11 @@ class CreatePpsServicioSocial extends Component
         'transporte' => 'Transporte, transporte maritimo y aereo',
     ];
 
+    public array $institucionNacionalidadOpciones = [
+        'Nacional',
+        'Internacional',
+    ];
+
     public function updatedFacultadCentroId(): void
     {
         $this->carrera_id = null;
@@ -132,12 +158,20 @@ class CreatePpsServicioSocial extends Component
         $this->municipio_id = null;
         $this->aldea = '';
         $this->ciudad = '';
+
+        if (filled($this->departamento_id)) {
+            $this->resetValidation('departamento_id');
+        }
     }
 
     public function updatedMunicipioId(): void
     {
         $this->aldea = '';
         $this->ciudad = '';
+
+        if (filled($this->municipio_id)) {
+            $this->resetValidation('municipio_id');
+        }
     }
 
     public function updatedTerritorioEjecucion(string $value): void
@@ -145,9 +179,8 @@ class CreatePpsServicioSocial extends Component
         if ($value === 'Internacional') {
             $this->departamento_id = null;
             $this->municipio_id = null;
-            $this->aldea = '';
-            $this->ciudad = '';
-            $this->caserio = '';
+            $this->resetValidation('departamento_id');
+            $this->resetValidation('municipio_id');
         }
     }
 
@@ -157,6 +190,11 @@ class CreatePpsServicioSocial extends Component
     }
 
     public function updatedCiudad(): void
+    {
+        $this->autoGuardarCampoTerritorialManual();
+    }
+
+    public function updatedAldeaCiudad(): void
     {
         $this->autoGuardarCampoTerritorialManual();
     }
@@ -232,15 +270,8 @@ class CreatePpsServicioSocial extends Component
             return;
         }
 
-        if ($step < $this->currentStep) {
-            $this->resetErrorBag();
-            $this->currentStep = $step;
-
-            return;
-        }
-
-        // Avoid skipping required sections when the record is still only in memory.
-        $this->nextStep();
+        $this->resetErrorBag();
+        $this->currentStep = $step;
     }
 
     public function goToReview(): void
@@ -258,7 +289,7 @@ class CreatePpsServicioSocial extends Component
     public function guardar(): void
     {
         $this->resetErrorBag();
-        $this->validate($this->rules(), [], $this->validationAttributes());
+        $this->validate($this->rules(), $this->messages(), $this->validationAttributes());
 
         if (!$this->autoGuardarBorrador()) {
             return;
@@ -306,7 +337,7 @@ class CreatePpsServicioSocial extends Component
 
         Notification::make()
             ->title('Registro guardado')
-            ->body('El FORM-DVUS-015/016 fue guardado correctamente como borrador.')
+            ->body('El FORM-DVUS-014 fue guardado correctamente como borrador.')
             ->success()
             ->send();
 
@@ -378,16 +409,28 @@ class CreatePpsServicioSocial extends Component
             'fecha_finalizacion' => $fechaFinalizacion,
             'tipo_instrumento' => $this->instrumentoOpciones[$this->tipo_instrumento] ?? $this->textoBorrador($this->tipo_instrumento),
             'territorio_ejecucion' => $this->territorio_ejecucion ?: 'Nacional',
+            'region' => $this->region ?: null,
+            'pais' => $this->territorio_ejecucion === 'Nacional' ? 'Honduras' : ($this->pais ?: null),
+            'departamento_provincia' => $this->departamento_provincia ?: null,
             'departamento' => $this->territorio_ejecucion === 'Nacional' ? $this->nombreDepartamento() : null,
-            'municipio' => $this->territorio_ejecucion === 'Nacional' ? $this->nombreMunicipio() : null,
-            'aldea_ciudad' => $this->territorio_ejecucion === 'Nacional' ? $this->nombreAldeaCiudad() : null,
-            'caserio' => $this->territorio_ejecucion === 'Nacional' ? ($this->caserio ?: null) : null,
+            'municipio' => $this->territorio_ejecucion === 'Nacional' ? $this->nombreMunicipio() : ($this->municipio_texto ?: null),
+            'aldea_ciudad' => $this->nombreAldeaCiudad(),
+            'caserio' => $this->caserio ?: null,
+            'pais_sede_principal' => $this->pais_sede_principal ?: null,
+            'departamento_provincia_sede_principal' => $this->departamento_provincia_sede_principal ?: null,
+            'municipio_sede_principal' => $this->municipio_sede_principal ?: null,
+            'aldea_ciudad_sede_principal' => $this->aldea_ciudad_sede_principal ?: null,
             'descripcion_tipo_pps' => $this->descripcion_tipo_pps ?: null,
+            'descripcion_horas_tipo_pps_ss' => $this->descripcion_horas_tipo_pps_ss ?: null,
             'total_horas' => max(1, (int) $this->total_horas),
+            'horas_presenciales' => $this->horas_presenciales === '' ? null : max(0, (int) $this->horas_presenciales),
+            'horas_teletrabajo' => $this->horas_teletrabajo === '' ? null : max(0, (int) $this->horas_teletrabajo),
             'area_realizacion' => $this->area_realizacion ?: null,
             'resumen_responsabilidades' => $this->resumen_responsabilidades ?: null,
             'modalidad_ejecucion' => $this->textoBorrador($this->modalidad_ejecucion),
             'nombre_institucion' => $this->textoBorrador($this->institucion_nombre),
+            'institucion_nacionalidad' => $this->institucion_nacionalidad ?: null,
+            'institucion_pais' => $this->institucion_pais ?: null,
             'compromisos_institucion' => $this->institucion_compromisos ?: null,
             'direccion_institucion' => $this->institucion_direccion ?: null,
             'representante_legal' => $this->institucion_representante ?: null,
@@ -426,7 +469,7 @@ class CreatePpsServicioSocial extends Component
         $rules = $this->rulesForStep($this->currentStep);
 
         if ($rules) {
-            $this->validate($rules, [], $this->validationAttributes());
+            $this->validate($rules, $this->messages(), $this->validationAttributes());
         }
     }
 
@@ -445,28 +488,42 @@ class CreatePpsServicioSocial extends Component
                 'estudiante_correo_personal' => 'nullable|email|max:255',
             ],
             3 => [
-                'tipo_pps_ss' => 'required|string|in:Practica Profesional Supervisada,Servicio Social',
+                'tipo_pps_ss' => ['required', 'string', Rule::in($this->tipoPpsValoresPermitidos())],
                 'fecha_inicio' => 'required|date',
                 'fecha_finalizacion' => 'required|date|after_or_equal:fecha_inicio',
                 'tipo_instrumento' => 'required|string|in:carta_formal_solicitud,carta_intenciones,convenio_marco',
                 'territorio_ejecucion' => 'required|string|in:Nacional,Internacional',
             ],
             4 => [
+                'modalidad_ejecucion' => ['required', 'string', Rule::in($this->modalidadValoresPermitidos())],
                 'departamento_id' => 'required_if:territorio_ejecucion,Nacional|nullable|integer|exists:departamento,id',
                 'municipio_id' => 'required_if:territorio_ejecucion,Nacional|nullable|integer|exists:municipio,id',
+                'municipio_texto' => 'nullable|string|max:255',
+                'region' => 'nullable|string|max:255',
+                'pais' => 'nullable|string|max:255',
+                'departamento_provincia' => 'nullable|string|max:255',
+                'aldea_ciudad' => 'nullable|string|max:255',
                 'aldea' => 'nullable|string|max:255',
                 'ciudad' => 'nullable|string|max:255',
                 'caserio' => 'nullable|string|max:255',
+                'pais_sede_principal' => 'nullable|string|max:255',
+                'departamento_provincia_sede_principal' => 'nullable|string|max:255',
+                'municipio_sede_principal' => 'nullable|string|max:255',
+                'aldea_ciudad_sede_principal' => 'nullable|string|max:255',
+                'horas_presenciales' => 'nullable|integer|min:0',
+                'horas_teletrabajo' => 'nullable|integer|min:0',
             ],
             5 => [
                 'descripcion_tipo_pps' => 'nullable|string',
+                'descripcion_horas_tipo_pps_ss' => 'nullable|string',
                 'total_horas' => 'required|integer|min:1',
                 'area_realizacion' => 'nullable|string|max:255',
                 'resumen_responsabilidades' => 'nullable|string',
-                'modalidad_ejecucion' => 'required|string|in:Presencial,100% virtual,Hibrida',
             ],
             6 => [
                 'institucion_nombre' => 'required|string|max:255',
+                'institucion_nacionalidad' => 'nullable|string|in:Nacional,Internacional',
+                'institucion_pais' => 'nullable|string|max:255',
                 'institucion_compromisos' => 'nullable|string',
                 'institucion_direccion' => 'nullable|string',
                 'institucion_representante' => 'nullable|string|max:255',
@@ -522,9 +579,10 @@ class CreatePpsServicioSocial extends Component
                 && filled($this->fecha_finalizacion)
                 && filled($this->tipo_instrumento)
                 && filled($this->territorio_ejecucion),
-            4 => $this->territorio_ejecucion === 'Internacional'
-                || (filled($this->departamento_id) && filled($this->municipio_id)),
-            5 => filled($this->total_horas) && filled($this->modalidad_ejecucion),
+            4 => filled($this->modalidad_ejecucion)
+                && ($this->territorio_ejecucion === 'Internacional'
+                    || (filled($this->departamento_id) && filled($this->municipio_id))),
+            5 => filled($this->total_horas),
             6 => filled($this->institucion_nombre),
             7 => filled($this->jefe_directo_nombre),
             8 => filled($this->docente_supervisor_nombre),
@@ -546,17 +604,81 @@ class CreatePpsServicioSocial extends Component
             'tipo_pps_ss' => 'tipo PPS/SS',
             'tipo_instrumento' => 'tipo de instrumento',
             'fecha_inicio' => 'fecha de inicio',
-            'fecha_finalizacion' => 'fecha de finalizacion',
+            'fecha_finalizacion' => 'fecha de finalización',
             'departamento_id' => 'departamento',
             'municipio_id' => 'municipio',
+            'municipio_texto' => 'municipio',
+            'region' => 'región',
+            'pais' => 'país',
+            'departamento_provincia' => 'departamento o provincia',
+            'aldea_ciudad' => 'aldea o ciudad',
             'aldea' => 'aldea',
             'ciudad' => 'ciudad',
+            'pais_sede_principal' => 'país de la sede principal',
+            'departamento_provincia_sede_principal' => 'departamento o provincia de la sede principal',
+            'municipio_sede_principal' => 'municipio de la sede principal',
+            'aldea_ciudad_sede_principal' => 'aldea o ciudad de la sede principal',
             'total_horas' => 'total de horas',
-            'modalidad_ejecucion' => 'modalidad de ejecucion',
-            'institucion_nombre' => 'institucion u organizacion',
+            'horas_presenciales' => 'horas presenciales',
+            'horas_teletrabajo' => 'horas de teletrabajo',
+            'descripcion_horas_tipo_pps_ss' => 'descripción de las horas del tipo de PPS/SS',
+            'modalidad_ejecucion' => 'modalidad de ejecución',
+            'institucion_nombre' => 'institución u organización',
+            'institucion_nacionalidad' => 'nacionalidad de la institución',
+            'institucion_pais' => 'país de la institución',
             'jefe_directo_nombre' => 'jefe directo',
             'docente_supervisor_nombre' => 'docente supervisor',
+            'territorio_ejecucion' => 'territorio de ejecución',
         ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'departamento_id.required_if' => 'El departamento es obligatorio cuando el territorio de ejecución es Nacional.',
+            'municipio_id.required_if' => 'El municipio es obligatorio cuando el territorio de ejecución es Nacional.',
+            'horas_presenciales.integer' => 'Las horas presenciales deben ser un número entero.',
+            'horas_presenciales.min' => 'Las horas presenciales no pueden ser negativas.',
+            'horas_teletrabajo.integer' => 'Las horas de teletrabajo deben ser un número entero.',
+            'horas_teletrabajo.min' => 'Las horas de teletrabajo no pueden ser negativas.',
+            'institucion_nacionalidad.in' => 'La nacionalidad de la institución debe ser Nacional o Internacional.',
+        ];
+    }
+
+    public function tipoPpsEtiqueta(?string $value): string
+    {
+        return $this->tipoPpsOpciones[$value] ?? ($value ?: 'Pendiente');
+    }
+
+    public function modalidadEtiqueta(?string $value): string
+    {
+        $etiquetas = array_merge($this->modalidadOpciones, [
+            '100% presencial' => '100% presencial',
+            'Híbrida' => 'Híbrida',
+            'Teletrabajo' => 'Teletrabajo',
+        ]);
+
+        return $etiquetas[$value] ?? ($value ?: 'Pendiente');
+    }
+
+    protected function tipoPpsValoresPermitidos(): array
+    {
+        return collect($this->tipoPpsOpciones)
+            ->keys()
+            ->merge(array_values($this->tipoPpsOpciones))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    protected function modalidadValoresPermitidos(): array
+    {
+        return collect($this->modalidadOpciones)
+            ->keys()
+            ->merge(array_values($this->modalidadOpciones))
+            ->unique()
+            ->values()
+            ->all();
     }
 
     protected function generarCodigoRegistro(): string
@@ -590,6 +712,12 @@ class CreatePpsServicioSocial extends Component
 
     protected function nombreAldeaCiudad(): ?string
     {
+        $aldeaCiudad = trim($this->aldea_ciudad);
+
+        if ($aldeaCiudad !== '') {
+            return $aldeaCiudad;
+        }
+
         $aldea = trim($this->aldea);
         $ciudad = trim($this->ciudad);
 

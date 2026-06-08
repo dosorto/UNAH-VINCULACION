@@ -3,6 +3,21 @@
         $registro = $this->registro;
         $value = fn ($data) => filled($data) ? $data : 'No registrado';
         $bool = fn (bool $data) => $data ? 'Si' : 'No';
+        $tipoPpsEtiqueta = fn (?string $tipo) => [
+            'Practica Profesional Supervisada' => 'Práctica Profesional Supervisada',
+        ][$tipo] ?? ($tipo ?: null);
+        $modalidadEtiqueta = fn (?string $modalidad) => [
+            'Presencial' => '100% presencial',
+            '100% presencial' => '100% presencial',
+            'Hibrida' => 'Híbrida',
+            'Híbrida' => 'Híbrida',
+            '100% virtual' => 'Teletrabajo',
+            'Teletrabajo' => 'Teletrabajo',
+        ][$modalidad] ?? ($modalidad ?: null);
+        $esTerritorioNacional = $registro->territorio_ejecucion === 'Nacional';
+        $paisTerritorial = $esTerritorioNacional ? ($registro->pais ?: 'Honduras') : $registro->pais;
+        $departamentoTerritorialLabel = $esTerritorioNacional ? 'Departamento' : 'Departamento / provincia';
+        $departamentoTerritorial = $esTerritorioNacional ? $registro->departamento : $registro->departamento_provincia;
         $estadoBadge = match($registro->estado) {
             'borrador' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200',
             'enviado' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
@@ -23,8 +38,9 @@
 
         $sections = [
             [
-                'title' => '1. Informacion general',
+                'title' => '1. Información general',
                 'items' => [
+                    ['Fecha de registro', $registro->created_at?->format('d/m/Y H:i')],
                     ['Facultad / Centro', $registro->facultad_centro],
                     ['Carrera', $registro->carrera],
                 ],
@@ -32,7 +48,7 @@
             [
                 'title' => '2. Datos del estudiante',
                 'items' => [
-                    ['Numero de cuenta', $registro->numero_cuenta],
+                    ['Número de cuenta', $registro->numero_cuenta],
                     ['Nombre completo', $registro->nombre_estudiante],
                     ['Celular', $registro->celular_estudiante],
                     ['Correo institucional', $registro->correo_institucional],
@@ -40,44 +56,55 @@
                 ],
             ],
             [
-                'title' => '3. Informacion de la PPS / Servicio Social',
+                'title' => '3. Información de la Práctica Profesional / Servicio Social',
                 'items' => [
-                    ['Tipo', $registro->tipo_pps_ss],
+                    ['Tipo', $tipoPpsEtiqueta($registro->tipo_pps_ss)],
                     ['Fecha de inicio', $registro->fecha_inicio?->format('d/m/Y')],
-                    ['Fecha de finalizacion', $registro->fecha_finalizacion?->format('d/m/Y')],
+                    ['Fecha de finalización', $registro->fecha_finalizacion?->format('d/m/Y')],
                     ['Tipo de instrumento', $registro->tipo_instrumento],
-                    ['Territorio de ejecucion', $registro->territorio_ejecucion],
+                    ['Territorio de ejecución', $registro->territorio_ejecucion],
                 ],
             ],
             [
                 'title' => '4. Datos territoriales',
                 'items' => [
-                    ['Departamento', $registro->departamento],
+                    ['Modalidad', $modalidadEtiqueta($registro->modalidad_ejecucion)],
+                    ['Región', $registro->region],
+                    ['País', $paisTerritorial],
+                    [$departamentoTerritorialLabel, $departamentoTerritorial],
                     ['Municipio', $registro->municipio],
                     ['Aldea / ciudad', $registro->aldea_ciudad],
-                    ['Caserio', $registro->caserio],
+                    ['Caserío', $registro->caserio],
+                    ['País sede principal', $registro->pais_sede_principal],
+                    ['Departamento / provincia sede principal', $registro->departamento_provincia_sede_principal],
+                    ['Municipio sede principal', $registro->municipio_sede_principal],
+                    ['Aldea / ciudad sede principal', $registro->aldea_ciudad_sede_principal],
+                    ['Horas presenciales', $registro->horas_presenciales],
+                    ['Horas teletrabajo', $registro->horas_teletrabajo],
                 ],
             ],
             [
                 'title' => '5. Alcance de la PPS / Servicio Social',
                 'items' => [
-                    ['Descripcion del tipo de PPS', $registro->descripcion_tipo_pps],
+                    ['Descripción del tipo de PPS', $registro->descripcion_tipo_pps],
+                    ['Descripción de horas PPS/SS', $registro->descripcion_horas_tipo_pps_ss],
                     ['Total de horas', $registro->total_horas],
-                    ['Departamento o area', $registro->area_realizacion],
+                    ['Departamento o área', $registro->area_realizacion],
                     ['Responsabilidades y tareas', $registro->resumen_responsabilidades],
-                    ['Modalidad', $registro->modalidad_ejecucion],
                 ],
             ],
             [
-                'title' => '6. Institucion / Organizacion',
+                'title' => '6. Institución / Organización',
                 'items' => [
                     ['Nombre', $registro->nombre_institucion],
+                    ['Nacionalidad', $registro->institucion_nacionalidad],
+                    ['País', $registro->institucion_pais],
                     ['Compromisos asumidos', $registro->compromisos_institucion],
-                    ['Direccion exacta', $registro->direccion_institucion],
+                    ['Dirección exacta', $registro->direccion_institucion],
                     ['Representante legal', $registro->representante_legal],
-                    ['Telefono', $registro->telefono_representante],
+                    ['Teléfono', $registro->telefono_representante],
                     ['Correo de RRHH', $registro->correo_rrhh],
-                    ['Tipo de institucion', $registro->tipo_institucion],
+                    ['Tipo de institución', $registro->tipo_institucion],
                     ['Sector', $registro->sector_institucion],
                 ],
             ],
@@ -86,29 +113,29 @@
                 'items' => [
                     ['Nombre completo', $registro->nombre_jefe_directo],
                     ['Celular', $registro->celular_jefe_directo],
-                    ['Correo electronico', $registro->correo_jefe_directo],
+                    ['Correo electrónico', $registro->correo_jefe_directo],
                     ['Cargo', $registro->cargo_jefe_directo],
-                    ['Grado academico', $registro->grado_academico_jefe_directo],
+                    ['Grado académico', $registro->grado_academico_jefe_directo],
                 ],
             ],
             [
                 'title' => '8. Docente supervisor',
                 'items' => [
                     ['Nombre completo', $registro->nombre_docente_supervisor],
-                    ['Numero de empleado', $registro->numero_empleado_docente],
+                    ['Número de empleado', $registro->numero_empleado_docente],
                     ['Celular', $registro->celular_docente],
-                    ['Correo electronico', $registro->correo_docente],
-                    ['Categoria', $registro->categoria_docente],
+                    ['Correo electrónico', $registro->correo_docente],
+                    ['Categoría', $registro->categoria_docente],
                     ['Departamento', $registro->departamento_docente],
                     ['Jornada laboral', $registro->jornada_laboral_docente],
-                    ['Ubicacion del cubiculo', $registro->ubicacion_cubiculo_docente],
+                    ['Ubicación del cubículo', $registro->ubicacion_cubiculo_docente],
                 ],
             ],
             [
                 'title' => '9. Documentos adjuntos',
                 'items' => [
-                    ['Carta de formalizacion marcada', $bool($registro->adjunta_carta_formalizacion)],
-                    ['Archivo carta de formalizacion', $registro->archivo_carta_formalizacion ? basename($registro->archivo_carta_formalizacion) : null],
+                    ['Carta de formalización marcada', $bool($registro->adjunta_carta_formalizacion)],
+                    ['Archivo carta de formalización', $registro->archivo_carta_formalizacion ? basename($registro->archivo_carta_formalizacion) : null],
                     ['Convenio marco marcado', $bool($registro->adjunta_convenio_marco)],
                     ['Archivo convenio marco', $registro->archivo_convenio_marco ? basename($registro->archivo_convenio_marco) : null],
                 ],
@@ -118,7 +145,7 @@
 
     <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">FORM-DVUS-015/016</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">FORM-DVUS-014</p>
             <h1 class="mt-1 text-2xl font-bold text-gray-950 dark:text-white">
                 Detalle PPS / Servicio Social
             </h1>
@@ -141,11 +168,11 @@
             @if($puedeEnviarRevision)
                 <button type="button"
                         wire:click="enviarRevision"
-                        wire:confirm="Al enviar este registro a revision ya no podra editarse. Desea continuar?"
+                        wire:confirm="Al enviar este registro a revisión ya no podrá editarse. Desea continuar?"
                         wire:loading.attr="disabled"
                         wire:target="enviarRevision"
                         class="inline-flex items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-70">
-                    <span wire:loading.remove wire:target="enviarRevision">Enviar a revision</span>
+                    <span wire:loading.remove wire:target="enviarRevision">Enviar a revisión</span>
                     <span wire:loading wire:target="enviarRevision">Enviando...</span>
                 </button>
             @endif
@@ -154,7 +181,7 @@
                     <button type="button"
                             wire:click="abrirModalSubsanacion"
                             class="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700">
-                        Enviar a subsanacion
+                        Enviar a subsanación
                     </button>
                 @endif
                 <button type="button"
@@ -170,13 +197,13 @@
                 <button type="button"
                         wire:click="abrirModalSubsanacion"
                         class="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700">
-                    Enviar a subsanacion
+                    Enviar a subsanación
                 </button>
             @endif
             @if($puedeSubsanar)
                 <button type="button"
                         wire:click="iniciarSubsanacion"
-                        wire:confirm="Desea iniciar la subsanacion? El registro volvera a borrador para editarlo."
+                        wire:confirm="Desea iniciar la subsanación? El registro volverá a borrador para editarlo."
                         wire:loading.attr="disabled"
                         wire:target="iniciarSubsanacion"
                         class="inline-flex items-center justify-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70">
@@ -201,7 +228,7 @@
 
     @if($camposFaltantesEnvio !== [])
         <div class="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
-            <p class="font-semibold">Complete la informacion obligatoria antes de enviar a revision.</p>
+            <p class="font-semibold">Complete la información obligatoria antes de enviar a revisión.</p>
             <ul class="mt-2 list-disc space-y-1 pl-5">
                 @foreach($camposFaltantesEnvio as $campo)
                     <li>{{ $campo }}</li>
@@ -212,7 +239,7 @@
 
     @if($registro->estado === 'rechazado')
         <div class="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-200">
-            <p class="font-semibold">Este registro fue devuelto para subsanacion.</p>
+            <p class="font-semibold">Este registro fue devuelto para subsanación.</p>
             <p class="mt-1">Revise el motivo y realice las correcciones necesarias.</p>
         </div>
     @endif
@@ -225,7 +252,7 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400">{{ $registro->numero_cuenta }} · {{ $registro->correo_institucional }}</p>
             </div>
             <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Institucion</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Institución</p>
                 <p class="mt-1 font-semibold text-gray-900 dark:text-white">{{ $registro->nombre_institucion }}</p>
             </div>
             <div>
@@ -259,7 +286,7 @@
 
     @if($registro->motivo_rechazo)
         <div class="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-200">
-            <p class="font-semibold">Observaciones de subsanacion</p>
+            <p class="font-semibold">Observaciones de subsanación</p>
             <p class="mt-2 whitespace-pre-line">{{ $registro->motivo_rechazo }}</p>
         </div>
     @endif
@@ -284,7 +311,7 @@
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div class="w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-gray-800">
                 <div class="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Enviar a subsanacion</h3>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Enviar a subsanación</h3>
                     <button type="button"
                             wire:click="cerrarModalSubsanacion"
                             class="text-2xl leading-none text-gray-400 hover:text-gray-600">

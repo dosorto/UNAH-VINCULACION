@@ -1,31 +1,35 @@
 <div>
     @php
         $descripcionVista = match($viewMode) {
-            'pendientes' => 'Registros enviados que estan en una etapa activa asignada a tu usuario y rol activo, o a tu rol activo.',
+            'pendientes' => 'Registros enviados que están en una etapa activa asignada a tu usuario y rol activo, o a tu rol activo.',
             'todos' => 'Vista administrativa con todos los registros PPS/Servicio Social.',
             default => 'Registros PPS/Servicio Social creados por tu usuario.',
         };
 
         $tituloVacio = match($viewMode) {
-            'pendientes' => 'No hay registros pendientes de revision.',
+            'pendientes' => 'No hay registros pendientes de revisión.',
             'todos' => 'No hay registros PPS/Servicio Social.',
             default => 'No hay registros creados por tu usuario.',
         };
 
         $textoVacio = match($viewMode) {
-            'pendientes' => 'Cuando un registro llegue a una etapa asignada a tu rol, aparecera aqui.',
+            'pendientes' => 'Cuando un registro llegue a una etapa asignada a tu rol, aparecerá aquí.',
             'todos' => $canCreateRecord
-                ? 'Crea el primer registro desde el boton "Nuevo registro".'
-                : 'Aun no existen registros PPS/Servicio Social.',
+                ? 'Crea el primer registro desde el botón "Nuevo registro".'
+                : 'Aún no existen registros PPS/Servicio Social.',
             default => $canCreateRecord
-                ? 'Crea el primer registro desde el boton "Nuevo registro".'
+                ? 'Crea el primer registro desde el botón "Nuevo registro".'
                 : 'No registraste PPS/Servicio Social con este usuario.',
         };
+
+        $tipoPpsEtiqueta = fn (?string $tipo) => [
+            'Practica Profesional Supervisada' => 'Práctica Profesional Supervisada',
+        ][$tipo] ?? ($tipo ?: 'No registrado');
     @endphp
 
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">FORM-DVUS-015/016</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">FORM-DVUS-014</p>
             <h1 class="text-2xl font-bold text-gray-950 dark:text-white">PPS / Servicio Social</h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 {{ $descripcionVista }}
@@ -51,7 +55,7 @@
         <button type="button"
                 wire:click="$set('viewMode', 'pendientes')"
                 class="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition {{ $viewMode === 'pendientes' ? 'bg-blue-700 text-white shadow-sm' : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800' }}">
-            <span>Pendientes de revision</span>
+            <span>Pendientes de revisión</span>
             <span class="rounded-full px-2 py-0.5 text-xs {{ $viewMode === 'pendientes' ? 'bg-white/20 text-white' : ($pendingReviewCount > 0 ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300') }}">{{ $pendingReviewCount }}</span>
         </button>
 
@@ -68,7 +72,7 @@
     <div class="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-4">
         <input type="text"
                wire:model.live.debounce.300ms="search"
-               placeholder="Buscar por codigo, estudiante, cuenta o institucion..."
+               placeholder="Buscar por código, estudiante, cuenta o institución..."
                class="lg:col-span-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white">
 
         <select wire:model.live="filterEstado"
@@ -92,11 +96,11 @@
         <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Codigo / ID</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Código / ID</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Estudiante</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Cuenta</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Tipo PPS/SS</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Institucion</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Institución</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Fechas</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Estado</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Acciones</th>
@@ -128,7 +132,7 @@
                             <p class="text-xs text-gray-500 dark:text-gray-400">{{ $record->correo_institucional }}</p>
                         </td>
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $record->numero_cuenta }}</td>
-                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $record->tipo_pps_ss }}</td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $tipoPpsEtiqueta($record->tipo_pps_ss) }}</td>
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">
                             {{ \Illuminate\Support\Str::limit($record->nombre_institucion, 45) }}
                         </td>

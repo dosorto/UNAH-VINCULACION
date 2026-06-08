@@ -230,7 +230,6 @@ return [
                 'permisos' => ['docente.proyectos'],
                 'children' => [
                     ['texto' => 'Registrar Acción', 'route' => 'selectorTipoAccion', 'permiso' => 'docente.proyectos'],
-                    ['texto' => 'Mis PPS / Servicio Social', 'route' => 'pps-servicio-social.index', 'permiso' => 'docente.proyectos'],
                     ['texto' => 'Mi Historial Vinculación', 'route' => 'proyectosDocente', 'permiso' => 'docente.proyectos'],
                     ['texto' => 'Mis Fichas de Actualización', 'route' => 'FichasActualizacionDocente', 'permiso' => 'docente.proyectos'],
                     ['texto' => 'Vinculaciones Antes del Sistema', 'route' => 'proyectosAntesDelSistema', 'permiso' => 'docente.proyectos'],

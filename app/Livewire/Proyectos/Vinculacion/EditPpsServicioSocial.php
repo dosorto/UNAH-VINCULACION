@@ -25,8 +25,8 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
 
         if (!$this->estadoPermiteEdicion($registro)) {
             Notification::make()
-                ->title('Edicion no disponible')
-                ->body('Solo los registros en estado borrador o subsanacion editable pueden editarse.')
+                ->title('Edición no disponible')
+                ->body('Solo los registros en estado borrador o subsanación editable pueden editarse.')
                 ->warning()
                 ->send();
 
@@ -48,7 +48,7 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
             $this->estadoAutoGuardado = 'error';
 
             Notification::make()
-                ->title('Edicion bloqueada')
+                ->title('Edición bloqueada')
                 ->body('El registro ya no esta en una etapa editable y no puede modificarse.')
                 ->danger()
                 ->send();
@@ -69,7 +69,7 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
 
         if (!$this->estadoPermiteEdicion($this->registro)) {
             Notification::make()
-                ->title('Edicion bloqueada')
+                ->title('Edición bloqueada')
                 ->body('El registro ya no esta en una etapa editable y no puede modificarse.')
                 ->danger()
                 ->send();
@@ -82,7 +82,7 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         abort_unless($this->canEditRecord($this->registro), 403);
 
         $this->resetErrorBag();
-        $this->validate($this->rules(), [], $this->validationAttributes());
+        $this->validate($this->rules(), $this->messages(), $this->validationAttributes());
 
         if (!$this->autoGuardarBorrador()) {
             return;
@@ -130,7 +130,7 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
 
         Notification::make()
             ->title('Registro actualizado')
-            ->body('El FORM-DVUS-015/016 fue actualizado correctamente.')
+            ->body('El FORM-DVUS-014 fue actualizado correctamente.')
             ->success()
             ->send();
 
@@ -142,7 +142,7 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         $registro = PpsServicioSocial::findOrFail($this->registroId);
 
         if (!$this->estadoPermiteEdicion($registro)) {
-            throw new \RuntimeException('Solo los registros en borrador o subsanacion editable pueden autoguardarse.');
+            throw new \RuntimeException('Solo los registros en borrador o subsanación editable pueden autoguardarse.');
         }
 
         return $registro;
@@ -188,21 +188,34 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         $this->fecha_finalizacion = $registro->fecha_finalizacion?->format('Y-m-d') ?? '';
         $this->tipo_instrumento = $this->optionKeyFromStoredValue($this->instrumentoOpciones, $registro->tipo_instrumento);
         $this->territorio_ejecucion = $registro->territorio_ejecucion ?: 'Nacional';
+        $this->modalidad_ejecucion = $registro->modalidad_ejecucion;
+        $this->region = $registro->region ?? '';
+        $this->pais = $registro->pais ?? '';
+        $this->departamento_provincia = $registro->departamento_provincia ?? '';
 
         $this->departamento_id = $this->findIdByName(Departamento::class, $registro->departamento);
         $this->municipio_id = $this->findIdByName(Municipio::class, $registro->municipio, [
             'departamento_id' => $this->departamento_id,
         ]);
+        $this->municipio_texto = $this->territorio_ejecucion === 'Internacional' ? ($registro->municipio ?? '') : '';
         $this->fillAldeaCiudad($registro->aldea_ciudad);
         $this->caserio = $registro->caserio ?? '';
+        $this->pais_sede_principal = $registro->pais_sede_principal ?? '';
+        $this->departamento_provincia_sede_principal = $registro->departamento_provincia_sede_principal ?? '';
+        $this->municipio_sede_principal = $registro->municipio_sede_principal ?? '';
+        $this->aldea_ciudad_sede_principal = $registro->aldea_ciudad_sede_principal ?? '';
+        $this->horas_presenciales = $registro->horas_presenciales === null ? '' : (string) $registro->horas_presenciales;
+        $this->horas_teletrabajo = $registro->horas_teletrabajo === null ? '' : (string) $registro->horas_teletrabajo;
 
         $this->descripcion_tipo_pps = $registro->descripcion_tipo_pps ?? '';
+        $this->descripcion_horas_tipo_pps_ss = $registro->descripcion_horas_tipo_pps_ss ?? '';
         $this->total_horas = (string) $registro->total_horas;
         $this->area_realizacion = $registro->area_realizacion ?? '';
         $this->resumen_responsabilidades = $registro->resumen_responsabilidades ?? '';
-        $this->modalidad_ejecucion = $registro->modalidad_ejecucion;
 
         $this->institucion_nombre = $registro->nombre_institucion;
+        $this->institucion_nacionalidad = $registro->institucion_nacionalidad ?? '';
+        $this->institucion_pais = $registro->institucion_pais ?? '';
         $this->institucion_compromisos = $registro->compromisos_institucion ?? '';
         $this->institucion_direccion = $registro->direccion_institucion ?? '';
         $this->institucion_representante = $registro->representante_legal ?? '';
@@ -237,6 +250,8 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         if (!$aldeaCiudad) {
             return;
         }
+
+        $this->aldea_ciudad = $aldeaCiudad;
 
         [$aldea, $ciudad] = array_pad(array_map('trim', explode('/', $aldeaCiudad, 2)), 2, '');
 

@@ -45,16 +45,28 @@ class PpsServicioSocial extends Model
         'fecha_finalizacion',
         'tipo_instrumento',
         'territorio_ejecucion',
+        'region',
+        'pais',
+        'departamento_provincia',
         'departamento',
         'municipio',
         'aldea_ciudad',
         'caserio',
+        'pais_sede_principal',
+        'departamento_provincia_sede_principal',
+        'municipio_sede_principal',
+        'aldea_ciudad_sede_principal',
         'descripcion_tipo_pps',
+        'descripcion_horas_tipo_pps_ss',
         'total_horas',
+        'horas_presenciales',
+        'horas_teletrabajo',
         'area_realizacion',
         'resumen_responsabilidades',
         'modalidad_ejecucion',
         'nombre_institucion',
+        'institucion_nacionalidad',
+        'institucion_pais',
         'compromisos_institucion',
         'direccion_institucion',
         'representante_legal',
@@ -92,6 +104,8 @@ class PpsServicioSocial extends Model
         'fecha_envio' => 'datetime',
         'fecha_revision' => 'datetime',
         'total_horas' => 'integer',
+        'horas_presenciales' => 'integer',
+        'horas_teletrabajo' => 'integer',
         'adjunta_carta_formalizacion' => 'boolean',
         'adjunta_convenio_marco' => 'boolean',
     ];
@@ -191,18 +205,18 @@ class PpsServicioSocial extends Model
         $camposObligatorios = [
             'facultad_centro' => 'Facultad / Centro',
             'carrera' => 'Carrera',
-            'numero_cuenta' => 'Numero de cuenta',
+            'numero_cuenta' => 'Número de cuenta',
             'nombre_estudiante' => 'Nombre del estudiante',
             'celular_estudiante' => 'Celular del estudiante',
             'correo_institucional' => 'Correo institucional',
             'tipo_pps_ss' => 'Tipo PPS/SS',
             'fecha_inicio' => 'Fecha de inicio',
-            'fecha_finalizacion' => 'Fecha de finalizacion',
+            'fecha_finalizacion' => 'Fecha de finalización',
             'tipo_instrumento' => 'Tipo de instrumento',
-            'territorio_ejecucion' => 'Territorio de ejecucion',
+            'territorio_ejecucion' => 'Territorio de ejecución',
             'total_horas' => 'Total de horas',
-            'modalidad_ejecucion' => 'Modalidad de ejecucion',
-            'nombre_institucion' => 'Institucion / Organizacion',
+            'modalidad_ejecucion' => 'Modalidad de ejecución',
+            'nombre_institucion' => 'Institución / Organización',
             'nombre_jefe_directo' => 'Jefe directo',
             'nombre_docente_supervisor' => 'Docente supervisor',
         ];
@@ -224,7 +238,7 @@ class PpsServicioSocial extends Model
         if ($this->valorCompletoParaEnvio($this->correo_institucional)
             && !filter_var($this->correo_institucional, FILTER_VALIDATE_EMAIL)
         ) {
-            $faltantes[] = 'Correo institucional con formato valido';
+            $faltantes[] = 'Correo institucional con formato válido';
         }
 
         if ($this->valorCompletoParaEnvio($this->total_horas)
@@ -241,10 +255,10 @@ class PpsServicioSocial extends Model
                 $fechaFinalizacion = $this->fechaParaComparar($this->fecha_finalizacion);
 
                 if ($fechaFinalizacion->lt($fechaInicio)) {
-                    $faltantes[] = 'Fecha de finalizacion mayor o igual a fecha de inicio';
+                    $faltantes[] = 'Fecha de finalización mayor o igual a fecha de inicio';
                 }
             } catch (\Throwable) {
-                $faltantes[] = 'Fechas con formato valido';
+                $faltantes[] = 'Fechas con formato válido';
             }
         }
 

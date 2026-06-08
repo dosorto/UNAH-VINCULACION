@@ -32,7 +32,7 @@ class ShowPpsServicioSocial extends Component
         if ($this->registro->estado !== PpsServicioSocial::ESTADO_BORRADOR) {
             Notification::make()
                 ->title('Envio no disponible')
-                ->body('Solo los registros en estado borrador pueden enviarse a revision.')
+                ->body('Solo los registros en estado borrador pueden enviarse a revisión.')
                 ->warning()
                 ->send();
 
@@ -48,7 +48,7 @@ class ShowPpsServicioSocial extends Component
 
             Notification::make()
                 ->title('Formulario incompleto')
-                ->body('Complete los campos obligatorios antes de enviar a revision.')
+                ->body('Complete los campos obligatorios antes de enviar a revisión.')
                 ->warning()
                 ->send();
 
@@ -68,7 +68,7 @@ class ShowPpsServicioSocial extends Component
 
             return;
         } catch (\Throwable $e) {
-            Log::error('Error enviando PPS/SS a revision', [
+            Log::error('Error enviando PPS/SS a revisión', [
                 'registro_id' => $this->registro?->id,
                 'estado' => $this->registro?->estado,
                 'method' => 'enviarRevision',
@@ -87,7 +87,7 @@ class ShowPpsServicioSocial extends Component
 
             Notification::make()
                 ->title('Error')
-                ->body('No se pudo enviar el registro a revision. Intente nuevamente.')
+                ->body('No se pudo enviar el registro a revisión. Intente nuevamente.')
                 ->danger()
                 ->send();
 
@@ -96,7 +96,7 @@ class ShowPpsServicioSocial extends Component
 
         Notification::make()
             ->title('Registro enviado')
-            ->body('El FORM-DVUS-015/016 fue enviado a revision correctamente.')
+            ->body('El FORM-DVUS-014 fue enviado a revisión correctamente.')
             ->success()
             ->send();
     }
@@ -151,8 +151,8 @@ class ShowPpsServicioSocial extends Component
         Notification::make()
             ->title($esAprobacionFinal ? 'Registro aprobado' : 'Etapa aprobada')
             ->body($esAprobacionFinal
-                ? 'El FORM-DVUS-015/016 fue aprobado correctamente.'
-                : 'El registro avanzo a la siguiente etapa del flujo PPS/SS.')
+                ? 'El FORM-DVUS-014 fue aprobado correctamente.'
+                : 'El registro avanzó a la siguiente etapa del flujo PPS/SS.')
             ->success()
             ->send();
     }
@@ -172,7 +172,7 @@ class ShowPpsServicioSocial extends Component
         if (!$this->registro->puedeRechazarse(auth()->id(), $user)) {
             Notification::make()
                 ->title('Revision no disponible')
-                ->body('La etapa actual del flujo PPS/SS no permite enviar a subsanacion.')
+                ->body('La etapa actual del flujo PPS/SS no permite enviar a subsanación.')
                 ->warning()
                 ->send();
 
@@ -211,7 +211,7 @@ class ShowPpsServicioSocial extends Component
         if (!$this->registro->puedeRechazarse(auth()->id(), $user)) {
             Notification::make()
                 ->title('Revision no disponible')
-                ->body('La etapa actual del flujo PPS/SS no permite enviar a subsanacion.')
+                ->body('La etapa actual del flujo PPS/SS no permite enviar a subsanación.')
                 ->warning()
                 ->send();
 
@@ -241,7 +241,7 @@ class ShowPpsServicioSocial extends Component
 
             Notification::make()
                 ->title('Error')
-                ->body('No se pudo enviar el registro a subsanacion. Intente nuevamente.')
+                ->body('No se pudo enviar el registro a subsanación. Intente nuevamente.')
                 ->danger()
                 ->send();
 
@@ -249,8 +249,8 @@ class ShowPpsServicioSocial extends Component
         }
 
         Notification::make()
-            ->title('Registro enviado a subsanacion')
-            ->body('El FORM-DVUS-015/016 fue devuelto para correcciones.')
+            ->title('Registro enviado a subsanación')
+            ->body('El FORM-DVUS-014 fue devuelto para correcciones.')
             ->warning()
             ->send();
     }
@@ -285,7 +285,7 @@ class ShowPpsServicioSocial extends Component
 
             Notification::make()
                 ->title('Error')
-                ->body('No se pudo iniciar la subsanacion. Intente nuevamente.')
+                ->body('No se pudo iniciar la subsanación. Intente nuevamente.')
                 ->danger()
                 ->send();
 

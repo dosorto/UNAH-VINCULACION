@@ -4,10 +4,62 @@ namespace App\Livewire\Proyectos\Vinculacion;
 
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class AreaProyectoSelector extends Component
 {
+    public bool $mostrarFormulariosPps = false;
+    public bool $mostrarFormulariosDesarrolloLocal = false;
+    public bool $mostrarFormulariosEducacionNoFormal = false;
+    public ?int $tipoAccionDesarrolloLocalId = null;
+    public ?int $tipoAccionEnfId = null;
+
+    public function mount(): void
+    {
+        $grupo = request()->query('grupo');
+
+        $this->mostrarFormulariosPps = $grupo === 'pps';
+        $this->mostrarFormulariosDesarrolloLocal = $grupo === 'desarrollo-local';
+        $this->mostrarFormulariosEducacionNoFormal = $grupo === 'educacion-no-formal';
+        $this->tipoAccionDesarrolloLocalId = DB::table('vinculacion_tipos_accion')
+            ->where('codigo', 'DESARROLLO_LOCAL_REGIONAL')
+            ->value('id');
+        $this->tipoAccionEnfId = DB::table('enf_catalogos')
+            ->where('tipo', 'tipo_accion_enf')
+            ->where('nombre', 'Programa de educacion continua')
+            ->where('activo', true)
+            ->value('id');
+    }
+
+    public function mostrarFormulariosPps(): void
+    {
+        $this->mostrarFormulariosPps = true;
+        $this->mostrarFormulariosDesarrolloLocal = false;
+        $this->mostrarFormulariosEducacionNoFormal = false;
+    }
+
+    public function mostrarFormulariosDesarrolloLocal(): void
+    {
+        $this->mostrarFormulariosDesarrolloLocal = true;
+        $this->mostrarFormulariosPps = false;
+        $this->mostrarFormulariosEducacionNoFormal = false;
+    }
+
+    public function mostrarFormulariosEducacionNoFormal(): void
+    {
+        $this->mostrarFormulariosEducacionNoFormal = true;
+        $this->mostrarFormulariosPps = false;
+        $this->mostrarFormulariosDesarrolloLocal = false;
+    }
+
+    public function volverSelectorPrincipal(): void
+    {
+        $this->mostrarFormulariosPps = false;
+        $this->mostrarFormulariosDesarrolloLocal = false;
+        $this->mostrarFormulariosEducacionNoFormal = false;
+    }
+
     public function mostrarMensajeDesarrolloLocal(): void
     {
         Notification::make()

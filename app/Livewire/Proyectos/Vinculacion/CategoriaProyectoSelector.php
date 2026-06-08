@@ -11,7 +11,7 @@ class CategoriaProyectoSelector extends Component
     public function render(): View
     {
         $tiposAccion = DB::table('vinculacion_tipos_accion')
-            ->where('codigo', '!=', 'EDUCACION_NO_FORMAL')
+            ->where('codigo', 'DESARROLLO_LOCAL_REGIONAL')
             ->orderBy('orden')
             ->orderBy('nombre')
             ->get();
