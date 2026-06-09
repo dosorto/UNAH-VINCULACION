@@ -42,6 +42,7 @@
         7 => 'Resultados',
         8 => 'Presupuesto',
         9 => 'Documentos',
+        10 => 'Supervisor',
     ];
 @endphp
 
@@ -61,7 +62,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('enf.acciones.store') }}" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="enf-accion-form-draft" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}">
+        <form method="POST" action="{{ route('enf.acciones.store') }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="enf-accion-form-draft" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}">
             @csrf
             <input type="hidden" name="tipo_accion_id" value="{{ old('tipo_accion_id', $tiposAccion->first()?->id) }}">
             <input type="hidden" name="codigo_formulario" value="FORM-DVUS-018">
@@ -453,7 +454,7 @@
             </div>
 
             <div class="{{ $card }} hidden" data-step-panel="9">
-                <h2 class="{{ $sectionTitle }}">9. Cronograma y documentos</h2>
+                <h2 class="{{ $sectionTitle }}">9. Cronograma</h2>
                 <div class="space-y-3">
                     @for ($i = 0; $i < 5; $i++)
                         <div class="grid grid-cols-1 gap-2 md:grid-cols-4">
@@ -464,12 +465,55 @@
                         </div>
                     @endfor
                 </div>
-                <div class="mt-5 grid grid-cols-1 gap-2 md:grid-cols-3">
-                    @foreach (['Oficio de remisión del Decano/Director Centro Regional', 'Documento perfil del programa de formación', 'Otros documentos de respaldo'] as $doc)
-                        <label class="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
-                            <input type="checkbox" name="documentos_requeridos[]" value="{{ $doc }}" class="rounded border-gray-300 text-blue-600">
-                            <span>{{ $doc }}</span>
+            </div>
+
+            <div class="{{ $card }} hidden" data-step-panel="10">
+                <h2 class="{{ $sectionTitle }}">10. Supervisor</h2>
+                <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                    @foreach ([
+                        [
+                            'label' => 'Oficio de remisión del Decano/Director Centro Regional',
+                            'slug' => 'oficio_remision_decano',
+                        ],
+                        [
+                            'label' => 'Documento perfil del programa de formación',
+                            'slug' => 'documento_perfil_programa',
+                        ],
+                        [
+                            'label' => 'Otros documentos de respaldo',
+                            'slug' => 'otros_documentos_respaldo',
+                        ],
+                    ] as $documentoSupervisor)
+                    <section class="rounded-md border border-slate-200 p-4 shadow-sm dark:border-slate-700" data-doc-upload-card>
+                        <label class="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            <input type="checkbox" name="documentos_requeridos[]" value="{{ $documentoSupervisor['label'] }}" class="rounded border-gray-300 text-blue-600" data-doc-upload-check>
+                            <span>{{ $documentoSupervisor['label'] }}</span>
                         </label>
+
+                        <div class="mt-4 space-y-4">
+                            <div>
+                                <p class="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">¿Desea subir archivo?</p>
+                                <div class="flex items-center gap-5">
+                                    <label class="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                        <input type="radio" name="supervisor_documentos[{{ $documentoSupervisor['slug'] }}][aplica]" value="Si" class="text-blue-600 focus:ring-blue-500" data-doc-upload-radio>
+                                        Sí
+                                    </label>
+                                    <label class="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                        <input type="radio" name="supervisor_documentos[{{ $documentoSupervisor['slug'] }}][aplica]" value="No" class="text-blue-600 focus:ring-blue-500" data-doc-upload-radio checked>
+                                        No
+                                    </label>
+                                </div>
+                                @error("supervisor_documentos.{$documentoSupervisor['slug']}.aplica")<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                            </div>
+
+                            <div>
+                                <label class="{{ $label }}">Archivo adjunto</label>
+                                <input type="file" name="supervisor_documentos_archivos[{{ $documentoSupervisor['slug'] }}]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-300" data-doc-upload-file disabled>
+                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Disponible solo cuando seleccione “Sí”.</p>
+                                @error("supervisor_documentos_archivos.{$documentoSupervisor['slug']}")<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+                    </section>
                     @endforeach
                 </div>
             </div>
@@ -525,7 +569,7 @@
                 const data = {};
 
                 form.querySelectorAll('input[name], select[name], textarea[name]').forEach((field) => {
-                    if (field.type === 'hidden' || field.name === '_token') {
+                    if (field.type === 'hidden' || field.type === 'file' || field.name === '_token') {
                         return;
                     }
 
@@ -676,7 +720,7 @@
                 }
 
                 form.querySelectorAll('input[name], select[name], textarea[name]').forEach((field) => {
-                    if (field.type === 'hidden' || field.name === '_token' || !(field.name in data)) {
+                    if (field.type === 'hidden' || field.type === 'file' || field.name === '_token' || !(field.name in data)) {
                         return;
                     }
 
@@ -765,7 +809,32 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             };
 
+            const updateSupervisorDocumentUploadState = () => {
+                form.querySelectorAll('[data-doc-upload-card]').forEach((card) => {
+                    const check = card.querySelector('[data-doc-upload-check]');
+                    const radios = Array.from(card.querySelectorAll('[data-doc-upload-radio]'));
+                    const file = card.querySelector('[data-doc-upload-file]');
+                    const selectedRadio = radios.find((radio) => radio.checked);
+                    const enabled = Boolean(check?.checked);
+                    const uploadEnabled = enabled && selectedRadio?.value === 'Si';
+
+                    radios.forEach((radio) => {
+                        radio.disabled = !enabled;
+                    });
+
+                    if (file) {
+                        file.disabled = !uploadEnabled;
+                        file.required = uploadEnabled;
+
+                        if (!uploadEnabled) {
+                            file.value = '';
+                        }
+                    }
+                });
+            };
+
             restore();
+            updateSupervisorDocumentUploadState();
             render();
 
             form.querySelectorAll('[data-step-button]').forEach((button) => {
@@ -775,10 +844,12 @@
             previousButton?.addEventListener('click', () => goTo(step - 1));
             nextButton?.addEventListener('click', () => goTo(step + 1));
             form.addEventListener('input', () => {
+                updateSupervisorDocumentUploadState();
                 render();
                 debouncedSave();
             });
             form.addEventListener('change', () => {
+                updateSupervisorDocumentUploadState();
                 render();
                 save();
             });

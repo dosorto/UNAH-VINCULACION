@@ -160,7 +160,7 @@ class EnfAccionController extends Controller
 
             $accion = EnfAccion::create($data);
 
-            $this->guardarRelacionesFormulario($accion, $validated);
+            $this->guardarRelacionesFormulario($accion, $validated, $request);
             $this->iniciarFlujoRevision($accion);
 
             return $accion;
@@ -273,7 +273,7 @@ class EnfAccionController extends Controller
         }
     }
 
-    private function guardarRelacionesFormulario(EnfAccion $accion, array $data): void
+    private function guardarRelacionesFormulario(EnfAccion $accion, array $data, StoreEnfAccionRequest $request): void
     {
         if (
             filled($data['campus_id'] ?? null)
@@ -426,7 +426,36 @@ class EnfAccionController extends Controller
             ]);
         }
 
+        $supervisorDocumentMap = [
+            'Oficio de remisión del Decano/Director Centro Regional' => 'oficio_remision_decano',
+            'Documento perfil del programa de formación' => 'documento_perfil_programa',
+            'Otros documentos de respaldo' => 'otros_documentos_respaldo',
+        ];
+
         foreach (array_filter($data['documentos_requeridos'] ?? []) as $documento) {
+            $slug = $supervisorDocumentMap[$documento] ?? null;
+
+            if (
+                $slug
+                && data_get($data, "supervisor_documentos.{$slug}.aplica") === 'Si'
+                && $request->hasFile("supervisor_documentos_archivos.{$slug}")
+            ) {
+                $file = $request->file("supervisor_documentos_archivos.{$slug}");
+                $path = $file->store('enf/documentos', 'public');
+
+                $accion->documentos()->create([
+                    'tipo_documento' => $slug,
+                    'nombre' => $documento,
+                    'ruta' => $path,
+                    'mime_type' => $file->getClientMimeType(),
+                    'tamano_bytes' => $file->getSize(),
+                    'subido_por_usuario_id' => $request->user()?->id,
+                    'descripcion' => 'Documento adjunto desde el paso Supervisor.',
+                ]);
+
+                continue;
+            }
+
             $accion->documentos()->create([
                 'tipo_documento' => 'requerido_form_018',
                 'nombre' => $documento,

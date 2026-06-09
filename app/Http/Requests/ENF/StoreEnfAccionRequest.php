@@ -3,6 +3,7 @@
 namespace App\Http\Requests\ENF;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreEnfAccionRequest extends FormRequest
 {
@@ -111,6 +112,44 @@ class StoreEnfAccionRequest extends FormRequest
             'cronograma.*.responsable' => ['nullable', 'string', 'max:180'],
             'documentos_requeridos' => ['nullable', 'array'],
             'documentos_requeridos.*' => ['nullable', 'string', 'max:220'],
+            'supervisor_documentos' => ['nullable', 'array'],
+            'supervisor_documentos.oficio_remision_decano.aplica' => [
+                'nullable',
+                Rule::requiredIf(fn () => in_array('Oficio de remisión del Decano/Director Centro Regional', $this->input('documentos_requeridos', []), true)),
+                'in:Si,No',
+            ],
+            'supervisor_documentos.documento_perfil_programa.aplica' => [
+                'nullable',
+                Rule::requiredIf(fn () => in_array('Documento perfil del programa de formación', $this->input('documentos_requeridos', []), true)),
+                'in:Si,No',
+            ],
+            'supervisor_documentos.otros_documentos_respaldo.aplica' => [
+                'nullable',
+                Rule::requiredIf(fn () => in_array('Otros documentos de respaldo', $this->input('documentos_requeridos', []), true)),
+                'in:Si,No',
+            ],
+            'supervisor_documentos_archivos' => ['nullable', 'array'],
+            'supervisor_documentos_archivos.oficio_remision_decano' => [
+                Rule::excludeIf(fn () => data_get($this->input('supervisor_documentos', []), 'oficio_remision_decano.aplica') !== 'Si'),
+                Rule::requiredIf(fn () => data_get($this->input('supervisor_documentos', []), 'oficio_remision_decano.aplica') === 'Si'),
+                'file',
+                'mimes:pdf,doc,docx,jpg,jpeg,png',
+                'max:10240',
+            ],
+            'supervisor_documentos_archivos.documento_perfil_programa' => [
+                Rule::excludeIf(fn () => data_get($this->input('supervisor_documentos', []), 'documento_perfil_programa.aplica') !== 'Si'),
+                Rule::requiredIf(fn () => data_get($this->input('supervisor_documentos', []), 'documento_perfil_programa.aplica') === 'Si'),
+                'file',
+                'mimes:pdf,doc,docx,jpg,jpeg,png',
+                'max:10240',
+            ],
+            'supervisor_documentos_archivos.otros_documentos_respaldo' => [
+                Rule::excludeIf(fn () => data_get($this->input('supervisor_documentos', []), 'otros_documentos_respaldo.aplica') !== 'Si'),
+                Rule::requiredIf(fn () => data_get($this->input('supervisor_documentos', []), 'otros_documentos_respaldo.aplica') === 'Si'),
+                'file',
+                'mimes:pdf,doc,docx,jpg,jpeg,png',
+                'max:10240',
+            ],
         ];
     }
 }
