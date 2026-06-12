@@ -34,6 +34,7 @@ class ProyectosDocenteList extends Component
     private const ACTION_PROYECTOS = 'proyectos';
     private const ACTION_ENF = 'educacion_no_formal';
     private const ACTION_PPS = 'pps_servicio_social';
+    private const ACTION_VOLUNTARIADO = 'voluntariado';
 
     public bool $informeIntermedioModal = false;
     public ?int $informeIntermedioProyectoId = null;
@@ -197,6 +198,14 @@ class ProyectosDocenteList extends Component
             ))
             ->when($this->filterRol, fn($q) => $q->where('empleado_proyecto.rol', $this->filterRol))
             ->when($this->filterEstado, fn($q) => $q->where('tipo_estado.id', $this->filterEstado))
+            ->when($this->filterTipoAccion === self::ACTION_VOLUNTARIADO, fn($q) => $q->whereHas(
+                'tipoAccion',
+                fn($t) => $t->where('codigo', 'VOLUNTARIADO')
+            ))
+            ->when($this->filterTipoAccion === self::ACTION_PROYECTOS, fn($q) => $q->whereDoesntHave(
+                'tipoAccion',
+                fn($t) => $t->where('codigo', 'VOLUNTARIADO')
+            ))
             ->with(['estadoActual.tipoestado', 'tipoAccion', 'coordinador_proyecto.empleado'])
             ->distinct();
     }
@@ -205,7 +214,7 @@ class ProyectosDocenteList extends Component
     {
         $rows = collect();
 
-        if ($this->shouldIncludeAction(self::ACTION_PROYECTOS)) {
+        if ($this->shouldIncludeProyectos()) {
             $rows = $rows->merge($this->proyectoRows());
         }
 
@@ -225,6 +234,15 @@ class ProyectosDocenteList extends Component
     private function shouldIncludeAction(string $action): bool
     {
         return $this->filterTipoAccion === self::ACTION_TODAS || $this->filterTipoAccion === $action;
+    }
+
+    private function shouldIncludeProyectos(): bool
+    {
+        return in_array($this->filterTipoAccion, [
+            self::ACTION_TODAS,
+            self::ACTION_PROYECTOS,
+            self::ACTION_VOLUNTARIADO,
+        ], true);
     }
 
     private function proyectoRows(): Collection
@@ -381,6 +399,7 @@ class ProyectosDocenteList extends Component
         return match ($codigo) {
             'EDUCACION_NO_FORMAL' => 'Educacion no formal',
             'PPS_VOLUNTARIADO_GESTION_RIESGO' => 'PPS / Servicio Social',
+            'VOLUNTARIADO' => 'Voluntariado Académico',
             default => 'Desarrollo Local y Regional',
         };
     }

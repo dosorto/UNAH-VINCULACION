@@ -14,6 +14,7 @@ class AreaProyectoSelector extends Component
     public bool $mostrarFormulariosEducacionNoFormal = false;
     public ?int $tipoAccionDesarrolloLocalId = null;
     public ?int $tipoAccionEnfId = null;
+    public ?int $tipoAccionVoluntariadoId = null;
 
     public function mount(): void
     {
@@ -29,6 +30,9 @@ class AreaProyectoSelector extends Component
             ->where('tipo', 'tipo_accion_enf')
             ->where('nombre', 'Programa de educacion continua')
             ->where('activo', true)
+            ->value('id');
+        $this->tipoAccionVoluntariadoId = DB::table('vinculacion_tipos_accion')
+            ->where('codigo', 'VOLUNTARIADO')
             ->value('id');
     }
 

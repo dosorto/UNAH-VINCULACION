@@ -73,6 +73,15 @@ class VinculacionTiposAccionSeeder extends Seeder
                 'activo' => true,
                 'orden' => 6,
             ],
+            [
+                'codigo' => 'VOLUNTARIADO',
+                'nombre' => 'Proyectos de Voluntariado Académico',
+                'descripcion' => 'Registro de proyectos de voluntariado académico (FORM-DVUS-015): acciones de vinculación donde la comunidad universitaria participa de forma voluntaria en beneficio de comunidades, con marco lógico, equipo ejecutor, contraparte y presupuesto.',
+                'badge' => 'Disponible',
+                'icono' => 'graduacion',
+                'activo' => true,
+                'orden' => 7,
+            ],
         ];
 
         foreach ($tiposAccion as $tipoAccion) {

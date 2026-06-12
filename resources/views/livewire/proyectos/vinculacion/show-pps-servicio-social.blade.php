@@ -1,23 +1,9 @@
-<div>
+<div class="space-y-6">
     @php
+        use Carbon\Carbon;
+
         $registro = $this->registro;
-        $value = fn ($data) => filled($data) ? $data : 'No registrado';
-        $bool = fn (bool $data) => $data ? 'Si' : 'No';
-        $tipoPpsEtiqueta = fn (?string $tipo) => [
-            'Practica Profesional Supervisada' => 'Práctica Profesional Supervisada',
-        ][$tipo] ?? ($tipo ?: null);
-        $modalidadEtiqueta = fn (?string $modalidad) => [
-            'Presencial' => '100% presencial',
-            '100% presencial' => '100% presencial',
-            'Hibrida' => 'Híbrida',
-            'Híbrida' => 'Híbrida',
-            '100% virtual' => 'Teletrabajo',
-            'Teletrabajo' => 'Teletrabajo',
-        ][$modalidad] ?? ($modalidad ?: null);
-        $esTerritorioNacional = $registro->territorio_ejecucion === 'Nacional';
-        $paisTerritorial = $esTerritorioNacional ? ($registro->pais ?: 'Honduras') : $registro->pais;
-        $departamentoTerritorialLabel = $esTerritorioNacional ? 'Departamento' : 'Departamento / provincia';
-        $departamentoTerritorial = $esTerritorioNacional ? $registro->departamento : $registro->departamento_provincia;
+        $estadoTexto = ucfirst(str_replace('_', ' ', $registro->estado ?: 'sin estado'));
         $estadoBadge = match($registro->estado) {
             'borrador' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200',
             'enviado' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
@@ -27,6 +13,7 @@
             'subsanacion' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
             default => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
         };
+
         $puedeEnviarRevision = $registro->puedeEnviarse(auth()->id());
         $puedeEditar = $puedeEnviarRevision;
         $puedeRevisarEtapa = $registro->usuarioPuedeRevisar(auth()->user()) && $registro->estaEnRevision();
@@ -35,199 +22,110 @@
         $puedeSubsanar = $registro->puedeSubsanarse(auth()->id());
         $puedeDescargarPdf = $registro->puedeDescargarPdf(auth()->id(), auth()->user());
         $puedeCrearRegistro = (bool) auth()->user()?->can('docente.crear-proyecto');
-
-        $sections = [
-            [
-                'title' => '1. Información general',
-                'items' => [
-                    ['Fecha de registro', $registro->created_at?->format('d/m/Y H:i')],
-                    ['Facultad / Centro', $registro->facultad_centro],
-                    ['Carrera', $registro->carrera],
-                ],
-            ],
-            [
-                'title' => '2. Datos del estudiante',
-                'items' => [
-                    ['Número de cuenta', $registro->numero_cuenta],
-                    ['Nombre completo', $registro->nombre_estudiante],
-                    ['Celular', $registro->celular_estudiante],
-                    ['Correo institucional', $registro->correo_institucional],
-                    ['Correo personal', $registro->correo_personal],
-                ],
-            ],
-            [
-                'title' => '3. Información de la Práctica Profesional / Servicio Social',
-                'items' => [
-                    ['Tipo', $tipoPpsEtiqueta($registro->tipo_pps_ss)],
-                    ['Fecha de inicio', $registro->fecha_inicio?->format('d/m/Y')],
-                    ['Fecha de finalización', $registro->fecha_finalizacion?->format('d/m/Y')],
-                    ['Tipo de instrumento', $registro->tipo_instrumento],
-                    ['Territorio de ejecución', $registro->territorio_ejecucion],
-                ],
-            ],
-            [
-                'title' => '4. Datos territoriales',
-                'items' => [
-                    ['Modalidad', $modalidadEtiqueta($registro->modalidad_ejecucion)],
-                    ['Región', $registro->region],
-                    ['País', $paisTerritorial],
-                    [$departamentoTerritorialLabel, $departamentoTerritorial],
-                    ['Municipio', $registro->municipio],
-                    ['Aldea / ciudad', $registro->aldea_ciudad],
-                    ['Caserío', $registro->caserio],
-                    ['País sede principal', $registro->pais_sede_principal],
-                    ['Departamento / provincia sede principal', $registro->departamento_provincia_sede_principal],
-                    ['Municipio sede principal', $registro->municipio_sede_principal],
-                    ['Aldea / ciudad sede principal', $registro->aldea_ciudad_sede_principal],
-                    ['Horas presenciales', $registro->horas_presenciales],
-                    ['Horas teletrabajo', $registro->horas_teletrabajo],
-                ],
-            ],
-            [
-                'title' => '5. Alcance de la PPS / Servicio Social',
-                'items' => [
-                    ['Descripción del tipo de PPS', $registro->descripcion_tipo_pps],
-                    ['Descripción de horas PPS/SS', $registro->descripcion_horas_tipo_pps_ss],
-                    ['Total de horas', $registro->total_horas],
-                    ['Departamento o área', $registro->area_realizacion],
-                    ['Responsabilidades y tareas', $registro->resumen_responsabilidades],
-                ],
-            ],
-            [
-                'title' => '6. Institución / Organización',
-                'items' => [
-                    ['Nombre', $registro->nombre_institucion],
-                    ['Nacionalidad', $registro->institucion_nacionalidad],
-                    ['País', $registro->institucion_pais],
-                    ['Compromisos asumidos', $registro->compromisos_institucion],
-                    ['Dirección exacta', $registro->direccion_institucion],
-                    ['Representante legal', $registro->representante_legal],
-                    ['Teléfono', $registro->telefono_representante],
-                    ['Correo de RRHH', $registro->correo_rrhh],
-                    ['Tipo de institución', $registro->tipo_institucion],
-                    ['Sector', $registro->sector_institucion],
-                ],
-            ],
-            [
-                'title' => '7. Jefe directo de la PPS / SS',
-                'items' => [
-                    ['Nombre completo', $registro->nombre_jefe_directo],
-                    ['Celular', $registro->celular_jefe_directo],
-                    ['Correo electrónico', $registro->correo_jefe_directo],
-                    ['Cargo', $registro->cargo_jefe_directo],
-                    ['Grado académico', $registro->grado_academico_jefe_directo],
-                ],
-            ],
-            [
-                'title' => '8. Docente supervisor',
-                'items' => [
-                    ['Nombre completo', $registro->nombre_docente_supervisor],
-                    ['Número de empleado', $registro->numero_empleado_docente],
-                    ['Celular', $registro->celular_docente],
-                    ['Correo electrónico', $registro->correo_docente],
-                    ['Categoría', $registro->categoria_docente],
-                    ['Departamento', $registro->departamento_docente],
-                    ['Jornada laboral', $registro->jornada_laboral_docente],
-                    ['Ubicación del cubículo', $registro->ubicacion_cubiculo_docente],
-                ],
-            ],
-            [
-                'title' => '9. Documentos adjuntos',
-                'items' => [
-                    ['Carta de formalización marcada', $bool($registro->adjunta_carta_formalizacion)],
-                    ['Archivo carta de formalización', $registro->archivo_carta_formalizacion ? basename($registro->archivo_carta_formalizacion) : null],
-                    ['Convenio marco marcado', $bool($registro->adjunta_convenio_marco)],
-                    ['Archivo convenio marco', $registro->archivo_convenio_marco ? basename($registro->archivo_convenio_marco) : null],
-                ],
-            ],
-        ];
     @endphp
 
-    <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">FORM-DVUS-014</p>
-            <h1 class="mt-1 text-2xl font-bold text-gray-950 dark:text-white">
-                Detalle PPS / Servicio Social
-            </h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Registro {{ $registro->codigo_registro ?: '#' . $registro->id }} creado el {{ $registro->created_at?->format('d/m/Y H:i') ?? 'No registrado' }}.
-            </p>
-        </div>
-
-        <div class="flex flex-wrap gap-2">
-            <a href="{{ route('pps-servicio-social.index') }}" wire:navigate
-               class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800">
-                Volver al listado
-            </a>
-            @if($puedeEditar)
-                <a href="{{ route('pps-servicio-social.edit', $registro->id) }}" wire:navigate
-                   class="inline-flex items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 shadow-sm transition hover:bg-amber-100 dark:border-amber-900/60 dark:bg-amber-900/30 dark:text-amber-200 dark:hover:bg-amber-900/50">
-                    Editar
+    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <a href="{{ route($historialRouteName) }}" wire:navigate
+                   class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                    Volver al historial
                 </a>
-            @endif
-            @if($puedeEnviarRevision)
-                <button type="button"
-                        wire:click="enviarRevision"
-                        wire:confirm="Al enviar este registro a revisión ya no podrá editarse. Desea continuar?"
-                        wire:loading.attr="disabled"
-                        wire:target="enviarRevision"
-                        class="inline-flex items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-70">
-                    <span wire:loading.remove wire:target="enviarRevision">Enviar a revisión</span>
-                    <span wire:loading wire:target="enviarRevision">Enviando...</span>
-                </button>
-            @endif
-            @if($puedeAprobar)
+                <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
+                    FORM-DVUS-014
+                </p>
+                <h1 class="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+                    {{ $registro->codigo_registro ?: 'Registro PPS/SS #'.$registro->id }}
+                </h1>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    {{ $registro->nombre_estudiante ?: 'Estudiante no registrado' }}
+                    @if($registro->numero_cuenta)
+                        · {{ $registro->numero_cuenta }}
+                    @endif
+                </p>
+                <div class="mt-3 flex flex-wrap items-center gap-2">
+                    <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $estadoBadge }}">
+                        {{ $estadoTexto }}
+                    </span>
+                    @if($registro->etapaActual)
+                        <span class="text-xs text-gray-500 dark:text-gray-400">
+                            Etapa: {{ $registro->etapaActual->nombre }}
+                        </span>
+                    @endif
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                @if($puedeEditar)
+                    <a href="{{ route('pps-servicio-social.edit', $registro->id) }}" wire:navigate
+                       class="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 shadow-sm transition hover:bg-amber-100 dark:border-amber-900/60 dark:bg-amber-900/30 dark:text-amber-200 dark:hover:bg-amber-900/50">
+                        Editar
+                    </a>
+                @endif
+
+                @if($puedeEnviarRevision)
+                    <button type="button"
+                            wire:click="enviarRevision"
+                            wire:confirm="Al enviar este registro a revisión ya no podrá editarse. Desea continuar?"
+                            wire:loading.attr="disabled"
+                            wire:target="enviarRevision"
+                            class="inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-70">
+                        <span wire:loading.remove wire:target="enviarRevision">Enviar a revisión</span>
+                        <span wire:loading wire:target="enviarRevision">Enviando...</span>
+                    </button>
+                @endif
+
                 @if($puedeRechazar)
                     <button type="button"
                             wire:click="abrirModalSubsanacion"
-                            class="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700">
+                            class="inline-flex items-center rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700">
                         Enviar a subsanación
                     </button>
                 @endif
-                <button type="button"
-                        wire:click="aprobarEtapa"
-                        wire:confirm="Desea aprobar esta etapa del registro PPS / Servicio Social?"
-                        wire:loading.attr="disabled"
-                        wire:target="aprobarEtapa"
-                        class="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-70">
-                    <span wire:loading.remove wire:target="aprobarEtapa">Aprobar</span>
-                    <span wire:loading wire:target="aprobarEtapa">Aprobando...</span>
-                </button>
-            @elseif($puedeRechazar)
-                <button type="button"
-                        wire:click="abrirModalSubsanacion"
-                        class="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700">
-                    Enviar a subsanación
-                </button>
-            @endif
-            @if($puedeSubsanar)
-                <button type="button"
-                        wire:click="iniciarSubsanacion"
-                        wire:confirm="Desea iniciar la subsanación? El registro volverá a borrador para editarlo."
-                        wire:loading.attr="disabled"
-                        wire:target="iniciarSubsanacion"
-                        class="inline-flex items-center justify-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70">
-                    <span wire:loading.remove wire:target="iniciarSubsanacion">Subsanar</span>
-                    <span wire:loading wire:target="iniciarSubsanacion">Abriendo...</span>
-                </button>
-            @endif
-            @if($puedeDescargarPdf)
-                <a href="{{ route('pps-servicio-social.pdf', $registro->id) }}"
-                   class="inline-flex items-center justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white">
-                    Descargar PDF
-                </a>
-            @endif
-            @if($puedeCrearRegistro)
-                <a href="{{ route('crearPpsServicioSocial') }}" wire:navigate
-                   class="inline-flex items-center justify-center rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800">
-                    Nuevo registro
-                </a>
-            @endif
+
+                @if($puedeAprobar)
+                    <button type="button"
+                            wire:click="aprobarEtapa"
+                            wire:confirm="Desea aprobar esta etapa del registro PPS / Servicio Social?"
+                            wire:loading.attr="disabled"
+                            wire:target="aprobarEtapa"
+                            class="inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-70">
+                        <span wire:loading.remove wire:target="aprobarEtapa">Aprobar</span>
+                        <span wire:loading wire:target="aprobarEtapa">Aprobando...</span>
+                    </button>
+                @endif
+
+                @if($puedeSubsanar)
+                    <button type="button"
+                            wire:click="iniciarSubsanacion"
+                            wire:confirm="Desea iniciar la subsanación? El registro volverá a borrador para editarlo."
+                            wire:loading.attr="disabled"
+                            wire:target="iniciarSubsanacion"
+                            class="inline-flex items-center rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70">
+                        <span wire:loading.remove wire:target="iniciarSubsanacion">Subsanar</span>
+                        <span wire:loading wire:target="iniciarSubsanacion">Abriendo...</span>
+                    </button>
+                @endif
+
+                @if($puedeDescargarPdf)
+                    <a href="{{ route('pps-servicio-social.pdf', $registro->id) }}"
+                       class="inline-flex items-center rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-sky-700">
+                        Descargar PDF
+                    </a>
+                @endif
+
+                @if($puedeCrearRegistro)
+                    <a href="{{ route('crearPpsServicioSocial') }}" wire:navigate
+                       class="inline-flex items-center rounded-lg bg-blue-700 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-800">
+                        Nuevo registro
+                    </a>
+                @endif
+            </div>
         </div>
     </div>
 
     @if($camposFaltantesEnvio !== [])
-        <div class="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
+        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
             <p class="font-semibold">Complete la información obligatoria antes de enviar a revisión.</p>
             <ul class="mt-2 list-disc space-y-1 pl-5">
                 @foreach($camposFaltantesEnvio as $campo)
@@ -237,74 +135,125 @@
         </div>
     @endif
 
-    @if($registro->estado === 'rechazado')
-        <div class="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-200">
-            <p class="font-semibold">Este registro fue devuelto para subsanación.</p>
-            <p class="mt-1">Revise el motivo y realice las correcciones necesarias.</p>
-        </div>
-    @endif
-
-    <div class="mb-5 rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-white p-5 shadow-sm dark:border-blue-900/50 dark:from-blue-950/40 dark:to-gray-900">
-        <div class="grid gap-4 md:grid-cols-4">
-            <div class="md:col-span-2">
-                <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">Estudiante</p>
-                <p class="mt-1 text-xl font-bold text-gray-950 dark:text-white">{{ $registro->nombre_estudiante }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">{{ $registro->numero_cuenta }} · {{ $registro->correo_institucional }}</p>
-            </div>
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Institución</p>
-                <p class="mt-1 font-semibold text-gray-900 dark:text-white">{{ $registro->nombre_institucion }}</p>
-            </div>
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Estado</p>
-                <span class="mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $estadoBadge }}">
-                    {{ ucfirst($registro->estado ?: 'sin estado') }}
-                </span>
-                @if($registro->fecha_envio)
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                        Enviado: {{ $registro->fecha_envio->format('d/m/Y H:i') }}
-                    </p>
-                    @if($registro->enviado_por)
-                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                            Enviado por ID: {{ $registro->enviado_por }}
-                        </p>
-                    @endif
-                @endif
-                @if($registro->fecha_revision)
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                        Revisado: {{ $registro->fecha_revision->format('d/m/Y H:i') }}
-                    </p>
-                    @if($registro->revisado_por)
-                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                            Revisado por ID: {{ $registro->revisado_por }}
-                        </p>
-                    @endif
-                @endif
-            </div>
-        </div>
-    </div>
-
     @if($registro->motivo_rechazo)
-        <div class="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-200">
+        <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-200">
             <p class="font-semibold">Observaciones de subsanación</p>
             <p class="mt-2 whitespace-pre-line">{{ $registro->motivo_rechazo }}</p>
         </div>
     @endif
 
-    <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        @foreach($sections as $section)
-            <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                <h2 class="mb-4 text-base font-bold text-gray-900 dark:text-white">{{ $section['title'] }}</h2>
-                <dl class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    @foreach($section['items'] as [$label, $data])
-                        <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/70">
-                            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ $label }}</dt>
-                            <dd class="mt-1 whitespace-pre-line text-sm text-gray-900 dark:text-gray-100">{{ $value($data) }}</dd>
-                        </div>
-                    @endforeach
-                </dl>
+    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <section class="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+            <div class="mb-4 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-700">
+                <div>
+                    <h2 class="text-base font-bold text-gray-900 dark:text-white">Ficha FORM-DVUS-014</h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Datos registrados para revisión.</p>
+                </div>
+            </div>
+
+            @include('components.pps-servicio-social.form-014', [
+                'registro' => $registro,
+                'formData' => $formData ?? null,
+                'isPdf' => false,
+            ])
+        </section>
+
+        <aside class="space-y-6">
+            <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                <h2 class="mb-4 text-lg font-bold text-gray-900 dark:text-white">
+                    Historial de movimientos
+                </h2>
+
+                <div class="max-h-[calc(100vh-12rem)] overflow-y-auto pr-2">
+                    @if($historial->count() > 0)
+                        <ol class="relative border-s border-yellow-600">
+                            @foreach($historial as $index => $movimiento)
+                                @php
+                                    $estadoMovimiento = $movimiento->estado_destino ?: $movimiento->estado_origen;
+                                    $comentario = $movimiento->motivo_rechazo ?: $movimiento->comentario;
+                                @endphp
+                                <li class="{{ $index < $historial->count() - 1 ? 'mb-8' : '' }} ms-4">
+                                    <div class="absolute -start-1.5 mt-1.5 h-3 w-3 rounded-full border border-white bg-yellow-600"></div>
+                                    <time class="text-sm font-normal leading-none text-yellow-600">
+                                        {{ Carbon::parse($movimiento->created_at)->format('d') }} de
+                                        {{ Carbon::parse($movimiento->created_at)->translatedFormat('F') }} del
+                                        {{ Carbon::parse($movimiento->created_at)->format('Y') }}
+                                    </time>
+                                    <h3 class="mt-2 text-base font-semibold text-gray-900 dark:text-gray-200">
+                                        Estado: {{ ucfirst(str_replace('_', ' ', $estadoMovimiento ?: 'cambio registrado')) }}
+                                    </h3>
+                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                        Acción: {{ ucfirst(str_replace('_', ' ', $movimiento->accion ?: 'movimiento')) }}
+                                    </p>
+                                    @if($movimiento->realizadoPor)
+                                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                            Realizado por: {{ $movimiento->realizadoPor->name ?: $movimiento->realizadoPor->email }}
+                                        </p>
+                                    @endif
+                                    @if($movimiento->etapaOrigen || $movimiento->etapaDestino)
+                                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                            {{ $movimiento->etapaOrigen?->nombre ?: 'Sin etapa origen' }}
+                                            @if($movimiento->etapaDestino)
+                                                → {{ $movimiento->etapaDestino->nombre }}
+                                            @endif
+                                        </p>
+                                    @endif
+                                    @if($comentario)
+                                        <p class="mt-2 whitespace-pre-line rounded-lg bg-gray-50 p-3 text-sm text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                            {{ $comentario }}
+                                        </p>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ol>
+                    @else
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            No hay movimientos registrados para este PPS / Servicio Social.
+                        </p>
+                    @endif
+                </div>
             </section>
-        @endforeach
+
+            <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                <h2 class="mb-4 text-lg font-bold text-gray-900 dark:text-white">
+                    Anexos
+                </h2>
+
+                @if(count($anexos) > 0)
+                    <div class="space-y-3">
+                        @foreach($anexos as $anexo)
+                            <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                                <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $anexo['titulo'] }}</p>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    {{ $anexo['archivo'] ?: ($anexo['marcado'] ? 'Marcado como adjunto, sin archivo registrado' : 'Sin archivo') }}
+                                </p>
+
+                                @if($anexo['exists'])
+                                    <div class="mt-3 flex flex-wrap gap-2">
+                                        <a href="{{ $anexo['view_url'] }}" target="_blank" rel="noopener"
+                                           class="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-900/60 dark:bg-blue-900/30 dark:text-blue-200 dark:hover:bg-blue-900/50">
+                                            Ver anexo
+                                        </a>
+                                        <a href="{{ $anexo['download_url'] }}"
+                                           class="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+                                            Descargar anexo
+                                        </a>
+                                    </div>
+                                @else
+                                    <p class="mt-2 text-xs text-amber-600 dark:text-amber-300">
+                                        No hay archivo disponible para abrir o descargar.
+                                    </p>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        No hay anexos registrados.
+                    </p>
+                @endif
+            </section>
+        </aside>
     </div>
 
     @if($subsanarModal)

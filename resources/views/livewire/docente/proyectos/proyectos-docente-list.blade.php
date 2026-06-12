@@ -1,37 +1,7 @@
 <div>
     @php
         $incluyeProyectos = $filterTipoAccion === 'proyectos';
-        $puedeCrearAccion = (bool) auth()->user()?->activeRole?->hasPermissionTo('docente.crear-proyecto');
     @endphp
-
-    <div class="w-full flex justify-between items-center mb-4">
-        <div>
-            <p class="text-zinc-950 dark:text-white font-bold mb-1">Mi Historial Vinculación</p>
-            <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm mt-0">Consulta tus proyectos de vinculación y registros PPS / Servicio Social desde una sola vista.</p>
-        </div>
-        @if ($puedeCrearAccion)
-            <div class="flex flex-wrap justify-end gap-2">
-                @if (in_array($filterTipoAccion, ['todas', 'proyectos'], true))
-                <a href="{{ route('crearProyectoVinculacion') }}"
-                   class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg">
-                    Nuevo proyecto
-                </a>
-                @endif
-                @if (in_array($filterTipoAccion, ['todas', 'educacion_no_formal'], true))
-                <a href="{{ route('enf.tipos') }}"
-                   class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-lg">
-                    Nueva ENF
-                </a>
-                @endif
-                @if (in_array($filterTipoAccion, ['todas', 'pps_servicio_social'], true))
-                <a href="{{ route('crearPpsServicioSocial') }}"
-                   class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg">
-                    Nuevo PPS/SS
-                </a>
-                @endif
-            </div>
-        @endif
-    </div>
 
     <div class="mb-4 flex flex-wrap gap-2 border-b border-gray-200 pb-3 dark:border-gray-700">
         <button type="button"
@@ -53,6 +23,26 @@
                 wire:click="$set('filterTipoAccion', 'pps_servicio_social')"
                 class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold transition {{ $filterTipoAccion === 'pps_servicio_social' ? 'bg-blue-700 text-white shadow-sm' : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800' }}">
             PPS / Servicio Social
+        </button>
+        <button type="button"
+                wire:click="$set('filterTipoAccion', 'voluntariado')"
+                class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold transition {{ $filterTipoAccion === 'voluntariado' ? 'bg-blue-700 text-white shadow-sm' : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800' }}">
+            Voluntariado Académico
+        </button>
+                <button type="button"
+                wire:click="$set('filterTipoAccion', 'seguimiento_a_egresados')"
+                class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold transition {{ $filterTipoAccion === 'seguimiento_a_egresados' ? 'bg-blue-700 text-white shadow-sm' : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800' }}">
+            Seguimiento a egresados
+        </button>
+                <button type="button"
+                wire:click="$set('filterTipoAccion', 'vinculos_academicos')"
+                class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold transition {{ $filterTipoAccion === 'vinculos_academicos' ? 'bg-blue-700 text-white shadow-sm' : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800' }}">
+            Vínculo academicos
+        </button>
+                <button type="button"
+                wire:click="$set('filterTipoAccion', 'cultura_y_comunicacion')"
+                class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold transition {{ $filterTipoAccion === 'cultura_y_comunicacion' ? 'bg-blue-700 text-white shadow-sm' : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800' }}">
+            Cultura y comunicación
         </button>
     </div>
 

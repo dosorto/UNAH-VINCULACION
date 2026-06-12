@@ -113,7 +113,6 @@ return [
                     'listarProyectosSolicitado',
                     'listarProyectoRevisionFinal',
                     'listarInformesSolicitado',
-                    'pps-servicio-social.index',
                     'pps-servicio-social.show',
                     'pps-servicio-social.edit',
                     'proyectos.revision-final',
@@ -132,7 +131,6 @@ return [
                 ],
                 'children' => [
                     ['texto' => 'Historial Vinculación', 'route' => 'listarProyectosVinculacion', 'permiso' => 'proyectos.historial'],
-                    ['texto' => 'PPS / Servicio Social', 'route' => 'pps-servicio-social.index', 'permiso' => 'proyectos.historial'],
                     ['texto' => 'Revisión DVUS', 'route' => 'listarProyectosSolicitado', 'permiso' => 'proyectos.solicitados', 'funcion' => 'obtenerCantidadProyectosEnRevision'],
                     ['texto' => 'Revisión de Informes', 'route' => 'listarInformesSolicitado', 'permiso' => 'proyectos.informes', 'funcion' => 'obtenerCantidadInformesSolicitados'],
                     ['texto' => 'Firma Director DVUS', 'route' => 'listarProyectoRevisionFinal', 'permiso' => 'proyectos.revision-final', 'funcion' => 'obtenerCantidadProyectosEnRevisionFinal'],
@@ -211,12 +209,11 @@ return [
             [
                 'titulo' => 'Historial Vinculación',
                 'route' => 'proyectosCentroFacultad',
-                'routes' => ['proyectosCentroFacultad', 'pps-servicio-social.index', 'pps-servicio-social.show', 'pps-servicio-social.edit'],
+                'routes' => ['proyectosCentroFacultad', 'pps-servicio-social.show', 'pps-servicio-social.edit'],
                 'icono' => 'heroicon-o-academic-cap',
                 'permisos' => ['director.proyectos'],
                 'children' => [
                     ['texto' => 'Historial Vinculación', 'route' => 'proyectosCentroFacultad', 'permiso' => 'director.proyectos'],
-                    ['texto' => 'PPS / Servicio Social', 'route' => 'pps-servicio-social.index', 'permiso' => 'director.proyectos'],
                 ],
                 'funcion' => null,
                 'can' => 'director.proyectos',
@@ -225,7 +222,7 @@ return [
             [
                 'titulo' => 'Vinculación',
                 'route' => 'proyectosDocente',
-                'routes' => ['proyectosDocente', 'crearProyectoVinculacion', 'crearPpsServicioSocial', 'pps-servicio-social.index', 'pps-servicio-social.show', 'pps-servicio-social.edit'],
+                'routes' => ['proyectosDocente', 'crearProyectoVinculacion', 'crearPpsServicioSocial', 'pps-servicio-social.show', 'pps-servicio-social.edit'],
                 'icono' => 'heroicon-o-academic-cap',
                 'permisos' => ['docente.proyectos'],
                 'children' => [

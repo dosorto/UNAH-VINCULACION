@@ -23,6 +23,13 @@
         }
     "
 >
+    @if($esVoluntariado)
+    <div class="mb-4 rounded-lg border border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 px-4 py-3">
+        <p class="text-xs font-semibold uppercase tracking-wide text-yellow-700 dark:text-yellow-300">FORM-DVUS-015</p>
+        <h2 class="text-lg font-bold text-yellow-900 dark:text-yellow-200">Registro de Proyecto de Voluntariado Académico</h2>
+    </div>
+    @endif
+
     {{-- Step progress --}}
     <div class="mb-6 bg-white dark:bg-gray-900 shadow rounded-lg p-4">
         <div class="flex items-center overflow-x-auto gap-0.5">
@@ -71,6 +78,30 @@
                 </select>
                 @error('modalidad_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
+
+            {{-- Temática principal (FORM-DVUS-015 · sólo Voluntariado) --}}
+            @if($esVoluntariado)
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Temática principal del proyecto <span class="text-red-500">*</span></label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    @foreach($tematicaPrincipalOpciones as $valor => $etiqueta)
+                    <label class="flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer hover:border-yellow-400">
+                        <input type="radio" wire:model.live="tematica_principal" value="{{ $valor }}" class="text-yellow-600 focus:ring-yellow-500" />
+                        <span>{{ $etiqueta }}</span>
+                    </label>
+                    @endforeach
+                </div>
+                @error('tematica_principal') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+
+                @if($tematica_principal === 'otros')
+                <div class="mt-2">
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Especifique la temática</label>
+                    <input type="text" wire:model.live.debounce.1000ms="tematica_principal_otro" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500" />
+                    @error('tematica_principal_otro') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+                @endif
+            </div>
+            @endif
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categorías <span class="text-red-500">*</span></label>
@@ -1199,6 +1230,28 @@
                 <textarea wire:model.live.debounce.1000ms="definicion_problema" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
 
+            {{-- Descripción de la experiencia académica (FORM-DVUS-015 · sólo Voluntariado) --}}
+            @if($esVoluntariado)
+            <div class="rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50/50 dark:bg-yellow-900/10 p-4 space-y-4">
+                <h4 class="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Descripción de la experiencia académica que se desarrollará</h4>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Conocimientos teóricos que se aplicarán <span class="text-red-500">*</span></label>
+                    <textarea wire:model.live.debounce.1000ms="experiencia_conocimientos_teoricos" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-yellow-500"></textarea>
+                    @error('experiencia_conocimientos_teoricos') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Habilidades técnicas que se aplicarán <span class="text-red-500">*</span></label>
+                    <textarea wire:model.live.debounce.1000ms="experiencia_habilidades_tecnicas" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-yellow-500"></textarea>
+                    @error('experiencia_habilidades_tecnicas') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Competencias blandas que adquirirán los(as) estudiantes <span class="text-red-500">*</span></label>
+                    <textarea wire:model.live.debounce.1000ms="experiencia_competencias_blandas" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-yellow-500"></textarea>
+                    @error('experiencia_competencias_blandas') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
+            @endif
+
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alineamiento a la Reforma</label>
                 <textarea wire:model.live.debounce.1000ms="alineamiento_reforma" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
@@ -1445,6 +1498,23 @@
                     </div>
                 </div>
             </div>
+
+            {{-- Metodología de seguimiento (FORM-DVUS-015 · sólo Voluntariado) --}}
+            @if($esVoluntariado)
+            <div class="rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50/50 dark:bg-yellow-900/10 p-4">
+                <h4 class="text-sm font-semibold text-yellow-800 dark:text-yellow-300 mb-3">Metodología de seguimiento</h4>
+                <div class="flex flex-wrap gap-3">
+                    @foreach($metodologiaSeguimientoOpciones as $valor => $etiqueta)
+                    <label class="flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer hover:border-yellow-400">
+                        <input type="checkbox" wire:model.live="metodologia_seguimiento" value="{{ $valor }}" class="text-yellow-600 focus:ring-yellow-500 rounded" />
+                        <span>{{ $etiqueta }}</span>
+                    </label>
+                    @endforeach
+                </div>
+                @error('metodologia_seguimiento') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                @error('metodologia_seguimiento.*') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+            </div>
+            @endif
         </div>
         @endif
 
@@ -1654,6 +1724,47 @@
             </div>
             @else
             <p class="text-sm text-gray-500 text-center py-4">Sin anexos guardados.</p>
+            @endif
+
+            {{-- Uso de espacios, servicios y medios institucionales (FORM-DVUS-015 · sólo Voluntariado) --}}
+            @if($esVoluntariado)
+            <div class="rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50/50 dark:bg-yellow-900/10 p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Uso de espacios, servicios y medios institucionales</h4>
+                    <button wire:click="addEspacioInstitucional" type="button" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-yellow-600 text-white hover:bg-yellow-700">
+                        + Agregar
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Detalle los espacios o servicios de la UNAH que se utilizarán (laboratorios, aulas, auditorios, medios de comunicación, etc).</p>
+
+                <div class="space-y-3">
+                    @foreach($espacios_institucionales as $i => $espacio)
+                    <div wire:key="espacio-{{ $i }}" class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end border-b border-yellow-100 dark:border-yellow-900/40 pb-3">
+                        <div class="md:col-span-4">
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción del servicio o infraestructura</label>
+                            <input type="text" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.descripcion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-yellow-500" />
+                            @error('espacios_institucionales.'.$i.'.descripcion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ubicación</label>
+                            <input type="text" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.ubicacion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-yellow-500" />
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Unidad gestora</label>
+                            <input type="text" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.unidad_gestora" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-yellow-500" />
+                        </div>
+                        <div class="md:col-span-1">
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Horas</label>
+                            <input type="number" min="0" step="0.5" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.tiempo_uso_horas" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm focus:border-yellow-500" />
+                            @error('espacios_institucionales.'.$i.'.tiempo_uso_horas') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="md:col-span-1 flex justify-end">
+                            <button wire:click="removeEspacioInstitucional({{ $i }})" type="button" class="text-xs text-red-600 hover:text-red-800">Quitar</button>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
             @endif
         </div>
         @endif

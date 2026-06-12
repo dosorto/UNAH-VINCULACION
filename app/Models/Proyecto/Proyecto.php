@@ -208,6 +208,13 @@ class Proyecto extends Model
         'lineas_investigacion_academica',
         'responsable_revision_id',
         'flujo_aprobacion_id',
+        // FORM-DVUS-015 (Voluntariado Académico)
+        'tematica_principal',
+        'tematica_principal_otro',
+        'metodologia_seguimiento',
+        'experiencia_conocimientos_teoricos',
+        'experiencia_habilidades_tecnicas',
+        'experiencia_competencias_blandas',
     ];
 
     protected $casts = [
@@ -220,6 +227,7 @@ class Proyecto extends Model
         'pais' => 'array',
         'region' => 'array',
         'caserio' => 'array',
+        'metodologia_seguimiento' => 'array',
     ];
 
     // funcion para capturar cada ves que se crea un proyecto
@@ -860,6 +868,12 @@ class Proyecto extends Model
     public function anexos()
     {
         return $this->hasMany(Anexo::class, 'proyecto_id');
+    }
+
+    // Sección VI de FORM-DVUS-015: uso de espacios, servicios y medios institucionales
+    public function espaciosInstitucionales()
+    {
+        return $this->hasMany(EspacioInstitucional::class, 'proyecto_id');
     }
 
     // obtener el estado actual del proyecto

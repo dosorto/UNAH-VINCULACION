@@ -5,8 +5,10 @@ namespace App\Livewire\Proyectos\Vinculacion;
 use App\Models\PpsServicioSocial;
 use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
 use App\Support\Notification;
+use App\Support\PpsServicioSocial\FormDvus014Data;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 
 class ShowPpsServicioSocial extends Component
@@ -18,7 +20,7 @@ class ShowPpsServicioSocial extends Component
 
     public function mount(int $id): void
     {
-        $registro = PpsServicioSocial::findOrFail($id);
+        $registro = PpsServicioSocial::with(['flujoAprobacion', 'etapaActual'])->findOrFail($id);
 
         abort_unless($this->canViewRecord($registro), 403);
 
@@ -320,6 +322,87 @@ class ShowPpsServicioSocial extends Component
 
     public function render(): View
     {
-        return view('livewire.proyectos.vinculacion.show-pps-servicio-social');
+        $this->registro->loadMissing(['flujoAprobacion', 'etapaActual']);
+
+        return view('livewire.proyectos.vinculacion.show-pps-servicio-social', [
+            'historialRouteName' => $this->historialRouteName(),
+            'historial' => $this->registro
+                ->historialRevisiones()
+                ->with(['realizadoPor', 'etapaOrigen', 'etapaDestino'])
+                ->get(),
+            'anexos' => $this->anexosRegistrados(),
+            'formData' => FormDvus014Data::from($this->registro),
+        ]);
+    }
+
+    private function historialRouteName(): string
+    {
+        $activeRole = auth()->user()?->activeRole;
+
+        if ($activeRole?->hasPermissionTo('docente.proyectos')) {
+            return 'proyectosDocente';
+        }
+
+        if ($activeRole?->hasPermissionTo('director.proyectos')) {
+            return 'proyectosCentroFacultad';
+        }
+
+        if ($activeRole?->hasPermissionTo('proyectos.historial')) {
+            return 'listarProyectosVinculacion';
+        }
+
+        return 'inicio';
+    }
+
+    private function anexosRegistrados(): array
+    {
+        return collect([
+            [
+                'tipo' => 'carta-formalizacion',
+                'titulo' => 'Carta de formalización',
+                'path' => $this->registro->archivo_carta_formalizacion,
+                'marcado' => (bool) $this->registro->adjunta_carta_formalizacion,
+            ],
+            [
+                'tipo' => 'convenio-marco',
+                'titulo' => 'Convenio marco',
+                'path' => $this->registro->archivo_convenio_marco,
+                'marcado' => (bool) $this->registro->adjunta_convenio_marco,
+            ],
+        ])
+            ->filter(fn (array $anexo): bool => filled($anexo['path']) || $anexo['marcado'])
+            ->map(function (array $anexo): array {
+                $path = filled($anexo['path']) ? $this->normalizePublicPath((string) $anexo['path']) : null;
+                $exists = $path ? Storage::disk('public')->exists($path) : false;
+
+                return [
+                    'tipo' => $anexo['tipo'],
+                    'titulo' => $anexo['titulo'],
+                    'archivo' => $path ? basename($path) : null,
+                    'marcado' => $anexo['marcado'],
+                    'exists' => $exists,
+                    'view_url' => $exists ? route('pps-servicio-social.anexo', [
+                        'id' => $this->registro->id,
+                        'tipo' => $anexo['tipo'],
+                    ]) : null,
+                    'download_url' => $exists ? route('pps-servicio-social.anexo', [
+                        'id' => $this->registro->id,
+                        'tipo' => $anexo['tipo'],
+                        'download' => 1,
+                    ]) : null,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function normalizePublicPath(string $path): string
+    {
+        $path = ltrim($path, '/');
+        $path = preg_replace('#^storage/#', '', $path);
+        $path = preg_replace('#^public/#', '', $path);
+        $path = preg_replace('#^app/public/#', '', $path);
+
+        return $path;
     }
 }
