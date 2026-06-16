@@ -46,6 +46,8 @@ class ProyectosDocenteList extends Component
 
     public bool $deleteModal = false;
     public ?int $deleteProyectoId = null;
+    public bool $deleteEnfModal = false;
+    public ?int $deleteEnfAccionId = null;
 
     public function mount($docente = null): void
     {
@@ -156,6 +158,28 @@ class ProyectosDocenteList extends Component
         $this->deleteModal = false;
         $this->deleteProyectoId = null;
         Notification::make()->title('Proyecto eliminado')->body('El proyecto fue eliminado correctamente.')->success()->send();
+    }
+
+    public function openDeleteEnf(int $accionId): void
+    {
+        $accion = EnfAccion::findOrFail($accionId);
+
+        abort_unless((int) $accion->creado_por_usuario_id === (int) auth()->id(), 403);
+
+        $this->deleteEnfAccionId = $accionId;
+        $this->deleteEnfModal = true;
+    }
+
+    public function deleteEnfAccion(): void
+    {
+        $accion = EnfAccion::findOrFail($this->deleteEnfAccionId);
+
+        abort_unless((int) $accion->creado_por_usuario_id === (int) auth()->id(), 403);
+
+        $accion->delete();
+        $this->deleteEnfModal = false;
+        $this->deleteEnfAccionId = null;
+        Notification::make()->title('ENF eliminado')->body('La accion de Educacion No Formal fue eliminada correctamente.')->success()->send();
     }
 
     public function render(): View
@@ -292,7 +316,7 @@ class ProyectosDocenteList extends Component
         }
 
         return EnfAccion::query()
-            ->with(['tipoAccion', 'revisiones'])
+            ->with(['tipoAccion', 'revisiones', 'accionCatalogos.catalogo'])
             ->whereIn('id', $ids)
             ->when($this->search, fn (Builder $query) => $query->where(function (Builder $subQuery): void {
                 $subQuery
@@ -304,6 +328,9 @@ class ProyectosDocenteList extends Component
             ->map(function (EnfAccion $accion) use ($user): array {
                 $isOwn = (int) $accion->creado_por_usuario_id === (int) $user->id;
                 $isPending = $this->enfAccionPendienteParaUsuario($accion);
+                $tipoEnf = $accion->accionCatalogos
+                    ->first(fn ($catalogo) => $catalogo->tipo === 'tipo_accion_enf')
+                    ?->catalogo?->nombre;
 
                 return [
                     'kind' => self::ACTION_ENF,
@@ -312,7 +339,7 @@ class ProyectosDocenteList extends Component
                     'codigo' => $accion->codigo_formulario ?: ($accion->numero_registro ?: '#'.$accion->id),
                     'secondary_code' => null,
                     'nombre' => $accion->nombre_accion,
-                    'descripcion' => $accion->tipoAccion?->nombre ?: 'Educacion no formal',
+                    'descripcion' => $tipoEnf ?: ($accion->tipoAccion?->nombre ?: 'Educacion no formal'),
                     'tipo_accion' => 'Educacion no formal',
                     'rol' => $isPending ? 'Pendiente por revisar' : ($isOwn ? 'Creador' : '-'),
                     'estado' => str_replace('_', ' ', $accion->estado_flujo ?: '-'),
@@ -494,6 +521,15 @@ class ProyectosDocenteList extends Component
                 $query
                     ->whereIn('estado', $pendingStates)
                     ->whereColumn('enf_revisiones.revision_ciclo', 'enf_acciones.revision_ciclo')
+                    ->whereNotExists(function ($previousQuery) use ($pendingStates): void {
+                        $previousQuery
+                            ->selectRaw('1')
+                            ->from('enf_revisiones as enf_revisiones_anteriores')
+                            ->whereColumn('enf_revisiones_anteriores.enf_accion_id', 'enf_revisiones.enf_accion_id')
+                            ->whereColumn('enf_revisiones_anteriores.revision_ciclo', 'enf_revisiones.revision_ciclo')
+                            ->whereColumn('enf_revisiones_anteriores.orden', '<', 'enf_revisiones.orden')
+                            ->whereIn('enf_revisiones_anteriores.estado', $pendingStates);
+                    })
                     ->where(function (Builder $responsableQuery) use ($user, $activeRoleName): void {
                         $responsableQuery
                             ->where(function (Builder $assignedQuery) use ($user, $activeRoleName): void {

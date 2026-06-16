@@ -12,12 +12,12 @@ class EnfCatalogoSeeder extends Seeder
     {
         $catalogos = [
             'tipo_accion_enf' => [
+                'Certificado universitario',
+                'Proyecto de educacion continua',
                 'Programa de educacion continua',
                 'Diplomado',
                 'Congreso',
-                'Curso',
                 'Seminario',
-                'Taller',
             ],
             'perfil_participante' => [
                 'Egresados UNAH',
@@ -78,17 +78,13 @@ class EnfCatalogoSeeder extends Seeder
                 'Otro',
             ],
             'grado_academico' => [
-                'Educacion media',
-                'Tecnico universitario',
-                'Licenciatura',
-                'Maestria',
-                'Doctorado',
-                'No aplica',
+                'Titulo de Educacion Media',
+                'Titulo Universitario',
+                'Acreditar experiencia comprobada en el area',
             ],
             'tipo_certificado' => [
                 'Basico',
                 'Avanzado',
-                'Microcertificado',
             ],
             'tipo_contraparte' => [
                 'Secretaria de Estado',

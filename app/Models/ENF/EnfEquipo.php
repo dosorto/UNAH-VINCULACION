@@ -21,6 +21,8 @@ class EnfEquipo extends Model
     protected $casts = [
         'es_coordinador' => 'boolean',
         'horas_dedicadas' => 'integer',
+        'carga_academica_pac' => 'boolean',
+        'contratacion_jornada_contraria' => 'boolean',
     ];
 
     public function accion()

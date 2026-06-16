@@ -227,7 +227,12 @@
                                         </a>
                                     @endif
                                 @else
-                                    @php $accionEnf = $row['record']; @endphp
+                                    @php
+                                        $accionEnf = $row['record'];
+                                        $estadoEnf = strtoupper(str_replace(' ', '_', $accionEnf->estado_flujo ?? ''));
+                                        $esCreadorEnf = auth()->id() !== null && (int) $accionEnf->creado_por_usuario_id === (int) auth()->id();
+                                        $puedeEditarEnf = $esCreadorEnf && in_array($estadoEnf, ['BORRADOR', 'SUBSANACION', 'SUBSANACIÓN'], true);
+                                    @endphp
 
                                     <a href="{{ route('enf.acciones.show', $accionEnf->id) }}"
                                        class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:bg-gray-50 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-blue-300"
@@ -235,6 +240,23 @@
                                        aria-label="Ver detalle ENF">
                                         @svg('heroicon-o-eye', ['class' => 'h-4 w-4'])
                                     </a>
+
+                                    @if ($puedeEditarEnf)
+                                        <a href="{{ route('enf.acciones.edit', $accionEnf->id) }}"
+                                           class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-blue-700 shadow-sm transition hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900/60 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                                           title="Editar ENF"
+                                           aria-label="Editar ENF">
+                                            @svg('heroicon-o-pencil-square', ['class' => 'h-4 w-4'])
+                                        </a>
+
+                                        <button type="button"
+                                                wire:click="openDeleteEnf({{ $accionEnf->id }})"
+                                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-200 bg-red-50 text-red-700 shadow-sm transition hover:bg-red-100 hover:text-red-800 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/40"
+                                                title="Borrar ENF"
+                                                aria-label="Borrar ENF">
+                                            @svg('heroicon-o-trash', ['class' => 'h-4 w-4'])
+                                        </button>
+                                    @endif
                                 @endif
                             </div>
                         </td>
@@ -332,6 +354,30 @@
                     <button wire:click="deleteProyecto()"
                             class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg">
                         Sí, borrar proyecto
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    @if ($deleteEnfModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md">
+            <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold dark:text-white">Confirmar borrado de ENF</h3>
+                <button wire:click="$set('deleteEnfModal', false)" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4">
+                <p class="text-sm text-gray-600 dark:text-gray-400">Esta acción moverá el registro de Educación No Formal a eliminado.</p>
+                <div class="flex justify-end gap-3 mt-4">
+                    <button wire:click="$set('deleteEnfModal', false)"
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Cancelar
+                    </button>
+                    <button wire:click="deleteEnfAccion()"
+                            class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg">
+                        Sí, borrar ENF
                     </button>
                 </div>
             </div>

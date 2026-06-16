@@ -94,6 +94,7 @@ class PersonalSeeder extends Seeder
             [
                 'nombre_completo' => 'NOTIFICACIONES POA',
                 'celular' => '99999999',
+                'jornada_laboral' => 'Tiempo completo',
                 'sexo' => 'Masculino',
                 'user_id' => $user->id,
                 'centro_facultad_id' => 4,
@@ -196,6 +197,7 @@ class PersonalSeeder extends Seeder
                 [
                     'nombre_completo' => $usuarioRol['name'],
                     'celular' => '99999999',
+                    'jornada_laboral' => 'Tiempo completo',
                     'sexo' => 'Masculino',
                     'user_id' => $usuario->id,
                     'centro_facultad_id' => 4,
@@ -230,6 +232,7 @@ class PersonalSeeder extends Seeder
                 [
                     'nombre_completo' => 'Usuario Ejemplo',
                     'celular' => '99999999',
+                    'jornada_laboral' => 'Tiempo completo',
                     'sexo' => 'Masculino',
                     'user_id' => $user2->id,
                     'centro_facultad_id' => 4,

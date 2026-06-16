@@ -98,7 +98,6 @@ return new class extends Migration
             $table->foreignId('enf_accion_id')->constrained('enf_acciones')->cascadeOnDelete();
             $table->unsignedInteger('hombres')->default(0);
             $table->unsignedInteger('mujeres')->default(0);
-            $table->unsignedInteger('otros')->default(0);
             $table->unsignedInteger('total')->default(0);
             $table->unsignedInteger('estudiantes_unah')->default(0);
             $table->unsignedInteger('docentes_unah')->default(0);

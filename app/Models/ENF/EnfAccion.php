@@ -37,6 +37,7 @@ class EnfAccion extends Model
         'horas_teoricas' => 'integer',
         'horas_practicas' => 'integer',
         'total_horas' => 'integer',
+        'carga_horaria_creditos' => 'integer',
         'revision_ciclo' => 'integer',
     ];
 

@@ -17,6 +17,8 @@ class EnfEspacioAprendizaje extends Model
 
     protected $casts = [
         'activo' => 'boolean',
+        'creditos' => 'integer',
+        'horas' => 'integer',
     ];
 
     public function accion()
