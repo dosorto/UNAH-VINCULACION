@@ -143,8 +143,8 @@
     @endif
 
     <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <section class="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-            <div class="mb-4 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-700">
+        <section class="min-w-0 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+            <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
                 <div>
                     <h2 class="text-base font-bold text-gray-900 dark:text-white">Ficha FORM-DVUS-014</h2>
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Datos registrados para revisión.</p>

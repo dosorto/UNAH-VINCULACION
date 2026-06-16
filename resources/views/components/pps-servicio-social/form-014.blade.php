@@ -68,19 +68,20 @@
     .fdv * { box-sizing: border-box; }
 
     .fdv-shell {
-        {{ $isPdf ? '' : 'background: #f4f5f7; overflow-x: auto; padding: 16px 0;' }}
+        {{ $isPdf ? '' : 'background: #fff; display: flex; justify-content: center; margin-top: 20px; overflow-x: auto; padding: 0; width: 100%;' }}
     }
 
     .fdv .sheet {
         background: #fff;
         position: relative;
-        width: 816px;
+        width: {{ $isPdf ? '816px' : '100%' }};
+        max-width: {{ $isPdf ? '816px' : '100%' }};
         margin: 0 auto;
-        min-height: 1056px;
-        padding: 26px 96px;
-        border: 1px solid #d1d5db;
-        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
-        overflow: hidden;
+        min-height: {{ $isPdf ? '1056px' : 'auto' }};
+        padding: {{ $isPdf ? '26px 96px' : '20px' }};
+        border: 1px solid {{ $isPdf ? '#d1d5db' : '#ccc' }};
+        box-shadow: {{ $isPdf ? '0 12px 26px rgba(15, 23, 42, 0.12)' : 'none' }};
+        overflow: {{ $isPdf ? 'hidden' : 'visible' }};
     }
 
     /* ---------- Encabezado / pie ---------- */
