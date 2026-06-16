@@ -18,6 +18,8 @@ class EnfCertificado extends Model
     protected $casts = [
         'activo' => 'boolean',
         'horas_certificadas' => 'integer',
+        'fecha_emision_maxima' => 'date',
+        'dias_imparticion' => 'array',
     ];
 
     public function accion()

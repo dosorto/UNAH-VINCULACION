@@ -29,6 +29,7 @@ class ListEmpleado extends Component
     public string $edit_nombre_completo = '';
     public string $edit_numero_empleado = '';
     public string $edit_celular = '';
+    public string $edit_jornada_laboral = '';
     public ?int $edit_categoria_id = null;
     public ?int $edit_centro_facultad_id = null;
     public ?int $edit_departamento_academico_id = null;
@@ -64,6 +65,7 @@ class ListEmpleado extends Component
         $this->edit_nombre_completo          = $user->empleado?->nombre_completo ?? '';
         $this->edit_numero_empleado          = $user->empleado?->numero_empleado ?? '';
         $this->edit_celular                  = $user->empleado?->celular ?? '';
+        $this->edit_jornada_laboral          = $user->empleado?->jornada_laboral ?? '';
         $this->edit_categoria_id             = $user->empleado?->categoria_id;
         $this->edit_centro_facultad_id       = $user->empleado?->centro_facultad_id;
         $this->edit_departamento_academico_id = $user->empleado?->departamento_academico_id;
@@ -81,6 +83,7 @@ class ListEmpleado extends Component
             'edit_nombre_completo' => 'required|string|max:255',
             'edit_numero_empleado' => ['required', 'numeric', Rule::unique('empleado', 'numero_empleado')->ignore($user->empleado?->id)],
             'edit_celular'         => 'required|numeric',
+            'edit_jornada_laboral'  => 'nullable|string|max:120',
             'edit_categoria_id'     => 'nullable|exists:categoria,id',
             'edit_centro_facultad_id' => 'required|exists:centro_facultad,id',
         ]);
@@ -92,6 +95,7 @@ class ListEmpleado extends Component
                 'nombre_completo'           => $this->edit_nombre_completo,
                 'numero_empleado'           => $this->edit_numero_empleado,
                 'celular'                   => $this->edit_celular,
+                'jornada_laboral'           => $this->edit_jornada_laboral ?: null,
                 'categoria_id'              => $this->edit_categoria_id,
                 'centro_facultad_id'        => $this->edit_centro_facultad_id,
                 'departamento_academico_id' => $this->edit_departamento_academico_id,
@@ -118,6 +122,7 @@ class ListEmpleado extends Component
             'Roles',
             'Nombre completo',
             'Numero de empleado',
+            'Jornada laboral',
             'Categoria',
             'Correo',
             'Facultad/Centro',
@@ -128,6 +133,7 @@ class ListEmpleado extends Component
                     $user->roles->pluck('name')->implode(', '),
                     $user->empleado?->nombre_completo,
                     $user->empleado?->numero_empleado,
+                    $user->empleado?->jornada_laboral,
                     $user->empleado?->categoria?->nombre,
                     $user->email,
                     $user->empleado?->centro_facultad?->nombre,

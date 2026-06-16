@@ -27,8 +27,9 @@ class AreaProyectoSelector extends Component
             ->value('id');
         $this->tipoAccionEnfId = DB::table('enf_catalogos')
             ->where('tipo', 'tipo_accion_enf')
-            ->where('nombre', 'Programa de educacion continua')
+            ->whereIn('nombre', ['Proyecto de educacion continua', 'Programa de educacion continua'])
             ->where('activo', true)
+            ->orderByRaw("CASE WHEN nombre = 'Proyecto de educacion continua' THEN 0 ELSE 1 END")
             ->value('id');
     }
 

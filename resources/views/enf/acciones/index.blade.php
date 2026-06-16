@@ -5,11 +5,11 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Educación No Formal</h1>
-                <p class="text-sm text-slate-600 dark:text-slate-300">Acciones registradas para pruebas del módulo ENF.</p>
+                <p class="text-sm text-slate-600 dark:text-slate-300">Acciones y formularios registrados en el módulo ENF.</p>
             </div>
             <a href="{{ route('enf.acciones.create', ['nuevo' => 1]) }}"
                 class="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">
-                Registrar acción
+                Registrar ENF
             </a>
         </div>
 
@@ -24,6 +24,7 @@
                 <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                     <tr>
                         <th class="px-4 py-3">Nombre</th>
+                        <th class="px-4 py-3">Formulario</th>
                         <th class="px-4 py-3">Modalidad</th>
                         <th class="px-4 py-3">Centro/Facultad</th>
                         <th class="px-4 py-3">Estado</th>
@@ -34,6 +35,7 @@
                     @forelse ($acciones as $accion)
                         <tr>
                             <td class="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">{{ $accion->nombre_accion }}</td>
+                            <td class="px-4 py-3 text-slate-700 dark:text-slate-300">{{ $accion->codigo_formulario ?? '-' }}</td>
                             <td class="px-4 py-3 text-slate-700 dark:text-slate-300">{{ $accion->modalidad?->nombre ?? 'Sin definir' }}</td>
                             <td class="px-4 py-3 text-slate-700 dark:text-slate-300">{{ $accion->centroFacultad?->nombre ?? 'Sin definir' }}</td>
                             <td class="px-4 py-3 text-slate-700 dark:text-slate-300">{{ $accion->estado_flujo }}</td>
@@ -43,7 +45,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-4 py-8 text-center text-slate-500">Todavía no hay acciones ENF registradas.</td>
+                            <td colspan="6" class="px-4 py-8 text-center text-slate-500">Todavía no hay acciones ENF registradas.</td>
                         </tr>
                     @endforelse
                 </tbody>

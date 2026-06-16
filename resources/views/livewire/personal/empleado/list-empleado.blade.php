@@ -45,6 +45,7 @@
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Roles</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Nombre Completo</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">N° Empleado</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Jornada laboral</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Categoría</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Correo</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Acciones</th>
@@ -64,6 +65,7 @@
                         </td>
                         <td class="px-4 py-3 text-gray-900 dark:text-white">{{ $record->empleado?->nombre_completo }}</td>
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $record->empleado?->numero_empleado }}</td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $record->empleado?->jornada_laboral ?? '—' }}</td>
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $record->empleado?->categoria?->nombre ?? '—' }}</td>
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $record->email }}</td>
                         <td class="px-4 py-3">
@@ -75,7 +77,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">No hay empleados registrados.</td>
+                        <td colspan="7" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">No hay empleados registrados.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -132,6 +134,12 @@
                                 <input type="text" wire:model="edit_celular"
                                     class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500" />
                                 @error('edit_celular') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jornada laboral</label>
+                                <input type="text" wire:model="edit_jornada_laboral"
+                                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500" />
+                                @error('edit_jornada_laboral') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría</label>
