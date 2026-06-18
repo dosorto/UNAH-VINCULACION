@@ -38,6 +38,9 @@
             .table_datos1, .table_datos2, .table_datos3, .table_datos4, .table_datos5, .table_datos6, .table_datos7 {
                 width: 100% !important;
                 border-collapse: collapse !important;
+                table-layout: fixed !important;
+                page-break-inside: auto !important;
+                break-inside: auto !important;
             }
             .header-table {
                 width: 100% !important;
@@ -84,6 +87,9 @@
             .pdf-table {
                 width: 100% !important;
                 border-collapse: collapse !important;
+                table-layout: fixed !important;
+                page-break-inside: auto !important;
+                break-inside: auto !important;
             }
             .info-general-table {
                 table-layout: fixed !important;
@@ -108,10 +114,13 @@
                 padding: 3px 5px !important;
                 vertical-align: top !important;
                 line-height: 1.15 !important;
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
             }
             .pdf-section-avoid-break {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
+                page-break-inside: auto !important;
+                break-inside: auto !important;
             }
             .section-title {
                 page-break-after: avoid !important;
@@ -129,21 +138,44 @@
                 padding: 2px 3px !important;
                 vertical-align: top !important;
                 font-size: 8.5px !important;
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            tr, td, th {
+                page-break-inside: auto !important;
+                break-inside: auto !important;
+            }
+            thead {
+                display: table-header-group;
             }
             h1 { font-size: 12px !important; line-height: 1.2 !important; margin: 0 0 6px 0 !important; }
             p, .section-title, .detalles, .contact-info, .date-part .date-label {
                 font-size: 8.5px !important;
                 line-height: 1.2 !important;
             }
-            input.input-field {
+            input.input-field,
+            textarea.input-field,
+            textarea.input-field-multiline,
+            .pdf-text-block {
                 border: none !important;
                 background: transparent !important;
                 box-shadow: none !important;
                 padding: 0 !important;
                 width: 100% !important;
                 min-width: 0 !important;
+                height: auto !important;
+                max-height: none !important;
                 font-size: 9px !important;
-                line-height: 1.2 !important;
+                line-height: 1.25 !important;
+                overflow: visible !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+                overflow-wrap: anywhere !important;
+            }
+            .pdf-text-block {
+                display: block !important;
+                box-sizing: border-box !important;
             }
             iframe, embed, .no-print, .fi-btn, .fi-modal {
                 display: none !important;
@@ -153,6 +185,74 @@
         <link rel="stylesheet" href="{{ asset('css/app/fichaVinculacion.css') }}">
     @endif
     <style>
+        .date-cell {
+            padding: 0 !important;
+            vertical-align: middle !important;
+            overflow: visible !important;
+        }
+
+        .date-inner-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin: 0;
+        }
+
+        .date-inner-table th,
+        .date-inner-table td {
+            width: 33.33%;
+            text-align: center;
+            vertical-align: middle;
+            border: 0 !important;
+            border-right: 1px solid #000 !important;
+            padding: 3px 2px !important;
+            line-height: 1.1 !important;
+            white-space: normal !important;
+            overflow: visible !important;
+        }
+
+        .date-inner-table th {
+            background-color: #020b70;
+            color: #fff;
+            font-weight: bold;
+            border-bottom: 1px solid #000 !important;
+        }
+
+        .date-inner-table th:last-child,
+        .date-inner-table td:last-child {
+            border-right: 0 !important;
+        }
+
+        .execution-dates-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin: 0;
+        }
+
+        .execution-dates-table td {
+            border: 0 !important;
+            border-right: 1px solid #000 !important;
+            padding: 0 !important;
+            vertical-align: middle !important;
+            overflow: visible !important;
+        }
+
+        .execution-dates-table td:last-child {
+            border-right: 0 !important;
+        }
+
+        .execution-date-label {
+            width: 18%;
+            background-color: #ebeeef;
+            font-style: italic;
+            padding: 3px 4px !important;
+        }
+
+        .execution-date-value {
+            width: 32%;
+        }
+
         @media print {
             .no-print {
                 display: none !important;
@@ -162,6 +262,13 @@
 </head>
 
 <body style="background-color: #f2f2f2; ">
+    @php
+        $renderPdfText = static function ($value, string $fallback = '') {
+            $text = filled($value) ? (string) $value : $fallback;
+
+            return nl2br(e($text));
+        };
+    @endphp
     @if (empty($isPdf) && empty($hideEmbeddedDocuments) && $proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
         <details class="rounded-xl border border-gray-200 bg-white shadow-sm">
             <summary class="flex cursor-pointer list-none items-center justify-between gap-x-4 px-6 py-4">
@@ -249,35 +356,24 @@
                             <col class="info-col-detail">
                             <col class="info-col-detail">
                         </colgroup>
+                        @php
+                            $fechaRegistro = $proyecto->fecha_registro;
+                        @endphp
                         <tr>
-                            <th class="full-width1" rowspan="2">Fecha de solicitud de registro:</th> 
-                            <td class="full-width1" colspan="5">
-                                <div class="date-container">
-                                    <div class="date-part">
-                                        <span class="date-label">Día</span>
-                                         </div>
-                                    <div class="date-part">
-                                        <span class="date-label">Mes</span>
-                                    </div>
-                                    <div class="date-part">
-                                        <span class="date-label">Año</span>
-                                      </div>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="full-width" colspan="5">
-                                <div class="date-container">
-                                    <div class="date-part">
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_registro ? $proyecto->fecha_registro->format('d') : '' }}">
-                                    </div>
-                                    <div class="date-part">
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_registro ? $proyecto->fecha_registro->format('m') : '' }}">
-                                    </div>
-                                    <div class="date-part">
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_registro ? $proyecto->fecha_registro->format('Y') : '' }}">
-                                    </div>
-                                </div>
+                            <th class="full-width1">Fecha de solicitud de registro:</th>
+                            <td class="full-width date-cell" colspan="5">
+                                <table class="date-inner-table">
+                                    <tr>
+                                        <th>Día</th>
+                                        <th>Mes</th>
+                                        <th>Año</th>
+                                    </tr>
+                                    <tr>
+                                        <td>{{ $fechaRegistro ? $fechaRegistro->format('d') : '' }}</td>
+                                        <td>{{ $fechaRegistro ? $fechaRegistro->format('m') : '' }}</td>
+                                        <td>{{ $fechaRegistro ? $fechaRegistro->format('Y') : '' }}</td>
+                                    </tr>
+                                </table>
                             </td>
                         </tr>
                         <tr>
@@ -417,43 +513,49 @@
                         
                         
                         <!-- FECHAS DE EJECUCION  -->
+                        @php
+                            $fechaInicio = $proyecto->fecha_inicio;
+                            $fechaFinalizacion = $proyecto->fecha_finalizacion;
+                        @endphp
                         <tr>
                             <th class="full-width1" rowspan="1">6. Fechas de ejecución del proyecto:</th>
-                            <td class="sub-header" colspan="1">Fecha de inicio:</td>   
-                            <td class="full-width" colspan="2">
-                                <div class="date-container">
-                                    <div class="date-part">
-                                        <span class="date-label">Día</span>
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_inicio ? $proyecto->fecha_inicio->format('d') : '' }}">
-                                    </div>
-                                    <div class="date-part">
-                                        <span class="date-label">Mes</span>
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_inicio ? $proyecto->fecha_inicio->format('m') : '' }}">
-                                    </div>
-                                    <div class="date-part">
-                                        <span class="date-label">Año</span>
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_inicio ? $proyecto->fecha_inicio->format('Y') : '' }}">
-                                    </div>
-                                </div>
+                            <td class="full-width date-cell" colspan="5">
+                                <table class="execution-dates-table">
+                                    <tr>
+                                        <td class="execution-date-label">Fecha de inicio:</td>
+                                        <td class="execution-date-value">
+                                            <table class="date-inner-table">
+                                                <tr>
+                                                    <th>Día</th>
+                                                    <th>Mes</th>
+                                                    <th>Año</th>
+                                                </tr>
+                                                <tr>
+                                                    <td>{{ $fechaInicio ? $fechaInicio->format('d') : '' }}</td>
+                                                    <td>{{ $fechaInicio ? $fechaInicio->format('m') : '' }}</td>
+                                                    <td>{{ $fechaInicio ? $fechaInicio->format('Y') : '' }}</td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                        <td class="execution-date-label">Fecha de finalización:</td>
+                                        <td class="execution-date-value">
+                                            <table class="date-inner-table">
+                                                <tr>
+                                                    <th>Día</th>
+                                                    <th>Mes</th>
+                                                    <th>Año</th>
+                                                </tr>
+                                                <tr>
+                                                    <td>{{ $fechaFinalizacion ? $fechaFinalizacion->format('d') : '' }}</td>
+                                                    <td>{{ $fechaFinalizacion ? $fechaFinalizacion->format('m') : '' }}</td>
+                                                    <td>{{ $fechaFinalizacion ? $fechaFinalizacion->format('Y') : '' }}</td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
                             </td>
-                            <td class="sub-header" colspan="1">Fecha de finalización:</td> 
-                            <td class="full-width" colspan="1">
-                                <div class="date-container">
-                                    <div class="date-part">
-                                        <span class="date-label">Día</span>
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_finalizacion ? $proyecto->fecha_finalizacion->format('d') : '' }}">
-                                    </div>
-                                    <div class="date-part">
-                                        <span class="date-label">Mes</span>
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_finalizacion ? $proyecto->fecha_finalizacion->format('m') : '' }}">
-                                    </div>
-                                    <div class="date-part">
-                                        <span class="date-label">Año</span>
-                                        <input disabled type="text" class="input-field" value="{{ $proyecto->fecha_finalizacion ? $proyecto->fecha_finalizacion->format('Y') : '' }}">
-                                    </div>
-                                </div>
-                            </td>
-                        </tr> 
+                        </tr>
                    
                         <!-- TABLA DE BENEFICIARIOS DIRECTOS -->
                         <tr>
@@ -746,8 +848,12 @@
                             <th class="full-width1" rowspan="3">Coordinador/a del Proyecto:</th>
                             <td class="sub-header">Nombre Completo:</td>
                             <td class="full-width" colspan="2">
-                                <textarea disabled rows="2" class="input-field-multiline"
-                                    placeholder="Ingrese el nombre completo">{{ $coordinador?->nombre_completo ?? 'No especificado' }}</textarea>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($coordinador?->nombre_completo, 'No especificado') !!}</div>
+                                @else
+                                    <textarea disabled rows="2" class="input-field-multiline"
+                                        placeholder="Ingrese el nombre completo">{{ $coordinador?->nombre_completo ?? 'No especificado' }}</textarea>
+                                @endif
                             </td>
                             <td class="sub-header">No. de empleado:</td>
                             <td class="full-width" colspan="2">
@@ -759,8 +865,12 @@
                         <tr>
                             <td class="sub-header">Correo electrónico:</td>
                             <td class="full-width" colspan="2">
-                                <textarea disabled rows="2" class="input-field-multiline"
-                                    placeholder="Ingrese el correo electrónico">{{ $coordinador?->user?->email ?? 'No especificado' }}</textarea>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($coordinador?->user?->email, 'No especificado') !!}</div>
+                                @else
+                                    <textarea disabled rows="2" class="input-field-multiline"
+                                        placeholder="Ingrese el correo electrónico">{{ $coordinador?->user?->email ?? 'No especificado' }}</textarea>
+                                @endif
                             </td>
                             <td class="sub-header">Celular:</td>
                             <td class="full-width" colspan="2">
@@ -772,13 +882,21 @@
                         <tr>
                             <td class="sub-header">Categoria:</td>
                             <td class="full-width" colspan="2">
-                                <textarea disabled rows="2" class="input-field-multiline"
-                                    placeholder="Ingrese el número de celular">{{ $coordinador?->categoria?->nombre ?? 'No especificado' }}</textarea>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($coordinador?->categoria?->nombre, 'No especificado') !!}</div>
+                                @else
+                                    <textarea disabled rows="2" class="input-field-multiline"
+                                        placeholder="Ingrese el número de celular">{{ $coordinador?->categoria?->nombre ?? 'No especificado' }}</textarea>
+                                @endif
                             </td>
                             <td class="sub-header">Departamento:</td>
                             <td class="full-width" colspan="2">
-                                <textarea disabled rows="2" class="input-field-multiline"
-                                    placeholder="Ingrese el número de celular">{{ $coordinador?->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($coordinador?->departamento_academico?->nombre, 'No especificado') !!}</div>
+                                @else
+                                    <textarea disabled rows="2" class="input-field-multiline"
+                                        placeholder="Ingrese el número de celular">{{ $coordinador?->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
+                                @endif
                             </td>
                         </tr>
 
@@ -809,8 +927,12 @@
                         @forelse ($proyecto->integrantes as $integrante)
                             <tr>
                                 <td class="full-width" colspan="1">
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el nombre completo">{{ $integrante->nombre_completo }}</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->nombre_completo) !!}</div>
+                                    @else
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el nombre completo">{{ $integrante->nombre_completo }}</textarea>
+                                    @endif
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
@@ -818,24 +940,44 @@
                                         value="{{ $integrante->numero_empleado }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el correo electrónico">{{ $integrante->user?->email ?? 'No especificado' }}</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->user?->email, 'No especificado') !!}</div>
+                                    @else
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el correo electrónico">{{ $integrante->user?->email ?? 'No especificado' }}</textarea>
+                                    @endif
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese la categoría">{{ $integrante->categoria?->nombre ?? 'Sin categoría' }}</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->categoria?->nombre, 'Sin categoría') !!}</div>
+                                    @else
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese la categoría">{{ $integrante->categoria?->nombre ?? 'Sin categoría' }}</textarea>
+                                    @endif
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'Sin departamento' }}</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->departamento_academico?->nombre, 'Sin departamento') !!}</div>
+                                    @else
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'Sin departamento' }}</textarea>
+                                    @endif
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->departamento_academico?->nombre, 'No especificado') !!}</div>
+                                    @else
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
+                                    @endif
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->departamento_academico?->nombre, 'No especificado') !!}</div>
+                                    @else
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
@@ -863,8 +1005,12 @@
                         @forelse ($proyecto->integrantesInternacionales as $integrante)
                             <tr>
                                 <td class="full-width" colspan="1">
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el nombre completo">{{ $integrante->nombre_completo }}</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->nombre_completo) !!}</div>
+                                    @else
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el nombre completo">{{ $integrante->nombre_completo }}</textarea>
+                                    @endif
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
@@ -872,16 +1018,28 @@
                                         value="{{ $integrante->documento_identidad }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el correo electrónico">{{ $integrante->email }}</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->email) !!}</div>
+                                    @else
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el correo electrónico">{{ $integrante->email }}</textarea>
+                                    @endif
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese la categoría">{{ $integrante->pais }}</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->pais) !!}</div>
+                                    @else
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese la categoría">{{ $integrante->pais }}</textarea>
+                                    @endif
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el departamento">{{ $integrante->institucion }}</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->institucion) !!}</div>
+                                    @else
+                                        <textarea disabled rows="2" class="input-field-multiline"
+                                            placeholder="Ingrese el departamento">{{ $integrante->institucion }}</textarea>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
@@ -1275,7 +1433,11 @@
                             <tr>
                                 <td class="sub-header" colspan="1">Breve descripción de los compromisos asumidos por la contraparte</td>
                                 <td class="full-width" colspan="6">
-                                    <textarea disabled class="input-field" rows="3" placeholder="Describa los compromisos">{{ $entidad->descripcion_acuerdos ?? '' }}</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($entidad->descripcion_acuerdos) !!}</div>
+                                    @else
+                                        <textarea disabled class="input-field" rows="3" placeholder="Describa los compromisos">{{ $entidad->descripcion_acuerdos ?? '' }}</textarea>
+                                    @endif
                                 </td>
                             </tr>
                             <tr>
@@ -1369,8 +1531,12 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
-                                <textarea disabled id="resumen" name="resumen" cols="30" rows="6" class="input-field"
-                                    placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->resumen) }}</textarea>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(old('resumen', $proyecto->resumen)) !!}</div>
+                                @else
+                                    <textarea disabled id="resumen" name="resumen" cols="30" rows="6" class="input-field"
+                                        placeholder="Ingrese el resumen">{{ old('resumen', $proyecto->resumen) }}</textarea>
+                                @endif
                             </td>
                         </tr>
 
@@ -1381,8 +1547,12 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
-                                <textarea disabled cols="30" rows="6" class="input-field"
-                                    placeholder="Descripción de participantes">{{ $proyecto->descripcion_participantes ?? ' }}</textarea>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->descripcion_participantes) !!}</div>
+                                @else
+                                    <textarea disabled cols="30" rows="6" class="input-field"
+                                        placeholder="Descripción de participantes">{{ $proyecto->descripcion_participantes ?? '' }}</textarea>
+                                @endif
                             </td>
                         </tr>
 
@@ -1392,8 +1562,12 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
-                                <textarea disabled cols="30" rows="6" class="input-field"
-                                    placeholder="Definición del problema">{{ $proyecto->definicion_problema ?? ' }}</textarea>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->definicion_problema) !!}</div>
+                                @else
+                                    <textarea disabled cols="30" rows="6" class="input-field"
+                                        placeholder="Definición del problema">{{ $proyecto->definicion_problema ?? '' }}</textarea>
+                                @endif
                             </td>
                         </tr>
                         
@@ -1402,8 +1576,12 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
-                                <textarea disabled cols="30" rows="6" class="input-field" 
-                                    placeholder="Impacto deseado">{{ $proyecto->impacto_deseado ?? '' }}</textarea>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->impacto_deseado) !!}</div>
+                                @else
+                                    <textarea disabled cols="30" rows="6" class="input-field"
+                                        placeholder="Impacto deseado">{{ $proyecto->impacto_deseado ?? '' }}</textarea>
+                                @endif
                             </td>
                         </tr>
                         <tr>
@@ -1424,14 +1602,27 @@
                                         value="{{ $ods->nombre }}" placeholder="ODS">
                                 </td>
                                 <td class="full-width" colspan="3">
-                                    <textarea disabled class="input-field" rows="2" placeholder="Metas a las que contribuye">{{ $proyecto->metasContribuye->where('ods_id', $ods->id)->count() > 0 ? $proyecto->metasContribuye->where('ods_id', $ods->id)->map(function($meta) { return 'Meta ' . $meta->numero_meta . ': ' . $meta->descripcion; })->implode("\n") : 'Sin metas específicas registradas' }}</textarea>
+                                    @php
+                                        $metasOds = $proyecto->metasContribuye->where('ods_id', $ods->id)->count() > 0
+                                            ? $proyecto->metasContribuye->where('ods_id', $ods->id)->map(function($meta) { return 'Meta ' . $meta->numero_meta . ': ' . $meta->descripcion; })->implode("\n")
+                                            : 'Sin metas específicas registradas';
+                                    @endphp
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($metasOds) !!}</div>
+                                    @else
+                                        <textarea disabled class="input-field" rows="2" placeholder="Metas a las que contribuye">{{ $metasOds }}</textarea>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
                                 <td class="full-width" colspan="19">
-                                    <textarea disabled cols="30" rows="6" class="input-field" 
-                                        placeholder="No hay ODS registrados">No hay Objetivos de Desarrollo Sostenible registrados para este proyecto</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText('No hay Objetivos de Desarrollo Sostenible registrados para este proyecto') !!}</div>
+                                    @else
+                                        <textarea disabled cols="30" rows="6" class="input-field"
+                                            placeholder="No hay ODS registrados">No hay Objetivos de Desarrollo Sostenible registrados para este proyecto</textarea>
+                                    @endif
                                 </td>
                             </tr>
                         @endforelse
@@ -1441,8 +1632,12 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
-                                <textarea disabled cols="30" rows="6" class="input-field" 
-                                    placeholder="Alineamiento con la reforma">{{ $proyecto->alineamiento_reforma ?? 'No hay información específica registrada para este campo' }}</textarea>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->alineamiento_reforma, 'No hay información específica registrada para este campo') !!}</div>
+                                @else
+                                    <textarea disabled cols="30" rows="6" class="input-field"
+                                        placeholder="Alineamiento con la reforma">{{ $proyecto->alineamiento_reforma ?? 'No hay información específica registrada para este campo' }}</textarea>
+                                @endif
                             </td>
                         </tr>
                         <tr>
@@ -1450,8 +1645,12 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
-                                <textarea disabled cols="30" rows="6" class="input-field" 
-                                    placeholder="Metodología">{{ $proyecto->metodologia ?? ' }}</textarea>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->metodologia) !!}</div>
+                                @else
+                                    <textarea disabled cols="30" rows="6" class="input-field"
+                                        placeholder="Metodología">{{ $proyecto->metodologia ?? '' }}</textarea>
+                                @endif
                             </td>
                         </tr>
                         <tr>
@@ -1459,8 +1658,12 @@
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
-                                <textarea disabled cols="30" rows="6" class="input-field" 
-                                    placeholder="Bibliografía">{{ $proyecto->bibliografia ?? ' }}</textarea>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->bibliografia) !!}</div>
+                                @else
+                                    <textarea disabled cols="30" rows="6" class="input-field"
+                                        placeholder="Bibliografía">{{ $proyecto->bibliografia ?? '' }}</textarea>
+                                @endif
                             </td>
                         </tr>
                     </table>
@@ -1474,7 +1677,11 @@
                         <tr>
                             <td class="header" colspan="5">Objetivo general:</td>
                             <td class="full-width" colspan="15">
-                                <textarea disabled cols="30" rows="3" class="input-field">{{ $proyecto->objetivo_general ?? 'Sin objetivo general especificado' }}</textarea>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->objetivo_general, 'Sin objetivo general especificado') !!}</div>
+                                @else
+                                    <textarea disabled cols="30" rows="3" class="input-field">{{ $proyecto->objetivo_general ?? 'Sin objetivo general especificado' }}</textarea>
+                                @endif
                             </td>
                         </tr>
                         {{-- Fila de headers --}}
@@ -1494,22 +1701,42 @@
                                             {{-- Objetivo específico solo en la primera fila de cada objetivo --}}
                                             @if($indexRes == 0)
                                                 <td class="full-width" colspan="4" rowspan="{{ $objetivo->resultados->count() }}">
-                                                    <textarea disabled cols="30" rows="{{ max(3, $objetivo->resultados->count() * 2) }}" class="input-field">{{ $objetivo->descripcion }}</textarea>
+                                                    @if (!empty($isPdf))
+                                                        <div class="pdf-text-block">{!! $renderPdfText($objetivo->descripcion) !!}</div>
+                                                    @else
+                                                        <textarea disabled cols="30" rows="{{ max(3, $objetivo->resultados->count() * 2) }}" class="input-field">{{ $objetivo->descripcion }}</textarea>
+                                                    @endif
                                                 </td>
                                             @endif
                                             
                                             {{-- Resultado, indicador y medio de verificación en cada fila --}}
                                             <td class="full-width" colspan="5">
-                                                <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_resultado ?? 'Sin resultado especificado' }}</textarea>
+                                                @if (!empty($isPdf))
+                                                    <div class="pdf-text-block">{!! $renderPdfText($resultado->nombre_resultado, 'Sin resultado especificado') !!}</div>
+                                                @else
+                                                    <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_resultado ?? 'Sin resultado especificado' }}</textarea>
+                                                @endif
                                             </td>
                                             <td class="full-width" colspan="5">
-                                                <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_indicador ?? 'Sin indicador especificado' }}</textarea>
+                                                @if (!empty($isPdf))
+                                                    <div class="pdf-text-block">{!! $renderPdfText($resultado->nombre_indicador, 'Sin indicador especificado') !!}</div>
+                                                @else
+                                                    <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_indicador ?? 'Sin indicador especificado' }}</textarea>
+                                                @endif
                                             </td>
                                             <td class="full-width" colspan="5">
-                                                <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_medio_verificacion ?? 'Sin medio de verificación especificado' }}</textarea>
+                                                @if (!empty($isPdf))
+                                                    <div class="pdf-text-block">{!! $renderPdfText($resultado->nombre_medio_verificacion, 'Sin medio de verificación especificado') !!}</div>
+                                                @else
+                                                    <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_medio_verificacion ?? 'Sin medio de verificación especificado' }}</textarea>
+                                                @endif
                                             </td>
                                             <td class="full-width" colspan="5">
-                                                <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->plazo_formateado }}</textarea>
+                                                @if (!empty($isPdf))
+                                                    <div class="pdf-text-block">{!! $renderPdfText($resultado->plazo_formateado) !!}</div>
+                                                @else
+                                                    <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->plazo_formateado }}</textarea>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach
@@ -1517,16 +1744,32 @@
                                     {{-- Objetivo sin resultados --}}
                                     <tr>
                                         <td class="full-width" colspan="4">
-                                            <textarea disabled cols="30" rows="3" class="input-field">{{ $objetivo->descripcion }}</textarea>
+                                            @if (!empty($isPdf))
+                                                <div class="pdf-text-block">{!! $renderPdfText($objetivo->descripcion) !!}</div>
+                                            @else
+                                                <textarea disabled cols="30" rows="3" class="input-field">{{ $objetivo->descripcion }}</textarea>
+                                            @endif
                                         </td>
                                         <td class="full-width" colspan="5">
-                                            <textarea disabled cols="30" rows="3" class="input-field">Sin resultados registrados</textarea>
+                                            @if (!empty($isPdf))
+                                                <div class="pdf-text-block">{!! $renderPdfText('Sin resultados registrados') !!}</div>
+                                            @else
+                                                <textarea disabled cols="30" rows="3" class="input-field">Sin resultados registrados</textarea>
+                                            @endif
                                         </td>
                                         <td class="full-width" colspan="5">
-                                            <textarea disabled cols="30" rows="3" class="input-field">Sin indicadores registrados</textarea>
+                                            @if (!empty($isPdf))
+                                                <div class="pdf-text-block">{!! $renderPdfText('Sin indicadores registrados') !!}</div>
+                                            @else
+                                                <textarea disabled cols="30" rows="3" class="input-field">Sin indicadores registrados</textarea>
+                                            @endif
                                         </td>
                                         <td class="full-width" colspan="5">
-                                            <textarea disabled cols="30" rows="3" class="input-field">Sin medios de verificación registrados</textarea>
+                                            @if (!empty($isPdf))
+                                                <div class="pdf-text-block">{!! $renderPdfText('Sin medios de verificación registrados') !!}</div>
+                                            @else
+                                                <textarea disabled cols="30" rows="3" class="input-field">Sin medios de verificación registrados</textarea>
+                                            @endif
                                         </td>
                                     </tr>
                                 @endif
@@ -1535,16 +1778,32 @@
                             {{-- Sin objetivos específicos --}}
                             <tr>
                                 <td class="full-width" colspan="4">
-                                    <textarea disabled cols="30" rows="4" class="input-field">Sin objetivos específicos registrados</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText('Sin objetivos específicos registrados') !!}</div>
+                                    @else
+                                        <textarea disabled cols="30" rows="4" class="input-field">Sin objetivos específicos registrados</textarea>
+                                    @endif
                                 </td>
                                 <td class="full-width" colspan="5">
-                                    <textarea disabled cols="30" rows="3" class="input-field">Sin resultados registrados</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText('Sin resultados registrados') !!}</div>
+                                    @else
+                                        <textarea disabled cols="30" rows="3" class="input-field">Sin resultados registrados</textarea>
+                                    @endif
                                 </td>
                                 <td class="full-width" colspan="5">
-                                    <textarea disabled cols="30" rows="3" class="input-field">Sin indicadores registrados</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText('Sin indicadores registrados') !!}</div>
+                                    @else
+                                        <textarea disabled cols="30" rows="3" class="input-field">Sin indicadores registrados</textarea>
+                                    @endif
                                 </td>
                                 <td class="full-width" colspan="5">
-                                    <textarea disabled cols="30" rows="3" class="input-field">Sin medios de verificación registrados</textarea>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText('Sin medios de verificación registrados') !!}</div>
+                                    @else
+                                        <textarea disabled cols="30" rows="3" class="input-field">Sin medios de verificación registrados</textarea>
+                                    @endif
                                 </td>
                             </tr>
                         @endif
@@ -1792,13 +2051,23 @@
                         <tr>
                             @forelse ($proyecto->actividades as $actividad)
                         <tr>
-                            <td class="s3" colspan="4"> {{ $actividad->descripcion }}</td>
-                            <td class="s3" colspan="4"> {{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</td>
+                            <td class="s3" colspan="4">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($actividad->descripcion) !!}</div>
+                                @else
+                                    {{ $actividad->descripcion }}
+                                @endif
+                            </td>
+                            <td class="s3" colspan="4">{{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</td>
                             <td class="" colspan="5">
                                 @forelse ($actividad->empleados as $responsable)
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad"
-                                        value="{{ $responsable->nombre_completo }}" disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($responsable->nombre_completo) !!}</div>
+                                    @else
+                                        <input disabled type="text" class="input-field"
+                                            placeholder="Ingrese el nombre de la entidad"
+                                            value="{{ $responsable->nombre_completo }}" disabled>
+                                    @endif
 
                                 @empty
                                 @endforelse
