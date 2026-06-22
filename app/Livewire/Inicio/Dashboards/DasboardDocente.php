@@ -3,6 +3,7 @@
 namespace App\Livewire\Inicio\Dashboards;
 
 use App\Models\Estado\TipoEstado;
+use App\Models\PpsServicioSocial;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Personal\Empleado;
 use App\Models\Estado\EstadoProyecto;
@@ -434,6 +435,7 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
 
                 
         // USER DASHBOARD (filtrado por usuario autenticado con la tabla pivote empleado_proyecto)
+        $authUserId = auth()->id();
         $userId = auth()->user()->empleado->id;
 
         // Obtén el id del estado "Finalizado"
@@ -452,10 +454,10 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
         }
 
         // Para el estado "Subsanacion"
-        $subsanacionUser = collect(); // Default empty collection
+        $proyectosSubsanar = collect(); // Default empty collection
         $tipoEstadoSubsanacion = TipoEstado::where('nombre', 'Subsanacion')->first();
         if ($tipoEstadoSubsanacion) {
-            $subsanacionUser = Proyecto::query()
+            $proyectosSubsanar = Proyecto::query()
                 ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
                 ->join('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
                 ->where('empleado_proyecto.empleado_id', $userId)
@@ -465,6 +467,12 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
                 ->distinct()
                 ->get();
         }
+        $ppsSubsanar = PpsServicioSocial::query()
+            ->where('created_by', $authUserId)
+            ->whereIn('estado', [PpsServicioSocial::ESTADO_RECHAZADO, 'subsanacion'])
+            ->get();
+        $totalSubsanar = $proyectosSubsanar->count() + $ppsSubsanar->count();
+        $subsanacionUser = $proyectosSubsanar->concat($ppsSubsanar);
 
         // Para el estado "Borrador"
         $borradorUser = collect(); // Default empty collection
@@ -590,6 +598,9 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
             // User dashboard
             'finalizadosUser' => $finalizadosUser,
             'subsanacionUser' => $subsanacionUser,
+            'proyectosSubsanar' => $proyectosSubsanar,
+            'ppsSubsanar' => $ppsSubsanar,
+            'totalSubsanar' => $totalSubsanar,
             'ejecucionUser' => $ejecucionUser,
             'borradorUser' => $borradorUser,
             'proyectosUserTable' => $proyectosUserTable,

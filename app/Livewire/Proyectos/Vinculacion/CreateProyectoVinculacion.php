@@ -169,6 +169,41 @@ class CreateProyectoVinculacion extends Component
     public ?int $enlace_empleado_id = null;
     public string $firmaSearch = '';
 
+    // ── FORM-DVUS-015 (Voluntariado Académico) ──────────────────────────────
+    // Campos propios que sólo aplican cuando el tipo de acción es Voluntariado.
+    public bool $esVoluntariado = false;
+    public string $tematica_principal = '';
+    public string $tematica_principal_otro = '';
+    public array $metodologia_seguimiento = [];
+    public string $experiencia_conocimientos_teoricos = '';
+    public string $experiencia_habilidades_tecnicas = '';
+    public string $experiencia_competencias_blandas = '';
+    public array $espacios_institucionales = [];
+
+    protected array $tematicaPrincipalOpciones = [
+        'educacion' => 'Educación',
+        'salud_bienestar' => 'Salud y bienestar',
+        'cultura_patrimonio' => 'Cultura y patrimonio',
+        'ambiente_sostenibilidad' => 'Ambiente y sostenibilidad',
+        'desarrollo_comunitario' => 'Desarrollo comunitario',
+        'otros' => 'Otros',
+    ];
+
+    protected array $metodologiaSeguimientoOpciones = [
+        'encuestas' => 'Encuestas',
+        'entrevistas' => 'Entrevistas',
+    ];
+
+    protected array $validationAttributes = [
+        'tematica_principal' => 'temática principal',
+        'tematica_principal_otro' => 'temática principal (otro)',
+        'metodologia_seguimiento' => 'metodología de seguimiento',
+        'experiencia_conocimientos_teoricos' => 'conocimientos teóricos',
+        'experiencia_habilidades_tecnicas' => 'habilidades técnicas',
+        'experiencia_competencias_blandas' => 'competencias blandas',
+        'espacios_institucionales' => 'espacios institucionales',
+    ];
+
     protected array $instrumentoTipos = [
         'carta_formal_solicitud',
         'carta_intenciones',
@@ -212,9 +247,30 @@ class CreateProyectoVinculacion extends Component
                 $this->loadFromRecord($proyecto);
             }
         }
+        $this->resolverEsVoluntariado();
         $this->initDefaults();
         $this->cargarOpcionesPracticaAsignatura();
         $this->cargarMetasPorOds();
+    }
+
+    private function resolverEsVoluntariado(): void
+    {
+        $codigo = $this->tipo_accion_id
+            ? DB::table('vinculacion_tipos_accion')->where('id', $this->tipo_accion_id)->value('codigo')
+            : null;
+
+        $this->esVoluntariado = $codigo === 'VOLUNTARIADO';
+    }
+
+    private function nuevoEspacioInstitucional(): array
+    {
+        return [
+            'id' => null,
+            'descripcion' => '',
+            'ubicacion' => '',
+            'unidad_gestora' => '',
+            'tiempo_uso_horas' => '',
+        ];
     }
 
     protected function getRecord(): ?Proyecto
@@ -245,6 +301,7 @@ class CreateProyectoVinculacion extends Component
             'departamento',
             'municipio',
             'firma_proyecto.cargo_firma.tipoCargoFirma',
+            'espaciosInstitucionales',
         ]);
 
         $this->nombre_proyecto = $record->nombre_proyecto ?? '';
@@ -339,6 +396,21 @@ class CreateProyectoVinculacion extends Component
         $this->metodologia = $record->metodologia ?? '';
         $this->bibliografia = $record->bibliografia ?? '';
 
+        // FORM-DVUS-015 (Voluntariado Académico)
+        $this->tematica_principal = $record->tematica_principal ?? '';
+        $this->tematica_principal_otro = $record->tematica_principal_otro ?? '';
+        $this->metodologia_seguimiento = is_array($record->metodologia_seguimiento) ? $record->metodologia_seguimiento : [];
+        $this->experiencia_conocimientos_teoricos = $record->experiencia_conocimientos_teoricos ?? '';
+        $this->experiencia_habilidades_tecnicas = $record->experiencia_habilidades_tecnicas ?? '';
+        $this->experiencia_competencias_blandas = $record->experiencia_competencias_blandas ?? '';
+        $this->espacios_institucionales = $record->espaciosInstitucionales->map(fn($e) => [
+            'id' => $e->id,
+            'descripcion' => $e->descripcion ?? '',
+            'ubicacion' => $e->ubicacion ?? '',
+            'unidad_gestora' => $e->unidad_gestora ?? '',
+            'tiempo_uso_horas' => $e->tiempo_uso_horas !== null ? (string) $e->tiempo_uso_horas : '',
+        ])->toArray();
+
         $this->objetivo_general = $record->objetivo_general ?? '';
         $this->objetivosEspecificos = $record->objetivosEspecificos->map(fn($obj) => [
             'id' => $obj->id,
@@ -384,6 +456,9 @@ class CreateProyectoVinculacion extends Component
         $this->recalculateAporteInstitucional();
         if (empty($this->objetivosEspecificos)) {
             $this->objetivosEspecificos = [$this->nuevoObjetivoEspecifico()];
+        }
+        if ($this->esVoluntariado && empty($this->espacios_institucionales)) {
+            $this->espacios_institucionales = [$this->nuevoEspacioInstitucional()];
         }
     }
 
@@ -445,6 +520,44 @@ class CreateProyectoVinculacion extends Component
     }
 
     private function rulesPasoActualParaNavegacion(): array
+    {
+        $rules = $this->rulesPasoActualBase();
+
+        if ($this->esVoluntariado) {
+            $rules = array_merge($rules, $this->rulesVoluntariadoPaso($this->currentStep));
+        }
+
+        return $rules;
+    }
+
+    private function rulesVoluntariadoPaso(int $step): array
+    {
+        return match ($step) {
+            1 => [
+                'tematica_principal' => 'required|string|in:' . implode(',', array_keys($this->tematicaPrincipalOpciones)),
+                'tematica_principal_otro' => 'nullable|required_if:tematica_principal,otros|string|max:180',
+            ],
+            5 => [
+                'experiencia_conocimientos_teoricos' => 'required|string',
+                'experiencia_habilidades_tecnicas' => 'required|string',
+                'experiencia_competencias_blandas' => 'required|string',
+            ],
+            6 => [
+                'metodologia_seguimiento' => 'nullable|array',
+                'metodologia_seguimiento.*' => 'in:' . implode(',', array_keys($this->metodologiaSeguimientoOpciones)),
+            ],
+            9 => [
+                'espacios_institucionales' => 'nullable|array',
+                'espacios_institucionales.*.descripcion' => 'nullable|string|max:255',
+                'espacios_institucionales.*.ubicacion' => 'nullable|string|max:255',
+                'espacios_institucionales.*.unidad_gestora' => 'nullable|string|max:255',
+                'espacios_institucionales.*.tiempo_uso_horas' => 'nullable|numeric|min:0',
+            ],
+            default => [],
+        };
+    }
+
+    private function rulesPasoActualBase(): array
     {
         return match ($this->currentStep) {
             1 => [
@@ -576,12 +689,18 @@ class CreateProyectoVinculacion extends Component
                 && !empty($this->fecha_finalizacion)
                 && !empty($this->programa_pertenece)
                 && !empty($this->lineas_investigacion_academica)
-                && !empty($this->ods),
+                && !empty($this->ods)
+                && (!$this->esVoluntariado || !empty($this->tematica_principal)),
             2 => !empty($this->estudiante_proyecto)
                 && !empty(array_filter(array_column($this->estudiante_proyecto, 'tipo_participacion_estudiante'))),
             3 => !empty(array_filter(array_column($this->entidad_contraparte, 'nombre'))),
             4 => !empty(array_filter(array_column($this->actividades, 'descripcion'))),
-            5 => !empty($this->resumen) && !empty($this->descripcion_participantes) && !empty($this->definicion_problema),
+            5 => !empty($this->resumen) && !empty($this->descripcion_participantes) && !empty($this->definicion_problema)
+                && (!$this->esVoluntariado || (
+                    !empty($this->experiencia_conocimientos_teoricos)
+                    && !empty($this->experiencia_habilidades_tecnicas)
+                    && !empty($this->experiencia_competencias_blandas)
+                )),
             6 => !empty($this->departamento_geo) || $this->poblacion_participante > 0,
             7 => !empty($this->objetivo_general)
                 && !empty($this->objetivosEspecificos)
@@ -777,6 +896,12 @@ class CreateProyectoVinculacion extends Component
             'impacto_deseado' => $this->impacto_deseado,
             'metodologia' => $this->metodologia,
             'bibliografia' => $this->bibliografia,
+            'tematica_principal' => $this->stringOrNull($this->tematica_principal),
+            'tematica_principal_otro' => $this->tematica_principal === 'otros' ? $this->stringOrNull($this->tematica_principal_otro) : null,
+            'metodologia_seguimiento' => $this->metodologiaSeguimientoNormalizada(),
+            'experiencia_conocimientos_teoricos' => $this->stringOrNull($this->experiencia_conocimientos_teoricos),
+            'experiencia_habilidades_tecnicas' => $this->stringOrNull($this->experiencia_habilidades_tecnicas),
+            'experiencia_competencias_blandas' => $this->stringOrNull($this->experiencia_competencias_blandas),
             'objetivo_general' => $this->objetivo_general,
             'total_aporte_institucional' => collect($this->aporte_institucional)->sum('costo_total'),
         ]);
@@ -800,7 +925,82 @@ class CreateProyectoVinculacion extends Component
         $this->guardarMarcoLogicoParcial($record);
         $this->guardarPresupuestoParcial($record);
         $this->guardarAnexoParcial($record);
+        $this->guardarEspaciosInstitucionalesParcial($record);
         $this->guardarFirmasParcial($record);
+    }
+
+    private function metodologiaSeguimientoNormalizada(): array
+    {
+        return collect($this->metodologia_seguimiento)
+            ->filter(fn ($valor) => in_array($valor, array_keys($this->metodologiaSeguimientoOpciones), true))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function guardarEspaciosInstitucionalesParcial(Proyecto $record): void
+    {
+        if (!$this->esVoluntariado) {
+            return;
+        }
+
+        $idsEnEstado = [];
+
+        foreach ($this->espacios_institucionales as $i => $item) {
+            $descripcion = trim((string) ($item['descripcion'] ?? ''));
+            $tieneDatos = $descripcion !== ''
+                || trim((string) ($item['ubicacion'] ?? '')) !== ''
+                || trim((string) ($item['unidad_gestora'] ?? '')) !== ''
+                || trim((string) ($item['tiempo_uso_horas'] ?? '')) !== '';
+
+            if (!$tieneDatos) {
+                continue;
+            }
+
+            $espacioId = $this->nullableInt($item['id'] ?? null);
+            $data = [
+                'descripcion' => $descripcion !== '' ? $descripcion : 'Espacio sin descripción',
+                'ubicacion' => $this->stringOrNull($item['ubicacion'] ?? null),
+                'unidad_gestora' => $this->stringOrNull($item['unidad_gestora'] ?? null),
+                'tiempo_uso_horas' => trim((string) ($item['tiempo_uso_horas'] ?? '')) === ''
+                    ? null
+                    : (float) $item['tiempo_uso_horas'],
+            ];
+
+            $espacio = $espacioId
+                ? $record->espaciosInstitucionales()->whereKey($espacioId)->first()
+                : null;
+
+            if ($espacio) {
+                $espacio->update($data);
+            } else {
+                $espacio = $record->espaciosInstitucionales()->create($data);
+            }
+
+            $this->espacios_institucionales[$i]['id'] = $espacio->id;
+            $idsEnEstado[] = $espacio->id;
+        }
+
+        $record->espaciosInstitucionales()
+            ->when(!empty($idsEnEstado), fn ($query) => $query->whereNotIn('id', $idsEnEstado))
+            ->delete();
+    }
+
+    public function addEspacioInstitucional(): void
+    {
+        $this->espacios_institucionales[] = $this->nuevoEspacioInstitucional();
+    }
+
+    public function removeEspacioInstitucional(int $i): void
+    {
+        unset($this->espacios_institucionales[$i]);
+        $this->espacios_institucionales = array_values($this->espacios_institucionales);
+
+        if (empty($this->espacios_institucionales)) {
+            $this->espacios_institucionales = [$this->nuevoEspacioInstitucional()];
+        }
+
+        $this->autoGuardarBorrador();
     }
 
     private function guardarEquipoParcial(Proyecto $record): void
@@ -2811,6 +3011,8 @@ class CreateProyectoVinculacion extends Component
                 ? collect()
                 : Municipio::whereIn('departamento_id', $this->ids($this->departamento_geo))->orderBy('nombre')->pluck('nombre', 'id'),
             'firmantesOpts' => $firmantesOpts,
+            'tematicaPrincipalOpciones' => $this->tematicaPrincipalOpciones,
+            'metodologiaSeguimientoOpciones' => $this->metodologiaSeguimientoOpciones,
             'record' => $record,
             'coordNombre' => auth()->user()->empleado?->nombre_completo ?? auth()->user()->name,
         ]);

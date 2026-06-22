@@ -14,6 +14,7 @@ class AreaProyectoSelector extends Component
     public bool $mostrarFormulariosEducacionNoFormal = false;
     public ?int $tipoAccionDesarrolloLocalId = null;
     public ?int $tipoAccionEnfId = null;
+    public ?int $tipoAccionVoluntariadoId = null;
 
     public function mount(): void
     {
@@ -30,6 +31,9 @@ class AreaProyectoSelector extends Component
             ->whereIn('nombre', ['Proyecto de educacion continua', 'Programa de educacion continua'])
             ->where('activo', true)
             ->orderByRaw("CASE WHEN nombre = 'Proyecto de educacion continua' THEN 0 ELSE 1 END")
+            ->value('id');
+        $this->tipoAccionVoluntariadoId = DB::table('vinculacion_tipos_accion')
+            ->where('codigo', 'VOLUNTARIADO')
             ->value('id');
     }
 

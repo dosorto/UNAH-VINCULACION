@@ -55,21 +55,22 @@
                     </div>
                 </a>
 
-                <div class="group relative block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg rounded-xl p-8 transition-all duration-300 opacity-40">
-                    <span class="absolute top-4 right-4 bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-semibold">
-                        Próximamente
+                <a href="{{ route('crearProyectoVinculacion', ['tipo_accion_id' => $tipoAccionVoluntariadoId]) }}"
+                   class="group relative block bg-white dark:bg-gray-800 border border-yellow-200 dark:border-yellow-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300">
+                    <span class="absolute top-4 right-4 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 px-3 py-1 rounded-full text-xs font-semibold group-hover:bg-yellow-200 dark:group-hover:bg-yellow-800 transition">
+                        Disponible
                     </span>
                     <br>
                     <div class="flex flex-col items-center">
-                        <div class="bg-gray-100 dark:bg-gray-900 rounded-full p-4 mb-5">
-                            <svg class="w-10 h-10 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <div class="bg-yellow-100 dark:bg-yellow-900 rounded-full p-4 mb-5 group-hover:bg-yellow-200 dark:group-hover:bg-yellow-800 transition">
+                            <svg class="w-10 h-10 text-yellow-700 dark:text-yellow-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.5 12.5 8 16m.5-8.5L12 11m0 0 3.5-3.5M12 11l3.5 3.5M5 21V5a2 2 0 0 1 2-2h4.5L17 8.5V21H5Z"/>
                             </svg>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 text-center">FORM-015 - Registro Proyecto de Voluntariado</h3>
-                        <p class="text-gray-600 dark:text-gray-300 text-center text-base">Registro documental para proyectos de voluntariado universitario.</p>
+                        <h3 class="text-xl font-bold text-yellow-900 dark:text-yellow-200 mb-2 text-center">FORM-015 - Registro Proyecto de Voluntariado</h3>
+                        <p class="text-gray-600 dark:text-gray-300 text-center text-base">Registra proyectos de voluntariado académico con el formulario oficial FORM-DVUS-015.</p>
                     </div>
-                </div>
+                </a>
             </div>
         @elseif ($mostrarFormulariosDesarrolloLocal)
             <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

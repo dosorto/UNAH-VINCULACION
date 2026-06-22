@@ -155,7 +155,7 @@
                             <div class="flex flex-wrap gap-2">
                                 <a href="{{ route('pps-servicio-social.show', $record->id) }}" wire:navigate
                                    class="inline-flex items-center justify-center rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-900/60 dark:bg-blue-900/30 dark:text-blue-200 dark:hover:bg-blue-900/50">
-                                    Ver detalle
+                                    Ver
                                 </a>
                                 @if($puedeEditar)
                                     <a href="{{ route('pps-servicio-social.edit', $record->id) }}" wire:navigate

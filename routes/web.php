@@ -45,7 +45,6 @@ use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
 use App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial;
 use App\Livewire\Proyectos\Vinculacion\EditPpsServicioSocial;
-use App\Livewire\Proyectos\Vinculacion\ListPpsServicioSocial;
 use App\Livewire\Proyectos\Vinculacion\ShowPpsServicioSocial;
 use App\Livewire\Proyectos\Actualizacion\EditProyectoActualizacion;
 use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
@@ -67,6 +66,7 @@ use App\Http\Controllers\ENF\EnfCronogramaController;
 use App\Http\Controllers\ENF\EnfInformeFinalController;
 use App\Http\Controllers\ENF\EnfSistematizacionController;
 use App\Http\Controllers\ENF\EnfDocumentoController;
+use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialAnexoController;
 use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialPdfController;
 
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
@@ -306,7 +306,23 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('crearPpsServicioSocial')
             ->middleware('permission:docente.crear-proyecto');
 
-        Route::get('/pps-servicio-social', ListPpsServicioSocial::class)
+        Route::get('/pps-servicio-social', function () {
+            $activeRole = auth()->user()?->activeRole;
+
+            if ($activeRole?->hasPermissionTo('docente.proyectos')) {
+                return redirect()->route('proyectosDocente');
+            }
+
+            if ($activeRole?->hasPermissionTo('director.proyectos')) {
+                return redirect()->route('proyectosCentroFacultad');
+            }
+
+            if ($activeRole?->hasPermissionTo('proyectos.historial')) {
+                return redirect()->route('listarProyectosVinculacion');
+            }
+
+            return redirect()->route('inicio');
+        })
             ->name('pps-servicio-social.index')
             ->middleware('permission:docente.crear-proyecto|docente.proyectos|director.proyectos|proyectos.historial|proyectos.revision-final');
 
@@ -316,6 +332,10 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
         Route::get('/pps-servicio-social/{id}/pdf', PpsServicioSocialPdfController::class)
             ->name('pps-servicio-social.pdf')
+            ->middleware('permission:docente.crear-proyecto|docente.proyectos|director.proyectos|proyectos.historial|proyectos.revision-final');
+
+        Route::get('/pps-servicio-social/{id}/anexo/{tipo}', PpsServicioSocialAnexoController::class)
+            ->name('pps-servicio-social.anexo')
             ->middleware('permission:docente.crear-proyecto|docente.proyectos|director.proyectos|proyectos.historial|proyectos.revision-final');
 
         Route::get('/pps-servicio-social/{id}', ShowPpsServicioSocial::class)
