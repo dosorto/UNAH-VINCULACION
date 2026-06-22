@@ -33,6 +33,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
+use PDF;
 
 class EnfAccionController extends Controller
 {
@@ -180,6 +181,7 @@ class EnfAccionController extends Controller
             'presupuestos.detalles',
             'cronograma',
             'documentos',
+            'firmas',
             'accionCatalogos',
             'accionOds',
             'accionEjesUnah',
@@ -326,6 +328,12 @@ class EnfAccionController extends Controller
             $draft["cronograma[{$index}][fecha_inicio]"] = optional($item->fecha_inicio)->format('Y-m-d');
             $draft["cronograma[{$index}][responsable]"] = $item->responsable_texto;
             $draft["cronograma[{$index}][horas_requeridas]"] = $item->horas_requeridas;
+        }
+
+        foreach ($accion->firmas->values() as $index => $firma) {
+            $draft["firmas[{$index}][rol_firma]"] = $firma->rol_firma;
+            $draft["firmas[{$index}][nombre_firmante]"] = $firma->nombre_firmante;
+            $draft["firmas[{$index}][observaciones]"] = $firma->observaciones;
         }
 
         foreach (['equipo_docente' => 'Docente UNAH', 'consultores_nacionales' => 'Consultor nacional', 'consultores_internacionales' => 'Consultor internacional'] as $key => $rol) {
@@ -963,6 +971,28 @@ class EnfAccionController extends Controller
         ]);
     }
 
+    public function descargarPdf(int $accion)
+    {
+        $record = EnfAccion::with($this->form018Relations())->findOrFail($accion);
+
+        abort_unless(($record->codigo_formulario ?? null) === self::FORM_PROYECTO_ENF, 404);
+
+        @set_time_limit(180);
+        @ini_set('max_execution_time', '180');
+        @ini_set('memory_limit', '512M');
+
+        $pdf = PDF::loadView('enf.acciones.partials.form-018-document', [
+            'accion' => $record,
+            'isPdf' => true,
+        ])->setPaper('letter', 'portrait')
+            ->setOption('isHtml5ParserEnabled', true)
+            ->setOption('isRemoteEnabled', true)
+            ->setOption('defaultFont', 'Arial')
+            ->setOption('dpi', 96);
+
+        return $pdf->download("FORM-DVUS-018-{$record->id}.pdf");
+    }
+
     private function form018Relations(): array
     {
         return [
@@ -1215,6 +1245,7 @@ class EnfAccionController extends Controller
         $this->forceDeleteRelation($accion->accionEjesUnah());
         $this->forceDeleteRelation($accion->cronograma());
         $this->forceDeleteRelation($accion->espaciosAprendizaje());
+        $this->forceDeleteRelation($accion->firmas());
 
         $accion->presupuestos()->with('detalles')->get()->each(function ($presupuesto): void {
             $this->forceDeleteRelation($presupuesto->detalles());
@@ -1258,6 +1289,7 @@ class EnfAccionController extends Controller
             'presupuestos.detalles',
             'cronograma',
             'documentos',
+            'firmas',
             'accionCatalogos',
             'accionOds',
             'accionEjesUnah',

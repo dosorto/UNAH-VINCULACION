@@ -1,4 +1,6 @@
 @php
+    use Illuminate\Support\HtmlString;
+    use Illuminate\Support\Facades\Storage;
     use Illuminate\Support\Str;
 
     $isPdf = $isPdf ?? false;
@@ -17,17 +19,31 @@
     $egresosTotal = (float) ($egresos?->detalles?->sum('total') ?? 0);
     $aporteTotal = (float) ($aporteUnah?->detalles?->sum('total') ?? 0);
     $catalogosPorTipo = $accion->accionCatalogos
-        ->groupBy('tipo')
-        ->map(fn ($items) => $items->pluck('catalogo.nombre')->filter()->values());
+        ->groupBy(fn ($item) => $item->tipo ?: ($item->catalogo?->tipo ?? ''))
+        ->map(fn ($items) => $items
+            ->flatMap(fn ($item) => [$item->catalogo?->nombre, $item->valor_texto])
+            ->filter()
+            ->values());
     $participacionPorTipo = $accion->participacionUniversitaria->keyBy('tipo_participacion');
 
     $blank = fn ($value) => filled($value) ? $value : '';
     $money = fn ($value) => 'L '.number_format((float) $value, 2);
     $normalize = fn ($value) => Str::of(Str::ascii((string) $value))->lower()->toString();
     $hasText = fn ($value, string $needle) => str_contains($normalize($value), $normalize($needle));
-    $hasCatalog = function (string $tipo, string $needle) use ($catalogosPorTipo, $normalize) {
+    $matchesAnyText = function ($value, $needles) use ($normalize): bool {
+        $normalizedValue = $normalize($value);
+
+        foreach ((array) $needles as $needle) {
+            if ($needle !== '' && str_contains($normalizedValue, $normalize($needle))) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+    $hasCatalog = function (string $tipo, $needles) use ($catalogosPorTipo, $matchesAnyText) {
         return ($catalogosPorTipo[$tipo] ?? collect())->contains(
-            fn ($name) => str_contains($normalize($name), $normalize($needle))
+            fn ($name) => $matchesAnyText($name, $needles)
         );
     };
     $hasSeparatedPlatformCatalogs = ($catalogosPorTipo['plataforma_teledocencia'] ?? collect())->isNotEmpty()
@@ -45,7 +61,7 @@
         return '';
     };
     $catalogText = fn (string $tipo) => ($catalogosPorTipo[$tipo] ?? collect())->implode(', ');
-    $markCatalog = fn (string $tipo, string $needle) => $hasCatalog($tipo, $needle) ? 'X' : '';
+    $markCatalog = fn (string $tipo, $needles) => $hasCatalog($tipo, $needles) ? 'X' : '';
     $markText = fn ($value, string $needle) => $hasText($value, $needle) ? 'X' : '';
     $rows = function ($collection, int $min) {
         $items = collect($collection)->values();
@@ -55,6 +71,20 @@
         return $items;
     };
     $memberName = fn ($member) => $member ? ($member->nombre_completo ?: ($member->empleado?->nombre_completo ?? '')) : '';
+    $signatureName = function ($needles, string $fallback = '') use ($accion, $matchesAnyText): string {
+        $firma = $accion->firmas->first(
+            fn ($item) => $matchesAnyText($item->rol_firma ?? '', $needles)
+        );
+
+        return $firma?->nombre_firmante ?: ($firma?->empleado?->nombre_completo ?? $fallback);
+    };
+    $firmaCoordinadorAccion = $signatureName(
+        ['Coordinador de la acción por la UNAH', 'Coordinador de la accion por la UNAH'],
+        $memberName($coordinador)
+    );
+    $firmaJefeUnidad = $signatureName('Jefe de la Unidad Académica que lidera la acción');
+    $firmaComiteLocal = $signatureName(['Coordinador(a) del Comité Local', 'Coordinador del Comité Local']);
+    $firmaDecanoDirector = $signatureName('Decano(a) o Director(a) del Centro Regional');
     $participacion = function (string $tipo, string $campo = 'cantidad') use ($participacionPorTipo) {
         $item = $participacionPorTipo->get($tipo);
         if (! $item) {
@@ -68,9 +98,9 @@
         }
         return $item->{$campo} ?? '';
     };
-    $detallePresupuesto = function ($presupuesto, string $needle) use ($normalize) {
+    $detallePresupuesto = function ($presupuesto, $needles) use ($matchesAnyText) {
         return collect($presupuesto?->detalles ?? [])->first(
-            fn ($detalle) => str_contains($normalize($detalle->rubro ?? ''), $normalize($needle))
+            fn ($detalle) => $matchesAnyText($detalle->rubro ?? '', $needles)
         );
     };
     $solicitud = $accion->fecha_solicitud ?? $accion->created_at;
@@ -97,16 +127,17 @@
 
         return '';
     };
-    $headerUrl = asset('images/enf/form-018-header.png');
-    $watermarkUrl = asset('images/enf/form-018-watermark.png');
-    $footerUrl = asset('images/enf/form-018-footer.png');
+    $assetUrl = fn (string $path) => $isPdf ? 'file://'.public_path($path) : asset($path);
+    $headerUrl = $assetUrl('images/enf/form-018-header.png');
+    $watermarkUrl = $assetUrl('images/enf/form-018-watermark.png');
+    $footerUrl = $assetUrl('images/enf/form-018-footer.png');
     $shellClass = $isPdf ? 'is-pdf' : 'screen-document';
 
     $tipoAccionOpciones = [
-        ['label' => 'Proyecto de educación continua', 'needle' => 'proyecto'],
-        ['label' => 'Diplomado', 'needle' => 'diplomado', 'hint' => '(80 a 250 horas máximo)'],
-        ['label' => 'Congreso', 'needle' => 'congreso', 'hint' => '(2 a 5 días consecutivos, mínimo 6 horas por día)'],
-        ['label' => 'Seminario', 'needle' => 'seminario', 'hint' => '(5 a 29 horas máximo)'],
+        ['label' => 'Proyecto de educación continua', 'needles' => ['Proyecto de educacion continua', 'Programa de educacion continua']],
+        ['label' => 'Diplomado', 'needles' => 'Diplomado', 'hint' => '(80 a 250 horas máximo)'],
+        ['label' => 'Congreso', 'needles' => 'Congreso', 'hint' => '(2 a 5 días consecutivos, mínimo 6 horas por día)'],
+        ['label' => 'Seminario', 'needles' => 'Seminario', 'hint' => '(5 a 29 horas máximo)'],
     ];
     $modalidadOpciones = [
         ['label' => 'Presencial', 'needle' => 'presencial'],
@@ -121,9 +152,111 @@
     $plataformasCampus = ['Campus Virtual UNAH', 'Moodle', 'Classroom Google', 'Teams', 'Otro'];
     $antecedentesOpciones = ['Iniciativa de la unidad academica', 'Solicitud externa privada', 'Solicitud de Secretaria de Estado', 'Solicitud de gobierno local', 'Alianza con otras universidades', 'Solicitud de ONG', 'Solicitud de patronatos', 'Solicitud de sector financiero', 'Solicitud de sector productivo', 'Otros'];
     $contraparteOpciones = ['Secretaria de Estado', 'Gobierno Municipal', 'Sector productivo', 'Entidades financieras', 'Sector privado de servicios', 'Organizaciones gremiales', 'Sociedad civil organizada', 'Sector academico', 'Organismos internacionales', 'Unidad de la UNAH'];
+    $inciso = fn (int $index) => chr(97 + $index).') ';
+    $ingresoRubrosForm018 = [
+        ['label' => 'Cuotas de inscripción', 'needles' => ['Cuotas de inscripción']],
+        ['label' => 'Mensualidades / módulos', 'needles' => ['Mensualidades / módulos']],
+        ['label' => 'Gestión de becas (donaciones)', 'needles' => ['Gestión de becas', 'becas']],
+        ['label' => 'Otros', 'needles' => ['Otros']],
+    ];
+    $egresoRubrosForm018 = [
+        ['label' => 'Pago de personal docente', 'needles' => ['Pago de personal docente']],
+        ['label' => 'Gastos de materiales y suministros', 'needles' => ['Gastos de materiales y suministros', 'Materiales y suministros']],
+        ['label' => 'Gastos de movilización (transporte, pasajes)', 'needles' => ['Gastos de movilización', 'Movilización']],
+        ['label' => 'Gastos de manutención y hospedaje', 'needles' => ['Gastos de manutención y hospedaje', 'Manutención y hospedaje']],
+        ['label' => 'Costos administrativos / Financieros', 'needles' => ['Costos administrativos', 'Financieros']],
+        ['label' => 'Otros gastos', 'needles' => ['Otros gastos']],
+    ];
+    $aporteUnahRubrosForm018 = [
+        ['label' => 'Horas de participación del personal docente del equipo ejecutor de la acción', 'needles' => ['Horas de participación del personal docente del equipo ejecutor de la acción']],
+        ['label' => 'Horas de participación estudiantes', 'needles' => ['Horas de participación estudiantes']],
+        ['label' => 'Costos indirectos depreciación de equipo (3% de la suma de los incisos a) y b) anteriores)', 'needles' => ['Costos indirectos depreciación de equipo']],
+        ['label' => 'Costos indirectos servicios públicos ((3% de la suma de los incisos a) y b) anteriores))', 'needles' => ['Costos indirectos servicios públicos']],
+    ];
+    $objetivosEspecificosTexto = $accion->objetivosEspecificos
+        ->sortBy('orden')
+        ->values()
+        ->map(fn ($objetivo, $index) => ($index + 1).'. '.trim((string) $objetivo->descripcion))
+        ->implode("\n");
+    $alineamientoTexto = trim((string) $accion->alineamiento_reforma.' '.($accion->ejesUnah->isNotEmpty() ? '| Ejes: '.$accion->ejesUnah->pluck('nombre')->implode(', ') : ''));
+    $scrollField = function ($value, string $heightClass) use ($isPdf): HtmlString {
+        $classes = 'form018-scroll-field '.$heightClass;
+        $text = e((string) $value);
+
+        if ($isPdf) {
+            return new HtmlString('<div class="'.$classes.' form018-pdf-field">'.$text.'</div>');
+        }
+
+        return new HtmlString('<textarea class="'.$classes.'" data-form018-autosize readonly>'.$text.'</textarea>');
+    };
+    $resultadoParts = function ($resultado) {
+        if (! $resultado) {
+            return ['', ''];
+        }
+
+        [$tipo, $descripcion] = str((string) $resultado->resultado)->explode(': ', 2)->pad(2, null)->all();
+
+        return $descripcion === null
+            ? ['', trim((string) $tipo)]
+            : [trim((string) $tipo), trim((string) $descripcion)];
+    };
+    $resultadoTipoKey = function ($resultado) use ($resultadoParts, $normalize): string {
+        [$tipo] = $resultadoParts($resultado);
+        $tipo = $normalize($tipo);
+
+        if (str_contains($tipo, 'mediano')) {
+            return 'mediano';
+        }
+
+        if (str_contains($tipo, 'largo') || str_contains($tipo, 'impacto')) {
+            return 'largo';
+        }
+
+        return 'corto';
+    };
+    $objetivosPorId = $accion->objetivosEspecificos->keyBy('id');
+    $resultadosPorPlazo = $accion->resultados
+        ->sortBy('orden')
+        ->groupBy(fn ($resultado) => $resultadoTipoKey($resultado));
+    $odsSortKey = function ($ods): int {
+        preg_match('/^\s*(\d+)/', (string) ($ods?->nombre ?? ''), $matches);
+
+        return (int) ($matches[1] ?? $ods?->id ?? 0);
+    };
+    $metaSortKey = function ($meta): string {
+        $numbers = collect(preg_split('/\D+/', (string) ($meta?->numero_meta ?? '')))
+            ->filter(fn ($part) => $part !== '')
+            ->map(fn ($part) => (int) $part)
+            ->values();
+
+        return sprintf(
+            '%02d.%02d.%02d.%06d',
+            $numbers->get(0, (int) ($meta?->ods_id ?? 0)),
+            $numbers->get(1, 0),
+            $numbers->get(2, 0),
+            (int) ($meta?->id ?? 0)
+        );
+    };
+    $odsSeleccionados = $accion->ods
+        ->filter(fn ($ods) => filled($ods?->id))
+        ->unique('id')
+        ->sortBy($odsSortKey)
+        ->values();
+    $metasSeleccionadas = $accion->metasContribuye
+        ->filter(fn ($meta) => filled($meta?->id))
+        ->unique('id')
+        ->sortBy($metaSortKey)
+        ->values();
+    $metasPorOds = $metasSeleccionadas->groupBy('ods_id');
 @endphp
 
 <style>
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+    }
+
     .form018-shell {
         --form-blue: #002060;
         --form-gray: #d9d9d9;
@@ -155,13 +288,28 @@
         min-height: 11in;
         overflow: hidden;
         background: #fff;
-        page-break-after: always;
+        page-break-after: auto;
+        page-break-before: auto;
+        page-break-inside: avoid;
         transform-origin: top center;
+    }
+
+    .form018-page + .form018-page {
+        page-break-before: always;
+    }
+
+    .form018-shell.is-pdf .form018-page {
+        overflow: visible;
+        page-break-inside: auto;
     }
 
     .form018-shell.screen-document .form018-page {
         box-shadow: 0 10px 30px rgba(15, 23, 42, .14);
         zoom: var(--form018-screen-scale);
+    }
+
+    .form018-shell.screen-document .form018-auto-row {
+        height: auto !important;
     }
 
     .form018-page:last-child {
@@ -171,25 +319,26 @@
     .form018-header {
         position: relative;
         z-index: 2;
-        display: flex;
-        align-items: flex-start;
-        gap: .18in;
         height: 1.3in;
         padding: .18in .34in 0 .32in;
     }
 
     .form018-header img {
         display: block;
+        position: absolute;
+        top: .18in;
+        left: .32in;
         width: 5.55in;
         height: auto;
     }
 
     .form018-contact {
-        flex: 1;
-        padding-top: .12in;
-        padding-right: .12in;
-        color: var(--form-blue);
-        font-size: 7.8px;
+        position: absolute;
+        top: .3in;
+        right: .55in;
+        width: 2in;
+        color: #002060;
+        font-size: 7px;
         font-weight: 700;
         line-height: 1.22;
         text-align: right;
@@ -202,7 +351,7 @@
         right: .08in;
         width: .08in;
         height: .64in;
-        background: var(--form-yellow);
+        background: #ffc000;
     }
 
     .form018-watermark {
@@ -224,6 +373,10 @@
         height: auto;
     }
 
+    .form018-shell.is-pdf .form018-footer {
+        display: none !important;
+    }
+
     .form018-main {
         position: relative;
         z-index: 1;
@@ -242,7 +395,7 @@
         height: .17in;
         margin-left: auto;
         padding: 1px 4px 0 0;
-        background: var(--form-blue);
+        background: #002060;
         color: #fff;
         font-size: 11px;
         font-weight: 700;
@@ -261,7 +414,7 @@
         display: flex;
         gap: .22in;
         margin: .08in 0 .32in .15in;
-        color: var(--form-blue);
+        color: #002060;
         font-size: 10.4px;
         font-weight: 700;
         text-transform: uppercase;
@@ -287,9 +440,10 @@
     .form018-table th,
     .form018-table td {
         min-height: 27px;
-        border: 1px solid var(--form-line);
+        border: 1px solid #bfbfbf;
         padding: 3px 4px;
         vertical-align: middle;
+        overflow-wrap: anywhere;
         word-break: break-word;
     }
 
@@ -299,13 +453,13 @@
     }
 
     .form018-blue {
-        background: var(--form-blue);
+        background: #002060;
         color: #fff;
         font-weight: 700;
     }
 
     .form018-gray {
-        background: var(--form-gray);
+        background: #d9d9d9;
         color: #000;
         font-weight: 700;
     }
@@ -353,6 +507,30 @@
         width: 6.49in;
     }
 
+    .form018-file-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 3px;
+    }
+
+    .form018-file-button {
+        display: inline-block;
+        border: 1px solid var(--form-blue);
+        border-radius: 2px;
+        background: #fff;
+        color: var(--form-blue);
+        font-size: 8px;
+        font-weight: 700;
+        line-height: 1;
+        padding: 3px 5px;
+        text-decoration: none;
+    }
+
+    .form018-file-button:hover {
+        background: #eef4ff;
+    }
+
     .form018-docx-table5 tr {
         height: 22px !important;
     }
@@ -389,6 +567,101 @@
         line-height: inherit;
     }
 
+    .form018-scroll-cell {
+        padding: 0 !important;
+        vertical-align: top !important;
+    }
+
+    .form018-scroll-field {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        margin: 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: inherit;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 11px;
+        line-height: 1.2;
+        overflow: auto;
+        overflow-x: hidden;
+        padding: 3px 5px;
+        resize: vertical;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .form018-scroll-field:focus {
+        box-shadow: inset 0 0 0 1px #94a3b8;
+    }
+
+    .form018-pdf-field {
+        overflow: visible;
+        page-break-inside: auto;
+        resize: none;
+        white-space: pre-wrap;
+    }
+
+    .form018-shell.is-pdf .form018-table,
+    .form018-shell.is-pdf .form018-table tbody,
+    .form018-shell.is-pdf .form018-table tr,
+    .form018-shell.is-pdf .form018-table td,
+    .form018-shell.is-pdf .form018-scroll-cell {
+        page-break-inside: auto;
+    }
+
+    .form018-shell.is-pdf .form018-auto-row {
+        height: auto !important;
+        page-break-inside: auto;
+    }
+
+    .form018-shell.is-pdf .form018-scroll-field {
+        height: auto !important;
+        max-height: none !important;
+        min-height: .16in;
+        overflow: visible;
+        font-size: 10px;
+        line-height: 1.18;
+        padding: 3px 5px;
+    }
+
+    .form018-scroll-resumen {
+        height: 108px;
+        min-height: 42px;
+        max-height: 320px;
+    }
+
+    .form018-scroll-definicion {
+        height: 101px;
+        min-height: 42px;
+        max-height: 320px;
+    }
+
+    .form018-scroll-md {
+        height: 30px;
+        min-height: 18px;
+        max-height: 240px;
+    }
+
+    .form018-scroll-sm {
+        height: 22px;
+        min-height: 16px;
+        max-height: 160px;
+    }
+
+    .form018-scroll-contraparte {
+        height: 35px;
+        min-height: 24px;
+        max-height: 260px;
+    }
+
+    .form018-scroll-xs {
+        height: 18px;
+        min-height: 16px;
+        max-height: 180px;
+    }
+
     .form018-docx-table4 .form018-mark,
     .form018-docx-table5 .form018-mark,
     .form018-docx-table6 .form018-mark,
@@ -408,7 +681,7 @@
 
     .form018-numbered .num {
         display: inline-block;
-        width: 17px;
+        width: 24px;
         padding-right: 3px;
         text-align: left;
     }
@@ -531,16 +804,16 @@
                     <td class="form018-blue form018-center" colspan="9">{{ $tipoAccionOpciones[1]['label'] }}<br><span class="form018-small">{{ $tipoAccionOpciones[1]['hint'] }}</span></td>
                 </tr>
                 <tr style="height: 30.3px;">
-                    <td class="form018-mark" colspan="12">{{ $markCatalog('tipo_accion_enf', $tipoAccionOpciones[0]['needle']) }}</td>
-                    <td class="form018-mark" colspan="9">{{ $markCatalog('tipo_accion_enf', $tipoAccionOpciones[1]['needle']) }}</td>
+                    <td class="form018-mark" colspan="12">{{ $markCatalog('tipo_accion_enf', $tipoAccionOpciones[0]['needles']) }}</td>
+                    <td class="form018-mark" colspan="9">{{ $markCatalog('tipo_accion_enf', $tipoAccionOpciones[1]['needles']) }}</td>
                 </tr>
                 <tr style="height: 30.3px;">
                     <td class="form018-blue form018-center form018-small" colspan="12">{{ $tipoAccionOpciones[2]['label'] }}<br>{{ $tipoAccionOpciones[2]['hint'] }}</td>
                     <td class="form018-blue form018-center form018-small" colspan="9">{{ $tipoAccionOpciones[3]['label'] }}<br>{{ $tipoAccionOpciones[3]['hint'] }}</td>
                 </tr>
                 <tr style="height: 33.3px;">
-                    <td class="form018-mark" colspan="12">{{ $markCatalog('tipo_accion_enf', $tipoAccionOpciones[2]['needle']) }}</td>
-                    <td class="form018-mark" colspan="9">{{ $markCatalog('tipo_accion_enf', $tipoAccionOpciones[3]['needle']) }}</td>
+                    <td class="form018-mark" colspan="12">{{ $markCatalog('tipo_accion_enf', $tipoAccionOpciones[2]['needles']) }}</td>
+                    <td class="form018-mark" colspan="9">{{ $markCatalog('tipo_accion_enf', $tipoAccionOpciones[3]['needles']) }}</td>
                 </tr>
                 <tr>
                     <td class="form018-blue form018-numbered" rowspan="3" colspan="2"><span class="num">4.</span>Resolución de la VRA</td>
@@ -650,7 +923,7 @@
                     <td colspan="14">{{ $lugar?->edificio }}</td>
                 </tr>
                 <tr style="height: 15.2px;">
-                    <td class="form018-blue form018-center" colspan="23">Descripción de las plataformas que se utilizarán para la modalidad virtual y teledocencia (en los casos que aplique): {{ $lugar?->descripcion_plataformas ?: $lugar?->direccion }}</td>
+                    <td class="form018-blue form018-numbered" colspan="23"><span class="num">11.</span>Descripción de las plataformas que se utilizarán para la modalidad virtual y tele docencia (en los casos que aplique): {{ $lugar?->descripcion_plataformas ?: $lugar?->direccion }}</td>
                 </tr>
                 <tr style="height: 15.2px;">
                     <td class="form018-blue form018-center" rowspan="2">Teledocencia</td>
@@ -683,7 +956,7 @@
                     <td class="form018-mark" colspan="2">{{ $markPlatform('plataforma_campus_virtual', 'Otro') }}</td>
                 </tr>
                 <tr style="height: 15.2px;">
-                    <td class="form018-blue form018-center" colspan="23">Antecedentes de la acción. Indicar el origen para el diseño y puesta en marcha de la acción del programa de formación</td>
+                    <td class="form018-blue form018-numbered" colspan="23"><span class="num">12.</span>Antecedentes de la acción. Indicar el origen para el diseño y puesta en marcha de la acción del programa de formación</td>
                 </tr>
                 <tr style="height: 15.2px;">
                     <td class="form018-blue form018-center form018-small" colspan="3">Iniciativa de la unidad académica</td>
@@ -726,7 +999,7 @@
                     @endforeach
                 </colgroup>
                 <tr style="height: 30.3px;">
-                    <td class="form018-blue" colspan="5">Perfil de los principales participantes al que está orientado el programa de formación (Marcar con una “x” todos los que correspondan)</td>
+                    <td class="form018-blue form018-numbered" colspan="5"><span class="num">13.</span>Perfil de los principales participantes al que está orientado el programa de formación (Marcar con una “x” todos los que correspondan)</td>
                 </tr>
                 <tr style="height: 15.2px;">
                     @foreach (array_slice($perfilOpciones, 0, 5) as $option)
@@ -749,7 +1022,7 @@
                     @endforeach
                 </tr>
                 <tr style="height: 15.2px;">
-                    <td class="form018-blue form018-center" colspan="2">Cupos programados</td>
+                    <td class="form018-blue form018-numbered" colspan="2"><span class="num">14.</span>Cupos programados</td>
                     <td class="form018-blue form018-center" colspan="3">Total</td>
                 </tr>
                 <tr style="height: 15.2px;">
@@ -757,7 +1030,7 @@
                     <td class="form018-center" colspan="3">{{ $beneficiarios?->total ?? '' }}</td>
                 </tr>
                 <tr style="height: 15.2px;">
-                    <td class="form018-blue form018-small" rowspan="4" colspan="2">Edad de los participantes deseados (Marcar con una “x” todos los que correspondan)</td>
+                    <td class="form018-blue form018-small form018-numbered" rowspan="4" colspan="2"><span class="num">15.</span>Edad de los participantes deseados (Marcar con una “x” todos los que correspondan)</td>
                     <td class="form018-blue form018-center form018-small">Entre 14 - 18 años</td>
                     <td class="form018-blue form018-center form018-small">Entre 19 - 25 años</td>
                     <td class="form018-blue form018-center form018-small">Entre 26 - 40 años</td>
@@ -778,7 +1051,7 @@
                     <td class="form018-mark">{{ $markCatalog('rango_edad', 'Mayores de 70') }}</td>
                 </tr>
                 <tr style="height: 15.2px;">
-                    <td class="form018-blue form018-small" rowspan="4" colspan="2">De acuerdo con los objetivos, indique el perfil de los participantes por condición social para quienes está dirigida la oferta de educación no formal y continua (marcar con una “x” todos los que correspondan)</td>
+                    <td class="form018-blue form018-small form018-numbered" rowspan="4" colspan="2"><span class="num">16.</span>De acuerdo con los objetivos, indique el perfil de los participantes por condición social para quienes está dirigida la oferta de educación no formal y continua (marcar con una “x” todos los que correspondan)</td>
                     <td class="form018-blue form018-center form018-small">Mestizos</td>
                     <td class="form018-blue form018-center form018-small">Grupos étnicos</td>
                     <td class="form018-blue form018-center form018-small">Población vulnerable</td>
@@ -819,7 +1092,7 @@
             <table class="form018-table">
                 <tr><td class="form018-blue form018-center" colspan="12">EQUIPO DE DIRECCIÓN</td></tr>
                 <tr>
-                    <td class="form018-blue" rowspan="3" colspan="3">Coordinador/a de la Acción:</td>
+                    <td class="form018-blue form018-numbered" rowspan="3" colspan="3"><span class="num">17.</span>Coordinador/a de la Acción:</td>
                     <td colspan="5">Nombre Completo: {{ $memberName($coordinador) }}</td>
                     <td colspan="4">No. de empleado/a: {{ $coordinador?->numero_empleado }}</td>
                 </tr>
@@ -832,7 +1105,7 @@
                     <td colspan="4">Departamento al que pertenece: {{ $coordinador?->departamento }}</td>
                 </tr>
                 <tr>
-                    <td class="form018-blue" rowspan="3" colspan="3">Responsable de sistematización<br><span class="form018-small">(aplica congresos, programa de educación continua, diplomados)</span></td>
+                    <td class="form018-blue form018-numbered" rowspan="3" colspan="3"><span class="num">18.</span>Responsable de sistematización<br><span class="form018-small">(aplica congresos, programa de educación continua, diplomados)</span></td>
                     <td colspan="5">Nombre Completo: {{ $memberName($sistematizador) }}</td>
                     <td colspan="4">No. de empleado/a: {{ $sistematizador?->numero_empleado }}</td>
                 </tr>
@@ -871,7 +1144,7 @@
             </table>
 
             <table class="form018-table">
-                <tr><td class="form018-blue form018-center" colspan="12">CONSULTORES NACIONALES</td></tr>
+                <tr><td class="form018-blue form018-center" colspan="12">CONSULTORES NACIONALES (agregar más líneas en caso de ser necesario)</td></tr>
                 <tr>
                     <th class="form018-blue">N°</th>
                     <th class="form018-blue" colspan="4">Nombre Completo</th>
@@ -891,7 +1164,7 @@
             </table>
 
             <table class="form018-table">
-                <tr><td class="form018-blue form018-center" colspan="12">CONSULTORES INTERNACIONALES</td></tr>
+                <tr><td class="form018-blue form018-center" colspan="12">CONSULTORES INTERNACIONALES (agregar más líneas en caso de ser necesario)</td></tr>
                 <tr>
                     <th class="form018-blue">N°</th>
                     <th class="form018-blue" colspan="4">Nombre Completo</th>
@@ -933,7 +1206,7 @@
                     @endforeach
                 </colgroup>
                 <tr style="height: 24.9px;">
-                    <td class="form018-blue" rowspan="5">Participación de estudiantes de grado / posgrado</td>
+                    <td class="form018-blue form018-numbered" rowspan="5"><span class="num">19.</span>Participación de estudiantes de grado / posgrado</td>
                     <td class="form018-blue form018-center" colspan="2">TOTAL</td>
                     <td class="form018-blue form018-center" colspan="9">Desglose del tipo de participación de estudiantes:</td>
                 </tr>
@@ -963,7 +1236,7 @@
                     <td class="form018-center">{{ $participacion('Voluntariado', 'mujeres') }}</td>
                 </tr>
                 <tr style="height: 24.9px;">
-                    <td class="form018-blue" rowspan="7">Personal docente</td>
+                    <td class="form018-blue form018-numbered" rowspan="7"><span class="num">20.</span>Personal docente</td>
                     <td class="form018-blue form018-center" colspan="2">TOTAL</td>
                     <td class="form018-blue form018-center" colspan="9">Desglose del tipo de participación de personal docente:</td>
                 </tr>
@@ -995,7 +1268,7 @@
                     </tr>
                 @endfor
                 <tr style="height: 24.9px;">
-                    <td class="form018-blue" rowspan="5">Personal administrativo</td>
+                    <td class="form018-blue form018-numbered" rowspan="5"><span class="num">21.</span>Personal administrativo</td>
                     <td class="form018-blue form018-center" colspan="2">TOTAL</td>
                     <td class="form018-blue form018-center" colspan="9">Desglose del tipo de participación de estudiantes:</td>
                 </tr>
@@ -1025,7 +1298,7 @@
                     <td class="form018-center">{{ $participacion('Asistentes técnicos laboratorios / instructores', 'mujeres') }}</td>
                 </tr>
                 <tr style="height: 16.9px;">
-                    <td class="form018-blue" rowspan="5">Detalle de la práctica de asignatura / posgrado</td>
+                    <td class="form018-blue form018-numbered" rowspan="5"><span class="num">22.</span>Detalle de la práctica de asignatura / posgrado</td>
                     <td class="form018-blue form018-center" rowspan="2">Código</td>
                     <td class="form018-blue form018-center" rowspan="2" colspan="4">Nombre de la asignatura / posgrado</td>
                     <td class="form018-blue form018-center" rowspan="2" colspan="2">Período académico</td>
@@ -1057,7 +1330,7 @@
                     @endforeach
                 </colgroup>
                 <tr style="height: 25.3px;">
-                    <td class="form018-blue" rowspan="2" colspan="5">LA ACTIVIDAD TIENE CONTRAPARTE</td>
+                    <td class="form018-blue form018-numbered" rowspan="2" colspan="5"><span class="num">23.</span>LA ACTIVIDAD TIENE CONTRAPARTE</td>
                     <td class="form018-blue form018-center" colspan="3">SI</td>
                     <td class="form018-blue form018-center">NO</td>
                 </tr>
@@ -1065,7 +1338,7 @@
                     <td class="form018-mark" colspan="3">{{ $contraparte ? 'X' : '' }}</td>
                     <td class="form018-mark">{{ $contraparte ? '' : 'X' }}</td>
                 </tr>
-                <tr style="height: 25.3px;"><td class="form018-blue form018-center" colspan="9">PERFIL DE LA ENTIDAD CONTRAPARTE (En los casos que aplique)</td></tr>
+                <tr style="height: 25.3px;"><td class="form018-blue form018-numbered" colspan="9"><span class="num">24.</span>PERFIL DE LA ENTIDAD CONTRAPARTE (En los casos que aplique)</td></tr>
                 <tr style="height: 25.3px;">
                     <td class="form018-blue form018-center form018-small">Secretaría de Estado</td>
                     <td class="form018-blue form018-center form018-small" colspan="2">Gobierno Municipal</td>
@@ -1094,18 +1367,18 @@
                     <td class="form018-mark" colspan="3">{{ $hasText($contraparte?->tipoContraparte?->nombre, 'Organismos internacionales') ? 'X' : '' }}</td>
                     <td class="form018-mark">{{ $hasText($contraparte?->tipoContraparte?->nombre, 'Unidad de la UNAH') ? 'X' : '' }}</td>
                 </tr>
-                <tr style="height: 25.3px;"><td class="form018-blue" colspan="2">Nombre de la contraparte</td><td colspan="7">{{ $contraparte?->nombre }}</td></tr>
-                <tr style="height: 46.7px;"><td class="form018-blue" colspan="2">Nombre del contacto directo</td><td colspan="7">{{ $contraparte?->representante }}</td></tr>
-                <tr style="height: 37.3px;"><td class="form018-blue" colspan="2">Cargo del contacto de la contraparte</td><td colspan="7">{{ $contraparte?->cargo_contacto }}</td></tr>
+                <tr style="height: 25.3px;"><td class="form018-blue form018-numbered" colspan="2"><span class="num">25.</span>Nombre de la contraparte</td><td colspan="7">{{ $contraparte?->nombre }}</td></tr>
+                <tr style="height: 46.7px;"><td class="form018-blue form018-numbered" colspan="2"><span class="num">26.</span>Nombre del contacto directo</td><td colspan="7">{{ $contraparte?->representante }}</td></tr>
+                <tr style="height: 37.3px;"><td class="form018-blue form018-numbered" colspan="2"><span class="num">27.</span>Cargo del contacto de la contraparte</td><td colspan="7">{{ $contraparte?->cargo_contacto }}</td></tr>
                 <tr style="height: 37.3px;">
-                    <td class="form018-blue" rowspan="2" colspan="2">Datos de contacto</td>
+                    <td class="form018-blue form018-numbered" rowspan="2" colspan="2"><span class="num">28.</span>Datos de contacto</td>
                     <td class="form018-light form018-center" colspan="5">Correo electrónico</td>
                     <td class="form018-light form018-center" colspan="2">No. Teléfono</td>
                 </tr>
                 <tr style="height: 37.3px;"><td colspan="5">{{ $contraparte?->correo }}</td><td colspan="2">{{ $contraparte?->telefono }}</td></tr>
-                <tr style="height: 37.3px;"><td class="form018-blue" colspan="2">Dirección exacta de la sede principal</td><td colspan="7">{{ $contraparte?->direccion }}</td></tr>
+                <tr style="height: 37.3px;"><td class="form018-blue form018-numbered" colspan="2"><span class="num">29.</span>Dirección exacta de la sede principal</td><td colspan="7">{{ $contraparte?->direccion }}</td></tr>
                 <tr style="height: 37.3px;">
-                    <td class="form018-blue" rowspan="2" colspan="2">Tipo de instrumento que da lugar a la alianza</td>
+                    <td class="form018-blue form018-numbered" rowspan="2" colspan="2"><span class="num">30.</span>Tipo de instrumento que da lugar a la alianza</td>
                     <td class="form018-light form018-center" colspan="2">Carta formal de solicitud a la unidad académica</td>
                     <td class="form018-light form018-center" colspan="2">Carta de intenciones con la UNAH</td>
                     <td class="form018-light form018-center" colspan="3">Convenio marco con la UNAH</td>
@@ -1115,7 +1388,7 @@
                     <td class="form018-mark" colspan="2">{{ $hasText($contraparte?->instrumentoAlianza?->nombre, 'Carta de intenciones') ? 'X' : '' }}</td>
                     <td class="form018-mark" colspan="3">{{ $hasText($contraparte?->instrumentoAlianza?->nombre, 'Convenio marco') ? 'X' : '' }}</td>
                 </tr>
-                <tr style="height: 37.3px;"><td class="form018-blue" colspan="2">Breve descripción de los compromisos asumidos por la contraparte</td><td colspan="7">{{ $contraparte?->compromisos }}</td></tr>
+                <tr class="form018-auto-row" style="height: 37.3px;"><td class="form018-blue form018-numbered" colspan="2"><span class="num">31.</span>Breve descripción de los compromisos asumidos por la contraparte</td><td class="form018-scroll-cell" colspan="7">{{ $scrollField($contraparte?->compromisos, 'form018-scroll-contraparte') }}</td></tr>
             </table>
         </main>
     </section>
@@ -1140,70 +1413,80 @@
                         <col style="width: {{ $width / 9524 * 100 }}%;">
                     @endforeach
                 </colgroup>
-                <tr style="height: 25.9px;"><td class="form018-blue" colspan="6">Resumen de la acción. Explicar brevemente en qué consiste la acción, los antecedentes y la metodología general</td></tr>
-                <tr style="height: 118.4px;"><td colspan="6">{{ $accion->resumen }}</td></tr>
-                <tr style="height: 18.3px;"><td class="form018-blue" colspan="6">Definición del problema: Breve descripción del problema que se desea resolver, indicando causas y efectos</td></tr>
-                <tr style="height: 111.5px;"><td colspan="6">{{ $accion->definicion_problema }}</td></tr>
-                <tr><td class="form018-blue" colspan="6">Objetivo general</td></tr>
-                <tr><td colspan="6">{{ $accion->objetivo_general }}</td></tr>
-                <tr><td class="form018-blue" colspan="6">Objetivos específicos</td></tr>
-                <tr>
-                    <td colspan="6">
-                        @forelse ($accion->objetivosEspecificos->sortBy('orden') as $objetivo)
-                            {{ $loop->iteration }}. {{ $objetivo->descripcion }}<br>
-                        @empty
-                            &nbsp;
-                        @endforelse
-                    </td>
-                </tr>
-                <tr><td class="form018-blue" colspan="6">RESULTADOS ESPERADOS El indicador de resultado es una medida específica y observable que permite evaluar el grado de cumplimiento de los resultados.</td></tr>
-                <tr><td class="form018-gray" colspan="6">Resultados de corto plazo del proyecto. Debe de plantearse resultados para cada objetivo específico.</td></tr>
+                <tr style="height: 25.9px;"><td class="form018-blue form018-numbered" colspan="6"><span class="num">32.</span>Resumen de la acción. Explicar brevemente  en qué consiste la acción, los antecedentes que dieron su origen y la importancia que tiene para los objetivos estratégicos de la UNAH. (Resumen no más de 5 líneas)</td></tr>
+                <tr class="form018-auto-row" style="height: 118.4px;"><td class="form018-scroll-cell" colspan="6">{{ $scrollField($accion->resumen, 'form018-scroll-resumen') }}</td></tr>
+                <tr style="height: 18.3px;"><td class="form018-blue form018-numbered" colspan="6"><span class="num">33.</span>Definición del problema:  Breve descripción del problema que se desea resolver, indicando línea base que se tendrá en consideración para la definición de los resultados de la acción (no más de 5 líneas)</td></tr>
+                <tr class="form018-auto-row" style="height: 111.5px;"><td class="form018-scroll-cell" colspan="6">{{ $scrollField($accion->definicion_problema, 'form018-scroll-definicion') }}</td></tr>
+                <tr><td class="form018-blue form018-numbered" colspan="6"><span class="num">34.</span>Objetivo general</td></tr>
+                <tr class="form018-auto-row"><td class="form018-scroll-cell" colspan="6">{{ $scrollField($accion->objetivo_general, 'form018-scroll-md') }}</td></tr>
+                <tr><td class="form018-blue form018-numbered" colspan="6"><span class="num">35.</span>Objetivos específicos</td></tr>
+                <tr class="form018-auto-row"><td class="form018-scroll-cell" colspan="6">{{ $scrollField($objetivosEspecificosTexto ?: ' ', 'form018-scroll-md') }}</td></tr>
+                <tr><td class="form018-blue form018-numbered" colspan="6"><span class="num">36.</span>RESULTADOS ESPERADOS El indicador de resultado es una medida específica y observable que permite evaluar el grado de cumplimiento de los resultados que se han planteado. Sirven para evaluar en qué medida y calidad se lograron los objetivos del proyecto. Hay tres tipos de resultados: 1) corto plazo, que son los productos que se obtendrán con el programa de formación, 2) los de mediano plazo: que son los efectos que alcanzará el programa de formación y 3) los de largo plazo: resultados de impacto. Se recomienda 2 resultados por objetivo específico, como máximo</td></tr>
+                <tr><td class="form018-gray" colspan="6">Resultados de corto plazo del proyecto. Debe de plantearse resultados para cada objetivo específico. Son los productos que se lograrán a corto plazo</td></tr>
                 <tr>
                     <td class="form018-gray form018-center">OE</td>
                     <td class="form018-gray form018-center" colspan="3">Descripción del resultado de corto plazo</td>
                     <td class="form018-gray form018-center" colspan="2">Medio de verificación (indicador)</td>
                 </tr>
-                @foreach ($rows($accion->resultados->sortBy('orden'), 6) as $resultado)
-                    @php $resultadoPartes = $resultado ? explode(': ', $resultado->resultado, 2) : ['', '']; @endphp
-                    <tr>
-                        <td>{{ $resultadoPartes[0] ?? '' }}</td>
-                        <td colspan="3">{{ $resultadoPartes[1] ?? ($resultado?->resultado ?? '') }}</td>
-                        <td colspan="2">{{ $resultado?->indicador }}</td>
+                @foreach ($rows($resultadosPorPlazo->get('corto', collect()), 6) as $resultado)
+                    @php
+                        $resultadoPartes = $resultadoParts($resultado);
+                        $objetivo = $resultado ? $objetivosPorId->get($resultado->enf_objetivo_especifico_id) : null;
+                    @endphp
+                    <tr class="form018-auto-row">
+                        <td class="form018-scroll-cell">{{ $scrollField($objetivo?->orden ? (string) $objetivo->orden : '', 'form018-scroll-sm') }}</td>
+                        <td class="form018-scroll-cell" colspan="3">{{ $scrollField($resultadoPartes[1] ?? '', 'form018-scroll-sm') }}</td>
+                        <td class="form018-scroll-cell" colspan="2">{{ $scrollField($resultado?->indicador, 'form018-scroll-sm') }}</td>
                     </tr>
                 @endforeach
-                <tr><td class="form018-gray" colspan="6">Indicadores de mediano plazo. Son los efectos que se espera lograr posteriormente con la acción.</td></tr>
+                <tr><td class="form018-gray" colspan="6">Indicadores de mediano plazo. Son los efectos que se esperan alcanzar de la acción, es decir, la transformación esperada en la población beneficiada. Presentar como mínimo 1 resultado</td></tr>
                 <tr>
                     <td class="form018-gray form018-center" colspan="3">Descripción del resultado</td>
                     <td class="form018-gray form018-center" colspan="3">Medio de verificación (indicador)</td>
                 </tr>
-                @for ($i = 0; $i < 5; $i++)
-                    <tr><td colspan="3"></td><td colspan="3"></td></tr>
-                @endfor
-                <tr><td class="form018-gray" colspan="6">Impacto que se desea generar en el proyecto. Debe de plantearse el cambio de largo plazo esperado.</td></tr>
+                @foreach ($rows($resultadosPorPlazo->get('mediano', collect()), 5) as $resultado)
+                    @php $resultadoPartes = $resultadoParts($resultado); @endphp
+                    <tr class="form018-auto-row">
+                        <td class="form018-scroll-cell" colspan="3">{{ $scrollField($resultadoPartes[1] ?? '', 'form018-scroll-sm') }}</td>
+                        <td class="form018-scroll-cell" colspan="3">{{ $scrollField($resultado?->indicador, 'form018-scroll-sm') }}</td>
+                    </tr>
+                @endforeach
+                <tr><td class="form018-gray" colspan="6">Impacto que se desea generar en el proyecto. Debe de expresar los indicadores de impacto de la acción. Presentar como mínimo 1 resultado</td></tr>
                 <tr>
                     <td class="form018-gray form018-center" colspan="3">Descripción del resultado de largo plazo</td>
                     <td class="form018-gray form018-center" colspan="3">Medio de verificación (indicador con el que se evaluará)</td>
                 </tr>
-                @for ($i = 0; $i < 5; $i++)
-                    <tr><td colspan="3"></td><td colspan="3"></td></tr>
-                @endfor
-                <tr style="height: 18.3px;"><td class="form018-blue" colspan="6">Objetivos de Desarrollo Sostenible (ODS) a los que se contribuye con el proyecto</td></tr>
+                @foreach ($rows($resultadosPorPlazo->get('largo', collect()), 5) as $resultado)
+                    @php $resultadoPartes = $resultadoParts($resultado); @endphp
+                    <tr class="form018-auto-row">
+                        <td class="form018-scroll-cell" colspan="3">{{ $scrollField($resultadoPartes[1] ?? '', 'form018-scroll-sm') }}</td>
+                        <td class="form018-scroll-cell" colspan="3">{{ $scrollField($resultado?->indicador, 'form018-scroll-sm') }}</td>
+                    </tr>
+                @endforeach
+                <tr style="height: 18.3px;"><td class="form018-blue form018-numbered" colspan="6"><span class="num">37.</span>Objetivos de Desarrollo Sostenible (ODS) a los que se contribuye: Indicar el o los ODS a los que pretende contribuir la acción y las metas correspondientes. Para esta descripción deberá basarse en el documento de ODS que puede consultar en el siguiente enlace: Objetivos y metas de desarrollo sostenible - Desarrollo Sostenible</td></tr>
                 <tr style="height: 18.3px;">
                     <td class="form018-blue form018-center" colspan="2">Total, ODS</td>
                     <td class="form018-blue form018-center" colspan="3">Descripción de ODS (Nombre y número)</td>
                     <td class="form018-blue form018-center">Metas a las que contribuye</td>
                 </tr>
-                @for ($i = 0; $i < 4; $i++)
-                    <tr style="height: 18.3px;">
-                        <td class="form018-center" colspan="2">{{ $i === 0 ? $accion->ods->count() : '' }}</td>
-                        <td colspan="3">{{ $i === 0 ? $accion->ods->pluck('nombre')->implode(', ') : '' }}</td>
-                        <td>{{ $i === 0 ? $accion->metasContribuye->map(fn ($meta) => trim(($meta->numero_meta ?? '').' '.($meta->descripcion ?? '')))->implode('; ') : '' }}</td>
+                @foreach ($rows($odsSeleccionados, 4) as $i => $ods)
+                    @php
+                        $metasDelOds = $ods
+                            ? $metasPorOds->get($ods->id, collect())
+                                ->map(fn ($meta) => trim(($meta->numero_meta ?? '').' '.($meta->descripcion ?? '')))
+                                ->implode('; ')
+                            : '';
+                    @endphp
+                    <tr class="form018-auto-row" style="height: 18.3px;">
+                        <td class="form018-center" colspan="2">{{ $i === 0 ? $odsSeleccionados->count() : '' }}</td>
+                        <td class="form018-scroll-cell" colspan="3">{{ $scrollField($ods?->nombre ?? '', 'form018-scroll-xs') }}</td>
+                        <td class="form018-scroll-cell">{{ $scrollField($metasDelOds, 'form018-scroll-xs') }}</td>
                     </tr>
-                @endfor
-                <tr style="height: 18.3px;"><td class="form018-blue" colspan="6">Alineamiento con lo esencial de la reforma de la UNAH</td></tr>
-                <tr style="height: 18.3px;"><td colspan="6">{{ $accion->alineamiento_reforma }} {{ $accion->ejesUnah->isNotEmpty() ? ' | Ejes: '.$accion->ejesUnah->pluck('nombre')->implode(', ') : '' }}</td></tr>
-                <tr style="height: 18.3px;"><td class="form018-blue" colspan="6">Resumen de la logística que empleará para el desarrollo de la acción</td></tr>
-                <tr style="height: 18.3px;"><td colspan="6">{{ $accion->logistica }}</td></tr>
+                @endforeach
+                <tr style="height: 18.3px;"><td class="form018-blue form018-numbered" colspan="6"><span class="num">38.</span>Alineamiento con lo esencial de la reforma de la UNAH (detalle brevemente cómo se alinean los ejes de lo esencial de la reforma en la ejecución de la acción)</td></tr>
+                <tr class="form018-auto-row" style="height: 18.3px;"><td class="form018-scroll-cell" colspan="6">{{ $scrollField($alineamientoTexto, 'form018-scroll-xs') }}</td></tr>
+                <tr style="height: 18.3px;"><td class="form018-blue form018-numbered" colspan="6"><span class="num">39.</span>Resumen de la logística que empleará para el desarrollo de la actividad</td></tr>
+                <tr class="form018-auto-row" style="height: 18.3px;"><td class="form018-scroll-cell" colspan="6">{{ $scrollField($accion->logistica, 'form018-scroll-xs') }}</td></tr>
             </table>
         </main>
     </section>
@@ -1237,56 +1520,44 @@
                     <td class="form018-mark" colspan="4">{{ $accion->genera_ingresos ? 'X' : '' }}</td>
                     <td class="form018-mark" colspan="3">{{ $accion->genera_ingresos ? '' : 'X' }}</td>
                 </tr>
-                <tr><td class="form018-blue form018-center" colspan="10">Presupuesto de ingresos (manifestado en lempiras)</td></tr>
+                <tr><td class="form018-blue form018-numbered" colspan="10"><span class="num">40.</span>Presupuesto de ingresos (manifestado en lempiras)</td></tr>
                 <tr>
                     <td class="form018-blue form018-center" colspan="4">Concepto</td>
                     <td class="form018-blue form018-center" colspan="2">Cantidad</td>
                     <td class="form018-blue form018-center" colspan="2">Costo unitario</td>
                     <td class="form018-blue form018-center" colspan="2">Costo Total</td>
                 </tr>
-                @forelse ($ingresos?->detalles ?? collect() as $detalle)
+                @foreach ($ingresoRubrosForm018 as $index => $rubro)
+                    @php $detalle = $detallePresupuesto($ingresos, $rubro['needles']); @endphp
                     <tr>
-                        <td class="form018-light" colspan="4">{{ $detalle?->rubro }}</td>
+                        <td class="form018-light" colspan="4">{{ $inciso($index).$rubro['label'] }}</td>
                         <td class="form018-center" colspan="2">{{ $detalle?->cantidad }}</td>
                         <td colspan="2">{{ $detalle ? $money($detalle->costo_unitario) : '' }}</td>
                         <td colspan="2">{{ $detalle ? $money($detalle->total) : '' }}</td>
                     </tr>
-                @empty
-                    <tr>
-                        <td class="form018-light" colspan="4">No aplica</td>
-                        <td class="form018-center" colspan="2"></td>
-                        <td colspan="2"></td>
-                        <td colspan="2"></td>
-                    </tr>
-                @endforelse
+                @endforeach
                 <tr><td class="form018-blue form018-right" colspan="8">Total Ingresos</td><td colspan="2">{{ $money($ingresosTotal) }}</td></tr>
-                <tr><td class="form018-blue form018-center" colspan="10">Presupuesto de egresos (manifestado en lempiras)</td></tr>
+                <tr><td class="form018-blue form018-numbered" colspan="10"><span class="num">41.</span>Presupuesto de egresos (manifestado en lempiras)</td></tr>
                 <tr>
                     <td class="form018-blue form018-center" colspan="4">Concepto</td>
                     <td class="form018-blue form018-center" colspan="2">Cantidad</td>
                     <td class="form018-blue form018-center" colspan="2">Costo unitario</td>
                     <td class="form018-blue form018-center" colspan="2">Costo Total</td>
                 </tr>
-                @forelse ($egresos?->detalles ?? collect() as $detalle)
+                @foreach ($egresoRubrosForm018 as $index => $rubro)
+                    @php $detalle = $detallePresupuesto($egresos, $rubro['needles']); @endphp
                     <tr>
-                        <td class="form018-light" colspan="4">{{ $detalle?->rubro }}</td>
+                        <td class="form018-light" colspan="4">{{ $inciso($index).$rubro['label'] }}</td>
                         <td class="form018-center" colspan="2">{{ $detalle?->cantidad }}</td>
                         <td colspan="2">{{ $detalle ? $money($detalle->costo_unitario) : '' }}</td>
                         <td colspan="2">{{ $detalle ? $money($detalle->total) : '' }}</td>
                     </tr>
-                @empty
-                    <tr>
-                        <td class="form018-light" colspan="4">Sin egresos registrados</td>
-                        <td class="form018-center" colspan="2"></td>
-                        <td colspan="2"></td>
-                        <td colspan="2"></td>
-                    </tr>
-                @endforelse
+                @endforeach
                 <tr><td class="form018-blue form018-right" colspan="8">Total egresos</td><td colspan="2">{{ $money($egresosTotal) }}</td></tr>
                 <tr><td class="form018-blue form018-right" colspan="8">Excedente de la actividad (ingresos menos los egresos)</td><td colspan="2">{{ $money($ingresosTotal - $egresosTotal) }}</td></tr>
-                <tr><td class="form018-blue">Breve descripción en qué se destinará el excedente de la actividad</td><td colspan="9">{{ $accion->descripcion_excedente }}</td></tr>
+                <tr><td class="form018-blue form018-numbered"><span class="num">42.</span>Breve descripción en qué se destinará el excedente de la actividad</td><td colspan="9">{{ $accion->descripcion_excedente }}</td></tr>
                 <tr>
-                    <td class="form018-blue">Mecanismo de administración de la acción</td>
+                    <td class="form018-blue form018-numbered"><span class="num">43.</span>Mecanismo de administración de la acción</td>
                     <td class="form018-gray form018-center">FUNDAUNAH</td>
                     <td class="form018-mark" colspan="3">{{ $hasText($accion->mecanismo_administracion, 'FUNDAUNAH') ? 'X' : '' }}</td>
                     <td class="form018-gray form018-center" colspan="4">Tesorería de la UNAH</td>
@@ -1300,17 +1571,17 @@
                         <col style="width: {{ $width / 9524 * 100 }}%;">
                     @endforeach
                 </colgroup>
-                <tr><td class="form018-blue" colspan="4">Aportación de la UNAH (Se calcula el aporte de la UNAH, a través de la participación del equipo ejecutor)</td></tr>
+                <tr><td class="form018-blue form018-numbered" colspan="4"><span class="num">44.</span>Aportación de la UNAH (Se calcula el aporte de la UNAH, a través de la participación del personal y estudiantes de la unidad académica organizadora, así como utilización de la infraestructura y servicios públicos de la universidad)</td></tr>
                 <tr>
                     <td class="form018-blue form018-center">Concepto</td>
                     <td class="form018-blue form018-center">Cantidad</td>
                     <td class="form018-blue form018-center">Costo unitario</td>
                     <td class="form018-blue form018-center">Costo Total</td>
                 </tr>
-                @foreach (['Horas de participación del personal docente del equipo ejecutor de la acción', 'Horas de participación estudiantes', 'Costos indirectos depreciación de equipo', 'Costos indirectos servicios públicos'] as $rubro)
-                    @php $detalle = $detallePresupuesto($aporteUnah, $rubro); @endphp
+                @foreach ($aporteUnahRubrosForm018 as $index => $rubro)
+                    @php $detalle = $detallePresupuesto($aporteUnah, $rubro['needles']); @endphp
                     <tr>
-                        <td class="form018-light">{{ $rubro }}</td>
+                        <td class="form018-light">{{ $inciso($index).$rubro['label'] }}</td>
                         <td class="form018-center">{{ $detalle?->cantidad }}</td>
                         <td>{{ $detalle ? $money($detalle->costo_unitario) : '' }}</td>
                         <td>{{ $detalle ? $money($detalle->total) : '' }}</td>
@@ -1333,7 +1604,7 @@
         <main class="form018-main page-start">
             <div class="form018-section tight">
                 <span>VIII.</span>
-                <span>DESCRIPCIÓN DE ACTIVIDADES DEL PROYECTO</span>
+                <span>CRONOGRAMA DE LAS ACTIVIDADES DE LA ACCIÓN</span>
             </div>
             <table class="form018-table form018-docx-table9">
                 <colgroup>
@@ -1341,7 +1612,7 @@
                         <col style="width: {{ $width / 11231 * 100 }}%;">
                     @endforeach
                 </colgroup>
-                <tr style="height: 48.9px;"><td class="form018-blue" colspan="5">DESCRIPCIÓN DE ACTIVIDADES DEL PROYECTO (Descripción de todas las actividades enmarcadas en el proyecto)</td></tr>
+                <tr style="height: 48.9px;"><td class="form018-blue form018-numbered" colspan="5"><span class="num">45.</span>DESCRIPCIÓN DE ACTIVIDADES DEL PROYECTO (Descripción de todas las actividades enmarcadas en el proyecto, las cuales pueden ser, entre otras, la negociación inicial, la organización de los equipos de trabajo, la planificación, el desarrollo de actividades de capacitación y fortalecimiento, presentación de informe intermedio o parciales, presentación del informe final, proceso de evaluación, proceso de sistematización, publicación de artículo, otras acciones de divulgación)</td></tr>
                 <tr style="height: 24.9px;"><td class="form018-gray form018-center" colspan="5">Cronograma de actividades</td></tr>
                 <tr style="height: 24.5px;">
                     <td class="form018-light form018-center">Actividad</td>
@@ -1360,7 +1631,7 @@
                     </tr>
                 @endforeach
             </table>
-            <p class="form018-note">Observación: El equipo ejecutor debe elaborar una bitácora del proyecto que recoja todas las evidencias de su desarrollo. Esta bitácora se presentará junto al informe final de la acción.</p>
+            <p class="form018-note">Observación: El equipo ejecutor debe de elaborar una bitácora del proyecto que recoja todas las evidencias de su desarrollo. Esta bitácora se presentará junto al informe final de la acción.</p>
 
             <div class="form018-section tight">
                 <span>IX.</span>
@@ -1370,11 +1641,11 @@
                 <colgroup><col style="width: 48.39%;"><col style="width: 51.61%;"></colgroup>
                 <tr>
                     <td class="form018-blue form018-center">Coordinador de la acción por la UNAH</td>
-                    <td class="form018-blue form018-center">Jefe de la Unidad Académica que lidera la acción (jefe de departamento, director de escuela, coordinador de carrera)</td>
+                    <td class="form018-blue form018-center">Jefe de la Unidad Académica que lidera la acción (jefe de departamento, director de escuela)</td>
                 </tr>
                 <tr>
-                    <td>Nombre: {{ $memberName($coordinador) }}</td>
-                    <td>Nombre:</td>
+                    <td>Nombre: {{ $firmaCoordinadorAccion }}</td>
+                    <td>Nombre: {{ $firmaJefeUnidad }}</td>
                 </tr>
                 <tr>
                     <td class="form018-signature"></td>
@@ -1389,12 +1660,12 @@
             <table class="form018-table form018-docx-signatures">
                 <colgroup><col style="width: 48.39%;"><col style="width: 51.61%;"></colgroup>
                 <tr>
-                    <td class="form018-blue form018-center">Coordinador(a) del Comité de Vinculación de la Facultad o Unidad de Vinculación del Centro</td>
+                    <td class="form018-blue form018-center">Coordinador(a) del Comité de Vinculación de la Facultad o Unidad de Vinculación del Centro Regional</td>
                     <td class="form018-blue form018-center">Decano(a) o Director(a) del Centro Regional</td>
                 </tr>
                 <tr>
-                    <td>Nombre:</td>
-                    <td>Nombre:</td>
+                    <td>Nombre: {{ $firmaComiteLocal }}</td>
+                    <td>Nombre: {{ $firmaDecanoDirector }}</td>
                 </tr>
                 <tr>
                     <td class="form018-signature"></td>
@@ -1411,9 +1682,13 @@
                 <span>DOCUMENTOS ADJUNTOS A LA FICHA</span>
             </div>
             <table class="form018-table form018-docx-documents">
+                @php
+                    $documentColumnWidths = $isPdf ? [1102, 6040, 1102, 1106] : [820, 4560, 820, 820, 2330];
+                    $documentColumnTotal = array_sum($documentColumnWidths);
+                @endphp
                 <colgroup>
-                    @foreach ([1102, 6040, 1102, 1106] as $width)
-                        <col style="width: {{ $width / 9350 * 100 }}%;">
+                    @foreach ($documentColumnWidths as $width)
+                        <col style="width: {{ $width / $documentColumnTotal * 100 }}%;">
                     @endforeach
                 </colgroup>
                 <tr>
@@ -1421,14 +1696,37 @@
                     <th class="form018-blue">Descripción</th>
                     <th class="form018-blue">Si</th>
                     <th class="form018-blue">No</th>
+                    @unless ($isPdf)
+                        <th class="form018-blue">Archivo</th>
+                    @endunless
                 </tr>
                 @foreach (['Oficio de remisión del Decano/Director Centro Regional', 'Documento perfil del programa de formación', 'Otros (detallar)'] as $index => $documento)
-                    @php $tieneDocumento = $accion->documentos->contains(fn ($item) => str_contains($item->nombre, str_replace('Otros (detallar)', 'Otros', $documento))); @endphp
+                    @php
+                        $documentoClave = str_replace('Otros (detallar)', 'Otros', $documento);
+                        $documentoAdjunto = $accion->documentos->first(
+                            fn ($item) => str_contains($normalize($item->nombre ?? ''), $normalize($documentoClave))
+                        );
+                        $tieneDocumento = (bool) $documentoAdjunto;
+                        $tieneArchivo = $documentoAdjunto && filled($documentoAdjunto->ruta) && $documentoAdjunto->ruta !== 'pendiente';
+                        $documentoUrl = $tieneArchivo ? Storage::url($documentoAdjunto->ruta) : null;
+                    @endphp
                     <tr>
                         <td class="form018-center">{{ $index + 1 }}</td>
                         <td>{{ $documento }}</td>
                         <td class="form018-center">{{ $tieneDocumento ? 'X' : '' }}</td>
                         <td class="form018-center">{{ $tieneDocumento ? '' : 'X' }}</td>
+                        @unless ($isPdf)
+                            <td class="form018-center">
+                                @if ($documentoUrl)
+                                    <div class="form018-file-actions">
+                                        <a href="{{ $documentoUrl }}" target="_blank" rel="noopener" class="form018-file-button">Ver</a>
+                                        <a href="{{ $documentoUrl }}" download class="form018-file-button">Descargar</a>
+                                    </div>
+                                @elseif ($tieneDocumento)
+                                    <span class="form018-small">Pendiente</span>
+                                @endif
+                            </td>
+                        @endunless
                     </tr>
                 @endforeach
             </table>
@@ -1450,16 +1748,36 @@
                 shell.style.setProperty('--form018-screen-scale', scale.toFixed(4));
             };
 
+            const autosizeField = (field) => {
+                const styles = window.getComputedStyle(field);
+                const minHeight = parseFloat(styles.minHeight) || 0;
+                const maxHeight = parseFloat(styles.maxHeight) || Number.POSITIVE_INFINITY;
+
+                field.style.height = `${minHeight}px`;
+                field.style.height = `${Math.min(Math.max(field.scrollHeight, minHeight), maxHeight)}px`;
+            };
+
+            const autosizeFields = (shell) => {
+                shell.querySelectorAll('[data-form018-autosize]').forEach(autosizeField);
+            };
+
             shells.forEach((shell) => {
                 resize(shell);
+                autosizeFields(shell);
 
                 if ('ResizeObserver' in window) {
-                    new ResizeObserver(() => resize(shell)).observe(shell);
+                    new ResizeObserver(() => {
+                        resize(shell);
+                        autosizeFields(shell);
+                    }).observe(shell);
                 }
             });
 
             window.addEventListener('resize', () => {
-                shells.forEach(resize);
+                shells.forEach((shell) => {
+                    resize(shell);
+                    autosizeFields(shell);
+                });
             });
         })();
     </script>

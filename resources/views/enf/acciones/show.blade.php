@@ -30,6 +30,13 @@
                 </div>
 
                 <div class="flex flex-wrap gap-2">
+                    @if ($esForm018)
+                        <a href="{{ route('enf.acciones.pdf', $accion) }}" class="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-white hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600">
+                            @svg('heroicon-o-arrow-down-tray', ['class' => 'h-4 w-4'])
+                            Descargar PDF
+                        </a>
+                    @endif
+
                     @if ($puedeReenviar ?? false)
                         <form method="POST" action="{{ route('enf.acciones.reenviar-revision', $accion) }}">
                             @csrf
@@ -302,7 +309,10 @@
                         <li class="flex items-center justify-between gap-3 rounded-md border border-slate-100 px-3 py-2 dark:border-slate-800">
                             <span>{{ $documento->nombre }}</span>
                             @if ($documento->ruta && $documento->ruta !== 'pendiente')
-                                <a href="{{ Storage::url($documento->ruta) }}" target="_blank" class="font-semibold text-blue-700 hover:text-blue-900">Ver</a>
+                                <span class="flex shrink-0 items-center gap-3">
+                                    <a href="{{ Storage::url($documento->ruta) }}" target="_blank" rel="noopener" class="font-semibold text-blue-700 hover:text-blue-900">Ver</a>
+                                    <a href="{{ Storage::url($documento->ruta) }}" download class="font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white">Descargar</a>
+                                </span>
                             @else
                                 <span class="text-slate-500">Pendiente</span>
                             @endif

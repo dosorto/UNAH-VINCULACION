@@ -43,6 +43,9 @@
                 'label' => trim(($meta->ods?->nombre ? $meta->ods->nombre.' · ' : '').$meta->numero_meta.' '.$meta->descripcion),
             ],
         ]);
+    $periodoAcademicoLabel = fn ($periodo) => collect([$periodo->nombre, $periodo->anio ?? null])
+        ->filter()
+        ->implode(' ');
     $empleadosModalData = $empleados->map(fn ($empleado) => [
         'id' => $empleado->id,
         'nombre_completo' => $empleado->nombre_completo,
@@ -89,7 +92,25 @@
         7 => 'Resultados',
         8 => 'Presupuesto',
         9 => 'Cronograma',
-        10 => 'Documentos',
+        10 => 'Documentos y firmas',
+    ];
+    $firmaForm018Roles = [
+        [
+            'rol' => 'Coordinador de la acción por la UNAH',
+            'placeholder' => 'Nombre del coordinador de la acción',
+        ],
+        [
+            'rol' => 'Jefe de la Unidad Académica que lidera la acción',
+            'placeholder' => 'Nombre del jefe(a) de la unidad académica',
+        ],
+        [
+            'rol' => 'Coordinador(a) del Comité Local',
+            'placeholder' => 'Nombre del coordinador(a) del comité local',
+        ],
+        [
+            'rol' => 'Decano(a) o Director(a) del Centro Regional',
+            'placeholder' => 'Nombre del decano(a) o director(a)',
+        ],
     ];
     $editingAccion = $accion ?? null;
     $formAction = $editingAccion ? route('enf.acciones.update', $editingAccion) : route('enf.acciones.store');
@@ -236,10 +257,12 @@
                                 const key = this.$root.closest('form')?.dataset.storageKey;
                                 if (key) {
                                     try {
-                                        const data = JSON.parse(window.localStorage.getItem(key) || 'null') || window.__enfInitialDrafts?.[key] || {};
-                                        this.selectedCentros = this.normalized(data['centro_facultad_ids[]'] || (data.centro_facultad_id ? [data.centro_facultad_id] : this.selectedCentros));
-                                        this.selectedDepartamentos = this.normalized(data['departamento_academico_ids[]'] || (data.departamento_academico_id ? [data.departamento_academico_id] : this.selectedDepartamentos));
-                                        this.selectedCarreras = this.normalized(data['carrera_ids[]'] || (data.carrera_id ? [data.carrera_id] : this.selectedCarreras));
+                                        const initial = window.__enfInitialDrafts?.[key] || {};
+                                        const stored = JSON.parse(window.localStorage.getItem(key) || '{}');
+                                        const data = { ...initial, ...stored };
+                                        this.selectedCentros = this.normalized(data['centro_facultad_ids[]'] ?? (data.centro_facultad_id ? [data.centro_facultad_id] : this.selectedCentros));
+                                        this.selectedDepartamentos = this.normalized(data['departamento_academico_ids[]'] ?? (data.departamento_academico_id ? [data.departamento_academico_id] : this.selectedDepartamentos));
+                                        this.selectedCarreras = this.normalized(data['carrera_ids[]'] ?? (data.carrera_id ? [data.carrera_id] : this.selectedCarreras));
                                     } catch (error) {}
                                 }
                                 this.filterSelections();
@@ -768,7 +791,6 @@
                         <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
                             <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-800/60">
                                 <tr>
-                                    <th class="px-3 py-2">Asignatura</th>
                                     <th class="px-3 py-2">Código</th>
                                     <th class="px-3 py-2">Nombre</th>
                                     <th class="px-3 py-2">Período</th>
@@ -784,18 +806,12 @@
                     <div class="hidden" data-practicas-fields>
                         @for ($i = 0; $i < 3; $i++)
                             <div data-practica-row="{{ $i }}">
-                                <select name="practicas_asignatura[{{ $i }}][asignatura_id]" class="{{ $input }}">
-                                    <option value="">Asignatura registrada...</option>
-                                    @foreach ($asignaturas as $asignatura)
-                                        <option value="{{ $asignatura->id }}">{{ $asignatura->codigo }} · {{ $asignatura->nombre }}</option>
-                                    @endforeach
-                                </select>
                                 <input name="practicas_asignatura[{{ $i }}][codigo]" class="{{ $input }}" placeholder="Código">
                                 <input name="practicas_asignatura[{{ $i }}][nombre]" class="{{ $input }}" placeholder="Nombre asignatura / posgrado">
                                 <select name="practicas_asignatura[{{ $i }}][periodo_academico_id]" class="{{ $input }}">
                                     <option value="">Período registrado...</option>
                                     @foreach ($periodosAcademicos as $periodo)
-                                        <option value="{{ $periodo->id }}">{{ $periodo->nombre }}</option>
+                                        <option value="{{ $periodo->id }}">{{ $periodoAcademicoLabel($periodo) }}</option>
                                     @endforeach
                                 </select>
                                 <input name="practicas_asignatura[{{ $i }}][periodo_academico]" class="{{ $input }}" placeholder="Período académico">
@@ -911,10 +927,12 @@
                                 const key = this.$root.closest('form')?.dataset.storageKey;
                                 if (key) {
                                     try {
-                                        const data = JSON.parse(window.localStorage.getItem(key) || 'null') || window.__enfInitialDrafts?.[key] || {};
-                                        this.selectedEjes = this.normalized(data['eje_unah_ids[]'] || this.selectedEjes);
-                                        this.selectedOds = this.normalized(data['ods_ids[]'] || this.selectedOds);
-                                        this.selectedMetas = this.normalized(data['meta_contribuye_ids[]'] || this.selectedMetas);
+                                        const initial = window.__enfInitialDrafts?.[key] || {};
+                                        const stored = JSON.parse(window.localStorage.getItem(key) || '{}');
+                                        const data = { ...initial, ...stored };
+                                        this.selectedEjes = this.normalized(data['eje_unah_ids[]'] ?? this.selectedEjes);
+                                        this.selectedOds = this.normalized(data['ods_ids[]'] ?? this.selectedOds);
+                                        this.selectedMetas = this.normalized(data['meta_contribuye_ids[]'] ?? this.selectedMetas);
                                     } catch (error) {}
                                 }
                                 this.filterSelectedMetas();
@@ -1123,7 +1141,7 @@
                                     <tbody data-presupuesto-list="{{ $name }}" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
                                 </table>
                             </div>
-                            <div class="hidden" data-presupuesto-fields="{{ $name }}" data-title="{{ $title }}">
+                            <div class="hidden" data-presupuesto-fields="{{ $name }}" data-title="{{ $title }}" data-rubros='@json($rubros)'>
                                 @for ($i = 0; $i < 20; $i++)
                                     <div data-presupuesto-row="{{ $name }}" data-index="{{ $i }}">
                                         <input type="text" name="{{ $name }}[{{ $i }}][rubro]" value="{{ old("{$name}.{$i}.rubro") }}" class="{{ $input }}">
@@ -1178,7 +1196,7 @@
             </div>
 
             <div class="{{ $card }} hidden" data-step-panel="10">
-                <h2 class="{{ $sectionTitle }}">10. Supervisor</h2>
+                <h2 class="{{ $sectionTitle }}">10. Documentos adjuntos y firmas</h2>
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     @foreach ([
                         [
@@ -1225,6 +1243,19 @@
                         </div>
                     </section>
                     @endforeach
+                </div>
+
+                <div class="mt-6 border-t border-slate-200 pt-5 dark:border-slate-700">
+                    <h3 class="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Firmas requeridas</h3>
+                    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        @foreach ($firmaForm018Roles as $i => $firmaRol)
+                            <section class="rounded-md border border-slate-200 p-4 shadow-sm dark:border-slate-700">
+                                <input type="hidden" name="firmas[{{ $i }}][rol_firma]" value="{{ $firmaRol['rol'] }}">
+                                <label class="{{ $label }}">{{ $firmaRol['rol'] }}</label>
+                                <input name="firmas[{{ $i }}][nombre_firmante]" class="{{ $input }}" placeholder="{{ $firmaRol['placeholder'] }}">
+                            </section>
+                        @endforeach
+                    </div>
                 </div>
             </div>
 
@@ -1338,34 +1369,25 @@
                 </div>
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-6">
                     <div class="md:col-span-2">
-                        <label class="{{ $label }}">Asignatura registrada</label>
-                        <select data-practica-asignatura class="{{ $input }}">
-                            <option value="">Asignatura registrada...</option>
-                            @foreach ($asignaturas as $asignatura)
-                                <option value="{{ $asignatura->id }}">{{ $asignatura->codigo }} · {{ $asignatura->nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
                         <label class="{{ $label }}">Código</label>
                         <input data-practica-codigo class="{{ $input }}">
                     </div>
-                    <div class="md:col-span-3">
+                    <div class="md:col-span-4">
                         <label class="{{ $label }}">Nombre asignatura / posgrado</label>
                         <input data-practica-nombre class="{{ $input }}">
                     </div>
-                    <div class="md:col-span-2">
+                    <div class="md:col-span-3">
                         <label class="{{ $label }}">Período registrado</label>
                         <select data-practica-periodo-id class="{{ $input }}">
                             <option value="">Período registrado...</option>
                             @foreach ($periodosAcademicos as $periodo)
-                                <option value="{{ $periodo->id }}">{{ $periodo->nombre }}</option>
+                                <option value="{{ $periodo->id }}">{{ $periodoAcademicoLabel($periodo) }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="md:col-span-2">
+                    <div class="md:col-span-3">
                         <label class="{{ $label }}">Período académico</label>
-                        <input data-practica-periodo-texto class="{{ $input }}">
+                        <input data-practica-periodo-texto class="{{ $input }}" readonly>
                     </div>
                     <div>
                         <label class="{{ $label }}">Matrícula</label>
@@ -1396,7 +1418,9 @@
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div class="sm:col-span-3">
                         <label class="{{ $label }}">Rubro</label>
-                        <input data-presupuesto-rubro class="{{ $input }}">
+                        <select data-presupuesto-rubro class="{{ $input }}">
+                            <option value="">Seleccione...</option>
+                        </select>
                     </div>
                     <div>
                         <label class="{{ $label }}">Cantidad</label>
@@ -1501,7 +1525,6 @@
             const practicaModal = document.querySelector('[data-practica-modal]');
             const practicaModalTitle = document.querySelector('[data-practica-modal-title]');
             const practicaInputs = {
-                asignatura_id: document.querySelector('[data-practica-asignatura]'),
                 codigo: document.querySelector('[data-practica-codigo]'),
                 nombre: document.querySelector('[data-practica-nombre]'),
                 periodo_academico_id: document.querySelector('[data-practica-periodo-id]'),
@@ -1829,7 +1852,6 @@
                 profesion: '',
                 nacionalidad: '',
                 horas_contratadas: '',
-                asignatura_id: '',
                 codigo: '',
                 nombre: '',
                 periodo_academico_id: '',
@@ -1935,7 +1957,6 @@
             };
 
             const practicaHasValue = (row) => [
-                'asignatura_id',
                 'codigo',
                 'nombre',
                 'periodo_academico_id',
@@ -1956,13 +1977,12 @@
                 }
 
                 if (rows.length === 0) {
-                    target.innerHTML = '<tr><td colspan="8" class="px-3 py-4 text-center text-slate-500">Sin prácticas agregadas.</td></tr>';
+                    target.innerHTML = '<tr><td colspan="7" class="px-3 py-4 text-center text-slate-500">Sin prácticas agregadas.</td></tr>';
                     return;
                 }
 
                 target.innerHTML = rows.map(({ row, index }) => `
                     <tr>
-                        <td class="px-3 py-2">${escapeHtml(rowSelectText(row, 'asignatura_id') || 'Sin dato')}</td>
                         <td class="px-3 py-2">${escapeHtml(rowValue(row, 'codigo') || 'Sin dato')}</td>
                         <td class="px-3 py-2">${escapeHtml(rowValue(row, 'nombre') || 'Sin dato')}</td>
                         <td class="px-3 py-2">${escapeHtml(rowSelectText(row, 'periodo_academico_id') || rowValue(row, 'periodo_academico') || 'Sin dato')}</td>
@@ -2251,6 +2271,17 @@
             const nextEmptyPracticaRow = () => Array.from(form.querySelectorAll('[data-practica-row]'))
                 .find((row) => !practicaHasValue(row));
 
+            const selectedOptionText = (select) => {
+                const option = select?.selectedOptions?.[0];
+                return option?.value ? option.textContent.trim() : '';
+            };
+
+            const updatePracticaPeriodoTexto = () => {
+                if (practicaInputs.periodo_academico) {
+                    practicaInputs.periodo_academico.value = selectedOptionText(practicaInputs.periodo_academico_id);
+                }
+            };
+
             const openPracticaModal = (index = null) => {
                 const row = index === null
                     ? nextEmptyPracticaRow()
@@ -2271,8 +2302,12 @@
                     }
                 });
 
+                if (practicaInputs.periodo_academico_id?.value && !practicaInputs.periodo_academico?.value) {
+                    updatePracticaPeriodoTexto();
+                }
+
                 showModal(practicaModal);
-                practicaInputs.asignatura_id?.focus();
+                practicaInputs.codigo?.focus();
             };
 
             const savePractica = () => {
@@ -2283,6 +2318,8 @@
                 if (!row) {
                     return;
                 }
+
+                updatePracticaPeriodoTexto();
 
                 setRowValues(row, Object.fromEntries(
                     Object.entries(practicaInputs).map(([fieldName, input]) => [fieldName, input?.value || '']),
@@ -2307,6 +2344,47 @@
             const nextEmptyPresupuestoRow = (group) => Array.from(form.querySelectorAll(`[data-presupuesto-row="${group}"]`))
                 .find((row) => !rowValue(row, 'rubro'));
 
+            const presupuestoRubros = (group) => {
+                const source = form.querySelector(`[data-presupuesto-fields="${group}"]`);
+
+                try {
+                    return JSON.parse(source?.dataset.rubros || '[]');
+                } catch (error) {
+                    return [];
+                }
+            };
+
+            const setPresupuestoRubroOptions = (group, selectedValue = '') => {
+                if (!presupuestoInputs.rubro) {
+                    return;
+                }
+
+                const selected = selectedValue || '';
+                const rubros = presupuestoRubros(group);
+                presupuestoInputs.rubro.innerHTML = '';
+
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = 'Seleccione...';
+                presupuestoInputs.rubro.appendChild(placeholder);
+
+                rubros.forEach((rubro) => {
+                    const option = document.createElement('option');
+                    option.value = rubro;
+                    option.textContent = rubro;
+                    presupuestoInputs.rubro.appendChild(option);
+                });
+
+                if (selected && !rubros.includes(selected)) {
+                    const option = document.createElement('option');
+                    option.value = selected;
+                    option.textContent = selected;
+                    presupuestoInputs.rubro.appendChild(option);
+                }
+
+                presupuestoInputs.rubro.value = selected;
+            };
+
             const openPresupuestoModal = (group, index = null) => {
                 const row = index === null
                     ? nextEmptyPresupuestoRow(group)
@@ -2322,7 +2400,7 @@
                 if (presupuestoModalTitle) {
                     presupuestoModalTitle.textContent = `${index === null ? 'Agregar' : 'Editar'} ${title.toLowerCase()}`;
                 }
-                presupuestoInputs.rubro.value = index === null ? '' : rowValue(row, 'rubro');
+                setPresupuestoRubroOptions(group, index === null ? '' : rowValue(row, 'rubro'));
                 presupuestoInputs.cantidad.value = index === null ? '' : rowValue(row, 'cantidad');
                 presupuestoInputs.costo_unitario.value = index === null ? '' : rowValue(row, 'costo_unitario');
                 updatePresupuestoTotal();
@@ -2336,6 +2414,11 @@
                     : null;
 
                 if (!row) {
+                    return;
+                }
+
+                if (!presupuestoInputs.rubro?.value) {
+                    presupuestoInputs.rubro?.focus();
                     return;
                 }
 
@@ -2402,16 +2485,14 @@
 
             const restore = () => {
                 const stored = window.localStorage.getItem(storageKey);
-                let data = {};
+                let data = initialDraft || {};
 
                 if (stored) {
                     try {
-                        data = JSON.parse(stored);
+                        data = { ...(initialDraft || {}), ...JSON.parse(stored) };
                     } catch (error) {
-                        data = {};
+                        data = initialDraft || {};
                     }
-                } else {
-                    data = initialDraft || {};
                 }
 
                 resetObjetivosEspecificos(Array.isArray(data['objetivos_especificos[]'])
@@ -2735,6 +2816,7 @@
             document.querySelectorAll('[data-close-practica-modal]').forEach((button) => {
                 button.addEventListener('click', () => hideModal(practicaModal));
             });
+            practicaInputs.periodo_academico_id?.addEventListener('change', updatePracticaPeriodoTexto);
             document.querySelector('[data-save-practica]')?.addEventListener('click', savePractica);
             document.querySelectorAll('[data-close-presupuesto-modal]').forEach((button) => {
                 button.addEventListener('click', () => hideModal(presupuestoModal));
