@@ -1,4 +1,8 @@
-<div>
+@php
+    $passwordLoginEnabled = config('services.microsoft.password_login_enabled', true);
+@endphp
+
+<div @class(['md:min-h-[250px]' => ! $passwordLoginEnabled])>
     @if (config('services.microsoft.enabled'))
         <div class="mb-4">
             <a
@@ -16,7 +20,7 @@
         </div>
     @endif
 
-    @if (config('services.microsoft.password_login_enabled', true))
+    @if ($passwordLoginEnabled)
         @if (config('services.microsoft.enabled'))
             <div class="relative my-4">
                 <div class="absolute inset-0 flex items-center">
