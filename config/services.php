@@ -36,10 +36,22 @@ return [
     ],
 
     'microsoft' => [
+        'enabled' => filter_var(env('MICROSOFT_LOGIN_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+        'password_login_enabled' => filter_var(env('MICROSOFT_PASSWORD_LOGIN_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
         'client_id' => env('MICROSOFT_CLIENT_ID'),
         'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
         'redirect' => env('MICROSOFT_REDIRECT_URI'),
-        'tenant' => env('MICROSOFT_TENANT_ID'),
+        'tenant' => env('MICROSOFT_TENANT_ID', 'organizations'),
+        'allowed_domains' => array_values(array_filter(array_map(
+            fn ($domain) => strtolower(trim(ltrim($domain, '@'))),
+            explode(',', env('MICROSOFT_ALLOWED_DOMAINS', ''))
+        ))),
+        'auto_create_users' => filter_var(env('MICROSOFT_AUTO_CREATE_USERS', false), FILTER_VALIDATE_BOOLEAN),
+        'scopes' => array_values(array_filter(preg_split(
+            '/\s+/',
+            trim(env('MICROSOFT_SCOPES', 'openid profile email User.Read'))
+        ))),
+        'prompt' => env('MICROSOFT_PROMPT', 'select_account'),
         'include_tenant_info' => true,
     ],
 

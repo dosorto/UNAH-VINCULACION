@@ -22,6 +22,7 @@ use App\Livewire\Personal\Permiso\ListPermisos;
 use App\Livewire\Personal\Empleado\ListEmpleado;
 use App\Livewire\Personal\Empleado\CreateEmpleado;
 use App\Http\Controllers\Docente\VerificarConstancia;
+use App\Http\Controllers\Auth\MicrosoftAuthController;
 use App\Livewire\Demografia\Municipio\CreateMunicipio;
 use App\Livewire\Demografia\Municipio\ListaMunicipios;
 use App\Livewire\Docente\Proyectos\ProyectosAprobados;
@@ -117,6 +118,12 @@ Route::get('/logout', function () {
 Route::middleware(['guest'])->group(function () {
     Route::get('/', Login::class)
         ->name('login');
+
+    Route::get('auth/microsoft/redirect', [MicrosoftAuthController::class, 'redirect'])
+        ->name('login.microsoft.redirect');
+
+    Route::get('auth/microsoft/callback', [MicrosoftAuthController::class, 'callback'])
+        ->name('login.microsoft.callback');
 
     Route::get('password/reset', \App\Livewire\Auth\ForgotPasswordController::class)
         ->name('password.request');

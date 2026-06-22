@@ -26,6 +26,16 @@ class Login extends Component
 
     public function create(): void
     {
+        if (! config('services.microsoft.password_login_enabled', true)) {
+            Notification::make()
+                ->title('Login con contraseña deshabilitado.')
+                ->body('Usa el boton de Microsoft para iniciar sesion.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
         $this->validate();
 
         if (Auth::attempt(['email' => $this->email, 'password' => $this->password])) {
