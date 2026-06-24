@@ -77,29 +77,34 @@
     <div class="mb-6 rounded-lg bg-white p-4 shadow dark:bg-gray-900">
         <div class="flex items-center overflow-x-auto gap-0.5">
             @foreach($stepLabels as $step => $label)
-                @php $complete = $this->isStepComplete($step); @endphp
+                @php
+                    $complete = $this->isStepComplete($step);
+                    $accessible = $this->canAccessStep($step);
+                    $showComplete = $this->shouldShowStepComplete($step);
+                @endphp
                 <button wire:click="goToStep({{ $step }})" type="button"
-                    class="group flex min-w-[44px] flex-1 cursor-pointer flex-col items-center rounded-md p-1 transition hover:bg-gray-50 dark:hover:bg-white/5">
+                    aria-disabled="{{ $accessible ? 'false' : 'true' }}"
+                    class="group flex min-w-[44px] flex-1 flex-col items-center rounded-md p-1 transition hover:bg-gray-50 dark:hover:bg-white/5 {{ $accessible ? 'cursor-pointer' : 'cursor-not-allowed opacity-60' }}">
                     <span class="mb-1 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-colors
                         {{ $currentStep === $step
                             ? 'bg-blue-600 text-white ring-2 ring-blue-300'
-                            : ($complete
+                            : ($showComplete
                                 ? 'bg-green-500 text-white'
                                 : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400') }}">
-                        @if($complete)
+                        @if($showComplete)
                             &#10003;
                         @else
                             {{ $step }}
                         @endif
                     </span>
                     <span class="hidden text-center text-[10px] leading-tight sm:block
-                        {{ $currentStep === $step ? 'font-semibold text-blue-600' : ($complete ? 'text-green-600 dark:text-green-400' : 'text-gray-500') }}">
+                        {{ $currentStep === $step ? 'font-semibold text-blue-600' : ($showComplete ? 'text-green-600 dark:text-green-400' : 'text-gray-500') }}">
                         {{ $label }}
                     </span>
                 </button>
 
                 @if($step < count($stepLabels))
-                    <div class="h-0.5 w-3 shrink-0 {{ $complete ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700' }}"></div>
+                    <div class="h-0.5 w-3 shrink-0 {{ $showComplete ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700' }}"></div>
                 @endif
             @endforeach
         </div>
@@ -632,7 +637,7 @@
 
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <div class="{{ $cardClass }}">
-                        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">Carta de formalización de la PPS firmada por la contraparte</p>
+                        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">Carta de formalización de la PPS firmada por la contraparte <span class="text-red-500">*</span></p>
                         <div class="mt-3 flex gap-4">
                             @foreach(['Si', 'No'] as $opcion)
                                 <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -664,7 +669,7 @@
                     </div>
 
                     <div class="{{ $cardClass }}">
-                        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">Convenio marco entre la UNAH y entidad</p>
+                        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">Convenio marco entre la UNAH y entidad <span class="text-red-500">*</span></p>
                         <div class="mt-3 flex gap-4">
                             @foreach(['Si', 'No'] as $opcion)
                                 <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -864,11 +869,15 @@
 
             <div class="flex items-center gap-3">
                 @if($currentStep < 9)
-                    <button type="button" wire:click="nextStep" class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                    <button type="button" wire:click="nextStep"
+                        aria-disabled="{{ (!$this->shouldLockStepNavigation() || $this->isStepComplete($currentStep)) ? 'false' : 'true' }}"
+                        class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 {{ $this->shouldLockStepNavigation() && !$this->isStepComplete($currentStep) ? 'cursor-not-allowed opacity-60' : '' }}">
                         Siguiente &rarr;
                     </button>
                 @elseif($currentStep === 9)
-                    <button type="button" wire:click="goToReview" class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                    <button type="button" wire:click="goToReview"
+                        aria-disabled="{{ (!$this->shouldLockStepNavigation() || $this->isStepComplete($currentStep)) ? 'false' : 'true' }}"
+                        class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 {{ $this->shouldLockStepNavigation() && !$this->isStepComplete($currentStep) ? 'cursor-not-allowed opacity-60' : '' }}">
                         Revisión final &rarr;
                     </button>
                 @else

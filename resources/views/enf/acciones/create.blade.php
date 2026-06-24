@@ -56,32 +56,7 @@
         'departamento' => $empleado->departamento_academico?->nombre,
         'jornada_laboral' => $empleado->jornada_laboral,
     ])->values();
-    $programasAprobadosData = $programasAprobados->map(function ($programa) {
-        $tipoAccionEnfId = $programa->accionCatalogos
-            ->first(fn ($catalogo) => $catalogo->tipo === 'tipo_accion_enf')
-            ?->enf_catalogo_id;
-
-        return [
-            'id' => $programa->id,
-            'label' => trim(($programa->numero_registro ? $programa->numero_registro.' · ' : '').$programa->nombre_accion),
-            'fields' => [
-                'nombre_accion' => $programa->nombre_accion,
-                'catalogos[tipo_accion_enf][]' => $tipoAccionEnfId,
-                'resolucion_vra' => $programa->resolucion_vra,
-                'resolucion_original' => $programa->resolucion_original,
-                'resolucion_actualizacion' => $programa->resolucion_actualizacion,
-                'numero_edicion' => $programa->numero_edicion,
-                'fecha_inicio' => optional($programa->fecha_inicio)->format('Y-m-d'),
-                'fecha_finalizacion' => optional($programa->fecha_finalizacion)->format('Y-m-d'),
-                'modalidad_id' => $programa->modalidad_id,
-                'centro_facultad_id' => $programa->centro_facultad_id,
-                'departamento_academico_id' => $programa->departamento_academico_id,
-                'carrera_id' => $programa->carrera_id,
-                'horas_teoricas' => $programa->horas_teoricas,
-                'horas_practicas' => $programa->horas_practicas,
-            ],
-        ];
-    })->values();
+    $programasAprobadosData = $programasAprobados->values();
     $stepLabels = [
         1 => 'Información',
         2 => 'Lugar',
@@ -134,12 +109,25 @@
         @endif
 
         <script>
-            window.__enfInitialDrafts = Object.assign(window.__enfInitialDrafts || {}, {
-                @js($storageKey): @js($initialDraft ?? []),
-            });
+            (() => {
+                const enfStorageKey = @js($storageKey);
+
+                if (@js($clearDraftOnLoad)) {
+                    window.localStorage.removeItem(enfStorageKey);
+                    window.localStorage.removeItem(`${enfStorageKey}:step`);
+
+                    const currentUrl = new URL(window.location.href);
+                    currentUrl.searchParams.delete('nuevo');
+                    window.history.replaceState({}, '', currentUrl);
+                }
+
+                window.__enfInitialDrafts = Object.assign(window.__enfInitialDrafts || {}, {
+                    [enfStorageKey]: @js($initialDraft ?? []),
+                });
+            })();
         </script>
 
-        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}">
+        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}">
             @csrf
             @if ($editingAccion)
                 @method('PUT')
@@ -153,6 +141,7 @@
                     <div>
                         <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Registro por pasos</h2>
                         <p class="text-xs text-slate-500 dark:text-slate-400" data-autosave-status>Los cambios se autoguardan mientras escribe.</p>
+                        <p class="mt-1 hidden text-xs font-semibold text-red-600 dark:text-red-400" data-step-validation-message></p>
                     </div>
                 </div>
                 <div class="flex items-center overflow-x-auto gap-0.5">
@@ -178,8 +167,8 @@
                     <select data-approved-program-select class="{{ $input }}">
                         <option value="">Crear acción desde cero</option>
                         @foreach ($programasAprobados as $programaAprobado)
-                            <option value="{{ $programaAprobado->id }}">
-                                {{ $programaAprobado->numero_registro ? $programaAprobado->numero_registro.' · ' : '' }}{{ $programaAprobado->nombre_accion }}
+                            <option value="{{ $programaAprobado['id'] }}">
+                                {{ $programaAprobado['label'] }}
                             </option>
                         @endforeach
                     </select>
@@ -240,6 +229,13 @@
                         </select>
                     </div>
                     <div
+                        @enf-approved-program-selected.window="
+                            selectedCentros = normalized($event.detail.centro_facultad_ids || []);
+                            selectedDepartamentos = normalized($event.detail.departamento_academico_ids || []);
+                            selectedCarreras = normalized($event.detail.carrera_ids || []);
+                            filterSelections();
+                            notifyChange();
+                        "
                         x-data="{
                             openCentros: false,
                             openDepartamentos: false,
@@ -462,7 +458,7 @@
                     </div>
                     <div>
                         <label class="{{ $label }}">Total horas</label>
-                        <input type="number" min="0" name="total_horas" value="{{ old('total_horas', 0) }}" class="{{ $input }}">
+                        <input type="number" min="0" name="total_horas" value="{{ old('total_horas', 0) }}" class="{{ $input }} bg-slate-50 dark:bg-slate-800/70" readonly>
                     </div>
                 </div>
             </div>
@@ -588,7 +584,7 @@
                 <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-4">
                     <div><label class="{{ $label }}">Hombres</label><input type="number" min="0" name="beneficiarios[hombres]" value="0" class="{{ $input }}"></div>
                     <div><label class="{{ $label }}">Mujeres</label><input type="number" min="0" name="beneficiarios[mujeres]" value="0" class="{{ $input }}"></div>
-                    <div><label class="{{ $label }}">Total cupos programados</label><input type="number" min="0" name="beneficiarios[total]" value="0" class="{{ $input }}"></div>
+                    <div><label class="{{ $label }}">Total cupos programados</label><input type="number" min="0" name="beneficiarios[total]" value="0" class="{{ $input }} bg-slate-50 dark:bg-slate-800/70" readonly></div>
                     <div class="md:col-span-4"><label class="{{ $label }}">Descripción de participantes</label><textarea name="descripcion_participantes" rows="3" class="{{ $input }}"></textarea></div>
                 </div>
             </div>
@@ -1489,6 +1485,7 @@
             const totalSteps = Number(form.dataset.totalSteps || 1);
             const storageKey = form.dataset.storageKey || 'enf-accion-form-draft';
             const clearDraftOnLoad = form.dataset.clearDraftOnLoad === '1';
+            const shouldLockStepNavigation = form.dataset.lockStepNavigation === '1';
             const approvedPrograms = @js($programasAprobadosData);
             const empleados = @js($empleadosModalData);
             const initialDraft = @js($initialDraft ?? []);
@@ -1499,9 +1496,16 @@
             const nextButton = form.querySelector('[data-next-step]');
             const submitButton = form.querySelector('[data-submit-step]');
             const status = form.querySelector('[data-autosave-status]');
+            const stepValidationMessage = form.querySelector('[data-step-validation-message]');
             const objetivosEspecificosList = form.querySelector('[data-objetivos-especificos-list]');
             const objetivoEspecificoTemplate = form.querySelector('[data-objetivo-especifico-template]');
             const addObjetivoEspecificoButton = form.querySelector('[data-add-objetivo-especifico]');
+            const horasTeoricasField = form.querySelector('[name="horas_teoricas"]');
+            const horasPracticasField = form.querySelector('[name="horas_practicas"]');
+            const totalHorasField = form.querySelector('[name="total_horas"]');
+            const beneficiariosHombresField = form.querySelector('[name="beneficiarios[hombres]"]');
+            const beneficiariosMujeresField = form.querySelector('[name="beneficiarios[mujeres]"]');
+            const beneficiariosTotalField = form.querySelector('[name="beneficiarios[total]"]');
             const employeeModal = document.querySelector('[data-employee-modal]');
             const employeeSearch = document.querySelector('[data-employee-search]');
             const employeeResults = document.querySelector('[data-employee-results]');
@@ -1663,6 +1667,28 @@
                 (normalizedValues.length ? normalizedValues : ['']).forEach((value) => addObjetivoEspecifico(value));
             };
 
+            const numericHoursValue = (field) => {
+                const value = Number(field?.value || 0);
+
+                return Number.isFinite(value) && value > 0 ? value : 0;
+            };
+
+            const syncTotalHoras = () => {
+                if (!totalHorasField) {
+                    return;
+                }
+
+                totalHorasField.value = String(numericHoursValue(horasTeoricasField) + numericHoursValue(horasPracticasField));
+            };
+
+            const syncTotalCupos = () => {
+                if (!beneficiariosTotalField) {
+                    return;
+                }
+
+                beneficiariosTotalField.value = String(numericHoursValue(beneficiariosHombresField) + numericHoursValue(beneficiariosMujeresField));
+            };
+
             const fieldSelector = (name) => `[name="${String(name).replace(/"/g, '\\"')}"]`;
 
             const fieldHasValue = (field) => {
@@ -1748,6 +1774,215 @@
                 return fields.length > 0 || alternativeGroups.some((group) => group.some((name) => panel.querySelector(fieldSelector(name))));
             };
 
+            const ignoredStepFieldContainers = [
+                '[data-equipo-docente-fields]',
+                '[data-consultor-fields]',
+                '[data-participacion-fields]',
+                '[data-practicas-fields]',
+                '[data-presupuesto-fields]',
+                '[data-cronograma-fields]',
+            ].join(',');
+            const invalidFieldClasses = ['border-red-500', 'ring-1', 'ring-red-500'];
+            const invalidChoiceClasses = ['text-red-600', 'dark:text-red-400'];
+
+            const setValidationMessage = (message = '') => {
+                if (!stepValidationMessage) {
+                    return;
+                }
+
+                stepValidationMessage.textContent = message;
+                stepValidationMessage.classList.toggle('hidden', !message);
+            };
+
+            const clearInvalidStyles = () => {
+                form.querySelectorAll('[data-wizard-invalid]').forEach((target) => {
+                    target.classList.remove(...invalidFieldClasses, ...invalidChoiceClasses);
+                    target.removeAttribute('data-wizard-invalid');
+                });
+            };
+
+            const clearValidationFeedback = () => {
+                clearInvalidStyles();
+                setValidationMessage();
+            };
+
+            const isStepField = (field) => {
+                return !field.disabled
+                    && field.type !== 'hidden'
+                    && field.name !== '_token'
+                    && !field.closest(ignoredStepFieldContainers);
+            };
+
+            const markInvalidTarget = (target, classes) => {
+                if (!target) {
+                    return;
+                }
+
+                target.classList.add(...classes);
+                target.setAttribute('data-wizard-invalid', '1');
+            };
+
+            const requiredMarkerSelector = '[data-wizard-required-marker]';
+
+            const appendRequiredMarker = (target) => {
+                if (!target
+                    || target.querySelector(requiredMarkerSelector)
+                    || target.textContent.trim().endsWith('*')) {
+                    return;
+                }
+
+                const marker = document.createElement('span');
+                marker.dataset.wizardRequiredMarker = '1';
+                marker.className = 'text-red-500';
+                marker.setAttribute('aria-hidden', 'true');
+                marker.textContent = ' *';
+                target.appendChild(marker);
+            };
+
+            const fieldRequiredTarget = (field, panel) => {
+                const labelFor = field.id
+                    ? panel.querySelector(`label[for="${String(field.id).replace(/"/g, '\\"')}"]`)
+                    : null;
+
+                if (labelFor) {
+                    return labelFor;
+                }
+
+                let node = field.parentElement;
+
+                while (node && node !== panel) {
+                    const target = Array.from(node.children).find((child) => {
+                        return child.matches?.('label, p')
+                            && !child.contains(field)
+                            && !child.querySelector('input, select, textarea');
+                    });
+
+                    if (target) {
+                        return target;
+                    }
+
+                    node = node.parentElement;
+                }
+
+                return null;
+            };
+
+            const syncRequiredMarkers = () => {
+                form.querySelectorAll(requiredMarkerSelector).forEach((marker) => marker.remove());
+
+                if (!shouldLockStepNavigation) {
+                    return;
+                }
+
+                panels.forEach((panel) => {
+                    const groupedChoices = new Map();
+                    const fields = Array.from(panel.querySelectorAll('input[name], select[name], textarea[name]'))
+                        .filter((field) => isStepField(field) && !field.classList.contains('hidden'));
+
+                    fields.forEach((field) => {
+                        if (field.type === 'checkbox' || field.type === 'radio') {
+                            const group = groupedChoices.get(field.name) || [];
+                            group.push(field);
+                            groupedChoices.set(field.name, group);
+                            return;
+                        }
+
+                        appendRequiredMarker(fieldRequiredTarget(field, panel));
+                    });
+
+                    groupedChoices.forEach((choices) => {
+                        if (choices.length > 1) {
+                            const groupTarget = fieldRequiredTarget(choices[0], panel);
+
+                            if (groupTarget) {
+                                appendRequiredMarker(groupTarget);
+                                return;
+                            }
+
+                            choices.forEach((field) => appendRequiredMarker(field.closest('label')));
+                        }
+                    });
+                });
+            };
+
+            const markIncompleteFields = (stepNumber, focusFirst = false) => {
+                clearInvalidStyles();
+
+                const panel = form.querySelector(`[data-step-panel="${stepNumber}"]`);
+                let firstInvalidField = null;
+
+                if (!panel) {
+                    return;
+                }
+
+                if (stepNumber === 9 && !stepIsComplete(stepNumber)) {
+                    firstInvalidField = panel.querySelector('[data-open-cronograma-modal]');
+                } else {
+                    const groupedChoices = new Map();
+                    const fields = Array.from(panel.querySelectorAll('input[name], select[name], textarea[name]'))
+                        .filter(isStepField);
+
+                    fields.forEach((field) => {
+                        if (field.type === 'checkbox' || field.type === 'radio') {
+                            const group = groupedChoices.get(field.name) || [];
+                            group.push(field);
+                            groupedChoices.set(field.name, group);
+                            return;
+                        }
+
+                        if (!fieldHasValue(field)) {
+                            markInvalidTarget(field, invalidFieldClasses);
+                            firstInvalidField = firstInvalidField || field;
+                        }
+                    });
+
+                    groupedChoices.forEach((choices) => {
+                        if (choices.length > 1 && !choices.some((field) => field.checked)) {
+                            choices.forEach((field) => markInvalidTarget(field.closest('label') || field, invalidChoiceClasses));
+                            firstInvalidField = firstInvalidField || choices[0];
+                        }
+                    });
+                }
+
+                if (focusFirst && firstInvalidField) {
+                    firstInvalidField.focus({ preventScroll: true });
+                }
+            };
+
+            const firstIncompleteStepBefore = (targetStep) => {
+                const limit = clampStep(targetStep);
+
+                for (let index = 1; index < limit; index += 1) {
+                    if (!stepIsComplete(index)) {
+                        return index;
+                    }
+                }
+
+                return null;
+            };
+
+            const firstIncompleteStepInForm = () => {
+                for (let index = 1; index <= totalSteps; index += 1) {
+                    if (!stepIsComplete(index)) {
+                        return index;
+                    }
+                }
+
+                return null;
+            };
+
+            const highestReachableStep = () => shouldLockStepNavigation
+                ? firstIncompleteStepInForm() || totalSteps
+                : totalSteps;
+
+            const blockAtStep = (blockedStep, message = 'Completa los campos de este paso antes de continuar.') => {
+                step = clampStep(blockedStep);
+                render();
+                setValidationMessage(message);
+                markIncompleteFields(step, true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
             const setFieldValue = (name, value) => {
                 const field = form.querySelector(fieldSelector(name));
 
@@ -1799,6 +2034,14 @@
                 }
 
                 Object.entries(program.fields || {}).forEach(([name, value]) => setFieldValue(name, value));
+                form.dispatchEvent(new CustomEvent('enf-approved-program-selected', {
+                    bubbles: true,
+                    detail: {
+                        centro_facultad_ids: program.fields?.['centro_facultad_ids[]'] || (program.fields?.centro_facultad_id ? [program.fields.centro_facultad_id] : []),
+                        departamento_academico_ids: program.fields?.['departamento_academico_ids[]'] || (program.fields?.departamento_academico_id ? [program.fields.departamento_academico_id] : []),
+                        carrera_ids: program.fields?.['carrera_ids[]'] || (program.fields?.carrera_id ? [program.fields.carrera_id] : []),
+                    },
+                }));
                 save();
             };
 
@@ -2539,25 +2782,31 @@
                     panel.classList.toggle('hidden', Number(panel.dataset.stepPanel) !== step);
                 });
 
+                const reachableStep = highestReachableStep();
+
                 for (let index = 1; index <= totalSteps; index += 1) {
                     const number = form.querySelector(`[data-step-number="${index}"]`);
                     const label = form.querySelector(`[data-step-label="${index}"]`);
                     const divider = form.querySelector(`[data-step-divider="${index}"]`);
+                    const stepButton = form.querySelector(`[data-step-button="${index}"]`);
 
                     number?.classList.remove('bg-blue-600', 'text-white', 'ring-2', 'ring-blue-200', 'bg-green-500', 'bg-gray-200', 'text-gray-600', 'dark:bg-gray-700', 'dark:text-gray-300');
                     label?.classList.remove('font-semibold', 'text-blue-600', 'text-green-600', 'dark:text-green-400', 'text-gray-500');
                     divider?.classList.remove('bg-green-500', 'bg-gray-200', 'dark:bg-gray-700');
+                    stepButton?.classList.remove('opacity-60', 'cursor-not-allowed');
 
                     const isComplete = stepIsComplete(index);
+                    const isReachable = index <= reachableStep;
+                    const showComplete = isComplete && isReachable;
 
                     if (index === step) {
                         if (number) {
-                            number.textContent = isComplete ? '✓' : index;
+                            number.textContent = showComplete ? '✓' : index;
                         }
 
                         number?.classList.add('bg-blue-600', 'text-white', 'ring-2', 'ring-blue-200');
                         label?.classList.add('font-semibold', 'text-blue-600');
-                    } else if (isComplete) {
+                    } else if (showComplete) {
                         if (number) {
                             number.textContent = '✓';
                         }
@@ -2573,24 +2822,63 @@
                         label?.classList.add('text-gray-500');
                     }
 
-                    if (divider) {
-                        divider.classList.add(stepIsComplete(index) ? 'bg-green-500' : 'bg-gray-200');
+                    stepButton?.setAttribute('aria-disabled', isReachable ? 'false' : 'true');
 
-                        if (!stepIsComplete(index)) {
+                    if (!isReachable) {
+                        stepButton?.classList.add('opacity-60', 'cursor-not-allowed');
+                    }
+
+                    if (divider) {
+                        divider.classList.add(showComplete ? 'bg-green-500' : 'bg-gray-200');
+
+                        if (!showComplete) {
                             divider.classList.add('dark:bg-gray-700');
                         }
                     }
                 }
 
+                const currentStepComplete = stepIsComplete(step);
+                const canLeaveCurrentStep = !shouldLockStepNavigation || currentStepComplete;
+
                 previousButton?.classList.toggle('hidden', step === 1);
                 nextButton?.classList.toggle('hidden', step === totalSteps);
+                nextButton?.setAttribute('aria-disabled', canLeaveCurrentStep ? 'false' : 'true');
+                nextButton?.classList.toggle('opacity-60', !canLeaveCurrentStep);
+                nextButton?.classList.toggle('cursor-not-allowed', !canLeaveCurrentStep);
                 submitButton?.classList.toggle('hidden', step !== totalSteps);
+                submitButton?.setAttribute('aria-disabled', canLeaveCurrentStep ? 'false' : 'true');
+                submitButton?.classList.toggle('opacity-60', step === totalSteps && !canLeaveCurrentStep);
+                submitButton?.classList.toggle('cursor-not-allowed', step === totalSteps && !canLeaveCurrentStep);
             };
 
             const goTo = (targetStep) => {
-                step = clampStep(targetStep);
+                const nextStep = clampStep(targetStep);
+                const blockedStep = shouldLockStepNavigation && nextStep > step
+                    ? firstIncompleteStepBefore(nextStep)
+                    : null;
+
+                if (blockedStep) {
+                    blockAtStep(blockedStep);
+                    return;
+                }
+
+                clearValidationFeedback();
+                step = nextStep;
                 render();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            const refreshValidationFeedback = () => {
+                if (!stepValidationMessage || stepValidationMessage.classList.contains('hidden')) {
+                    return;
+                }
+
+                if (stepIsComplete(step)) {
+                    clearValidationFeedback();
+                    return;
+                }
+
+                markIncompleteFields(step);
             };
 
             const updateSupervisorDocumentUploadState = () => {
@@ -2658,11 +2946,15 @@
             };
 
             restore();
+            syncTotalHoras();
+            syncTotalCupos();
             updateRegisteredEmployeesDetails();
             updateSupervisorDocumentUploadState();
             updateContraparteState();
             updateMetasContribuyeState();
             renderDynamicLists();
+            syncRequiredMarkers();
+            step = shouldLockStepNavigation ? firstIncompleteStepBefore(step) || step : step;
             render();
 
             form.querySelectorAll('[data-step-button]').forEach((button) => {
@@ -2674,24 +2966,33 @@
             addObjetivoEspecificoButton?.addEventListener('click', () => {
                 addObjetivoEspecifico();
                 save();
+                syncRequiredMarkers();
                 render();
             });
             form.addEventListener('input', () => {
+                syncTotalHoras();
+                syncTotalCupos();
                 updateRegisteredEmployeesDetails();
                 updateSupervisorDocumentUploadState();
                 updateContraparteState();
                 updateMetasContribuyeState();
                 renderDynamicLists();
+                syncRequiredMarkers();
                 render();
+                refreshValidationFeedback();
                 debouncedSave();
             });
             form.addEventListener('change', () => {
+                syncTotalHoras();
+                syncTotalCupos();
                 updateRegisteredEmployeesDetails();
                 updateSupervisorDocumentUploadState();
                 updateContraparteState();
                 updateMetasContribuyeState();
                 renderDynamicLists();
+                syncRequiredMarkers();
                 render();
+                refreshValidationFeedback();
                 save();
             });
             approvedProgramSelect?.addEventListener('change', (event) => applyApprovedProgram(event.target.value));
@@ -2837,7 +3138,17 @@
                 button.addEventListener('click', () => hideModal(cronogramaModal));
             });
             document.querySelector('[data-save-cronograma]')?.addEventListener('click', saveCronograma);
-            form.addEventListener('submit', save);
+            form.addEventListener('submit', (event) => {
+                const blockedStep = shouldLockStepNavigation ? firstIncompleteStepInForm() : null;
+
+                if (blockedStep) {
+                    event.preventDefault();
+                    blockAtStep(blockedStep, 'Completa los campos pendientes antes de guardar la acción.');
+                    return;
+                }
+
+                save();
+            });
             window.addEventListener('beforeunload', save);
             window.addEventListener('pagehide', save);
             document.addEventListener('visibilitychange', () => {

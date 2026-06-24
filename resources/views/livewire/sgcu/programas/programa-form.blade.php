@@ -299,17 +299,27 @@
                     <div><h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Crear asignatura</h2><p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Completa la información académica para agregarla al programa.</p></div>
                     <button wire:click="closeCreateAsignaturaModal" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">Cerrar</button>
                 </div>
-                <div class="mt-6 grid gap-4 md:grid-cols-2">
-                    <label class="space-y-2"><span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Código *</span><input wire:model="newAsignatura.codigo" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">@error('newAsignatura.codigo')<p class="text-xs font-medium text-rose-600">{{ $message }}</p>@enderror</label>
-                    <label class="space-y-2 md:col-span-2"><span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Nombre *</span><input wire:model="newAsignatura.nombre" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">@error('newAsignatura.nombre')<p class="text-xs font-medium text-rose-600">{{ $message }}</p>@enderror</label>
-                    <label class="space-y-2"><span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Créditos *</span><input wire:model="newAsignatura.creditos_academicos" type="number" min="0" step="0.01" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">@error('newAsignatura.creditos_academicos')<p class="text-xs font-medium text-rose-600">{{ $message }}</p>@enderror</label>
-                    <label class="space-y-2"><span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Horas *</span><input wire:model="newAsignatura.horas_academicas" type="number" min="1" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">@error('newAsignatura.horas_academicas')<p class="text-xs font-medium text-rose-600">{{ $message }}</p>@enderror</label>
-                    <label class="space-y-2 md:col-span-2"><span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Documento de descripción mínima</span><input wire:model="newAsignaturaDocumento" type="file" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">@error('newAsignaturaDocumento')<p class="text-xs font-medium text-rose-600">{{ $message }}</p>@enderror</label>
-                </div>
-                <div class="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
-                    <button wire:click="closeCreateAsignaturaModal" class="rounded-2xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">Cancelar</button>
-                    <button wire:click="createAsignaturaAndAttach" class="rounded-2xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-container">Crear y agregar</button>
-                </div>
+                <form wire:submit.prevent="createAsignaturaAndAttach">
+                    <div class="mt-6 grid gap-4 md:grid-cols-2">
+                        <label class="space-y-2"><span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Código</span><input wire:model="newAsignatura.codigo" type="text" required class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">@error('newAsignatura.codigo')<p class="text-xs font-medium text-rose-600">{{ $message }}</p>@enderror</label>
+                        <label class="space-y-2 md:col-span-2"><span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Nombre</span><input wire:model="newAsignatura.nombre" type="text" required class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">@error('newAsignatura.nombre')<p class="text-xs font-medium text-rose-600">{{ $message }}</p>@enderror</label>
+                        <label class="space-y-2"><span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Créditos</span><input wire:model="newAsignatura.creditos_academicos" type="number" min="0" step="0.01" required class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">@error('newAsignatura.creditos_academicos')<p class="text-xs font-medium text-rose-600">{{ $message }}</p>@enderror</label>
+                        <label class="space-y-2"><span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Horas</span><input wire:model="newAsignatura.horas_academicas" type="number" min="1" required class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">@error('newAsignatura.horas_academicas')<p class="text-xs font-medium text-rose-600">{{ $message }}</p>@enderror</label>
+                        <label class="space-y-2 md:col-span-2">
+                            <span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Documento de descripción mínima</span>
+                            <input wire:model="newAsignaturaDocumento" type="file" required accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                            <div wire:loading wire:target="newAsignaturaDocumento" class="text-xs font-medium text-slate-500 dark:text-slate-400">Cargando documento...</div>
+                            @error('newAsignaturaDocumento')<p class="text-xs font-medium text-rose-600">{{ $message }}</p>@enderror
+                        </label>
+                    </div>
+                    <div class="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
+                        <button type="button" wire:click="closeCreateAsignaturaModal" class="rounded-2xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">Cancelar</button>
+                        <button type="submit" wire:loading.attr="disabled" wire:target="newAsignaturaDocumento,createAsignaturaAndAttach" class="rounded-2xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-60">
+                            <span wire:loading.remove wire:target="createAsignaturaAndAttach">Crear y agregar</span>
+                            <span wire:loading wire:target="createAsignaturaAndAttach">Creando...</span>
+                        </button>
+                    </div>
+                </form>
             </section>
         </div>
     @endif

@@ -18,6 +18,7 @@ use App\Models\Proyecto\EjesPrioritariosUnah;
 use App\Models\Proyecto\MetaContribuye;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\VinculacionTipoAccion;
+use App\Models\SGCU\ProgramaCertificacion;
 use App\Models\UnidadAcademica\Campus;
 use App\Models\UnidadAcademica\Carrera;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
@@ -101,11 +102,11 @@ class EnfAccionController extends Controller
 
         return view(
             $formCode === self::FORM_CERTIFICADO_UNIVERSITARIO ? 'enf.acciones.create-certificado' : 'enf.acciones.create',
-            $this->formViewData($formCode, $selectedTipoAccionEnfId)
+            $this->formViewData($formCode, $selectedTipoAccionEnfId, null, $request->boolean('nuevo'))
         );
     }
 
-    private function formViewData(string $formCode, ?int $selectedTipoAccionEnfId = null, ?EnfAccion $accion = null): array
+    private function formViewData(string $formCode, ?int $selectedTipoAccionEnfId = null, ?EnfAccion $accion = null, bool $clearDraftOnLoad = false): array
     {
         return [
             'formCode' => $formCode,
@@ -113,7 +114,7 @@ class EnfAccionController extends Controller
             'initialDraft' => $accion ? $this->draftFromAccion($accion) : [],
             'tiposAccion' => VinculacionTipoAccion::where('codigo', 'EDUCACION_NO_FORMAL')->orderBy('nombre')->get(),
             'selectedTipoAccionEnfId' => $selectedTipoAccionEnfId,
-            'clearDraftOnLoad' => false,
+            'clearDraftOnLoad' => $clearDraftOnLoad,
             'programasAprobados' => $this->programasAprobadosEducacionContinua(),
             'modalidades' => Modalidad::orderBy('nombre')->get(),
             'centrosFacultad' => FacultadCentro::orderBy('nombre')->get(),
@@ -155,7 +156,14 @@ class EnfAccionController extends Controller
 
     private function programasAprobadosEducacionContinua()
     {
-        return EnfAccion::query()
+        $tipoProgramaEnfId = EnfCatalogo::query()
+            ->where('tipo', 'tipo_accion_enf')
+            ->whereIn('nombre', ['Programa de educacion continua', self::TIPO_ACCION_ENF_VISIBLE])
+            ->where('activo', true)
+            ->orderByRaw("CASE WHEN nombre = 'Programa de educacion continua' THEN 0 ELSE 1 END")
+            ->value('id');
+
+        $programasEnf = EnfAccion::query()
             ->with(['modalidad', 'centroFacultad', 'departamentoAcademico', 'carrera', 'accionCatalogos.catalogo'])
             ->whereIn('estado_flujo', ['APROBADO', 'Aprobado', 'aprobado'])
             ->whereHas('accionCatalogos.catalogo', function ($query) {
@@ -163,7 +171,72 @@ class EnfAccionController extends Controller
                     ->whereIn('nombre', [self::TIPO_ACCION_ENF_VISIBLE, 'Programa de educacion continua']);
             })
             ->orderBy('nombre_accion')
-            ->get();
+            ->get()
+            ->map(function (EnfAccion $programa) {
+                $tipoAccionEnfId = $programa->accionCatalogos
+                    ->first(fn ($catalogo) => $catalogo->tipo === 'tipo_accion_enf')
+                    ?->enf_catalogo_id;
+
+                return [
+                    'id' => 'enf-'.$programa->id,
+                    'label' => trim(($programa->numero_registro ? $programa->numero_registro.' · ' : '').$programa->nombre_accion),
+                    'fields' => [
+                        'nombre_accion' => $programa->nombre_accion,
+                        'catalogos[tipo_accion_enf][]' => $tipoAccionEnfId,
+                        'resolucion_vra' => $programa->resolucion_vra,
+                        'resolucion_original' => $programa->resolucion_original,
+                        'resolucion_actualizacion' => $programa->resolucion_actualizacion,
+                        'numero_edicion' => $programa->numero_edicion,
+                        'fecha_inicio' => optional($programa->fecha_inicio)->format('Y-m-d'),
+                        'fecha_finalizacion' => optional($programa->fecha_finalizacion)->format('Y-m-d'),
+                        'modalidad_id' => $programa->modalidad_id,
+                        'centro_facultad_id' => $programa->centro_facultad_id,
+                        'centro_facultad_ids[]' => array_values(array_filter([(string) $programa->centro_facultad_id])),
+                        'departamento_academico_id' => $programa->departamento_academico_id,
+                        'departamento_academico_ids[]' => array_values(array_filter([(string) $programa->departamento_academico_id])),
+                        'carrera_id' => $programa->carrera_id,
+                        'carrera_ids[]' => array_values(array_filter([(string) $programa->carrera_id])),
+                        'horas_teoricas' => $programa->horas_teoricas,
+                        'horas_practicas' => $programa->horas_practicas,
+                    ],
+                ];
+            });
+
+        $programasSgcu = ProgramaCertificacion::query()
+            ->with(['centroFacultad', 'tipoPrograma', 'centrosPrograma'])
+            ->where('estado_flujo', 'APROBADO')
+            ->orderBy('nombre')
+            ->get()
+            ->map(function (ProgramaCertificacion $programa) use ($tipoProgramaEnfId) {
+                $centroIds = collect([$programa->centro_facultad_id])
+                    ->merge($programa->centrosPrograma->where('activo', true)->pluck('centro_facultad_id'))
+                    ->filter()
+                    ->map(fn ($id) => (string) $id)
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $totalHoras = (int) ($programa->horas_maximas_programa ?? 0);
+
+                return [
+                    'id' => 'sgcu-'.$programa->id,
+                    'label' => trim(($programa->codigo ? $programa->codigo.' · ' : '').$programa->nombre),
+                    'fields' => [
+                        'nombre_accion' => $programa->nombre,
+                        'catalogos[tipo_accion_enf][]' => $tipoProgramaEnfId,
+                        'numero_edicion' => 1,
+                        'centro_facultad_id' => $centroIds[0] ?? null,
+                        'centro_facultad_ids[]' => $centroIds,
+                        'horas_teoricas' => 0,
+                        'horas_practicas' => $totalHoras,
+                    ],
+                ];
+            });
+
+        return $programasSgcu
+            ->concat($programasEnf)
+            ->sortBy('label')
+            ->values();
     }
 
     private function draftFromAccion(EnfAccion $accion): array

@@ -22,6 +22,23 @@ class ListTiposPrograma extends Component
 
     public $plantillaDocumento = null;
 
+    protected array $validationAttributes = [
+        'tipoPrograma.nombre' => 'nombre',
+        'tipoPrograma.horas_minimas' => 'horas mínimas',
+        'tipoPrograma.horas_maximas' => 'horas máximas',
+        'plantillaDocumento' => 'plantilla .docx',
+    ];
+
+    protected array $messages = [
+        'tipoPrograma.nombre.required' => 'El nombre es obligatorio.',
+        'tipoPrograma.horas_minimas.required' => 'Las horas mínimas son obligatorias.',
+        'tipoPrograma.horas_maximas.required' => 'Las horas máximas son obligatorias.',
+        'plantillaDocumento.required' => 'La plantilla .docx es obligatoria.',
+        'plantillaDocumento.file' => 'La plantilla debe ser un archivo válido.',
+        'plantillaDocumento.mimes' => 'La plantilla debe ser un archivo .docx.',
+        'plantillaDocumento.max' => 'La plantilla no debe pesar más de 5 MB.',
+    ];
+
     public function saveTipoPrograma(): void
     {
         $rules = [

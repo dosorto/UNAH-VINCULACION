@@ -21,6 +21,7 @@ class CreatePpsServicioSocial extends Component
 
     public int $currentStep = 1;
     public int $totalSteps = 10;
+    public bool $bloquearNavegacionPasos = true;
     public bool $registroGuardado = false;
     public ?int $registroId = null;
     public string $estadoAutoGuardado = '';
@@ -245,9 +246,12 @@ class CreatePpsServicioSocial extends Component
     public function nextStep(): void
     {
         $this->resetErrorBag();
-        $this->validateCurrentStep();
 
-        if (!$this->autoGuardarBorrador()) {
+        if ($this->shouldLockStepNavigation()) {
+            $this->validateCurrentStep();
+        }
+
+        if ($this->shouldLockStepNavigation() && !$this->autoGuardarBorrador()) {
             return;
         }
 
@@ -271,15 +275,37 @@ class CreatePpsServicioSocial extends Component
         }
 
         $this->resetErrorBag();
+
+        if ($this->shouldLockStepNavigation() && $step > $this->currentStep) {
+            $blockedStep = $this->firstIncompleteStepBefore($step);
+
+            if ($blockedStep !== null) {
+                $this->currentStep = $blockedStep;
+                $this->validateCurrentStep();
+
+                return;
+            }
+        }
+
         $this->currentStep = $step;
     }
 
     public function goToReview(): void
     {
         $this->resetErrorBag();
-        $this->validateCurrentStep();
 
-        if (!$this->autoGuardarBorrador()) {
+        if ($this->shouldLockStepNavigation()) {
+            $blockedStep = $this->firstIncompleteStepBefore(10);
+
+            if ($blockedStep !== null) {
+                $this->currentStep = $blockedStep;
+                $this->validateCurrentStep();
+
+                return;
+            }
+        }
+
+        if ($this->shouldLockStepNavigation() && !$this->autoGuardarBorrador()) {
             return;
         }
 
@@ -590,6 +616,35 @@ class CreatePpsServicioSocial extends Component
             10 => collect(range(1, 9))->every(fn (int $step) => $this->isStepComplete($step)),
             default => false,
         };
+    }
+
+    public function shouldLockStepNavigation(): bool
+    {
+        return $this->bloquearNavegacionPasos;
+    }
+
+    public function firstIncompleteStepBefore(int $targetStep): ?int
+    {
+        $limit = min(max($targetStep, 1), $this->totalSteps);
+
+        for ($step = 1; $step < $limit; $step++) {
+            if (!$this->isStepComplete($step)) {
+                return $step;
+            }
+        }
+
+        return null;
+    }
+
+    public function canAccessStep(int $step): bool
+    {
+        return !$this->shouldLockStepNavigation()
+            || $this->firstIncompleteStepBefore($step) === null;
+    }
+
+    public function shouldShowStepComplete(int $step): bool
+    {
+        return $this->isStepComplete($step) && $this->canAccessStep($step);
     }
 
     protected function validationAttributes(): array

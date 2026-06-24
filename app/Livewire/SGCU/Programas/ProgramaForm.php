@@ -46,6 +46,26 @@ class ProgramaForm extends Component
     ];
     public $newAsignaturaDocumento = null;
 
+    protected array $validationAttributes = [
+        'newAsignatura.codigo' => 'código',
+        'newAsignatura.nombre' => 'nombre',
+        'newAsignatura.creditos_academicos' => 'créditos',
+        'newAsignatura.horas_academicas' => 'horas',
+        'newAsignaturaDocumento' => 'documento de descripción mínima',
+    ];
+
+    protected array $messages = [
+        'newAsignatura.codigo.required' => 'El código es obligatorio.',
+        'newAsignatura.nombre.required' => 'El nombre es obligatorio.',
+        'newAsignatura.creditos_academicos.required' => 'Los créditos son obligatorios.',
+        'newAsignatura.horas_academicas.required' => 'Las horas son obligatorias.',
+        'newAsignaturaDocumento.required' => 'El documento de descripción mínima es obligatorio.',
+        'newAsignaturaDocumento.file' => 'El documento debe ser un archivo válido.',
+        'newAsignaturaDocumento.mimes' => 'El documento debe ser PDF, DOC o DOCX.',
+        'newAsignaturaDocumento.max' => 'El documento no debe pesar más de 10 MB.',
+        'newAsignaturaDocumento.uploaded' => 'No se pudo subir el documento. Revisa el tamaño del archivo e inténtalo de nuevo.',
+    ];
+
     public function mount(mixed $programa = null): void
     {
         if ($programa instanceof ProgramaCertificacion && $programa->exists) {
@@ -190,7 +210,7 @@ class ProgramaForm extends Component
             'newAsignatura.nombre' => ['required', 'string', 'max:255'],
             'newAsignatura.creditos_academicos' => ['required', 'numeric', 'min:0', 'max:999.99'],
             'newAsignatura.horas_academicas' => ['required', 'integer', 'min:1', 'max:9999'],
-            'newAsignaturaDocumento' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
+            'newAsignaturaDocumento' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
         ]);
 
         $documentoPath = $this->newAsignaturaDocumento
