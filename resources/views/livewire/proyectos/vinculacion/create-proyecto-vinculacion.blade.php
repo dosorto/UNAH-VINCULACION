@@ -11,7 +11,6 @@
             7 => 'Marco Lógico',
             8 => 'Presupuesto',
             9 => 'Anexos',
-            10 => 'Firmas',
         ];
     @endphp
 <div
@@ -50,7 +49,7 @@
                         {{ $label }}
                     </span>
                 </button>
-                @if($step < 10)
+                @if($step < 9)
                     <div class="h-0.5 w-3 shrink-0 {{ $complete ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700' }}"></div>
                 @endif
             @endforeach
@@ -1785,71 +1784,6 @@
         </div>
         @endif
 
-        {{-- ══════════════════ PASO 10: Firmas ══════════════════ --}}
-        @if($currentStep === 10)
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 10: Firmas y Envío</h3>
-        <div class="space-y-5">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
-                Seleccione los firmantes del proyecto.
-                @if(!empty($facultades_centros))
-                <span class="text-blue-600 dark:text-blue-400 font-medium">Mostrando empleados de las facultades/centros seleccionados en el Paso 1.</span>
-                @endif
-            </p>
-
-            {{-- Buscador --}}
-            <div>
-                <input type="text" wire:model.live.debounce.300ms="firmaSearch"
-                    placeholder="Buscar firmante por nombre o número de empleado..."
-                    class="w-full sm:w-96 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
-                @if($firmantesOpts->isEmpty())
-                <p class="text-xs text-amber-600 mt-1">Sin empleados en las facultades seleccionadas. Verifique el Paso 1.</p>
-                @else
-                <p class="text-xs text-gray-500 mt-1">{{ $firmantesOpts->count() }} empleado(s) disponibles.</p>
-                @endif
-            </div>
-
-            @php
-            $firmaFields = [
-                ['field' => 'jefe_empleado_id',    'label' => 'Jefe de Departamento', 'icon' => '🏛️'],
-                ['field' => 'decano_empleado_id',  'label' => 'Decano / Director de Centro', 'icon' => '🎓'],
-                ['field' => 'enlace_empleado_id',  'label' => 'Enlace de Vinculación', 'icon' => '🔗'],
-            ];
-            @endphp
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                @foreach($firmaFields as $ff)
-                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        {{ $ff['icon'] }} {{ $ff['label'] }}
-                    </label>
-                    <select wire:model="{{ $ff['field'] }}"
-                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                        <option value="">Seleccione...</option>
-                        @foreach($firmantesOpts as $firmante)
-                            <option value="{{ $firmante->id }}">
-                                {{ $firmante->nombre_completo }}
-                                @if($firmante->numero_empleado) ({{ $firmante->numero_empleado }}) @endif
-                            </option>
-                        @endforeach
-                    </select>
-                    @if($this->{$ff['field']})
-                    @php $sel = $firmantesOpts->firstWhere('id', $this->{$ff['field']}); @endphp
-                    @if($sel)
-                    <p class="text-xs text-green-600 dark:text-green-400 mt-1">✓ {{ $sel->nombre_completo }}</p>
-                    @endif
-                    @endif
-                </div>
-                @endforeach
-            </div>
-
-            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <p class="text-sm text-blue-800 dark:text-blue-200">
-                    Al hacer clic en <strong>"Enviar para Firmar"</strong> el proyecto iniciará el proceso de firmas. Al hacer clic en <strong>"Guardar como Borrador"</strong> se guardará sin enviar.
-                </p>
-            </div>
-        </div>
-        @endif
-
         {{-- ══════════════════ Navegación ══════════════════ --}}
         <div class="mt-8 flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
             <div>
@@ -1870,23 +1804,162 @@
                         <span class="text-red-600 dark:text-red-400">Error al guardar</span>
                     @endif
                 </span>
-                @if($currentStep === 10)
-                <button wire:click="borrador" type="button"
-                    class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50">
-                    Guardar como Borrador
-                </button>
-                <button wire:click="create" type="button"
-                    class="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-                    Enviar para Firmar →
-                </button>
-                @else
+                @if($currentStep < 9)
                 <button wire:click="nextStep" type="button"
                     class="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
                     Siguiente →
                 </button>
+                @elseif($currentStep === 9)
+                <button wire:click="borrador" type="button"
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50">
+                    Guardar como Borrador
+                </button>
+                <button
+                    x-data
+                    x-on:click="$dispatch('abrir-modal-firmas')"
+                    type="button"
+                    class="inline-flex items-center px-4 py-2 rounded-md text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 shadow-sm">
+                    Enviar para Firmar
+                </button>
                 @endif
             </div>
         </div>
+
+    </div>
+</div>
+
+{{-- ══════════════════ Modal: Enviar para Firmar ══════════════════ --}}
+<div
+    x-data="{
+        open: false,
+        step: 1,
+        totalSteps: 4,
+        search: '',
+        init() {
+            window.addEventListener('abrir-modal-firmas', () => {
+                this.open = true;
+                this.step = 1;
+                this.search = '';
+            });
+        }
+    }"
+    x-show="open"
+    x-cloak
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+>
+    <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900" @click.stop>
+
+        {{-- Header --}}
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white">Enviar proyecto para firmar</h2>
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Seleccione los firmantes del proyecto antes de enviar.</p>
+            </div>
+            <button @click="open = false" class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700">
+                &times;
+            </button>
+        </div>
+
+        {{-- Indicador de pasos --}}
+        <div class="mt-5 flex items-center gap-2">
+            @php
+            $firmaFields = [
+                ['field' => 'jefe_empleado_id',   'label' => 'Jefe de Departamento'],
+                ['field' => 'decano_empleado_id',  'label' => 'Decano / Director'],
+                ['field' => 'enlace_empleado_id',  'label' => 'Enlace Vinculación'],
+                ['label' => 'Confirmación'],
+            ];
+            @endphp
+            @foreach($firmaFields as $fi => $ff)
+                <div class="flex items-center gap-1.5" :class="{ 'opacity-50': {{ $fi + 1 }} > step }">
+                    <span class="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold"
+                        :class="step === {{ $fi + 1 }} ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'border border-slate-300 text-slate-400 dark:border-slate-600'">
+                        {{ $fi + 1 }}
+                    </span>
+                    <span class="hidden text-xs sm:block" :class="step === {{ $fi + 1 }} ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-400'">{{ $ff['label'] }}</span>
+                </div>
+                @if($fi < 3)
+                    <span class="text-slate-300 dark:text-slate-600 text-xs">&rarr;</span>
+                @endif
+            @endforeach
+        </div>
+
+        {{-- Buscador (pasos 1-3) --}}
+        <div x-show="step <= 3" class="mt-5">
+            <input type="text" wire:model.live.debounce.300ms="firmaSearch"
+                placeholder="Buscar firmante por nombre o número de empleado..."
+                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+            @if($firmantesOpts->isEmpty())
+            <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">Sin empleados en las facultades seleccionadas. Verifique el Paso 1.</p>
+            @else
+            <p class="mt-1 text-xs text-slate-500">{{ $firmantesOpts->count() }} empleado(s) disponibles.</p>
+            @endif
+        </div>
+
+        {{-- Paso 1: Jefe de Departamento --}}
+        <div x-show="step === 1" class="mt-4 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+            <label class="block text-sm font-semibold text-slate-900 dark:text-white mb-2">Jefe de Departamento</label>
+            <select wire:model="jefe_empleado_id"
+                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                <option value="">Seleccione...</option>
+                @foreach($firmantesOpts as $firmante)
+                    <option value="{{ $firmante->id }}">{{ $firmante->nombre_completo }}{{ $firmante->numero_empleado ? ' ('.$firmante->numero_empleado.')' : '' }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        {{-- Paso 2: Decano --}}
+        <div x-show="step === 2" class="mt-4 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+            <label class="block text-sm font-semibold text-slate-900 dark:text-white mb-2">Decano / Director de Centro</label>
+            <select wire:model="decano_empleado_id"
+                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                <option value="">Seleccione...</option>
+                @foreach($firmantesOpts as $firmante)
+                    <option value="{{ $firmante->id }}">{{ $firmante->nombre_completo }}{{ $firmante->numero_empleado ? ' ('.$firmante->numero_empleado.')' : '' }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        {{-- Paso 3: Enlace --}}
+        <div x-show="step === 3" class="mt-4 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+            <label class="block text-sm font-semibold text-slate-900 dark:text-white mb-2">Enlace de Vinculación</label>
+            <select wire:model="enlace_empleado_id"
+                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                <option value="">Seleccione...</option>
+                @foreach($firmantesOpts as $firmante)
+                    <option value="{{ $firmante->id }}">{{ $firmante->nombre_completo }}{{ $firmante->numero_empleado ? ' ('.$firmante->numero_empleado.')' : '' }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        {{-- Paso 4: Confirmación --}}
+        <div x-show="step === 4" class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/30">
+            <h3 class="font-semibold text-emerald-800 dark:text-emerald-200">Listo para enviar</h3>
+            <p class="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
+                El proyecto será enviado al flujo de firmas con los responsables seleccionados.
+            </p>
+        </div>
+
+        {{-- Footer --}}
+        <div class="mt-6 flex items-center justify-between">
+            <button @click="open = false" class="inline-flex items-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                Cancelar
+            </button>
+            <div class="flex items-center gap-2">
+                <button x-show="step > 1" @click="step--" class="inline-flex items-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                    &larr; Anterior
+                </button>
+                <button x-show="step < 4" @click="step++" class="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900">
+                    Siguiente &rarr;
+                </button>
+                <button x-show="step === 4" wire:click="create" @click="open = false" class="inline-flex items-center rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600">
+                    Confirmar envío
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
 
     </div>
 </div>

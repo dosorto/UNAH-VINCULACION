@@ -488,7 +488,7 @@ class CreateProyectoVinculacion extends Component
             return;
         }
 
-        if ($this->currentStep < 10) {
+        if ($this->currentStep < 9) {
             $this->currentStep++;
             $this->selectedObjetivoIndex = 0;
         }
@@ -504,7 +504,7 @@ class CreateProyectoVinculacion extends Component
 
     public function goToStep(int $step): void
     {
-        if (!$this->recordId || $step < 1 || $step > 10 || $step === $this->currentStep) {
+        if (!$this->recordId || $step < 1 || $step > 9 || $step === $this->currentStep) {
             return;
         }
 
@@ -723,7 +723,6 @@ class CreateProyectoVinculacion extends Component
                 && !empty($this->objetivosEspecificos[0]['descripcion'] ?? ''),
             8 => collect($this->aporte_institucional)->sum('costo_total') > 0,
             9 => $this->anexosCount > 0,
-            10 => $this->jefe_empleado_id && $this->decano_empleado_id && $this->enlace_empleado_id,
             default => false,
         };
     }

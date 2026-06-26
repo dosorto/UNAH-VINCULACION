@@ -10,7 +10,6 @@
             7 => 'Jefe directo',
             8 => 'Supervisor',
             9 => 'Adjuntos',
-            10 => 'Revisión',
         ];
 
         $inputClass = 'w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500';
@@ -703,20 +702,10 @@
             </section>
         @endif
 
-        @if($currentStep === 10)
+        @if(false)
             <section>
                 <div class="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                     <div>
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 10: Revisión final</h2>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Verifique la información antes de {{ $modoEdicion ? 'actualizar' : 'guardar' }}.</p>
-                    </div>
-
-                    @if($registroGuardado)
-                        <span class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700 dark:bg-green-900/40 dark:text-green-200">
-                            Guardado
-                        </span>
-                    @endif
-                </div>
 
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <div class="{{ $cardClass }}">
@@ -875,17 +864,127 @@
                         Siguiente &rarr;
                     </button>
                 @elseif($currentStep === 9)
-                    <button type="button" wire:click="goToReview"
-                        aria-disabled="{{ (!$this->shouldLockStepNavigation() || $this->isStepComplete($currentStep)) ? 'false' : 'true' }}"
-                        class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 {{ $this->shouldLockStepNavigation() && !$this->isStepComplete($currentStep) ? 'cursor-not-allowed opacity-60' : '' }}">
-                        Revisión final &rarr;
+                    <button type="button" wire:click="guardarBorrador"
+                        class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+                        Guardar como borrador
                     </button>
-                @else
-                    <button type="submit" class="inline-flex items-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">
-                        {{ $modoEdicion ? 'Actualizar' : 'Guardar' }}
+                    <button type="button" wire:click="abrirModalEnviar"
+                        aria-disabled="{{ (!$this->shouldLockStepNavigation() || $this->isStepComplete($currentStep)) ? 'false' : 'true' }}"
+                        class="inline-flex items-center rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600 {{ $this->shouldLockStepNavigation() && !$this->isStepComplete($currentStep) ? 'cursor-not-allowed opacity-60' : '' }}">
+                        Enviar a firmar
                     </button>
                 @endif
             </div>
         </div>
     </form>
+
+    @if ($showEnviarModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
+
+                {{-- Header --}}
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Enviar a revisión</h2>
+                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            @if (count($modalEtapas) > 0)
+                                Configura los destinatarios solo en las etapas donde el flujo indica que el emisor debe definirlos.
+                            @else
+                                El registro será enviado al flujo de revisión configurado.
+                            @endif
+                        </p>
+                    </div>
+                    <button wire:click="cancelarModal" class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-400">
+                        &times;
+                    </button>
+                </div>
+
+                @if (count($modalEtapas) > 0)
+                    {{-- Indicador de pasos del modal --}}
+                    <div class="mt-5 flex flex-wrap items-center gap-2">
+                        @foreach ($modalEtapas as $i => $etapa)
+                            <div class="flex items-center gap-2">
+                                <span class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold {{ $modalStep === $i + 1 ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'border border-slate-300 text-slate-400 dark:border-slate-600' }}">{{ $i + 1 }}</span>
+                                <span class="text-sm {{ $modalStep === $i + 1 ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500' }}">{{ $etapa['nombre'] }}</span>
+                                <span class="text-slate-300 dark:text-slate-600">&rarr;</span>
+                            </div>
+                        @endforeach
+                        <div class="flex items-center gap-2">
+                            <span class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold {{ $modalStep === count($modalEtapas) + 1 ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'border border-slate-300 text-slate-400 dark:border-slate-600' }}">{{ count($modalEtapas) + 1 }}</span>
+                            <span class="text-sm {{ $modalStep === count($modalEtapas) + 1 ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500' }}">Confirmación</span>
+                        </div>
+                    </div>
+
+                    {{-- Contenido por etapa --}}
+                    @foreach ($modalEtapas as $i => $etapa)
+                        @if ($modalStep === $i + 1)
+                            <div class="mt-6 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+                                <h3 class="font-semibold text-slate-900 dark:text-white">Etapa {{ $i + 1 }} &middot; {{ $etapa['nombre'] }}</h3>
+                                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                    Selecciona el usuario que recibirá el registro en esta etapa. Rol de la etapa: <strong>{{ $etapa['rol_nombre'] }}</strong>.
+                                </p>
+                                <div class="mt-4">
+                                    <select wire:model="modalDestinatarios.{{ $etapa['id'] }}"
+                                        class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                        <option value="">Buscar por nombre o correo</option>
+                                        @foreach ($etapa['usuarios'] as $usuario)
+                                            <option value="{{ $usuario['id'] }}">{{ $usuario['name'] }}{{ filled($usuario['email']) ? ' — '.$usuario['email'] : '' }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('modal_destinatario_'.($i + 1))
+                                        <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                                    @enderror
+                                    @if (empty($etapa['usuarios']))
+                                        <p class="mt-2 text-xs text-amber-600 dark:text-amber-400">No hay usuarios con el rol {{ $etapa['rol_nombre'] }} disponibles.</p>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
+                    @endforeach
+
+                    {{-- Paso de confirmación --}}
+                    @if ($modalStep === count($modalEtapas) + 1)
+                        <div class="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/30">
+                            <h3 class="font-semibold text-emerald-800 dark:text-emerald-200">Listo para enviar</h3>
+                            <p class="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
+                                Se asignarán los destinatarios seleccionados y el registro pasará al flujo de revisión.
+                            </p>
+                        </div>
+                    @endif
+
+                @else
+                    {{-- Sin etapas con emisor_define_destinatario — confirmación directa --}}
+                    <div class="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/30">
+                        <p class="text-sm text-emerald-700 dark:text-emerald-300">
+                            El flujo de revisión asignará los responsables automáticamente según la configuración.
+                        </p>
+                    </div>
+                @endif
+
+                {{-- Footer --}}
+                <div class="mt-6 flex items-center justify-between">
+                    <button wire:click="cancelarModal" class="inline-flex items-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                        Cancelar
+                    </button>
+                    <div class="flex items-center gap-2">
+                        @if ($modalStep > 1)
+                            <button wire:click="modalAnterior" class="inline-flex items-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                                &larr; Anterior
+                            </button>
+                        @endif
+                        @if (count($modalEtapas) > 0 && $modalStep <= count($modalEtapas))
+                            <button wire:click="modalSiguiente" class="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200">
+                                Siguiente &rarr;
+                            </button>
+                        @else
+                            <button wire:click="confirmarEnvio" class="inline-flex items-center rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600">
+                                Confirmar envío
+                            </button>
+                        @endif
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    @endif
 </div>
