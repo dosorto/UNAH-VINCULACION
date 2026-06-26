@@ -45,7 +45,7 @@
 
         <form method="POST" action="{{ route('enf.acciones.store') }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="enf-form-dvus-016-draft" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}">
             @csrf
-            <input type="hidden" name="tipo_accion_id" value="{{ old('tipo_accion_id', $tiposAccion->first()?->id) }}">
+            <input type="hidden" name="tipo_accion_id" value="{{ old('tipo_accion_id', $tipoAccionVinculacionEnfId ?: $tiposAccion->first()?->id) }}">
             <input type="hidden" name="codigo_formulario" value="FORM-DVUS-016">
             <input type="hidden" name="estado_flujo" value="BORRADOR">
             <input type="hidden" name="catalogos[tipo_accion_enf][]" value="{{ $tipoCertificadoId }}">

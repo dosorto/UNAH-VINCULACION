@@ -132,7 +132,7 @@
             @if ($editingAccion)
                 @method('PUT')
             @endif
-            <input type="hidden" name="tipo_accion_id" value="{{ old('tipo_accion_id', $selectedTipoAccionEnfId ?: $tiposAccion->first()?->id) }}">
+            <input type="hidden" name="tipo_accion_id" value="{{ old('tipo_accion_id', $tipoAccionVinculacionEnfId ?: $tiposAccion->first()?->id) }}">
             <input type="hidden" name="codigo_formulario" value="FORM-DVUS-018">
             <input type="hidden" name="estado_flujo" value="BORRADOR">
 

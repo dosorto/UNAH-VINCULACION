@@ -109,6 +109,7 @@ class ListProyectosVinculacion extends Component
         $this->flowProyectoId = $id;
         $proyecto = Proyecto::find($id);
         $this->flowSelectedId = $proyecto?->flujo_aprobacion_id
+            ?? FlujoAprobacion::defaultForProyectos($proyecto?->tipo_accion_id, $proyecto?->codigoFormularioFlujo())?->id
             ?? FlujoAprobacion::defaultForProyectos($proyecto?->tipo_accion_id)?->id
             ?? FlujoAprobacion::defaultForProyectos()?->id;
         $this->flowModal = true;

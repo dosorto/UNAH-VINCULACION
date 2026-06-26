@@ -18,6 +18,7 @@ class FlujoAprobacion extends Model
         'proceso',
         'tipo_accion_id',
         'tipo_programa_id',
+        'codigo_formulario',
         'descripcion',
         'activo',
     ];
@@ -42,12 +43,13 @@ class FlujoAprobacion extends Model
         return $this->belongsTo(VinculacionTipoAccion::class, 'tipo_accion_id');
     }
 
-    public static function defaultForProyectos(?int $tipoAccionId = null): ?self
+    public static function defaultForProyectos(?int $tipoAccionId = null, ?string $codigoFormulario = null): ?self
     {
         return self::query()
             ->where('proceso', 'PROYECTO')
             ->where('activo', true)
             ->when($tipoAccionId, fn ($query) => $query->where('tipo_accion_id', $tipoAccionId))
+            ->when($codigoFormulario, fn ($query) => $query->where('codigo_formulario', $codigoFormulario))
             ->orderBy('id')
             ->first();
     }

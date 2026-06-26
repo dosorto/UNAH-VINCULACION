@@ -730,13 +730,29 @@ class Proyecto extends Model
             return $this->flujoAprobacion->loadMissing('etapas.cargoFirma.tipoCargoFirma');
         }
 
+        $codigoFormulario = $this->codigoFormularioFlujo();
+
         return FlujoAprobacion::query()
             ->with('etapas.cargoFirma.tipoCargoFirma')
             ->where('proceso', 'PROYECTO')
             ->where('activo', true)
             ->when($this->tipo_accion_id, fn ($query) => $query->where('tipo_accion_id', $this->tipo_accion_id))
+            ->when($codigoFormulario, fn ($query) => $query->where('codigo_formulario', $codigoFormulario))
             ->orderBy('id')
             ->first();
+    }
+
+    public function codigoFormularioFlujo(): ?string
+    {
+        $codigo = $this->tipo_accion_id
+            ? DB::table('vinculacion_tipos_accion')->where('id', $this->tipo_accion_id)->value('codigo')
+            : null;
+
+        return match ($codigo) {
+            'DESARROLLO_LOCAL_REGIONAL' => 'FORM-DVUS-001',
+            'VOLUNTARIADO' => 'FORM-DVUS-015',
+            default => null,
+        };
     }
 
     public function flujoEtapasOrdenadas(?string $proceso = null): Collection

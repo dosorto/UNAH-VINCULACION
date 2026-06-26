@@ -5,9 +5,12 @@ namespace App\Livewire\SGCU\Flujos;
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\SGCU\TipoPrograma;
+use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
+use Spatie\Permission\Models\Role;
 
 class FlujosProgramas extends Component
 {
@@ -47,21 +50,43 @@ class FlujosProgramas extends Component
         $this->stages = array_values($this->stages);
     }
 
+    public function updated(string $property): void
+    {
+        if (preg_match('/^stages\.(\d+)\.rol_revisor_id$/', $property, $matches)) {
+            $this->clearInvalidResponsible((int) $matches[1]);
+            return;
+        }
+
+        if (preg_match('/^stages\.(\d+)\.(requiere_asignacion|emisor_define_destinatario)$/', $property, $matches)) {
+            $this->syncResponsibleAvailability((int) $matches[1]);
+        }
+    }
+
     public function save(): void
     {
-        $validated = $this->validate([
-            'workflow.codigo' => ['required', 'string', 'max:80'],
-            'workflow.nombre' => ['required', 'string', 'max:180'],
-            'workflow.descripcion' => ['nullable', 'string'],
-            'workflow.activo' => ['boolean'],
-            'stages' => ['required', 'array', 'min:1'],
-            'stages.*.codigo' => ['required', 'string', 'max:80'],
-            'stages.*.nombre' => ['required', 'string', 'max:180'],
-            'stages.*.cargo_firma_id' => ['required', 'exists:cargo_firma,id'],
-            'stages.*.requiere_asignacion' => ['boolean'],
-            'stages.*.emisor_define_destinatario' => ['boolean'],
-            'stages.*.activo' => ['boolean'],
-        ]);
+        $this->workflow['codigo'] = $this->normalizeCode((string) ($this->workflow['codigo'] ?? ''))
+            ?: $this->generateUniqueFlowCode($this->programFlowCodeBase(), $this->workflowId);
+
+        $validated = $this->validate(
+            [
+                'workflow.codigo' => ['required', 'string', 'max:80', Rule::unique('flujos_aprobacion', 'codigo')->ignore($this->workflowId)],
+                'workflow.nombre' => ['required', 'string', 'max:180'],
+                'workflow.descripcion' => ['nullable', 'string'],
+                'workflow.activo' => ['boolean'],
+                'stages' => ['required', 'array', 'min:1'],
+                'stages.*.codigo' => ['required', 'string', 'max:80'],
+                'stages.*.nombre' => ['required', 'string', 'max:180'],
+                'stages.*.cargo_firma_id' => ['required', 'exists:cargo_firma,id'],
+                'stages.*.rol_revisor_id' => ['nullable', 'exists:roles,id'],
+                'stages.*.usuario_responsable_id' => ['nullable', 'exists:users,id'],
+                'stages.*.requiere_asignacion' => ['boolean'],
+                'stages.*.emisor_define_destinatario' => ['boolean'],
+                'stages.*.activo' => ['boolean'],
+            ],
+            [
+                'workflow.codigo.unique' => 'Ya existe un flujo con este codigo. Cambie el codigo antes de guardar.',
+            ]
+        );
 
         if (! $this->selectedTipoProgramaId) {
             $this->addError('workflow.nombre', 'Seleccione un tipo de programa.');
@@ -70,7 +95,9 @@ class FlujosProgramas extends Component
 
         DB::transaction(function () use ($validated) {
             $flow = FlujoAprobacion::updateOrCreate(
-                ['id' => $this->workflowId],
+                $this->workflowId
+                    ? ['id' => $this->workflowId]
+                    : ['proceso' => 'PROGRAMA', 'tipo_programa_id' => $this->selectedTipoProgramaId],
                 [
                     'codigo' => strtoupper(trim($validated['workflow']['codigo'])),
                     'nombre' => $validated['workflow']['nombre'],
@@ -84,13 +111,28 @@ class FlujosProgramas extends Component
             $flow->etapas()->delete();
 
             foreach (array_values($validated['stages']) as $index => $stage) {
+                $rolId = $stage['rol_revisor_id'] ?: null;
+                $responsableId = $stage['usuario_responsable_id'] ?: null;
+                $requiereAsignacion = (bool) ($stage['requiere_asignacion'] ?? false);
+                $emisorDefine = (bool) ($stage['emisor_define_destinatario'] ?? false);
+
+                if ($requiereAsignacion) {
+                    $responsableId = null;
+                }
+
+                if ($emisorDefine || ! $rolId || ! $this->userBelongsToRole($responsableId, $rolId)) {
+                    $responsableId = null;
+                }
+
                 $flow->etapas()->create([
                     'orden' => $index + 1,
                     'codigo' => strtoupper(trim($stage['codigo'])),
                     'nombre' => $stage['nombre'],
                     'cargo_firma_id' => $stage['cargo_firma_id'],
-                    'requiere_asignacion' => (bool) ($stage['requiere_asignacion'] ?? false),
-                    'emisor_define_destinatario' => (bool) ($stage['emisor_define_destinatario'] ?? false),
+                    'rol_revisor_id' => $rolId,
+                    'usuario_responsable_id' => $responsableId,
+                    'requiere_asignacion' => $requiereAsignacion,
+                    'emisor_define_destinatario' => $emisorDefine,
                     'activo' => $stage['activo'] ?? true,
                 ]);
             }
@@ -105,6 +147,7 @@ class FlujosProgramas extends Component
     {
         $tiposPrograma = TipoPrograma::with('flujoAprobacion')->orderBy('nombre')->get();
         $selectedTipoPrograma = $tiposPrograma->firstWhere('id', $this->selectedTipoProgramaId);
+        $roles = Role::query()->orderBy('name')->get();
 
         $cargos = CargoFirma::query()
             ->join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
@@ -113,7 +156,13 @@ class FlujosProgramas extends Component
             ->select('cargo_firma.*', 'tipo_cargo_firma.nombre as cargo_nombre')
             ->get();
 
-        return view('livewire.sgcu.flujos.flujos-programas', compact('tiposPrograma', 'cargos', 'selectedTipoPrograma'))
+        return view('livewire.sgcu.flujos.flujos-programas', [
+            'tiposPrograma' => $tiposPrograma,
+            'cargos' => $cargos,
+            'selectedTipoPrograma' => $selectedTipoPrograma,
+            'roles' => $roles,
+            'usuariosPorRol' => $this->usersGroupedByRole($roles),
+        ])
             ->layout('layouts.app', ['hideHorizontalNav' => true]);
     }
 
@@ -123,6 +172,8 @@ class FlujosProgramas extends Component
             'codigo' => 'ETAPA_' . $order,
             'nombre' => 'Etapa ' . $order,
             'cargo_firma_id' => null,
+            'rol_revisor_id' => null,
+            'usuario_responsable_id' => null,
             'requiere_asignacion' => true,
             'emisor_define_destinatario' => false,
             'activo' => true,
@@ -133,7 +184,7 @@ class FlujosProgramas extends Component
     {
         $this->workflowId = null;
         $this->workflow = [
-            'codigo' => 'PROGRAMA_DEFAULT',
+            'codigo' => $this->generateUniqueFlowCode($this->programFlowCodeBase(), $this->workflowId),
             'nombre' => 'Flujo de aprobacion de programas',
             'proceso' => 'PROGRAMA',
             'descripcion' => '',
@@ -173,10 +224,106 @@ class FlujosProgramas extends Component
                 'codigo' => $stage->codigo,
                 'nombre' => $stage->nombre,
                 'cargo_firma_id' => $stage->cargo_firma_id,
+                'rol_revisor_id' => (string) ($stage->rol_revisor_id ?? ''),
+                'usuario_responsable_id' => (string) ($stage->usuario_responsable_id ?? ''),
                 'requiere_asignacion' => (bool) $stage->requiere_asignacion,
                 'emisor_define_destinatario' => (bool) $stage->emisor_define_destinatario,
                 'activo' => (bool) $stage->activo,
             ])
             ->toArray();
+    }
+
+    protected function usersGroupedByRole($roles): array
+    {
+        $users = User::query()
+            ->with('roles')
+            ->whereHas('roles', fn ($query) => $query->whereIn('roles.id', $roles->pluck('id')))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return $roles
+            ->mapWithKeys(fn ($role) => [
+                (string) $role->id => $users
+                    ->filter(fn (User $user) => $user->hasRole($role->name))
+                    ->map(fn (User $user) => ['id' => $user->id, 'name' => $user->name])
+                    ->values()
+                    ->all(),
+            ])
+            ->all();
+    }
+
+    protected function clearInvalidResponsible(int $index): void
+    {
+        if (! isset($this->stages[$index])) {
+            return;
+        }
+
+        $roleId = $this->stages[$index]['rol_revisor_id'] ?? null;
+        $userId = $this->stages[$index]['usuario_responsable_id'] ?? null;
+
+        if (! $roleId || ! $this->userBelongsToRole($userId, $roleId)) {
+            $this->stages[$index]['usuario_responsable_id'] = '';
+        }
+    }
+
+    protected function syncResponsibleAvailability(int $index): void
+    {
+        if (! isset($this->stages[$index])) {
+            return;
+        }
+
+        if ($this->stages[$index]['requiere_asignacion'] ?? false) {
+            $this->stages[$index]['usuario_responsable_id'] = '';
+            return;
+        }
+
+        $this->stages[$index]['emisor_define_destinatario'] = false;
+    }
+
+    protected function userBelongsToRole(mixed $userId, mixed $roleId): bool
+    {
+        if (! $userId || ! $roleId) {
+            return false;
+        }
+
+        return User::query()
+            ->whereKey($userId)
+            ->whereHas('roles', fn ($query) => $query->where('roles.id', $roleId))
+            ->exists();
+    }
+
+    protected function programFlowCodeBase(): string
+    {
+        $tipoPrograma = $this->selectedTipoProgramaId
+            ? TipoPrograma::find($this->selectedTipoProgramaId)
+            : null;
+
+        return 'PROGRAMA_'.($tipoPrograma?->nombre ?: $this->selectedTipoProgramaId ?: 'DEFAULT');
+    }
+
+    protected function generateUniqueFlowCode(string $base, ?int $ignoreId = null): string
+    {
+        $base = $this->normalizeCode($base) ?: 'PROGRAMA';
+        $candidate = $base;
+        $suffix = 2;
+
+        while (FlujoAprobacion::query()
+            ->where('codigo', $candidate)
+            ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
+            ->exists()
+        ) {
+            $candidate = $base.'_'.$suffix;
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
+    protected function normalizeCode(string $value): string
+    {
+        $value = strtoupper(trim($value));
+        $value = preg_replace('/[^A-Z0-9]+/', '_', $value) ?? '';
+
+        return trim($value, '_');
     }
 }

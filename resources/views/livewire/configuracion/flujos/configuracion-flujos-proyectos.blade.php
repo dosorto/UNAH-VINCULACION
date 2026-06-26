@@ -47,14 +47,10 @@
                     </div>
                     <div class="space-y-2">
                         @forelse ($actions as $action)
-                            @php
-                                $actionLabel = preg_replace('/^Proyectos de\s+/i', '', $action->nombre);
-                                $actionLabel = $actionLabel ?: $action->nombre;
-                            @endphp
                             <button
                                 wire:click="selectAction({{ $action->id }})"
                                 class="w-full rounded-2xl border px-3 py-2 text-left text-sm font-medium transition {{ $selectedActionId === $action->id ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-slate-200 text-slate-700 hover:border-primary/40 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/60' }}">
-                                <span class="whitespace-normal break-words leading-snug">{{ $actionLabel }}</span>
+                                <span class="whitespace-normal break-words leading-snug">{{ $action->nombre }}</span>
                             </button>
                         @empty
                             <div class="rounded-2xl border border-dashed border-slate-300 px-3 py-4 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
@@ -71,26 +67,18 @@
                             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Se despliegan al seleccionar una accion.</p>
                         </div>
                         <div class="space-y-2">
-                            @if ($isPpsActionSelected)
-                                @foreach ($ppsSubactions as $subaction)
-                                    <button
-                                        type="button"
-                                        wire:click="selectSubaction({{ $subaction['id'] }})"
-                                        class="w-full rounded-2xl border px-3 py-2 text-left text-sm font-medium transition {{ $selectedSubactionId === $subaction['id'] ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-slate-200 text-slate-700 hover:border-primary/40 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/60' }}">
-                                        <span class="whitespace-normal break-words leading-snug">{{ $subaction['nombre'] }}</span>
-                                    </button>
-                                @endforeach
-                            @else
-                                @foreach ($actions as $subaction)
-                                    @if ($subaction->id === $selectedActionId)
-                                        <button
-                                            wire:click="selectSubaction({{ $subaction->id }})"
-                                            class="w-full rounded-2xl border px-3 py-2 text-left text-sm font-medium transition {{ $selectedSubactionId === $subaction->id ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-slate-200 text-slate-700 hover:border-primary/40 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/60' }}">
-                                            <span class="whitespace-normal break-words leading-snug">{{ $subaction->nombre }}</span>
-                                        </button>
-                                    @endif
-                                @endforeach
-                            @endif
+                            @forelse ($subactions as $subaction)
+                                <button
+                                    type="button"
+                                    wire:click="selectSubaction({{ $subaction->id }})"
+                                    class="w-full rounded-2xl border px-3 py-2 text-left text-sm font-medium transition {{ $selectedSubactionId === $subaction->id ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-slate-200 text-slate-700 hover:border-primary/40 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/60' }}">
+                                    <span class="whitespace-normal break-words leading-snug">{{ $subaction->nombre }}</span>
+                                </button>
+                            @empty
+                                <div class="rounded-2xl border border-dashed border-slate-300 px-3 py-4 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                                    No hay formularios habilitados para esta accion.
+                                </div>
+                            @endforelse
                         </div>
                     </section>
                 @else
@@ -108,7 +96,7 @@
                 <section class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
                     <div>
                         <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Flujo principal</h2>
-                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ $isPpsActionSelected ? 'Esta pantalla configura el flujo PPS / Servicio Social.' : 'Esta pantalla configura el flujo exclusivo para la accion seleccionada.' }}</p>
+                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ $isPpsActionSelected ? 'Esta pantalla configura el flujo PPS / Servicio Social.' : 'Esta pantalla configura el flujo exclusivo para el formulario seleccionado.' }}</p>
                     </div>
 
                     <div class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-3 dark:border-emerald-900/60 dark:bg-emerald-950/30">
@@ -125,7 +113,7 @@
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div>
                         <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                            {{ $workflowId ? $workflow['nombre'] : 'Flujo principal de proyectos' }}
+                            {{ $workflowId ? $workflow['nombre'] : 'Flujo del formulario seleccionado' }}
                         </h2>
                         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                             {{ $workflowId ? 'Edita el flujo actual o reordena sus etapas.' : 'Completa los datos para registrar un nuevo flujo.' }}

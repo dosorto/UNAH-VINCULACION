@@ -14,6 +14,12 @@
         </div>
     @endif
 
+    @if ($pendingNotice)
+        <div class="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-semibold text-cyan-800 dark:border-cyan-900/60 dark:bg-cyan-950/40 dark:text-cyan-200">
+            {{ $pendingNotice }}
+        </div>
+    @endif
+
     <section class="rounded-3xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
         <div class="border-b border-slate-200 px-6 py-5 dark:border-slate-800">
             <div class="flex flex-wrap items-center gap-3">

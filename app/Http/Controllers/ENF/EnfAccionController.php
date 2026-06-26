@@ -33,6 +33,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use PDF;
 
@@ -44,10 +45,15 @@ class EnfAccionController extends Controller
     private const TIPO_ACCION_CERTIFICADO = 'Certificado universitario';
     private const TIPO_ACCION_ENF_VISIBLE = 'Proyecto de educacion continua';
 
+    public static function formularioCertificadoUniversitarioDisponible(): bool
+    {
+        return self::FORM_CERTIFICADO_UNIVERSITARIO_ENABLED;
+    }
+
     public function tipos(): View
     {
         return view('enf.acciones.tipos', [
-            'formCertificadoUniversitarioDisponible' => self::FORM_CERTIFICADO_UNIVERSITARIO_ENABLED,
+            'formCertificadoUniversitarioDisponible' => self::formularioCertificadoUniversitarioDisponible(),
             'tipos' => EnfCatalogo::where('tipo', 'tipo_accion_enf')
                 ->whereIn('nombre', [
                     self::TIPO_ACCION_CERTIFICADO,
@@ -113,6 +119,7 @@ class EnfAccionController extends Controller
             'accion' => $accion,
             'initialDraft' => $accion ? $this->draftFromAccion($accion) : [],
             'tiposAccion' => VinculacionTipoAccion::where('codigo', 'EDUCACION_NO_FORMAL')->orderBy('nombre')->get(),
+            'tipoAccionVinculacionEnfId' => VinculacionTipoAccion::where('codigo', 'EDUCACION_NO_FORMAL')->value('id'),
             'selectedTipoAccionEnfId' => $selectedTipoAccionEnfId,
             'clearDraftOnLoad' => $clearDraftOnLoad,
             'programasAprobados' => $this->programasAprobadosEducacionContinua(),
@@ -156,12 +163,16 @@ class EnfAccionController extends Controller
 
     private function programasAprobadosEducacionContinua()
     {
-        $tipoProgramaEnfId = EnfCatalogo::query()
+        $tiposAccionEnfPorNombre = EnfCatalogo::query()
             ->where('tipo', 'tipo_accion_enf')
-            ->whereIn('nombre', ['Programa de educacion continua', self::TIPO_ACCION_ENF_VISIBLE])
             ->where('activo', true)
-            ->orderByRaw("CASE WHEN nombre = 'Programa de educacion continua' THEN 0 ELSE 1 END")
-            ->value('id');
+            ->get()
+            ->mapWithKeys(fn (EnfCatalogo $catalogo) => [
+                $this->normalizarNombreCatalogo($catalogo->nombre) => $catalogo->id,
+            ]);
+
+        $tipoProgramaEnfId = $tiposAccionEnfPorNombre->get($this->normalizarNombreCatalogo('Programa de educacion continua'))
+            ?? $tiposAccionEnfPorNombre->get($this->normalizarNombreCatalogo(self::TIPO_ACCION_ENF_VISIBLE));
 
         $programasEnf = EnfAccion::query()
             ->with(['modalidad', 'centroFacultad', 'departamentoAcademico', 'carrera', 'accionCatalogos.catalogo'])
@@ -207,7 +218,7 @@ class EnfAccionController extends Controller
             ->where('estado_flujo', 'APROBADO')
             ->orderBy('nombre')
             ->get()
-            ->map(function (ProgramaCertificacion $programa) use ($tipoProgramaEnfId) {
+            ->map(function (ProgramaCertificacion $programa) use ($tiposAccionEnfPorNombre, $tipoProgramaEnfId) {
                 $centroIds = collect([$programa->centro_facultad_id])
                     ->merge($programa->centrosPrograma->where('activo', true)->pluck('centro_facultad_id'))
                     ->filter()
@@ -217,13 +228,18 @@ class EnfAccionController extends Controller
                     ->all();
 
                 $totalHoras = (int) ($programa->horas_maximas_programa ?? 0);
+                $tipoAccionEnfId = $this->resolverTipoAccionEnfSgcuId(
+                    $programa->tipoPrograma?->nombre ?? $programa->tipo_programa,
+                    $tiposAccionEnfPorNombre,
+                    $tipoProgramaEnfId
+                );
 
                 return [
                     'id' => 'sgcu-'.$programa->id,
                     'label' => trim(($programa->codigo ? $programa->codigo.' · ' : '').$programa->nombre),
                     'fields' => [
                         'nombre_accion' => $programa->nombre,
-                        'catalogos[tipo_accion_enf][]' => $tipoProgramaEnfId,
+                        'catalogos[tipo_accion_enf][]' => $tipoAccionEnfId,
                         'numero_edicion' => 1,
                         'centro_facultad_id' => $centroIds[0] ?? null,
                         'centro_facultad_ids[]' => $centroIds,
@@ -237,6 +253,35 @@ class EnfAccionController extends Controller
             ->concat($programasEnf)
             ->sortBy('label')
             ->values();
+    }
+
+    private function resolverTipoAccionEnfSgcuId(?string $tipoPrograma, $tiposAccionEnfPorNombre, ?int $fallbackId): ?int
+    {
+        $tipoNormalizado = $this->normalizarNombreCatalogo($tipoPrograma);
+
+        $catalogoDestino = match (true) {
+            str_contains($tipoNormalizado, 'diplom') => 'Diplomado',
+            str_contains($tipoNormalizado, 'congreso') => 'Congreso',
+            str_contains($tipoNormalizado, 'seminario') => 'Seminario',
+            str_contains($tipoNormalizado, 'programa') => 'Programa de educacion continua',
+            str_contains($tipoNormalizado, 'proyecto') => self::TIPO_ACCION_ENF_VISIBLE,
+            default => $tipoPrograma,
+        };
+
+        if (! filled($catalogoDestino)) {
+            return $fallbackId;
+        }
+
+        return $tiposAccionEnfPorNombre->get($this->normalizarNombreCatalogo($catalogoDestino)) ?? $fallbackId;
+    }
+
+    private function normalizarNombreCatalogo(?string $nombre): string
+    {
+        return Str::of(Str::ascii((string) $nombre))
+            ->lower()
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
+            ->squish()
+            ->toString();
     }
 
     private function draftFromAccion(EnfAccion $accion): array
@@ -562,8 +607,10 @@ class EnfAccionController extends Controller
                 'etapas.usuarioResponsable',
             ])
             ->where('proceso', 'PROYECTO')
-            ->where('tipo_accion_id', $accion->tipo_accion_id)
+            ->where('codigo_formulario', $accion->codigo_formulario ?: self::FORM_PROYECTO_ENF)
             ->where('activo', true)
+            ->when($accion->tipo_accion_id, fn ($query) => $query->orderByRaw('tipo_accion_id = ? desc', [(int) $accion->tipo_accion_id]))
+            ->orderBy('id')
             ->first();
     }
 

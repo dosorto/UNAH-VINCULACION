@@ -9,6 +9,7 @@ use App\Models\Personal\Empleado;
 use App\Models\Estudiante\Estudiante;
 
 use App\Models\Personal\CategoriaEmpleado;
+use App\Models\Proyecto\FlujoAprobacion;
 use Spatie\Permission\Models\Role;
 
 
@@ -208,6 +209,70 @@ class PersonalSeeder extends Seeder
             );
         }
 
+        $usuariosPruebaSgcu = [
+            [
+                'name' => 'SGCU Gestor Prueba',
+                'email' => 'sgcu.gestor@unah.test',
+                'given_name' => 'SGCU',
+                'surname' => 'Gestor',
+                'role' => 'SGCU Gestor',
+                'numero_empleado' => '910001',
+            ],
+            [
+                'name' => 'SGCU Revisor Etapa 1',
+                'email' => 'sgcu.revisor1@unah.test',
+                'given_name' => 'SGCU',
+                'surname' => 'Revisor Etapa 1',
+                'role' => 'SGCU Revisor Etapa 1',
+                'numero_empleado' => '910002',
+            ],
+            [
+                'name' => 'SGCU Revisor Etapa 2',
+                'email' => 'sgcu.revisor2@unah.test',
+                'given_name' => 'SGCU',
+                'surname' => 'Revisor Etapa 2',
+                'role' => 'SGCU Revisor Etapa 2',
+                'numero_empleado' => '910003',
+            ],
+        ];
+
+        foreach ($usuariosPruebaSgcu as $usuarioRol) {
+            $role = Role::firstOrCreate([
+                'name' => $usuarioRol['role'],
+                'guard_name' => 'web',
+            ]);
+
+            $usuario = User::updateOrCreate(
+                ['email' => $usuarioRol['email']],
+                [
+                    'name' => $usuarioRol['name'],
+                    'password' => bcrypt('SgcuTest2026!'),
+                    'surname' => $usuarioRol['surname'],
+                    'given_name' => $usuarioRol['given_name'],
+                    'active_role_id' => $role->id,
+                ]
+            );
+
+            $usuario->syncRoles([$role->name]);
+
+            Empleado::updateOrCreate(
+                ['numero_empleado' => $usuarioRol['numero_empleado']],
+                [
+                    'nombre_completo' => $usuarioRol['name'],
+                    'celular' => '99999999',
+                    'jornada_laboral' => 'Tiempo completo',
+                    'sexo' => 'Masculino',
+                    'user_id' => $usuario->id,
+                    'centro_facultad_id' => 4,
+                    'departamento_academico_id' => 9,
+                    'categoria_id' => $categoriaAdministrativoId,
+                    'tipo_empleado' => 'administrativo',
+                ]
+            );
+        }
+
+        $this->configurarRolesFlujosSgcu();
+
         if (app()->environment('local')) {
             $rolUsuarioEjemplo = Role::firstOrCreate([
                 'name' => 'docente',
@@ -267,5 +332,32 @@ class PersonalSeeder extends Seeder
             $user3->givePermissionTo('perfil.editar');
             $user3->givePermissionTo('configuracion.perfil');
         }
+    }
+
+    private function configurarRolesFlujosSgcu(): void
+    {
+        $rolEtapa1 = Role::where('name', 'SGCU Revisor Etapa 1')->where('guard_name', 'web')->first();
+        $rolEtapa2 = Role::where('name', 'SGCU Revisor Etapa 2')->where('guard_name', 'web')->first();
+
+        if (! $rolEtapa1 || ! $rolEtapa2) {
+            return;
+        }
+
+        FlujoAprobacion::with('etapas')
+            ->where('proceso', 'PROGRAMA')
+            ->where('activo', true)
+            ->get()
+            ->each(function (FlujoAprobacion $flujo) use ($rolEtapa1, $rolEtapa2) {
+                $flujo->etapas
+                    ->sortBy('orden')
+                    ->values()
+                    ->each(function ($etapa, int $index) use ($rolEtapa1, $rolEtapa2) {
+                        $etapa->update([
+                            'rol_revisor_id' => $index === 0 ? $rolEtapa1->id : $rolEtapa2->id,
+                            'usuario_responsable_id' => null,
+                            'requiere_asignacion' => false,
+                        ]);
+                    });
+            });
     }
 }

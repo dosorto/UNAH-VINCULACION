@@ -85,6 +85,9 @@ class PermisosSeeder extends Seeder
         $roleDirectorCentro = Role::firstOrCreate(['name' => 'Director centro', 'guard_name' => 'web']);
         $roleRevisorVinculacion = Role::firstOrCreate(['name' => 'Revisor Vinculacion', 'guard_name' => 'web']);
         $roleDirectorVinculacion = Role::firstOrCreate(['name' => 'Director Vinculacion', 'guard_name' => 'web']);
+        $roleSgcuGestor = Role::firstOrCreate(['name' => 'SGCU Gestor', 'guard_name' => 'web']);
+        $roleSgcuRevisorEtapa1 = Role::firstOrCreate(['name' => 'SGCU Revisor Etapa 1', 'guard_name' => 'web']);
+        $roleSgcuRevisorEtapa2 = Role::firstOrCreate(['name' => 'SGCU Revisor Etapa 2', 'guard_name' => 'web']);
 
         $role->syncPermissions([
             'demografia.pais', 'demografia.departamento', 'demografia.municipio',
@@ -161,5 +164,18 @@ class PermisosSeeder extends Seeder
             'inicio.admin', 'dashboard.director',
             'global.set-role', 'configuracion.perfil', 'tickets.ver',
         ]);
+
+        $sgcuPermissions = [
+            'configuracion.flujos',
+            'inicio.admin',
+            'dashboard.admin',
+            'global.set-role',
+            'configuracion.perfil',
+            'tickets.ver',
+        ];
+
+        $roleSgcuGestor->syncPermissions($sgcuPermissions);
+        $roleSgcuRevisorEtapa1->syncPermissions($sgcuPermissions);
+        $roleSgcuRevisorEtapa2->syncPermissions($sgcuPermissions);
     }
 }

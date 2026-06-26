@@ -238,7 +238,7 @@ return [
             [
                 'titulo' => 'Trazabilidad de Registros',
                 'route' => 'SolicitudProyectosDocente',
-                'routes' => ['SolicitudProyectosDocente', 'AprobadoProyectosDocente', 'RechazadoProyectosDocente', 'FichasActualizacionPorFirmar'],
+                'routes' => ['SolicitudProyectosDocente', 'AprobadoProyectosDocente', 'RechazadoProyectosDocente', 'FichasActualizacionPorFirmar', 'enf.acciones.show'],
                 'icono' => 'heroicon-o-document-text',
                 'permisos' => ['docente.proyectos'],
                 'children' => [

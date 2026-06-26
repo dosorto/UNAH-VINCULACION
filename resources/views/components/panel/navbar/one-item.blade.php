@@ -65,7 +65,6 @@
                             $resultado_funcion = 0;
                             if (
                                 isset($child['funcion']) &&
-                                isset($DataNavBar) &&
                                 auth()->user()->hasPermissionTo($child['permiso'])
                             ) {
                                 $resultado_funcion = App\Clases\DataNavBar::{$child['funcion']}();
@@ -77,7 +76,7 @@
                             {{ $childIsActive ? 'text-primary-600 dark:text-primary-400 bg-gray-200 dark:bg-white/5' : 'hover:bg-gray-200 dark:hover:bg-white/5' }}">
                             <span>{{ $child['texto'] }}</span>
 
-                            @if (isset($child['funcion']) && isset($DataNavBar) && $resultado_funcion > 0)
+                            @if (isset($child['funcion']) && $resultado_funcion > 0)
                                 <span
                                     class="ml-auto bg-gradient-to-r from-indigo-500 to-pink-500 text-white px-4 py-1 rounded-full text-xs font-semibold transition-transform transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-pink-500 focus:ring-opacity-60">
                                     {{ $resultado_funcion }}
