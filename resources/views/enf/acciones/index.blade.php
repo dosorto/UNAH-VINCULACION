@@ -41,6 +41,9 @@
                             <td class="px-4 py-3 text-slate-700 dark:text-slate-300">{{ $accion->estado_flujo }}</td>
                             <td class="px-4 py-3 text-right">
                                 <a href="{{ route('enf.acciones.show', $accion) }}" class="font-semibold text-blue-700 hover:text-blue-900">Ver</a>
+                                @if (auth()->id() && (int) $accion->creado_por_usuario_id === (int) auth()->id() && in_array($accion->estado_flujo, ['BORRADOR', 'SUBSANACION', 'SUBSANACIÓN'], true))
+                                    <a href="{{ route('enf.acciones.edit', $accion) }}" class="ml-3 font-semibold text-blue-700 hover:text-blue-900">Editar</a>
+                                @endif
                             </td>
                         </tr>
                     @empty

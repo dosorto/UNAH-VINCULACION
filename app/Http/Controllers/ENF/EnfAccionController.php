@@ -483,53 +483,37 @@ class EnfAccionController extends Controller
                 ->with('status', self::FORM_CERTIFICADO_UNIVERSITARIO.' no esta disponible temporalmente.');
         }
 
+        if ($request->filled('borrador_autoguardado_id')) {
+            $accion = DB::transaction(function () use ($request, $validated) {
+                $record = EnfAccion::findOrFail($request->integer('borrador_autoguardado_id'));
+
+                abort_unless(
+                    $request->user()
+                    && (int) $record->creado_por_usuario_id === (int) $request->user()->id
+                    && $record->estado_flujo === 'BORRADOR',
+                    403
+                );
+
+                $this->actualizarRegistroFormulario($record, $validated, $request, true);
+
+                return $record->fresh();
+            });
+
+            if (! $request->expectsJson()) {
+                return redirect()
+                    ->route('enf.acciones.show', $accion)
+                    ->with('status', 'Accion de Educacion No Formal guardada como borrador.');
+            }
+
+            return response()->json($accion->fresh(), 201);
+        }
+
         $accion = DB::transaction(function () use ($request, $validated) {
-            $accionFields = [
-                'codigo_formulario',
-                'tipo_accion_id',
-                'modalidad_id',
-                'centro_facultad_id',
-                'departamento_academico_id',
-                'carrera_id',
-                'unidad_academica_responsable_texto',
-                'escuela_departamento_texto',
-                'nombre_accion',
-                'numero_edicion',
-                'fecha_solicitud',
-                'fecha_inicio',
-                'fecha_finalizacion',
-                'resolucion_vra',
-                'resolucion_original',
-                'resolucion_actualizacion',
-                'horas_teoricas',
-                'horas_practicas',
-                'total_horas',
-                'carga_horaria_creditos',
-                'resumen',
-                'impacto_esperado',
-                'descripcion_participantes',
-                'definicion_problema',
-                'objetivo_general',
-                'alineamiento_reforma',
-                'metodologia',
-                'logistica',
-                'bibliografia',
-                'genera_ingresos',
-                'mecanismo_administracion',
-                'descripcion_excedente',
-                'estado_flujo',
-                'revision_ciclo',
-                'responsable_revision_id',
-                'fecha_aprobacion',
-                'fecha_registro',
-                'numero_libro',
-                'numero_tomo',
-                'numero_folio',
-                'numero_registro',
-            ];
+            $accionFields = $this->accionStoreFields();
 
             $data = array_intersect_key($validated, array_flip($accionFields));
             $data['codigo_formulario'] = $data['codigo_formulario'] ?? self::FORM_PROYECTO_ENF;
+            $data['estado_flujo'] = 'BORRADOR';
             $data['genera_ingresos'] = $request->boolean('genera_ingresos');
             if (empty($data['total_horas'])) {
                 $data['total_horas'] = (int) ($data['horas_teoricas'] ?? 0) + (int) ($data['horas_practicas'] ?? 0);
@@ -540,7 +524,6 @@ class EnfAccionController extends Controller
             $accion = EnfAccion::create($data);
 
             $this->guardarRelacionesFormulario($accion, $validated, $request);
-            $this->iniciarFlujoRevision($accion);
 
             return $accion;
         });
@@ -548,10 +531,173 @@ class EnfAccionController extends Controller
         if (! $request->expectsJson()) {
             return redirect()
                 ->route('enf.acciones.show', $accion)
-                ->with('status', 'Accion de Educacion No Formal registrada correctamente.');
+                ->with('status', 'Accion de Educacion No Formal guardada como borrador.');
         }
 
         return response()->json($accion->fresh(), 201);
+    }
+
+    public function autoguardarBorrador(Request $request, ?int $accion = null): JsonResponse
+    {
+        $data = $this->draftDataFromRequest($request);
+        $recordId = $accion ?: $request->integer('borrador_autoguardado_id');
+
+        $record = DB::transaction(function () use ($request, $data, $recordId): EnfAccion {
+            if ($recordId) {
+                $record = EnfAccion::findOrFail($recordId);
+
+                abort_unless($this->usuarioPuedeEditarBorrador($request->user(), $record), 403);
+
+                $this->actualizarRegistroFormulario($record, $data, $request, true);
+
+                return $record->fresh();
+            }
+
+            $accionData = array_intersect_key($data, array_flip($this->accionStoreFields()));
+            $accionData['codigo_formulario'] = $accionData['codigo_formulario'] ?? self::FORM_PROYECTO_ENF;
+            $accionData['estado_flujo'] = 'BORRADOR';
+            $accionData['genera_ingresos'] = $request->boolean('genera_ingresos');
+            $accionData['creado_por_usuario_id'] = $request->user()?->id;
+            $accionData['modificado_por_usuario_id'] = $request->user()?->id;
+
+            if (empty($accionData['total_horas'])) {
+                $accionData['total_horas'] = (int) ($accionData['horas_teoricas'] ?? 0) + (int) ($accionData['horas_practicas'] ?? 0);
+            }
+
+            $record = EnfAccion::create($accionData);
+            $this->guardarRelacionesFormulario($record, $data, $request);
+
+            return $record->fresh();
+        });
+
+        return response()->json([
+            'id' => $record->id,
+            'estado_flujo' => $record->estado_flujo,
+            'edit_url' => route('enf.acciones.edit', $record),
+            'autosave_url' => route('enf.acciones.autoguardar-borrador.update', $record),
+        ]);
+    }
+
+    private function accionStoreFields(): array
+    {
+        return [
+            'codigo_formulario',
+            'tipo_accion_id',
+            'modalidad_id',
+            'centro_facultad_id',
+            'departamento_academico_id',
+            'carrera_id',
+            'unidad_academica_responsable_texto',
+            'escuela_departamento_texto',
+            'nombre_accion',
+            'numero_edicion',
+            'fecha_solicitud',
+            'fecha_inicio',
+            'fecha_finalizacion',
+            'resolucion_vra',
+            'resolucion_original',
+            'resolucion_actualizacion',
+            'horas_teoricas',
+            'horas_practicas',
+            'total_horas',
+            'carga_horaria_creditos',
+            'resumen',
+            'impacto_esperado',
+            'descripcion_participantes',
+            'definicion_problema',
+            'objetivo_general',
+            'alineamiento_reforma',
+            'metodologia',
+            'logistica',
+            'bibliografia',
+            'genera_ingresos',
+            'mecanismo_administracion',
+            'descripcion_excedente',
+            'estado_flujo',
+            'revision_ciclo',
+            'responsable_revision_id',
+            'fecha_aprobacion',
+            'fecha_registro',
+            'numero_libro',
+            'numero_tomo',
+            'numero_folio',
+            'numero_registro',
+        ];
+    }
+
+    private function draftDataFromRequest(Request $request): array
+    {
+        $data = $request->except(['_token', '_method', 'borrador_autoguardado_id']);
+        $data['codigo_formulario'] = $data['codigo_formulario'] ?? self::FORM_PROYECTO_ENF;
+        $data['estado_flujo'] = 'BORRADOR';
+        $data['nombre_accion'] = filled($data['nombre_accion'] ?? null)
+            ? $data['nombre_accion']
+            : 'Borrador sin título';
+
+        foreach ([
+            'tipo_accion_id',
+            'modalidad_id',
+            'centro_facultad_id',
+            'departamento_academico_id',
+            'carrera_id',
+            'numero_edicion',
+            'horas_teoricas',
+            'horas_practicas',
+            'total_horas',
+            'carga_horaria_creditos',
+            'revision_ciclo',
+            'responsable_revision_id',
+        ] as $field) {
+            if (! array_key_exists($field, $data)) {
+                continue;
+            }
+
+            $data[$field] = is_numeric($data[$field]) ? (int) $data[$field] : null;
+        }
+
+        foreach ([
+            'fecha_solicitud',
+            'fecha_inicio',
+            'fecha_finalizacion',
+            'fecha_aprobacion',
+            'fecha_registro',
+        ] as $field) {
+            if (! array_key_exists($field, $data) || blank($data[$field])) {
+                $data[$field] = null;
+                continue;
+            }
+
+            $data[$field] = strtotime((string) $data[$field]) !== false ? $data[$field] : null;
+        }
+
+        return $data;
+    }
+
+    private function actualizarRegistroFormulario(EnfAccion $record, array $data, Request $request, bool $mantenerBorrador = false): void
+    {
+        $accionData = array_intersect_key($data, array_flip($this->accionStoreFields()));
+        $accionData['codigo_formulario'] = $accionData['codigo_formulario'] ?? self::FORM_PROYECTO_ENF;
+        $accionData['genera_ingresos'] = $request->boolean('genera_ingresos');
+        $accionData['modificado_por_usuario_id'] = $request->user()?->id;
+
+        if ($mantenerBorrador) {
+            $accionData['estado_flujo'] = 'BORRADOR';
+        }
+
+        if (empty($accionData['total_horas'])) {
+            $accionData['total_horas'] = (int) ($accionData['horas_teoricas'] ?? 0) + (int) ($accionData['horas_practicas'] ?? 0);
+        }
+
+        $record->update($accionData);
+        $this->limpiarRelacionesFormulario($record);
+        $this->guardarRelacionesFormulario($record->fresh(), $data, $request);
+    }
+
+    private function usuarioPuedeEditarBorrador(?User $user, EnfAccion $accion): bool
+    {
+        return $user
+            && (int) $accion->creado_por_usuario_id === (int) $user->id
+            && in_array($accion->estado_flujo, ['BORRADOR', 'SUBSANACION', 'SUBSANACIÓN'], true);
     }
 
     private function iniciarFlujoRevision(EnfAccion $accion): void
@@ -656,7 +802,7 @@ class EnfAccionController extends Controller
         }
     }
 
-    private function guardarRelacionesFormulario(EnfAccion $accion, array $data, StoreEnfAccionRequest $request): void
+    private function guardarRelacionesFormulario(EnfAccion $accion, array $data, Request $request): void
     {
         $catalogosData = $data['catalogos'] ?? [];
 
@@ -1245,6 +1391,10 @@ class EnfAccionController extends Controller
 
     private function revisionActual(EnfAccion $accion): ?EnfRevision
     {
+        if ($accion->estado_flujo !== 'EN_REVISION') {
+            return null;
+        }
+
         return $accion->revisiones
             ->where('revision_ciclo', (int) $accion->revision_ciclo)
             ->whereIn('estado', $this->estadosRevisionPendiente())
