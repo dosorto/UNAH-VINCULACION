@@ -13,6 +13,10 @@ export default {
         "/app/Livewire/**/*.php",
     ],
     darkMode: 'class',
+    safelist: [
+        // Altura del sidebar colapsado en desktop (calc no es detectado por el extractor JIT)
+        'sm:h-[calc(100vh-3.5rem)]',
+    ],
     theme: {
         extend: {
             colors: {

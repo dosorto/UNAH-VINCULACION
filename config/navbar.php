@@ -9,7 +9,7 @@ return [
                 'titulo' => 'Inicio',
                 'route' => 'inicio',
                 'routes' => ['inicio'],
-                'permisos' => ['inicio.admin', 'dashboard.admin', 'dashboard.docente', 'dashboard.estudiante'],
+                'permisos' => ['inicio.admin', 'dashboard.admin', 'dashboard.docente', 'dashboard.estudiante', 'dashboard.director'],
                 'icono' => 'heroicon-o-home',
                 'children' => [],
                 'funcion' => null,
@@ -67,7 +67,7 @@ return [
                 'titulo' => 'Constancias',
                 'route' => 'constancias',
                 'routes' => ['constancias'],
-                'icono' => 'heroicon-o-document-text',
+                'icono' => 'heroicon-o-document-check',
                 'permisos' => ['constancia.constancias'],
                 'children' => [
                     ['texto' => 'Constancias', 'route' => 'constancias', 'permiso' => 'constancia.constancias'],
@@ -81,7 +81,7 @@ return [
                 'titulo' => 'Empleado',
                 'route' => 'ListarEmpleados',
                 'routes' => ['ListarEmpleados', 'crearEmpleado'],
-                'icono' => 'heroicon-c-cube',
+                'icono' => 'heroicon-o-identification',
                 'permisos' => ['empleados.empleados'],
                 'children' => [
                     ['texto' => 'Empleados', 'route' => 'ListarEmpleados', 'permiso' => 'empleados.empleados'],
@@ -96,7 +96,7 @@ return [
                 'route' => 'listarEstudiante',
                 'routes' => ['listarEstudiante', 'crearEstudiante'],
                 'permisos' => ['dashboard.admin'],
-                'icono' => 'heroicon-c-book-open',
+                'icono' => 'heroicon-o-academic-cap',
                 'children' => [
                     ['texto' => 'Estudiantes', 'route' => 'listarEstudiante', 'permiso' => 'estudiante.admin'],
                     ['texto' => 'Crear Estudiante', 'route' => 'crearEstudiante', 'permiso' => 'estudiante.admin'],
@@ -145,7 +145,7 @@ return [
                 'titulo' => 'Unidad Academica',
                 'route' => 'campus',
                 'routes' => ['campus', 'carrera', 'departamento-academico', 'facultad-centro'],
-                'icono' => 'heroicon-o-academic-cap',
+                'icono' => 'heroicon-o-building-library',
                 'permisos' => [
                     'unidad-academica.campus',
                     'unidad-academica.carrera',
@@ -210,7 +210,7 @@ return [
                 'titulo' => 'Historial Vinculación',
                 'route' => 'proyectosCentroFacultad',
                 'routes' => ['proyectosCentroFacultad', 'pps-servicio-social.show', 'pps-servicio-social.edit'],
-                'icono' => 'heroicon-o-academic-cap',
+                'icono' => 'heroicon-o-clock',
                 'permisos' => ['director.proyectos'],
                 'children' => [
                     ['texto' => 'Historial Vinculación', 'route' => 'proyectosCentroFacultad', 'permiso' => 'director.proyectos'],
@@ -223,7 +223,7 @@ return [
                 'titulo' => 'Vinculación',
                 'route' => 'proyectosDocente',
                 'routes' => ['proyectosDocente', 'crearProyectoVinculacion', 'crearPpsServicioSocial', 'pps-servicio-social.show', 'pps-servicio-social.edit'],
-                'icono' => 'heroicon-o-academic-cap',
+                'icono' => 'heroicon-o-puzzle-piece',
                 'permisos' => ['docente.proyectos'],
                 'children' => [
                     ['texto' => 'Registrar Acción', 'route' => 'selectorTipoAccion', 'permiso' => 'docente.proyectos'],
@@ -239,7 +239,7 @@ return [
                 'titulo' => 'Trazabilidad de Registros',
                 'route' => 'SolicitudProyectosDocente',
                 'routes' => ['SolicitudProyectosDocente', 'AprobadoProyectosDocente', 'RechazadoProyectosDocente', 'FichasActualizacionPorFirmar'],
-                'icono' => 'heroicon-o-document-text',
+                'icono' => 'heroicon-o-queue-list',
                 'permisos' => ['docente.proyectos'],
                 'children' => [
                     ['texto' => 'Revisión Comité Local', 'route' => 'SolicitudProyectosDocente', 'permiso' => 'docente.proyectos', 'funcion' => 'obtenerCantidadProyectosPorFirmar'],

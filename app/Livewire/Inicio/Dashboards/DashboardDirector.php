@@ -1,0 +1,389 @@
+<?php
+
+namespace App\Livewire\Inicio\Dashboards;
+
+use App\Models\Estado\EstadoProyecto;
+use App\Models\Estado\TipoEstado;
+use App\Models\Personal\Empleado;
+use App\Models\Proyecto\Proyecto;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Livewire\Component;
+use Livewire\WithPagination;
+
+class DashboardDirector extends Component
+{
+    use WithPagination;
+
+    public int $perPage           = 5;
+    public int $perPagePendientes = 5;
+    public int $perPagePanel      = 3;
+
+    public $selectedYear            = null;
+    public array $projectsDataUser  = [];
+    public int $totalProjectsYearUser = 0;
+    public int $chartStartYear      = 2025;
+    public bool $chartFullRange     = false;
+
+    public function mount(): void
+    {
+        $this->selectedYear = now()->year;
+        $this->updateChartDataUser();
+    }
+
+    public function loadMore(): void
+    {
+        $this->perPage += 5;
+    }
+
+    public function loadMorePendientes(): void
+    {
+        $this->perPagePendientes += 5;
+    }
+
+    public function loadMorePanel(): void
+    {
+        $this->perPagePanel += 3;
+    }
+
+    public function toggleChartRange(): void
+    {
+        $this->chartFullRange = !$this->chartFullRange;
+        $this->updateChartDataUser();
+    }
+
+    public function updatedSelectedYear(): void
+    {
+        $this->updateChartDataUser();
+    }
+
+    public function updateChartDataUser(): void
+    {
+        $empleadoId = auth()->user()->empleado?->id;
+
+        if (!$empleadoId) {
+            $this->projectsDataUser      = [];
+            $this->totalProjectsYearUser = 0;
+            return;
+        }
+
+        $userProjects = Proyecto::join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+            ->where('empleado_proyecto.empleado_id', $empleadoId)
+            ->select('proyecto.*')
+            ->get();
+
+        $end        = now()->year;
+        $yearsRange = $this->chartFullRange
+            ? range($this->chartStartYear, $end)
+            : range(max($this->chartStartYear, $end - 3), $end);
+
+        $userProjects = $userProjects->filter(
+            fn ($p) => in_array((int) Carbon::parse($p->created_at)->format('Y'), $yearsRange)
+        );
+
+        $grouped = $userProjects->groupBy(fn ($p) => Carbon::parse($p->created_at)->format('Y'));
+
+        $chartDataUser = [];
+        foreach ($yearsRange as $year) {
+            $ofYear                        = $grouped->get($year, collect());
+            $chartDataUser[(string) $year] = [
+                'count'    => $ofYear->count(),
+                'projects' => $ofYear->pluck('nombre_proyecto')->toArray(),
+            ];
+        }
+
+        $this->projectsDataUser      = $chartDataUser;
+        $this->totalProjectsYearUser = array_sum(array_column($chartDataUser, 'count'));
+        $this->dispatch('updateChart-Director', dataUser: $this->projectsDataUser);
+    }
+
+    // ── Mapeo rol activo → TipoEstado que le corresponde revisar ──────────
+
+    private function estadoPendienteParaRol(): ?string
+    {
+        $rol = auth()->user()->activeRole?->name;
+
+        return match ($rol) {
+            'Coordinador Proyecto' => 'Coordinador Proyecto',
+            'Director/Enlace'      => 'Enlace Vinculacion',
+            'Enlace Vinculacion'   => 'Enlace Vinculacion',
+            'Jefe Departamento'    => 'Jefe Departamento',
+            'Director centro'      => 'Director centro',
+            'Revisor Vinculacion'  => 'En revision',
+            'Director Vinculacion' => 'En revision final',
+            default                => null,
+        };
+    }
+
+    private function tipoEstadoPendiente(): ?TipoEstado
+    {
+        $nombre = $this->estadoPendienteParaRol();
+        return $nombre ? TipoEstado::where('nombre', $nombre)->first() : null;
+    }
+
+    // ── Proyectos propios ─────────────────────────────────────────────────
+
+    private function queryMisProyectos()
+    {
+        $empleadoId = auth()->user()->empleado?->id;
+
+        if (!$empleadoId) {
+            return Proyecto::query()->whereRaw('1 = 0');
+        }
+
+        return Proyecto::query()
+            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+            ->where('empleado_proyecto.empleado_id', $empleadoId)
+            ->select('proyecto.*')
+            ->distinct();
+    }
+
+    private function misProyectosPorEstado(string $estadoNombre): int
+    {
+        $empleadoId = auth()->user()->empleado?->id;
+        if (!$empleadoId) return 0;
+
+        $tipoEstado = TipoEstado::where('nombre', $estadoNombre)->first();
+        if (!$tipoEstado) return 0;
+
+        return Proyecto::query()
+            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+            ->where('empleado_proyecto.empleado_id', $empleadoId)
+            ->whereIn('proyecto.id', function ($sub) use ($tipoEstado) {
+                $sub->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->where('tipo_estado_id', $tipoEstado->id)
+                    ->where('es_actual', true);
+            })
+            ->distinct()
+            ->count('proyecto.id');
+    }
+
+    private function misProyectosEnRevisionCount(array $estadoNames): int
+    {
+        $empleadoId     = auth()->user()->empleado?->id;
+        $tipoEstadosIds = TipoEstado::whereIn('nombre', $estadoNames)->pluck('id');
+
+        if (!$empleadoId || $tipoEstadosIds->isEmpty()) return 0;
+
+        return Proyecto::query()
+            ->whereIn('id', function ($sub) use ($tipoEstadosIds) {
+                $sub->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->whereIn('tipo_estado_id', $tipoEstadosIds)
+                    ->where('es_actual', true);
+            })
+            ->whereIn('id', function ($sub) use ($empleadoId) {
+                $sub->select('proyecto_id')
+                    ->from('empleado_proyecto')
+                    ->where('empleado_id', $empleadoId);
+            })
+            ->distinct()
+            ->count('id');
+    }
+
+    // ── Panel de estados (propios, paginados) ─────────────────────────────
+
+    private function misProyectosPorEstadoPaginado(string $estadoNombre)
+    {
+        $empleadoId = auth()->user()->empleado?->id;
+        $tipoEstado = TipoEstado::where('nombre', $estadoNombre)->first();
+
+        if (!$empleadoId || !$tipoEstado) {
+            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $this->perPagePanel, 1);
+        }
+
+        return Proyecto::query()
+            ->whereIn('id', function ($sub) use ($tipoEstado) {
+                $sub->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->where('tipo_estado_id', $tipoEstado->id)
+                    ->where('es_actual', true);
+            })
+            ->whereIn('id', function ($sub) use ($empleadoId) {
+                $sub->select('proyecto_id')
+                    ->from('empleado_proyecto')
+                    ->where('empleado_id', $empleadoId);
+            })
+            ->orderBy('id', 'asc')
+            ->paginate($this->perPagePanel);
+    }
+
+    private function misProyectosEnRevisionesPaginado(array $estadoNames)
+    {
+        $empleadoId     = auth()->user()->empleado?->id;
+        $tipoEstadosIds = TipoEstado::whereIn('nombre', $estadoNames)->pluck('id');
+
+        if (!$empleadoId || $tipoEstadosIds->isEmpty()) {
+            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $this->perPagePanel, 1);
+        }
+
+        return Proyecto::with('tipo_estado')
+            ->whereIn('id', function ($sub) use ($tipoEstadosIds) {
+                $sub->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->whereIn('tipo_estado_id', $tipoEstadosIds)
+                    ->where('es_actual', true);
+            })
+            ->whereIn('id', function ($sub) use ($empleadoId) {
+                $sub->select('proyecto_id')
+                    ->from('empleado_proyecto')
+                    ->where('empleado_id', $empleadoId);
+            })
+            ->orderBy('id', 'asc')
+            ->paginate($this->perPagePanel);
+    }
+
+    // ── Pendientes de revisión según rol activo ───────────────────────────
+
+    private function proyectosPendientesQuery()
+    {
+        $tipoEstado = $this->tipoEstadoPendiente();
+
+        if (!$tipoEstado) {
+            return Proyecto::query()->whereRaw('1 = 0');
+        }
+
+        return Proyecto::query()
+            ->whereIn('id', function ($sub) use ($tipoEstado) {
+                $sub->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->where('tipo_estado_id', $tipoEstado->id)
+                    ->where('es_actual', true);
+            });
+    }
+
+    // ── Cantidad de proyectos (propio empleado) ───────────────────────────
+
+    private function getProjectsCountByEmployee()
+    {
+        $empleadoId = auth()->user()->empleado?->id;
+
+        if (!$empleadoId) {
+            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, 4, 1);
+        }
+
+        return Empleado::where('id', $empleadoId)->withCount('proyectos')->paginate(4);
+    }
+
+    // ── Actividades recientes ─────────────────────────────────────────────
+
+    public function getLatestActivitiesUser(int $limit = 6): \Illuminate\Support\Collection
+    {
+        $empleadoId = auth()->user()->empleado?->id;
+
+        $propiosIds = $empleadoId
+            ? DB::table('empleado_proyecto')
+                ->where('empleado_id', $empleadoId)
+                ->pluck('proyecto_id')
+                ->toArray()
+            : [];
+
+        $tipoEstado    = $this->tipoEstadoPendiente();
+        $pendientesIds = [];
+        if ($tipoEstado) {
+            $pendientesIds = Proyecto::whereIn('id', function ($sub) use ($tipoEstado) {
+                $sub->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->where('tipo_estado_id', $tipoEstado->id)
+                    ->where('es_actual', true);
+            })->pluck('id')->toArray();
+        }
+
+        $allIds = array_unique(array_merge($propiosIds, $pendientesIds));
+
+        if (empty($allIds)) {
+            return collect();
+        }
+
+        return EstadoProyecto::whereIn('estadoable_id', $allIds)
+            ->where('estadoable_type', Proyecto::class)
+            ->with(['tipoestado', 'estadoable'])
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->get()
+            ->map(function ($estado) {
+                $estado->fecha_cambio    = $estado->created_at->format('d/m/Y H:i');
+                $estado->nombre_elemento = $estado->estadoable->nombre_proyecto ?? 'Proyecto';
+                $estado->tipo_elemento   = 'Proyecto';
+                return $estado;
+            });
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────
+
+    public function render()
+    {
+        $estadosRevision = [
+            'Esperando documento', 'Subsanar documento', 'Enlace Vinculacion',
+            'Coordinador Proyecto', 'Jefe Departamento', 'Director Centro',
+            'En revision final', 'Aprobado', 'Subsanacion', 'Rechazado',
+            'Inscrito', 'Cancelado', 'En revision',
+        ];
+
+        $estadoPendienteNombre = $this->estadoPendienteParaRol();
+
+        // Conteos mis proyectos
+        $totalMisProyectos = $this->queryMisProyectos()->count();
+        $finalizadosCount  = $this->misProyectosPorEstado('Finalizado');
+        $subsanarCount     = $this->misProyectosPorEstado('Subsanacion');
+        $enCursoCount      = $this->misProyectosPorEstado('En curso');
+        $borradorCount     = $this->misProyectosPorEstado('Borrador');
+        $enRevisionCount   = $this->misProyectosEnRevisionCount($estadosRevision);
+
+        // Tabla mis proyectos
+        $misProyectosTable = $this->queryMisProyectos()
+            ->with(['estadoActual.tipoestado'])
+            ->orderBy('proyecto.created_at', 'desc')
+            ->paginate($this->perPage);
+
+        // Panel de estados (proyectos propios)
+        $panelBorrador    = $this->misProyectosPorEstadoPaginado('Borrador');
+        $panelEnRevision  = $this->misProyectosEnRevisionesPaginado($estadosRevision);
+        $panelEnCurso     = $this->misProyectosPorEstadoPaginado('En curso');
+        $panelFinalizados = $this->misProyectosPorEstadoPaginado('Finalizado');
+
+        // Pendientes según rol activo
+        $totalPendientes = $this->proyectosPendientesQuery()->count();
+        $pendientesTable = $this->proyectosPendientesQuery()
+            ->with(['estadoActual.tipoestado'])
+            ->orderBy('proyecto.created_at', 'desc')
+            ->paginate($this->perPagePendientes);
+
+        $activitiesUser     = $this->getLatestActivitiesUser();
+        $empleadosWithCount = $this->getProjectsCountByEmployee();
+
+        return view('livewire.inicio.dashboards.dashboard-director', [
+            'estadoPendienteNombre'  => $estadoPendienteNombre,
+            // Mis proyectos — conteos
+            'totalMisProyectos'      => $totalMisProyectos,
+            'finalizadosCount'       => $finalizadosCount,
+            'subsanarCount'          => $subsanarCount,
+            'enCursoCount'           => $enCursoCount,
+            'borradorCount'          => $borradorCount,
+            'enRevisionCount'        => $enRevisionCount,
+            // Mis proyectos — tabla
+            'misProyectosTable'      => $misProyectosTable,
+            // Panel de estados
+            'panelBorrador'          => $panelBorrador,
+            'panelEnRevision'        => $panelEnRevision,
+            'panelEnCurso'           => $panelEnCurso,
+            'panelFinalizados'       => $panelFinalizados,
+            // Pendientes
+            'totalPendientes'        => $totalPendientes,
+            'pendientesTable'        => $pendientesTable,
+            // Actividades y cantidad
+            'activitiesUser'         => $activitiesUser,
+            'empleadosWithCount'     => $empleadosWithCount,
+            // Gráfico
+            'chartDataUser'          => $this->projectsDataUser,
+            'totalProjectsYearUser'  => $this->totalProjectsYearUser,
+        ]);
+    }
+}

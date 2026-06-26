@@ -124,7 +124,7 @@ class PermisosSeeder extends Seeder
         ]);
 
         $roleCoordinadorProyecto->syncPermissions([
-            'inicio.docente', 'dashboard.docente',
+            'inicio.admin', 'dashboard.director',
             'docente.proyectos', 'docente.crear-proyecto',
             'unidad-academica.asignatura',
             'configuracion.perfil', 'global.set-role',
@@ -151,7 +151,7 @@ class PermisosSeeder extends Seeder
 
         $roleRevisorVinculacion->syncPermissions([
             'proyectos.historial', 'proyectos.solicitados', 'proyectos.informes', 'docente.proyectos',
-            'inicio.admin', 'dashboard.admin',
+            'inicio.admin', 'dashboard.director',
             'global.set-role', 'configuracion.perfil', 'tickets.ver',
         ]);
 
