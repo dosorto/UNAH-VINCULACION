@@ -134,12 +134,12 @@
                         @endphp
                         <a href="{{ route($child['route'], $child['parametro'] ?? '') }}" wire:navigate.hover
                             class="flex items-center py-2 px-4 rounded-md transition-colors duration-150 ease-in-out dark:text-gray-200
-                                   {{ $childIsActive
-                                       ? 'text-primary-600 dark:text-primary-400 bg-gray-200 dark:bg-white/5'
-                                       : 'hover:bg-gray-200 dark:hover:bg-white/5' }}">
-                            <span class="truncate">{{ $child['texto'] }}</span>
+                            {{ $childIsActive ? 'text-primary-600 dark:text-primary-400 bg-gray-200 dark:bg-white/5' : 'hover:bg-gray-200 dark:hover:bg-white/5' }}">
+                            <span>{{ $child['texto'] }}</span>
+
                             @if (isset($child['funcion']) && isset($DataNavBar) && $resultado_funcion > 0)
-                                <span class="ml-auto bg-gradient-to-r from-indigo-500 to-pink-500 text-white px-4 py-1 rounded-full text-xs font-semibold transition-transform transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-pink-500 focus:ring-opacity-60">
+                                <span
+                                    class="ml-auto bg-gradient-to-r from-indigo-500 to-pink-500 text-white px-4 py-1 rounded-full text-xs font-semibold transition-transform transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-pink-500 focus:ring-opacity-60">
                                     {{ $resultado_funcion }}
                                 </span>
                             @endif

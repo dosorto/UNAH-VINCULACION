@@ -262,6 +262,19 @@ class CreateProyectoVinculacion extends Component
         $this->esVoluntariado = $codigo === 'VOLUNTARIADO';
     }
 
+    private function codigoFormularioFlujo(): ?string
+    {
+        $codigo = $this->tipo_accion_id
+            ? DB::table('vinculacion_tipos_accion')->where('id', $this->tipo_accion_id)->value('codigo')
+            : null;
+
+        return match ($codigo) {
+            'DESARROLLO_LOCAL_REGIONAL' => 'FORM-DVUS-001',
+            'VOLUNTARIADO' => 'FORM-DVUS-015',
+            default => null,
+        };
+    }
+
     private function nuevoEspacioInstitucional(): array
     {
         return [
@@ -736,7 +749,8 @@ class CreateProyectoVinculacion extends Component
             'fecha_finalizacion' => $this->fecha_finalizacion ?: null,
             'programa_pertenece' => $this->programa_pertenece,
             'lineas_investigacion_academica' => $this->lineas_investigacion_academica,
-            'flujo_aprobacion_id' => FlujoAprobacion::defaultForProyectos($this->tipo_accion_id)?->id
+            'flujo_aprobacion_id' => FlujoAprobacion::defaultForProyectos($this->tipo_accion_id, $this->codigoFormularioFlujo())?->id
+                ?? FlujoAprobacion::defaultForProyectos($this->tipo_accion_id)?->id
                 ?? FlujoAprobacion::defaultForProyectos()?->id,
         ]);
         $record->coordinador_proyecto()->firstOrCreate(

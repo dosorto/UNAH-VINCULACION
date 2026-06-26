@@ -17,8 +17,9 @@ class ListBandejaRevision extends Component
 
     public function assignToMe(int $revisionId): void
     {
-        $revision = ProgramaRevision::with('flujoEtapa.rolRevisor')->findOrFail($revisionId);
+        $revision = ProgramaRevision::with(['programa', 'flujoEtapa.rolRevisor'])->findOrFail($revisionId);
         abort_if($revision->estado !== 'PENDIENTE_ASIGNACION', 422);
+        abort_if(! $revision->programa || $revision->programa->etapaActual()?->id !== $revision->id, 422);
         abort_if(! $this->userHasStageRole($revision), 403);
 
         $revision->update([
@@ -142,13 +143,19 @@ class ListBandejaRevision extends Component
         $revisiones = ProgramaRevision::query()
             ->with(['programa.centroFacultad', 'programa.tipoPrograma', 'flujoEtapa.rolRevisor', 'asignadoUsuario', 'responsableUsuario'])
             ->orderByDesc('id')
-            ->get();
+            ->get()
+            ->filter(fn (ProgramaRevision $revision) => $this->userCanSeeStage($revision));
 
         $programasPendientes = $revisiones->filter(fn ($rev) => in_array($rev->estado, ['PENDIENTE', 'PENDIENTE_ASIGNACION'], true));
         $programasEnProceso = $revisiones->filter(fn ($rev) => in_array($rev->estado, ['ASIGNADO', 'EN_PROCESO'], true));
-        $programasAprobados = $revisiones->filter(fn ($rev) => ($rev->programa?->estado_flujo ?? null) === 'APROBADO');
+        $programasAprobados = $revisiones->filter(fn ($rev) => ($rev->programa?->estado_flujo ?? null) === 'APROBADO'
+            && $this->userParticipatedInStage($rev));
+        $revisionesAccionables = $revisiones->filter(fn ($rev) => in_array($rev->estado, ['PENDIENTE', 'PENDIENTE_ASIGNACION', 'ASIGNADO'], true));
+        $pendingNotice = $revisionesAccionables->isNotEmpty()
+            ? 'Tienes '.$revisionesAccionables->count().' revision(es) pendiente(s) para el rol activo '.($this->activeRoleName() ?? 'actual').'.'
+            : null;
 
-        return view('livewire.sgcu.programas.list-bandeja-revision', compact('programasPendientes', 'programasEnProceso', 'programasAprobados'))
+        return view('livewire.sgcu.programas.list-bandeja-revision', compact('programasPendientes', 'programasEnProceso', 'programasAprobados', 'pendingNotice'))
             ->layout('layouts.app', ['hideHorizontalNav' => true]);
     }
 
@@ -178,7 +185,7 @@ class ListBandejaRevision extends Component
             return true;
         }
 
-        return Auth::user()?->hasRole($roleName) ?? false;
+        return $this->activeRoleName() === $roleName;
     }
 
     protected function resolveDefaultReviewer(FlujoAprobacionEtapa $stage): ?User
@@ -191,7 +198,67 @@ class ListBandejaRevision extends Component
             return null;
         }
 
-        return User::role($stage->rolRevisor->name)->orderBy('name')->first();
+        if ($stage->rol_revisor_id) {
+            $preferredReviewer = User::role($stage->rolRevisor->name)
+                ->where('active_role_id', $stage->rol_revisor_id)
+                ->orderBy('name')
+                ->first();
+
+            if ($preferredReviewer) {
+                return $preferredReviewer;
+            }
+        }
+
+        return User::role($stage->rolRevisor->name)
+            ->orderBy('name')
+            ->first();
+    }
+
+    protected function userCanSeeStage(ProgramaRevision $stage): bool
+    {
+        $programa = $stage->programa;
+
+        if (! $programa) {
+            return false;
+        }
+
+        if (($programa->estado_flujo ?? null) === 'APROBADO') {
+            return $this->userParticipatedInStage($stage);
+        }
+
+        if ($programa->etapaActual()?->id !== $stage->id) {
+            return false;
+        }
+
+        if (! $this->userHasStageRole($stage)) {
+            return false;
+        }
+
+        if ($stage->asignado_usuario_id) {
+            return (int) $stage->asignado_usuario_id === Auth::id();
+        }
+
+        if ($stage->responsable_usuario_id) {
+            return (int) $stage->responsable_usuario_id === Auth::id();
+        }
+
+        return true;
+    }
+
+    protected function userParticipatedInStage(ProgramaRevision $stage): bool
+    {
+        $userId = Auth::id();
+
+        return in_array($userId, array_filter([
+            $stage->asignado_usuario_id,
+            $stage->responsable_usuario_id,
+            $stage->decidido_por_usuario_id,
+        ]), true) || $this->userHasStageRole($stage);
+    }
+
+    protected function activeRoleName(): ?string
+    {
+        return Auth::user()?->activeRole?->name;
     }
 
     protected function syncCurrentVersionRecord(ProgramaCertificacion $programa, string $estado, ?string $notas = null): void

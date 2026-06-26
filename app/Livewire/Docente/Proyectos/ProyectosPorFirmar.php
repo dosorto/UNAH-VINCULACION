@@ -3,15 +3,24 @@
 namespace App\Livewire\Docente\Proyectos;
 
 use App\Http\Controllers\Docente\VerificarConstancia;
+use App\Mail\EnfRevisionAsignada;
+use App\Models\ENF\EnfAccion;
+use App\Models\ENF\EnfRevision;
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\Proyecto;
+use App\Models\PpsServicioSocial;
+use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -25,6 +34,12 @@ class ProyectosPorFirmar extends Component
     public bool $rechazarModal = false;
     public ?int $rechazarId = null;
     public string $rechazarComentario = '';
+    public bool $enfSubsanarModal = false;
+    public ?int $enfSubsanarRevisionId = null;
+    public string $enfSubsanarComentario = '';
+    public bool $ppsSubsanarModal = false;
+    public ?int $ppsSubsanarRegistroId = null;
+    public string $ppsSubsanarComentario = '';
 
     public function mount($docente = null): void
     {
@@ -159,6 +174,209 @@ class ProyectosPorFirmar extends Component
         Notification::make()->title('¡Realizado!')->body('Proyecto Aprobado correctamente')->info()->send();
     }
 
+    public function aprobarEnfRevision(int $revisionId): void
+    {
+        $revision = $this->authorizeEnfRevisionAction($revisionId);
+        $accion = $revision->accion;
+
+        DB::transaction(function () use ($accion, $revision): void {
+            $revision->update([
+                'estado' => 'APROBADO',
+                'decidido_por_usuario_id' => Auth::id(),
+                'firmado_en' => now(),
+            ]);
+
+            $siguiente = $accion->revisiones()
+                ->where('revision_ciclo', $accion->revision_ciclo)
+                ->where('orden', '>', $revision->orden)
+                ->whereIn('estado', $this->estadosRevisionEnfPendiente())
+                ->orderBy('orden')
+                ->first();
+
+            if ($siguiente) {
+                $siguiente->update([
+                    'estado' => $siguiente->asignado_usuario_id || $siguiente->responsable_usuario_id
+                        ? 'ASIGNADO'
+                        : 'PENDIENTE',
+                ]);
+
+                $accion->update(['estado_flujo' => 'EN_REVISION']);
+                $this->notificarRevisionEnf($accion->fresh(), $siguiente->fresh('flujoEtapa.rolRevisor'));
+
+                return;
+            }
+
+            $accion->update([
+                'estado_flujo' => 'APROBADO',
+                'fecha_aprobacion' => now()->toDateString(),
+            ]);
+        });
+
+        Notification::make()->title('¡Realizado!')->body('Etapa ENF aprobada correctamente.')->success()->send();
+    }
+
+    public function openEnfSubsanar(int $revisionId): void
+    {
+        $this->authorizeEnfRevisionAction($revisionId);
+
+        $this->enfSubsanarRevisionId = $revisionId;
+        $this->enfSubsanarComentario = '';
+        $this->enfSubsanarModal = true;
+    }
+
+    public function subsanarEnfRevision(): void
+    {
+        $this->validate([
+            'enfSubsanarComentario' => ['required', 'string', 'min:5'],
+        ], [
+            'enfSubsanarComentario.required' => 'Debe indicar la observación de subsanación.',
+            'enfSubsanarComentario.min' => 'La observación de subsanación debe tener al menos :min caracteres.',
+        ]);
+
+        $revision = $this->authorizeEnfRevisionAction((int) $this->enfSubsanarRevisionId);
+        $accion = $revision->accion;
+
+        DB::transaction(function () use ($accion, $revision): void {
+            $revision->update([
+                'estado' => 'SUBSANACION',
+                'observaciones' => $this->enfSubsanarComentario,
+                'decidido_por_usuario_id' => Auth::id(),
+                'firmado_en' => now(),
+            ]);
+
+            $accion->update(['estado_flujo' => 'SUBSANACION']);
+        });
+
+        $this->enfSubsanarModal = false;
+        $this->enfSubsanarRevisionId = null;
+        $this->enfSubsanarComentario = '';
+
+        Notification::make()->title('¡Realizado!')->body('Registro ENF enviado a subsanación.')->warning()->send();
+    }
+
+    public function aprobarPpsRegistro(int $registroId): void
+    {
+        $registro = $this->authorizePpsRegistroAction($registroId);
+        $user = Auth::user();
+
+        if (! $registro->puedeAprobarse(Auth::id(), $user)) {
+            Notification::make()
+                ->title('Revision no disponible')
+                ->body('El registro PPS/SS no esta en una etapa revisable.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        try {
+            $registro = app(PpsServicioSocialWorkflowService::class)
+                ->aprobarEtapa($registro, Auth::id(), $user);
+        } catch (\RuntimeException $exception) {
+            Notification::make()
+                ->title('Flujo PPS/SS incompleto')
+                ->body($exception->getMessage())
+                ->warning()
+                ->send();
+
+            return;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            Notification::make()
+                ->title('Error')
+                ->body('No se pudo aprobar el registro PPS/SS. Intente nuevamente.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        Notification::make()
+            ->title($registro->estado === PpsServicioSocial::ESTADO_APROBADO ? 'Registro aprobado' : 'Etapa aprobada')
+            ->body($registro->estado === PpsServicioSocial::ESTADO_APROBADO
+                ? 'El FORM-DVUS-014 fue aprobado correctamente.'
+                : 'El registro PPS/SS avanzó a la siguiente etapa.')
+            ->success()
+            ->send();
+    }
+
+    public function openPpsSubsanar(int $registroId): void
+    {
+        $registro = $this->authorizePpsRegistroAction($registroId);
+        $user = Auth::user();
+
+        if (! $registro->puedeRechazarse(Auth::id(), $user)) {
+            Notification::make()
+                ->title('Revision no disponible')
+                ->body('La etapa actual del flujo PPS/SS no permite enviar a subsanación.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $this->resetErrorBag('ppsSubsanarComentario');
+        $this->ppsSubsanarRegistroId = $registroId;
+        $this->ppsSubsanarComentario = '';
+        $this->ppsSubsanarModal = true;
+    }
+
+    public function subsanarPpsRegistro(): void
+    {
+        $this->validate([
+            'ppsSubsanarComentario' => ['required', 'string', 'min:5', 'max:5000'],
+        ], [], [
+            'ppsSubsanarComentario' => 'observaciones',
+        ]);
+
+        $registro = $this->authorizePpsRegistroAction((int) $this->ppsSubsanarRegistroId);
+        $user = Auth::user();
+
+        if (! $registro->puedeRechazarse(Auth::id(), $user)) {
+            Notification::make()
+                ->title('Revision no disponible')
+                ->body('La etapa actual del flujo PPS/SS no permite enviar a subsanación.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        try {
+            app(PpsServicioSocialWorkflowService::class)
+                ->rechazar($registro, $this->ppsSubsanarComentario, Auth::id(), $user);
+        } catch (\RuntimeException $exception) {
+            Notification::make()
+                ->title('Revision no disponible')
+                ->body($exception->getMessage())
+                ->warning()
+                ->send();
+
+            return;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            Notification::make()
+                ->title('Error')
+                ->body('No se pudo enviar el registro PPS/SS a subsanación. Intente nuevamente.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $this->ppsSubsanarModal = false;
+        $this->ppsSubsanarRegistroId = null;
+        $this->ppsSubsanarComentario = '';
+
+        Notification::make()
+            ->title('Registro enviado a subsanación')
+            ->body('El FORM-DVUS-014 fue devuelto para correcciones.')
+            ->warning()
+            ->send();
+    }
+
     public function puedeSubsanar(int $firmaId): bool
     {
         $firma = FirmaProyecto::with(['cargo_firma.tipoCargoFirma', 'proyecto.estadoActual'])->find($firmaId);
@@ -174,6 +392,16 @@ class ProyectosPorFirmar extends Component
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
+        $enfRevisiones = $this->enfRevisionesDisponiblesQuery()
+            ->with(['accion', 'flujoEtapa.rolRevisor'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $ppsRegistros = $this->ppsRegistrosDisponiblesQuery()
+            ->with(['flujoAprobacion', 'etapaActual.rolRevisor', 'etapaActual.usuarioResponsable'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         $viewFirma = $this->viewId ? FirmaProyecto::find($this->viewId) : null;
         $viewProyecto = null;
         $viewDocumento = null;
@@ -186,7 +414,7 @@ class ProyectosPorFirmar extends Component
             }
         }
 
-        return view('livewire.docente.proyectos.proyectos-por-firmar', compact('records', 'viewFirma', 'viewProyecto', 'viewDocumento'));
+        return view('livewire.docente.proyectos.proyectos-por-firmar', compact('records', 'enfRevisiones', 'ppsRegistros', 'viewFirma', 'viewProyecto', 'viewDocumento'));
     }
 
     private function firmasDisponiblesQuery()
@@ -249,6 +477,211 @@ class ProyectosPorFirmar extends Component
         abort_unless($this->canActOnFirma($firma), 403);
 
         return $firma;
+    }
+
+    private function authorizeEnfRevisionAction(int $revisionId): EnfRevision
+    {
+        $revision = EnfRevision::with(['accion.revisiones', 'flujoEtapa.rolRevisor'])->findOrFail($revisionId);
+
+        abort_unless($this->canActOnEnfRevision($revision), 403);
+
+        return $revision;
+    }
+
+    private function authorizePpsRegistroAction(int $registroId): PpsServicioSocial
+    {
+        $registro = PpsServicioSocial::with(['flujoAprobacion', 'etapaActual'])->findOrFail($registroId);
+
+        abort_unless($registro->usuarioPuedeRevisar(Auth::user()), 403);
+
+        return $registro;
+    }
+
+    private function enfRevisionesDisponiblesQuery(): Builder
+    {
+        $user = Auth::user();
+        $activeRoleName = $user?->activeRole?->name;
+
+        if (! $user || ! $activeRoleName) {
+            return EnfRevision::query()->whereRaw('1 = 0');
+        }
+
+        $pendingStates = $this->estadosRevisionEnfPendiente();
+
+        return EnfRevision::query()
+            ->whereIn('estado', $pendingStates)
+            ->whereHas('accion', fn (Builder $query) => $query
+                ->where('estado_flujo', 'EN_REVISION')
+                ->whereColumn('enf_revisiones.revision_ciclo', 'enf_acciones.revision_ciclo'))
+            ->whereNotExists(function ($previousQuery) use ($pendingStates): void {
+                $previousQuery
+                    ->selectRaw('1')
+                    ->from('enf_revisiones as enf_revisiones_anteriores')
+                    ->whereColumn('enf_revisiones_anteriores.enf_accion_id', 'enf_revisiones.enf_accion_id')
+                    ->whereColumn('enf_revisiones_anteriores.revision_ciclo', 'enf_revisiones.revision_ciclo')
+                    ->whereColumn('enf_revisiones_anteriores.orden', '<', 'enf_revisiones.orden')
+                    ->whereIn('enf_revisiones_anteriores.estado', $pendingStates);
+            })
+            ->where(function (Builder $responsableQuery) use ($user, $activeRoleName): void {
+                $responsableQuery
+                    ->where(function (Builder $assignedQuery) use ($user, $activeRoleName): void {
+                        $assignedQuery
+                            ->where('asignado_usuario_id', $user->id)
+                            ->where(function (Builder $roleQuery) use ($activeRoleName): void {
+                                $roleQuery
+                                    ->whereNull('rol_requerido')
+                                    ->orWhere('rol_requerido', $activeRoleName);
+                            });
+                    })
+                    ->orWhere(function (Builder $roleQuery) use ($activeRoleName): void {
+                        $roleQuery
+                            ->whereNull('asignado_usuario_id')
+                            ->where('rol_requerido', $activeRoleName);
+                    })
+                    ->orWhere(function (Builder $assignmentQuery) use ($user, $activeRoleName): void {
+                        $assignmentQuery
+                            ->where('responsable_usuario_id', $user->id)
+                            ->where(function (Builder $roleQuery) use ($activeRoleName): void {
+                                $roleQuery
+                                    ->whereNull('rol_requerido')
+                                    ->orWhere('rol_requerido', $activeRoleName);
+                            });
+                    });
+            });
+    }
+
+    private function ppsRegistrosDisponiblesQuery(): Builder
+    {
+        $user = Auth::user();
+
+        if (! $user || empty($user->active_role_id)) {
+            return PpsServicioSocial::query()->whereRaw('1 = 0');
+        }
+
+        $activeRole = $user->activeRole;
+
+        if (! $activeRole) {
+            return PpsServicioSocial::query()->whereRaw('1 = 0');
+        }
+
+        $activeRoleId = (int) $activeRole->id;
+        $isActiveAdmin = $activeRole->name === 'admin';
+
+        return PpsServicioSocial::query()
+            ->whereNotIn('estado', $this->ppsEstadosNoRevisables())
+            ->whereNotNull('flujo_aprobacion_id')
+            ->whereNotNull('etapa_actual_id')
+            ->whereHas('flujoAprobacion', fn (Builder $query) => $query
+                ->where('proceso', PpsServicioSocial::PROCESO_FLUJO))
+            ->whereHas('etapaActual', function (Builder $query) use ($user, $activeRoleId, $isActiveAdmin): void {
+                $query
+                    ->whereColumn('flujos_aprobacion_etapas.flujo_aprobacion_id', 'pps_servicio_social.flujo_aprobacion_id')
+                    ->where('activo', true)
+                    ->whereHas('flujo', fn (Builder $flujoQuery) => $flujoQuery
+                        ->where('proceso', PpsServicioSocial::PROCESO_FLUJO));
+
+                if ($isActiveAdmin) {
+                    return;
+                }
+
+                $query->where(function (Builder $responsableQuery) use ($user, $activeRoleId): void {
+                    $responsableQuery
+                        ->where(function (Builder $asignacionQuery) use ($user, $activeRoleId): void {
+                            $asignacionQuery
+                                ->where('requiere_asignacion', true)
+                                ->where('usuario_responsable_id', $user->id)
+                                ->where(function (Builder $roleQuery) use ($activeRoleId): void {
+                                    $roleQuery
+                                        ->whereNull('rol_revisor_id')
+                                        ->orWhere('rol_revisor_id', $activeRoleId);
+                                });
+                        })
+                        ->orWhere(function (Builder $rolQuery) use ($activeRoleId): void {
+                            $rolQuery
+                                ->where('requiere_asignacion', false)
+                                ->where('rol_revisor_id', $activeRoleId);
+                        });
+                });
+            });
+    }
+
+    private function ppsEstadosNoRevisables(): array
+    {
+        return [
+            PpsServicioSocial::ESTADO_BORRADOR,
+            PpsServicioSocial::ESTADO_APROBADO,
+            PpsServicioSocial::ESTADO_RECHAZADO,
+            'subsanacion',
+        ];
+    }
+
+    private function canActOnEnfRevision(EnfRevision $revision): bool
+    {
+        $user = Auth::user();
+        $activeRoleName = $user?->activeRole?->name;
+        $accion = $revision->accion;
+
+        if (! $user || ! $activeRoleName || ! $accion || $accion->estado_flujo !== 'EN_REVISION') {
+            return false;
+        }
+
+        $revisionActual = $accion->revisiones
+            ->where('revision_ciclo', (int) $accion->revision_ciclo)
+            ->whereIn('estado', $this->estadosRevisionEnfPendiente())
+            ->sortBy('orden')
+            ->first();
+
+        if (! $revisionActual || (int) $revisionActual->id !== (int) $revision->id) {
+            return false;
+        }
+
+        if (filled($revision->rol_requerido) && $revision->rol_requerido !== $activeRoleName) {
+            return false;
+        }
+
+        if ($revision->asignado_usuario_id) {
+            return (int) $revision->asignado_usuario_id === (int) $user->id;
+        }
+
+        if ($revision->responsable_usuario_id) {
+            return (int) $revision->responsable_usuario_id === (int) $user->id;
+        }
+
+        return filled($revision->rol_requerido) && $revision->rol_requerido === $activeRoleName;
+    }
+
+    private function estadosRevisionEnfPendiente(): array
+    {
+        return ['PENDIENTE', 'PENDIENTE_ASIGNACION', 'ASIGNADO', 'EN_PROCESO'];
+    }
+
+    private function notificarRevisionEnf(EnfAccion $accion, EnfRevision $revision): void
+    {
+        $users = collect();
+
+        if ($revision->asignado_usuario_id) {
+            $users = \App\Models\User::query()->whereKey($revision->asignado_usuario_id)->get();
+        } elseif ($revision->responsable_usuario_id) {
+            $users = \App\Models\User::query()->whereKey($revision->responsable_usuario_id)->get();
+        } elseif ($revision->flujoEtapa?->rolRevisor?->name) {
+            $users = \App\Models\User::role($revision->flujoEtapa->rolRevisor->name)->orderBy('name')->get();
+        }
+
+        $emails = $users->pluck('email')->filter()->unique()->values();
+
+        if ($emails->isEmpty()) {
+            return;
+        }
+
+        try {
+            Mail::to($emails->all())->queue(new EnfRevisionAsignada($accion, $revision));
+        } catch (\Throwable $exception) {
+            Log::warning('No se pudo notificar la revisión ENF.', [
+                'enf_accion_id' => $accion->id,
+                'revision_id' => $revision->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 
     private function marcarDocumentoAprobado(DocumentoProyecto $documento): void

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Configuracion\Flujos;
 
+use App\Http\Controllers\ENF\EnfAccionController;
 use App\Models\PpsServicioSocial;
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\FlujoAprobacion;
@@ -16,13 +17,19 @@ use Spatie\Permission\Models\Role;
 
 class ConfiguracionFlujosProyectos extends Component
 {
-    private const PROJECT_DEFAULT_CODE = 'PROYECTO_DEFAULT';
     private const PPS_ACTION_CODE = 'PPS_VOLUNTARIADO_GESTION_RIESGO';
-    private const PPS_ACTION_SYNTHETIC_ID = -1;
-    private const PPS_SUBACTION_ID = -1;
     private const PPS_DEFAULT_CODE = 'PPS_SERVICIO_SOCIAL_DEFAULT';
+    private const ACTION_DESARROLLO_ID = -101;
+    private const ACTION_PPS_ID = -102;
+    private const ACTION_ENF_ID = -103;
+    private const FORM_DESARROLLO_LOCAL_ID = -1001;
+    private const FORM_PPS_SERVICIO_SOCIAL_ID = -1002;
+    private const FORM_VOLUNTARIADO_ID = -1003;
+    private const FORM_ENF_CERTIFICADO_ID = -1004;
+    private const FORM_ENF_PROYECTO_ID = -1005;
 
     protected array $cargoFirmaCache = [];
+    protected array $tipoAccionIdCache = [];
 
     public string $activeFlowTab = 'proyectos';
 
@@ -65,14 +72,11 @@ class ConfiguracionFlujosProyectos extends Component
 
     public function mount(): void
     {
-        $firstActionId = DB::table('vinculacion_tipos_accion')
-            ->orderBy('orden')
-            ->orderBy('nombre')
-            ->value('id');
+        $firstAction = $this->projectFlowActions()->first();
 
-        if ($firstActionId) {
-            $this->selectedActionId = $firstActionId;
-            $this->selectedSubactionId = $firstActionId;
+        if ($firstAction) {
+            $this->selectedActionId = (int) $firstAction->id;
+            $this->selectedSubactionId = $this->subactionsForAction($this->selectedActionId)->first()?->id;
         }
 
         $this->loadFirstWorkflow();
@@ -95,9 +99,7 @@ class ConfiguracionFlujosProyectos extends Component
     public function selectAction(int $actionId): void
     {
         $this->selectedActionId = $actionId;
-        $this->selectedSubactionId = $this->isPpsActionSelected()
-            ? self::PPS_SUBACTION_ID
-            : $actionId;
+        $this->selectedSubactionId = $this->subactionsForAction($actionId)->first()?->id;
         $this->loadFirstWorkflow();
     }
 
@@ -111,10 +113,11 @@ class ConfiguracionFlujosProyectos extends Component
     public function selectWorkflow(int $workflowId): void
     {
         $flow = FlujoAprobacion::with('etapas')->findOrFail($workflowId);
+        $subaction = $this->subactionConfigForFlow($flow);
 
         $this->selectedWorkflowId = $flow->id;
-        $this->selectedActionId = $flow->tipo_accion_id;
-        $this->selectedSubactionId = $flow->tipo_accion_id;
+        $this->selectedActionId = $subaction['action_id'] ?? $flow->tipo_accion_id;
+        $this->selectedSubactionId = $subaction['id'] ?? $flow->tipo_accion_id;
         $this->loadWorkflow($flow);
     }
 
@@ -297,8 +300,11 @@ class ConfiguracionFlujosProyectos extends Component
             return;
         }
 
-        if (! $this->workflowId) {
-            $this->loadFirstWorkflow();
+        $subaction = $this->selectedSubactionConfig();
+
+        if (! $subaction || ! ($subaction['tipo_accion_id'] ?? null)) {
+            $this->addError('workflow.nombre', 'Seleccione un formulario disponible para configurar su flujo.');
+            return;
         }
 
         $this->workflow['codigo'] = $this->workflow['codigo']
@@ -328,18 +334,24 @@ class ConfiguracionFlujosProyectos extends Component
 
         $validated['stages'] = $this->prepareStagesForSave($validated['stages'], 'REVISION', $this->workflowId);
 
-        $flow = DB::transaction(function () use ($validated) {
+        $flow = DB::transaction(function () use ($validated, $subaction) {
             $flow = FlujoAprobacion::updateOrCreate(
                 $this->workflowId
                     ? ['id' => $this->workflowId]
-                    : ['proceso' => 'PROYECTO', 'tipo_accion_id' => $this->selectedSubactionId],
+                    : [
+                        'proceso' => $subaction['proceso'],
+                        'tipo_accion_id' => $subaction['tipo_accion_id'],
+                        'codigo_formulario' => $subaction['codigo_formulario'],
+                    ],
                 [
                     'codigo' => strtoupper(trim($validated['workflow']['codigo'])),
                     'nombre' => $validated['workflow']['nombre'],
-                    'proceso' => 'PROYECTO',
+                    'proceso' => $subaction['proceso'],
                     'descripcion' => $validated['workflow']['descripcion'] ?? null,
                     'activo' => $validated['workflow']['activo'] ?? true,
-                    'tipo_accion_id' => $this->selectedSubactionId ?: $this->selectedActionId,
+                    'tipo_accion_id' => $subaction['tipo_accion_id'],
+                    'tipo_programa_id' => null,
+                    'codigo_formulario' => $subaction['codigo_formulario'],
                 ]
             );
 
@@ -372,7 +384,7 @@ class ConfiguracionFlujosProyectos extends Component
             'usuarios' => $usuarios,
             'usuariosPorRol' => $this->usersGroupedByRole($roles),
             'actions' => $actions,
-            'ppsSubactions' => $this->ppsSubactions(),
+            'subactions' => $this->subactionsForAction($this->selectedActionId),
             'isPpsActionSelected' => $this->isPpsActionSelected(),
             'estadoOpciones' => $this->estadoOpciones,
             'tiposPrograma' => $tiposPrograma,
@@ -483,6 +495,7 @@ class ConfiguracionFlujosProyectos extends Component
                 'proceso' => PpsServicioSocial::PROCESO_FLUJO,
                 'tipo_accion_id' => $this->realPpsActionId(),
                 'tipo_programa_id' => null,
+                'codigo_formulario' => 'FORM-DVUS-014',
                 'descripcion' => $validated['workflow']['descripcion'] ?? null,
                 'activo' => (bool) ($validated['workflow']['activo'] ?? true),
             ]);
@@ -506,36 +519,212 @@ class ConfiguracionFlujosProyectos extends Component
 
     protected function projectFlowActions()
     {
-        $actions = DB::table('vinculacion_tipos_accion')
-            ->orderBy('orden')
-            ->orderBy('nombre')
-            ->get();
-
-        if (! $actions->contains(fn ($action): bool => $action->codigo === self::PPS_ACTION_CODE)) {
-            $actions->push((object) [
-                'id' => self::PPS_ACTION_SYNTHETIC_ID,
-                'codigo' => self::PPS_ACTION_CODE,
-                'nombre' => 'PPS, Voluntariado y Gestión del Riesgo',
-                'descripcion' => 'Accion de PPS, voluntariado y gestion del riesgo.',
-                'badge' => 'Disponible',
-                'icono' => 'reloj',
-                'activo' => true,
-                'orden' => 6,
-            ]);
-        }
-
-        return $actions
-            ->sortBy(fn ($action): string => str_pad((string) ((int) ($action->orden ?? 0)), 6, '0', STR_PAD_LEFT).($action->nombre ?? ''))
+        return collect($this->projectFlowCatalog())
+            ->filter(fn (array $action) => $this->subactionsForAction((int) $action['id'])->isNotEmpty())
+            ->sortBy('orden')
+            ->map(fn (array $action) => (object) [
+                'id' => $action['id'],
+                'codigo' => $action['codigo'],
+                'nombre' => $action['nombre'],
+                'descripcion' => $action['descripcion'],
+                'orden' => $action['orden'],
+            ])
             ->values();
     }
 
-    protected function ppsSubactions(): array
+    protected function subactionsForAction(?int $actionId)
+    {
+        if (! $actionId) {
+            return collect();
+        }
+
+        $action = collect($this->projectFlowCatalog())
+            ->firstWhere('id', $actionId);
+
+        if (! $action) {
+            return collect();
+        }
+
+        return collect($action['subactions'])
+            ->filter(fn (array $subaction) => $this->subactionIsAvailable($subaction))
+            ->map(function (array $subaction) use ($action): object {
+                $subaction['action_id'] = $action['id'];
+                $subaction['tipo_accion_id'] = $this->tipoAccionIdByCode($subaction['tipo_accion_codigo'] ?? null);
+
+                return (object) $subaction;
+            })
+            ->values();
+    }
+
+    protected function selectedSubactionConfig(?int $subactionId = null): ?array
+    {
+        $subactionId ??= $this->selectedSubactionId;
+
+        if (! $subactionId) {
+            return null;
+        }
+
+        foreach ($this->projectFlowCatalog() as $action) {
+            foreach ($action['subactions'] as $subaction) {
+                if ((int) $subaction['id'] !== $subactionId || ! $this->subactionIsAvailable($subaction)) {
+                    continue;
+                }
+
+                $subaction['action_id'] = $action['id'];
+                $subaction['tipo_accion_id'] = $this->tipoAccionIdByCode($subaction['tipo_accion_codigo'] ?? null);
+
+                return $subaction;
+            }
+        }
+
+        return null;
+    }
+
+    protected function subactionConfigForFlow(FlujoAprobacion $flow): ?array
+    {
+        foreach ($this->projectFlowCatalog() as $action) {
+            foreach ($action['subactions'] as $subaction) {
+                if (! $this->subactionIsAvailable($subaction)) {
+                    continue;
+                }
+
+                $tipoAccionId = $this->tipoAccionIdByCode($subaction['tipo_accion_codigo'] ?? null);
+                $matchesForm = $flow->codigo_formulario
+                    ? $flow->codigo_formulario === ($subaction['codigo_formulario'] ?? null)
+                    : (int) $flow->tipo_accion_id === (int) $tipoAccionId;
+
+                if ($flow->proceso === $subaction['proceso'] && $matchesForm) {
+                    $subaction['action_id'] = $action['id'];
+                    $subaction['tipo_accion_id'] = $tipoAccionId;
+
+                    return $subaction;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    protected function subactionIsAvailable(array $subaction): bool
+    {
+        if (! ($subaction['enabled'] ?? true)) {
+            return false;
+        }
+
+        if (($subaction['tipo_accion_codigo'] ?? null) && ! $this->tipoAccionIdByCode($subaction['tipo_accion_codigo'])) {
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function tipoAccionIdByCode(?string $code): ?int
+    {
+        if (! $code) {
+            return null;
+        }
+
+        if (array_key_exists($code, $this->tipoAccionIdCache)) {
+            return $this->tipoAccionIdCache[$code];
+        }
+
+        $id = DB::table('vinculacion_tipos_accion')
+            ->where('codigo', $code)
+            ->where('activo', true)
+            ->value('id');
+
+        return $this->tipoAccionIdCache[$code] = $id ? (int) $id : null;
+    }
+
+    protected function projectFlowCatalog(): array
     {
         return [
             [
-                'id' => self::PPS_SUBACTION_ID,
-                'codigo' => self::PPS_DEFAULT_CODE,
-                'nombre' => 'PPS / Servicio Social',
+                'id' => self::ACTION_DESARROLLO_ID,
+                'codigo' => 'DESARROLLO_LOCAL_REGIONAL',
+                'nombre' => 'Proyectos de desarrollo local y regional',
+                'descripcion' => 'Registra proyectos de vinculacion con contraparte y enfoque territorial.',
+                'orden' => 1,
+                'subactions' => [
+                    [
+                        'id' => self::FORM_DESARROLLO_LOCAL_ID,
+                        'codigo_formulario' => 'FORM-DVUS-001',
+                        'codigo' => 'FORM-DVUS-001',
+                        'nombre' => 'FORM-DVUS-001 - Registro de Proyectos de Vinculacion Desarrollo Local y Regional',
+                        'proceso' => 'PROYECTO',
+                        'tipo_accion_codigo' => 'DESARROLLO_LOCAL_REGIONAL',
+                        'workflow_codigo_base' => 'PROYECTO_FORM_DVUS_001',
+                        'workflow_nombre' => 'Flujo FORM-DVUS-001 - Desarrollo local y regional',
+                        'workflow_descripcion' => 'Flujo configurable para el FORM-DVUS-001.',
+                        'enabled' => true,
+                    ],
+                ],
+            ],
+            [
+                'id' => self::ACTION_PPS_ID,
+                'codigo' => self::PPS_ACTION_CODE,
+                'nombre' => 'Practica Profesional Supervisada / Servicio Social / Voluntariado',
+                'descripcion' => 'Registra acciones relacionadas con pasantias, PPS, servicio social y voluntariado universitario.',
+                'orden' => 2,
+                'subactions' => [
+                    [
+                        'id' => self::FORM_PPS_SERVICIO_SOCIAL_ID,
+                        'codigo_formulario' => 'FORM-DVUS-014',
+                        'codigo' => 'FORM-DVUS-014',
+                        'nombre' => 'FORM-DVUS-014 - Registro PPS y Servicio Social',
+                        'proceso' => PpsServicioSocial::PROCESO_FLUJO,
+                        'tipo_accion_codigo' => self::PPS_ACTION_CODE,
+                        'workflow_codigo_base' => self::PPS_DEFAULT_CODE,
+                        'workflow_nombre' => 'Flujo FORM-DVUS-014 - PPS / Servicio Social',
+                        'workflow_descripcion' => 'Flujo configurable para revision del FORM-DVUS-014.',
+                        'enabled' => true,
+                    ],
+                    [
+                        'id' => self::FORM_VOLUNTARIADO_ID,
+                        'codigo_formulario' => 'FORM-DVUS-015',
+                        'codigo' => 'FORM-DVUS-015',
+                        'nombre' => 'FORM-DVUS-015 - Registro Proyecto de Voluntariado',
+                        'proceso' => 'PROYECTO',
+                        'tipo_accion_codigo' => 'VOLUNTARIADO',
+                        'workflow_codigo_base' => 'PROYECTO_FORM_DVUS_015',
+                        'workflow_nombre' => 'Flujo FORM-DVUS-015 - Voluntariado',
+                        'workflow_descripcion' => 'Flujo configurable para el FORM-DVUS-015.',
+                        'enabled' => true,
+                    ],
+                ],
+            ],
+            [
+                'id' => self::ACTION_ENF_ID,
+                'codigo' => 'EDUCACION_NO_FORMAL',
+                'nombre' => 'Educacion no formal',
+                'descripcion' => 'Registra cursos, talleres, diplomados, congresos, seminarios y educacion continua.',
+                'orden' => 3,
+                'subactions' => [
+                    [
+                        'id' => self::FORM_ENF_CERTIFICADO_ID,
+                        'codigo_formulario' => 'FORM-DVUS-016',
+                        'codigo' => 'FORM-DVUS-016',
+                        'nombre' => 'FORM-DVUS-016 - Registro de Certificados Universitarios',
+                        'proceso' => 'PROYECTO',
+                        'tipo_accion_codigo' => 'EDUCACION_NO_FORMAL',
+                        'workflow_codigo_base' => 'PROYECTO_FORM_DVUS_016',
+                        'workflow_nombre' => 'Flujo FORM-DVUS-016 - Certificados universitarios',
+                        'workflow_descripcion' => 'Flujo configurable para el FORM-DVUS-016.',
+                        'enabled' => EnfAccionController::formularioCertificadoUniversitarioDisponible(),
+                    ],
+                    [
+                        'id' => self::FORM_ENF_PROYECTO_ID,
+                        'codigo_formulario' => 'FORM-DVUS-018',
+                        'codigo' => 'FORM-DVUS-018',
+                        'nombre' => 'FORM-DVUS-018 - Registro Educacion No Formal - Proyectos',
+                        'proceso' => 'PROYECTO',
+                        'tipo_accion_codigo' => 'EDUCACION_NO_FORMAL',
+                        'workflow_codigo_base' => 'PROYECTO_FORM_DVUS_018',
+                        'workflow_nombre' => 'Flujo FORM-DVUS-018 - Educacion No Formal',
+                        'workflow_descripcion' => 'Flujo configurable para el FORM-DVUS-018.',
+                        'enabled' => true,
+                    ],
+                ],
             ],
         ];
     }
@@ -544,10 +733,11 @@ class ConfiguracionFlujosProyectos extends Component
     {
         $flow = FlujoAprobacion::with('etapas')
             ->where('proceso', PpsServicioSocial::PROCESO_FLUJO)
-            ->where('codigo', self::PPS_DEFAULT_CODE)
+            ->where('codigo_formulario', 'FORM-DVUS-014')
             ->first()
             ?? FlujoAprobacion::with('etapas')
                 ->where('proceso', PpsServicioSocial::PROCESO_FLUJO)
+                ->where('codigo', self::PPS_DEFAULT_CODE)
                 ->orderByDesc('activo')
                 ->orderBy('id')
                 ->first();
@@ -557,9 +747,9 @@ class ConfiguracionFlujosProyectos extends Component
             $this->selectedWorkflowId = null;
             $this->workflow = [
                 'codigo' => self::PPS_DEFAULT_CODE,
-                'nombre' => 'Flujo PPS / Servicio Social',
+                'nombre' => 'Flujo FORM-DVUS-014 - PPS / Servicio Social',
                 'proceso' => PpsServicioSocial::PROCESO_FLUJO,
-                'descripcion' => 'Flujo configurable para revision del FORM-DVUS-015/016.',
+                'descripcion' => 'Flujo configurable para revision del FORM-DVUS-014.',
                 'activo' => true,
             ];
             $this->stages = $this->defaultPpsStages();
@@ -605,7 +795,6 @@ class ConfiguracionFlujosProyectos extends Component
     protected function loadFirstWorkflow(): void
     {
         if ($this->isPpsActionSelected()) {
-            $this->selectedSubactionId = self::PPS_SUBACTION_ID;
             $this->loadPpsWorkflow();
             return;
         }
@@ -615,29 +804,27 @@ class ConfiguracionFlujosProyectos extends Component
             return;
         }
 
-        $this->applyFlowSelection($this->principalProjectWorkflow());
+        $this->resetWorkflowForm();
     }
 
     protected function loadWorkflowForSelectedSubaction(): void
     {
         if ($this->isPpsActionSelected()) {
-            $this->selectedSubactionId = self::PPS_SUBACTION_ID;
             $this->loadPpsWorkflow();
             return;
         }
 
-        if (! $this->selectedSubactionId) {
-            $this->selectedSubactionId = $this->selectedActionId;
-        }
+        $subaction = $this->selectedSubactionConfig();
 
-        if (! $this->selectedSubactionId) {
-            $this->applyFlowSelection($this->principalProjectWorkflow());
+        if (! $subaction || ! ($subaction['tipo_accion_id'] ?? null)) {
+            $this->resetWorkflowForm();
             return;
         }
 
         $flow = FlujoAprobacion::with('etapas')
-            ->where('proceso', 'PROYECTO')
-            ->where('tipo_accion_id', $this->selectedSubactionId)
+            ->where('proceso', $subaction['proceso'])
+            ->where('tipo_accion_id', $subaction['tipo_accion_id'])
+            ->where('codigo_formulario', $subaction['codigo_formulario'])
             ->first();
 
         if (! $flow) {
@@ -650,64 +837,15 @@ class ConfiguracionFlujosProyectos extends Component
 
     protected function applyFlowSelection(FlujoAprobacion $flow): void
     {
-        if (! $this->selectedSubactionId) {
-            $this->selectedSubactionId = $flow->tipo_accion_id ?: $this->selectedActionId;
-        }
+        $subaction = $this->subactionConfigForFlow($flow);
 
-        if (! $this->selectedActionId && $flow->tipo_accion_id) {
-            $this->selectedActionId = $flow->tipo_accion_id;
+        if ($subaction) {
+            $this->selectedActionId = $subaction['action_id'];
+            $this->selectedSubactionId = $subaction['id'];
         }
 
         $this->selectedWorkflowId = $flow->id;
         $this->loadWorkflow($flow);
-    }
-
-    protected function principalProjectWorkflow(): FlujoAprobacion
-    {
-        $flow = FlujoAprobacion::query()
-            ->where('proceso', 'PROYECTO')
-            ->where('codigo', self::PROJECT_DEFAULT_CODE)
-            ->first();
-
-        if (! $flow) {
-            $flow = FlujoAprobacion::query()
-                ->where('proceso', 'PROYECTO')
-                ->orderBy('id')
-                ->first();
-        }
-
-        if ($flow) {
-            return $flow->load('etapas');
-        }
-
-        return DB::transaction(function () {
-            $flow = FlujoAprobacion::create([
-                'codigo' => self::PROJECT_DEFAULT_CODE,
-                'nombre' => 'Flujo de aprobacion de proyectos',
-                'proceso' => 'PROYECTO',
-                'tipo_accion_id' => $this->selectedSubactionId ?: $this->selectedActionId,
-                'descripcion' => 'Flujo configurable para aprobacion de proyectos.',
-                'activo' => true,
-            ]);
-
-            $flow->etapas()->create([
-                'orden' => 1,
-                'codigo' => 'ETAPA_1',
-                'aplica_inscripcion' => true,
-                'aplica_informe_intermedio' => false,
-                'aplica_cierre_proyecto' => false,
-                'nombre' => 'Etapa 1',
-                'tipo_etapa' => 'REVISION',
-                'rol_revisor_id' => null,
-                'usuario_responsable_id' => null,
-                'cargo_firma_id' => $this->fallbackCargoFirmaId('REVISION'),
-                'requiere_asignacion' => true,
-                'emisor_define_destinatario' => false,
-                'activo' => true,
-            ]);
-
-            return $flow->load('etapas');
-        });
     }
 
     protected function loadWorkflow(FlujoAprobacion $flow): void
@@ -749,13 +887,15 @@ class ConfiguracionFlujosProyectos extends Component
 
     protected function resetWorkflowForm(): void
     {
+        $subaction = $this->selectedSubactionConfig();
+
         $this->workflowId = null;
         $this->selectedWorkflowId = null;
         $this->workflow = [
-            'codigo' => $this->selectedSubactionId ? $this->generateProjectFlowCode($this->selectedSubactionId) : '',
-            'nombre' => 'Flujo de aprobacion de '.($this->selectedActionName() ?: 'proyectos'),
-            'proceso' => 'PROYECTO',
-            'descripcion' => 'Flujo configurable para aprobacion de proyectos.',
+            'codigo' => $subaction ? $this->generateProjectFlowCode($this->selectedSubactionId) : '',
+            'nombre' => $subaction['workflow_nombre'] ?? 'Flujo de aprobacion de proyectos',
+            'proceso' => $subaction['proceso'] ?? 'PROYECTO',
+            'descripcion' => $subaction['workflow_descripcion'] ?? 'Flujo configurable para aprobacion de proyectos.',
             'activo' => true,
         ];
         $this->stages = [$this->blankStage(1)];
@@ -1276,13 +1416,7 @@ class ConfiguracionFlujosProyectos extends Component
 
     protected function isPpsActionSelected(): bool
     {
-        if ($this->selectedActionId === self::PPS_ACTION_SYNTHETIC_ID) {
-            return true;
-        }
-
-        $realActionId = $this->realPpsActionId();
-
-        return $realActionId !== null && $this->selectedActionId === $realActionId;
+        return ($this->selectedSubactionConfig()['proceso'] ?? null) === PpsServicioSocial::PROCESO_FLUJO;
     }
 
     protected function realPpsActionId(): ?int
@@ -1408,22 +1542,11 @@ class ConfiguracionFlujosProyectos extends Component
 
     protected function generateProjectFlowCode(int $actionId): string
     {
-        $actionCode = (string) DB::table('vinculacion_tipos_accion')
-            ->where('id', $actionId)
-            ->value('codigo');
+        $subaction = $this->selectedSubactionConfig($actionId);
+        $actionCode = $subaction['workflow_codigo_base']
+            ?? 'PROYECTO_'.($this->normalizeCode($subaction['codigo_formulario'] ?? '') ?: 'FLUJO');
 
-        return $this->generateUniqueFlowCode('PROYECTO_'.$actionCode, $this->workflowId);
-    }
-
-    protected function selectedActionName(): ?string
-    {
-        if (! $this->selectedSubactionId) {
-            return null;
-        }
-
-        return DB::table('vinculacion_tipos_accion')
-            ->where('id', $this->selectedSubactionId)
-            ->value('nombre');
+        return $this->generateUniqueFlowCode($actionCode, $this->workflowId);
     }
 
     protected function normalizeCode(string $value): string

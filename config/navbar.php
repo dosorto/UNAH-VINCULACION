@@ -238,8 +238,13 @@ return [
             [
                 'titulo' => 'Trazabilidad de Registros',
                 'route' => 'SolicitudProyectosDocente',
+<<<<<<< HEAD
                 'routes' => ['SolicitudProyectosDocente', 'AprobadoProyectosDocente', 'RechazadoProyectosDocente', 'FichasActualizacionPorFirmar'],
                 'icono' => 'heroicon-o-queue-list',
+=======
+                'routes' => ['SolicitudProyectosDocente', 'AprobadoProyectosDocente', 'RechazadoProyectosDocente', 'FichasActualizacionPorFirmar', 'enf.acciones.show'],
+                'icono' => 'heroicon-o-document-text',
+>>>>>>> Luis
                 'permisos' => ['docente.proyectos'],
                 'children' => [
                     ['texto' => 'Revisión Comité Local', 'route' => 'SolicitudProyectosDocente', 'permiso' => 'docente.proyectos', 'funcion' => 'obtenerCantidadProyectosPorFirmar'],

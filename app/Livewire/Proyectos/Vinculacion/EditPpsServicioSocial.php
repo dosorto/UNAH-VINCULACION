@@ -18,6 +18,8 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
 
     public function mount(int $id): void
     {
+        $this->bloquearNavegacionPasos = false;
+
         $registro = PpsServicioSocial::findOrFail($id);
         $this->registro = $registro;
         $this->registroId = $registro->id;

@@ -308,7 +308,20 @@ class ListProgramas extends Component
             return null;
         }
 
-        return User::role($stage->rolRevisor->name)->orderBy('name')->first();
+        if ($stage->rol_revisor_id) {
+            $preferredReviewer = User::role($stage->rolRevisor->name)
+                ->where('active_role_id', $stage->rol_revisor_id)
+                ->orderBy('name')
+                ->first();
+
+            if ($preferredReviewer) {
+                return $preferredReviewer;
+            }
+        }
+
+        return User::role($stage->rolRevisor->name)
+            ->orderBy('name')
+            ->first();
     }
 
     protected function syncCurrentVersionRecord(ProgramaCertificacion $programa, string $estado): void
