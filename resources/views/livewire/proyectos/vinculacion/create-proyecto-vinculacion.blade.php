@@ -393,12 +393,12 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha Inicio <span class="text-red-500">*</span></label>
-                    <input type="date" wire:model.live.debounce.1000ms="fecha_inicio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    <input type="date" wire:model.blur="fecha_inicio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                     @error('fecha_inicio') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha Finalización <span class="text-red-500">*</span></label>
-                    <input type="date" wire:model.live.debounce.1000ms="fecha_finalizacion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+                    <input type="date" wire:model.blur="fecha_finalizacion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                     @error('fecha_finalizacion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
             </div>
@@ -1024,7 +1024,7 @@
                                 @elseif($tieneDocumentoGuardado)
                                     <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
                                         <span class="rounded bg-green-100 px-2 py-1 font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">
-                                            Documento cargado: {{ $this->instrumentoDocumentoNombre($inst['documento_url'] ?? null) }}
+                                            Documento cargado: {{ $this->instrumentoDocumentoNombre($inst['documento_url'] ?? null, $inst['nombre_archivo'] ?? null) }}
                                         </span>
                                         @if($documentoActualUrl)
                                             <a href="{{ $documentoActualUrl }}" target="_blank" rel="noopener" class="font-medium text-blue-600 hover:text-blue-800">
@@ -1154,12 +1154,20 @@
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha Inicio</label>
-                                <input type="date" wire:model="nuevaActividad.fecha_inicio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha Inicio <span class="text-red-500">*</span></label>
+                                <input type="date" wire:model="nuevaActividad.fecha_inicio"
+                                    @if(!empty($fecha_inicio)) min="{{ $fecha_inicio }}" @endif
+                                    @if(!empty($fecha_finalizacion)) max="{{ $fecha_finalizacion }}" @endif
+                                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500 @error('nuevaActividad.fecha_inicio') border-red-500 @enderror" />
+                                @error('nuevaActividad.fecha_inicio') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha Fin</label>
-                                <input type="date" wire:model="nuevaActividad.fecha_finalizacion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha Fin <span class="text-red-500">*</span></label>
+                                <input type="date" wire:model="nuevaActividad.fecha_finalizacion"
+                                    @if(!empty($fecha_inicio)) min="{{ $fecha_inicio }}" @endif
+                                    @if(!empty($fecha_finalizacion)) max="{{ $fecha_finalizacion }}" @endif
+                                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500 @error('nuevaActividad.fecha_finalizacion') border-red-500 @enderror" />
+                                @error('nuevaActividad.fecha_finalizacion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Horas</label>
@@ -1219,15 +1227,15 @@
         <div class="space-y-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Resumen</label>
-                <textarea wire:model.live.debounce.1000ms="resumen" rows="4" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="resumen" rows="8" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de Participantes</label>
-                <textarea wire:model.live.debounce.1000ms="descripcion_participantes" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="descripcion_participantes" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Definición del Problema</label>
-                <textarea wire:model.live.debounce.1000ms="definicion_problema" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="definicion_problema" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
 
             {{-- Descripción de la experiencia académica (FORM-DVUS-015 · sólo Voluntariado) --}}
@@ -1236,17 +1244,17 @@
                 <h4 class="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Descripción de la experiencia académica que se desarrollará</h4>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Conocimientos teóricos que se aplicarán <span class="text-red-500">*</span></label>
-                    <textarea wire:model.live.debounce.1000ms="experiencia_conocimientos_teoricos" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-yellow-500"></textarea>
+                    <textarea wire:model.live.debounce.1000ms="experiencia_conocimientos_teoricos" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-yellow-500"></textarea>
                     @error('experiencia_conocimientos_teoricos') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Habilidades técnicas que se aplicarán <span class="text-red-500">*</span></label>
-                    <textarea wire:model.live.debounce.1000ms="experiencia_habilidades_tecnicas" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-yellow-500"></textarea>
+                    <textarea wire:model.live.debounce.1000ms="experiencia_habilidades_tecnicas" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-yellow-500"></textarea>
                     @error('experiencia_habilidades_tecnicas') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Competencias blandas que adquirirán los(as) estudiantes <span class="text-red-500">*</span></label>
-                    <textarea wire:model.live.debounce.1000ms="experiencia_competencias_blandas" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-yellow-500"></textarea>
+                    <textarea wire:model.live.debounce.1000ms="experiencia_competencias_blandas" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-yellow-500"></textarea>
                     @error('experiencia_competencias_blandas') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
             </div>
@@ -1254,19 +1262,19 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alineamiento a la Reforma</label>
-                <textarea wire:model.live.debounce.1000ms="alineamiento_reforma" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="alineamiento_reforma" rows="5" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Impacto Deseado</label>
-                <textarea wire:model.live.debounce.1000ms="impacto_deseado" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="impacto_deseado" rows="5" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metodología</label>
-                <textarea wire:model.live.debounce.1000ms="metodologia" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="metodologia" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bibliografía</label>
-                <textarea wire:model.live.debounce.1000ms="bibliografia" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                <textarea wire:model.live.debounce.1000ms="bibliografia" rows="5" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
             </div>
         </div>
         @endif
@@ -1339,6 +1347,7 @@
                         <div wire:key="departamentos-impacto" x-data="{
                             open: false,
                             search: '',
+                            _debounce: null,
                             selected: @js(collect($departamento_geo)->map(fn($id) => (string) $id)->values()->toArray()),
                             options: Object.entries(@js($departamentosGeo)).map(([id, label]) => ({ id: String(id), label: String(label) })),
                             values() { return this.options || []; },
@@ -1372,7 +1381,10 @@
                             syncSelection() {
                                 const values = this.selectedValues();
                                 this.$wire.set('departamento_geo', values, false);
-                                this.$wire.call('actualizarDepartamentosImpacto', values);
+                                clearTimeout(this._debounce);
+                                this._debounce = setTimeout(() => {
+                                    this.$wire.call('actualizarDepartamentosImpacto', values);
+                                }, 450);
                             },
                             isSelected(id) { return this.selectedValues().includes(String(id)); },
                             getName(id) { return this.values().find(option => option.id === String(id))?.label ?? ''; }
@@ -1412,6 +1424,7 @@
                         <div wire:key="municipios-impacto-{{ md5(json_encode($departamento_geo)) }}-{{ md5(json_encode($municipiosGeo->keys()->values()->toArray())) }}" x-data="{
                             open: false,
                             search: '',
+                            _debounce: null,
                             selected: @js(collect($municipio_geo)->map(fn($id) => (string) $id)->values()->toArray()),
                             options: Object.entries(@js($municipiosGeo)).map(([id, label]) => ({ id: String(id), label: String(label) })),
                             values() { return this.options || []; },
@@ -1451,7 +1464,10 @@
                                 const values = this.selectedValues();
                                 this.selected = values;
                                 this.$wire.set('municipio_geo', values, false);
-                                this.$wire.call('actualizarMunicipiosImpacto', values);
+                                clearTimeout(this._debounce);
+                                this._debounce = setTimeout(() => {
+                                    this.$wire.call('actualizarMunicipiosImpacto', values);
+                                }, 450);
                             },
                             isSelected(id) { return this.selectedValues().includes(String(id)); },
                             getName(id) { return this.values().find(option => option.id === String(id))?.label ?? ''; }

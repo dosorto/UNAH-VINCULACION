@@ -162,6 +162,7 @@ class CreateProyectoVinculacion extends Component
 
     // Step 9 (was 8) – anexos
     public $newAnexo;
+    public int $anexosCount = 0;
 
     // Step 10 (was 9) – firmas
     public ?int $jefe_empleado_id = null;
@@ -245,6 +246,7 @@ class CreateProyectoVinculacion extends Component
                 $this->proyectoId = $proyecto->id;
                 $this->tipo_accion_id = $proyecto->tipo_accion_id ?: $this->tipo_accion_id;
                 $this->loadFromRecord($proyecto);
+                $this->anexosCount = $proyecto->anexos()->count();
             }
         }
         $this->resolverEsVoluntariado();
@@ -372,6 +374,7 @@ class CreateProyectoVinculacion extends Component
                 'id' => $i->id,
                 'tipo_documento' => $this->normalizeInstrumentoTipo($i->tipo_documento) ?: $i->tipo_documento,
                 'documento_url' => $i->documento_url,
+                'nombre_archivo' => $i->nombre_archivo,
                 'documento_file' => null,
             ])->toArray(),
         ])->toArray();
@@ -719,7 +722,7 @@ class CreateProyectoVinculacion extends Component
                 && !empty($this->objetivosEspecificos)
                 && !empty($this->objetivosEspecificos[0]['descripcion'] ?? ''),
             8 => collect($this->aporte_institucional)->sum('costo_total') > 0,
-            9 => true,
+            9 => $this->anexosCount > 0,
             10 => $this->jefe_empleado_id && $this->decano_empleado_id && $this->enlace_empleado_id,
             default => false,
         };
@@ -1136,8 +1139,10 @@ class CreateProyectoVinculacion extends Component
             foreach ($item['instrumento_formalizacion'] ?? [] as $ii => $inst) {
                 $tipo = $this->normalizeInstrumentoTipo($inst['tipo_documento'] ?? '');
                 $documentoUrl = $this->normalizarRutaDocumentoInstrumento($inst['documento_url'] ?? null);
+                $nombreArchivo = $inst['nombre_archivo'] ?? null;
 
                 if ($this->instrumentoTieneArchivoNuevo($inst)) {
+                    $nombreArchivo = $inst['documento_file']->getClientOriginalName();
                     $documentoUrl = $this->guardarDocumentoInstrumento($inst['documento_file']);
                 }
 
@@ -1148,11 +1153,13 @@ class CreateProyectoVinculacion extends Component
                 $instrumento = $entidad->instrumento_formalizacion()->create([
                     'tipo_documento' => $tipo,
                     'documento_url' => $documentoUrl,
+                    'nombre_archivo' => $nombreArchivo,
                 ]);
 
                 $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['id'] = $instrumento->id;
                 $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['tipo_documento'] = $tipo;
                 $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['documento_url'] = $documentoUrl;
+                $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['nombre_archivo'] = $nombreArchivo;
                 $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['documento_file'] = null;
             }
         }
@@ -1851,15 +1858,19 @@ class CreateProyectoVinculacion extends Component
                 foreach ($item['instrumento_formalizacion'] ?? [] as $ii => $inst) {
                     if (!empty($inst['tipo_documento'])) {
                         $documentoUrl = $this->normalizarRutaDocumentoInstrumento($inst['documento_url'] ?? null);
+                        $nombreArchivo = $inst['nombre_archivo'] ?? null;
                         if ($this->instrumentoTieneArchivoNuevo($inst)) {
+                            $nombreArchivo = $inst['documento_file']->getClientOriginalName();
                             $documentoUrl = $this->guardarDocumentoInstrumento($inst['documento_file']);
                         }
                         $instrumento = $entidad->instrumento_formalizacion()->create([
                             'tipo_documento' => $inst['tipo_documento'],
                             'documento_url' => $documentoUrl,
+                            'nombre_archivo' => $nombreArchivo,
                         ]);
                         $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['id'] = $instrumento->id;
                         $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['documento_url'] = $documentoUrl;
+                        $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['nombre_archivo'] = $nombreArchivo;
                         $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['documento_file'] = null;
                     }
                 }
@@ -2357,7 +2368,7 @@ class CreateProyectoVinculacion extends Component
 
     public function addInstrumentoToModal(): void
     {
-        $this->nuevaContraparte['instrumento_formalizacion'][] = ['id' => null, 'tipo_documento' => '', 'documento_url' => null, 'documento_file' => null];
+        $this->nuevaContraparte['instrumento_formalizacion'][] = ['id' => null, 'tipo_documento' => '', 'documento_url' => null, 'nombre_archivo' => null, 'documento_file' => null];
     }
 
     public function removeInstrumentoFromModal(int $ii): void
@@ -2368,7 +2379,7 @@ class CreateProyectoVinculacion extends Component
     // Keep for backward compat
     public function addInstrumento(int $ci): void
     {
-        $this->entidad_contraparte[$ci]['instrumento_formalizacion'][] = ['id' => null, 'tipo_documento' => '', 'documento_url' => null, 'documento_file' => null];
+        $this->entidad_contraparte[$ci]['instrumento_formalizacion'][] = ['id' => null, 'tipo_documento' => '', 'documento_url' => null, 'nombre_archivo' => null, 'documento_file' => null];
     }
 
     public function removeInstrumento(int $ci, int $ii): void
@@ -2382,6 +2393,7 @@ class CreateProyectoVinculacion extends Component
             $tipo = $this->normalizeInstrumentoTipo($inst['tipo_documento'] ?? '');
             $this->nuevaContraparte['instrumento_formalizacion'][$ii]['tipo_documento'] = $tipo;
             $this->nuevaContraparte['instrumento_formalizacion'][$ii]['documento_url'] = $this->normalizarRutaDocumentoInstrumento($inst['documento_url'] ?? null);
+            $this->nuevaContraparte['instrumento_formalizacion'][$ii]['nombre_archivo'] = $inst['nombre_archivo'] ?? null;
             $this->nuevaContraparte['instrumento_formalizacion'][$ii]['documento_file'] = $inst['documento_file'] ?? null;
             $this->nuevaContraparte['instrumento_formalizacion'][$ii]['id'] = $inst['id'] ?? null;
         }
@@ -2458,8 +2470,12 @@ class CreateProyectoVinculacion extends Component
         return route('instrumentos-formalizacion.documento', ['instrumento' => $id], false);
     }
 
-    public function instrumentoDocumentoNombre(?string $ruta): string
+    public function instrumentoDocumentoNombre(?string $ruta, ?string $nombreArchivo = null): string
     {
+        if (!empty($nombreArchivo)) {
+            return $nombreArchivo;
+        }
+
         $ruta = $this->normalizarRutaDocumentoInstrumento($ruta);
 
         return $ruta ? basename($ruta) : 'Documento cargado';
@@ -2491,6 +2507,36 @@ class CreateProyectoVinculacion extends Component
     {
         if (empty($this->nuevaActividad['descripcion'])) {
             $this->addError('nuevaActividad.descripcion', 'La descripción de la actividad es obligatoria.');
+            return;
+        }
+
+        $fechaInicioActividad    = $this->dateOrNull($this->nuevaActividad['fecha_inicio'] ?? null);
+        $fechaFinActividad       = $this->dateOrNull($this->nuevaActividad['fecha_finalizacion'] ?? null);
+        $fechaInicioProyecto     = $this->dateOrNull($this->fecha_inicio);
+        $fechaFinalizacionProyecto = $this->dateOrNull($this->fecha_finalizacion);
+
+        if (empty($fechaInicioActividad)) {
+            $this->addError('nuevaActividad.fecha_inicio', 'La fecha de inicio de la actividad es obligatoria.');
+            return;
+        }
+
+        if (empty($fechaFinActividad)) {
+            $this->addError('nuevaActividad.fecha_finalizacion', 'La fecha de finalización de la actividad es obligatoria.');
+            return;
+        }
+
+        if ($fechaInicioProyecto && $fechaInicioActividad < $fechaInicioProyecto) {
+            $this->addError('nuevaActividad.fecha_inicio', 'La fecha de inicio no puede ser anterior a la fecha de inicio del proyecto (' . $fechaInicioProyecto . ').');
+            return;
+        }
+
+        if ($fechaFinActividad < $fechaInicioActividad) {
+            $this->addError('nuevaActividad.fecha_finalizacion', 'La fecha de finalización no puede ser anterior a la fecha de inicio de la actividad.');
+            return;
+        }
+
+        if ($fechaFinalizacionProyecto && $fechaFinActividad > $fechaFinalizacionProyecto) {
+            $this->addError('nuevaActividad.fecha_finalizacion', 'La fecha de finalización no puede ser posterior a la fecha de finalización del proyecto (' . $fechaFinalizacionProyecto . ').');
             return;
         }
 
@@ -2726,13 +2772,16 @@ class CreateProyectoVinculacion extends Component
         $record = $this->ensureRecord();
         $record->anexos()->create(['documento_url' => $path]);
         $this->newAnexo = null;
+        $this->anexosCount = $record->anexos()->count();
         Notification::make()->title('Anexo subido')->success()->send();
     }
 
     public function deleteAnexo(int $id): void
     {
         if ($this->recordId) {
-            Proyecto::findOrFail($this->recordId)->anexos()->where('id', $id)->delete();
+            $record = Proyecto::findOrFail($this->recordId);
+            $record->anexos()->where('id', $id)->delete();
+            $this->anexosCount = $record->anexos()->count();
         }
     }
 
