@@ -135,6 +135,8 @@ Route::middleware(['guest'])->group(function () {
 Route::middleware(['auth'])->prefix('enf')->name('enf.')->group(function () {
     Route::get('tipos', [EnfAccionController::class, 'tipos'])->name('tipos');
     Route::get('acciones/{accion}/pdf', [EnfAccionController::class, 'descargarPdf'])->name('acciones.pdf');
+    Route::post('acciones/autoguardar-borrador', [EnfAccionController::class, 'autoguardarBorrador'])->name('acciones.autoguardar-borrador');
+    Route::post('acciones/{accion}/autoguardar-borrador', [EnfAccionController::class, 'autoguardarBorrador'])->name('acciones.autoguardar-borrador.update');
     Route::post('acciones/{accion}/reenviar-revision', [EnfAccionController::class, 'reenviarRevision'])->name('acciones.reenviar-revision');
     Route::post('acciones/{accion}/revisiones/{revision}/aprobar', [EnfAccionController::class, 'aprobarRevision'])->name('acciones.revisiones.aprobar');
     Route::post('acciones/{accion}/revisiones/{revision}/subsanar', [EnfAccionController::class, 'subsanarRevision'])->name('acciones.revisiones.subsanar');
