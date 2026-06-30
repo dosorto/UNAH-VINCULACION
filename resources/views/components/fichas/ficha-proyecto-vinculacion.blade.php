@@ -1466,8 +1466,10 @@
                                                             </button>
                                                         </div>
                                                         <div class="p-0">
-                                                            <iframe src="{{ Storage::url($instrumento->documento_url) }}"
-                                                                style="width: 100%; height: 85vh; border: none;"></iframe>
+                                                            <template x-if="open">
+                                                                <iframe src="{{ Storage::url($instrumento->documento_url) }}"
+                                                                    style="width: 100%; height: 85vh; border: none;"></iframe>
+                                                            </template>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2451,8 +2453,10 @@
                                                         </button>
                                                     </div>
                                                     <div class="p-0">
-                                                        <iframe src="{{ Storage::url($anexo->documento_url) }}"
-                                                            style="width: 100%; height: 85vh; border: none;"></iframe>
+                                                        <template x-if="open">
+                                                            <iframe src="{{ Storage::url($anexo->documento_url) }}"
+                                                                style="width: 100%; height: 85vh; border: none;"></iframe>
+                                                        </template>
                                                     </div>
                                                 </div>
                                             </div>

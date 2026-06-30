@@ -16,7 +16,25 @@ use PDF;
 
 class PDFController extends Controller
 {
+    public function previsualizarPerfilProyecto(Proyecto $proyecto)
+    {
+        $pdf = $this->crearPdfPerfilProyecto($proyecto);
+        $nombreArchivo = $this->nombreArchivoPerfilProyecto($proyecto);
+        $response = $pdf->stream($nombreArchivo, ['Attachment' => false]);
+
+        return $this->aplicarHeadersPerfilPdf($response, 'inline', $nombreArchivo);
+    }
+
     public function descargarPerfilProyecto(Proyecto $proyecto)
+    {
+        $pdf = $this->crearPdfPerfilProyecto($proyecto);
+        $nombreArchivo = $this->nombreArchivoPerfilProyecto($proyecto);
+        $response = $pdf->download($nombreArchivo);
+
+        return $this->aplicarHeadersPerfilPdf($response, 'attachment', $nombreArchivo);
+    }
+
+    private function crearPdfPerfilProyecto(Proyecto $proyecto)
     {
         // The profile view traverses many nested relationships; eager load to avoid
         // N+1 queries and reduce render time before passing HTML to DomPDF.
@@ -60,11 +78,7 @@ class PDFController extends Controller
             ->setOption('defaultFont', 'Arial')
             ->setOption('dpi', 96);
 
-        $nombreArchivo = $this->nombreArchivoPerfilProyecto($proyecto);
-        $response = $pdf->download($nombreArchivo);
-        $response->headers->set('Content-Disposition', 'attachment; filename="' . $nombreArchivo . '"');
-
-        return $response;
+        return $pdf;
     }
 
     private function nombreArchivoPerfilProyecto(Proyecto $proyecto): string
@@ -80,6 +94,14 @@ class PDFController extends Controller
         }
 
         return 'FORM-DVUS-001-' . $identificador . '.pdf';
+    }
+
+    private function aplicarHeadersPerfilPdf($response, string $disposition, string $nombreArchivo)
+    {
+        $response->headers->set('Content-Type', 'application/pdf');
+        $response->headers->set('Content-Disposition', $disposition . '; filename="' . $nombreArchivo . '"');
+
+        return $response;
     }
 
     public function generatePDF(Constancia $constancia)

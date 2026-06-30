@@ -24,7 +24,7 @@
     <div class="no-print rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <a href="{{ route('listarProyectosVinculacion') }}" class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                <a href="{{ route('proyectosDocente', ['tipo' => 'proyectos']) }}" class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
                     Volver al historial
                 </a>
                 <h1 class="mt-1 text-xl font-bold text-gray-900 dark:text-white">
@@ -36,7 +36,7 @@
             </div>
 
             <div class="flex flex-wrap gap-2">
-                <a href="{{ route('proyecto.perfil.pdf', ['proyecto' => $proyecto->id]) }}"
+                <a href="{{ route('proyecto.perfil.pdf.download', ['proyecto' => $proyecto->id]) }}"
                    class="inline-flex items-center rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700">
                     Descargar PDF
                 </a>

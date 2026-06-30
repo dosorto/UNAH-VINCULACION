@@ -516,8 +516,11 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         
         Route::get('/ver-pdf', [PDFController::class, 'verVista']);
 
-        Route::get('/proyectos/{proyecto}/perfil-pdf', [PDFController::class, 'descargarPerfilProyecto'])
+        Route::get('/proyectos/{proyecto}/perfil-pdf', [PDFController::class, 'previsualizarPerfilProyecto'])
             ->name('proyecto.perfil.pdf');
+
+        Route::get('/proyectos/{proyecto}/perfil-pdf/descargar', [PDFController::class, 'descargarPerfilProyecto'])
+            ->name('proyecto.perfil.pdf.download');
 
     Route::delete('/eliminar-constancia/{path}', function ($path) {
         $filePath = storage_path('app/public/' . $path);

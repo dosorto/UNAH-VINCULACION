@@ -13,6 +13,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -28,6 +29,7 @@ class ProyectosDocenteList extends Component
     public string $filterCategoria = '';
     public string $filterRol = '';
     public string $filterEstado = '';
+    #[Url(as: 'tipo', except: 'todas')]
     public string $filterTipoAccion = 'todas';
 
     private const ACTION_TODAS = 'todas';

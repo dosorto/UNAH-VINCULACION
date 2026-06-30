@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\PDFController;
+use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
 use App\Models\Proyecto\Proyecto;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Url;
 use Tests\TestCase;
 
 class ProyectoVinculacionFormularioTest extends TestCase
@@ -350,6 +353,83 @@ class ProyectoVinculacionFormularioTest extends TestCase
 
         $this->assertStringNotContainsString('Descargar PDF', $ficha);
         $this->assertSame(1, substr_count($detalle, 'Descargar PDF'));
+        $this->assertStringContainsString("route('proyecto.perfil.pdf.download'", $detalle);
+        $this->assertStringNotContainsString("route('proyecto.perfil.pdf',", $detalle);
+        $this->assertStringNotContainsString('<iframe src="{{ route(\'proyecto.perfil.pdf.download', $detalle);
+        $this->assertStringNotContainsString('<embed src="{{ route(\'proyecto.perfil.pdf.download', $detalle);
+        $this->assertStringNotContainsString('<object data="{{ route(\'proyecto.perfil.pdf.download', $detalle);
+    }
+
+    public function test_rutas_pdf_separan_preview_y_descarga(): void
+    {
+        $preview = Route::getRoutes()->getByName('proyecto.perfil.pdf');
+        $download = Route::getRoutes()->getByName('proyecto.perfil.pdf.download');
+
+        $this->assertNotNull($preview);
+        $this->assertNotNull($download);
+        $this->assertSame('proyectos/{proyecto}/perfil-pdf', $preview->uri());
+        $this->assertSame(PDFController::class . '@previsualizarPerfilProyecto', $preview->getActionName());
+        $this->assertSame('proyectos/{proyecto}/perfil-pdf/descargar', $download->uri());
+        $this->assertSame(PDFController::class . '@descargarPerfilProyecto', $download->getActionName());
+    }
+
+    public function test_respuestas_pdf_declaran_disposition_correcto(): void
+    {
+        $response = $this->aplicarHeadersPerfilPdf('inline', 'FORM-DVUS-001-PROY-2026001.pdf');
+
+        $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
+        $this->assertSame(
+            'inline; filename="FORM-DVUS-001-PROY-2026001.pdf"',
+            $response->headers->get('Content-Disposition')
+        );
+    }
+
+    public function test_ruta_download_devuelve_attachment(): void
+    {
+        $response = $this->aplicarHeadersPerfilPdf('attachment', 'FORM-DVUS-001-PROY-2026001.pdf');
+
+        $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
+        $this->assertSame(
+            'attachment; filename="FORM-DVUS-001-PROY-2026001.pdf"',
+            $response->headers->get('Content-Disposition')
+        );
+    }
+
+    public function test_ruta_ver_proyecto_no_es_pdf(): void
+    {
+        $historial = Route::getRoutes()->getByName('historialproyecto');
+
+        $this->assertNotNull($historial);
+        $this->assertSame('historialproyecto/{proyecto}', $historial->uri());
+        $this->assertStringNotContainsString(PDFController::class, $historial->getActionName());
+        $this->assertStringNotContainsString('pdf', strtolower($historial->uri()));
+    }
+
+    public function test_detalle_vuelve_a_mi_historial_vinculacion(): void
+    {
+        $detalle = file_get_contents(resource_path('views/livewire/docente/proyectos/historial-proyecto.blade.php'));
+
+        $this->assertStringContainsString("route('proyectosDocente', ['tipo' => 'proyectos'])", $detalle);
+        $this->assertStringNotContainsString("route('listarProyectosVinculacion')", $detalle);
+    }
+
+    public function test_mi_historial_soporta_tipo_de_accion_en_query_string(): void
+    {
+        $property = new \ReflectionProperty(ProyectosDocenteList::class, 'filterTipoAccion');
+        $attributes = $property->getAttributes(Url::class);
+
+        $this->assertNotEmpty($attributes);
+        $this->assertSame('tipo', $attributes[0]->getArguments()['as']);
+        $this->assertSame('todas', $attributes[0]->getArguments()['except']);
+    }
+
+    public function test_iframes_ocultos_de_ficha_se_crean_solo_al_abrir_modal(): void
+    {
+        $ficha = file_get_contents(resource_path('views/components/fichas/ficha-proyecto-vinculacion.blade.php'));
+
+        $this->assertGreaterThanOrEqual(2, substr_count($ficha, '<template x-if="open">'));
+        $this->assertStringContainsString('<template x-if="open">' . PHP_EOL . '                                                                <iframe src="{{ Storage::url($instrumento->documento_url) }}"', $ficha);
+        $this->assertStringContainsString('<template x-if="open">' . PHP_EOL . '                                                            <iframe src="{{ Storage::url($anexo->documento_url) }}"', $ficha);
     }
 
     private function formComponent(): CreateProyectoVinculacion
@@ -363,6 +443,14 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $method->setAccessible(true);
 
         return $method->invoke(new PDFController(), $proyecto);
+    }
+
+    private function aplicarHeadersPerfilPdf(string $disposition, string $nombreArchivo)
+    {
+        $method = new \ReflectionMethod(PDFController::class, 'aplicarHeadersPerfilPdf');
+        $method->setAccessible(true);
+
+        return $method->invoke(new PDFController(), response('pdf'), $disposition, $nombreArchivo);
     }
 
     private function llenarDescripcion(CreateProyectoVinculacion $component): void
