@@ -60,7 +60,26 @@ class PDFController extends Controller
             ->setOption('defaultFont', 'Arial')
             ->setOption('dpi', 96);
 
-        return $pdf->download("perfil_proyecto_{$proyecto->id}.pdf");
+        $nombreArchivo = $this->nombreArchivoPerfilProyecto($proyecto);
+        $response = $pdf->download($nombreArchivo);
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $nombreArchivo . '"');
+
+        return $response;
+    }
+
+    private function nombreArchivoPerfilProyecto(Proyecto $proyecto): string
+    {
+        $identificador = $proyecto->codigo_proyecto ?: ('Proyecto-' . $proyecto->id);
+        $identificador = preg_replace('/[\/\\\\:\*\?"<>\|]+/', '', (string) $identificador);
+        $identificador = preg_replace('/\s+/', '-', trim((string) $identificador));
+        $identificador = preg_replace('/\.pdf$/i', '', $identificador);
+        $identificador = trim((string) $identificador, '-.');
+
+        if ($identificador === '') {
+            $identificador = 'Proyecto-' . $proyecto->id;
+        }
+
+        return 'FORM-DVUS-001-' . $identificador . '.pdf';
     }
 
     public function generatePDF(Constancia $constancia)

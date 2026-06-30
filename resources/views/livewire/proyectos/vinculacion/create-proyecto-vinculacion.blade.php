@@ -1135,6 +1135,9 @@
 
         {{-- Modal: Crear/Editar Actividad --}}
         @if($showActividadModal)
+        @php
+            $actividadFechaFinMin = data_get($nuevaActividad, 'fecha_inicio');
+        @endphp
         <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog">
             <div class="fixed inset-0 bg-black/50"></div>
             <div class="relative flex min-h-full items-center justify-center p-4">
@@ -1154,23 +1157,21 @@
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha Inicio <span class="text-red-500">*</span></label>
-                                <input type="date" wire:model="nuevaActividad.fecha_inicio"
-                                    @if(!empty($fecha_inicio)) min="{{ $fecha_inicio }}" @endif
-                                    @if(!empty($fecha_finalizacion)) max="{{ $fecha_finalizacion }}" @endif
+                                <input type="date" wire:model.live="nuevaActividad.fecha_inicio"
                                     class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500 @error('nuevaActividad.fecha_inicio') border-red-500 @enderror" />
                                 @error('nuevaActividad.fecha_inicio') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha Fin <span class="text-red-500">*</span></label>
-                                <input type="date" wire:model="nuevaActividad.fecha_finalizacion"
-                                    @if(!empty($fecha_inicio)) min="{{ $fecha_inicio }}" @endif
-                                    @if(!empty($fecha_finalizacion)) max="{{ $fecha_finalizacion }}" @endif
+                                <input type="date" wire:model.live="nuevaActividad.fecha_finalizacion"
+                                    @if($actividadFechaFinMin) min="{{ $actividadFechaFinMin }}" @endif
                                     class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500 @error('nuevaActividad.fecha_finalizacion') border-red-500 @enderror" />
                                 @error('nuevaActividad.fecha_finalizacion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Horas</label>
-                                <input type="number" wire:model="nuevaActividad.horas" min="0" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                <input type="number" wire:model.blur.number="nuevaActividad.horas" min="0" step="1" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                @error('nuevaActividad.horas') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
                         <div>
@@ -1225,16 +1226,19 @@
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 5: Descripción del Proyecto</h3>
         <div class="space-y-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Resumen</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Resumen <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="resumen" rows="8" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('resumen') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de Participantes</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de Participantes <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="descripcion_participantes" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('descripcion_participantes') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Definición del Problema</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Definición del Problema <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="definicion_problema" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('definicion_problema') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
 
             {{-- Descripción de la experiencia académica (FORM-DVUS-015 · sólo Voluntariado) --}}
@@ -1260,20 +1264,24 @@
             @endif
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alineamiento a la Reforma</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alineamiento a la Reforma <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="alineamiento_reforma" rows="5" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('alineamiento_reforma') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Impacto Deseado</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Impacto Deseado <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="impacto_deseado" rows="5" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('impacto_deseado') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metodología</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metodología <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="metodologia" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('metodologia') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bibliografía</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bibliografía <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="bibliografia" rows="5" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('bibliografia') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
         </div>
         @endif
@@ -1307,19 +1315,31 @@
                             @php
                                 $hKey = $g['h'] ?? null;
                                 $mKey = $g['m'] ?? null;
-                                $hValue = $hKey ? (int) ($this->{$hKey} ?? 0) : 0;
-                                $mValue = $mKey ? (int) ($this->{$mKey} ?? 0) : 0;
+                                $hValue = match ($hKey) {
+                                    'indigenas_hombres' => (int) ($indigenas_hombres ?? 0),
+                                    'afroamericanos_hombres' => (int) ($afroamericanos_hombres ?? 0),
+                                    'mestizos_hombres' => (int) ($mestizos_hombres ?? 0),
+                                    default => 0,
+                                };
+                                $mValue = match ($mKey) {
+                                    'indigenas_mujeres' => (int) ($indigenas_mujeres ?? 0),
+                                    'afroamericanos_mujeres' => (int) ($afroamericanos_mujeres ?? 0),
+                                    'mestizos_mujeres' => (int) ($mestizos_mujeres ?? 0),
+                                    default => 0,
+                                };
                                 $total = $hValue + $mValue;
                             @endphp
                             <tr class="bg-white dark:bg-gray-900">
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-xs">{{ $g['label'] }}</td>
                                 <td class="px-4 py-2 text-center">
-                                    <input type="number" wire:model="{{ $g['h'] }}" wire:change="calcTotales" min="0"
+                                    <input type="number" wire:model.blur.number="{{ $g['h'] }}" wire:blur="calcTotales" min="0" step="1" inputmode="numeric"
                                         class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center focus:border-blue-500" />
+                                    @error($g['h']) <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </td>
                                 <td class="px-4 py-2 text-center">
-                                    <input type="number" wire:model="{{ $g['m'] }}" wire:change="calcTotales" min="0"
+                                    <input type="number" wire:model.blur.number="{{ $g['m'] }}" wire:blur="calcTotales" min="0" step="1" inputmode="numeric"
                                         class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center focus:border-blue-500" />
+                                    @error($g['m']) <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </td>
                                 <td class="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">
                                     {{ $total }}
@@ -1602,10 +1622,11 @@
                     {{-- Resultados del objetivo activo --}}
                     <div>
                         <div class="flex items-center justify-between mb-2">
-                            <p class="text-xs font-semibold text-gray-600 dark:text-gray-400">Resultados Esperados</p>
+                            <p class="text-xs font-semibold text-gray-600 dark:text-gray-400">Resultados Esperados <span class="text-red-500">*</span></p>
                             <button wire:click="addResultado({{ $selectedObjetivoIndex }})" type="button"
                                 class="text-xs text-blue-600 hover:text-blue-800">+ Agregar resultado</button>
                         </div>
+                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados") <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
                         <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
                             @foreach($objActivo['resultados'] ?? [] as $ri => $resultado)
                             <div wire:key="resultado-{{ $objetivoActivoKey }}-{{ $resultado['wire_key'] ?? $resultado['id'] ?? 'nuevo-'.$ri }}" class="p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
@@ -1616,28 +1637,33 @@
                                 </div>
                                 <div class="grid grid-cols-1 gap-2">
                                     <div>
-                                        <label class="block text-xs text-gray-500 mb-0.5">Resultado</label>
+                                        <label class="block text-xs text-gray-500 mb-0.5">Resultado <span class="text-red-500">*</span></label>
                                         <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_resultado"
                                             class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_resultado") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                     </div>
                                     <div>
-                                        <label class="block text-xs text-gray-500 mb-0.5">Indicador</label>
+                                        <label class="block text-xs text-gray-500 mb-0.5">Indicador <span class="text-red-500">*</span></label>
                                         <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_indicador"
                                             class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_indicador") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                     </div>
                                     <div>
-                                        <label class="block text-xs text-gray-500 mb-0.5">Medio de Verificación</label>
+                                        <label class="block text-xs text-gray-500 mb-0.5">Medio de Verificación <span class="text-red-500">*</span></label>
                                         <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_medio_verificacion"
                                             class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_medio_verificacion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                     </div>
                                     <div>
-                                        <label class="block text-xs text-gray-500 mb-0.5">Plazo</label>
+                                        <label class="block text-xs text-gray-500 mb-0.5">Plazo <span class="text-red-500">*</span></label>
                                         <select wire:model.live="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.plazo"
                                             class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500">
+                                            <option value="">Seleccione...</option>
                                             <option value="corto_plazo">Corto plazo</option>
                                             <option value="mediano_plazo">Mediano plazo</option>
                                             <option value="largo_plazo">Largo plazo</option>
                                         </select>
+                                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.plazo") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                     </div>
                                 </div>
                             </div>

@@ -131,12 +131,12 @@ class CreateProyectoVinculacion extends Component
     public string $bibliografia = '';
 
     // Step 6 – beneficiaries
-    public int $indigenas_hombres = 0;
-    public int $indigenas_mujeres = 0;
-    public int $afroamericanos_hombres = 0;
-    public int $afroamericanos_mujeres = 0;
-    public int $mestizos_hombres = 0;
-    public int $mestizos_mujeres = 0;
+    public int|string|null $indigenas_hombres = 0;
+    public int|string|null $indigenas_mujeres = 0;
+    public int|string|null $afroamericanos_hombres = 0;
+    public int|string|null $afroamericanos_mujeres = 0;
+    public int|string|null $mestizos_hombres = 0;
+    public int|string|null $mestizos_mujeres = 0;
     public int $hombres = 0;
     public int $mujeres = 0;
     public int $poblacion_participante = 0;
@@ -229,6 +229,25 @@ class CreateProyectoVinculacion extends Component
         'Practica Profesional',
         'Practica Asignatura',
         'Voluntariado',
+    ];
+
+    private const CAMPOS_DESCRIPCION_REQUERIDOS = [
+        'resumen',
+        'descripcion_participantes',
+        'definicion_problema',
+        'alineamiento_reforma',
+        'impacto_deseado',
+        'metodologia',
+        'bibliografia',
+    ];
+
+    private const CAMPOS_BENEFICIARIOS = [
+        'indigenas_hombres',
+        'indigenas_mujeres',
+        'afroamericanos_hombres',
+        'afroamericanos_mujeres',
+        'mestizos_hombres',
+        'mestizos_mujeres',
     ];
 
     public function mount(?int $record = null): void
@@ -522,10 +541,13 @@ class CreateProyectoVinculacion extends Component
 
     private function validarPasoActualParaNavegacion(): bool
     {
+        $this->normalizarDatosAntesDeValidarPaso($this->currentStep);
         $rules = $this->rulesPasoActualParaNavegacion();
 
         try {
-            if (!empty($rules)) {
+            if ($this->currentStep === 7) {
+                $this->validarMarcoLogicoCompleto();
+            } elseif (!empty($rules)) {
                 $this->validate($rules);
             }
         } catch (ValidationException $e) {
@@ -607,12 +629,10 @@ class CreateProyectoVinculacion extends Component
             4 => [
                 'actividades' => 'required|array|min:1',
                 'actividades.*.descripcion' => 'required|string',
+                'actividades.*.fecha_inicio' => 'required|date',
+                'actividades.*.fecha_finalizacion' => 'required|date',
             ],
-            5 => [
-                'resumen' => 'required|string',
-                'descripcion_participantes' => 'required|string',
-                'definicion_problema' => 'required|string',
-            ],
+            5 => $this->rulesDescripcion(),
             6 => [
                 'indigenas_hombres' => 'nullable|integer|min:0',
                 'indigenas_mujeres' => 'nullable|integer|min:0',
@@ -631,14 +651,61 @@ class CreateProyectoVinculacion extends Component
                 'objetivo_general' => 'required|string',
                 'objetivosEspecificos' => 'required|array|min:1',
                 'objetivosEspecificos.*.descripcion' => 'required|string',
-                'objetivosEspecificos.*.resultados.*.plazo' => 'nullable|in:' . implode(',', $this->plazoOpciones),
+                'objetivosEspecificos.*.resultados' => 'required|array|min:1',
+                'objetivosEspecificos.*.resultados.*.nombre_resultado' => 'required|string',
+                'objetivosEspecificos.*.resultados.*.nombre_indicador' => 'required|string',
+                'objetivosEspecificos.*.resultados.*.nombre_medio_verificacion' => 'required|string',
+                'objetivosEspecificos.*.resultados.*.plazo' => 'required|in:' . implode(',', $this->plazoOpciones),
             ],
             default => [],
         };
     }
 
+    private function normalizarDatosAntesDeValidarPaso(int $step): void
+    {
+        if ($step === 5) {
+            $this->trimCamposDescripcion();
+        }
+
+        if ($step === 6) {
+            $this->normalizarBeneficiarios();
+        }
+
+        if ($step === 7) {
+            $this->normalizarMarcoLogico();
+        }
+    }
+
+    private function rulesDescripcion(): array
+    {
+        return collect(self::CAMPOS_DESCRIPCION_REQUERIDOS)
+            ->mapWithKeys(fn(string $campo) => [$campo => 'required|string'])
+            ->all();
+    }
+
+    private function trimCamposDescripcion(): void
+    {
+        foreach (self::CAMPOS_DESCRIPCION_REQUERIDOS as $campo) {
+            $this->{$campo} = trim((string) ($this->{$campo} ?? ''));
+        }
+    }
+
     private function validacionesAdicionalesPasoActualParaNavegacion(): bool
     {
+        if ($this->currentStep === 4) {
+            foreach ($this->actividades as $i => $actividad) {
+                $fechaInicio = $this->dateOrNull($actividad['fecha_inicio'] ?? null);
+                $fechaFin = $this->dateOrNull($actividad['fecha_finalizacion'] ?? null);
+
+                if ($fechaInicio && $fechaFin && $fechaFin < $fechaInicio) {
+                    $this->addError(
+                        "actividades.$i.fecha_finalizacion",
+                        'La fecha de finalización debe ser igual o posterior a la fecha de inicio de la actividad.'
+                    );
+                }
+            }
+        }
+
         if ($this->currentStep === 2) {
             foreach ($this->estudiante_proyecto as $i => $item) {
                 $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '')
@@ -671,6 +738,104 @@ class CreateProyectoVinculacion extends Component
         }
 
         return $this->getErrorBag()->isEmpty();
+    }
+
+    private function validarMarcoLogicoCompleto(): void
+    {
+        $this->normalizarMarcoLogico();
+
+        $this->validate(
+            $this->rulesMarcoLogico(),
+            [],
+            $this->atributosMarcoLogico()
+        );
+    }
+
+    private function rulesMarcoLogico(): array
+    {
+        return [
+            'objetivo_general' => 'required|string',
+            'objetivosEspecificos' => 'required|array|min:1',
+            'objetivosEspecificos.*.descripcion' => 'required|string',
+            'objetivosEspecificos.*.resultados' => 'required|array|min:1',
+            'objetivosEspecificos.*.resultados.*.nombre_resultado' => 'required|string',
+            'objetivosEspecificos.*.resultados.*.nombre_indicador' => 'required|string',
+            'objetivosEspecificos.*.resultados.*.nombre_medio_verificacion' => 'required|string',
+            'objetivosEspecificos.*.resultados.*.plazo' => 'required|in:' . implode(',', $this->plazoOpciones),
+        ];
+    }
+
+    private function atributosMarcoLogico(): array
+    {
+        $attributes = [
+            'objetivo_general' => 'objetivo general',
+            'objetivosEspecificos' => 'objetivos específicos',
+        ];
+
+        foreach ($this->objetivosEspecificos as $oi => $objetivo) {
+            $objetivoLabel = 'objetivo OE' . ($oi + 1);
+            $attributes["objetivosEspecificos.$oi.descripcion"] = "descripción del {$objetivoLabel}";
+            $attributes["objetivosEspecificos.$oi.resultados"] = "resultados esperados del {$objetivoLabel}";
+
+            foreach (($objetivo['resultados'] ?? []) as $ri => $resultado) {
+                $resultadoLabel = 'resultado R' . ($ri + 1) . ' del ' . $objetivoLabel;
+                $attributes["objetivosEspecificos.$oi.resultados.$ri.nombre_resultado"] = "nombre del {$resultadoLabel}";
+                $attributes["objetivosEspecificos.$oi.resultados.$ri.nombre_indicador"] = "indicador del {$resultadoLabel}";
+                $attributes["objetivosEspecificos.$oi.resultados.$ri.nombre_medio_verificacion"] = "medio de verificación del {$resultadoLabel}";
+                $attributes["objetivosEspecificos.$oi.resultados.$ri.plazo"] = "plazo del {$resultadoLabel}";
+            }
+        }
+
+        return $attributes;
+    }
+
+    private function normalizarMarcoLogico(): void
+    {
+        $this->objetivo_general = trim($this->objetivo_general);
+
+        foreach ($this->objetivosEspecificos as $oi => $objetivo) {
+            $this->objetivosEspecificos[$oi]['descripcion'] = trim((string) ($objetivo['descripcion'] ?? ''));
+
+            if (!isset($this->objetivosEspecificos[$oi]['resultados']) || !is_array($this->objetivosEspecificos[$oi]['resultados'])) {
+                $this->objetivosEspecificos[$oi]['resultados'] = [];
+            }
+
+            foreach ($this->objetivosEspecificos[$oi]['resultados'] as $ri => $resultado) {
+                $this->objetivosEspecificos[$oi]['resultados'][$ri]['nombre_resultado'] = trim((string) ($resultado['nombre_resultado'] ?? ''));
+                $this->objetivosEspecificos[$oi]['resultados'][$ri]['nombre_indicador'] = trim((string) ($resultado['nombre_indicador'] ?? ''));
+                $this->objetivosEspecificos[$oi]['resultados'][$ri]['nombre_medio_verificacion'] = trim((string) ($resultado['nombre_medio_verificacion'] ?? ''));
+                $this->objetivosEspecificos[$oi]['resultados'][$ri]['plazo'] = $this->normalizePlazo($resultado['plazo'] ?? '') ?: '';
+            }
+        }
+    }
+
+    private function marcoLogicoTieneResultadosCompletos(): bool
+    {
+        if (empty($this->objetivosEspecificos)) {
+            return false;
+        }
+
+        foreach ($this->objetivosEspecificos as $objetivo) {
+            if (trim((string) ($objetivo['descripcion'] ?? '')) === '') {
+                return false;
+            }
+
+            $resultados = $objetivo['resultados'] ?? [];
+            if (empty($resultados)) {
+                return false;
+            }
+
+            foreach ($resultados as $resultado) {
+                if (trim((string) ($resultado['nombre_resultado'] ?? '')) === ''
+                    || trim((string) ($resultado['nombre_indicador'] ?? '')) === ''
+                    || trim((string) ($resultado['nombre_medio_verificacion'] ?? '')) === ''
+                    || !$this->normalizePlazo($resultado['plazo'] ?? '')) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     protected function saveCurrentStep(): void
@@ -711,7 +876,9 @@ class CreateProyectoVinculacion extends Component
                 && !empty(array_filter(array_column($this->estudiante_proyecto, 'tipo_participacion_estudiante'))),
             3 => !empty(array_filter(array_column($this->entidad_contraparte, 'nombre'))),
             4 => !empty(array_filter(array_column($this->actividades, 'descripcion'))),
-            5 => !empty($this->resumen) && !empty($this->descripcion_participantes) && !empty($this->definicion_problema)
+            5 => collect(self::CAMPOS_DESCRIPCION_REQUERIDOS)->every(
+                    fn(string $campo) => trim((string) ($this->{$campo} ?? '')) !== ''
+                )
                 && (!$this->esVoluntariado || (
                     !empty($this->experiencia_conocimientos_teoricos)
                     && !empty($this->experiencia_habilidades_tecnicas)
@@ -719,8 +886,7 @@ class CreateProyectoVinculacion extends Component
                 )),
             6 => !empty($this->departamento_geo) || $this->poblacion_participante > 0,
             7 => !empty($this->objetivo_general)
-                && !empty($this->objetivosEspecificos)
-                && !empty($this->objetivosEspecificos[0]['descripcion'] ?? ''),
+                && $this->marcoLogicoTieneResultadosCompletos(),
             8 => collect($this->aporte_institucional)->sum('costo_total') > 0,
             9 => $this->anexosCount > 0,
             default => false,
@@ -773,6 +939,11 @@ class CreateProyectoVinculacion extends Component
     // ─── Save Steps ──────────────────────────────────────────────────────────
     public function updated(string $propertyName): void
     {
+        if ($this->esCampoBeneficiario($propertyName)) {
+            $this->normalizarCampoBeneficiario($propertyName);
+            $this->calcTotales();
+        }
+
         if ($this->esPropiedadAcademicaDependiente($propertyName)) {
             $this->limpiarRelacionesDependientes();
         }
@@ -793,6 +964,11 @@ class CreateProyectoVinculacion extends Component
         }
 
         return false;
+    }
+
+    private function esCampoBeneficiario(string $propertyName): bool
+    {
+        return in_array($propertyName, self::CAMPOS_BENEFICIARIOS, true);
     }
 
     private function debeAutoguardar(string $propertyName): bool
@@ -1880,6 +2056,31 @@ class CreateProyectoVinculacion extends Component
 
     protected function saveStep4(): void
     {
+        $this->resetErrorBag();
+
+        $this->validate([
+            'actividades' => 'required|array|min:1',
+            'actividades.*.descripcion' => 'required|string',
+            'actividades.*.fecha_inicio' => 'required|date',
+            'actividades.*.fecha_finalizacion' => 'required|date',
+        ]);
+
+        foreach ($this->actividades as $i => $actividad) {
+            $fechaInicio = $this->dateOrNull($actividad['fecha_inicio'] ?? null);
+            $fechaFin = $this->dateOrNull($actividad['fecha_finalizacion'] ?? null);
+
+            if ($fechaInicio && $fechaFin && $fechaFin < $fechaInicio) {
+                $this->addError(
+                    "actividades.$i.fecha_finalizacion",
+                    'La fecha de finalización debe ser igual o posterior a la fecha de inicio de la actividad.'
+                );
+            }
+        }
+
+        if (!$this->getErrorBag()->isEmpty()) {
+            return;
+        }
+
         $record = $this->ensureRecord();
         $validEmpleados = $this->responsableIdsDisponibles($record);
         $hasInvalidResponsables = false;
@@ -1901,6 +2102,9 @@ class CreateProyectoVinculacion extends Component
 
     protected function saveStep5(): void
     {
+        $this->trimCamposDescripcion();
+        $this->validate($this->rulesDescripcion());
+
         $record = $this->ensureRecord();
         $record->update([
             'resumen' => $this->resumen,
@@ -1941,12 +2145,7 @@ class CreateProyectoVinculacion extends Component
 
     protected function saveStep7(): void
     {
-        $this->validate([
-            'objetivo_general' => 'required|string',
-            'objetivosEspecificos' => 'required|array|min:1',
-            'objetivosEspecificos.*.descripcion' => 'required|string',
-            'objetivosEspecificos.*.resultados.*.plazo' => 'nullable|in:' . implode(',', $this->plazoOpciones),
-        ]);
+        $this->validarMarcoLogicoCompleto();
         $record = $this->ensureRecord();
         DB::transaction(fn() => $this->guardarMarcoLogicoParcial($record));
         Notification::make()->title('Paso VII guardado')->success()->send();
@@ -1996,9 +2195,27 @@ class CreateProyectoVinculacion extends Component
 
     public function calcTotales(): void
     {
+        $this->normalizarBeneficiarios();
         $this->hombres = $this->indigenas_hombres + $this->afroamericanos_hombres + $this->mestizos_hombres;
         $this->mujeres = $this->indigenas_mujeres + $this->afroamericanos_mujeres + $this->mestizos_mujeres;
         $this->poblacion_participante = $this->hombres + $this->mujeres;
+    }
+
+    private function normalizarBeneficiarios(): void
+    {
+        foreach (self::CAMPOS_BENEFICIARIOS as $campo) {
+            $this->normalizarCampoBeneficiario($campo);
+        }
+    }
+
+    private function normalizarCampoBeneficiario(string $campo): void
+    {
+        if (!$this->esCampoBeneficiario($campo)) {
+            return;
+        }
+
+        $valor = $this->{$campo} ?? 0;
+        $this->{$campo} = max(0, (int) (is_numeric($valor) ? $valor : 0));
     }
 
     // ─── Empleado Modal (Step 2) ──────────────────────────────────────────────
@@ -2504,40 +2721,20 @@ class CreateProyectoVinculacion extends Component
 
     public function saveActividad(): void
     {
-        if (empty($this->nuevaActividad['descripcion'])) {
-            $this->addError('nuevaActividad.descripcion', 'La descripción de la actividad es obligatoria.');
-            return;
-        }
+        $this->nuevaActividad['descripcion'] = trim((string) ($this->nuevaActividad['descripcion'] ?? ''));
+        $this->nuevaActividad['horas'] = max(0, (int) ($this->nuevaActividad['horas'] ?? 0));
 
-        $fechaInicioActividad    = $this->dateOrNull($this->nuevaActividad['fecha_inicio'] ?? null);
-        $fechaFinActividad       = $this->dateOrNull($this->nuevaActividad['fecha_finalizacion'] ?? null);
-        $fechaInicioProyecto     = $this->dateOrNull($this->fecha_inicio);
-        $fechaFinalizacionProyecto = $this->dateOrNull($this->fecha_finalizacion);
-
-        if (empty($fechaInicioActividad)) {
-            $this->addError('nuevaActividad.fecha_inicio', 'La fecha de inicio de la actividad es obligatoria.');
-            return;
-        }
-
-        if (empty($fechaFinActividad)) {
-            $this->addError('nuevaActividad.fecha_finalizacion', 'La fecha de finalización de la actividad es obligatoria.');
-            return;
-        }
-
-        if ($fechaInicioProyecto && $fechaInicioActividad < $fechaInicioProyecto) {
-            $this->addError('nuevaActividad.fecha_inicio', 'La fecha de inicio no puede ser anterior a la fecha de inicio del proyecto (' . $fechaInicioProyecto . ').');
-            return;
-        }
-
-        if ($fechaFinActividad < $fechaInicioActividad) {
-            $this->addError('nuevaActividad.fecha_finalizacion', 'La fecha de finalización no puede ser anterior a la fecha de inicio de la actividad.');
-            return;
-        }
-
-        if ($fechaFinalizacionProyecto && $fechaFinActividad > $fechaFinalizacionProyecto) {
-            $this->addError('nuevaActividad.fecha_finalizacion', 'La fecha de finalización no puede ser posterior a la fecha de finalización del proyecto (' . $fechaFinalizacionProyecto . ').');
-            return;
-        }
+        $this->validate([
+            'nuevaActividad.descripcion' => 'required|string',
+            'nuevaActividad.fecha_inicio' => 'required|date',
+            'nuevaActividad.fecha_finalizacion' => 'required|date|after_or_equal:nuevaActividad.fecha_inicio',
+            'nuevaActividad.horas' => 'nullable|integer|min:0',
+        ], [], [
+            'nuevaActividad.descripcion' => 'descripción de la actividad',
+            'nuevaActividad.fecha_inicio' => 'fecha de inicio de la actividad',
+            'nuevaActividad.fecha_finalizacion' => 'fecha de finalización de la actividad',
+            'nuevaActividad.horas' => 'horas de la actividad',
+        ]);
 
         $record = $this->ensureRecord();
         $validEmpleados = $this->responsableIdsDisponibles($record);
@@ -2816,6 +3013,11 @@ class CreateProyectoVinculacion extends Component
             Notification::make()->title('Error')->body('Complete al menos el primer paso.')->danger()->send();
             return;
         }
+
+        if (!$this->validarFormularioAntesDeEnviar()) {
+            return;
+        }
+
         $record = Proyecto::findOrFail($this->recordId);
         $empleado = auth()->user()->empleado;
         try {
@@ -2843,6 +3045,25 @@ class CreateProyectoVinculacion extends Component
         try { Mail::to(auth()->user()->email)->send(new ProyectoCreado($record, auth()->user())); } catch (\Exception $e) { \Log::warning($e->getMessage()); }
         Notification::make()->title('Proyecto enviado a firmar')->success()->send();
         redirect()->route('proyectosDocente');
+    }
+
+    private function validarFormularioAntesDeEnviar(): bool
+    {
+        try {
+            $this->trimCamposDescripcion();
+            $this->validate($this->rulesDescripcion());
+            $this->validarMarcoLogicoCompleto();
+        } catch (ValidationException $e) {
+            $errores = $e->validator->errors();
+            $primerCampo = collect($errores->keys())->first();
+            $this->currentStep = str_starts_with((string) $primerCampo, 'objetivo')
+                ? 7
+                : 5;
+
+            throw $e;
+        }
+
+        return true;
     }
 
     protected function saveFirmas(Proyecto $record): void
