@@ -6,8 +6,11 @@ use App\Models\Demografia\Departamento;
 use App\Models\Demografia\Municipio;
 use App\Models\Personal\Empleado;
 use App\Models\PpsServicioSocial;
+use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\UnidadAcademica\Carrera;
 use App\Models\UnidadAcademica\FacultadCentro;
+use App\Models\User;
+use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
@@ -20,12 +23,18 @@ class CreatePpsServicioSocial extends Component
     use WithFileUploads;
 
     public int $currentStep = 1;
-    public int $totalSteps = 10;
+    public int $totalSteps = 9;
     public bool $bloquearNavegacionPasos = true;
     public bool $registroGuardado = false;
     public ?int $registroId = null;
     public string $estadoAutoGuardado = '';
     public bool $autoguardadoActivo = true;
+
+    // Modal enviar a firmar
+    public bool $showEnviarModal = false;
+    public int $modalStep = 1;
+    public array $modalEtapas = [];
+    public array $modalDestinatarios = [];
 
     // Paso 1: Informacion general
     public ?int $facultad_centro_id = null;
@@ -290,12 +299,27 @@ class CreatePpsServicioSocial extends Component
         $this->currentStep = $step;
     }
 
-    public function goToReview(): void
+    public function guardarBorrador(): void
     {
         $this->resetErrorBag();
 
         if ($this->shouldLockStepNavigation()) {
-            $blockedStep = $this->firstIncompleteStepBefore(10);
+            $this->validateCurrentStep();
+
+            if ($this->errors()->isNotEmpty()) {
+                return;
+            }
+        }
+
+        $this->guardar();
+    }
+
+    public function abrirModalEnviar(): void
+    {
+        $this->resetErrorBag();
+
+        if ($this->shouldLockStepNavigation()) {
+            $blockedStep = $this->firstIncompleteStepBefore($this->totalSteps + 1);
 
             if ($blockedStep !== null) {
                 $this->currentStep = $blockedStep;
@@ -305,11 +329,102 @@ class CreatePpsServicioSocial extends Component
             }
         }
 
-        if ($this->shouldLockStepNavigation() && !$this->autoGuardarBorrador()) {
+        if ($this->shouldLockStepNavigation() && ! $this->autoGuardarBorrador()) {
             return;
         }
 
-        $this->currentStep = 10;
+        $this->cargarEtapasModal();
+
+        $this->modalStep = 1;
+        $this->modalDestinatarios = [];
+        $this->showEnviarModal = true;
+    }
+
+    public function modalSiguiente(): void
+    {
+        $etapa = $this->modalEtapas[$this->modalStep - 1] ?? null;
+
+        if ($etapa && empty($this->modalDestinatarios[$etapa['id']])) {
+            $this->addError('modal_destinatario_'.$this->modalStep, 'Debe seleccionar un destinatario para esta etapa.');
+            return;
+        }
+
+        $this->resetErrorBag('modal_destinatario_'.$this->modalStep);
+        $this->modalStep++;
+    }
+
+    public function modalAnterior(): void
+    {
+        if ($this->modalStep > 1) {
+            $this->modalStep--;
+        }
+    }
+
+    public function cancelarModal(): void
+    {
+        $this->showEnviarModal = false;
+        $this->modalStep = 1;
+        $this->modalEtapas = [];
+        $this->modalDestinatarios = [];
+        $this->resetErrorBag();
+    }
+
+    public function confirmarEnvio(): void
+    {
+        $this->resetErrorBag();
+
+        try {
+            $registro = $this->ensureRegistroBorrador();
+            $payload = $this->payloadParcial();
+
+            $payload['archivo_carta_formalizacion'] = $registro->archivo_carta_formalizacion;
+            if ($this->carta_formalizacion_archivo) {
+                $payload['archivo_carta_formalizacion'] = $this->carta_formalizacion_archivo->store('pps-servicio-social/documentos', 'public');
+                $this->carta_formalizacion_aplica = 'Si';
+            } elseif ($this->carta_formalizacion_aplica === 'No') {
+                $payload['archivo_carta_formalizacion'] = null;
+            }
+
+            $payload['archivo_convenio_marco'] = $registro->archivo_convenio_marco;
+            if ($this->convenio_marco_archivo) {
+                $payload['archivo_convenio_marco'] = $this->convenio_marco_archivo->store('pps-servicio-social/documentos', 'public');
+                $this->convenio_marco_aplica = 'Si';
+            } elseif ($this->convenio_marco_aplica === 'No') {
+                $payload['archivo_convenio_marco'] = null;
+            }
+
+            $payload['adjunta_carta_formalizacion'] = $this->carta_formalizacion_aplica === 'Si' || filled($payload['archivo_carta_formalizacion']);
+            $payload['adjunta_convenio_marco'] = $this->convenio_marco_aplica === 'Si' || filled($payload['archivo_convenio_marco']);
+
+            if (! empty($this->modalDestinatarios)) {
+                $payload['destinatarios_emisor'] = $this->modalDestinatarios;
+            }
+
+            $registro->update($payload);
+
+            $registro = app(PpsServicioSocialWorkflowService::class)
+                ->enviarARevision($registro, auth()->id());
+        } catch (\RuntimeException $e) {
+            Notification::make()->title('Flujo PPS/SS incompleto')->body($e->getMessage())->warning()->send();
+            $this->showEnviarModal = false;
+            return;
+        } catch (\Throwable $e) {
+            report($e);
+            Notification::make()->title('Error')->body('No se pudo enviar el registro a revisión. Intente nuevamente.')->danger()->send();
+            $this->showEnviarModal = false;
+            return;
+        }
+
+        $this->showEnviarModal = false;
+        $this->registroGuardado = true;
+
+        Notification::make()
+            ->title('Registro enviado')
+            ->body('El FORM-DVUS-014 fue enviado a revisión correctamente.')
+            ->success()
+            ->send();
+
+        $this->redirectRoute('pps-servicio-social.show', ['id' => $registro->id]);
     }
 
     public function guardar(): void
@@ -613,9 +728,45 @@ class CreatePpsServicioSocial extends Component
             7 => filled($this->jefe_directo_nombre),
             8 => filled($this->docente_supervisor_nombre),
             9 => filled($this->carta_formalizacion_aplica) && filled($this->convenio_marco_aplica),
-            10 => collect(range(1, 9))->every(fn (int $step) => $this->isStepComplete($step)),
             default => false,
         };
+    }
+
+    protected function cargarEtapasModal(): void
+    {
+        $flujo = app(PpsServicioSocialWorkflowService::class)->obtenerFlujoActivo();
+
+        if (! $flujo) {
+            $this->modalEtapas = [];
+            return;
+        }
+
+        $this->modalEtapas = $flujo->etapas
+            ->where('activo', true)
+            ->where('emisor_define_destinatario', true)
+            ->sortBy('orden')
+            ->map(function (FlujoAprobacionEtapa $etapa): array {
+                $usuarios = [];
+
+                if ($etapa->rol_revisor_id) {
+                    $usuarios = User::query()
+                        ->select(['id', 'name', 'email'])
+                        ->whereHas('roles', fn ($q) => $q->where('roles.id', $etapa->rol_revisor_id))
+                        ->orderBy('name')
+                        ->get()
+                        ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email])
+                        ->all();
+                }
+
+                return [
+                    'id' => $etapa->id,
+                    'nombre' => $etapa->nombre,
+                    'rol_nombre' => $etapa->rolRevisor?->name ?? 'Sin rol',
+                    'usuarios' => $usuarios,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     public function shouldLockStepNavigation(): bool

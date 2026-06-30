@@ -177,12 +177,12 @@ class ConfiguracionFlujosProyectos extends Component
         }
 
         if (preg_match('/^stages\.(\d+)\.(requiere_asignacion|emisor_define_destinatario)$/', $property, $matches)) {
-            $this->syncResponsibleAvailability($this->stages, (int) $matches[1]);
+            $this->syncResponsibleAvailability($this->stages, (int) $matches[1], $matches[2]);
             return;
         }
 
         if (preg_match('/^programStages\.(\d+)\.(requiere_asignacion|emisor_define_destinatario)$/', $property, $matches)) {
-            $this->syncResponsibleAvailability($this->programStages, (int) $matches[1]);
+            $this->syncResponsibleAvailability($this->programStages, (int) $matches[1], $matches[2]);
         }
     }
 
@@ -1055,11 +1055,6 @@ class ConfiguracionFlujosProyectos extends Component
             $requiereAsignacion = (bool) ($stage['requiere_asignacion'] ?? false);
             $emisorDefine = (bool) ($stage['emisor_define_destinatario'] ?? false);
 
-            if (! $requiereAsignacion) {
-                $responsableId = null;
-                $emisorDefine = false;
-            }
-
             if ($emisorDefine || ! $rolId || ! $this->userBelongsToRole($responsableId, $rolId)) {
                 $responsableId = null;
             }
@@ -1473,19 +1468,16 @@ class ConfiguracionFlujosProyectos extends Component
         }
     }
 
-    protected function syncResponsibleAvailability(array &$stages, int $index): void
+    protected function syncResponsibleAvailability(array &$stages, int $index, string $changedField = ''): void
     {
         if (! isset($stages[$index])) {
             return;
         }
 
-        if (! ($stages[$index]['requiere_asignacion'] ?? false)) {
+        if ($changedField === 'requiere_asignacion' && ($stages[$index]['requiere_asignacion'] ?? false)) {
             $stages[$index]['emisor_define_destinatario'] = false;
-            $stages[$index]['usuario_responsable_id'] = '';
-            return;
-        }
-
-        if ($stages[$index]['emisor_define_destinatario'] ?? false) {
+        } elseif ($changedField === 'emisor_define_destinatario' && ($stages[$index]['emisor_define_destinatario'] ?? false)) {
+            $stages[$index]['requiere_asignacion'] = false;
             $stages[$index]['usuario_responsable_id'] = '';
         }
     }

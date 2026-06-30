@@ -363,7 +363,9 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
             abort_unless(Storage::disk('public')->exists($path), 404);
 
-            return Storage::disk('public')->response($path);
+            $displayName = $instrumento->nombre_archivo ?? basename($path);
+
+            return Storage::disk('public')->response($path, $displayName);
         })->name('instrumentos-formalizacion.documento');
 
         // editar un proyecto ya sea en borrador o en subsanacion

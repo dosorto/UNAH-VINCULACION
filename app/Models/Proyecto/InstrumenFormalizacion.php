@@ -17,6 +17,7 @@ class InstrumenFormalizacion extends Model
         'entidad_contraparte_id',
         'tipo_documento',
         'documento_url',
+        'nombre_archivo',
     ];
 
     /**

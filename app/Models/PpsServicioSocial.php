@@ -96,6 +96,7 @@ class PpsServicioSocial extends Model
         'enviado_por',
         'revisado_por',
         'motivo_rechazo',
+        'destinatarios_emisor',
     ];
 
     protected $casts = [
@@ -108,6 +109,7 @@ class PpsServicioSocial extends Model
         'horas_teletrabajo' => 'integer',
         'adjunta_carta_formalizacion' => 'boolean',
         'adjunta_convenio_marco' => 'boolean',
+        'destinatarios_emisor' => 'array',
     ];
 
     public function flujoAprobacion(): BelongsTo
