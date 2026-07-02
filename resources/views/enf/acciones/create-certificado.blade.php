@@ -1,6 +1,7 @@
 @extends('layouts.panel.base')
 
 @php
+    $editingAccion = $accion ?? null;
     $input = 'w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white';
     $label = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
     $card = 'rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900';
@@ -13,6 +14,8 @@
         'Acreditar experiencia comprobada en el area',
     ]);
     $tipoCertificadoId = old('catalogos.tipo_accion_enf.0', $selectedTipoAccionEnfId);
+    $formAction = $editingAccion ? route('enf.acciones.update', $editingAccion) : route('enf.acciones.store');
+    $storageKey = $editingAccion ? "enf-form-dvus-016-draft-{$editingAccion->id}" : 'enf-form-dvus-016-draft';
     $stepLabels = [
         1 => 'Certificado',
         2 => 'Plan',
@@ -43,8 +46,11 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('enf.acciones.store') }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="enf-form-dvus-016-draft" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}">
+        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}">
             @csrf
+            @if ($editingAccion)
+                @method('PUT')
+            @endif
             <input type="hidden" name="tipo_accion_id" value="{{ old('tipo_accion_id', $tipoAccionVinculacionEnfId ?: $tiposAccion->first()?->id) }}">
             <input type="hidden" name="codigo_formulario" value="FORM-DVUS-016">
             <input type="hidden" name="estado_flujo" value="BORRADOR">
@@ -56,6 +62,7 @@
                     <div>
                         <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Registro por pasos</h2>
                         <p class="text-xs text-slate-500 dark:text-slate-400" data-autosave-status>Los cambios se autoguardan mientras escribe.</p>
+                        <p class="mt-1 hidden text-xs font-semibold text-red-600 dark:text-red-400" data-step-validation-message></p>
                     </div>
                 </div>
                 <div class="flex items-center gap-0.5 overflow-x-auto">
@@ -149,36 +156,51 @@
             <div class="{{ $card }} hidden" data-step-panel="2">
                 <h2 class="{{ $sectionTitle }}">2. Carreras aprobadas y espacios de aprendizaje</h2>
                 <div class="space-y-6">
-                    <section>
-                        <h3 class="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Carreras aprobadas por Consejo Universitario</h3>
-                        <div class="space-y-3">
-                            @for ($i = 0; $i < 4; $i++)
-                                <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
-                                    <select name="certificado_carreras[{{ $i }}][carrera_id]" class="{{ $input }}">
-                                        <option value="">Carrera registrada...</option>
-                                        @foreach ($carreras as $carrera)
-                                            <option value="{{ $carrera->id }}">{{ $carrera->nombre }}</option>
-                                        @endforeach
-                                    </select>
-                                    <input name="certificado_carreras[{{ $i }}][nombre_carrera]" class="{{ $input }}" placeholder="Nombre de la carrera">
-                                    <input name="certificado_carreras[{{ $i }}][acuerdo_consejo_universitario]" class="{{ $input }}" placeholder="No. acuerdo de Consejo Universitario">
-                                </div>
-                            @endfor
+                    <section class="rounded-md border border-slate-200 p-4 dark:border-slate-700" data-required-collection="certificado_carreras">
+                        <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100" data-required-collection-label-target>Carreras aprobadas por Consejo Universitario</h3>
+                            <button type="button" data-open-career-modal class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Agregar carrera</button>
                         </div>
+                        <div class="overflow-x-auto rounded-md border border-slate-100 dark:border-slate-800">
+                            <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
+                                <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-800/60">
+                                    <tr>
+                                        <th class="px-3 py-2">Carrera</th>
+                                        <th class="px-3 py-2">Nombre</th>
+                                        <th class="px-3 py-2">Acuerdo</th>
+                                        <th class="px-3 py-2"></th>
+                                    </tr>
+                                </thead>
+                                <tbody data-careers-list class="divide-y divide-slate-100 dark:divide-slate-800">
+                                    <tr><td colspan="4" class="px-3 py-4 text-center text-slate-500">Sin carreras agregadas.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="hidden" data-careers-fields></div>
                     </section>
 
-                    <section>
-                        <h3 class="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Información general del certificado universitario</h3>
-                        <div class="space-y-3">
-                            @for ($i = 0; $i < 6; $i++)
-                                <div class="grid grid-cols-1 gap-3 md:grid-cols-5">
-                                    <input name="espacios_aprendizaje[{{ $i }}][nombre]" class="{{ $input }} md:col-span-2" placeholder="Nombre asignatura">
-                                    <input name="espacios_aprendizaje[{{ $i }}][codigo]" class="{{ $input }}" placeholder="Código">
-                                    <input type="number" min="0" name="espacios_aprendizaje[{{ $i }}][creditos]" class="{{ $input }}" placeholder="Créditos">
-                                    <input type="number" min="0" name="espacios_aprendizaje[{{ $i }}][horas]" class="{{ $input }}" placeholder="Horas">
-                                </div>
-                            @endfor
+                    <section class="rounded-md border border-slate-200 p-4 dark:border-slate-700" data-required-collection="espacios_aprendizaje">
+                        <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100" data-required-collection-label-target>Información general del certificado universitario</h3>
+                            <button type="button" data-open-learning-space-modal class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Agregar espacio</button>
                         </div>
+                        <div class="overflow-x-auto rounded-md border border-slate-100 dark:border-slate-800">
+                            <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
+                                <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-800/60">
+                                    <tr>
+                                        <th class="px-3 py-2">Nombre asignatura</th>
+                                        <th class="px-3 py-2">Código</th>
+                                        <th class="px-3 py-2">Créditos</th>
+                                        <th class="px-3 py-2">Horas</th>
+                                        <th class="px-3 py-2"></th>
+                                    </tr>
+                                </thead>
+                                <tbody data-learning-spaces-list class="divide-y divide-slate-100 dark:divide-slate-800">
+                                    <tr><td colspan="5" class="px-3 py-4 text-center text-slate-500">Sin espacios agregados.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="hidden" data-learning-spaces-fields></div>
                     </section>
                 </div>
             </div>
@@ -507,6 +529,69 @@
                 </div>
             </div>
         </form>
+
+        <div data-career-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+            <div class="w-full max-w-2xl rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900">
+                <div class="mb-4 flex items-center justify-between gap-3">
+                    <h2 data-career-modal-title class="text-base font-semibold text-slate-900 dark:text-slate-100">Agregar carrera</h2>
+                    <button type="button" data-close-career-modal class="rounded-md px-3 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Cerrar</button>
+                </div>
+                <div class="grid grid-cols-1 gap-3">
+                    <div>
+                        <label class="{{ $label }}">Carrera registrada <span class="text-red-500">*</span></label>
+                        <select data-career-id class="{{ $input }}">
+                            <option value="">Carrera registrada...</option>
+                            @foreach ($carreras as $carrera)
+                                <option value="{{ $carrera->id }}">{{ $carrera->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="{{ $label }}">Nombre de la carrera <span class="text-red-500">*</span></label>
+                        <input data-career-name class="{{ $input }}">
+                    </div>
+                    <div>
+                        <label class="{{ $label }}">No. acuerdo de Consejo Universitario <span class="text-red-500">*</span></label>
+                        <input data-career-agreement class="{{ $input }}">
+                    </div>
+                </div>
+                <div class="mt-5 flex justify-end gap-3">
+                    <button type="button" data-close-career-modal class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Cancelar</button>
+                    <button type="button" data-save-career class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Guardar</button>
+                </div>
+            </div>
+        </div>
+
+        <div data-learning-space-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+            <div class="w-full max-w-3xl rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900">
+                <div class="mb-4 flex items-center justify-between gap-3">
+                    <h2 data-learning-space-modal-title class="text-base font-semibold text-slate-900 dark:text-slate-100">Agregar espacio de aprendizaje</h2>
+                    <button type="button" data-close-learning-space-modal class="rounded-md px-3 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Cerrar</button>
+                </div>
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+                    <div class="md:col-span-2">
+                        <label class="{{ $label }}">Nombre asignatura <span class="text-red-500">*</span></label>
+                        <input data-learning-space-name class="{{ $input }}">
+                    </div>
+                    <div>
+                        <label class="{{ $label }}">Código <span class="text-red-500">*</span></label>
+                        <input data-learning-space-code class="{{ $input }}">
+                    </div>
+                    <div>
+                        <label class="{{ $label }}">Créditos <span class="text-red-500">*</span></label>
+                        <input type="number" min="0" data-learning-space-credits class="{{ $input }}">
+                    </div>
+                    <div>
+                        <label class="{{ $label }}">Horas <span class="text-red-500">*</span></label>
+                        <input type="number" min="0" data-learning-space-hours class="{{ $input }}">
+                    </div>
+                </div>
+                <div class="mt-5 flex justify-end gap-3">
+                    <button type="button" data-close-learning-space-modal class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Cancelar</button>
+                    <button type="button" data-save-learning-space class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Guardar</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -520,14 +605,35 @@
             const totalSteps = Number(form.dataset.totalSteps || 1);
             const storageKey = form.dataset.storageKey || 'enf-form-dvus-016-draft';
             const clearDraftOnLoad = form.dataset.clearDraftOnLoad === '1';
+            const shouldLockStepNavigation = form.dataset.lockStepNavigation === '1';
+            const initialDraft = @js($initialDraft ?? []);
             const panels = Array.from(form.querySelectorAll('[data-step-panel]'));
             const previousButton = form.querySelector('[data-previous-step]');
             const nextButton = form.querySelector('[data-next-step]');
             const submitButton = form.querySelector('[data-submit-step]');
             const status = form.querySelector('[data-autosave-status]');
+            const stepValidationMessage = form.querySelector('[data-step-validation-message]');
             const certificateNameSource = form.querySelector('[data-certificate-name-source]');
             const certificateNameTarget = form.querySelector('[data-sync-certificate-name]');
             const certifiedHours = form.querySelector('[data-certified-hours]');
+            const careerOptions = @js($carreras->map(fn ($carrera) => ['id' => (string) $carrera->id, 'nombre' => $carrera->nombre])->values());
+            const oldCertificateCareers = @js(old('certificado_carreras', []));
+            const oldLearningSpaces = @js(old('espacios_aprendizaje', []));
+            const careerModal = document.querySelector('[data-career-modal]');
+            const careerModalTitle = document.querySelector('[data-career-modal-title]');
+            const careerIdField = document.querySelector('[data-career-id]');
+            const careerNameField = document.querySelector('[data-career-name]');
+            const careerAgreementField = document.querySelector('[data-career-agreement]');
+            const learningSpaceModal = document.querySelector('[data-learning-space-modal]');
+            const learningSpaceModalTitle = document.querySelector('[data-learning-space-modal-title]');
+            const learningSpaceNameField = document.querySelector('[data-learning-space-name]');
+            const learningSpaceCodeField = document.querySelector('[data-learning-space-code]');
+            const learningSpaceCreditsField = document.querySelector('[data-learning-space-credits]');
+            const learningSpaceHoursField = document.querySelector('[data-learning-space-hours]');
+            const careerFieldsContainer = form.querySelector('[data-careers-fields]');
+            const careersList = form.querySelector('[data-careers-list]');
+            const learningSpacesFieldsContainer = form.querySelector('[data-learning-spaces-fields]');
+            const learningSpacesList = form.querySelector('[data-learning-spaces-list]');
 
             if (clearDraftOnLoad) {
                 window.localStorage.removeItem(storageKey);
@@ -536,9 +642,301 @@
 
             let step = Number(window.localStorage.getItem(`${storageKey}:step`) || 1);
             let autosaveTimer = null;
+            let restoredDraftData = {};
+            let certificateCareers = [];
+            let learningSpaces = [];
+            let editingCareerIndex = null;
+            let editingLearningSpaceIndex = null;
 
             const clampStep = (value) => Math.min(Math.max(Number(value) || 1, 1), totalSteps);
             const fieldSelector = (name) => `[name="${String(name).replace(/"/g, '\\"')}"]`;
+            const collectionFieldMap = {
+                certificado_carreras: ['carrera_id', 'nombre_carrera', 'acuerdo_consejo_universitario'],
+                espacios_aprendizaje: ['nombre', 'codigo', 'creditos', 'horas'],
+            };
+
+            const showModal = (modal) => {
+                modal?.classList.remove('hidden');
+                modal?.classList.add('flex');
+            };
+
+            const hideModal = (modal) => {
+                modal?.classList.add('hidden');
+                modal?.classList.remove('flex');
+            };
+
+            const escapeHtml = (value) => String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+
+            const normalizeCollectionRows = (rows, fields) => Object.values(rows || {})
+                .map((row) => {
+                    const normalized = {};
+
+                    fields.forEach((field) => {
+                        normalized[field] = String(row?.[field] ?? '').trim();
+                    });
+
+                    return normalized;
+                })
+                .filter((row) => fields.some((field) => row[field] !== ''));
+            const collectionHasRows = (rows) => Object.keys(rows || {}).length > 0;
+
+            const rowsFromDraftData = (data, prefix, fields) => {
+                const rows = {};
+                const directRows = Array.isArray(data?.[prefix]) ? data[prefix] : [];
+
+                directRows.forEach((row, index) => {
+                    rows[index] = { ...(rows[index] || {}), ...(row || {}) };
+                });
+
+                Object.entries(data || {}).forEach(([key, value]) => {
+                    const match = key.match(new RegExp(`^${prefix}\\[(\\d+)\\]\\[([^\\]]+)\\]$`));
+
+                    if (!match) {
+                        return;
+                    }
+
+                    const [, index, field] = match;
+                    rows[index] = rows[index] || {};
+                    rows[index][field] = value;
+                });
+
+                return normalizeCollectionRows(rows, fields);
+            };
+
+            const appendCollectionToData = (data, prefix, rows, fields) => {
+                rows.forEach((row, index) => {
+                    fields.forEach((field) => {
+                        data[`${prefix}[${index}][${field}]`] = row[field] || '';
+                    });
+                });
+            };
+
+            const collectionRows = (name) => {
+                if (name === 'certificado_carreras') {
+                    return certificateCareers;
+                }
+
+                if (name === 'espacios_aprendizaje') {
+                    return learningSpaces;
+                }
+
+                return [];
+            };
+
+            const collectionIsComplete = (name) => collectionRows(name).length > 0;
+
+            const careerNameById = (id) => careerOptions.find((career) => String(career.id) === String(id))?.nombre || '';
+
+            const renderHiddenCollectionFields = (container, prefix, rows, fields) => {
+                if (!container) {
+                    return;
+                }
+
+                container.innerHTML = rows.map((row, index) => fields.map((field) => {
+                    const value = escapeHtml(row[field] || '');
+
+                    return `<input type="hidden" name="${prefix}[${index}][${field}]" value="${value}">`;
+                }).join('')).join('');
+            };
+
+            const renderCareers = () => {
+                renderHiddenCollectionFields(careerFieldsContainer, 'certificado_carreras', certificateCareers, collectionFieldMap.certificado_carreras);
+
+                if (!careersList) {
+                    return;
+                }
+
+                if (certificateCareers.length === 0) {
+                    careersList.innerHTML = '<tr><td colspan="4" class="px-3 py-4 text-center text-slate-500">Sin carreras agregadas.</td></tr>';
+                    return;
+                }
+
+                careersList.innerHTML = certificateCareers.map((career, index) => {
+                    const selectedCareer = careerNameById(career.carrera_id);
+
+                    return `
+                        <tr>
+                            <td class="px-3 py-2 text-slate-700 dark:text-slate-300">${escapeHtml(selectedCareer || '-')}</td>
+                            <td class="px-3 py-2 text-slate-700 dark:text-slate-300">${escapeHtml(career.nombre_carrera || '-')}</td>
+                            <td class="px-3 py-2 text-slate-700 dark:text-slate-300">${escapeHtml(career.acuerdo_consejo_universitario || '-')}</td>
+                            <td class="px-3 py-2 text-right">
+                                <button type="button" data-edit-career="${index}" class="text-xs font-semibold text-blue-700 hover:text-blue-900 dark:text-blue-400">Editar</button>
+                                <button type="button" data-delete-career="${index}" class="ml-3 text-xs font-semibold text-red-600 hover:text-red-800 dark:text-red-400">Eliminar</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            };
+
+            const renderLearningSpaces = () => {
+                renderHiddenCollectionFields(learningSpacesFieldsContainer, 'espacios_aprendizaje', learningSpaces, collectionFieldMap.espacios_aprendizaje);
+
+                if (!learningSpacesList) {
+                    return;
+                }
+
+                if (learningSpaces.length === 0) {
+                    learningSpacesList.innerHTML = '<tr><td colspan="5" class="px-3 py-4 text-center text-slate-500">Sin espacios agregados.</td></tr>';
+                    return;
+                }
+
+                learningSpacesList.innerHTML = learningSpaces.map((space, index) => `
+                    <tr>
+                        <td class="px-3 py-2 text-slate-700 dark:text-slate-300">${escapeHtml(space.nombre || '-')}</td>
+                        <td class="px-3 py-2 text-slate-700 dark:text-slate-300">${escapeHtml(space.codigo || '-')}</td>
+                        <td class="px-3 py-2 text-slate-700 dark:text-slate-300">${escapeHtml(space.creditos || '0')}</td>
+                        <td class="px-3 py-2 text-slate-700 dark:text-slate-300">${escapeHtml(space.horas || '0')}</td>
+                        <td class="px-3 py-2 text-right">
+                            <button type="button" data-edit-learning-space="${index}" class="text-xs font-semibold text-blue-700 hover:text-blue-900 dark:text-blue-400">Editar</button>
+                            <button type="button" data-delete-learning-space="${index}" class="ml-3 text-xs font-semibold text-red-600 hover:text-red-800 dark:text-red-400">Eliminar</button>
+                        </td>
+                    </tr>
+                `).join('');
+            };
+
+            const renderCollections = () => {
+                renderCareers();
+                renderLearningSpaces();
+            };
+
+            const hydrateCollections = (data) => {
+                certificateCareers = normalizeCollectionRows(
+                    collectionHasRows(oldCertificateCareers) ? oldCertificateCareers : rowsFromDraftData(data, 'certificado_carreras', collectionFieldMap.certificado_carreras),
+                    collectionFieldMap.certificado_carreras
+                );
+                learningSpaces = normalizeCollectionRows(
+                    collectionHasRows(oldLearningSpaces) ? oldLearningSpaces : rowsFromDraftData(data, 'espacios_aprendizaje', collectionFieldMap.espacios_aprendizaje),
+                    collectionFieldMap.espacios_aprendizaje
+                );
+                renderCollections();
+            };
+
+            const clearModalInvalidStyles = (modal) => {
+                modal?.querySelectorAll('[data-modal-invalid]').forEach((field) => {
+                    field.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
+                    field.removeAttribute('data-modal-invalid');
+                });
+            };
+
+            const markModalInvalid = (field) => {
+                field?.classList.add('border-red-500', 'ring-1', 'ring-red-500');
+                field?.setAttribute('data-modal-invalid', '1');
+            };
+
+            const modalFieldsComplete = (modal, fields) => {
+                clearModalInvalidStyles(modal);
+                let firstInvalid = null;
+
+                fields.forEach((field) => {
+                    if (String(field?.value ?? '').trim() !== '') {
+                        return;
+                    }
+
+                    markModalInvalid(field);
+                    firstInvalid = firstInvalid || field;
+                });
+
+                firstInvalid?.focus();
+
+                return !firstInvalid;
+            };
+
+            const openCareerModal = (index = null) => {
+                editingCareerIndex = index;
+                const current = index === null ? {} : certificateCareers[index] || {};
+
+                if (careerModalTitle) {
+                    careerModalTitle.textContent = index === null ? 'Agregar carrera' : 'Editar carrera';
+                }
+
+                careerIdField.value = current.carrera_id || '';
+                careerNameField.value = current.nombre_carrera || '';
+                careerAgreementField.value = current.acuerdo_consejo_universitario || '';
+                clearModalInvalidStyles(careerModal);
+                showModal(careerModal);
+                careerIdField?.focus();
+            };
+
+            const closeCareerModal = () => {
+                editingCareerIndex = null;
+                hideModal(careerModal);
+            };
+
+            const saveCareerModal = () => {
+                if (!modalFieldsComplete(careerModal, [careerIdField, careerNameField, careerAgreementField])) {
+                    return;
+                }
+
+                const row = {
+                    carrera_id: careerIdField.value,
+                    nombre_carrera: careerNameField.value.trim(),
+                    acuerdo_consejo_universitario: careerAgreementField.value.trim(),
+                };
+
+                if (editingCareerIndex === null) {
+                    certificateCareers.push(row);
+                } else {
+                    certificateCareers[editingCareerIndex] = row;
+                }
+
+                renderCollections();
+                syncRequiredMarkers();
+                render();
+                save();
+                closeCareerModal();
+            };
+
+            const openLearningSpaceModal = (index = null) => {
+                editingLearningSpaceIndex = index;
+                const current = index === null ? {} : learningSpaces[index] || {};
+
+                if (learningSpaceModalTitle) {
+                    learningSpaceModalTitle.textContent = index === null ? 'Agregar espacio de aprendizaje' : 'Editar espacio de aprendizaje';
+                }
+
+                learningSpaceNameField.value = current.nombre || '';
+                learningSpaceCodeField.value = current.codigo || '';
+                learningSpaceCreditsField.value = current.creditos || '';
+                learningSpaceHoursField.value = current.horas || '';
+                clearModalInvalidStyles(learningSpaceModal);
+                showModal(learningSpaceModal);
+                learningSpaceNameField?.focus();
+            };
+
+            const closeLearningSpaceModal = () => {
+                editingLearningSpaceIndex = null;
+                hideModal(learningSpaceModal);
+            };
+
+            const saveLearningSpaceModal = () => {
+                if (!modalFieldsComplete(learningSpaceModal, [learningSpaceNameField, learningSpaceCodeField, learningSpaceCreditsField, learningSpaceHoursField])) {
+                    return;
+                }
+
+                const row = {
+                    nombre: learningSpaceNameField.value.trim(),
+                    codigo: learningSpaceCodeField.value.trim(),
+                    creditos: learningSpaceCreditsField.value,
+                    horas: learningSpaceHoursField.value,
+                };
+
+                if (editingLearningSpaceIndex === null) {
+                    learningSpaces.push(row);
+                } else {
+                    learningSpaces[editingLearningSpaceIndex] = row;
+                }
+
+                renderCollections();
+                syncRequiredMarkers();
+                render();
+                save();
+                closeLearningSpaceModal();
+            };
 
             const syncCalculatedFields = () => {
                 if (certificateNameSource && certificateNameTarget) {
@@ -597,6 +995,9 @@
                     data[field.name] = field.value;
                 });
 
+                appendCollectionToData(data, 'certificado_carreras', certificateCareers, collectionFieldMap.certificado_carreras);
+                appendCollectionToData(data, 'espacios_aprendizaje', learningSpaces, collectionFieldMap.espacios_aprendizaje);
+
                 window.localStorage.setItem(storageKey, JSON.stringify(data));
                 if (status) {
                     status.textContent = `Autoguardado ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
@@ -605,18 +1006,19 @@
 
             const restore = () => {
                 const stored = window.localStorage.getItem(storageKey);
-
-                if (!stored) {
-                    return;
-                }
-
-                let data = {};
+                let data = { ...initialDraft };
 
                 try {
-                    data = JSON.parse(stored);
+                    data = stored ? { ...data, ...JSON.parse(stored) } : data;
                 } catch (error) {
+                    data = { ...initialDraft };
+                }
+
+                if (Object.keys(data).length === 0) {
                     return;
                 }
+
+                restoredDraftData = data;
 
                 form.querySelectorAll('input[name], select[name], textarea[name]').forEach((field) => {
                     if (field.type === 'hidden' || field.type === 'file' || field.name === '_token' || field.disabled || !(field.name in data)) {
@@ -654,8 +1056,137 @@
                     return field.checked;
                 }
 
+                if (field.type === 'file') {
+                    return field.files?.length > 0 || String(field.value ?? '').trim() !== '';
+                }
+
+                if (field.multiple) {
+                    return Array.from(field.selectedOptions).some((option) => option.value !== '');
+                }
+
                 return String(field.value ?? '').trim() !== '';
             };
+
+            const invalidFieldClasses = ['border-red-500', 'ring-1', 'ring-red-500'];
+            const invalidChoiceClasses = ['text-red-600', 'dark:text-red-400'];
+            const requiredMarkerSelector = '[data-wizard-required-marker]';
+
+            const isStepField = (field) => {
+                return !field.disabled
+                    && field.type !== 'hidden'
+                    && field.name !== '_token'
+                    && !field.classList.contains('hidden');
+            };
+
+            const setValidationMessage = (message = '') => {
+                if (!stepValidationMessage) {
+                    return;
+                }
+
+                stepValidationMessage.textContent = message;
+                stepValidationMessage.classList.toggle('hidden', !message);
+            };
+
+            const clearInvalidStyles = () => {
+                form.querySelectorAll('[data-wizard-invalid]').forEach((target) => {
+                    target.classList.remove(...invalidFieldClasses, ...invalidChoiceClasses);
+                    target.removeAttribute('data-wizard-invalid');
+                });
+            };
+
+            const clearValidationFeedback = () => {
+                clearInvalidStyles();
+                setValidationMessage();
+            };
+
+            const markInvalidTarget = (target, classes) => {
+                if (!target) {
+                    return;
+                }
+
+                target.classList.add(...classes);
+                target.setAttribute('data-wizard-invalid', '1');
+            };
+
+            const appendRequiredMarker = (target) => {
+                if (!target
+                    || target.querySelector(requiredMarkerSelector)
+                    || target.textContent.trim().endsWith('*')) {
+                    return;
+                }
+
+                const marker = document.createElement('span');
+                marker.dataset.wizardRequiredMarker = '1';
+                marker.className = 'text-red-500';
+                marker.setAttribute('aria-hidden', 'true');
+                marker.textContent = ' *';
+                target.appendChild(marker);
+            };
+
+            const restoreRequiredFieldHints = () => {
+                form.querySelectorAll('[data-wizard-required-placeholder]').forEach((field) => {
+                    field.placeholder = field.dataset.wizardRequiredPlaceholder || '';
+                    delete field.dataset.wizardRequiredPlaceholder;
+                });
+
+                form.querySelectorAll('option[data-wizard-required-option]').forEach((option) => {
+                    option.textContent = option.dataset.wizardRequiredOption || '';
+                    delete option.dataset.wizardRequiredOption;
+                });
+            };
+
+            const appendRequiredPlaceholder = (field) => {
+                if (field.tagName === 'SELECT') {
+                    const firstOption = field.options?.[0];
+
+                    if (!firstOption || firstOption.value !== '' || firstOption.dataset.wizardRequiredOption !== undefined) {
+                        return;
+                    }
+
+                    firstOption.dataset.wizardRequiredOption = firstOption.textContent;
+                    firstOption.textContent = `${firstOption.textContent.replace(/\s\*$/, '')} *`;
+                    return;
+                }
+
+                if (!('placeholder' in field) || !field.placeholder || field.dataset.wizardRequiredPlaceholder !== undefined) {
+                    return;
+                }
+
+                field.dataset.wizardRequiredPlaceholder = field.placeholder;
+                field.placeholder = `${field.placeholder.replace(/\s\*$/, '')} *`;
+            };
+
+            const fieldRequiredTarget = (field, panel) => {
+                const labelFor = field.id
+                    ? panel.querySelector(`label[for="${String(field.id).replace(/"/g, '\\"')}"]`)
+                    : null;
+
+                if (labelFor) {
+                    return labelFor;
+                }
+
+                let node = field.parentElement;
+
+                while (node && node !== panel) {
+                    const target = Array.from(node.children).find((child) => {
+                        return child.matches?.('label, p')
+                            && !child.contains(field)
+                            && !child.querySelector('input, select, textarea');
+                    });
+
+                    if (target) {
+                        return target;
+                    }
+
+                    node = node.parentElement;
+                }
+
+                return null;
+            };
+
+            const stepFields = (panel) => Array.from(panel.querySelectorAll('input[name], select[name], textarea[name]'))
+                .filter(isStepField);
+            const requiredCollections = (panel) => Array.from(panel.querySelectorAll('[data-required-collection]'));
 
             const stepIsComplete = (stepNumber) => {
                 const panel = form.querySelector(`[data-step-panel="${stepNumber}"]`);
@@ -664,10 +1195,167 @@
                     return false;
                 }
 
-                const required = Array.from(panel.querySelectorAll('[required]'))
-                    .filter((field) => !field.disabled);
+                const groupedChoices = new Map();
+                const fields = stepFields(panel);
+                const collections = requiredCollections(panel);
 
-                return required.every(fieldHasValue);
+                for (const field of fields) {
+                    if (field.type === 'checkbox' || field.type === 'radio') {
+                        const group = groupedChoices.get(field.name) || [];
+                        group.push(field);
+                        groupedChoices.set(field.name, group);
+                        continue;
+                    }
+
+                    if (!fieldHasValue(field)) {
+                        return false;
+                    }
+                }
+
+                for (const choices of groupedChoices.values()) {
+                    if (choices.length > 1 && !choices.some((field) => field.checked)) {
+                        return false;
+                    }
+                }
+
+                for (const collection of collections) {
+                    if (!collectionIsComplete(collection.dataset.requiredCollection)) {
+                        return false;
+                    }
+                }
+
+                return fields.length > 0 || collections.length > 0;
+            };
+
+            const syncRequiredMarkers = () => {
+                form.querySelectorAll(requiredMarkerSelector).forEach((marker) => marker.remove());
+                restoreRequiredFieldHints();
+
+                if (!shouldLockStepNavigation) {
+                    return;
+                }
+
+                panels.forEach((panel) => {
+                    const groupedChoices = new Map();
+
+                    requiredCollections(panel).forEach((collection) => {
+                        appendRequiredMarker(collection.querySelector('[data-required-collection-label-target]'));
+                    });
+
+                    stepFields(panel).forEach((field) => {
+                        if (field.type === 'checkbox' || field.type === 'radio') {
+                            const group = groupedChoices.get(field.name) || [];
+                            group.push(field);
+                            groupedChoices.set(field.name, group);
+                            return;
+                        }
+
+                        const target = fieldRequiredTarget(field, panel);
+
+                        if (target) {
+                            appendRequiredMarker(target);
+                            return;
+                        }
+
+                        appendRequiredPlaceholder(field);
+                    });
+
+                    groupedChoices.forEach((choices) => {
+                        if (choices.length <= 1) {
+                            return;
+                        }
+
+                        const groupTarget = fieldRequiredTarget(choices[0], panel);
+
+                        if (groupTarget) {
+                            appendRequiredMarker(groupTarget);
+                            return;
+                        }
+
+                        choices.forEach((field) => appendRequiredMarker(field.closest('label')));
+                    });
+                });
+            };
+
+            const markIncompleteFields = (stepNumber, focusFirst = false) => {
+                clearInvalidStyles();
+
+                const panel = form.querySelector(`[data-step-panel="${stepNumber}"]`);
+                let firstInvalidField = null;
+
+                if (!panel) {
+                    return;
+                }
+
+                const groupedChoices = new Map();
+
+                stepFields(panel).forEach((field) => {
+                    if (field.type === 'checkbox' || field.type === 'radio') {
+                        const group = groupedChoices.get(field.name) || [];
+                        group.push(field);
+                        groupedChoices.set(field.name, group);
+                        return;
+                    }
+
+                    if (!fieldHasValue(field)) {
+                        markInvalidTarget(field, invalidFieldClasses);
+                        firstInvalidField = firstInvalidField || field;
+                    }
+                });
+
+                groupedChoices.forEach((choices) => {
+                    if (choices.length > 1 && !choices.some((field) => field.checked)) {
+                        choices.forEach((field) => markInvalidTarget(field.closest('label') || field, invalidChoiceClasses));
+                        firstInvalidField = firstInvalidField || choices[0];
+                    }
+                });
+
+                requiredCollections(panel).forEach((collection) => {
+                    if (collectionIsComplete(collection.dataset.requiredCollection)) {
+                        return;
+                    }
+
+                    markInvalidTarget(collection, invalidFieldClasses);
+                    firstInvalidField = firstInvalidField || collection.querySelector('button');
+                });
+
+                if (focusFirst && firstInvalidField) {
+                    firstInvalidField.focus({ preventScroll: true });
+                }
+            };
+
+            const firstIncompleteStepBefore = (targetStep) => {
+                const limit = clampStep(targetStep);
+
+                for (let index = 1; index < limit; index += 1) {
+                    if (!stepIsComplete(index)) {
+                        return index;
+                    }
+                }
+
+                return null;
+            };
+
+            const firstIncompleteStepInForm = () => {
+                for (let index = 1; index <= totalSteps; index += 1) {
+                    if (!stepIsComplete(index)) {
+                        return index;
+                    }
+                }
+
+                return null;
+            };
+
+            const highestReachableStep = () => shouldLockStepNavigation
+                ? firstIncompleteStepInForm() || totalSteps
+                : totalSteps;
+
+            const blockAtStep = (blockedStep, message = 'Completa los campos de este paso antes de continuar.') => {
+                step = clampStep(blockedStep);
+                render();
+                setValidationMessage(message);
+                markIncompleteFields(step, true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             };
 
             const render = () => {
@@ -682,20 +1370,24 @@
                     const number = form.querySelector(`[data-step-number="${index}"]`);
                     const label = form.querySelector(`[data-step-label="${index}"]`);
                     const divider = form.querySelector(`[data-step-divider="${index}"]`);
+                    const stepButton = form.querySelector(`[data-step-button="${index}"]`);
 
                     number?.classList.remove('bg-blue-600', 'text-white', 'ring-2', 'ring-blue-200', 'bg-green-500', 'bg-gray-200', 'text-gray-600', 'dark:bg-gray-700', 'dark:text-gray-300');
                     label?.classList.remove('font-semibold', 'text-blue-600', 'text-green-600', 'dark:text-green-400', 'text-gray-500');
                     divider?.classList.remove('bg-green-500', 'bg-gray-200', 'dark:bg-gray-700');
+                    stepButton?.classList.remove('opacity-60', 'cursor-not-allowed');
 
                     const isComplete = stepIsComplete(index);
+                    const isReachable = index <= highestReachableStep();
+                    const showComplete = isComplete && isReachable;
 
                     if (index === step) {
                         if (number) {
-                            number.textContent = isComplete ? '✓' : index;
+                            number.textContent = showComplete ? '✓' : index;
                         }
                         number?.classList.add('bg-blue-600', 'text-white', 'ring-2', 'ring-blue-200');
                         label?.classList.add('font-semibold', 'text-blue-600');
-                    } else if (isComplete) {
+                    } else if (showComplete) {
                         if (number) {
                             number.textContent = '✓';
                         }
@@ -709,20 +1401,65 @@
                         label?.classList.add('text-gray-500');
                     }
 
-                    divider?.classList.add(stepIsComplete(index) ? 'bg-green-500' : 'bg-gray-200', 'dark:bg-gray-700');
+                    stepButton?.setAttribute('aria-disabled', isReachable ? 'false' : 'true');
+
+                    if (!isReachable) {
+                        stepButton?.classList.add('opacity-60', 'cursor-not-allowed');
+                    }
+
+                    if (divider) {
+                        divider.classList.add(showComplete ? 'bg-green-500' : 'bg-gray-200');
+
+                        if (!showComplete) {
+                            divider.classList.add('dark:bg-gray-700');
+                        }
+                    }
                 }
+
+                const currentStepComplete = stepIsComplete(step);
+                const canLeaveCurrentStep = !shouldLockStepNavigation || currentStepComplete;
 
                 previousButton?.classList.toggle('hidden', step === 1);
                 nextButton?.classList.toggle('hidden', step === totalSteps);
+                nextButton?.setAttribute('aria-disabled', canLeaveCurrentStep ? 'false' : 'true');
+                nextButton?.classList.toggle('opacity-60', !canLeaveCurrentStep);
+                nextButton?.classList.toggle('cursor-not-allowed', !canLeaveCurrentStep);
                 submitButton?.classList.toggle('hidden', step !== totalSteps);
+                submitButton?.setAttribute('aria-disabled', canLeaveCurrentStep ? 'false' : 'true');
+                submitButton?.classList.toggle('opacity-60', step === totalSteps && !canLeaveCurrentStep);
+                submitButton?.classList.toggle('cursor-not-allowed', step === totalSteps && !canLeaveCurrentStep);
             };
 
             const goTo = (targetStep) => {
-                step = clampStep(targetStep);
+                const nextStep = clampStep(targetStep);
+                const blockedStep = shouldLockStepNavigation && nextStep > step
+                    ? firstIncompleteStepBefore(nextStep)
+                    : null;
+
+                if (blockedStep) {
+                    blockAtStep(blockedStep);
+                    return;
+                }
+
+                clearValidationFeedback();
+                step = nextStep;
                 syncCalculatedFields();
                 updateContraparteState();
                 render();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            const refreshValidationFeedback = () => {
+                if (!stepValidationMessage || stepValidationMessage.classList.contains('hidden')) {
+                    return;
+                }
+
+                if (stepIsComplete(step)) {
+                    clearValidationFeedback();
+                    return;
+                }
+
+                markIncompleteFields(step);
             };
 
             const debouncedSave = () => {
@@ -731,8 +1468,11 @@
             };
 
             restore();
+            hydrateCollections(restoredDraftData);
             syncCalculatedFields();
             updateContraparteState();
+            syncRequiredMarkers();
+            step = shouldLockStepNavigation ? firstIncompleteStepBefore(step) || step : step;
             render();
 
             form.querySelectorAll('[data-step-button]').forEach((button) => {
@@ -741,20 +1481,88 @@
 
             previousButton?.addEventListener('click', () => goTo(step - 1));
             nextButton?.addEventListener('click', () => goTo(step + 1));
+            document.querySelector('[data-open-career-modal]')?.addEventListener('click', () => openCareerModal());
+            document.querySelectorAll('[data-close-career-modal]').forEach((button) => {
+                button.addEventListener('click', closeCareerModal);
+            });
+            document.querySelector('[data-save-career]')?.addEventListener('click', saveCareerModal);
+            careerIdField?.addEventListener('change', () => {
+                careerNameField.value = careerNameById(careerIdField.value);
+            });
+            careersList?.addEventListener('click', (event) => {
+                const editButton = event.target.closest('[data-edit-career]');
+                const deleteButton = event.target.closest('[data-delete-career]');
+
+                if (editButton) {
+                    openCareerModal(Number(editButton.dataset.editCareer));
+                    return;
+                }
+
+                if (!deleteButton) {
+                    return;
+                }
+
+                certificateCareers.splice(Number(deleteButton.dataset.deleteCareer), 1);
+                renderCollections();
+                syncRequiredMarkers();
+                render();
+                refreshValidationFeedback();
+                save();
+            });
+
+            document.querySelector('[data-open-learning-space-modal]')?.addEventListener('click', () => openLearningSpaceModal());
+            document.querySelectorAll('[data-close-learning-space-modal]').forEach((button) => {
+                button.addEventListener('click', closeLearningSpaceModal);
+            });
+            document.querySelector('[data-save-learning-space]')?.addEventListener('click', saveLearningSpaceModal);
+            learningSpacesList?.addEventListener('click', (event) => {
+                const editButton = event.target.closest('[data-edit-learning-space]');
+                const deleteButton = event.target.closest('[data-delete-learning-space]');
+
+                if (editButton) {
+                    openLearningSpaceModal(Number(editButton.dataset.editLearningSpace));
+                    return;
+                }
+
+                if (!deleteButton) {
+                    return;
+                }
+
+                learningSpaces.splice(Number(deleteButton.dataset.deleteLearningSpace), 1);
+                renderCollections();
+                syncRequiredMarkers();
+                render();
+                refreshValidationFeedback();
+                save();
+            });
             form.addEventListener('input', () => {
                 syncCalculatedFields();
                 updateContraparteState();
+                syncRequiredMarkers();
                 render();
+                refreshValidationFeedback();
                 debouncedSave();
             });
             form.addEventListener('change', () => {
                 syncCalculatedFields();
                 updateContraparteState();
+                syncRequiredMarkers();
                 render();
+                refreshValidationFeedback();
                 save();
             });
-            form.addEventListener('submit', () => {
+            form.addEventListener('submit', (event) => {
                 syncCalculatedFields();
+                updateContraparteState();
+
+                const blockedStep = shouldLockStepNavigation ? firstIncompleteStepInForm() : null;
+
+                if (blockedStep) {
+                    event.preventDefault();
+                    blockAtStep(blockedStep, 'Completa los campos pendientes antes de guardar la acción.');
+                    return;
+                }
+
                 window.localStorage.removeItem(storageKey);
                 window.localStorage.removeItem(`${storageKey}:step`);
             });

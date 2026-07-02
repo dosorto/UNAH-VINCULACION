@@ -167,21 +167,22 @@
             </div>
 
             <div class="grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-5">
-                <div class="group relative block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg rounded-xl p-8 transition-all duration-300 opacity-40">
-                    <span class="absolute top-4 right-4 bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-semibold">
-                        Próximamente
+                <a href="{{ route('enf.acciones.create', ['nuevo' => 1, 'form' => '016']) }}"
+                   class="group relative block bg-white dark:bg-gray-800 border border-orange-200 dark:border-orange-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300">
+                    <span class="absolute top-4 right-4 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-full text-xs font-semibold group-hover:bg-orange-200 dark:group-hover:bg-orange-800 transition">
+                        Disponible
                     </span>
                     <br>
                     <div class="flex flex-col items-center">
-                        <div class="bg-gray-100 dark:bg-gray-900 rounded-full p-4 mb-5">
-                            <svg class="w-10 h-10 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <div class="bg-orange-100 dark:bg-orange-900 rounded-full p-4 mb-5 group-hover:bg-orange-200 dark:group-hover:bg-orange-800 transition">
+                            <svg class="w-10 h-10 text-orange-700 dark:text-orange-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M7 4h10a2 2 0 0 1 2 2v14l-4-2-3 2-3-2-4 2V6a2 2 0 0 1 2-2Z"/>
                             </svg>
                         </div>
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 text-center">FORM-016 - Registro de Certificados Universitarios</h3>
+                        <h3 class="text-xl font-bold text-orange-900 dark:text-orange-200 mb-2 text-center">FORM-016 - Registro de Certificados Universitarios</h3>
                         <p class="text-gray-600 dark:text-gray-300 text-center text-base">Formulario documental para certificados universitarios.</p>
                     </div>
-                </div>
+                </a>
 
                 <div class="group relative block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg rounded-xl p-8 transition-all duration-300 opacity-40">
                     <span class="absolute top-4 right-4 bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-semibold">

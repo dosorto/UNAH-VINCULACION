@@ -41,7 +41,7 @@ class EnfAccionController extends Controller
 {
     private const FORM_CERTIFICADO_UNIVERSITARIO = 'FORM-DVUS-016';
     private const FORM_PROYECTO_ENF = 'FORM-DVUS-018';
-    private const FORM_CERTIFICADO_UNIVERSITARIO_ENABLED = false;
+    private const FORM_CERTIFICADO_UNIVERSITARIO_ENABLED = true;
     private const TIPO_ACCION_CERTIFICADO = 'Certificado universitario';
     private const TIPO_ACCION_ENF_VISIBLE = 'Proyecto de educacion continua';
 
@@ -298,6 +298,9 @@ class EnfAccionController extends Controller
             'resultados',
             'presupuestos.detalles',
             'cronograma',
+            'certificado.tipoCertificado',
+            'certificado.carreras.carrera',
+            'espaciosAprendizaje',
             'documentos',
             'firmas',
             'accionCatalogos',
@@ -310,6 +313,7 @@ class EnfAccionController extends Controller
         $coordinador = $accion->equipo->firstWhere('rol', 'Coordinador de la accion');
         $sistematizador = $accion->equipo->firstWhere('rol', 'Responsable de sistematizacion');
         $contraparte = $accion->contrapartes->first();
+        $certificado = $accion->certificado;
 
         $draft = collect([
             'tipo_accion_id' => $accion->tipo_accion_id,
@@ -336,6 +340,18 @@ class EnfAccionController extends Controller
             'horas_practicas' => $accion->horas_practicas,
             'total_horas' => $accion->total_horas,
             'carga_horaria_creditos' => $accion->carga_horaria_creditos,
+            'certificado[nombre_certificado]' => $certificado?->nombre_certificado,
+            'certificado[codigo_certificado]' => $certificado?->codigo_certificado,
+            'certificado[tipo_certificado_id]' => $certificado?->tipo_certificado_id,
+            'certificado[figura_acreditacion_id]' => $certificado?->figura_acreditacion_id,
+            'certificado[horas_certificadas]' => $certificado?->horas_certificadas,
+            'certificado[requisitos_emision]' => $certificado?->requisitos_emision,
+            'certificado[vigencia_certificado]' => $certificado?->vigencia_certificado,
+            'certificado[fecha_emision_maxima]' => optional($certificado?->fecha_emision_maxima)->format('Y-m-d'),
+            'certificado[pac_certificado]' => $certificado?->pac_certificado,
+            'certificado[hora_inicio]' => $certificado?->hora_inicio,
+            'certificado[hora_finalizacion]' => $certificado?->hora_finalizacion,
+            'certificado[dias_imparticion][]' => array_values((array) ($certificado?->dias_imparticion ?? [])),
             'campus_id' => $lugar?->campus_id,
             'departamento_id' => $lugar?->departamento_id,
             'municipio_id' => $lugar?->municipio_id,
@@ -393,6 +409,29 @@ class EnfAccionController extends Controller
 
         foreach ($accion->accionCatalogos as $catalogo) {
             $draft["catalogos[{$catalogo->tipo}][]"][] = (string) $catalogo->enf_catalogo_id;
+        }
+
+        foreach ($accion->accionCatalogos->where('tipo', 'plataforma_presencial')->values() as $catalogo) {
+            $draft['plataformas_presencial[]'][] = (string) $catalogo->enf_catalogo_id;
+        }
+
+        foreach ($accion->accionCatalogos->where('tipo', 'plataforma_distancia')->values() as $catalogo) {
+            $draft['plataformas_distancia[]'][] = (string) $catalogo->enf_catalogo_id;
+        }
+
+        foreach ($certificado?->carreras?->values() ?? [] as $index => $carrera) {
+            $draft["certificado_carreras[{$index}][carrera_id]"] = $carrera->carrera_id;
+            $draft["certificado_carreras[{$index}][centro_facultad_id]"] = $carrera->centro_facultad_id;
+            $draft["certificado_carreras[{$index}][nombre_carrera]"] = $carrera->nombre_carrera;
+            $draft["certificado_carreras[{$index}][acuerdo_consejo_universitario]"] = $carrera->acuerdo_consejo_universitario;
+        }
+
+        foreach ($accion->espaciosAprendizaje->values() as $index => $espacio) {
+            $draft["espacios_aprendizaje[{$index}][nombre]"] = $espacio->nombre;
+            $draft["espacios_aprendizaje[{$index}][codigo]"] = $espacio->codigo;
+            $draft["espacios_aprendizaje[{$index}][creditos]"] = $espacio->creditos;
+            $draft["espacios_aprendizaje[{$index}][horas]"] = $espacio->horas;
+            $draft["espacios_aprendizaje[{$index}][descripcion]"] = $espacio->descripcion;
         }
 
         foreach ($accion->participacionUniversitaria->values() as $index => $participacion) {
@@ -456,12 +495,15 @@ class EnfAccionController extends Controller
 
         foreach (['equipo_docente' => 'Docente UNAH', 'consultores_nacionales' => 'Consultor nacional', 'consultores_internacionales' => 'Consultor internacional'] as $key => $rol) {
             foreach ($accion->equipo->where('rol', $rol)->values() as $index => $integrante) {
-                foreach (['nombre_completo', 'numero_empleado', 'correo', 'categoria', 'departamento', 'jornada_laboral', 'profesion', 'nacionalidad', 'horas_contratadas'] as $field) {
+                foreach (['nombre_completo', 'numero_empleado', 'identidad', 'espacio_aprendizaje', 'correo', 'categoria', 'departamento', 'jornada_laboral', 'profesion', 'nacionalidad', 'ultimo_titulo', 'pais_procedencia', 'universidad_procedencia', 'perfil_docente', 'horas_contratadas'] as $field) {
                     $value = $field === 'horas_contratadas' ? $integrante->horas_dedicadas : $integrante->{$field};
                     if (filled($value)) {
                         $draft["{$key}[{$index}][{$field}]"] = $value;
                     }
                 }
+
+                $draft["{$key}[{$index}][carga_academica_pac]"] = $integrante->carga_academica_pac ? 'Si' : null;
+                $draft["{$key}[{$index}][contratacion_jornada_contraria]"] = $integrante->contratacion_jornada_contraria ? 'Si' : null;
             }
         }
 
@@ -1273,13 +1315,16 @@ class EnfAccionController extends Controller
             'participacionUniversitaria',
             'practicasAsignatura.asignatura',
             'practicasAsignatura.periodoAcademico',
-            'contrapartes',
+            'contrapartes.tipoContraparte',
+            'contrapartes.instrumentoAlianza',
             'objetivosEspecificos',
             'resultados',
             'presupuestos.detalles',
             'cronograma',
             'certificado.tipoCertificado',
+            'certificado.figuraAcreditacion',
             'certificado.carreras.carrera',
+            'certificado.carreras.centroFacultad',
             'espaciosAprendizaje',
             'informeFinal',
             'sistematizacion',
@@ -1558,6 +1603,9 @@ class EnfAccionController extends Controller
             'resultados',
             'presupuestos.detalles',
             'cronograma',
+            'certificado.tipoCertificado',
+            'certificado.carreras.carrera',
+            'espaciosAprendizaje',
             'documentos',
             'firmas',
             'accionCatalogos',
@@ -1576,11 +1624,19 @@ class EnfAccionController extends Controller
             403
         );
 
-        return view('enf.acciones.create', $this->formViewData(
-            self::FORM_PROYECTO_ENF,
-            $record->tipo_accion_id ?: $this->tipoAccionEnfDefaultId(self::FORM_PROYECTO_ENF),
-            $record
-        ));
+        $formCode = ($record->codigo_formulario ?? null) === self::FORM_CERTIFICADO_UNIVERSITARIO
+            ? self::FORM_CERTIFICADO_UNIVERSITARIO
+            : self::FORM_PROYECTO_ENF;
+
+        $selectedTipoAccionEnfId = $record->accionCatalogos
+            ->first(fn ($catalogo) => $catalogo->tipo === 'tipo_accion_enf')
+            ?->enf_catalogo_id
+            ?: $this->tipoAccionEnfDefaultId($formCode);
+
+        return view(
+            $formCode === self::FORM_CERTIFICADO_UNIVERSITARIO ? 'enf.acciones.create-certificado' : 'enf.acciones.create',
+            $this->formViewData($formCode, $selectedTipoAccionEnfId, $record)
+        );
     }
 
     public function destroy(int $accion): JsonResponse
