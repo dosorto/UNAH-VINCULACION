@@ -7,6 +7,7 @@ use Livewire\WithFileUploads;
 use App\Support\Notification;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\CargoFirma;
+use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Modalidad;
 use App\Models\Proyecto\Categoria;
@@ -23,8 +24,10 @@ use App\Models\PeriodoAcademico;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\Carrera;
+use App\Services\Workflow\WorkflowReviewerResolver;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
@@ -34,6 +37,7 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Renderless;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use App\Mail\ProyectoCreado;
+use RuntimeException;
 
 class CreateProyectoVinculacion extends Component
 {
@@ -3082,6 +3086,126 @@ class CreateProyectoVinculacion extends Component
                 ]);
             }
         }
+    }
+
+    protected function etapasActivasParaEnvioPorFlujo(Proyecto $proyecto): Collection
+    {
+        $etapas = $proyecto
+            ->flujoEtapasActivasOrdenadas(Proyecto::FLUJO_INSCRIPCION)
+            ->values();
+
+        if ($etapas->isEmpty()) {
+            throw new RuntimeException('No hay etapas activas configuradas para enviar este proyecto a revisión.');
+        }
+
+        $etapas->each(function (FlujoAprobacionEtapa $etapa): void {
+            if (! $etapa->cargo_firma_id) {
+                throw new RuntimeException(sprintf('La etapa "%s" no tiene cargo de firma configurado.', $etapa->nombre));
+            }
+
+            if (! $etapa->rol_revisor_id && ! $etapa->usuario_responsable_id) {
+                throw new RuntimeException(sprintf('La etapa "%s" no tiene rol revisor ni responsable configurado.', $etapa->nombre));
+            }
+        });
+
+        return $etapas;
+    }
+
+    protected function candidatosPorEtapaParaEnvio(Proyecto $proyecto): Collection
+    {
+        $resolver = $this->workflowReviewerResolver();
+
+        return $this->etapasActivasParaEnvioPorFlujo($proyecto)
+            ->map(fn (FlujoAprobacionEtapa $etapa): array => [
+                'etapa' => $etapa,
+                'candidatos' => $resolver->candidatosParaEtapa($etapa, $proyecto),
+                'unidades_sin_candidatos' => $resolver->unidadesSinCandidatos($etapa, $proyecto),
+            ])
+            ->values();
+    }
+
+    protected function unidadesSinCandidatosParaEnvio(Proyecto $proyecto): Collection
+    {
+        return $this->candidatosPorEtapaParaEnvio($proyecto)
+            ->flatMap(fn (array $grupo): Collection => $grupo['unidades_sin_candidatos']
+                ->map(fn (array $unidad): array => [
+                    'etapa' => $grupo['etapa'],
+                    'unidad' => $unidad,
+                ]))
+            ->values();
+    }
+
+    protected function validarEmpleadoParaEtapaDeEnvio(
+        Proyecto $proyecto,
+        int $etapaId,
+        int $empleadoId
+    ): Empleado {
+        $etapa = $this->etapasActivasParaEnvioPorFlujo($proyecto)
+            ->first(fn (FlujoAprobacionEtapa $etapa): bool => (int) $etapa->id === $etapaId);
+
+        if (! $etapa) {
+            throw new RuntimeException('La etapa indicada no pertenece al flujo del proyecto.');
+        }
+
+        try {
+            return $this->workflowReviewerResolver()->validarEmpleadoElegible($etapa, $proyecto, $empleadoId);
+        } catch (RuntimeException $exception) {
+            if (str_contains($exception->getMessage(), 'no es elegible')) {
+                throw new RuntimeException(sprintf(
+                    'El empleado seleccionado no es elegible para la etapa "%s".',
+                    $etapa->nombre
+                ), previous: $exception);
+            }
+
+            throw $exception;
+        }
+    }
+
+    protected function validarAsignacionesPorEtapaParaEnvio(
+        Proyecto $proyecto,
+        array $empleadosPorEtapa
+    ): array {
+        $etapas = $this->etapasActivasParaEnvioPorFlujo($proyecto)->keyBy('id');
+        $asignacionesNormalizadas = collect($empleadosPorEtapa)
+            ->filter(fn ($empleadoId, $etapaId): bool => filled($etapaId))
+            ->mapWithKeys(fn ($empleadoId, $etapaId): array => [
+                (int) $etapaId => filled($empleadoId) ? (int) $empleadoId : null,
+            ])
+            ->all();
+
+        foreach (array_keys($asignacionesNormalizadas) as $etapaId) {
+            if (! $etapas->has($etapaId)) {
+                throw new RuntimeException('La etapa indicada no pertenece al flujo del proyecto.');
+            }
+        }
+
+        $validadas = [];
+
+        foreach ($etapas as $etapa) {
+            if ($etapa->multiplicidad_revision === FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD) {
+                throw new RuntimeException(sprintf(
+                    'La etapa "%s" requiere un revisor por unidad académica y aún no está integrada al formulario de envío.',
+                    $etapa->nombre
+                ));
+            }
+
+            if (! array_key_exists((int) $etapa->id, $asignacionesNormalizadas) || ! $asignacionesNormalizadas[(int) $etapa->id]) {
+                throw new RuntimeException(sprintf('No se indicó un empleado para la etapa "%s".', $etapa->nombre));
+            }
+
+            $validadas[(int) $etapa->id] = $this->validarEmpleadoParaEtapaDeEnvio(
+                $proyecto,
+                (int) $etapa->id,
+                $asignacionesNormalizadas[(int) $etapa->id],
+            )->id;
+        }
+
+        return $validadas;
+    }
+
+    protected function workflowReviewerResolver(): WorkflowReviewerResolver
+    {
+        return app(WorkflowReviewerResolver::class);
     }
 
     protected function loadFirmasFromRecord(Proyecto $record): void

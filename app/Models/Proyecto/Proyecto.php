@@ -49,6 +49,7 @@ use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class Proyecto extends Model
 {
@@ -1268,6 +1269,313 @@ class Proyecto extends Model
 
         return $firmas->contains(fn (FirmaProyecto $firma) => $firma->estado_revision === 'Aprobado')
             && $firmas->every(fn (FirmaProyecto $firma) => in_array($firma->estado_revision, ['Aprobado', 'Anulado'], true));
+    }
+
+    public function crearNuevoCicloDesdeFirmaRechazada(
+        FirmaProyecto $firmaRechazada,
+        array $empleadosPorEtapa
+    ): Collection {
+        return DB::transaction(function () use ($firmaRechazada, $empleadosPorEtapa): Collection {
+            self::query()->whereKey($this->id)->lockForUpdate()->firstOrFail();
+
+            $documento = $this->documentoDeFirmaDelProyecto($firmaRechazada);
+
+            if ($firmaRechazada->firmable_type === DocumentoProyecto::class) {
+                if (! $documento) {
+                    throw new \RuntimeException('La firma no pertenece al proyecto indicado.');
+                }
+
+                DocumentoProyecto::query()->whereKey($documento->id)->lockForUpdate()->firstOrFail();
+            }
+
+            $firmaBloqueada = FirmaProyecto::query()
+                ->whereKey($firmaRechazada->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $firmaBloqueada) {
+                throw new \RuntimeException('La firma indicada no corresponde a una etapa rechazada.');
+            }
+
+            $documento = $this->documentoDeFirmaDelProyecto($firmaBloqueada);
+            $this->validarFirmaRechazadaParaNuevoCiclo($firmaBloqueada, $documento);
+
+            $firmasCiclo = $this->relacionFirmasDeEtapas($documento)
+                ->where('flujo_aprobacion_id', $firmaBloqueada->flujo_aprobacion_id)
+                ->where('revision_ciclo', $firmaBloqueada->revision_ciclo)
+                ->whereNotNull('flujo_aprobacion_etapa_id')
+                ->whereNull('deleted_at')
+                ->lockForUpdate()
+                ->orderBy('orden_revision')
+                ->orderBy('id')
+                ->get();
+
+            $this->validarFirmaRechazadaParaNuevoCiclo($firmaBloqueada->fresh(), $documento, $firmasCiclo);
+
+            $nuevoCiclo = (int) $firmaBloqueada->revision_ciclo + 1;
+
+            if ($this->existenFirmasDeCicloPorEtapa((int) $firmaBloqueada->flujo_aprobacion_id, $nuevoCiclo, $documento)) {
+                throw new \RuntimeException('Ya existe el siguiente ciclo de revisión para este registro.');
+            }
+
+            $firmasBase = $this->firmasBaseParaNuevoCicloDesdeRechazo($firmaBloqueada->fresh(), $firmasCiclo);
+            $empleados = $this->validarAsignacionesParaNuevoCiclo($firmasBase, $empleadosPorEtapa);
+            $cantidadCicloAnterior = $firmasCiclo->count();
+            $relation = $this->relacionFirmasDeEtapas($documento);
+
+            $firmasCreadas = $firmasBase
+                ->map(function (FirmaProyecto $firmaBase) use ($relation, $empleados, $nuevoCiclo): FirmaProyecto {
+                    return $relation->create([
+                        'empleado_id' => $empleados->get((int) $firmaBase->flujo_aprobacion_etapa_id)->id,
+                        'cargo_firma_id' => $firmaBase->cargo_firma_id,
+                        'flujo_aprobacion_id' => $firmaBase->flujo_aprobacion_id,
+                        'flujo_aprobacion_etapa_id' => $firmaBase->flujo_aprobacion_etapa_id,
+                        'orden_revision' => $firmaBase->orden_revision,
+                        'etapa_codigo' => $firmaBase->etapa_codigo,
+                        'etapa_nombre' => $firmaBase->etapa_nombre,
+                        'rol_requerido' => $firmaBase->rol_requerido,
+                        'responsable_usuario_id' => $firmaBase->responsable_usuario_id,
+                        'revision_ciclo' => $nuevoCiclo,
+                        'estado_revision' => 'Pendiente',
+                        'firma_id' => null,
+                        'sello_id' => null,
+                        'fecha_firma' => null,
+                        'hash' => (string) Str::uuid(),
+                    ]);
+                })
+                ->sortBy([
+                    ['orden_revision', 'asc'],
+                    ['id', 'asc'],
+                ])
+                ->values();
+
+            $this->validarNuevoCicloCreadoDesdeRechazo(
+                $firmaBloqueada->fresh(),
+                $firmasBase,
+                $firmasCreadas,
+                $nuevoCiclo,
+                $cantidadCicloAnterior,
+                $documento
+            );
+
+            return $firmasCreadas;
+        });
+    }
+
+    protected function validarFirmaRechazadaParaNuevoCiclo(
+        FirmaProyecto $firmaRechazada,
+        ?DocumentoProyecto $documento = null,
+        ?Collection $firmasCiclo = null
+    ): void {
+        if (! $firmaRechazada->exists
+            || filled($firmaRechazada->deleted_at)
+            || ! $firmaRechazada->usaFlujoPorEtapa()
+            || $firmaRechazada->estado_revision !== 'Rechazado'
+            || ! $firmaRechazada->flujo_aprobacion_id
+            || ! $firmaRechazada->flujo_aprobacion_etapa_id
+            || (int) $firmaRechazada->revision_ciclo < 1
+            || blank($firmaRechazada->orden_revision)
+            || ! in_array($firmaRechazada->firmable_type, [self::class, DocumentoProyecto::class], true)
+        ) {
+            throw new \RuntimeException('La firma indicada no corresponde a una etapa rechazada.');
+        }
+
+        if (! $this->firmaPerteneceAlFlujoPorEtapaDelProyecto($firmaRechazada)) {
+            throw new \RuntimeException('La firma no pertenece al proyecto indicado.');
+        }
+
+        if ($firmaRechazada->firmable_type === DocumentoProyecto::class && ! $documento) {
+            throw new \RuntimeException('La firma no pertenece al proyecto indicado.');
+        }
+
+        if ($this->existenFirmasDeCicloPorEtapa(
+            (int) $firmaRechazada->flujo_aprobacion_id,
+            (int) $firmaRechazada->revision_ciclo + 1,
+            $documento
+        )) {
+            throw new \RuntimeException('Ya existe el siguiente ciclo de revisión para este registro.');
+        }
+
+        $ultimoCiclo = $this->ultimoCicloDeFirmasPorEtapa((int) $firmaRechazada->flujo_aprobacion_id, $documento);
+
+        if ((int) $firmaRechazada->revision_ciclo !== $ultimoCiclo) {
+            throw new \RuntimeException('La firma rechazada no pertenece al último ciclo de revisión.');
+        }
+
+        $firmasCiclo = $firmasCiclo ?: $this->firmasDeEtapasDelFlujo(
+            (int) $firmaRechazada->flujo_aprobacion_id,
+            (int) $firmaRechazada->revision_ciclo,
+            $documento
+        );
+
+        if ($firmasCiclo->where('estado_revision', 'Rechazado')->count() !== 1) {
+            throw new \RuntimeException('El ciclo de revisión contiene más de una etapa rechazada.');
+        }
+    }
+
+    protected function firmasBaseParaNuevoCicloDesdeRechazo(FirmaProyecto $firmaRechazada, Collection $firmasCiclo): Collection
+    {
+        $firmasBase = $firmasCiclo
+            ->filter(fn (FirmaProyecto $firma): bool => (int) $firma->orden_revision >= (int) $firmaRechazada->orden_revision)
+            ->groupBy(fn (FirmaProyecto $firma): int => (int) $firma->flujo_aprobacion_etapa_id)
+            ->map(function (Collection $firmasEtapa) use ($firmaRechazada): FirmaProyecto {
+                $firmasActivas = $firmasEtapa
+                    ->reject(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Anulado')
+                    ->values();
+
+                if ($firmasActivas->count() !== 1) {
+                    throw new \RuntimeException('El ciclo contiene más de una firma activa para la misma etapa.');
+                }
+
+                $firmaBase = $firmasActivas->first();
+
+                if ((int) $firmaBase->flujo_aprobacion_etapa_id === (int) $firmaRechazada->flujo_aprobacion_etapa_id
+                    && (int) $firmaBase->id !== (int) $firmaRechazada->id
+                ) {
+                    throw new \RuntimeException('El ciclo contiene más de una firma activa para la misma etapa.');
+                }
+
+                if ((int) $firmaBase->id !== (int) $firmaRechazada->id && $firmaBase->estado_revision !== 'Pendiente') {
+                    throw new \RuntimeException('El ciclo rechazado contiene estados inconsistentes en las etapas posteriores.');
+                }
+
+                return $firmaBase;
+            })
+            ->sortBy([
+                ['orden_revision', 'asc'],
+                ['id', 'asc'],
+            ])
+            ->values();
+
+        if (! $firmasBase->first() || (int) $firmasBase->first()->id !== (int) $firmaRechazada->id) {
+            throw new \RuntimeException('No se pudo preparar de forma segura el nuevo ciclo de revisión.');
+        }
+
+        return $firmasBase;
+    }
+
+    protected function validarAsignacionesParaNuevoCiclo(Collection $firmasBase, array $empleadosPorEtapa): Collection
+    {
+        $etapasRequeridas = $firmasBase
+            ->pluck('flujo_aprobacion_etapa_id')
+            ->map(fn ($id): int => (int) $id)
+            ->values();
+
+        $asignaciones = collect($empleadosPorEtapa)
+            ->mapWithKeys(fn ($empleadoId, $etapaId): array => [(int) $etapaId => $empleadoId]);
+
+        foreach ($asignaciones->keys() as $etapaId) {
+            if (! $etapasRequeridas->contains((int) $etapaId)) {
+                throw new \RuntimeException('Se indicó una asignación para una etapa que no pertenece al nuevo ciclo.');
+            }
+        }
+
+        $empleados = collect();
+
+        foreach ($firmasBase as $firmaBase) {
+            $etapaId = (int) $firmaBase->flujo_aprobacion_etapa_id;
+            $etapaNombre = $firmaBase->etapa_nombre ?: $firmaBase->etapa_codigo ?: $etapaId;
+
+            if (! $asignaciones->has($etapaId)) {
+                throw new \RuntimeException(sprintf('No se indicó un empleado para la etapa "%s".', $etapaNombre));
+            }
+
+            $empleadoId = $asignaciones->get($etapaId);
+
+            if (! is_numeric($empleadoId) || (int) $empleadoId < 1) {
+                throw new \RuntimeException(sprintf('El empleado indicado para la etapa "%s" no existe.', $etapaNombre));
+            }
+
+            $empleado = Empleado::withTrashed()->find((int) $empleadoId);
+
+            if (! $empleado || $empleado->trashed()) {
+                throw new \RuntimeException(sprintf('El empleado indicado para la etapa "%s" no existe.', $etapaNombre));
+            }
+
+            if ($firmaBase->responsable_usuario_id) {
+                $responsableEmpleadoId = User::query()
+                    ->whereKey($firmaBase->responsable_usuario_id)
+                    ->first()
+                    ?->empleado
+                    ?->id;
+
+                if ((int) $responsableEmpleadoId !== (int) $empleado->id) {
+                    throw new \RuntimeException(sprintf('El empleado indicado no corresponde al responsable fijo de la etapa "%s".', $etapaNombre));
+                }
+            }
+
+            $empleados->put($etapaId, $empleado);
+        }
+
+        return $empleados;
+    }
+
+    protected function validarNuevoCicloCreadoDesdeRechazo(
+        FirmaProyecto $firmaRechazada,
+        Collection $firmasBase,
+        Collection $firmasCreadas,
+        int $nuevoCiclo,
+        int $cantidadCicloAnterior,
+        ?DocumentoProyecto $documento = null
+    ): void {
+        $firmasNuevoCiclo = $this->firmasDeEtapasDelFlujo(
+            (int) $firmaRechazada->flujo_aprobacion_id,
+            $nuevoCiclo,
+            $documento
+        );
+
+        if ($firmasNuevoCiclo->count() !== $firmasBase->count()
+            || $firmasCreadas->count() !== $firmasBase->count()
+            || $firmasNuevoCiclo->contains(fn (FirmaProyecto $firma): bool => $firma->estado_revision !== 'Pendiente')
+            || $firmasNuevoCiclo->contains(fn (FirmaProyecto $firma): bool => (int) $firma->revision_ciclo !== $nuevoCiclo)
+            || (int) $firmasNuevoCiclo->first()?->flujo_aprobacion_etapa_id !== (int) $firmaRechazada->flujo_aprobacion_etapa_id
+        ) {
+            throw new \RuntimeException('No se pudo preparar de forma segura el nuevo ciclo de revisión.');
+        }
+
+        $firmaActual = $this->firmaActualDeEtapasDelFlujo(
+            (int) $firmaRechazada->flujo_aprobacion_id,
+            $nuevoCiclo,
+            $documento
+        );
+
+        if ((int) $firmaActual?->id !== (int) $firmasNuevoCiclo->first()?->id
+            || $this->firmasDeEtapasCompletadas((int) $firmaRechazada->flujo_aprobacion_id, $nuevoCiclo, $documento)
+        ) {
+            throw new \RuntimeException('No se pudo preparar de forma segura el nuevo ciclo de revisión.');
+        }
+
+        $cantidadActualCicloAnterior = $this->firmasDeEtapasDelFlujo(
+            (int) $firmaRechazada->flujo_aprobacion_id,
+            (int) $firmaRechazada->revision_ciclo,
+            $documento
+        )->count();
+
+        if ($cantidadActualCicloAnterior !== $cantidadCicloAnterior) {
+            throw new \RuntimeException('No se pudo preparar de forma segura el nuevo ciclo de revisión.');
+        }
+    }
+
+    protected function ultimoCicloDeFirmasPorEtapa(int $flujoAprobacionId, ?DocumentoProyecto $documento = null): int
+    {
+        return (int) $this->relacionFirmasDeEtapas($documento)
+            ->where('flujo_aprobacion_id', $flujoAprobacionId)
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->whereNull('deleted_at')
+            ->max('revision_ciclo');
+    }
+
+    protected function existenFirmasDeCicloPorEtapa(
+        int $flujoAprobacionId,
+        int $revisionCiclo,
+        ?DocumentoProyecto $documento = null
+    ): bool {
+        return $this->relacionFirmasDeEtapas($documento)
+            ->where('flujo_aprobacion_id', $flujoAprobacionId)
+            ->where('revision_ciclo', $revisionCiclo)
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->whereNull('deleted_at')
+            ->exists();
     }
 
     private function validarFirmaDeEtapa(

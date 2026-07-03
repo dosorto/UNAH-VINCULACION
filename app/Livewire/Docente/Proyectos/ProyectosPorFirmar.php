@@ -918,6 +918,129 @@ class ProyectosPorFirmar extends Component
         ]);
     }
 
+    protected function rechazarFirmaPorEtapa(FirmaProyecto $firma, User $user, string $comentario): FirmaProyecto
+    {
+        $comentario = trim($comentario);
+
+        if ($comentario === '') {
+            throw new \RuntimeException('Debe indicar el motivo de la subsanación.');
+        }
+
+        return DB::transaction(function () use ($firma, $user, $comentario): FirmaProyecto {
+            $firmaBloqueada = FirmaProyecto::query()
+                ->whereKey($firma->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $firmaBloqueada || ! $this->canActOnWorkflowStageFirma($firmaBloqueada, $user)) {
+                throw new \RuntimeException('La firma ya no se encuentra disponible para rechazo.');
+            }
+
+            $proyecto = $this->proyectoDeFirmaPorEtapa($firmaBloqueada);
+
+            if (! $proyecto) {
+                throw new \RuntimeException('La firma no pertenece a un proyecto válido.');
+            }
+
+            $documento = $this->documentoDeFirmaPorEtapa($firmaBloqueada);
+            $empleadoId = $user->empleado?->id;
+
+            if (! $empleadoId) {
+                throw new \RuntimeException('El usuario no tiene un empleado activo asociado.');
+            }
+
+            $firmaBloqueada->update([
+                'estado_revision' => 'Rechazado',
+                'firma_id' => null,
+                'sello_id' => null,
+                'fecha_firma' => now(),
+            ]);
+
+            $firmaRechazada = $firmaBloqueada->fresh();
+
+            $proyecto->anularFirmasPendientesDuplicadasDeEtapa(
+                (int) $firmaRechazada->flujo_aprobacion_etapa_id,
+                (int) $firmaRechazada->revision_ciclo,
+                $firmaRechazada->id,
+                $documento
+            );
+
+            $this->registrarSubsanacionPorRechazoDeEtapa($proyecto, $documento, $empleadoId, $comentario);
+            $this->verificarRecorridoBloqueadoPorRechazo($firmaRechazada->fresh(), $proyecto, $documento);
+
+            return $firmaRechazada->fresh();
+        });
+    }
+
+    protected function verificarRecorridoBloqueadoPorRechazo(
+        FirmaProyecto $firmaRechazada,
+        Proyecto $proyecto,
+        ?DocumentoProyecto $documento = null
+    ): void {
+        $firmaRechazada = $firmaRechazada->fresh();
+
+        if ($firmaRechazada->estado_revision !== 'Rechazado') {
+            throw new \RuntimeException('No se pudo bloquear de forma segura el recorrido después del rechazo.');
+        }
+
+        if ($proyecto->firmaActualDeEtapasDelFlujo(
+            (int) $firmaRechazada->flujo_aprobacion_id,
+            (int) $firmaRechazada->revision_ciclo,
+            $documento
+        )) {
+            throw new \RuntimeException('No se pudo bloquear de forma segura el recorrido después del rechazo.');
+        }
+
+        if ($proyecto->firmasDeEtapasCompletadas(
+            (int) $firmaRechazada->flujo_aprobacion_id,
+            (int) $firmaRechazada->revision_ciclo,
+            $documento
+        )) {
+            throw new \RuntimeException('No se pudo bloquear de forma segura el recorrido después del rechazo.');
+        }
+
+        $firmasPosteriores = $proyecto->firmasDeEtapasDelFlujo(
+            (int) $firmaRechazada->flujo_aprobacion_id,
+            (int) $firmaRechazada->revision_ciclo,
+            $documento
+        )->filter(fn (FirmaProyecto $firma): bool => (int) $firma->orden_revision > (int) $firmaRechazada->orden_revision);
+
+        foreach ($firmasPosteriores as $firmaPosterior) {
+            if ($firmaPosterior->estado_revision !== 'Pendiente' || $proyecto->firmaEsActualEnFlujoPorEtapa($firmaPosterior)) {
+                throw new \RuntimeException('No se pudo bloquear de forma segura el recorrido después del rechazo.');
+            }
+        }
+    }
+
+    protected function registrarSubsanacionPorRechazoDeEtapa(
+        Proyecto $proyecto,
+        ?DocumentoProyecto $documento,
+        int $empleadoId,
+        string $comentario
+    ): void {
+        $subsanacionId = TipoEstado::query()
+            ->where('nombre', 'Subsanacion')
+            ->value('id');
+
+        if (! $subsanacionId) {
+            throw new \RuntimeException('No existe un estado de subsanación configurado.');
+        }
+
+        $payload = [
+            'empleado_id' => $empleadoId,
+            'tipo_estado_id' => $subsanacionId,
+            'fecha' => now(),
+            'comentario' => $comentario,
+        ];
+
+        if ($documento) {
+            $documento->estado_documento()->create($payload);
+            return;
+        }
+
+        $proyecto->estado_proyecto()->create($payload);
+    }
+
     private function estadosRevisionEnfPendiente(): array
     {
         return ['PENDIENTE', 'PENDIENTE_ASIGNACION', 'ASIGNADO', 'EN_PROCESO'];

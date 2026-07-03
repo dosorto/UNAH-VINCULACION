@@ -330,7 +330,11 @@ class ConfiguracionFlujosProyectos extends Component
             'stages.*.requiere_asignacion' => ['boolean'],
             'stages.*.emisor_define_destinatario' => ['boolean'],
             'stages.*.activo' => ['boolean'],
-        ]);
+        ] + $this->academicScopeValidationRules('stages'), $this->academicScopeValidationMessages('stages'));
+
+        if (! $this->validateAcademicStageRules($validated['stages'], 'stages')) {
+            return;
+        }
 
         $validated['stages'] = $this->prepareStagesForSave($validated['stages'], 'REVISION', $this->workflowId);
 
@@ -389,7 +393,99 @@ class ConfiguracionFlujosProyectos extends Component
             'estadoOpciones' => $this->estadoOpciones,
             'tiposPrograma' => $tiposPrograma,
             'selectedTipoPrograma' => $selectedTipoPrograma,
+            'alcancesAcademicos' => $this->alcancesAcademicos(),
+            'multiplicidadesRevision' => $this->multiplicidadesRevision(),
         ])->layout('layouts.app', ['hideHorizontalNav' => true]);
+    }
+
+    public function alcancesAcademicos(): array
+    {
+        return FlujoAprobacionEtapa::alcancesAcademicosDisponibles();
+    }
+
+    public function multiplicidadesRevision(): array
+    {
+        return FlujoAprobacionEtapa::multiplicidadesRevisionDisponibles();
+    }
+
+    protected function academicScopeValidationRules(string $prefix): array
+    {
+        return [
+            $prefix.'.*.alcance_academico' => ['string', Rule::in(array_keys($this->alcancesAcademicos()))],
+            $prefix.'.*.multiplicidad_revision' => ['string', Rule::in(array_keys($this->multiplicidadesRevision()))],
+        ];
+    }
+
+    protected function academicScopeValidationMessages(string $prefix): array
+    {
+        return [
+            $prefix.'.*.alcance_academico.in' => 'El alcance academico seleccionado no es valido.',
+            $prefix.'.*.multiplicidad_revision.in' => 'La multiplicidad de revision seleccionada no es valida.',
+        ];
+    }
+
+    protected function validateAcademicStageRules(array $stages, string $prefix): bool
+    {
+        $valid = true;
+        $perUnitScopes = [
+            FlujoAprobacionEtapa::ALCANCE_CENTRO,
+            FlujoAprobacionEtapa::ALCANCE_DEPARTAMENTO,
+            FlujoAprobacionEtapa::ALCANCE_CARRERA,
+        ];
+
+        foreach (array_values($stages) as $index => $stage) {
+            $fieldPrefix = $prefix.'.'.$index;
+            $scope = $this->normalizeAcademicScope($stage['alcance_academico'] ?? null);
+            $multiplicity = $this->normalizeReviewMultiplicity($stage['multiplicidad_revision'] ?? null);
+
+            if (
+                $multiplicity === FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD
+                && ! in_array($scope, $perUnitScopes, true)
+            ) {
+                $this->addError($fieldPrefix.'.multiplicidad_revision', 'La revision por cada unidad solo aplica para centro, departamento o carrera.');
+                $valid = false;
+            }
+
+            if (
+                (bool) ($stage['activo'] ?? true)
+                && $scope !== FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO
+                && blank($stage['rol_revisor_id'] ?? null)
+                && blank($stage['usuario_responsable_id'] ?? null)
+            ) {
+                $this->addError($fieldPrefix.'.rol_revisor_id', 'Seleccione un rol o responsable para una etapa activa con alcance academico.');
+                $valid = false;
+            }
+        }
+
+        return $valid;
+    }
+
+    protected function normalizeAcademicScope(mixed $scope): string
+    {
+        $scope = (string) $scope;
+
+        return array_key_exists($scope, $this->alcancesAcademicos())
+            ? $scope
+            : $this->defaultAcademicScope();
+    }
+
+    protected function normalizeReviewMultiplicity(mixed $multiplicity): string
+    {
+        $multiplicity = (string) $multiplicity;
+
+        return array_key_exists($multiplicity, $this->multiplicidadesRevision())
+            ? $multiplicity
+            : $this->defaultReviewMultiplicity();
+    }
+
+    protected function defaultAcademicScope(): string
+    {
+        return FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO;
+    }
+
+    protected function defaultReviewMultiplicity(): string
+    {
+        return FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO;
     }
 
     protected function saveProgramFlow(): void
@@ -413,7 +509,11 @@ class ConfiguracionFlujosProyectos extends Component
             'programStages.*.requiere_asignacion' => ['boolean'],
             'programStages.*.emisor_define_destinatario' => ['boolean'],
             'programStages.*.activo' => ['boolean'],
-        ]);
+        ] + $this->academicScopeValidationRules('programStages'), $this->academicScopeValidationMessages('programStages'));
+
+        if (! $this->validateAcademicStageRules($validated['programStages'], 'programStages')) {
+            return;
+        }
 
         $validated['programStages'] = $this->prepareStagesForSave($validated['programStages'], 'REVISION');
 
@@ -470,7 +570,11 @@ class ConfiguracionFlujosProyectos extends Component
             'stages.*.permite_edicion' => ['boolean'],
             'stages.*.permite_rechazo' => ['boolean'],
             'stages.*.es_estado_final_aprobado' => ['boolean'],
-        ], [], $this->ppsValidationAttributes());
+        ] + $this->academicScopeValidationRules('stages'), $this->academicScopeValidationMessages('stages'), $this->ppsValidationAttributes());
+
+        if (! $this->validateAcademicStageRules($validated['stages'], 'stages')) {
+            return;
+        }
 
         $preparedStages = $this->preparePpsStagesForSave($validated['stages']);
 
@@ -779,6 +883,8 @@ class ConfiguracionFlujosProyectos extends Component
                 'usuario_responsable_id' => (string) ($stage->usuario_responsable_id ?? ''),
                 'requiere_asignacion' => (bool) $stage->requiere_asignacion,
                 'activo' => (bool) $stage->activo,
+                'alcance_academico' => $this->normalizeAcademicScope($stage->alcance_academico),
+                'multiplicidad_revision' => $this->normalizeReviewMultiplicity($stage->multiplicidad_revision),
                 'estado_resultante' => $stage->estado_resultante ?? '',
                 'permite_edicion' => (bool) $stage->permite_edicion,
                 'permite_rechazo' => (bool) $stage->permite_rechazo,
@@ -876,6 +982,8 @@ class ConfiguracionFlujosProyectos extends Component
                 'requiere_asignacion' => (bool) $stage->requiere_asignacion,
                 'emisor_define_destinatario' => (bool) $stage->emisor_define_destinatario,
                 'activo' => (bool) $stage->activo,
+                'alcance_academico' => $this->normalizeAcademicScope($stage->alcance_academico),
+                'multiplicidad_revision' => $this->normalizeReviewMultiplicity($stage->multiplicidad_revision),
             ])
             ->values()
             ->all();
@@ -917,6 +1025,8 @@ class ConfiguracionFlujosProyectos extends Component
             'requiere_asignacion' => true,
             'emisor_define_destinatario' => false,
             'activo' => true,
+            'alcance_academico' => $this->defaultAcademicScope(),
+            'multiplicidad_revision' => $this->defaultReviewMultiplicity(),
         ];
     }
 
@@ -998,6 +1108,8 @@ class ConfiguracionFlujosProyectos extends Component
                 'requiere_asignacion' => (bool) $stage->requiere_asignacion,
                 'emisor_define_destinatario' => (bool) $stage->emisor_define_destinatario,
                 'activo' => (bool) $stage->activo,
+                'alcance_academico' => $this->normalizeAcademicScope($stage->alcance_academico),
+                'multiplicidad_revision' => $this->normalizeReviewMultiplicity($stage->multiplicidad_revision),
             ])
             ->values()
             ->all();
@@ -1059,7 +1171,7 @@ class ConfiguracionFlujosProyectos extends Component
                 $responsableId = null;
             }
 
-            $prepared[] = [
+            $preparedStage = [
                 'id' => $stage['id'] ?? null,
                 'orden' => $index + 1,
                 'codigo' => $codigo,
@@ -1075,6 +1187,16 @@ class ConfiguracionFlujosProyectos extends Component
                 'emisor_define_destinatario' => $emisorDefine,
                 'activo' => (bool) ($stage['activo'] ?? true),
             ];
+
+            if (array_key_exists('alcance_academico', $stage)) {
+                $preparedStage['alcance_academico'] = $this->normalizeAcademicScope($stage['alcance_academico']);
+            }
+
+            if (array_key_exists('multiplicidad_revision', $stage)) {
+                $preparedStage['multiplicidad_revision'] = $this->normalizeReviewMultiplicity($stage['multiplicidad_revision']);
+            }
+
+            $prepared[] = $preparedStage;
         }
 
         return $prepared;
@@ -1131,6 +1253,7 @@ class ConfiguracionFlujosProyectos extends Component
         });
 
         foreach ($stages as $stage) {
+            $stageModel = $stage['id'] ? $existing->get((int) $stage['id']) : null;
             $payload = [
                 'orden' => $stage['orden'],
                 'codigo' => $stage['codigo'],
@@ -1145,9 +1268,13 @@ class ConfiguracionFlujosProyectos extends Component
                 'requiere_asignacion' => $stage['requiere_asignacion'],
                 'emisor_define_destinatario' => $stage['emisor_define_destinatario'],
                 'activo' => $stage['activo'],
+                'alcance_academico' => array_key_exists('alcance_academico', $stage)
+                    ? $this->normalizeAcademicScope($stage['alcance_academico'])
+                    : ($stageModel?->alcance_academico ?? $this->defaultAcademicScope()),
+                'multiplicidad_revision' => array_key_exists('multiplicidad_revision', $stage)
+                    ? $this->normalizeReviewMultiplicity($stage['multiplicidad_revision'])
+                    : ($stageModel?->multiplicidad_revision ?? $this->defaultReviewMultiplicity()),
             ];
-
-            $stageModel = $stage['id'] ? $existing->get((int) $stage['id']) : null;
 
             if ($stageModel) {
                 $stageModel->update($payload);
@@ -1174,6 +1301,8 @@ class ConfiguracionFlujosProyectos extends Component
                 'usuario_responsable_id' => '',
                 'requiere_asignacion' => false,
                 'activo' => true,
+                'alcance_academico' => $this->defaultAcademicScope(),
+                'multiplicidad_revision' => $this->defaultReviewMultiplicity(),
                 'estado_resultante' => PpsServicioSocial::ESTADO_ENVIADO,
                 'permite_edicion' => false,
                 'permite_rechazo' => true,
@@ -1189,6 +1318,8 @@ class ConfiguracionFlujosProyectos extends Component
                 'usuario_responsable_id' => '',
                 'requiere_asignacion' => false,
                 'activo' => true,
+                'alcance_academico' => $this->defaultAcademicScope(),
+                'multiplicidad_revision' => $this->defaultReviewMultiplicity(),
                 'estado_resultante' => PpsServicioSocial::ESTADO_APROBADO,
                 'permite_edicion' => false,
                 'permite_rechazo' => false,
@@ -1209,6 +1340,8 @@ class ConfiguracionFlujosProyectos extends Component
             'usuario_responsable_id' => '',
             'requiere_asignacion' => false,
             'activo' => true,
+            'alcance_academico' => $this->defaultAcademicScope(),
+            'multiplicidad_revision' => $this->defaultReviewMultiplicity(),
             'estado_resultante' => 'en_revision',
             'permite_edicion' => false,
             'permite_rechazo' => true,
@@ -1230,7 +1363,7 @@ class ConfiguracionFlujosProyectos extends Component
                     $responsableId = null;
                 }
 
-                return [
+                $preparedStage = [
                     'id' => $stage['id'] ?? null,
                     'orden' => $index + 1,
                     'codigo' => $this->normalizeCode($stage['codigo'] ?? '') ?: 'ETAPA_'.($index + 1),
@@ -1245,6 +1378,16 @@ class ConfiguracionFlujosProyectos extends Component
                     'permite_rechazo' => (bool) ($stage['permite_rechazo'] ?? true),
                     'es_estado_final_aprobado' => (bool) ($stage['es_estado_final_aprobado'] ?? false),
                 ];
+
+                if (array_key_exists('alcance_academico', $stage)) {
+                    $preparedStage['alcance_academico'] = $this->normalizeAcademicScope($stage['alcance_academico']);
+                }
+
+                if (array_key_exists('multiplicidad_revision', $stage)) {
+                    $preparedStage['multiplicidad_revision'] = $this->normalizeReviewMultiplicity($stage['multiplicidad_revision']);
+                }
+
+                return $preparedStage;
             })
             ->all();
     }
@@ -1316,6 +1459,7 @@ class ConfiguracionFlujosProyectos extends Component
         });
 
         foreach ($stages as $stage) {
+            $stageModel = $stage['id'] ? $existing->get((int) $stage['id']) : null;
             $payload = [
                 'orden' => $stage['orden'],
                 'codigo' => $stage['codigo'],
@@ -1334,9 +1478,13 @@ class ConfiguracionFlujosProyectos extends Component
                 'permite_edicion' => $stage['permite_edicion'],
                 'permite_rechazo' => $stage['permite_rechazo'],
                 'es_estado_final_aprobado' => $stage['es_estado_final_aprobado'],
+                'alcance_academico' => array_key_exists('alcance_academico', $stage)
+                    ? $this->normalizeAcademicScope($stage['alcance_academico'])
+                    : ($stageModel?->alcance_academico ?? $this->defaultAcademicScope()),
+                'multiplicidad_revision' => array_key_exists('multiplicidad_revision', $stage)
+                    ? $this->normalizeReviewMultiplicity($stage['multiplicidad_revision'])
+                    : ($stageModel?->multiplicidad_revision ?? $this->defaultReviewMultiplicity()),
             ];
-
-            $stageModel = $stage['id'] ? $existing->get((int) $stage['id']) : null;
 
             if ($stageModel) {
                 $stageModel->update($payload);
