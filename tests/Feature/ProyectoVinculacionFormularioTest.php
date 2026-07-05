@@ -425,11 +425,21 @@ class ProyectoVinculacionFormularioTest extends TestCase
 
     public function test_iframes_ocultos_de_ficha_se_crean_solo_al_abrir_modal(): void
     {
-        $ficha = file_get_contents(resource_path('views/components/fichas/ficha-proyecto-vinculacion.blade.php'));
+        $ficha = str_replace(
+            ["\r\n", "\r"],
+            "\n",
+            file_get_contents(resource_path('views/components/fichas/ficha-proyecto-vinculacion.blade.php'))
+        );
 
         $this->assertGreaterThanOrEqual(2, substr_count($ficha, '<template x-if="open">'));
-        $this->assertStringContainsString('<template x-if="open">' . PHP_EOL . '                                                                <iframe src="{{ Storage::url($instrumento->documento_url) }}"', $ficha);
-        $this->assertStringContainsString('<template x-if="open">' . PHP_EOL . '                                                            <iframe src="{{ Storage::url($anexo->documento_url) }}"', $ficha);
+        $this->assertMatchesRegularExpression(
+            '/<template\s+x-if="open">\s*<iframe\s+src="\{\{\s*Storage::url\(\$instrumento->documento_url\)\s*\}\}"/',
+            $ficha
+        );
+        $this->assertMatchesRegularExpression(
+            '/<template\s+x-if="open">\s*<iframe\s+src="\{\{\s*Storage::url\(\$anexo->documento_url\)\s*\}\}"/',
+            $ficha
+        );
     }
 
     private function formComponent(): CreateProyectoVinculacion

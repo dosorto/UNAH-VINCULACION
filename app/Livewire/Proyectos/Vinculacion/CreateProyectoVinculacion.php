@@ -7,6 +7,7 @@ use Livewire\WithFileUploads;
 use App\Support\Notification;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\CargoFirma;
+use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Modalidad;
@@ -173,6 +174,17 @@ class CreateProyectoVinculacion extends Component
     public ?int $decano_empleado_id = null;
     public ?int $enlace_empleado_id = null;
     public string $firmaSearch = '';
+    public array $firmantesPorEtapa = [];
+    public array $candidatosPorEtapa = [];
+    public array $unidadesSinCandidatosPorEtapa = [];
+    public array $mensajesFirmantesPorEtapa = [];
+    public array $erroresFirmantesPorEtapa = [];
+    public bool $firmantesPorEtapaListos = false;
+    public bool $firmantesPorEtapaBloqueado = false;
+    public ?string $mensajeBloqueoFirmantesPorEtapa = null;
+    public bool $mostrarFirmantesPorEtapa = false;
+    public ?string $mensajeFirmantesPorEtapaVista = null;
+    public bool $usarFirmantesPorEtapaParaEnvio = false;
 
     // ── FORM-DVUS-015 (Voluntariado Académico) ──────────────────────────────
     // Campos propios que sólo aplican cuando el tipo de acción es Voluntariado.
@@ -3025,22 +3037,27 @@ class CreateProyectoVinculacion extends Component
         $record = Proyecto::findOrFail($this->recordId);
         $empleado = auth()->user()->empleado;
         try {
-            $this->saveFirmas($record);
-            $record->sincronizarFirmasDelFlujo();
-            $cargoFirma = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
-                ->where('cargo_firma.descripcion', 'Proyecto')
-                ->first();
+            if ($this->usarFirmantesPorEtapaParaEnvio) {
+                $this->debeEnviarPorFlujoDeEtapas();
+                $this->guardarFirmasPorEtapaDesdeSeleccionDinamica($record);
+            } else {
+                $this->saveFirmas($record);
+                $record->sincronizarFirmasDelFlujo();
+                $cargoFirma = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+                    ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+                    ->where('cargo_firma.descripcion', 'Proyecto')
+                    ->first();
 
-            if ($cargoFirma) {
-                $record->guardarFirmaDeCargo($cargoFirma->id, $empleado, [
-                    'estado_revision' => 'Pendiente',
-                    'firma_id' => null,
-                    'sello_id' => null,
-                    'fecha_firma' => null,
-                ]);
+                if ($cargoFirma) {
+                    $record->guardarFirmaDeCargo($cargoFirma->id, $empleado, [
+                        'estado_revision' => 'Pendiente',
+                        'firma_id' => null,
+                        'sello_id' => null,
+                        'fecha_firma' => null,
+                    ]);
 
-                $record->agregarEstado(empleado: $empleado, tipoEstadoId: $cargoFirma->tipo_estado_id, comentario: 'Proyecto enviado para firma');
+                    $record->agregarEstado(empleado: $empleado, tipoEstadoId: $cargoFirma->tipo_estado_id, comentario: 'Proyecto enviado para firma');
+                }
             }
         } catch (\Exception $e) {
             Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
@@ -3086,6 +3103,525 @@ class CreateProyectoVinculacion extends Component
                 ]);
             }
         }
+    }
+
+    protected function debeEnviarPorFlujoDeEtapas(): bool
+    {
+        $proyecto = $this->getRecord();
+        $fallar = fn () => throw new RuntimeException('Los firmantes por etapa fueron activados, pero ya no estan listos para el envio.');
+
+        if (! $this->usarFirmantesPorEtapaParaEnvio
+            || ! $proyecto
+            || empty($this->firmantesPorEtapa)
+            || ! $this->firmantesPorEtapaListos
+            || $this->firmantesPorEtapaBloqueado
+            || ! empty($this->erroresFirmantesPorEtapa)
+        ) {
+            $fallar();
+        }
+
+        if (collect($this->unidadesSinCandidatosPorEtapa)->contains(fn (array $unidades): bool => ! empty($unidades))) {
+            $fallar();
+        }
+
+        try {
+            $this->asignacionesFirmantesPorEtapaNormalizadas($proyecto);
+        } catch (RuntimeException $exception) {
+            $fallar();
+        }
+
+        return true;
+    }
+
+    protected function guardarFirmasPorEtapaDesdeSeleccionDinamica(Proyecto $proyecto): Collection
+    {
+        $this->validarPrecondicionesFirmantesPorEtapa($proyecto);
+        $empleadosPorEtapa = $this->asignacionesFirmantesPorEtapaNormalizadas($proyecto);
+
+        return DB::transaction(function () use ($proyecto, $empleadosPorEtapa): Collection {
+            $proyectoBloqueado = Proyecto::query()
+                ->whereKey($proyecto->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $proyectoBloqueado) {
+                throw new RuntimeException('Los firmantes por etapa no estan listos para enviar el proyecto a revision.');
+            }
+
+            $flujo = $proyectoBloqueado->resolveFlujoAprobacion();
+
+            if (! $flujo) {
+                throw new RuntimeException('Los firmantes por etapa no estan listos para enviar el proyecto a revision.');
+            }
+
+            $this->validarPrecondicionesFirmantesPorEtapa($proyectoBloqueado);
+            $empleadosPorEtapa = $this->asignacionesFirmantesPorEtapaNormalizadas($proyectoBloqueado);
+            $this->validarSinFirmasPreviasParaEnvioPorEtapa($proyectoBloqueado, (int) $flujo->id);
+
+            $firmas = $proyectoBloqueado->sincronizarFirmasDeEtapasDelFlujo(
+                $empleadosPorEtapa,
+                Proyecto::FLUJO_INSCRIPCION,
+                null,
+                1
+            );
+
+            $primeraFirma = $proyectoBloqueado->firmaActualDeEtapasDelFlujo((int) $flujo->id, 1);
+
+            if (! $primeraFirma || (int) $primeraFirma->id !== (int) $firmas->first()?->id) {
+                throw new RuntimeException('No se pudo preparar el envio por etapas de forma segura.');
+            }
+
+            $this->registrarEstadoInicialDeFirmasPorEtapa($proyectoBloqueado, $primeraFirma);
+            $this->validarResultadoFirmasPorEtapa(
+                $proyectoBloqueado->fresh(),
+                $firmas->map(fn (FirmaProyecto $firma): FirmaProyecto => $firma->fresh())->values()
+            );
+
+            return $firmas->map(fn (FirmaProyecto $firma): FirmaProyecto => $firma->fresh())->values();
+        });
+    }
+
+    protected function validarPrecondicionesFirmantesPorEtapa(Proyecto $proyecto): void
+    {
+        $fallar = fn () => throw new RuntimeException('Los firmantes por etapa no estan listos para enviar el proyecto a revision.');
+
+        if (! $proyecto->exists || ! $proyecto->resolveFlujoAprobacion()) {
+            $fallar();
+        }
+
+        if (empty($this->firmantesPorEtapa)
+            || ! $this->firmantesPorEtapaListos
+            || $this->firmantesPorEtapaBloqueado
+            || ! empty($this->erroresFirmantesPorEtapa)
+        ) {
+            $fallar();
+        }
+
+        if (collect($this->unidadesSinCandidatosPorEtapa)->contains(fn (array $unidades): bool => ! empty($unidades))) {
+            $fallar();
+        }
+
+        $hayPorCadaUnidad = collect($this->firmantesPorEtapa)
+            ->contains(fn (array $firmante): bool => ($firmante['multiplicidad_revision'] ?? null) === FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD);
+
+        if ($hayPorCadaUnidad) {
+            $fallar();
+        }
+
+        $faltaEmpleado = collect($this->firmantesPorEtapa)
+            ->contains(fn (array $firmante): bool => ($firmante['multiplicidad_revision'] ?? null) === FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO
+                && empty($firmante['empleado_id']));
+
+        if ($faltaEmpleado) {
+            $fallar();
+        }
+
+        try {
+            $this->asignacionesFirmantesPorEtapaNormalizadas($proyecto);
+        } catch (RuntimeException $exception) {
+            $fallar();
+        }
+    }
+
+    protected function validarSinFirmasPreviasParaEnvioPorEtapa(Proyecto $proyecto, int $flujoAprobacionId): void
+    {
+        $existenFirmasPorEtapa = $proyecto->firma_proyecto()
+            ->where('flujo_aprobacion_id', $flujoAprobacionId)
+            ->where('revision_ciclo', 1)
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->whereNull('deleted_at')
+            ->where('estado_revision', '!=', 'Anulado')
+            ->exists();
+
+        if ($existenFirmasPorEtapa) {
+            throw new RuntimeException('Ya existen firmas por etapa para este proyecto.');
+        }
+
+        $existenFirmasLegacy = $proyecto->firma_proyecto()
+            ->whereNull('flujo_aprobacion_etapa_id')
+            ->whereNull('deleted_at')
+            ->where('estado_revision', 'Pendiente')
+            ->exists();
+
+        if ($existenFirmasLegacy) {
+            throw new RuntimeException('Ya existen firmas legacy para este envio y no se puede iniciar el flujo por etapa.');
+        }
+    }
+
+    protected function registrarEstadoInicialDeFirmasPorEtapa(Proyecto $proyecto, FirmaProyecto $primeraFirma): void
+    {
+        $tipoEstadoId = $primeraFirma->cargo_firma()->value('tipo_estado_id');
+        $empleado = auth()->user()?->empleado;
+
+        if (! $tipoEstadoId || ! $empleado) {
+            throw new RuntimeException('No se pudo preparar el envio por etapas de forma segura.');
+        }
+
+        $proyecto->agregarEstado(
+            empleado: $empleado,
+            tipoEstadoId: (int) $tipoEstadoId,
+            comentario: 'Proyecto enviado a revision por flujo de etapas.'
+        );
+    }
+
+    protected function validarResultadoFirmasPorEtapa(Proyecto $proyecto, Collection $firmas): void
+    {
+        $flujo = $proyecto->resolveFlujoAprobacion();
+        $etapas = $this->etapasActivasParaEnvioPorFlujo($proyecto)
+            ->filter(fn (FlujoAprobacionEtapa $etapa): bool => $etapa->multiplicidad_revision === FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO)
+            ->values();
+
+        if (! $flujo || $firmas->count() !== $etapas->count()) {
+            throw new RuntimeException('No se pudo preparar el envio por etapas de forma segura.');
+        }
+
+        $firmas = $firmas->map(fn (FirmaProyecto $firma): FirmaProyecto => $firma->fresh())->values();
+
+        $idsEtapa = $firmas->pluck('flujo_aprobacion_etapa_id')->filter()->map(fn ($id): int => (int) $id);
+        $primeraFirma = $proyecto->firmaActualDeEtapasDelFlujo((int) $flujo->id, 1);
+        $tipoEstadoPrimera = $primeraFirma?->cargo_firma()->value('tipo_estado_id');
+        $estadoActualId = $proyecto->fresh()->estado?->tipo_estado_id;
+
+        if ($firmas->contains(fn (FirmaProyecto $firma): bool => $firma->estado_revision !== 'Pendiente')
+            || $firmas->contains(fn (FirmaProyecto $firma): bool => (int) $firma->revision_ciclo !== 1)
+            || $idsEtapa->count() !== $idsEtapa->unique()->count()
+            || ! $primeraFirma
+            || ! $tipoEstadoPrimera
+            || (int) $estadoActualId !== (int) $tipoEstadoPrimera
+            || $proyecto->firmasDeEtapasCompletadas((int) $flujo->id, 1)
+        ) {
+            throw new RuntimeException('No se pudo preparar el envio por etapas de forma segura.');
+        }
+
+        foreach ($firmas as $firma) {
+            $esPrimera = (int) $firma->id === (int) $primeraFirma->id;
+
+            if ($proyecto->firmaEsActualEnFlujoPorEtapa($firma) !== $esPrimera) {
+                throw new RuntimeException('No se pudo preparar el envio por etapas de forma segura.');
+            }
+        }
+    }
+
+    public function prepararFirmantesPorEtapaParaVista(): void
+    {
+        $proyecto = $this->getRecord();
+
+        if (! $proyecto) {
+            $this->mostrarFirmantesPorEtapa = true;
+            $this->firmantesPorEtapaListos = false;
+            $this->firmantesPorEtapaBloqueado = true;
+            $this->mensajeFirmantesPorEtapaVista = null;
+            $this->mensajeBloqueoFirmantesPorEtapa = 'Debe guardar el borrador antes de preparar firmantes por etapa.';
+
+            return;
+        }
+
+        $this->mensajeFirmantesPorEtapaVista = null;
+        $this->prepararEstadoFirmantesPorEtapa($proyecto);
+        $this->mostrarFirmantesPorEtapa = true;
+    }
+
+    public function cerrarFirmantesPorEtapaParaVista(): void
+    {
+        $this->mostrarFirmantesPorEtapa = false;
+        $this->mensajeFirmantesPorEtapaVista = null;
+        $this->limpiarEstadoFirmantesPorEtapa();
+    }
+
+    public function seleccionarFirmantePorEtapaParaVista(int $etapaId, int $empleadoId): void
+    {
+        $proyecto = $this->getRecord();
+
+        if (! $proyecto) {
+            $this->firmantesPorEtapaListos = false;
+            $this->firmantesPorEtapaBloqueado = true;
+            $this->mensajeFirmantesPorEtapaVista = null;
+            $this->mensajeBloqueoFirmantesPorEtapa = 'Debe guardar el borrador antes de seleccionar firmantes por etapa.';
+
+            return;
+        }
+
+        if (! array_key_exists($etapaId, $this->firmantesPorEtapa)) {
+            $this->firmantesPorEtapaListos = false;
+            $this->mensajesFirmantesPorEtapa[$etapaId] = 'La etapa indicada no esta preparada para seleccionar firmante.';
+
+            return;
+        }
+
+        if ($empleadoId <= 0) {
+            $this->firmantesPorEtapa[$etapaId]['empleado_id'] = null;
+            $this->firmantesPorEtapa[$etapaId]['mensaje'] = null;
+            unset($this->mensajesFirmantesPorEtapa[$etapaId]);
+            $this->mensajeFirmantesPorEtapaVista = null;
+            $this->recalcularEstadoFirmantesPorEtapa();
+
+            return;
+        }
+
+        try {
+            $this->seleccionarFirmantePorEtapa($proyecto, $etapaId, $empleadoId);
+            $this->mensajeFirmantesPorEtapaVista = null;
+        } catch (RuntimeException $exception) {
+            $this->mensajeFirmantesPorEtapaVista = null;
+        }
+    }
+
+    public function validarFirmantesPorEtapaParaVista(): void
+    {
+        $proyecto = $this->getRecord();
+
+        if (! $proyecto) {
+            $this->firmantesPorEtapaListos = false;
+            $this->firmantesPorEtapaBloqueado = true;
+            $this->mensajeFirmantesPorEtapaVista = null;
+            $this->mensajeBloqueoFirmantesPorEtapa = 'Debe guardar el borrador antes de validar firmantes por etapa.';
+
+            return;
+        }
+
+        try {
+            $this->asignacionesFirmantesPorEtapaNormalizadas($proyecto);
+            $this->firmantesPorEtapaListos = true;
+            $this->firmantesPorEtapaBloqueado = false;
+            $this->mensajeBloqueoFirmantesPorEtapa = null;
+            $this->mensajeFirmantesPorEtapaVista = 'Firmantes por etapa validados correctamente. Se activaran para envio en una fase posterior.';
+        } catch (RuntimeException $exception) {
+            $this->firmantesPorEtapaListos = false;
+            $this->mensajeFirmantesPorEtapaVista = null;
+            $this->mensajeBloqueoFirmantesPorEtapa = $exception->getMessage();
+        }
+    }
+
+    public function activarFirmantesPorEtapaParaEnvio(): void
+    {
+        $proyecto = $this->getRecord();
+
+        if (! $proyecto) {
+            $this->usarFirmantesPorEtapaParaEnvio = false;
+            $this->mensajeFirmantesPorEtapaVista = null;
+            $this->mensajeBloqueoFirmantesPorEtapa = 'Debe guardar el borrador antes de activar firmantes por etapa.';
+
+            return;
+        }
+
+        try {
+            if (! $this->firmantesPorEtapaListos
+                || $this->firmantesPorEtapaBloqueado
+                || ! empty($this->erroresFirmantesPorEtapa)
+                || collect($this->unidadesSinCandidatosPorEtapa)->contains(fn (array $unidades): bool => ! empty($unidades))
+            ) {
+                throw new RuntimeException('Los firmantes por etapa no estan listos para enviar el proyecto a revision.');
+            }
+
+            $this->asignacionesFirmantesPorEtapaNormalizadas($proyecto);
+            $this->usarFirmantesPorEtapaParaEnvio = true;
+            $this->mensajeBloqueoFirmantesPorEtapa = null;
+            $this->mensajeFirmantesPorEtapaVista = 'Firmantes por etapa activados para este envio.';
+        } catch (RuntimeException $exception) {
+            $this->usarFirmantesPorEtapaParaEnvio = false;
+            $this->mensajeFirmantesPorEtapaVista = null;
+            $this->mensajeBloqueoFirmantesPorEtapa = $exception->getMessage();
+        }
+    }
+
+    public function desactivarFirmantesPorEtapaParaEnvio(): void
+    {
+        $this->usarFirmantesPorEtapaParaEnvio = false;
+        $this->mensajeFirmantesPorEtapaVista = null;
+    }
+
+    protected function limpiarEstadoFirmantesPorEtapa(): void
+    {
+        $this->firmantesPorEtapa = [];
+        $this->candidatosPorEtapa = [];
+        $this->unidadesSinCandidatosPorEtapa = [];
+        $this->mensajesFirmantesPorEtapa = [];
+        $this->erroresFirmantesPorEtapa = [];
+        $this->firmantesPorEtapaListos = false;
+        $this->firmantesPorEtapaBloqueado = false;
+        $this->mensajeBloqueoFirmantesPorEtapa = null;
+        $this->usarFirmantesPorEtapaParaEnvio = false;
+    }
+
+    protected function prepararEstadoFirmantesPorEtapa(Proyecto $proyecto): void
+    {
+        $this->limpiarEstadoFirmantesPorEtapa();
+
+        try {
+            $etapas = $this->etapasActivasParaEnvioPorFlujo($proyecto);
+            $candidatosPorEtapa = $this->candidatosPorEtapaParaEnvio($proyecto)
+                ->keyBy(fn (array $grupo): int => (int) $grupo['etapa']->id);
+            $unidadesSinCandidatos = $this->unidadesSinCandidatosParaEnvio($proyecto)
+                ->groupBy(fn (array $grupo): int => (int) $grupo['etapa']->id);
+
+            foreach ($etapas as $etapa) {
+                $etapaId = (int) $etapa->id;
+                $candidatos = $candidatosPorEtapa->get($etapaId)['candidatos'] ?? collect();
+                $unidades = $unidadesSinCandidatos->get($etapaId, collect());
+                $cantidadCandidatos = $candidatos->count();
+                $esPorCadaUnidad = $etapa->multiplicidad_revision === FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD;
+                $empleadoId = null;
+                $requiereSeleccion = $cantidadCandidatos > 0;
+                $bloqueado = false;
+                $mensaje = null;
+
+                if ($esPorCadaUnidad) {
+                    $bloqueado = true;
+                    $requiereSeleccion = false;
+                    $mensaje = 'La etapa requiere un revisor por unidad academica y aun no esta integrada en el formulario de envio.';
+                } elseif ($cantidadCandidatos === 0) {
+                    $bloqueado = true;
+                    $requiereSeleccion = false;
+                    $mensaje = 'No existen candidatos elegibles para esta etapa.';
+                } elseif ($cantidadCandidatos === 1 && $etapa->usuario_responsable_id) {
+                    $empleadoId = (int) $candidatos->first()->id;
+                    $requiereSeleccion = false;
+                }
+
+                $this->firmantesPorEtapa[$etapaId] = [
+                    'etapa_id' => $etapaId,
+                    'nombre' => (string) $etapa->nombre,
+                    'codigo' => $etapa->codigo,
+                    'orden' => $etapa->orden !== null ? (int) $etapa->orden : null,
+                    'rol' => $etapa->rolRevisor?->name,
+                    'alcance_academico' => (string) $etapa->alcance_academico,
+                    'multiplicidad_revision' => (string) $etapa->multiplicidad_revision,
+                    'cargo_firma_id' => $etapa->cargo_firma_id ? (int) $etapa->cargo_firma_id : null,
+                    'empleado_id' => $empleadoId,
+                    'requiere_seleccion' => $requiereSeleccion,
+                    'bloqueado' => $bloqueado,
+                    'mensaje' => $mensaje,
+                ];
+
+                $this->candidatosPorEtapa[$etapaId] = $candidatos
+                    ->map(fn (Empleado $empleado): array => $this->serializarCandidatoFirmantePorEtapa($empleado))
+                    ->values()
+                    ->all();
+
+                $this->unidadesSinCandidatosPorEtapa[$etapaId] = $unidades
+                    ->map(fn (array $grupo): array => $this->serializarUnidadSinCandidatoPorEtapa($grupo['unidad']))
+                    ->values()
+                    ->all();
+
+                if ($mensaje) {
+                    $this->mensajesFirmantesPorEtapa[$etapaId] = $mensaje;
+                }
+            }
+        } catch (RuntimeException $exception) {
+            $this->erroresFirmantesPorEtapa[] = $exception->getMessage();
+            $this->firmantesPorEtapaBloqueado = true;
+            $this->mensajeBloqueoFirmantesPorEtapa = 'No se puede preparar el envio dinamico de firmantes: '.$exception->getMessage();
+        }
+
+        $this->recalcularEstadoFirmantesPorEtapa();
+    }
+
+    protected function seleccionarFirmantePorEtapa(
+        Proyecto $proyecto,
+        int $etapaId,
+        int $empleadoId
+    ): void {
+        if (! array_key_exists($etapaId, $this->firmantesPorEtapa)) {
+            throw new RuntimeException('La etapa indicada no esta preparada para seleccionar firmante.');
+        }
+
+        try {
+            $empleado = $this->validarEmpleadoParaEtapaDeEnvio($proyecto, $etapaId, $empleadoId);
+        } catch (RuntimeException $exception) {
+            $this->firmantesPorEtapa[$etapaId]['empleado_id'] = null;
+            $this->mensajesFirmantesPorEtapa[$etapaId] = $exception->getMessage();
+            $this->firmantesPorEtapa[$etapaId]['mensaje'] = $exception->getMessage();
+            $this->recalcularEstadoFirmantesPorEtapa();
+
+            throw $exception;
+        }
+
+        $this->firmantesPorEtapa[$etapaId]['empleado_id'] = (int) $empleado->id;
+        unset($this->mensajesFirmantesPorEtapa[$etapaId], $this->erroresFirmantesPorEtapa[$etapaId]);
+        $this->firmantesPorEtapa[$etapaId]['mensaje'] = null;
+        $this->recalcularEstadoFirmantesPorEtapa();
+    }
+
+    protected function asignacionesFirmantesPorEtapaNormalizadas(Proyecto $proyecto): array
+    {
+        $asignaciones = [];
+
+        foreach ($this->firmantesPorEtapa as $etapaId => $firmante) {
+            $nombre = (string) ($firmante['nombre'] ?? 'sin nombre');
+
+            if (($firmante['multiplicidad_revision'] ?? null) === FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD) {
+                throw new RuntimeException(sprintf(
+                    'La etapa "%s" requiere un revisor por unidad academica y aun no esta integrada al formulario de envio.',
+                    $nombre
+                ));
+            }
+
+            if (($firmante['bloqueado'] ?? false) === true) {
+                throw new RuntimeException(sprintf('La etapa "%s" se encuentra bloqueada.', $nombre));
+            }
+
+            if (($firmante['multiplicidad_revision'] ?? null) === FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO && empty($firmante['empleado_id'])) {
+                throw new RuntimeException(sprintf('Debe seleccionar un firmante para la etapa "%s".', $nombre));
+            }
+
+            $asignaciones[(int) $etapaId] = (int) $firmante['empleado_id'];
+        }
+
+        return $this->validarAsignacionesPorEtapaParaEnvio($proyecto, $asignaciones);
+    }
+
+    protected function recalcularEstadoFirmantesPorEtapa(): void
+    {
+        $hayEtapas = ! empty($this->firmantesPorEtapa);
+        $hayErrores = ! empty($this->erroresFirmantesPorEtapa);
+        $hayUnidadesSinCandidatos = collect($this->unidadesSinCandidatosPorEtapa)
+            ->contains(fn (array $unidades): bool => ! empty($unidades));
+        $etapaBloqueada = collect($this->firmantesPorEtapa)
+            ->contains(fn (array $firmante): bool => ($firmante['bloqueado'] ?? false) === true);
+        $hayPorCadaUnidad = collect($this->firmantesPorEtapa)
+            ->contains(fn (array $firmante): bool => ($firmante['multiplicidad_revision'] ?? null) === FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD);
+        $faltaSeleccionUnica = collect($this->firmantesPorEtapa)
+            ->contains(fn (array $firmante): bool => ($firmante['multiplicidad_revision'] ?? null) === FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO
+                && empty($firmante['empleado_id']));
+
+        $this->firmantesPorEtapaBloqueado = $hayErrores || $hayUnidadesSinCandidatos || $etapaBloqueada || $hayPorCadaUnidad;
+        $this->firmantesPorEtapaListos = $hayEtapas
+            && ! $this->firmantesPorEtapaBloqueado
+            && ! $faltaSeleccionUnica;
+
+        $this->mensajeBloqueoFirmantesPorEtapa = match (true) {
+            $hayErrores => $this->mensajeBloqueoFirmantesPorEtapa ?: 'Hay errores de configuracion en las etapas de firma.',
+            $hayUnidadesSinCandidatos => 'Hay unidades academicas sin candidatos elegibles.',
+            $hayPorCadaUnidad => 'Existen etapas por unidad academica no integradas al formulario de envio.',
+            $etapaBloqueada => 'Existen etapas bloqueadas sin candidatos elegibles.',
+            default => null,
+        };
+    }
+
+    protected function serializarCandidatoFirmantePorEtapa(Empleado $empleado): array
+    {
+        $empleado->loadMissing(['user.roles', 'centro_facultad', 'departamento_academico', 'carrera']);
+
+        return [
+            'empleado_id' => (int) $empleado->id,
+            'nombre' => (string) $empleado->nombre_completo,
+            'correo' => $empleado->user?->email,
+            'centro' => $empleado->centro_facultad?->nombre,
+            'departamento' => $empleado->departamento_academico?->nombre,
+            'carrera' => $empleado->carrera?->nombre,
+            'rol_activo' => $empleado->user?->roles
+                ?->first(fn ($rol): bool => (int) $rol->id === (int) $empleado->user->active_role_id)
+                ?->name,
+        ];
+    }
+
+    protected function serializarUnidadSinCandidatoPorEtapa(array $unidad): array
+    {
+        return [
+            'tipo' => (string) ($unidad['tipo'] ?? ''),
+            'unidad_id' => (int) ($unidad['unidad_id'] ?? 0),
+            'unidad_nombre' => (string) ($unidad['unidad_nombre'] ?? ''),
+        ];
     }
 
     protected function etapasActivasParaEnvioPorFlujo(Proyecto $proyecto): Collection

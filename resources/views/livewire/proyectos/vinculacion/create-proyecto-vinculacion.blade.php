@@ -1873,7 +1873,7 @@
     x-cloak
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
 >
-    <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900" @click.stop>
+    <div class="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900" @click.stop>
 
         {{-- Header --}}
         <div class="flex items-start justify-between gap-4">
@@ -1884,6 +1884,137 @@
             <button @click="open = false" class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700">
                 &times;
             </button>
+        </div>
+
+        {{-- Firmantes por etapa (preparacion visual, no reemplaza el envio actual) --}}
+        <div class="mt-5 rounded-xl border border-blue-200 bg-blue-50/60 p-4 dark:border-blue-900/50 dark:bg-blue-950/20">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <h3 class="text-sm font-semibold text-blue-900 dark:text-blue-200">Firmantes por etapa</h3>
+                    <p class="mt-1 text-xs text-blue-700 dark:text-blue-300">Al activar el flujo por etapas, no se crearán las firmas legacy de jefe, decano/enlace.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button wire:click="prepararFirmantesPorEtapaParaVista" type="button" class="inline-flex items-center rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">
+                        Preparar firmantes por etapa
+                    </button>
+                    @if($mostrarFirmantesPorEtapa)
+                    <button wire:click="cerrarFirmantesPorEtapaParaVista" type="button" class="inline-flex items-center rounded-full border border-blue-300 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-900/40">
+                        Cerrar
+                    </button>
+                    @endif
+                </div>
+            </div>
+
+            @if($usarFirmantesPorEtapaParaEnvio)
+            <div class="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
+                El proyecto se enviará usando el flujo por etapas.
+            </div>
+            @else
+            <div class="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                El proyecto se enviará usando el flujo legacy actual.
+            </div>
+            @endif
+
+            @if($mostrarFirmantesPorEtapa)
+                @if($mensajeBloqueoFirmantesPorEtapa)
+                <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+                    {{ $mensajeBloqueoFirmantesPorEtapa }}
+                </div>
+                @endif
+
+                @if($mensajeFirmantesPorEtapaVista)
+                <div class="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
+                    {{ $mensajeFirmantesPorEtapaVista }}
+                </div>
+                @endif
+
+                @if($firmantesPorEtapaListos)
+                <div class="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-200">
+                    Firmantes por etapa listos para la siguiente fase.
+                </div>
+                @endif
+
+                <div class="mt-4 space-y-3">
+                    @forelse($firmantesPorEtapa as $etapaId => $firmante)
+                    <div wire:key="firmante-etapa-{{ $etapaId }}" class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+                        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <h4 class="text-sm font-semibold text-slate-900 dark:text-white">{{ $firmante['nombre'] }}</h4>
+                                    @if(!empty($firmante['codigo']))
+                                        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $firmante['codigo'] }}</span>
+                                    @endif
+                                    @if($firmante['bloqueado'] ?? false)
+                                        <span class="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:bg-red-950/50 dark:text-red-200">Bloqueada</span>
+                                    @endif
+                                </div>
+                                <dl class="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-300 sm:grid-cols-3">
+                                    <div><dt class="font-medium text-slate-500 dark:text-slate-400">Rol</dt><dd>{{ $firmante['rol'] ?: 'Sin rol' }}</dd></div>
+                                    <div><dt class="font-medium text-slate-500 dark:text-slate-400">Alcance academico</dt><dd>{{ $firmante['alcance_academico'] }}</dd></div>
+                                    <div><dt class="font-medium text-slate-500 dark:text-slate-400">Multiplicidad</dt><dd>{{ $firmante['multiplicidad_revision'] }}</dd></div>
+                                </dl>
+                            </div>
+                        </div>
+
+                        @if(!empty($firmante['mensaje']))
+                        <p class="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ $firmante['mensaje'] }}</p>
+                        @endif
+
+                        @if(!empty($mensajesFirmantesPorEtapa[$etapaId]) && ($mensajesFirmantesPorEtapa[$etapaId] !== ($firmante['mensaje'] ?? null)))
+                        <p class="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/30 dark:text-red-200">{{ $mensajesFirmantesPorEtapa[$etapaId] }}</p>
+                        @endif
+
+                        @if(!empty($unidadesSinCandidatosPorEtapa[$etapaId]))
+                        <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900/60 dark:bg-amber-950/20">
+                            <p class="text-xs font-semibold text-amber-800 dark:text-amber-200">Unidades sin candidatos</p>
+                            <ul class="mt-1 space-y-1 text-xs text-amber-700 dark:text-amber-300">
+                                @foreach($unidadesSinCandidatosPorEtapa[$etapaId] as $unidad)
+                                <li>{{ $unidad['tipo'] }}: {{ $unidad['unidad_nombre'] }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                        @endif
+
+                        <div class="mt-3">
+                            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Candidato</label>
+                            @if(!empty($candidatosPorEtapa[$etapaId]))
+                                <select
+                                    wire:change="seleccionarFirmantePorEtapaParaVista({{ (int) $etapaId }}, $event.target.value)"
+                                    @disabled($firmante['bloqueado'] ?? false)
+                                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-900">
+                                    <option value="">Seleccione...</option>
+                                    @foreach($candidatosPorEtapa[$etapaId] as $candidato)
+                                    <option value="{{ $candidato['empleado_id'] }}" @selected((int) ($firmante['empleado_id'] ?? 0) === (int) $candidato['empleado_id'])>
+                                        {{ $candidato['nombre'] }}
+                                        @if($candidato['rol_activo']) - {{ $candidato['rol_activo'] }} @endif
+                                        @if($candidato['centro']) - {{ $candidato['centro'] }} @endif
+                                        @if($candidato['departamento']) / {{ $candidato['departamento'] }} @endif
+                                        @if($candidato['carrera']) / {{ $candidato['carrera'] }} @endif
+                                    </option>
+                                    @endforeach
+                                </select>
+                            @else
+                                <p class="rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">No existen candidatos elegibles para esta etapa.</p>
+                            @endif
+                        </div>
+                    </div>
+                    @empty
+                    <p class="rounded-lg bg-white px-3 py-2 text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-300">Prepare los firmantes por etapa para visualizar el flujo configurado.</p>
+                    @endforelse
+                </div>
+
+                <div class="mt-4 flex flex-wrap justify-end gap-2">
+                    <button wire:click="desactivarFirmantesPorEtapaParaEnvio" type="button" class="inline-flex items-center rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">
+                        Usar envío legacy
+                    </button>
+                    <button wire:click="validarFirmantesPorEtapaParaVista" type="button" class="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900">
+                        Validar firmantes por etapa
+                    </button>
+                    <button wire:click="activarFirmantesPorEtapaParaEnvio" type="button" class="inline-flex items-center rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700">
+                        Activar firmantes por etapa para este envío
+                    </button>
+                </div>
+            @endif
         </div>
 
         {{-- Indicador de pasos --}}

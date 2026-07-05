@@ -74,6 +74,19 @@ class ProyectosPorFirmar extends Component
 
         $firma = $this->authorizeFirmaAction((int) $this->rechazarId);
 
+        if ($firma->usaFlujoPorEtapa()) {
+            $this->rechazarFirmaPorEtapa($firma->fresh(), Auth::user(), $this->rechazarComentario);
+
+            $this->rechazarModal = false;
+            $this->rechazarId = null;
+            $this->rechazarComentario = '';
+            $this->viewModal = false;
+
+            Notification::make()->title('¡Realizado!')->body('Proyecto enviado a subsanacion')->info()->send();
+
+            return;
+        }
+
         if ($firma->firmable_type == Proyecto::class) {
             $firma->proyecto->firma_proyecto()->update([
                 'estado_revision' => 'Pendiente',
@@ -114,6 +127,17 @@ class ProyectosPorFirmar extends Component
     public function aprobar(int $id): void
     {
         $firma = $this->authorizeFirmaAction($id);
+
+        if ($firma->usaFlujoPorEtapa()) {
+            $this->aprobarFirmaPorEtapa($firma->fresh(), Auth::user());
+
+            $this->viewModal = false;
+            $this->viewId = null;
+
+            Notification::make()->title('¡Realizado!')->body('Proyecto Aprobado correctamente')->info()->send();
+
+            return;
+        }
 
         if ($firma->firmable_type == Proyecto::class) {
             $firma->update([
@@ -423,20 +447,33 @@ class ProyectosPorFirmar extends Component
         $user = Auth::user();
         $activeRoleName = $user?->activeRole?->name;
         $empleadoId = $user?->empleado?->id;
+        $firmasPorEtapaIds = $this->firmasPorEtapaDisponiblesIds($user);
 
         return FirmaProyecto::query()
             ->select('firma_proyecto.*')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
             ->where('firma_proyecto.estado_revision', 'Pendiente')
-            ->where(function ($query) use ($activeRoleName, $empleadoId) {
-                if ($activeRoleName) {
-                    $query->whereHas('cargo_firma.tipoCargoFirma', fn ($roleQuery) => $roleQuery->where('nombre', $activeRoleName));
-                    return;
-                }
+            ->whereNull('firma_proyecto.deleted_at')
+            ->where(function ($query) use ($activeRoleName, $empleadoId, $firmasPorEtapaIds) {
+                $query->where(function ($legacyQuery) use ($activeRoleName, $empleadoId) {
+                    $legacyQuery->whereNull('firma_proyecto.flujo_aprobacion_etapa_id')
+                        ->where(function ($authorizationQuery) use ($activeRoleName, $empleadoId) {
+                            if ($activeRoleName) {
+                                $authorizationQuery->whereHas('cargo_firma.tipoCargoFirma', fn ($roleQuery) => $roleQuery->where('nombre', $activeRoleName));
+                                return;
+                            }
 
-                if ($empleadoId) {
-                    $query->where('firma_proyecto.empleado_id', $empleadoId);
-                }
+                            if ($empleadoId) {
+                                $authorizationQuery->where('firma_proyecto.empleado_id', $empleadoId);
+                                return;
+                            }
+
+                            $authorizationQuery->whereRaw('1 = 0');
+                        });
+                })->orWhere(function ($workflowStageQuery) use ($firmasPorEtapaIds) {
+                    $workflowStageQuery->whereNotNull('firma_proyecto.flujo_aprobacion_etapa_id')
+                        ->whereIn('firma_proyecto.id', $firmasPorEtapaIds ?: [0]);
+                });
             })
             ->where(function ($query) {
                 $query->where(function ($projectQuery) {
@@ -469,6 +506,46 @@ class ProyectosPorFirmar extends Component
                         ->where('firma_proyecto.firmable_type', '!=', DocumentoProyecto::class);
                 });
             });
+    }
+
+    private function firmasPorEtapaDisponiblesIds(?User $user): array
+    {
+        $activeRole = $user?->activeRole;
+        $empleadoId = $user?->empleado?->id;
+
+        if (! $user || ! $activeRole || ! $empleadoId) {
+            return [];
+        }
+
+        if (! $user->roles()
+            ->where('roles.id', $activeRole->id)
+            ->where('roles.name', $activeRole->name)
+            ->exists()) {
+            return [];
+        }
+
+        return FirmaProyecto::query()
+            ->where('estado_revision', 'Pendiente')
+            ->whereNull('deleted_at')
+            ->whereNotNull('flujo_aprobacion_id')
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->whereNotNull('revision_ciclo')
+            ->where('revision_ciclo', '>=', 1)
+            ->whereNotNull('orden_revision')
+            ->whereIn('firmable_type', [Proyecto::class, DocumentoProyecto::class])
+            ->where('empleado_id', $empleadoId)
+            ->where(function ($query) use ($user): void {
+                $query
+                    ->whereNull('responsable_usuario_id')
+                    ->orWhere('responsable_usuario_id', $user->id);
+            })
+            ->where('rol_requerido', $activeRole->name)
+            ->orderBy('created_at', 'desc')
+            ->limit(250)
+            ->get()
+            ->filter(fn (FirmaProyecto $firma): bool => $this->canActOnWorkflowStageFirma($firma, $user))
+            ->pluck('id')
+            ->all();
     }
 
     private function authorizeFirmaAction(int $firmaId): FirmaProyecto
@@ -1100,6 +1177,10 @@ class ProyectosPorFirmar extends Component
 
     private function canActOnFirma(FirmaProyecto $firma): bool
     {
+        if ($firma->usaFlujoPorEtapa()) {
+            return $this->canActOnWorkflowStageFirma($firma);
+        }
+
         if ($firma->estado_revision !== 'Pendiente') {
             return false;
         }
