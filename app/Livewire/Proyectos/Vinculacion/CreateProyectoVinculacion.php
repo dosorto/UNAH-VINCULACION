@@ -3244,7 +3244,7 @@ class CreateProyectoVinculacion extends Component
             ->exists();
 
         if ($existenFirmasLegacy) {
-            throw new RuntimeException('Ya existen firmas legacy para este envio y no se puede iniciar el flujo por etapa.');
+            throw new RuntimeException('Ya existen firmantes manuales para este envío y no se puede iniciar la revisión por etapas.');
         }
     }
 
@@ -3384,7 +3384,7 @@ class CreateProyectoVinculacion extends Component
             $this->firmantesPorEtapaListos = true;
             $this->firmantesPorEtapaBloqueado = false;
             $this->mensajeBloqueoFirmantesPorEtapa = null;
-            $this->mensajeFirmantesPorEtapaVista = 'Firmantes por etapa validados correctamente. Se activaran para envio en una fase posterior.';
+            $this->mensajeFirmantesPorEtapaVista = 'Firmantes por etapa validados correctamente.';
         } catch (RuntimeException $exception) {
             $this->firmantesPorEtapaListos = false;
             $this->mensajeFirmantesPorEtapaVista = null;
@@ -3416,7 +3416,7 @@ class CreateProyectoVinculacion extends Component
             $this->asignacionesFirmantesPorEtapaNormalizadas($proyecto);
             $this->usarFirmantesPorEtapaParaEnvio = true;
             $this->mensajeBloqueoFirmantesPorEtapa = null;
-            $this->mensajeFirmantesPorEtapaVista = 'Firmantes por etapa activados para este envio.';
+            $this->mensajeFirmantesPorEtapaVista = 'Firmantes por etapa activados para este envío.';
         } catch (RuntimeException $exception) {
             $this->usarFirmantesPorEtapaParaEnvio = false;
             $this->mensajeFirmantesPorEtapaVista = null;

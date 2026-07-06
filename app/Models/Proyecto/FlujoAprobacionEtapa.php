@@ -62,7 +62,7 @@ class FlujoAprobacionEtapa extends Model
     {
         return [
             self::ALCANCE_SIN_FILTRO => 'Sin filtro académico',
-            self::ALCANCE_GLOBAL => 'Global',
+            self::ALCANCE_GLOBAL => 'Global / Institucional',
             self::ALCANCE_CENTRO => 'Centro o facultad',
             self::ALCANCE_DEPARTAMENTO => 'Departamento académico',
             self::ALCANCE_CARRERA => 'Carrera',

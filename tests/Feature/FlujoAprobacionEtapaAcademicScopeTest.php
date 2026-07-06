@@ -75,6 +75,7 @@ class FlujoAprobacionEtapaAcademicScopeTest extends TestCase
         ], array_keys(FlujoAprobacionEtapa::multiplicidadesRevisionDisponibles()));
 
         $this->assertSame('Sin filtro académico', FlujoAprobacionEtapa::alcancesAcademicosDisponibles()[FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO]);
+        $this->assertSame('Global / Institucional', FlujoAprobacionEtapa::alcancesAcademicosDisponibles()[FlujoAprobacionEtapa::ALCANCE_GLOBAL]);
         $this->assertSame('Departamento académico', FlujoAprobacionEtapa::alcancesAcademicosDisponibles()[FlujoAprobacionEtapa::ALCANCE_DEPARTAMENTO]);
         $this->assertSame('Un único revisor', FlujoAprobacionEtapa::multiplicidadesRevisionDisponibles()[FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO]);
         $this->assertSame('Un revisor por cada unidad', FlujoAprobacionEtapa::multiplicidadesRevisionDisponibles()[FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD]);

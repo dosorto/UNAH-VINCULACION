@@ -168,7 +168,7 @@ class CreateProyectoVinculacionWorkflowStageSaveTest extends TestCase
         ]);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Ya existen firmas legacy para este envio y no se puede iniciar el flujo por etapa.');
+        $this->expectExceptionMessage('Ya existen firmantes manuales para este envío y no se puede iniciar la revisión por etapas.');
 
         $component->guardarPorEtapa($context['proyecto']);
     }

@@ -43,7 +43,7 @@ class CreateProyectoVinculacionWorkflowStageSubmitIntegrationTest extends TestCa
         $component->activarFirmantesPorEtapaParaEnvio();
 
         $this->assertTrue($component->usarFirmantesPorEtapaParaEnvio);
-        $this->assertSame('Firmantes por etapa activados para este envio.', $component->mensajeFirmantesPorEtapaVista);
+        $this->assertSame('Firmantes por etapa activados para este envío.', $component->mensajeFirmantesPorEtapaVista);
     }
 
     public function test_activar_falla_con_etapa_bloqueada_y_desactivar_vuelve_a_legacy_sin_borrar_selecciones(): void
@@ -71,11 +71,11 @@ class CreateProyectoVinculacionWorkflowStageSubmitIntegrationTest extends TestCa
     {
         $view = file_get_contents(resource_path('views/livewire/proyectos/vinculacion/create-proyecto-vinculacion.blade.php'));
 
-        $this->assertStringContainsString('El proyecto se enviará usando el flujo por etapas.', $view);
-        $this->assertStringContainsString('El proyecto se enviará usando el flujo legacy actual.', $view);
-        $this->assertStringContainsString('Activar firmantes por etapa para este envío', $view);
-        $this->assertStringContainsString('Usar envío legacy', $view);
-        $this->assertStringContainsString('Al activar el flujo por etapas, no se crearán las firmas legacy de jefe, decano/enlace.', $view);
+        $this->assertStringContainsString('El proyecto se enviará usando las etapas de aprobación configuradas.', $view);
+        $this->assertStringContainsString('El proyecto se enviará usando la selección manual de firmantes.', $view);
+        $this->assertStringContainsString('Activar revisión por etapas', $view);
+        $this->assertStringContainsString('Usar selección manual de firmantes', $view);
+        $this->assertStringContainsString('Al activar este modo, no se usarán los firmantes manuales de Jefe, Director/Decano y Enlace para este envío.', $view);
         $this->assertStringContainsString('wire:click="create"', $view);
     }
 

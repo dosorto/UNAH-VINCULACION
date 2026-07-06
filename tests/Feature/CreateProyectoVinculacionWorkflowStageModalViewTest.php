@@ -30,9 +30,10 @@ class CreateProyectoVinculacionWorkflowStageModalViewTest extends TestCase
 
         $this->assertStringContainsString('Preparar firmantes por etapa', $view);
         $this->assertStringContainsString('Validar firmantes por etapa', $view);
-        $this->assertStringContainsString('Al activar el flujo por etapas, no se crearán las firmas legacy de jefe, decano/enlace.', $view);
-        $this->assertStringContainsString('Activar firmantes por etapa para este envío', $view);
-        $this->assertStringContainsString('Usar envío legacy', $view);
+        $this->assertStringContainsString('El sistema mostrará las etapas de aprobación configuradas y permitirá seleccionar el firmante correspondiente para cada una.', $view);
+        $this->assertStringContainsString('Al activar este modo, no se usarán los firmantes manuales de Jefe, Director/Decano y Enlace para este envío.', $view);
+        $this->assertStringContainsString('Activar revisión por etapas', $view);
+        $this->assertStringContainsString('Usar selección manual de firmantes', $view);
         $this->assertStringContainsString('wire:model="jefe_empleado_id"', $view);
         $this->assertStringContainsString('wire:model="decano_empleado_id"', $view);
         $this->assertStringContainsString('wire:model="enlace_empleado_id"', $view);
@@ -140,7 +141,7 @@ class CreateProyectoVinculacionWorkflowStageModalViewTest extends TestCase
         $component->validarFirmantesPorEtapaParaVista();
 
         $this->assertTrue($component->firmantesPorEtapaListos);
-        $this->assertSame('Firmantes por etapa validados correctamente. Se activaran para envio en una fase posterior.', $component->mensajeFirmantesPorEtapaVista);
+        $this->assertSame('Firmantes por etapa validados correctamente.', $component->mensajeFirmantesPorEtapaVista);
         $this->assertSame($firmas, FirmaProyecto::count());
         $this->assertSame($estados, DB::table('estado_proyecto')->count());
     }

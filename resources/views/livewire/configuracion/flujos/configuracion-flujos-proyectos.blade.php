@@ -231,6 +231,7 @@
                                             <option value="{{ $value }}">{{ $label }}</option>
                                         @endforeach
                                     </select>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Define de qué unidad académica saldrá el revisor de esta etapa.</p>
                                     @error("stages.$index.alcance_academico")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                 </label>
                                 <label class="block space-y-2">
@@ -240,6 +241,7 @@
                                             <option value="{{ $value }}">{{ $label }}</option>
                                         @endforeach
                                     </select>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Define si se seleccionará un único revisor o uno por cada unidad académica.</p>
                                     @error("stages.$index.multiplicidad_revision")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                 </label>
                                 <label class="block space-y-2">
@@ -518,6 +520,7 @@
                                                     <option value="{{ $value }}">{{ $label }}</option>
                                                 @endforeach
                                             </select>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400">Define de qué unidad académica saldrá el revisor de esta etapa.</p>
                                             @error("programStages.$index.alcance_academico")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                         </label>
                                         <label class="block space-y-2">
@@ -527,6 +530,7 @@
                                                     <option value="{{ $value }}">{{ $label }}</option>
                                                 @endforeach
                                             </select>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400">Define si se seleccionará un único revisor o uno por cada unidad académica.</p>
                                             @error("programStages.$index.multiplicidad_revision")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                         </label>
                                         <label class="block space-y-2">
