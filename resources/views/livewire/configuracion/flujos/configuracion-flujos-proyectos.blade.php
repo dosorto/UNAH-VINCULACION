@@ -225,26 +225,6 @@
                                     @error("stages.$index.tipo_etapa")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                 </label>
                                 <label class="block space-y-2">
-                                    <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Alcance academico</span>
-                                    <select wire:model.live="stages.{{ $index }}.alcance_academico" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                                        @foreach ($alcancesAcademicos as $value => $label)
-                                            <option value="{{ $value }}">{{ $label }}</option>
-                                        @endforeach
-                                    </select>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">Define de qué unidad académica saldrá el revisor de esta etapa.</p>
-                                    @error("stages.$index.alcance_academico")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
-                                </label>
-                                <label class="block space-y-2">
-                                    <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Multiplicidad</span>
-                                    <select wire:model.live="stages.{{ $index }}.multiplicidad_revision" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                                        @foreach ($multiplicidadesRevision as $value => $label)
-                                            <option value="{{ $value }}">{{ $label }}</option>
-                                        @endforeach
-                                    </select>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">Define si se seleccionará un único revisor o uno por cada unidad académica.</p>
-                                    @error("stages.$index.multiplicidad_revision")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
-                                </label>
-                                <label class="block space-y-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Rol con acceso</span>
                                     <select wire:model.live="stages.{{ $index }}.rol_revisor_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
                                         <option value="">Seleccione</option>
@@ -512,26 +492,6 @@
                                             <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Nombre</span>
                                             <input wire:model.live.debounce.300ms="programStages.{{ $index }}.nombre" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                                             @error("programStages.$index.nombre")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
-                                        </label>
-                                        <label class="block space-y-2">
-                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Alcance academico</span>
-                                            <select wire:model.live="programStages.{{ $index }}.alcance_academico" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                                                @foreach ($alcancesAcademicos as $value => $label)
-                                                    <option value="{{ $value }}">{{ $label }}</option>
-                                                @endforeach
-                                            </select>
-                                            <p class="text-xs text-slate-500 dark:text-slate-400">Define de qué unidad académica saldrá el revisor de esta etapa.</p>
-                                            @error("programStages.$index.alcance_academico")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
-                                        </label>
-                                        <label class="block space-y-2">
-                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Multiplicidad</span>
-                                            <select wire:model.live="programStages.{{ $index }}.multiplicidad_revision" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                                                @foreach ($multiplicidadesRevision as $value => $label)
-                                                    <option value="{{ $value }}">{{ $label }}</option>
-                                                @endforeach
-                                            </select>
-                                            <p class="text-xs text-slate-500 dark:text-slate-400">Define si se seleccionará un único revisor o uno por cada unidad académica.</p>
-                                            @error("programStages.$index.multiplicidad_revision")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                         </label>
                                         <label class="block space-y-2">
                                             <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Rol revisor</span>

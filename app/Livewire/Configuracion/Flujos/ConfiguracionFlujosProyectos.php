@@ -7,6 +7,8 @@ use App\Models\PpsServicioSocial;
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
+use App\Models\Proyecto\Proyecto;
+use App\Support\Notification;
 use App\Models\SGCU\TipoPrograma;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -330,13 +332,23 @@ class ConfiguracionFlujosProyectos extends Component
             'stages.*.requiere_asignacion' => ['boolean'],
             'stages.*.emisor_define_destinatario' => ['boolean'],
             'stages.*.activo' => ['boolean'],
-        ] + $this->academicScopeValidationRules('stages'), $this->academicScopeValidationMessages('stages'));
-
-        if (! $this->validateAcademicStageRules($validated['stages'], 'stages')) {
-            return;
-        }
+        ]);
 
         $validated['stages'] = $this->prepareStagesForSave($validated['stages'], 'REVISION', $this->workflowId);
+
+        if ($this->workflowId) {
+            $tieneProyectosActivos = Proyecto::where('flujo_aprobacion_id', $this->workflowId)
+                ->whereHas('firmasDeEtapa', fn ($q) => $q->where('estado_revision', 'Pendiente'))
+                ->exists();
+
+            if ($tieneProyectosActivos) {
+                Notification::make()
+                    ->title('Flujo con proyectos activos')
+                    ->body('Hay proyectos en revisión que usan este flujo. Los cambios solo afectarán proyectos nuevos.')
+                    ->warning()
+                    ->send();
+            }
+        }
 
         $flow = DB::transaction(function () use ($validated, $subaction) {
             $flow = FlujoAprobacion::updateOrCreate(
@@ -393,8 +405,6 @@ class ConfiguracionFlujosProyectos extends Component
             'estadoOpciones' => $this->estadoOpciones,
             'tiposPrograma' => $tiposPrograma,
             'selectedTipoPrograma' => $selectedTipoPrograma,
-            'alcancesAcademicos' => $this->alcancesAcademicos(),
-            'multiplicidadesRevision' => $this->multiplicidadesRevision(),
         ])->layout('layouts.app', ['hideHorizontalNav' => true]);
     }
 
@@ -509,11 +519,7 @@ class ConfiguracionFlujosProyectos extends Component
             'programStages.*.requiere_asignacion' => ['boolean'],
             'programStages.*.emisor_define_destinatario' => ['boolean'],
             'programStages.*.activo' => ['boolean'],
-        ] + $this->academicScopeValidationRules('programStages'), $this->academicScopeValidationMessages('programStages'));
-
-        if (! $this->validateAcademicStageRules($validated['programStages'], 'programStages')) {
-            return;
-        }
+        ]);
 
         $validated['programStages'] = $this->prepareStagesForSave($validated['programStages'], 'REVISION');
 
@@ -570,11 +576,7 @@ class ConfiguracionFlujosProyectos extends Component
             'stages.*.permite_edicion' => ['boolean'],
             'stages.*.permite_rechazo' => ['boolean'],
             'stages.*.es_estado_final_aprobado' => ['boolean'],
-        ] + $this->academicScopeValidationRules('stages'), $this->academicScopeValidationMessages('stages'), $this->ppsValidationAttributes());
-
-        if (! $this->validateAcademicStageRules($validated['stages'], 'stages')) {
-            return;
-        }
+        ], [], $this->ppsValidationAttributes());
 
         $preparedStages = $this->preparePpsStagesForSave($validated['stages']);
 

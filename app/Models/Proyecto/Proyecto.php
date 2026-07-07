@@ -625,6 +625,13 @@ class Proyecto extends Model
         return $this->morphMany(FirmaProyecto::class, 'firmable');
     }
 
+    public function firmasDeEtapa(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(FirmaProyecto::class, 'firmable')
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->orderBy('orden_revision');
+    }
+
     public function flujoAprobacion()
     {
         return $this->belongsTo(FlujoAprobacion::class, 'flujo_aprobacion_id');

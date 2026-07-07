@@ -249,11 +249,23 @@
                                             <th scope="col" class="px-6 py-3">Código</th>
                                             <th scope="col" class="px-6 py-3">Nombre del Proyecto</th>
                                             <th scope="col" class="px-6 py-3">Estado actual</th>
+                                            <th scope="col" class="px-6 py-3">Progreso</th>
                                             <th scope="col" class="px-6 py-3">Fecha inicio</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @forelse($misProyectosTable as $proyecto)
+                                            @php
+                                                // Deduplicate: one firma per etapa (latest revision_ciclo first)
+                                                $etapasFirmas = $proyecto->firmasDeEtapa
+                                                    ->unique('flujo_aprobacion_etapa_id')
+                                                    ->values();
+                                                $hayProgreso = $etapasFirmas->isNotEmpty();
+                                                // First Pendiente = current stage
+                                                $etapaActualId = $etapasFirmas
+                                                    ->firstWhere('estado_revision', 'Pendiente')
+                                                    ?->flujo_aprobacion_etapa_id;
+                                            @endphp
                                             <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                                 <td class="px-6 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
                                                     {{ $proyecto->codigo_proyecto ?? '—' }}
@@ -269,12 +281,48 @@
                                                     @endif
                                                 </td>
                                                 <td class="px-6 py-3">
+                                                    @if($hayProgreso)
+                                                    <div class="flex items-center gap-1">
+                                                        @foreach($etapasFirmas as $firma)
+                                                            @php
+                                                                $esCurrent = $firma->flujo_aprobacion_etapa_id === $etapaActualId;
+                                                                $colorClase = match($firma->estado_revision) {
+                                                                    'Aprobado' => 'bg-emerald-500 text-white',
+                                                                    'Rechazado' => 'bg-red-500 text-white',
+                                                                    default => $esCurrent
+                                                                        ? 'bg-amber-400 text-white ring-2 ring-amber-300 ring-offset-1'
+                                                                        : 'bg-slate-200 text-slate-400 dark:bg-slate-700',
+                                                                };
+                                                                $icono = match($firma->estado_revision) {
+                                                                    'Aprobado' => '✓',
+                                                                    'Rechazado' => '✕',
+                                                                    default => $esCurrent ? '●' : '○',
+                                                                };
+                                                            @endphp
+                                                            <div class="flex flex-col items-center gap-0.5" title="{{ $firma->etapa_nombre }}">
+                                                                <span class="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold {{ $colorClase }}">
+                                                                    {{ $icono }}
+                                                                </span>
+                                                                <span class="hidden text-[9px] text-slate-400 dark:text-slate-500 max-w-[40px] text-center leading-tight truncate sm:block">
+                                                                    {{ \Illuminate\Support\Str::limit($firma->etapa_nombre, 8) }}
+                                                                </span>
+                                                            </div>
+                                                            @if(! $loop->last)
+                                                                <div class="h-px w-3 bg-slate-300 dark:bg-slate-600 mb-3 shrink-0"></div>
+                                                            @endif
+                                                        @endforeach
+                                                    </div>
+                                                    @else
+                                                        <span class="text-xs text-slate-400">Sin enviar</span>
+                                                    @endif
+                                                </td>
+                                                <td class="px-6 py-3">
                                                     {{ $proyecto->fecha_inicio ? \Carbon\Carbon::parse($proyecto->fecha_inicio)->format('d/m/Y') : '—' }}
                                                 </td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="4" class="px-6 py-4 text-center text-gray-400 dark:text-gray-500">No hay proyectos registrados.</td>
+                                                <td colspan="5" class="px-6 py-4 text-center text-gray-400 dark:text-gray-500">No hay proyectos registrados.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
