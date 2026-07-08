@@ -1,6 +1,9 @@
 @php
-    $assetUrl = fn (string $path) => asset($path);
+    $isPdf = $isPdf ?? false;
+    $assetUrl = fn (string $path) => $isPdf ? 'file://'.public_path($path) : asset($path);
     $headerUrl = $assetUrl('images/enf/form-018-header.png');
+    $watermarkUrl = $assetUrl('images/enf/form-018-watermark.png');
+    $footerUrl = $assetUrl('images/enf/form-018-footer.png');
     $certificado = $accion->certificado;
     $lugar = $accion->lugaresEjecucion->first();
     $beneficiarios = $accion->beneficiarios;
@@ -13,11 +16,13 @@
     $presupuestosPorTipo = $accion->presupuestos->keyBy('tipo');
     $firmasPorRol = $accion->firmas->keyBy('rol_firma');
 
-    $value = fn ($value, string $fallback = '') => filled($value) ? $value : $fallback;
+    $value = fn ($value, $fallback = '') => filled($value) ? $value : ($fallback ?? '');
     $date = fn ($value) => filled($value) ? \Carbon\Carbon::parse($value)->format('d/m/Y') : '';
     $time = fn ($value) => filled($value) ? substr((string) $value, 0, 5) : '';
     $money = fn ($value) => number_format((float) $value, 2);
-    $checkbox = fn (bool $checked) => $checked ? '☒' : '☐';
+    $checkbox = fn (bool $checked) => new \Illuminate\Support\HtmlString(
+        '<span class="form016-checkbox">'.($checked ? 'X' : '&nbsp;').'</span>'
+    );
     $catalogNames = function (string $tipo) use ($catalogosPorTipo) {
         return $catalogosPorTipo->get($tipo, collect())
             ->map(fn ($item) => $item->catalogo?->nombre)
@@ -44,77 +49,285 @@
         });
     };
     $days = collect((array) ($certificado?->dias_imparticion ?? []))->map(fn ($day) => (string) $day);
+    $shellClass = $isPdf ? 'is-pdf' : 'screen-document';
+    $openPage = fn (int $page) => new \Illuminate\Support\HtmlString(
+        '<section class="form016-page">'.
+            '<header class="form016-header-row">'.
+                '<img class="form016-header-brand" src="'.e($headerUrl).'" alt="UNAH VRA Dirección de Vinculación Universidad Sociedad">'.
+                '<div class="form016-daft">Dirección<br>Académica<br>de Formación Tecnológica</div>'.
+                '<div class="form016-contact">'.
+                    'vinculacion.sociedad@unah.edu.hn<br>'.
+                    'Tel. 2216-7070 Ext. 110576<br><br>'.
+                    '<span>formaciontecnologica@unah.edu.hn</span><br>'.
+                    'Tel: 2216-7008/2216-6100<br>'.
+                    'Ext: 110615 - 110617<br>'.
+                    '110186 - 110192'.
+                '</div>'.
+                '<div class="form016-yellow-strip"></div>'.
+            '</header>'.
+            '<img class="form016-watermark" src="'.e($watermarkUrl).'" alt="">'.
+            '<img class="form016-footer" src="'.e($footerUrl).'" alt="">'.
+            '<main class="form016-main">'.
+                '<div class="form016-page-number">'.$page.'</div>'
+    );
+    $closePage = new \Illuminate\Support\HtmlString('</main></section>');
 @endphp
 
 <style>
-    .form016-sheet {
-        width: 8.5in;
-        max-width: 100%;
-        margin: 0 auto;
-        background: #fff;
-        color: #111827;
-        font-family: "Arial Narrow", Arial, sans-serif;
-        font-size: 10px;
-        line-height: 1.2;
-        padding: 0.35in;
-        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+    @page {
+        size: letter portrait;
+        margin: 0;
     }
 
-    .form016-header {
+    .form016-shell {
+        color: #000;
+        container-type: inline-size;
+        font-family: "Arial Narrow", Arial, sans-serif;
+        font-size: 10.2pt;
+        line-height: 1.08;
+        overflow-x: hidden;
         width: 100%;
-        margin-bottom: 10px;
+    }
+
+    .form016-shell * {
+        box-sizing: border-box;
+        font-size: inherit;
+        letter-spacing: 0;
+    }
+
+    .form016-shell.screen-document {
+        display: grid;
+        gap: 18px;
+        justify-items: center;
+    }
+
+    .form016-page {
+        background: #fff;
+        max-width: none;
+        min-height: 11in;
+        overflow: hidden;
+        page-break-after: auto;
+        page-break-before: auto;
+        page-break-inside: avoid;
+        position: relative;
+        transform-origin: top center;
+        width: 8.5in;
+    }
+
+    .form016-page + .form016-page {
+        page-break-before: always;
+    }
+
+    .form016-shell.is-pdf .form016-page {
+        overflow: visible;
+        page-break-inside: auto;
+    }
+
+    .form016-shell.screen-document .form016-page {
+        box-shadow: 0 10px 30px rgba(15, 23, 42, .14);
+    }
+
+    .form016-header-brand {
+        height: auto;
+        display: block;
+        left: 0.28in;
+        position: absolute;
+        top: 0.28in;
+        width: 4.98in;
+    }
+
+    .form016-header-row {
+        height: 1.5in;
+        position: relative;
+        z-index: 2;
+    }
+
+    .form016-daft {
+        border-left: 2px solid #8a96a8;
+        color: #8b98aa;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 10.2pt;
+        font-weight: 800;
+        left: 5.18in;
+        line-height: 1.02;
+        padding-left: 0.16in;
+        position: absolute;
+        top: 0.43in;
+        width: 1.45in;
+    }
+
+    .form016-contact {
+        color: #8b98aa;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 7.2pt;
+        font-weight: 800;
+        line-height: 1.18;
+        position: absolute;
+        right: 0.46in;
+        text-align: right;
+        top: 0.32in;
+        white-space: nowrap;
+        width: 2.05in;
+    }
+
+    .form016-contact span {
+        color: #0000ee;
+        text-decoration: underline;
+    }
+
+    .form016-yellow-strip {
+        background: #ffc000;
+        height: 1.18in;
+        position: absolute;
+        right: 0.05in;
+        top: 0.08in;
+        width: 0.2in;
+    }
+
+    .form016-watermark {
+        opacity: .24;
+        pointer-events: none;
+        position: absolute;
+        right: -.52in;
+        top: 4.2in;
+        width: 5.25in;
+        z-index: 0;
+    }
+
+    .form016-footer {
+        bottom: .27in;
+        height: auto;
+        left: .85in;
+        position: absolute;
+        width: 5.2in;
+        z-index: 2;
+    }
+
+    .form016-shell.is-pdf .form016-footer {
+        display: none !important;
+    }
+
+    .form016-main {
+        margin-left: 1in;
+        position: relative;
+        width: 7in;
+        z-index: 1;
     }
 
     .form016-code {
         background: #002060;
         color: #fff;
         font-family: Arial, sans-serif;
-        font-size: 14px;
-        font-weight: 700;
-        padding: 4px 8px;
+        font-size: 15pt;
+        font-weight: 800;
+        height: 0.22in;
+        line-height: 0.22in;
+        margin: 0 0.48in 0.14in 0.46in;
+        padding: 0 0.05in 0;
         text-align: right;
     }
 
     .form016-title {
         font-family: Arial, sans-serif;
-        font-size: 14px;
-        font-weight: 700;
-        margin: 6px 0 10px;
-        text-align: right;
+        font-size: 15pt;
+        font-weight: 800;
+        line-height: 1;
+        margin: 0 0 0.18in;
+        text-align: center;
+    }
+
+    .form016-page-number {
+        border: 1px solid #7ea0cf;
+        border-radius: 50%;
+        color: #002060;
+        font-family: Arial, sans-serif;
+        font-size: 8pt;
+        height: 0.25in;
+        line-height: 0.23in;
+        position: absolute;
+        right: -0.18in;
+        text-align: center;
+        top: -0.28in;
+        width: 0.25in;
+        z-index: 2;
     }
 
     .form016-section {
         color: #002060;
-        font-size: 12px;
-        font-weight: 700;
-        margin: 10px 0 4px;
+        font-family: Arial, sans-serif;
+        font-size: 12pt;
+        font-weight: 800;
+        line-height: 1.1;
+        margin: 0.06in 0 0.16in;
+        text-transform: uppercase;
     }
 
     .form016-table {
         border-collapse: collapse;
         table-layout: fixed;
         width: 100%;
-        margin-bottom: 8px;
+        margin-bottom: 0.06in;
     }
 
     .form016-table th,
     .form016-table td {
-        border: 1px solid #bfbfbf;
-        padding: 4px 5px;
-        vertical-align: top;
-        min-height: 20px;
+        border: 0.7px solid #6f6f6f;
+        padding: 0.025in 0.045in;
+        vertical-align: middle;
+        min-height: 0.18in;
         word-break: break-word;
     }
 
     .form016-blue {
         background: #002060;
         color: #fff;
-        font-weight: 700;
+        font-weight: 800;
+    }
+
+    .form016-blue span {
+        color: inherit;
+    }
+
+    .form016-num {
+        text-align: center;
+        vertical-align: top !important;
+        width: 5%;
+    }
+
+    .form016-blue-label {
+        vertical-align: top !important;
+    }
+
+    .form016-tall {
+        height: 0.43in;
+    }
+
+    .form016-career-row {
+        height: 0.38in;
+    }
+
+    .form016-block-row {
+        height: 0.42in;
+    }
+
+    .form016-academic-row {
+        height: 0.34in;
+    }
+
+    .form016-blue-title {
+        font-size: 11.8pt;
+        line-height: 1.1;
+        vertical-align: top !important;
+    }
+
+    .form016-center-blue-title {
+        text-align: center;
+        vertical-align: middle !important;
     }
 
     .form016-gray {
         background: #d9d9d9;
-        font-weight: 700;
+        font-weight: 800;
     }
 
     .form016-center {
@@ -126,11 +339,26 @@
     }
 
     .form016-large {
-        min-height: 58px;
+        min-height: 0.48in;
     }
 
     .form016-signature {
-        height: 56px;
+        height: 0.78in;
+        vertical-align: top !important;
+    }
+
+    .form016-checkbox {
+        border: 1px solid #111827;
+        display: inline-block;
+        font-family: Arial, sans-serif;
+        font-size: 9pt;
+        font-weight: 900;
+        height: 0.105in;
+        line-height: 0.095in;
+        margin: 0 0.055in;
+        text-align: center;
+        vertical-align: middle;
+        width: 0.105in;
     }
 
     @media print {
@@ -138,54 +366,64 @@
             background: #fff !important;
         }
 
-        .form016-sheet {
+        .form016-page {
             box-shadow: none;
-            width: 100%;
-            padding: 0;
+            width: 8.5in;
+            min-height: 11in;
         }
     }
 </style>
 
-<div class="form016-sheet">
-    <img class="form016-header" src="{{ $headerUrl }}" alt="UNAH VRA Dirección de Vinculación Universidad Sociedad">
+<div class="form016-shell {{ $shellClass }}">
+    {!! $openPage(1) !!}
     <div class="form016-code">FORM-DVUS-016</div>
-    <div class="form016-title">FORMULARIO DE REGISTRO DE CERTIFICADOS UNIVERSITARIOS / EDUCACION NO FORMAL</div>
+    <div class="form016-title">FORMULARIO DE REGISTRO DE CERTIFICADOS UNIVERSITARIOS<br>/EDUCACION NO FORMAL</div>
 
-    <div class="form016-section">• INFORMACION GENERAL DEL CERTIFICADO UNIVERSITARIO</div>
+    <div class="form016-section">I.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; INFORMACION GENERAL DEL CERTIFICADO UNIVERSITARIO</div>
+    @php
+        $carrerasCertificado = collect($certificado?->carreras ?? [])->values();
+        $totalFilasCarreras = max(3, $carrerasCertificado->count());
+    @endphp
     <table class="form016-table">
         <colgroup>
-            <col style="width: 28%">
-            <col style="width: 24%">
-            <col style="width: 16%">
-            <col style="width: 16%">
-            <col style="width: 16%">
+            <col style="width: 5%">
+            <col style="width: 29%">
+            <col style="width: 16.5%">
+            <col style="width: 16.5%">
+            <col style="width: 16.5%">
+            <col style="width: 16.5%">
         </colgroup>
         <tr>
-            <td class="form016-blue" rowspan="2">• Fecha de solicitud de registro</td>
-            <td class="form016-blue form016-center">Año</td>
+            <td class="form016-blue form016-num" rowspan="2">1.</td>
+            <td class="form016-blue form016-blue-label" rowspan="2">Fecha de solicitud de registro</td>
+            <td class="form016-blue form016-center" colspan="2">Año</td>
             <td class="form016-blue form016-center">Mes</td>
-            <td class="form016-blue form016-center" colspan="2">Dia</td>
+            <td class="form016-blue form016-center">Dia</td>
         </tr>
         <tr>
-            <td class="form016-center">{{ $accion->fecha_solicitud?->format('Y') }}</td>
+            <td class="form016-center" colspan="2">{{ $accion->fecha_solicitud?->format('Y') }}</td>
             <td class="form016-center">{{ $accion->fecha_solicitud?->format('m') }}</td>
-            <td class="form016-center" colspan="2">{{ $accion->fecha_solicitud?->format('d') }}</td>
+            <td class="form016-center">{{ $accion->fecha_solicitud?->format('d') }}</td>
         </tr>
         <tr>
-            <td class="form016-blue">• Nombre completo del Certificado</td>
+            <td class="form016-blue form016-num">2.</td>
+            <td class="form016-blue form016-blue-label">Nombre completo del Certificado</td>
             <td colspan="4">{{ $value($certificado?->nombre_certificado, $accion->nombre_accion) }}</td>
         </tr>
         <tr>
-            <td class="form016-blue">• Codigo de Certificado<br><span>(Asignado por la DAFT)</span></td>
+            <td class="form016-blue form016-num">3.</td>
+            <td class="form016-blue form016-blue-label">Código de Certificado<br><span>(Asignado por la DAFT)</span></td>
             <td colspan="4">{{ $value($certificado?->codigo_certificado) }}</td>
         </tr>
-        <tr>
-            <td class="form016-blue">• Numero de edicion del certificado Universitario.</td>
+        <tr class="form016-tall">
+            <td class="form016-blue form016-num">4.</td>
+            <td class="form016-blue form016-blue-label">Número de edición del certificado Universitario.</td>
             <td colspan="4">{{ $value($accion->numero_edicion) }}</td>
         </tr>
-        <tr>
-            <td class="form016-blue">• Tipo de Certificado:</td>
-            <td class="form016-gray">Basico</td>
+        <tr class="form016-tall">
+            <td class="form016-blue form016-num">5.</td>
+            <td class="form016-blue form016-blue-label">Tipo de Certificado:</td>
+            <td class="form016-gray">Básico</td>
             <td class="form016-center">{{ $checkbox(str($certificado?->tipoCertificado?->nombre)->ascii()->lower()->contains('basico')) }}</td>
             <td class="form016-gray">Avanzado</td>
             <td class="form016-center">{{ $checkbox(str($certificado?->tipoCertificado?->nombre)->ascii()->lower()->contains('avanzado')) }}</td>
@@ -194,28 +432,36 @@
 
     <table class="form016-table">
         <colgroup>
-            <col style="width: 34%">
+            <col style="width: 5%">
+            <col style="width: 29%">
             <col style="width: 36%">
             <col style="width: 30%">
         </colgroup>
         <tr>
-            <td class="form016-blue">• Carreras aprobadas por Consejo Universitario</td>
+            <td class="form016-blue form016-num" rowspan="{{ $totalFilasCarreras + 1 }}">6.</td>
+            <td class="form016-blue form016-blue-label" rowspan="{{ $totalFilasCarreras + 1 }}">
+                Carreras aprobadas por Consejo Universitario<br>
+                (Planes de estudios relacionados con el Certificado Universitario)
+            </td>
             <td class="form016-gray form016-center">Nombre de las Carreras</td>
             <td class="form016-gray form016-center">No. Acuerdos de Consejo Universitario</td>
         </tr>
-        @for ($i = 0; $i < 4; $i++)
-            @php $carrera = $certificado?->carreras?->values()->get($i); @endphp
-            <tr>
-                <td>{{ $i + 1 }}</td>
+        @for ($i = 0; $i < $totalFilasCarreras; $i++)
+            @php $carrera = $carrerasCertificado->get($i); @endphp
+            <tr class="form016-career-row">
                 <td>{{ $value($carrera?->nombre_carrera, $carrera?->carrera?->nombre) }}</td>
                 <td>{{ $value($carrera?->acuerdo_consejo_universitario) }}</td>
             </tr>
         @endfor
     </table>
 
+    @php
+        $espaciosCertificado = $accion->espaciosAprendizaje->values();
+        $totalFilasEspacios = max(6, $espaciosCertificado->count());
+    @endphp
     <table class="form016-table">
         <tr>
-            <td class="form016-blue" colspan="5">• Informacion general del Certificado Universitario</td>
+            <td class="form016-blue" colspan="5">7.&nbsp;&nbsp;&nbsp; Información general del Certificado Universitario</td>
         </tr>
         <tr>
             <td class="form016-gray form016-center" style="width: 8%">N°</td>
@@ -224,8 +470,8 @@
             <td class="form016-gray form016-center" style="width: 16%">No. de creditos</td>
             <td class="form016-gray form016-center" style="width: 16%">No. de horas</td>
         </tr>
-        @for ($i = 0; $i < 6; $i++)
-            @php $espacio = $accion->espaciosAprendizaje->values()->get($i); @endphp
+        @for ($i = 0; $i < $totalFilasEspacios; $i++)
+            @php $espacio = $espaciosCertificado->get($i); @endphp
             <tr>
                 <td class="form016-center">{{ $i + 1 }}</td>
                 <td>{{ $value($espacio?->nombre) }}</td>
@@ -237,75 +483,112 @@
     </table>
 
     <table class="form016-table">
-        <tr>
-            <td class="form016-blue" style="width: 35%">• Unidad academica responsable</td>
-            <td>{{ $value($accion->unidad_academica_responsable_texto, $accion->centroFacultad?->nombre) }}</td>
+        <colgroup>
+            <col style="width: 56%">
+            <col style="width: 12%">
+            <col style="width: 32%">
+        </colgroup>
+        <tr class="form016-block-row">
+            <td class="form016-blue form016-blue-title">
+                8.&nbsp;&nbsp; Unidad académica responsable<br>
+                (Facultad/Centro Universitario Regional/Instituto Tecnológico Superior)<br>
+                <em>Escuela, Departamento Académico.</em>
+            </td>
+            <td class="form016-blue form016-blue-title form016-center-blue-title" colspan="2">9.&nbsp;&nbsp; Carga horaria en créditos académicos</td>
         </tr>
-        <tr>
-            <td class="form016-blue">Escuela, Departamento Academico.</td>
-            <td>{{ $value($accion->escuela_departamento_texto, $accion->departamentoAcademico?->nombre) }}</td>
-        </tr>
-    </table>
-
-    <table class="form016-table">
-        <tr>
-            <td class="form016-blue" rowspan="2" style="width: 35%">• Carga horaria en creditos academicos</td>
-            <td class="form016-gray form016-center">Creditos academicos</td>
-            <td class="form016-gray form016-center">Horas teoricas</td>
-            <td class="form016-gray form016-center">Horas practicas</td>
-            <td class="form016-gray form016-center">Total Horas</td>
-        </tr>
-        <tr>
-            <td class="form016-center">{{ $value($accion->carga_horaria_creditos, 0) }}</td>
+        <tr class="form016-academic-row">
+            <td rowspan="3">
+                {{ $value($accion->unidad_academica_responsable_texto, $accion->centroFacultad?->nombre) }}<br>
+                {{ $value($accion->escuela_departamento_texto, $accion->departamentoAcademico?->nombre) }}
+            </td>
+            <td class="form016-gray">Horas<br>teóricas</td>
             <td class="form016-center">{{ $value($accion->horas_teoricas, 0) }}</td>
+        </tr>
+        <tr class="form016-academic-row">
+            <td class="form016-gray">Horas<br>practicas</td>
             <td class="form016-center">{{ $value($accion->horas_practicas, 0) }}</td>
+        </tr>
+        <tr class="form016-academic-row">
+            <td class="form016-gray">Total Horas:</td>
             <td class="form016-center">{{ $value($accion->total_horas, 0) }}</td>
         </tr>
+    </table>
+
+    <table class="form016-table">
+        <tr><td class="form016-blue" colspan="6">10.&nbsp;&nbsp; Cupos Programados: (Máximo)</td></tr>
+        <tr class="form016-block-row">
+            <td class="form016-gray" style="width: 18%">Mujeres</td>
+            <td class="form016-center" style="width: 17%">{{ $value($beneficiarios?->mujeres, 0) }}</td>
+            <td class="form016-gray" style="width: 18%">Hombres</td>
+            <td class="form016-center" style="width: 17%">{{ $value($beneficiarios?->hombres, 0) }}</td>
+            <td class="form016-gray" style="width: 18%">Total</td>
+            <td class="form016-center" style="width: 12%">{{ $value($beneficiarios?->total, 0) }}</td>
+        </tr>
+    </table>
+
+    {!! $closePage !!}
+    {!! $openPage(2) !!}
+
+    <table class="form016-table">
+        <tr><td class="form016-blue" colspan="6">11.&nbsp;&nbsp; Período de ejecución</td></tr>
         <tr>
-            <td class="form016-blue">• Cupos Programados: (Maximo)</td>
-            <td class="form016-gray form016-center">Mujeres</td>
-            <td class="form016-center">{{ $value($beneficiarios?->mujeres, 0) }}</td>
-            <td class="form016-gray form016-center">Hombres</td>
-            <td class="form016-center">{{ $value($beneficiarios?->hombres, 0) }} / Total {{ $value($beneficiarios?->total, 0) }}</td>
+            <td class="form016-gray form016-center" colspan="2">Fecha de inicio</td>
+            <td class="form016-gray form016-center" colspan="2">Fecha de finalización</td>
+            <td class="form016-gray form016-center" colspan="2">Vigencia del Certificado</td>
+        </tr>
+        <tr class="form016-block-row">
+            <td class="form016-center" colspan="2">{{ $date($accion->fecha_inicio) }}</td>
+            <td class="form016-center" colspan="2">{{ $date($accion->fecha_finalizacion) }}</td>
+            <td class="form016-center" colspan="2">{{ $value($certificado?->vigencia_certificado) }}</td>
+        </tr>
+        <tr>
+            <td class="form016-gray form016-center" colspan="3">Fecha de emisión: (fecha máxima de emisión del certificado)</td>
+            <td class="form016-gray form016-center" colspan="3">Indique el número de PAC al que pertenece, año</td>
+        </tr>
+        <tr class="form016-block-row">
+            <td class="form016-center" colspan="3">{{ $date($certificado?->fecha_emision_maxima) }}</td>
+            <td class="form016-center" colspan="3">{{ $value($certificado?->pac_certificado) }}</td>
         </tr>
     </table>
 
     <table class="form016-table">
-        <tr><td class="form016-blue" colspan="4">• Periodo de ejecucion</td></tr>
         <tr>
-            <td class="form016-gray form016-center">Fecha de inicio</td>
-            <td class="form016-gray form016-center">Fecha de finalizacion</td>
-            <td class="form016-gray form016-center">Vigencia del Certificado</td>
-            <td class="form016-gray form016-center">PAC / año</td>
+            <td class="form016-gray" rowspan="2" style="width: 22%">Horario</td>
+            <td class="form016-gray form016-center" style="width: 39%">Hora de inicio</td>
+            <td class="form016-gray form016-center" style="width: 39%">Hora de finalización</td>
         </tr>
         <tr>
-            <td class="form016-center">{{ $date($accion->fecha_inicio) }}</td>
-            <td class="form016-center">{{ $date($accion->fecha_finalizacion) }}</td>
-            <td class="form016-center">{{ $value($certificado?->vigencia_certificado) }}</td>
-            <td class="form016-center">{{ $value($certificado?->pac_certificado) }}</td>
-        </tr>
-        <tr>
-            <td class="form016-gray form016-center" colspan="2">Fecha de emision maxima</td>
-            <td class="form016-gray form016-center">Hora de inicio</td>
-            <td class="form016-gray form016-center">Hora de finalizacion</td>
-        </tr>
-        <tr>
-            <td class="form016-center" colspan="2">{{ $date($certificado?->fecha_emision_maxima) }}</td>
             <td class="form016-center">{{ $time($certificado?->hora_inicio) }}</td>
             <td class="form016-center">{{ $time($certificado?->hora_finalizacion) }}</td>
         </tr>
-        <tr>
-            <td class="form016-gray">Dias de imparticion</td>
-            <td colspan="3">
-                @foreach (['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'] as $dia)
-                    <span style="display:inline-block;margin-right:14px">{{ $dia }} {{ $checkbox($days->contains($dia)) }}</span>
-                @endforeach
-            </td>
-        </tr>
     </table>
 
     <table class="form016-table">
-        <tr><td class="form016-blue" colspan="4">• Modalidad de ejecucion</td></tr>
+        <colgroup>
+            <col style="width: 22%">
+            <col style="width: 11.14%">
+            <col style="width: 11.14%">
+            <col style="width: 11.14%">
+            <col style="width: 11.14%">
+            <col style="width: 11.14%">
+            <col style="width: 11.14%">
+            <col style="width: 11.16%">
+        </colgroup>
+        <tr>
+            <td class="form016-gray" rowspan="2">Días de impartición</td>
+            @foreach (['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'] as $dia)
+                <td class="form016-gray form016-center">{{ $dia }}</td>
+            @endforeach
+        </tr>
+        <tr>
+            @foreach (['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'] as $dia)
+                <td class="form016-center">{{ $checkbox($days->contains($dia)) }}</td>
+            @endforeach
+        </tr>
+        <tr><td class="form016-blue form016-center-blue-title" colspan="8">12.&nbsp;&nbsp; Modalidad de ejecución</td></tr>
+    </table>
+
+    <table class="form016-table">
         <tr>
             @foreach (['Presencial', 'Semi presencial', '100% virtual', 'Virtual sincronico'] as $modalidad)
                 <td class="form016-center">{{ $modalidad }}<br>{{ $checkbox(str($lugar?->modalidad_ejecucion)->ascii()->lower()->contains(str($modalidad)->ascii()->lower()->replace('sincronico', 'sincronico'))) }}</td>
@@ -332,7 +615,7 @@
     </table>
 
     <table class="form016-table">
-        <tr><td class="form016-blue" colspan="4">• Antecedentes de la accion</td></tr>
+        <tr><td class="form016-blue" colspan="4">13.&nbsp;&nbsp; Antecedentes de la acción</td></tr>
         @foreach (array_chunk(['Iniciativa de la unidad academica', 'Solicitud externa privada', 'Secretaria de Estado', 'Gobierno local', 'Universidades', 'ONG', 'Patronatos', 'Sector financiero', 'Sector productivo', 'Otros'], 2) as $row)
             <tr>
                 @foreach ($row as $item)
@@ -343,10 +626,10 @@
         @endforeach
     </table>
 
-    <div class="form016-section">• PERFIL DE LOS BENEFICIARIOS (PARTICIPANTES)</div>
+    <div class="form016-section">II.&nbsp;&nbsp;&nbsp;&nbsp; PERFIL DE LOS BENEFICIARIOS (PARTICIPANTES)</div>
     <table class="form016-table">
         <tr>
-            <td class="form016-blue" style="width: 35%">• Grado academico requerido</td>
+            <td class="form016-blue" style="width: 35%">14.&nbsp;&nbsp; Grado académico requerido</td>
             <td>
                 @foreach (['Titulo de Educacion Media', 'Titulo Universitario', 'Acreditar experiencia comprobada en el area'] as $grado)
                     <span style="display:inline-block;margin-right:18px">{{ $grado }} {{ $checkbox($hasCatalog('grado_academico', $grado)) }}</span>
@@ -354,14 +637,17 @@
             </td>
         </tr>
         <tr>
-            <td class="form016-blue">• Perfil de los principales participantes</td>
+            <td class="form016-blue">15.&nbsp;&nbsp; Perfil de los principales participantes</td>
             <td>{{ $catalogNames('perfil_participante')->implode(', ') }}{{ $accion->descripcion_participantes ? ' - '.$accion->descripcion_participantes : '' }}</td>
         </tr>
     </table>
 
-    <div class="form016-section">• EQUIPO DOCENTE DEL CERTIFICADO</div>
+    {!! $closePage !!}
+    {!! $openPage(3) !!}
+
+    <div class="form016-section">III.&nbsp;&nbsp;&nbsp; EQUIPO DOCENTE DEL CERTIFICADO</div>
     <table class="form016-table">
-        <tr><td class="form016-blue" colspan="4">• Coordinador/a del Certificado Universitario</td></tr>
+        <tr><td class="form016-blue" colspan="4">16.&nbsp;&nbsp; Coordinador/a del Certificado Universitario</td></tr>
         <tr>
             <td class="form016-gray">Nombre completo</td>
             <td>{{ $value($coordinador?->nombre_completo) }}</td>
@@ -385,7 +671,7 @@
     @for ($i = 0; $i < max(2, $docentes->count()); $i++)
         @php $docente = $docentes->get($i); @endphp
         <table class="form016-table">
-            <tr><td class="form016-blue" colspan="4">SECCION {{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }} - Datos del docente</td></tr>
+            <tr><td class="form016-blue" colspan="4">{{ 17 + $i }}.&nbsp;&nbsp; SECCION {{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }} - Datos del docente</td></tr>
             <tr>
                 <td class="form016-gray">Perfil del docente</td>
                 <td colspan="3">
@@ -419,10 +705,10 @@
         </table>
     @endfor
 
-    <div class="form016-section">• INFORMACION DE LA ENTIDAD CONTRAPARTE</div>
+    <div class="form016-section">IV.&nbsp;&nbsp;&nbsp; INFORMACION DE LA ENTIDAD CONTRAPARTE</div>
     <table class="form016-table">
         <tr>
-            <td class="form016-blue">• LA ACTIVIDAD TIENE CONTRAPARTE</td>
+            <td class="form016-blue">19.&nbsp;&nbsp; LA ACTIVIDAD TIENE CONTRAPARTE</td>
             <td>SI {{ $checkbox((bool) $contraparte) }}</td>
             <td>NO {{ $checkbox(! $contraparte) }}</td>
         </tr>
@@ -456,7 +742,10 @@
         </tr>
     </table>
 
-    <div class="form016-section">• INFORMACION ACADEMICA DEL CERTIFICADO</div>
+    {!! $closePage !!}
+    {!! $openPage(4) !!}
+
+    <div class="form016-section">V.&nbsp;&nbsp;&nbsp;&nbsp; INFORMACION ACADEMICA DEL CERTIFICADO</div>
     <table class="form016-table">
         <tr><td class="form016-blue">20.1 Resultados de Aprendizaje</td></tr>
         <tr><td class="form016-large">{{ $value($accion->resumen) }}</td></tr>
@@ -464,14 +753,17 @@
         <tr><td class="form016-large">{{ $value($accion->impacto_esperado) }}</td></tr>
         <tr><td class="form016-blue">20.3 Resumen de la logistica</td></tr>
         <tr><td class="form016-large">{{ $value($accion->logistica) }}</td></tr>
-        <tr><td class="form016-blue">Requisitos de emision del certificado</td></tr>
+        <tr><td class="form016-blue">20.4 Requisitos de emision del certificado</td></tr>
         <tr><td>{{ $value($certificado?->requisitos_emision) }}</td></tr>
     </table>
 
-    <div class="form016-section">• DETALLE DEL PRESUPUESTO</div>
+    {!! $closePage !!}
+    {!! $openPage(5) !!}
+
+    <div class="form016-section">VI.&nbsp;&nbsp;&nbsp; DETALLE DEL PRESUPUESTO</div>
     <table class="form016-table">
         <tr>
-            <td class="form016-blue">Obtendra ingresos por la actividad</td>
+            <td class="form016-blue">21.&nbsp;&nbsp; Obtendrá ingresos por la actividad</td>
             <td>SI {{ $checkbox((bool) $accion->genera_ingresos) }}</td>
             <td>NO {{ $checkbox(! $accion->genera_ingresos) }}</td>
         </tr>
@@ -483,8 +775,12 @@
         'aporte_unah' => ['Aporte de la UNAH', ['Personal docente', 'Horas de participación de los estudiantes', 'Horas de participación de voluntarios', 'Útiles y materiales de oficina', 'Costos indirectos depreciación de equipo', 'Costos indirectos servicios públicos']],
     ] as $tipo => [$titulo, $rubros])
         @php $rows = $budgetRows($tipo, $rubros); @endphp
+        @if ($tipo === 'aporte_unah')
+            {!! $closePage !!}
+            {!! $openPage(6) !!}
+        @endif
         <table class="form016-table">
-            <tr><td class="form016-blue" colspan="4">• {{ $titulo }} (manifestado en lempiras)</td></tr>
+            <tr><td class="form016-blue" colspan="4">{{ ['ingresos' => '22', 'egresos' => '23', 'aporte_unah' => '24'][$tipo] }}.&nbsp;&nbsp; {{ $titulo }} (manifestado en lempiras)</td></tr>
             <tr>
                 <td class="form016-gray">Concepto</td>
                 <td class="form016-gray form016-center">Cantidad</td>
@@ -508,16 +804,16 @@
 
     <table class="form016-table">
         <tr>
-            <td class="form016-blue" style="width: 35%">• Breve descripcion en que se destinara el excedente</td>
+            <td class="form016-blue" style="width: 35%">25.&nbsp;&nbsp; Breve descripción en que se destinará el excedente</td>
             <td>{{ $value($accion->descripcion_excedente) }}</td>
         </tr>
         <tr>
-            <td class="form016-blue">• Mecanismo de administracion de la accion</td>
+            <td class="form016-blue">26.&nbsp;&nbsp; Mecanismo de administración de la acción</td>
             <td>FUNDAUNAH {{ $checkbox(str($accion->mecanismo_administracion)->lower()->contains('fundaunah')) }} &nbsp;&nbsp; Tesoreria de la UNAH {{ $checkbox(str($accion->mecanismo_administracion)->lower()->contains('tesorer')) }}</td>
         </tr>
     </table>
 
-    <div class="form016-section">• FIRMAS</div>
+    <div class="form016-section">VII.&nbsp;&nbsp; FIRMAS</div>
     <table class="form016-table">
         <tr>
             <td class="form016-gray form016-center">Jefe de Departamento</td>
@@ -530,4 +826,5 @@
             <td class="form016-signature">Nombre: {{ $firmasPorRol->get('Decano(a) o Director(a) del Centro Regional')?->nombre_firmante }}<br><br>Nombre, firma y sello:</td>
         </tr>
     </table>
+    {!! $closePage !!}
 </div>

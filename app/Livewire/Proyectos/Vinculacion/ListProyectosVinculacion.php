@@ -233,8 +233,8 @@ class ListProyectosVinculacion extends Component
 
     private function historialRows(): Collection
     {
-        return $this->proyectoRows()
-            ->merge($this->enfRows())
+        return collect($this->proyectoRows()->all())
+            ->merge($this->enfRows()->all())
             ->sortByDesc(fn (array $row) => $row['sort_date']?->timestamp ?? 0)
             ->values();
     }

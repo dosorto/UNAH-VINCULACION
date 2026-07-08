@@ -46,11 +46,12 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}">
+        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}" data-record-id="{{ $editingAccion?->id }}" data-autosave-url="{{ route('enf.acciones.autoguardar-borrador') }}" data-autosave-update-url-template="{{ route('enf.acciones.autoguardar-borrador.update', ['accion' => '__ID__']) }}">
             @csrf
             @if ($editingAccion)
                 @method('PUT')
             @endif
+            <input type="hidden" name="borrador_autoguardado_id" value="{{ $editingAccion?->id }}">
             <input type="hidden" name="tipo_accion_id" value="{{ old('tipo_accion_id', $tipoAccionVinculacionEnfId ?: $tiposAccion->first()?->id) }}">
             <input type="hidden" name="codigo_formulario" value="FORM-DVUS-016">
             <input type="hidden" name="estado_flujo" value="BORRADOR">
@@ -137,7 +138,7 @@
                         <label class="{{ $label }}">Créditos académicos</label>
                         <input type="number" min="0" name="carga_horaria_creditos" value="{{ old('carga_horaria_creditos', 0) }}" class="{{ $input }}">
                     </div>
-                    <div>
+                    <div class="md:col-start-1">
                         <label class="{{ $label }}">Horas teóricas</label>
                         <input type="number" min="0" name="horas_teoricas" value="{{ old('horas_teoricas', 0) }}" class="{{ $input }}" data-hours-field>
                     </div>
@@ -374,43 +375,49 @@
                 </section>
 
                 <section class="mt-6">
-                    <h3 class="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Equipo docente</h3>
-                    <div class="space-y-4">
-                        @for ($i = 0; $i < 3; $i++)
-                            <div class="rounded-md border border-slate-200 p-4 dark:border-slate-700">
+                    <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Equipo docente</h3>
+                        <button type="button" data-add-teacher class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Agregar docente</button>
+                    </div>
+                    <div class="space-y-4" data-teacher-team-list></div>
+                    <template data-teacher-team-template>
+                        <div class="rounded-md border border-slate-200 p-4 dark:border-slate-700" data-teacher-row>
+                            <div class="mb-3 flex items-center justify-between gap-3">
+                                <p class="text-sm font-semibold text-slate-700 dark:text-slate-200" data-teacher-title>Docente</p>
+                                <button type="button" data-remove-teacher class="rounded-md border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40">Quitar</button>
+                            </div>
                                 <div class="mb-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-                                    <select name="equipo_docente[{{ $i }}][perfil_docente]" class="{{ $input }}">
+                                    <select data-teacher-field="perfil_docente" class="{{ $input }}">
                                         <option value="">Perfil del docente...</option>
                                         <option>Profesor de la UNAH</option>
                                         <option>Consultor Nacional</option>
                                         <option>Consultor Internacional</option>
                                     </select>
-                                    <input name="equipo_docente[{{ $i }}][nombre_completo]" class="{{ $input }}" placeholder="Nombre completo">
-                                    <input name="equipo_docente[{{ $i }}][espacio_aprendizaje]" class="{{ $input }}" placeholder="Espacio de aprendizaje que impartirá">
+                                    <input data-teacher-field="nombre_completo" class="{{ $input }}" placeholder="Nombre completo">
+                                    <input data-teacher-field="espacio_aprendizaje" class="{{ $input }}" placeholder="Espacio de aprendizaje que impartirá">
                                 </div>
                                 <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
-                                    <input name="equipo_docente[{{ $i }}][numero_empleado]" class="{{ $input }}" placeholder="No. empleado / identificación">
-                                    <input type="email" name="equipo_docente[{{ $i }}][correo]" class="{{ $input }}" placeholder="Correo">
-                                    <input name="equipo_docente[{{ $i }}][categoria]" class="{{ $input }}" placeholder="Categoría docente">
-                                    <input name="equipo_docente[{{ $i }}][departamento]" class="{{ $input }}" placeholder="Departamento académico">
-                                    <input name="equipo_docente[{{ $i }}][ultimo_titulo]" class="{{ $input }}" placeholder="Último título académico">
-                                    <input name="equipo_docente[{{ $i }}][pais_procedencia]" class="{{ $input }}" placeholder="País de procedencia">
-                                    <input name="equipo_docente[{{ $i }}][universidad_procedencia]" class="{{ $input }}" placeholder="Universidad de procedencia">
-                                    <input type="number" min="0" name="equipo_docente[{{ $i }}][horas_contratadas]" class="{{ $input }}" placeholder="Horas">
+                                    <input data-teacher-field="numero_empleado" class="{{ $input }}" placeholder="No. empleado / identificación">
+                                    <input type="email" data-teacher-field="correo" class="{{ $input }}" placeholder="Correo">
+                                    <input data-teacher-field="categoria" class="{{ $input }}" placeholder="Categoría docente">
+                                    <input data-teacher-field="departamento" class="{{ $input }}" placeholder="Departamento académico">
+                                    <input data-teacher-field="ultimo_titulo" class="{{ $input }}" placeholder="Último título académico">
+                                    <input data-teacher-field="pais_procedencia" class="{{ $input }}" placeholder="País de procedencia">
+                                    <input data-teacher-field="universidad_procedencia" class="{{ $input }}" placeholder="Universidad de procedencia">
+                                    <input type="number" min="0" data-teacher-field="horas_contratadas" class="{{ $input }}" placeholder="Horas">
                                 </div>
                                 <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     <label class="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
-                                        <input type="checkbox" name="equipo_docente[{{ $i }}][carga_academica_pac]" value="Si" class="rounded border-gray-300 text-blue-600">
+                                        <input type="checkbox" data-teacher-field="carga_academica_pac" value="Si" class="rounded border-gray-300 text-blue-600">
                                         Carga académica del PAC
                                     </label>
                                     <label class="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
-                                        <input type="checkbox" name="equipo_docente[{{ $i }}][contratacion_jornada_contraria]" value="Si" class="rounded border-gray-300 text-blue-600">
+                                        <input type="checkbox" data-teacher-field="contratacion_jornada_contraria" value="Si" class="rounded border-gray-300 text-blue-600">
                                         Contratación jornada contraria
                                     </label>
                                 </div>
                             </div>
-                        @endfor
-                    </div>
+                    </template>
                 </section>
             </div>
 
@@ -607,6 +614,9 @@
             const clearDraftOnLoad = form.dataset.clearDraftOnLoad === '1';
             const shouldLockStepNavigation = form.dataset.lockStepNavigation === '1';
             const initialDraft = @js($initialDraft ?? []);
+            const autosaveUrl = form.dataset.autosaveUrl;
+            const autosaveUpdateUrlTemplate = form.dataset.autosaveUpdateUrlTemplate || '';
+            const draftIdField = form.querySelector('[name="borrador_autoguardado_id"]');
             const panels = Array.from(form.querySelectorAll('[data-step-panel]'));
             const previousButton = form.querySelector('[data-previous-step]');
             const nextButton = form.querySelector('[data-next-step]');
@@ -619,6 +629,7 @@
             const careerOptions = @js($carreras->map(fn ($carrera) => ['id' => (string) $carrera->id, 'nombre' => $carrera->nombre])->values());
             const oldCertificateCareers = @js(old('certificado_carreras', []));
             const oldLearningSpaces = @js(old('espacios_aprendizaje', []));
+            const oldTeacherTeam = @js(old('equipo_docente', []));
             const careerModal = document.querySelector('[data-career-modal]');
             const careerModalTitle = document.querySelector('[data-career-modal-title]');
             const careerIdField = document.querySelector('[data-career-id]');
@@ -634,6 +645,9 @@
             const careersList = form.querySelector('[data-careers-list]');
             const learningSpacesFieldsContainer = form.querySelector('[data-learning-spaces-fields]');
             const learningSpacesList = form.querySelector('[data-learning-spaces-list]');
+            const teacherTeamList = form.querySelector('[data-teacher-team-list]');
+            const teacherTeamTemplate = form.querySelector('[data-teacher-team-template]');
+            const addTeacherButton = form.querySelector('[data-add-teacher]');
 
             if (clearDraftOnLoad) {
                 window.localStorage.removeItem(storageKey);
@@ -642,6 +656,13 @@
 
             let step = Number(window.localStorage.getItem(`${storageKey}:step`) || 1);
             let autosaveTimer = null;
+            let serverAutosaveTimer = null;
+            let serverAutosavePromise = Promise.resolve();
+            let serverAutosaveDirty = false;
+            let serverAutosaveInFlight = false;
+            let shouldPersistDraft = Boolean(form.dataset.recordId || draftIdField?.value);
+            let draftRecordId = form.dataset.recordId || draftIdField?.value || '';
+            let submittingAfterAutosave = false;
             let restoredDraftData = {};
             let certificateCareers = [];
             let learningSpaces = [];
@@ -654,6 +675,21 @@
                 certificado_carreras: ['carrera_id', 'nombre_carrera', 'acuerdo_consejo_universitario'],
                 espacios_aprendizaje: ['nombre', 'codigo', 'creditos', 'horas'],
             };
+            const teacherFieldNames = [
+                'perfil_docente',
+                'nombre_completo',
+                'espacio_aprendizaje',
+                'numero_empleado',
+                'correo',
+                'categoria',
+                'departamento',
+                'ultimo_titulo',
+                'pais_procedencia',
+                'universidad_procedencia',
+                'horas_contratadas',
+                'carga_academica_pac',
+                'contratacion_jornada_contraria',
+            ];
 
             const showModal = (modal) => {
                 modal?.classList.remove('hidden');
@@ -706,6 +742,76 @@
                 });
 
                 return normalizeCollectionRows(rows, fields);
+            };
+
+            const valueIsChecked = (value) => {
+                if (Array.isArray(value)) {
+                    return value.includes('Si') || value.includes('1') || value.includes(true);
+                }
+
+                return ['si', 'sí', '1', 'true', 'on'].includes(String(value ?? '').trim().toLowerCase());
+            };
+
+            const teacherRowsFromDraftData = (data) => rowsFromDraftData(data, 'equipo_docente', teacherFieldNames);
+
+            const renumberTeacherRows = () => {
+                const rows = Array.from(teacherTeamList?.querySelectorAll('[data-teacher-row]') || []);
+
+                rows.forEach((row, index) => {
+                    row.dataset.teacherIndex = String(index);
+
+                    const title = row.querySelector('[data-teacher-title]');
+                    const removeButton = row.querySelector('[data-remove-teacher]');
+
+                    if (title) {
+                        title.textContent = `Docente ${index + 1}`;
+                    }
+
+                    if (removeButton) {
+                        removeButton.disabled = rows.length <= 1;
+                    }
+
+                    row.querySelectorAll('[data-teacher-field]').forEach((field) => {
+                        field.name = `equipo_docente[${index}][${field.dataset.teacherField}]`;
+                    });
+                });
+            };
+
+            const addTeacherRow = (values = {}) => {
+                if (!teacherTeamList || !teacherTeamTemplate) {
+                    return null;
+                }
+
+                const fragment = teacherTeamTemplate.content.cloneNode(true);
+                const row = fragment.querySelector('[data-teacher-row]');
+
+                row.querySelectorAll('[data-teacher-field]').forEach((field) => {
+                    const value = values?.[field.dataset.teacherField];
+
+                    if (field.type === 'checkbox') {
+                        field.checked = valueIsChecked(value);
+                        return;
+                    }
+
+                    field.value = value ?? '';
+                });
+
+                teacherTeamList.appendChild(fragment);
+                renumberTeacherRows();
+
+                return row;
+            };
+
+            const resetTeacherRows = (rows = []) => {
+                if (!teacherTeamList) {
+                    return;
+                }
+
+                teacherTeamList.innerHTML = '';
+
+                const rowsToRender = rows.length > 0 ? rows : [{}];
+                rowsToRender.forEach((row) => addTeacherRow(row));
+                renumberTeacherRows();
             };
 
             const appendCollectionToData = (data, prefix, rows, fields) => {
@@ -964,7 +1070,123 @@
                 }
             };
 
-            const save = () => {
+            const updateDraftRecord = (payload) => {
+                if (!payload?.id) {
+                    return;
+                }
+
+                draftRecordId = String(payload.id);
+                form.dataset.recordId = draftRecordId;
+                shouldPersistDraft = true;
+
+                if (draftIdField) {
+                    draftIdField.value = draftRecordId;
+                }
+
+                if (payload.edit_url && !window.location.pathname.endsWith(`/enf/acciones/${draftRecordId}/edit`)) {
+                    window.history.replaceState({}, '', payload.edit_url);
+                }
+            };
+
+            const autosaveEndpoint = () => {
+                if (draftRecordId && autosaveUpdateUrlTemplate) {
+                    return autosaveUpdateUrlTemplate.replace('__ID__', encodeURIComponent(draftRecordId));
+                }
+
+                return autosaveUrl;
+            };
+
+            const buildServerAutosaveData = () => {
+                renderCollections();
+                syncCalculatedFields();
+
+                const formData = new FormData(form);
+
+                Array.from(formData.entries()).forEach(([key, value]) => {
+                    if (key === '_method') {
+                        formData.delete(key);
+                        return;
+                    }
+
+                    if (value instanceof File) {
+                        formData.delete(key);
+                    }
+                });
+
+                formData.set('estado_flujo', 'BORRADOR');
+
+                if (draftRecordId) {
+                    formData.set('borrador_autoguardado_id', draftRecordId);
+                }
+
+                return formData;
+            };
+
+            const serverAutosave = ({ force = false, keepalive = false } = {}) => {
+                window.clearTimeout(serverAutosaveTimer);
+
+                if (!force && !serverAutosaveDirty) {
+                    return serverAutosavePromise;
+                }
+
+                const endpoint = autosaveEndpoint();
+
+                if (!endpoint) {
+                    return Promise.resolve();
+                }
+
+                serverAutosaveDirty = false;
+                serverAutosaveInFlight = true;
+
+                if (status) {
+                    status.textContent = 'Guardando borrador...';
+                }
+
+                serverAutosavePromise = fetch(endpoint, {
+                    method: 'POST',
+                    body: buildServerAutosaveData(),
+                    keepalive,
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                })
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error(`Autosave failed with status ${response.status}`);
+                        }
+
+                        return response.json();
+                    })
+                    .then((payload) => {
+                        updateDraftRecord(payload);
+
+                        if (status) {
+                            status.textContent = `Borrador guardado ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                        }
+                    })
+                    .catch(() => {
+                        serverAutosaveDirty = true;
+
+                        if (status) {
+                            status.textContent = 'No se pudo guardar el borrador. Se reintentará.';
+                        }
+                    })
+                    .finally(() => {
+                        serverAutosaveInFlight = false;
+                    });
+
+                return serverAutosavePromise;
+            };
+
+            const scheduleServerAutosave = () => {
+                shouldPersistDraft = true;
+                serverAutosaveDirty = true;
+                window.clearTimeout(serverAutosaveTimer);
+                serverAutosaveTimer = window.setTimeout(() => serverAutosave(), 1500);
+            };
+
+            const save = ({ persist = true } = {}) => {
                 const data = {};
 
                 syncCalculatedFields();
@@ -1002,6 +1224,10 @@
                 if (status) {
                     status.textContent = `Autoguardado ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                 }
+
+                if (persist) {
+                    scheduleServerAutosave();
+                }
             };
 
             const restore = () => {
@@ -1014,11 +1240,14 @@
                     data = { ...initialDraft };
                 }
 
+                restoredDraftData = data;
+                resetTeacherRows(collectionHasRows(oldTeacherTeam)
+                    ? normalizeCollectionRows(oldTeacherTeam, teacherFieldNames)
+                    : teacherRowsFromDraftData(data));
+
                 if (Object.keys(data).length === 0) {
                     return;
                 }
-
-                restoredDraftData = data;
 
                 form.querySelectorAll('input[name], select[name], textarea[name]').forEach((field) => {
                     if (field.type === 'hidden' || field.type === 'file' || field.name === '_token' || field.disabled || !(field.name in data)) {
@@ -1028,7 +1257,7 @@
                     const value = data[field.name];
 
                     if (field.type === 'checkbox') {
-                        field.checked = Array.isArray(value) && value.includes(field.value);
+                        field.checked = Array.isArray(value) ? value.includes(field.value) : valueIsChecked(value);
                         return;
                     }
 
@@ -1535,6 +1764,34 @@
                 refreshValidationFeedback();
                 save();
             });
+            addTeacherButton?.addEventListener('click', () => {
+                const row = addTeacherRow();
+                syncRequiredMarkers();
+                render();
+                refreshValidationFeedback();
+                save();
+                row?.querySelector('[data-teacher-field]')?.focus();
+            });
+            teacherTeamList?.addEventListener('click', (event) => {
+                const removeButton = event.target.closest('[data-remove-teacher]');
+
+                if (!removeButton) {
+                    return;
+                }
+
+                const rows = teacherTeamList.querySelectorAll('[data-teacher-row]');
+
+                if (rows.length <= 1) {
+                    return;
+                }
+
+                removeButton.closest('[data-teacher-row]')?.remove();
+                renumberTeacherRows();
+                syncRequiredMarkers();
+                render();
+                refreshValidationFeedback();
+                save();
+            });
             form.addEventListener('input', () => {
                 syncCalculatedFields();
                 updateContraparteState();
@@ -1552,6 +1809,10 @@
                 save();
             });
             form.addEventListener('submit', (event) => {
+                if (submittingAfterAutosave) {
+                    return;
+                }
+
                 syncCalculatedFields();
                 updateContraparteState();
 
@@ -1563,8 +1824,36 @@
                     return;
                 }
 
-                window.localStorage.removeItem(storageKey);
-                window.localStorage.removeItem(`${storageKey}:step`);
+                save();
+                event.preventDefault();
+                submitButton?.setAttribute('disabled', 'disabled');
+
+                serverAutosave({ force: true })
+                    .finally(() => {
+                        window.localStorage.removeItem(storageKey);
+                        window.localStorage.removeItem(`${storageKey}:step`);
+                        submittingAfterAutosave = true;
+                        HTMLFormElement.prototype.submit.call(form);
+                    });
+            });
+
+            window.addEventListener('beforeunload', () => save({ persist: shouldPersistDraft }));
+            window.addEventListener('pagehide', () => {
+                save({ persist: shouldPersistDraft });
+                window.clearTimeout(autosaveTimer);
+
+                if (shouldPersistDraft && (serverAutosaveDirty || serverAutosaveInFlight)) {
+                    serverAutosave({ force: true, keepalive: true });
+                }
+            });
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') {
+                    save({ persist: shouldPersistDraft });
+
+                    if (shouldPersistDraft) {
+                        serverAutosave({ force: true, keepalive: true });
+                    }
+                }
             });
         })();
     </script>
