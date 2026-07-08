@@ -594,7 +594,7 @@ class PpsServicioSocialWorkflowService
 
     private function notificarRevisionPendiente(PpsServicioSocial $registro, FlujoAprobacionEtapa $etapa, string $evento): void
     {
-        $destinatarios = $this->usuariosResponsablesDeEtapa($etapa);
+        $destinatarios = $this->usuariosResponsablesDeEtapa($etapa, $registro);
         $registroParaCorreo = $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
 
         foreach ($destinatarios as $destinatario) {
@@ -623,12 +623,17 @@ class PpsServicioSocialWorkflowService
         ]);
     }
 
-    private function usuariosResponsablesDeEtapa(FlujoAprobacionEtapa $etapa): Collection
+    private function usuariosResponsablesDeEtapa(FlujoAprobacionEtapa $etapa, ?PpsServicioSocial $registro = null): Collection
     {
         $query = User::query()->select(['id', 'name', 'email']);
         $this->aplicarFiltroUsuariosActivos($query);
 
-        if ((bool) $etapa->requiere_asignacion) {
+        $destinatariosEmisores = $registro?->destinatarios_emisor ?? [];
+        $usuarioEmisorId = $destinatariosEmisores[$etapa->id] ?? null;
+
+        if ((bool) ($etapa->emisor_define_destinatario ?? false) && $usuarioEmisorId) {
+            $query->whereKey((int) $usuarioEmisorId);
+        } elseif ((bool) $etapa->requiere_asignacion) {
             if (!$etapa->usuario_responsable_id) {
                 throw new RuntimeException("La etapa {$etapa->nombre} requiere asignacion pero no tiene usuario responsable configurado.");
             }

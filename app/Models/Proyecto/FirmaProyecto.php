@@ -2,18 +2,17 @@
 
 namespace App\Models\Proyecto;
 
+use App\Models\Estado\TipoEstado;
+use App\Models\Personal\Empleado;
+use App\Models\Personal\FirmaSelloEmpleado;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
-use App\Models\Personal\Empleado;
-use App\Models\Proyecto\CargoFirma;
-use App\Models\Personal\FirmaSelloEmpleado;
-use App\Models\Estado\TipoEstado;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FirmaProyecto extends Model
 {
     use HasFactory;
-
 
     protected $table = 'firma_proyecto';
 
@@ -27,17 +26,31 @@ class FirmaProyecto extends Model
         'hash',
         'firmable_type',
         'firmable_id',
+        'flujo_aprobacion_id',
+        'flujo_aprobacion_etapa_id',
+        'orden_revision',
+        'etapa_codigo',
+        'etapa_nombre',
+        'rol_requerido',
+        'responsable_usuario_id',
+        'revision_ciclo',
         'estado_actual_id',
         'tipo_firma', // proyecto, contrato, acta, etc
         'fecha_firma',
+    ];
+
+    protected $casts = [
+        'flujo_aprobacion_id' => 'integer',
+        'flujo_aprobacion_etapa_id' => 'integer',
+        'orden_revision' => 'integer',
+        'responsable_usuario_id' => 'integer',
+        'revision_ciclo' => 'integer',
     ];
 
     public function firmable()
     {
         return $this->morphTo();
     }
-
-
 
     // relacion con estado
     public function estado_actual()
@@ -60,7 +73,6 @@ class FirmaProyecto extends Model
         return $this->belongsTo(FichaActualizacion::class, 'firmable_id');
     }
 
-
     public function empleado()
     {
         return $this->belongsTo(Empleado::class, 'empleado_id');
@@ -71,6 +83,30 @@ class FirmaProyecto extends Model
         return $this->belongsTo(CargoFirma::class, 'cargo_firma_id');
     }
 
+    public function flujoAprobacion(): BelongsTo
+    {
+        return $this->belongsTo(FlujoAprobacion::class, 'flujo_aprobacion_id');
+    }
+
+    public function flujoEtapa(): BelongsTo
+    {
+        return $this->belongsTo(FlujoAprobacionEtapa::class, 'flujo_aprobacion_etapa_id');
+    }
+
+    public function responsableUsuario(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'responsable_usuario_id');
+    }
+
+    public function usaFlujoPorEtapa(): bool
+    {
+        return filled($this->flujo_aprobacion_etapa_id);
+    }
+
+    public function esFirmaLegacy(): bool
+    {
+        return blank($this->flujo_aprobacion_etapa_id);
+    }
 
     // recuperar la firma del empleado
     public function firma()

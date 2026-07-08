@@ -11,7 +11,6 @@
             7 => 'Marco Lógico',
             8 => 'Presupuesto',
             9 => 'Anexos',
-            10 => 'Firmas',
         ];
     @endphp
 <div
@@ -50,7 +49,7 @@
                         {{ $label }}
                     </span>
                 </button>
-                @if($step < 10)
+                @if($step < 9)
                     <div class="h-0.5 w-3 shrink-0 {{ $complete ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700' }}"></div>
                 @endif
             @endforeach
@@ -962,22 +961,27 @@
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre Contacto</label>
                                 <input type="text" wire:model="nuevaContraparte.nombre_contacto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                @error('nuevaContraparte.nombre_contacto') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Cargo</label>
                                 <input type="text" wire:model="nuevaContraparte.cargo_contacto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                @error('nuevaContraparte.cargo_contacto') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Teléfono</label>
                                 <input type="text" wire:model="nuevaContraparte.telefono" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                @error('nuevaContraparte.telefono') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo</label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo <span class="text-red-500">*</span></label>
                                 <input type="email" wire:model="nuevaContraparte.correo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                @error('nuevaContraparte.correo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div class="sm:col-span-2">
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción de Acuerdos</label>
                                 <textarea wire:model="nuevaContraparte.descripcion_acuerdos" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
+                                @error('nuevaContraparte.descripcion_acuerdos') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
                         {{-- Instrumentos de formalización --}}
@@ -1136,6 +1140,9 @@
 
         {{-- Modal: Crear/Editar Actividad --}}
         @if($showActividadModal)
+        @php
+            $actividadFechaFinMin = data_get($nuevaActividad, 'fecha_inicio');
+        @endphp
         <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog">
             <div class="fixed inset-0 bg-black/50"></div>
             <div class="relative flex min-h-full items-center justify-center p-4">
@@ -1155,23 +1162,21 @@
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha Inicio <span class="text-red-500">*</span></label>
-                                <input type="date" wire:model="nuevaActividad.fecha_inicio"
-                                    @if(!empty($fecha_inicio)) min="{{ $fecha_inicio }}" @endif
-                                    @if(!empty($fecha_finalizacion)) max="{{ $fecha_finalizacion }}" @endif
+                                <input type="date" wire:model.live="nuevaActividad.fecha_inicio"
                                     class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500 @error('nuevaActividad.fecha_inicio') border-red-500 @enderror" />
                                 @error('nuevaActividad.fecha_inicio') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha Fin <span class="text-red-500">*</span></label>
-                                <input type="date" wire:model="nuevaActividad.fecha_finalizacion"
-                                    @if(!empty($fecha_inicio)) min="{{ $fecha_inicio }}" @endif
-                                    @if(!empty($fecha_finalizacion)) max="{{ $fecha_finalizacion }}" @endif
+                                <input type="date" wire:model.live="nuevaActividad.fecha_finalizacion"
+                                    @if($actividadFechaFinMin) min="{{ $actividadFechaFinMin }}" @endif
                                     class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500 @error('nuevaActividad.fecha_finalizacion') border-red-500 @enderror" />
                                 @error('nuevaActividad.fecha_finalizacion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Horas</label>
-                                <input type="number" wire:model="nuevaActividad.horas" min="0" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                <input type="number" wire:model.blur.number="nuevaActividad.horas" min="0" step="1" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                @error('nuevaActividad.horas') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
                         <div>
@@ -1226,16 +1231,19 @@
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 5: Descripción del Proyecto</h3>
         <div class="space-y-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Resumen</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Resumen <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="resumen" rows="8" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('resumen') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de Participantes</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de Participantes <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="descripcion_participantes" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('descripcion_participantes') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Definición del Problema</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Definición del Problema <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="definicion_problema" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('definicion_problema') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
 
             {{-- Descripción de la experiencia académica (FORM-DVUS-015 · sólo Voluntariado) --}}
@@ -1261,20 +1269,24 @@
             @endif
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alineamiento a la Reforma</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alineamiento a la Reforma <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="alineamiento_reforma" rows="5" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('alineamiento_reforma') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Impacto Deseado</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Impacto Deseado <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="impacto_deseado" rows="5" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('impacto_deseado') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metodología</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metodología <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="metodologia" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('metodologia') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bibliografía</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bibliografía <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="bibliografia" rows="5" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('bibliografia') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
         </div>
         @endif
@@ -1308,19 +1320,31 @@
                             @php
                                 $hKey = $g['h'] ?? null;
                                 $mKey = $g['m'] ?? null;
-                                $hValue = $hKey ? (int) ($this->{$hKey} ?? 0) : 0;
-                                $mValue = $mKey ? (int) ($this->{$mKey} ?? 0) : 0;
+                                $hValue = match ($hKey) {
+                                    'indigenas_hombres' => (int) ($indigenas_hombres ?? 0),
+                                    'afroamericanos_hombres' => (int) ($afroamericanos_hombres ?? 0),
+                                    'mestizos_hombres' => (int) ($mestizos_hombres ?? 0),
+                                    default => 0,
+                                };
+                                $mValue = match ($mKey) {
+                                    'indigenas_mujeres' => (int) ($indigenas_mujeres ?? 0),
+                                    'afroamericanos_mujeres' => (int) ($afroamericanos_mujeres ?? 0),
+                                    'mestizos_mujeres' => (int) ($mestizos_mujeres ?? 0),
+                                    default => 0,
+                                };
                                 $total = $hValue + $mValue;
                             @endphp
                             <tr class="bg-white dark:bg-gray-900">
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-xs">{{ $g['label'] }}</td>
                                 <td class="px-4 py-2 text-center">
-                                    <input type="number" wire:model="{{ $g['h'] }}" wire:change="calcTotales" min="0"
+                                    <input type="number" wire:model.blur.number="{{ $g['h'] }}" wire:blur="calcTotales" min="0" step="1" inputmode="numeric"
                                         class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center focus:border-blue-500" />
+                                    @error($g['h']) <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </td>
                                 <td class="px-4 py-2 text-center">
-                                    <input type="number" wire:model="{{ $g['m'] }}" wire:change="calcTotales" min="0"
+                                    <input type="number" wire:model.blur.number="{{ $g['m'] }}" wire:blur="calcTotales" min="0" step="1" inputmode="numeric"
                                         class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center focus:border-blue-500" />
+                                    @error($g['m']) <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </td>
                                 <td class="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">
                                     {{ $total }}
@@ -1603,10 +1627,11 @@
                     {{-- Resultados del objetivo activo --}}
                     <div>
                         <div class="flex items-center justify-between mb-2">
-                            <p class="text-xs font-semibold text-gray-600 dark:text-gray-400">Resultados Esperados</p>
+                            <p class="text-xs font-semibold text-gray-600 dark:text-gray-400">Resultados Esperados <span class="text-red-500">*</span></p>
                             <button wire:click="addResultado({{ $selectedObjetivoIndex }})" type="button"
                                 class="text-xs text-blue-600 hover:text-blue-800">+ Agregar resultado</button>
                         </div>
+                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados") <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
                         <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
                             @foreach($objActivo['resultados'] ?? [] as $ri => $resultado)
                             <div wire:key="resultado-{{ $objetivoActivoKey }}-{{ $resultado['wire_key'] ?? $resultado['id'] ?? 'nuevo-'.$ri }}" class="p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
@@ -1617,28 +1642,33 @@
                                 </div>
                                 <div class="grid grid-cols-1 gap-2">
                                     <div>
-                                        <label class="block text-xs text-gray-500 mb-0.5">Resultado</label>
+                                        <label class="block text-xs text-gray-500 mb-0.5">Resultado <span class="text-red-500">*</span></label>
                                         <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_resultado"
                                             class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_resultado") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                     </div>
                                     <div>
-                                        <label class="block text-xs text-gray-500 mb-0.5">Indicador</label>
+                                        <label class="block text-xs text-gray-500 mb-0.5">Indicador <span class="text-red-500">*</span></label>
                                         <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_indicador"
                                             class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_indicador") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                     </div>
                                     <div>
-                                        <label class="block text-xs text-gray-500 mb-0.5">Medio de Verificación</label>
+                                        <label class="block text-xs text-gray-500 mb-0.5">Medio de Verificación <span class="text-red-500">*</span></label>
                                         <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_medio_verificacion"
                                             class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_medio_verificacion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                     </div>
                                     <div>
-                                        <label class="block text-xs text-gray-500 mb-0.5">Plazo</label>
+                                        <label class="block text-xs text-gray-500 mb-0.5">Plazo <span class="text-red-500">*</span></label>
                                         <select wire:model.live="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.plazo"
                                             class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500">
+                                            <option value="">Seleccione...</option>
                                             <option value="corto_plazo">Corto plazo</option>
                                             <option value="mediano_plazo">Mediano plazo</option>
                                             <option value="largo_plazo">Largo plazo</option>
                                         </select>
+                                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.plazo") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                     </div>
                                 </div>
                             </div>
@@ -1785,71 +1815,6 @@
         </div>
         @endif
 
-        {{-- ══════════════════ PASO 10: Firmas ══════════════════ --}}
-        @if($currentStep === 10)
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 10: Firmas y Envío</h3>
-        <div class="space-y-5">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
-                Seleccione los firmantes del proyecto.
-                @if(!empty($facultades_centros))
-                <span class="text-blue-600 dark:text-blue-400 font-medium">Mostrando empleados de las facultades/centros seleccionados en el Paso 1.</span>
-                @endif
-            </p>
-
-            {{-- Buscador --}}
-            <div>
-                <input type="text" wire:model.live.debounce.300ms="firmaSearch"
-                    placeholder="Buscar firmante por nombre o número de empleado..."
-                    class="w-full sm:w-96 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
-                @if($firmantesOpts->isEmpty())
-                <p class="text-xs text-amber-600 mt-1">Sin empleados en las facultades seleccionadas. Verifique el Paso 1.</p>
-                @else
-                <p class="text-xs text-gray-500 mt-1">{{ $firmantesOpts->count() }} empleado(s) disponibles.</p>
-                @endif
-            </div>
-
-            @php
-            $firmaFields = [
-                ['field' => 'jefe_empleado_id',    'label' => 'Jefe de Departamento', 'icon' => '🏛️'],
-                ['field' => 'decano_empleado_id',  'label' => 'Decano / Director de Centro', 'icon' => '🎓'],
-                ['field' => 'enlace_empleado_id',  'label' => 'Enlace de Vinculación', 'icon' => '🔗'],
-            ];
-            @endphp
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                @foreach($firmaFields as $ff)
-                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        {{ $ff['icon'] }} {{ $ff['label'] }}
-                    </label>
-                    <select wire:model="{{ $ff['field'] }}"
-                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                        <option value="">Seleccione...</option>
-                        @foreach($firmantesOpts as $firmante)
-                            <option value="{{ $firmante->id }}">
-                                {{ $firmante->nombre_completo }}
-                                @if($firmante->numero_empleado) ({{ $firmante->numero_empleado }}) @endif
-                            </option>
-                        @endforeach
-                    </select>
-                    @if($this->{$ff['field']})
-                    @php $sel = $firmantesOpts->firstWhere('id', $this->{$ff['field']}); @endphp
-                    @if($sel)
-                    <p class="text-xs text-green-600 dark:text-green-400 mt-1">✓ {{ $sel->nombre_completo }}</p>
-                    @endif
-                    @endif
-                </div>
-                @endforeach
-            </div>
-
-            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <p class="text-sm text-blue-800 dark:text-blue-200">
-                    Al hacer clic en <strong>"Enviar para Firmar"</strong> el proyecto iniciará el proceso de firmas. Al hacer clic en <strong>"Guardar como Borrador"</strong> se guardará sin enviar.
-                </p>
-            </div>
-        </div>
-        @endif
-
         {{-- ══════════════════ Navegación ══════════════════ --}}
         <div class="mt-8 flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
             <div>
@@ -1870,23 +1835,162 @@
                         <span class="text-red-600 dark:text-red-400">Error al guardar</span>
                     @endif
                 </span>
-                @if($currentStep === 10)
-                <button wire:click="borrador" type="button"
-                    class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50">
-                    Guardar como Borrador
-                </button>
-                <button wire:click="create" type="button"
-                    class="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-                    Enviar para Firmar →
-                </button>
-                @else
+                @if($currentStep < 9)
                 <button wire:click="nextStep" type="button"
                     class="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
                     Siguiente →
                 </button>
+                @elseif($currentStep === 9)
+                <button wire:click="borrador" type="button"
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50">
+                    Guardar como Borrador
+                </button>
+                <button
+                    wire:click="abrirModalEnviar"
+                    type="button"
+                    class="inline-flex items-center px-4 py-2 rounded-md text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 shadow-sm">
+                    Enviar para Firmar
+                </button>
                 @endif
             </div>
         </div>
+
+    </div>
+</div>
+
+{{-- ══════════════════ Modal: Enviar para Firmar ══════════════════ --}}
+@if($showEnviarModal)
+<div
+    wire:key="modal-enviar"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+>
+    <div class="relative w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900" wire:click.stop>
+
+        {{-- Header --}}
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white">Enviar proyecto para revisión</h2>
+                @if(count($modalEtapasConDestinatario) > 0)
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Seleccione el destinatario para cada etapa del flujo.</p>
+                @else
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">El sistema asignará automáticamente los responsables según el flujo configurado.</p>
+                @endif
+            </div>
+            <button wire:click="$set('showEnviarModal', false)" class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700">
+                &times;
+            </button>
+        </div>
+
+        {{-- Indicador de pasos --}}
+        @php
+            $totalPasos = count($modalEtapasConDestinatario) + 1;
+            $pasoActual = $modalStep;
+        @endphp
+        @if($totalPasos > 1)
+        <div class="mt-5 flex flex-wrap items-center gap-2">
+            @foreach($modalEtapasConDestinatario as $i => $etapa)
+                <div class="flex items-center gap-1.5 {{ $pasoActual < $i ? 'opacity-40' : '' }}">
+                    <span class="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold {{ $pasoActual === $i ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : ($pasoActual > $i ? 'bg-emerald-500 text-white' : 'border border-slate-300 text-slate-400 dark:border-slate-600') }}">
+                        {{ $pasoActual > $i ? '✓' : ($i + 1) }}
+                    </span>
+                    <span class="hidden text-xs sm:block {{ $pasoActual === $i ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-400' }}">{{ $etapa['nombre'] }}</span>
+                </div>
+                <span class="text-slate-300 dark:text-slate-600 text-xs">&rarr;</span>
+            @endforeach
+            <div class="flex items-center gap-1.5 {{ $pasoActual < count($modalEtapasConDestinatario) ? 'opacity-40' : '' }}">
+                <span class="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold {{ $pasoActual === count($modalEtapasConDestinatario) ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'border border-slate-300 text-slate-400 dark:border-slate-600' }}">
+                    {{ count($modalEtapasConDestinatario) + 1 }}
+                </span>
+                <span class="hidden text-xs sm:block {{ $pasoActual === count($modalEtapasConDestinatario) ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-400' }}">Confirmación</span>
+            </div>
+        </div>
+        @endif
+
+        {{-- Pasos de selección de destinatario --}}
+        @foreach($modalEtapasConDestinatario as $i => $etapa)
+        @if($pasoActual === $i)
+        <div wire:key="modal-paso-{{ $i }}" class="mt-5 rounded-xl border border-slate-200 p-5 dark:border-slate-700">
+            <div class="mb-4">
+                <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{{ $etapa['nombre'] }}</h3>
+                @if(!empty($etapa['codigo']))
+                <span class="inline-block mt-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $etapa['codigo'] }}</span>
+                @endif
+                @if(!empty($etapa['rol_nombre']))
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Rol requerido: <span class="font-medium">{{ $etapa['rol_nombre'] }}</span></p>
+                @endif
+            </div>
+
+            @if(!empty($etapa['candidatos']))
+            <div>
+                <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Seleccione el destinatario</label>
+                <select
+                    wire:model="modalDestinatarios.{{ $etapa['id'] }}"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                    <option value="">Seleccione un destinatario...</option>
+                    @foreach($etapa['candidatos'] as $candidato)
+                    <option value="{{ $candidato['user_id'] }}">{{ $candidato['nombre'] }}</option>
+                    @endforeach
+                </select>
+            </div>
+            @else
+            <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+                No hay usuarios disponibles con el rol requerido para esta etapa.
+            </div>
+            @endif
+        </div>
+        @endif
+        @endforeach
+
+        {{-- Paso de confirmación --}}
+        @if($pasoActual === count($modalEtapasConDestinatario))
+        <div wire:key="modal-confirmacion" class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-900/50 dark:bg-emerald-950/30">
+            <h3 class="font-semibold text-emerald-800 dark:text-emerald-200">Listo para enviar</h3>
+            <p class="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
+                El proyecto será enviado al flujo de aprobación configurado.
+            </p>
+            @if(count($modalEtapasConDestinatario) > 0)
+            <div class="mt-4 space-y-2">
+                @foreach($modalEtapasConDestinatario as $etapa)
+                @php
+                    $userId = $modalDestinatarios[$etapa['id']] ?? null;
+                    $seleccionado = collect($etapa['candidatos'])->firstWhere('user_id', $userId);
+                @endphp
+                <div class="flex items-center gap-2 text-xs text-emerald-800 dark:text-emerald-200">
+                    <span class="font-medium">{{ $etapa['nombre'] }}:</span>
+                    <span>{{ $seleccionado ? $seleccionado['nombre'] : '—' }}</span>
+                </div>
+                @endforeach
+            </div>
+            @endif
+        </div>
+        @endif
+
+        {{-- Footer --}}
+        <div class="mt-6 flex items-center justify-between">
+            <button wire:click="$set('showEnviarModal', false)" class="inline-flex items-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                Cancelar
+            </button>
+            <div class="flex items-center gap-2">
+                @if($pasoActual > 0)
+                <button wire:click="modalAnterior" class="inline-flex items-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
+                    &larr; Anterior
+                </button>
+                @endif
+                @if($pasoActual < count($modalEtapasConDestinatario))
+                <button wire:click="modalSiguiente" class="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900">
+                    Siguiente &rarr;
+                </button>
+                @else
+                <button wire:click="confirmarEnvio" class="inline-flex items-center rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600">
+                    Confirmar envío
+                </button>
+                @endif
+            </div>
+        </div>
+
+    </div>
+</div>
+@endif
 
     </div>
 </div>

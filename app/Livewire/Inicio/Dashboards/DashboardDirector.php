@@ -339,7 +339,10 @@ class DashboardDirector extends Component
 
         // Tabla mis proyectos
         $misProyectosTable = $this->queryMisProyectos()
-            ->with(['estadoActual.tipoestado'])
+            ->with([
+                'estadoActual.tipoestado',
+                'firmasDeEtapa' => fn ($q) => $q->orderByDesc('revision_ciclo')->orderBy('orden_revision'),
+            ])
             ->orderBy('proyecto.created_at', 'desc')
             ->paginate($this->perPage);
 

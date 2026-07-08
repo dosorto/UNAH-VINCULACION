@@ -7,6 +7,8 @@ use Livewire\WithFileUploads;
 use App\Support\Notification;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\CargoFirma;
+use App\Models\Proyecto\FirmaProyecto;
+use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Modalidad;
 use App\Models\Proyecto\Categoria;
@@ -25,6 +27,7 @@ use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\Carrera;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
@@ -33,7 +36,9 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Renderless;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use App\Mail\EtapaFlujoPendiente;
 use App\Mail\ProyectoCreado;
+use RuntimeException;
 
 class CreateProyectoVinculacion extends Component
 {
@@ -131,12 +136,12 @@ class CreateProyectoVinculacion extends Component
     public string $bibliografia = '';
 
     // Step 6 – beneficiaries
-    public int $indigenas_hombres = 0;
-    public int $indigenas_mujeres = 0;
-    public int $afroamericanos_hombres = 0;
-    public int $afroamericanos_mujeres = 0;
-    public int $mestizos_hombres = 0;
-    public int $mestizos_mujeres = 0;
+    public int|string|null $indigenas_hombres = 0;
+    public int|string|null $indigenas_mujeres = 0;
+    public int|string|null $afroamericanos_hombres = 0;
+    public int|string|null $afroamericanos_mujeres = 0;
+    public int|string|null $mestizos_hombres = 0;
+    public int|string|null $mestizos_mujeres = 0;
     public int $hombres = 0;
     public int $mujeres = 0;
     public int $poblacion_participante = 0;
@@ -164,11 +169,11 @@ class CreateProyectoVinculacion extends Component
     public $newAnexo;
     public int $anexosCount = 0;
 
-    // Step 10 (was 9) – firmas
-    public ?int $jefe_empleado_id = null;
-    public ?int $decano_empleado_id = null;
-    public ?int $enlace_empleado_id = null;
-    public string $firmaSearch = '';
+    // Modal de envío por flujo
+    public bool $showEnviarModal = false;
+    public int $modalStep = 0;
+    public array $modalEtapasConDestinatario = [];
+    public array $modalDestinatarios = [];
 
     // ── FORM-DVUS-015 (Voluntariado Académico) ──────────────────────────────
     // Campos propios que sólo aplican cuando el tipo de acción es Voluntariado.
@@ -229,6 +234,25 @@ class CreateProyectoVinculacion extends Component
         'Practica Profesional',
         'Practica Asignatura',
         'Voluntariado',
+    ];
+
+    private const CAMPOS_DESCRIPCION_REQUERIDOS = [
+        'resumen',
+        'descripcion_participantes',
+        'definicion_problema',
+        'alineamiento_reforma',
+        'impacto_deseado',
+        'metodologia',
+        'bibliografia',
+    ];
+
+    private const CAMPOS_BENEFICIARIOS = [
+        'indigenas_hombres',
+        'indigenas_mujeres',
+        'afroamericanos_hombres',
+        'afroamericanos_mujeres',
+        'mestizos_hombres',
+        'mestizos_mujeres',
     ];
 
     public function mount(?int $record = null): void
@@ -488,7 +512,7 @@ class CreateProyectoVinculacion extends Component
             return;
         }
 
-        if ($this->currentStep < 10) {
+        if ($this->currentStep < 9) {
             $this->currentStep++;
             $this->selectedObjetivoIndex = 0;
         }
@@ -504,7 +528,7 @@ class CreateProyectoVinculacion extends Component
 
     public function goToStep(int $step): void
     {
-        if (!$this->recordId || $step < 1 || $step > 10 || $step === $this->currentStep) {
+        if (!$this->recordId || $step < 1 || $step > 9 || $step === $this->currentStep) {
             return;
         }
 
@@ -522,10 +546,13 @@ class CreateProyectoVinculacion extends Component
 
     private function validarPasoActualParaNavegacion(): bool
     {
+        $this->normalizarDatosAntesDeValidarPaso($this->currentStep);
         $rules = $this->rulesPasoActualParaNavegacion();
 
         try {
-            if (!empty($rules)) {
+            if ($this->currentStep === 7) {
+                $this->validarMarcoLogicoCompleto();
+            } elseif (!empty($rules)) {
                 $this->validate($rules);
             }
         } catch (ValidationException $e) {
@@ -607,12 +634,10 @@ class CreateProyectoVinculacion extends Component
             4 => [
                 'actividades' => 'required|array|min:1',
                 'actividades.*.descripcion' => 'required|string',
+                'actividades.*.fecha_inicio' => 'required|date',
+                'actividades.*.fecha_finalizacion' => 'required|date',
             ],
-            5 => [
-                'resumen' => 'required|string',
-                'descripcion_participantes' => 'required|string',
-                'definicion_problema' => 'required|string',
-            ],
+            5 => $this->rulesDescripcion(),
             6 => [
                 'indigenas_hombres' => 'nullable|integer|min:0',
                 'indigenas_mujeres' => 'nullable|integer|min:0',
@@ -631,14 +656,61 @@ class CreateProyectoVinculacion extends Component
                 'objetivo_general' => 'required|string',
                 'objetivosEspecificos' => 'required|array|min:1',
                 'objetivosEspecificos.*.descripcion' => 'required|string',
-                'objetivosEspecificos.*.resultados.*.plazo' => 'nullable|in:' . implode(',', $this->plazoOpciones),
+                'objetivosEspecificos.*.resultados' => 'required|array|min:1',
+                'objetivosEspecificos.*.resultados.*.nombre_resultado' => 'required|string',
+                'objetivosEspecificos.*.resultados.*.nombre_indicador' => 'required|string',
+                'objetivosEspecificos.*.resultados.*.nombre_medio_verificacion' => 'required|string',
+                'objetivosEspecificos.*.resultados.*.plazo' => 'required|in:' . implode(',', $this->plazoOpciones),
             ],
             default => [],
         };
     }
 
+    private function normalizarDatosAntesDeValidarPaso(int $step): void
+    {
+        if ($step === 5) {
+            $this->trimCamposDescripcion();
+        }
+
+        if ($step === 6) {
+            $this->normalizarBeneficiarios();
+        }
+
+        if ($step === 7) {
+            $this->normalizarMarcoLogico();
+        }
+    }
+
+    private function rulesDescripcion(): array
+    {
+        return collect(self::CAMPOS_DESCRIPCION_REQUERIDOS)
+            ->mapWithKeys(fn(string $campo) => [$campo => 'required|string'])
+            ->all();
+    }
+
+    private function trimCamposDescripcion(): void
+    {
+        foreach (self::CAMPOS_DESCRIPCION_REQUERIDOS as $campo) {
+            $this->{$campo} = trim((string) ($this->{$campo} ?? ''));
+        }
+    }
+
     private function validacionesAdicionalesPasoActualParaNavegacion(): bool
     {
+        if ($this->currentStep === 4) {
+            foreach ($this->actividades as $i => $actividad) {
+                $fechaInicio = $this->dateOrNull($actividad['fecha_inicio'] ?? null);
+                $fechaFin = $this->dateOrNull($actividad['fecha_finalizacion'] ?? null);
+
+                if ($fechaInicio && $fechaFin && $fechaFin < $fechaInicio) {
+                    $this->addError(
+                        "actividades.$i.fecha_finalizacion",
+                        'La fecha de finalización debe ser igual o posterior a la fecha de inicio de la actividad.'
+                    );
+                }
+            }
+        }
+
         if ($this->currentStep === 2) {
             foreach ($this->estudiante_proyecto as $i => $item) {
                 $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '')
@@ -671,6 +743,104 @@ class CreateProyectoVinculacion extends Component
         }
 
         return $this->getErrorBag()->isEmpty();
+    }
+
+    private function validarMarcoLogicoCompleto(): void
+    {
+        $this->normalizarMarcoLogico();
+
+        $this->validate(
+            $this->rulesMarcoLogico(),
+            [],
+            $this->atributosMarcoLogico()
+        );
+    }
+
+    private function rulesMarcoLogico(): array
+    {
+        return [
+            'objetivo_general' => 'required|string',
+            'objetivosEspecificos' => 'required|array|min:1',
+            'objetivosEspecificos.*.descripcion' => 'required|string',
+            'objetivosEspecificos.*.resultados' => 'required|array|min:1',
+            'objetivosEspecificos.*.resultados.*.nombre_resultado' => 'required|string',
+            'objetivosEspecificos.*.resultados.*.nombre_indicador' => 'required|string',
+            'objetivosEspecificos.*.resultados.*.nombre_medio_verificacion' => 'required|string',
+            'objetivosEspecificos.*.resultados.*.plazo' => 'required|in:' . implode(',', $this->plazoOpciones),
+        ];
+    }
+
+    private function atributosMarcoLogico(): array
+    {
+        $attributes = [
+            'objetivo_general' => 'objetivo general',
+            'objetivosEspecificos' => 'objetivos específicos',
+        ];
+
+        foreach ($this->objetivosEspecificos as $oi => $objetivo) {
+            $objetivoLabel = 'objetivo OE' . ($oi + 1);
+            $attributes["objetivosEspecificos.$oi.descripcion"] = "descripción del {$objetivoLabel}";
+            $attributes["objetivosEspecificos.$oi.resultados"] = "resultados esperados del {$objetivoLabel}";
+
+            foreach (($objetivo['resultados'] ?? []) as $ri => $resultado) {
+                $resultadoLabel = 'resultado R' . ($ri + 1) . ' del ' . $objetivoLabel;
+                $attributes["objetivosEspecificos.$oi.resultados.$ri.nombre_resultado"] = "nombre del {$resultadoLabel}";
+                $attributes["objetivosEspecificos.$oi.resultados.$ri.nombre_indicador"] = "indicador del {$resultadoLabel}";
+                $attributes["objetivosEspecificos.$oi.resultados.$ri.nombre_medio_verificacion"] = "medio de verificación del {$resultadoLabel}";
+                $attributes["objetivosEspecificos.$oi.resultados.$ri.plazo"] = "plazo del {$resultadoLabel}";
+            }
+        }
+
+        return $attributes;
+    }
+
+    private function normalizarMarcoLogico(): void
+    {
+        $this->objetivo_general = trim($this->objetivo_general);
+
+        foreach ($this->objetivosEspecificos as $oi => $objetivo) {
+            $this->objetivosEspecificos[$oi]['descripcion'] = trim((string) ($objetivo['descripcion'] ?? ''));
+
+            if (!isset($this->objetivosEspecificos[$oi]['resultados']) || !is_array($this->objetivosEspecificos[$oi]['resultados'])) {
+                $this->objetivosEspecificos[$oi]['resultados'] = [];
+            }
+
+            foreach ($this->objetivosEspecificos[$oi]['resultados'] as $ri => $resultado) {
+                $this->objetivosEspecificos[$oi]['resultados'][$ri]['nombre_resultado'] = trim((string) ($resultado['nombre_resultado'] ?? ''));
+                $this->objetivosEspecificos[$oi]['resultados'][$ri]['nombre_indicador'] = trim((string) ($resultado['nombre_indicador'] ?? ''));
+                $this->objetivosEspecificos[$oi]['resultados'][$ri]['nombre_medio_verificacion'] = trim((string) ($resultado['nombre_medio_verificacion'] ?? ''));
+                $this->objetivosEspecificos[$oi]['resultados'][$ri]['plazo'] = $this->normalizePlazo($resultado['plazo'] ?? '') ?: '';
+            }
+        }
+    }
+
+    private function marcoLogicoTieneResultadosCompletos(): bool
+    {
+        if (empty($this->objetivosEspecificos)) {
+            return false;
+        }
+
+        foreach ($this->objetivosEspecificos as $objetivo) {
+            if (trim((string) ($objetivo['descripcion'] ?? '')) === '') {
+                return false;
+            }
+
+            $resultados = $objetivo['resultados'] ?? [];
+            if (empty($resultados)) {
+                return false;
+            }
+
+            foreach ($resultados as $resultado) {
+                if (trim((string) ($resultado['nombre_resultado'] ?? '')) === ''
+                    || trim((string) ($resultado['nombre_indicador'] ?? '')) === ''
+                    || trim((string) ($resultado['nombre_medio_verificacion'] ?? '')) === ''
+                    || !$this->normalizePlazo($resultado['plazo'] ?? '')) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     protected function saveCurrentStep(): void
@@ -711,7 +881,9 @@ class CreateProyectoVinculacion extends Component
                 && !empty(array_filter(array_column($this->estudiante_proyecto, 'tipo_participacion_estudiante'))),
             3 => !empty(array_filter(array_column($this->entidad_contraparte, 'nombre'))),
             4 => !empty(array_filter(array_column($this->actividades, 'descripcion'))),
-            5 => !empty($this->resumen) && !empty($this->descripcion_participantes) && !empty($this->definicion_problema)
+            5 => collect(self::CAMPOS_DESCRIPCION_REQUERIDOS)->every(
+                    fn(string $campo) => trim((string) ($this->{$campo} ?? '')) !== ''
+                )
                 && (!$this->esVoluntariado || (
                     !empty($this->experiencia_conocimientos_teoricos)
                     && !empty($this->experiencia_habilidades_tecnicas)
@@ -719,11 +891,9 @@ class CreateProyectoVinculacion extends Component
                 )),
             6 => !empty($this->departamento_geo) || $this->poblacion_participante > 0,
             7 => !empty($this->objetivo_general)
-                && !empty($this->objetivosEspecificos)
-                && !empty($this->objetivosEspecificos[0]['descripcion'] ?? ''),
+                && $this->marcoLogicoTieneResultadosCompletos(),
             8 => collect($this->aporte_institucional)->sum('costo_total') > 0,
             9 => $this->anexosCount > 0,
-            10 => $this->jefe_empleado_id && $this->decano_empleado_id && $this->enlace_empleado_id,
             default => false,
         };
     }
@@ -752,9 +922,6 @@ class CreateProyectoVinculacion extends Component
             'fecha_finalizacion' => $this->fecha_finalizacion ?: null,
             'programa_pertenece' => $this->programa_pertenece,
             'lineas_investigacion_academica' => $this->lineas_investigacion_academica,
-            'flujo_aprobacion_id' => FlujoAprobacion::defaultForProyectos($this->tipo_accion_id, $this->codigoFormularioFlujo())?->id
-                ?? FlujoAprobacion::defaultForProyectos($this->tipo_accion_id)?->id
-                ?? FlujoAprobacion::defaultForProyectos()?->id,
         ]);
         $record->coordinador_proyecto()->firstOrCreate(
             ['empleado_id' => $empleado->id],
@@ -774,6 +941,11 @@ class CreateProyectoVinculacion extends Component
     // ─── Save Steps ──────────────────────────────────────────────────────────
     public function updated(string $propertyName): void
     {
+        if ($this->esCampoBeneficiario($propertyName)) {
+            $this->normalizarCampoBeneficiario($propertyName);
+            $this->calcTotales();
+        }
+
         if ($this->esPropiedadAcademicaDependiente($propertyName)) {
             $this->limpiarRelacionesDependientes();
         }
@@ -794,6 +966,11 @@ class CreateProyectoVinculacion extends Component
         }
 
         return false;
+    }
+
+    private function esCampoBeneficiario(string $propertyName): bool
+    {
+        return in_array($propertyName, self::CAMPOS_BENEFICIARIOS, true);
     }
 
     private function debeAutoguardar(string $propertyName): bool
@@ -943,7 +1120,6 @@ class CreateProyectoVinculacion extends Component
         $this->guardarPresupuestoParcial($record);
         $this->guardarAnexoParcial($record);
         $this->guardarEspaciosInstitucionalesParcial($record);
-        $this->guardarFirmasParcial($record);
     }
 
     private function metodologiaSeguimientoNormalizada(): array
@@ -1355,41 +1531,6 @@ class CreateProyectoVinculacion extends Component
         $path = $this->newAnexo->store('anexos', 'public');
         $record->anexos()->create(['documento_url' => $path]);
         $this->newAnexo = null;
-    }
-
-    private function guardarFirmasParcial(Proyecto $record): void
-    {
-        $map = [
-            'Jefe Departamento' => $this->jefe_empleado_id,
-            'Director centro' => $this->decano_empleado_id,
-            'Enlace Vinculacion' => $this->enlace_empleado_id,
-        ];
-
-        foreach ($map as $nombre => $empId) {
-            $cargo = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                ->where('tipo_cargo_firma.nombre', $nombre)
-                ->select('cargo_firma.*')
-                ->first();
-
-            if (!$cargo) {
-                continue;
-            }
-
-            if (!$empId) {
-                $record->firma_proyecto()
-                    ->where('cargo_firma_id', $cargo->id)
-                    ->where('estado_revision', 'Pendiente')
-                    ->delete();
-                continue;
-            }
-
-            $record->guardarFirmaDeCargo($cargo->id, \App\Models\Personal\Empleado::findOrFail((int) $empId), [
-                'estado_revision' => 'Pendiente',
-                'firma_id' => null,
-                'sello_id' => null,
-                'fecha_firma' => null,
-            ]);
-        }
     }
 
     private function limpiarRelacionesDependientes(): void
@@ -1881,6 +2022,31 @@ class CreateProyectoVinculacion extends Component
 
     protected function saveStep4(): void
     {
+        $this->resetErrorBag();
+
+        $this->validate([
+            'actividades' => 'required|array|min:1',
+            'actividades.*.descripcion' => 'required|string',
+            'actividades.*.fecha_inicio' => 'required|date',
+            'actividades.*.fecha_finalizacion' => 'required|date',
+        ]);
+
+        foreach ($this->actividades as $i => $actividad) {
+            $fechaInicio = $this->dateOrNull($actividad['fecha_inicio'] ?? null);
+            $fechaFin = $this->dateOrNull($actividad['fecha_finalizacion'] ?? null);
+
+            if ($fechaInicio && $fechaFin && $fechaFin < $fechaInicio) {
+                $this->addError(
+                    "actividades.$i.fecha_finalizacion",
+                    'La fecha de finalización debe ser igual o posterior a la fecha de inicio de la actividad.'
+                );
+            }
+        }
+
+        if (!$this->getErrorBag()->isEmpty()) {
+            return;
+        }
+
         $record = $this->ensureRecord();
         $validEmpleados = $this->responsableIdsDisponibles($record);
         $hasInvalidResponsables = false;
@@ -1902,6 +2068,9 @@ class CreateProyectoVinculacion extends Component
 
     protected function saveStep5(): void
     {
+        $this->trimCamposDescripcion();
+        $this->validate($this->rulesDescripcion());
+
         $record = $this->ensureRecord();
         $record->update([
             'resumen' => $this->resumen,
@@ -1942,12 +2111,7 @@ class CreateProyectoVinculacion extends Component
 
     protected function saveStep7(): void
     {
-        $this->validate([
-            'objetivo_general' => 'required|string',
-            'objetivosEspecificos' => 'required|array|min:1',
-            'objetivosEspecificos.*.descripcion' => 'required|string',
-            'objetivosEspecificos.*.resultados.*.plazo' => 'nullable|in:' . implode(',', $this->plazoOpciones),
-        ]);
+        $this->validarMarcoLogicoCompleto();
         $record = $this->ensureRecord();
         DB::transaction(fn() => $this->guardarMarcoLogicoParcial($record));
         Notification::make()->title('Paso VII guardado')->success()->send();
@@ -1997,9 +2161,27 @@ class CreateProyectoVinculacion extends Component
 
     public function calcTotales(): void
     {
+        $this->normalizarBeneficiarios();
         $this->hombres = $this->indigenas_hombres + $this->afroamericanos_hombres + $this->mestizos_hombres;
         $this->mujeres = $this->indigenas_mujeres + $this->afroamericanos_mujeres + $this->mestizos_mujeres;
         $this->poblacion_participante = $this->hombres + $this->mujeres;
+    }
+
+    private function normalizarBeneficiarios(): void
+    {
+        foreach (self::CAMPOS_BENEFICIARIOS as $campo) {
+            $this->normalizarCampoBeneficiario($campo);
+        }
+    }
+
+    private function normalizarCampoBeneficiario(string $campo): void
+    {
+        if (!$this->esCampoBeneficiario($campo)) {
+            return;
+        }
+
+        $valor = $this->{$campo} ?? 0;
+        $this->{$campo} = max(0, (int) (is_numeric($valor) ? $valor : 0));
     }
 
     // ─── Empleado Modal (Step 2) ──────────────────────────────────────────────
@@ -2339,7 +2521,7 @@ class CreateProyectoVinculacion extends Component
             'nuevaContraparte.nombre_contacto' => 'nullable|string|max:255',
             'nuevaContraparte.cargo_contacto' => 'nullable|string|max:255',
             'nuevaContraparte.telefono' => 'nullable|string|max:255',
-            'nuevaContraparte.correo' => 'nullable|email|max:255',
+            'nuevaContraparte.correo' => 'required|email|max:255',
             'nuevaContraparte.descripcion_acuerdos' => 'nullable|string',
             'nuevaContraparte.instrumento_formalizacion.*.tipo_documento' => 'nullable|in:' . implode(',', $this->instrumentoTipos),
             'nuevaContraparte.instrumento_formalizacion.*.documento_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
@@ -2505,40 +2687,20 @@ class CreateProyectoVinculacion extends Component
 
     public function saveActividad(): void
     {
-        if (empty($this->nuevaActividad['descripcion'])) {
-            $this->addError('nuevaActividad.descripcion', 'La descripción de la actividad es obligatoria.');
-            return;
-        }
+        $this->nuevaActividad['descripcion'] = trim((string) ($this->nuevaActividad['descripcion'] ?? ''));
+        $this->nuevaActividad['horas'] = max(0, (int) ($this->nuevaActividad['horas'] ?? 0));
 
-        $fechaInicioActividad    = $this->dateOrNull($this->nuevaActividad['fecha_inicio'] ?? null);
-        $fechaFinActividad       = $this->dateOrNull($this->nuevaActividad['fecha_finalizacion'] ?? null);
-        $fechaInicioProyecto     = $this->dateOrNull($this->fecha_inicio);
-        $fechaFinalizacionProyecto = $this->dateOrNull($this->fecha_finalizacion);
-
-        if (empty($fechaInicioActividad)) {
-            $this->addError('nuevaActividad.fecha_inicio', 'La fecha de inicio de la actividad es obligatoria.');
-            return;
-        }
-
-        if (empty($fechaFinActividad)) {
-            $this->addError('nuevaActividad.fecha_finalizacion', 'La fecha de finalización de la actividad es obligatoria.');
-            return;
-        }
-
-        if ($fechaInicioProyecto && $fechaInicioActividad < $fechaInicioProyecto) {
-            $this->addError('nuevaActividad.fecha_inicio', 'La fecha de inicio no puede ser anterior a la fecha de inicio del proyecto (' . $fechaInicioProyecto . ').');
-            return;
-        }
-
-        if ($fechaFinActividad < $fechaInicioActividad) {
-            $this->addError('nuevaActividad.fecha_finalizacion', 'La fecha de finalización no puede ser anterior a la fecha de inicio de la actividad.');
-            return;
-        }
-
-        if ($fechaFinalizacionProyecto && $fechaFinActividad > $fechaFinalizacionProyecto) {
-            $this->addError('nuevaActividad.fecha_finalizacion', 'La fecha de finalización no puede ser posterior a la fecha de finalización del proyecto (' . $fechaFinalizacionProyecto . ').');
-            return;
-        }
+        $this->validate([
+            'nuevaActividad.descripcion' => 'required|string',
+            'nuevaActividad.fecha_inicio' => 'required|date',
+            'nuevaActividad.fecha_finalizacion' => 'required|date|after_or_equal:nuevaActividad.fecha_inicio',
+            'nuevaActividad.horas' => 'nullable|integer|min:0',
+        ], [], [
+            'nuevaActividad.descripcion' => 'descripción de la actividad',
+            'nuevaActividad.fecha_inicio' => 'fecha de inicio de la actividad',
+            'nuevaActividad.fecha_finalizacion' => 'fecha de finalización de la actividad',
+            'nuevaActividad.horas' => 'horas de la actividad',
+        ]);
 
         $record = $this->ensureRecord();
         $validEmpleados = $this->responsableIdsDisponibles($record);
@@ -2809,73 +2971,323 @@ class CreateProyectoVinculacion extends Component
 
     // ─── Submit (Step 10) ─────────────────────────────────────────────────────
 
-    public function create(): void
+    public function abrirModalEnviar(): void
     {
         $this->autoGuardarBorrador();
 
-        if (!$this->recordId) {
-            Notification::make()->title('Error')->body('Complete al menos el primer paso.')->danger()->send();
+        if (! $this->recordId) {
+            Notification::make()->title('Error')->body('Complete al menos el primer paso antes de enviar.')->danger()->send();
             return;
         }
-        $record = Proyecto::findOrFail($this->recordId);
-        $empleado = auth()->user()->empleado;
+
+        $proyecto = Proyecto::find($this->recordId);
+
+        if (! $proyecto) {
+            Notification::make()->title('Error')->body('No se encontró el borrador del proyecto.')->danger()->send();
+            return;
+        }
+
+        $flujo = $proyecto->resolveFlujoAprobacion();
+
+        if (! $flujo) {
+            Notification::make()->title('Sin flujo configurado')->body('No hay flujo de aprobación configurado para este formulario. Contacte a administración.')->warning()->send();
+            return;
+        }
+
+        $etapas = $proyecto->flujoEtapasActivasOrdenadas(Proyecto::FLUJO_INSCRIPCION);
+
+        if ($etapas->isEmpty()) {
+            Notification::make()->title('Sin etapas activas')->body('El flujo no tiene etapas activas configuradas.')->warning()->send();
+            return;
+        }
+
+        $this->modalEtapasConDestinatario = $etapas
+            ->filter(fn (FlujoAprobacionEtapa $etapa): bool => (bool) $etapa->emisor_define_destinatario)
+            ->map(function (FlujoAprobacionEtapa $etapa): array {
+                $candidatos = \App\Models\User::with('roles')
+                    ->when($etapa->rol_revisor_id, fn ($q) => $q->whereHas('roles', fn ($r) => $r->where('roles.id', $etapa->rol_revisor_id)))
+                    ->orderBy('name')
+                    ->get()
+                    ->map(fn (\App\Models\User $user): array => [
+                        'user_id' => $user->id,
+                        'nombre' => $user->name,
+                    ])
+                    ->values()
+                    ->toArray();
+
+                return [
+                    'id' => $etapa->id,
+                    'nombre' => $etapa->nombre,
+                    'codigo' => $etapa->codigo ?? null,
+                    'orden' => $etapa->orden,
+                    'rol_nombre' => $etapa->rolRevisor?->name ?? null,
+                    'candidatos' => $candidatos,
+                ];
+            })
+            ->values()
+            ->toArray();
+
+        $this->modalDestinatarios = [];
+        $this->modalStep = 0;
+        $this->showEnviarModal = true;
+    }
+
+    public function modalSiguiente(): void
+    {
+        $this->modalStep++;
+    }
+
+    public function modalAnterior(): void
+    {
+        $this->modalStep = max(0, $this->modalStep - 1);
+    }
+
+    public function confirmarEnvio(): void
+    {
+        if (! $this->validarFormularioAntesDeEnviar()) {
+            $this->showEnviarModal = false;
+            return;
+        }
+
+        $proyecto = Proyecto::findOrFail($this->recordId);
+
         try {
-            $this->saveFirmas($record);
-            $record->sincronizarFirmasDelFlujo();
-            $cargoFirma = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
-                ->where('cargo_firma.descripcion', 'Proyecto')
-                ->first();
-
-            if ($cargoFirma) {
-                $record->guardarFirmaDeCargo($cargoFirma->id, $empleado, [
-                    'estado_revision' => 'Pendiente',
-                    'firma_id' => null,
-                    'sello_id' => null,
-                    'fecha_firma' => null,
-                ]);
-
-                $record->agregarEstado(empleado: $empleado, tipoEstadoId: $cargoFirma->tipo_estado_id, comentario: 'Proyecto enviado para firma');
-            }
+            $this->enviarPorFlujoDeEtapas($proyecto);
         } catch (\Exception $e) {
-            Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
+            Notification::make()->title('Error al enviar')->body($e->getMessage())->danger()->send();
             return;
         }
-        try { Mail::to(auth()->user()->email)->send(new ProyectoCreado($record, auth()->user())); } catch (\Exception $e) { \Log::warning($e->getMessage()); }
+
+        $this->showEnviarModal = false;
+
+        try {
+            Mail::to(auth()->user()->email)->send(new ProyectoCreado($proyecto, auth()->user()));
+        } catch (\Exception $e) {
+            \Log::warning($e->getMessage());
+        }
+
         Notification::make()->title('Proyecto enviado a firmar')->success()->send();
         redirect()->route('proyectosDocente');
     }
 
-    protected function saveFirmas(Proyecto $record): void
+    private function enviarPorFlujoDeEtapas(Proyecto $proyecto): void
     {
-        $map = ['Jefe Departamento' => $this->jefe_empleado_id, 'Director centro' => $this->decano_empleado_id, 'Enlace Vinculacion' => $this->enlace_empleado_id];
-        foreach ($map as $nombre => $empId) {
-            if (!$empId) continue;
-            $cargo = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                ->where('tipo_cargo_firma.nombre', $nombre)->select('cargo_firma.*')->first();
-            if ($cargo) {
-                $record->guardarFirmaDeCargo($cargo->id, \App\Models\Personal\Empleado::findOrFail((int) $empId), [
-                    'estado_revision' => 'Pendiente',
-                    'firma_id' => null,
-                    'sello_id' => null,
-                    'fecha_firma' => null,
-                ]);
+        $flujo = $proyecto->resolveFlujoAprobacion();
+
+        if (! $flujo) {
+            throw new \RuntimeException('No hay flujo de aprobación configurado para este proyecto.');
+        }
+
+        // Lock-in: atamos el proyecto a este flujo para que cambios futuros no lo afecten.
+        if (! $proyecto->flujo_aprobacion_id) {
+            $proyecto->flujo_aprobacion_id = $flujo->id;
+            $proyecto->saveQuietly();
+        }
+
+        $etapas = $this->etapasActivasParaEnvioPorFlujo($proyecto);
+
+        $empleadosPorEtapa = [];
+
+        foreach ($etapas as $etapa) {
+            $etapaId = (int) $etapa->id;
+
+            if ($etapa->emisor_define_destinatario && isset($this->modalDestinatarios[$etapaId])) {
+                $user = \App\Models\User::find((int) $this->modalDestinatarios[$etapaId]);
+                $empleado = $user?->empleado;
+
+                if (! $empleado) {
+                    throw new \RuntimeException(sprintf('El usuario seleccionado para la etapa "%s" no tiene empleado vinculado.', $etapa->nombre));
+                }
+
+                $empleadosPorEtapa[$etapaId] = $empleado->id;
+            } elseif ($etapa->usuario_responsable_id) {
+                $user = \App\Models\User::find((int) $etapa->usuario_responsable_id);
+                $empleado = $user?->empleado;
+
+                if (! $empleado) {
+                    throw new \RuntimeException(sprintf('El usuario responsable configurado para la etapa "%s" no tiene empleado vinculado.', $etapa->nombre));
+                }
+
+                $empleadosPorEtapa[$etapaId] = $empleado->id;
+            } else {
+                throw new \RuntimeException(sprintf('La etapa "%s" no tiene destinatario configurado. Active "El emisor define el destinatario" o establezca un usuario responsable.', $etapa->nombre));
+            }
+        }
+
+        $this->validarSinFirmasPreviasParaEnvioPorEtapa($proyecto, (int) $flujo->id);
+
+        $firmas = DB::transaction(fn (): \Illuminate\Support\Collection => $proyecto->sincronizarFirmasDeEtapasDelFlujo(
+            $empleadosPorEtapa,
+            Proyecto::FLUJO_INSCRIPCION,
+            null,
+            1
+        ));
+
+        $primeraFirma = $proyecto->firmaActualDeEtapasDelFlujo((int) $flujo->id, 1);
+
+        if (! $primeraFirma) {
+            throw new \RuntimeException('No se pudo iniciar el flujo de revisión.');
+        }
+
+        $this->registrarEstadoInicialDeFirmasPorEtapa($proyecto, $primeraFirma);
+        $this->validarResultadoFirmasPorEtapa(
+            $proyecto->fresh(),
+            $firmas->map(fn (FirmaProyecto $firma): FirmaProyecto => $firma->fresh())->values()
+        );
+
+        $this->notificarRevisorEtapa($proyecto, $primeraFirma, $flujo);
+    }
+
+    private function notificarRevisorEtapa(Proyecto $proyecto, FirmaProyecto $firma, FlujoAprobacion $flujo): void
+    {
+        $revisorUser = null;
+
+        if ($firma->responsable_usuario_id) {
+            $revisorUser = \App\Models\User::find($firma->responsable_usuario_id);
+        } elseif ($firma->empleado_id) {
+            $revisorUser = Empleado::find($firma->empleado_id)?->user;
+        }
+
+        if (! $revisorUser || ! $revisorUser->email) {
+            return;
+        }
+
+        $etapa = FlujoAprobacionEtapa::find($firma->flujo_aprobacion_etapa_id);
+
+        if (! $etapa) {
+            return;
+        }
+
+        try {
+            Mail::to($revisorUser->email)->send(new EtapaFlujoPendiente($proyecto, $revisorUser, $etapa));
+        } catch (\Exception $e) {
+            \Log::warning('No se pudo notificar al revisor de etapa: ' . $e->getMessage());
+        }
+    }
+
+    private function validarFormularioAntesDeEnviar(): bool
+    {
+        try {
+            $this->trimCamposDescripcion();
+            $this->validate($this->rulesDescripcion());
+            $this->validarMarcoLogicoCompleto();
+        } catch (ValidationException $e) {
+            $errores = $e->validator->errors();
+            $primerCampo = collect($errores->keys())->first();
+            $this->currentStep = str_starts_with((string) $primerCampo, 'objetivo')
+                ? 7
+                : 5;
+
+            throw $e;
+        }
+
+        return true;
+    }
+
+    protected function validarSinFirmasPreviasParaEnvioPorEtapa(Proyecto $proyecto, int $flujoAprobacionId): void
+    {
+        $existenFirmasPorEtapa = $proyecto->firma_proyecto()
+            ->where('flujo_aprobacion_id', $flujoAprobacionId)
+            ->where('revision_ciclo', 1)
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->whereNull('deleted_at')
+            ->where('estado_revision', '!=', 'Anulado')
+            ->exists();
+
+        if ($existenFirmasPorEtapa) {
+            throw new RuntimeException('Ya existen firmas por etapa para este proyecto.');
+        }
+
+        $existenFirmasLegacy = $proyecto->firma_proyecto()
+            ->whereNull('flujo_aprobacion_etapa_id')
+            ->whereNull('deleted_at')
+            ->where('estado_revision', 'Pendiente')
+            ->exists();
+
+        if ($existenFirmasLegacy) {
+            throw new RuntimeException('Ya existen firmantes manuales para este envío y no se puede iniciar la revisión por etapas.');
+        }
+    }
+
+    protected function registrarEstadoInicialDeFirmasPorEtapa(Proyecto $proyecto, FirmaProyecto $primeraFirma): void
+    {
+        $tipoEstadoId = $primeraFirma->cargo_firma()->value('tipo_estado_id');
+        $empleado = auth()->user()?->empleado;
+
+        if (! $tipoEstadoId || ! $empleado) {
+            throw new RuntimeException('No se pudo preparar el envio por etapas de forma segura.');
+        }
+
+        $proyecto->agregarEstado(
+            empleado: $empleado,
+            tipoEstadoId: (int) $tipoEstadoId,
+            comentario: 'Proyecto enviado a revision por flujo de etapas.'
+        );
+    }
+
+    protected function validarResultadoFirmasPorEtapa(Proyecto $proyecto, Collection $firmas): void
+    {
+        $flujo = $proyecto->resolveFlujoAprobacion();
+        $etapas = $this->etapasActivasParaEnvioPorFlujo($proyecto)->values();
+
+        if (! $flujo || $firmas->count() !== $etapas->count()) {
+            throw new RuntimeException('No se pudo preparar el envio por etapas de forma segura.');
+        }
+
+        $firmas = $firmas->map(fn (FirmaProyecto $firma): FirmaProyecto => $firma->fresh())->values();
+
+        $idsEtapa = $firmas->pluck('flujo_aprobacion_etapa_id')->filter()->map(fn ($id): int => (int) $id);
+        $primeraFirma = $proyecto->firmaActualDeEtapasDelFlujo((int) $flujo->id, 1);
+        $tipoEstadoPrimera = $primeraFirma?->cargo_firma()->value('tipo_estado_id');
+        $estadoActualId = $proyecto->fresh()->estado?->tipo_estado_id;
+
+        if ($firmas->contains(fn (FirmaProyecto $firma): bool => $firma->estado_revision !== 'Pendiente')
+            || $firmas->contains(fn (FirmaProyecto $firma): bool => (int) $firma->revision_ciclo !== 1)
+            || $idsEtapa->count() !== $idsEtapa->unique()->count()
+            || ! $primeraFirma
+            || ! $tipoEstadoPrimera
+            || (int) $estadoActualId !== (int) $tipoEstadoPrimera
+            || $proyecto->firmasDeEtapasCompletadas((int) $flujo->id, 1)
+        ) {
+            throw new RuntimeException('No se pudo preparar el envio por etapas de forma segura.');
+        }
+
+        foreach ($firmas as $firma) {
+            $esPrimera = (int) $firma->id === (int) $primeraFirma->id;
+
+            if ($proyecto->firmaEsActualEnFlujoPorEtapa($firma) !== $esPrimera) {
+                throw new RuntimeException('No se pudo preparar el envio por etapas de forma segura.');
             }
         }
     }
 
+
+    protected function etapasActivasParaEnvioPorFlujo(Proyecto $proyecto): Collection
+    {
+        $etapas = $proyecto
+            ->flujoEtapasActivasOrdenadas(Proyecto::FLUJO_INSCRIPCION)
+            ->values();
+
+        if ($etapas->isEmpty()) {
+            throw new RuntimeException('No hay etapas activas configuradas para enviar este proyecto a revisión.');
+        }
+
+        $etapas->each(function (FlujoAprobacionEtapa $etapa): void {
+            if (! $etapa->cargo_firma_id) {
+                throw new RuntimeException(sprintf('La etapa "%s" no tiene cargo de firma configurado.', $etapa->nombre));
+            }
+
+            if (! $etapa->rol_revisor_id && ! $etapa->usuario_responsable_id) {
+                throw new RuntimeException(sprintf('La etapa "%s" no tiene rol revisor ni responsable configurado.', $etapa->nombre));
+            }
+        });
+
+        return $etapas;
+    }
+
     protected function loadFirmasFromRecord(Proyecto $record): void
     {
-        foreach ($record->firma_proyecto as $firma) {
-            $nombreCargo = $firma->cargo_firma?->tipoCargoFirma?->nombre;
-
-            match ($nombreCargo) {
-                'Jefe Departamento' => $this->jefe_empleado_id = $firma->empleado_id,
-                'Director centro' => $this->decano_empleado_id = $firma->empleado_id,
-                'Enlace Vinculacion' => $this->enlace_empleado_id = $firma->empleado_id,
-                default => null,
-            };
-        }
+        // No-op: firmas are now handled by the workflow modal.
     }
 
     public function borrador(): void
@@ -3035,15 +3447,6 @@ class CreateProyectoVinculacion extends Component
             ->get(['id', 'nombre_completo', 'numero_empleado', 'tipo_empleado'])
             : collect();
 
-        // Firmantes filtrados por las facultades del paso 1
-        $firmantesOpts = Empleado::when(!empty($this->firmaSearch), function ($q) {
-                $q->where('nombre_completo', 'LIKE', '%' . $this->firmaSearch . '%')
-                  ->orWhere('numero_empleado', 'LIKE', '%' . $this->firmaSearch . '%');
-            })
-            ->when(!empty($this->facultades_centros), fn($q) => $q->whereIn('centro_facultad_id', $this->facultades_centros))
-            ->orderBy('nombre_completo')
-            ->get(['id', 'nombre_completo', 'numero_empleado']);
-
         return view('livewire.proyectos.vinculacion.create-proyecto-vinculacion', [
             'modalidades' => Modalidad::orderBy('nombre')->pluck('nombre', 'id'),
             'categorias' => Categoria::orderBy('nombre')->pluck('nombre', 'id'),
@@ -3073,7 +3476,6 @@ class CreateProyectoVinculacion extends Component
             'municipiosGeo' => empty($this->departamento_geo)
                 ? collect()
                 : Municipio::whereIn('departamento_id', $this->ids($this->departamento_geo))->orderBy('nombre')->pluck('nombre', 'id'),
-            'firmantesOpts' => $firmantesOpts,
             'tematicaPrincipalOpciones' => $this->tematicaPrincipalOpciones,
             'metodologiaSeguimientoOpciones' => $this->metodologiaSeguimientoOpciones,
             'record' => $record,

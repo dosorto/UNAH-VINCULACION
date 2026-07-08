@@ -127,7 +127,7 @@
                 <div class="mt-5 grid gap-4 md:grid-cols-2">
                     <label class="block space-y-2" >
                         <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400" >Codigo </span>
-                        <input wire:model="workflow.codigo" type="text" {{ $isPpsActionSelected ? '' : 'readonly' }} class="w-full rounded-xl border-slate-300 text-sm {{ $isPpsActionSelected ? 'bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100' : 'cursor-not-allowed bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300' }}" />
+                        <input wire:model="workflow.codigo" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                         @error('workflow.codigo')<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                     </label>
                     <label class="block space-y-2">
@@ -207,7 +207,7 @@
                             <div class="mt-4 grid gap-4 pl-2 md:grid-cols-2 xl:grid-cols-3">
                                 <label class="block space-y-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Codigo</span>
-                                    <input wire:model.live.debounce.300ms="stages.{{ $index }}.codigo" type="text" {{ $isPpsActionSelected ? '' : 'readonly' }} class="w-full rounded-xl border-slate-300 text-sm {{ $isPpsActionSelected ? 'bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100' : 'cursor-not-allowed bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300' }}" />
+                                    <input wire:model.live.debounce.300ms="stages.{{ $index }}.codigo" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                                     @error("stages.$index.codigo")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                 </label>
                                 <label class="block space-y-2 xl:col-span-2">
@@ -293,10 +293,14 @@
                                 </div>
                             @endif
 
-                            <div class="mt-4 flex flex-wrap gap-4">
-                                <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                    <input wire:model.live="stages.{{ $index }}.requiere_asignacion" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
-                                    Requiere asignacion del responsable
+                            <div class="mt-4 flex flex-wrap gap-x-6 gap-y-3">
+                                <label class="inline-flex cursor-pointer items-center gap-3">
+                                    <span class="relative inline-flex h-6 w-11 flex-shrink-0">
+                                        <input wire:model.live="stages.{{ $index }}.requiere_asignacion" type="checkbox" class="peer sr-only" />
+                                        <span class="h-6 w-11 rounded-full bg-slate-200 transition-colors peer-checked:bg-primary dark:bg-slate-700 dark:peer-checked:bg-primary"></span>
+                                        <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></span>
+                                    </span>
+                                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Requiere asignacion del responsable</span>
                                 </label>
                                 @if ($isPpsActionSelected)
                                     <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -312,9 +316,13 @@
                                         Final aprobado
                                     </label>
                                 @else
-                                    <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        <input wire:model.live="stages.{{ $index }}.emisor_define_destinatario" @disabled(!($stage['requiere_asignacion'] ?? false)) type="checkbox" class="rounded border-slate-300 text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800" />
-                                        El emisor define el destinatario al enviar
+                                    <label class="inline-flex cursor-pointer items-center gap-3">
+                                        <span class="relative inline-flex h-6 w-11 flex-shrink-0">
+                                            <input wire:model.live="stages.{{ $index }}.emisor_define_destinatario" type="checkbox" class="peer sr-only" />
+                                            <span class="h-6 w-11 rounded-full bg-slate-200 transition-colors peer-checked:bg-primary dark:bg-slate-700 dark:peer-checked:bg-primary"></span>
+                                            <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></span>
+                                        </span>
+                                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">El emisor define el destinatario al enviar</span>
                                     </label>
                                 @endif
                                 <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -391,7 +399,7 @@
                         <div class="mt-5 grid gap-4 md:grid-cols-2">
                             <label class="block space-y-2">
                                 <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Codigo *</span>
-                                <input wire:model="programWorkflow.codigo" type="text" readonly class="w-full cursor-not-allowed rounded-xl border-slate-300 bg-slate-50 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300" />
+                                <input wire:model="programWorkflow.codigo" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                                 @error('programWorkflow.codigo')<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                             </label>
                             <label class="block space-y-2">
@@ -477,7 +485,7 @@
                                     <div class="mt-4 grid gap-4 pl-2 md:grid-cols-2 xl:grid-cols-3">
                                         <label class="block space-y-2">
                                             <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Codigo</span>
-                                            <input wire:model="programStages.{{ $index }}.codigo" type="text" readonly class="w-full cursor-not-allowed rounded-xl border-slate-300 bg-slate-50 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300" />
+                                            <input wire:model.live.debounce.300ms="programStages.{{ $index }}.codigo" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                                             @error("programStages.$index.codigo")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                         </label>
                                         <label class="block space-y-2 xl:col-span-2">
@@ -508,14 +516,22 @@
                                         </label>
                                     </div>
 
-                                    <div class="mt-4 flex flex-wrap gap-4">
-                                        <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                            <input wire:model.live="programStages.{{ $index }}.requiere_asignacion" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
-                                            Requiere asignacion del responsable
+                                    <div class="mt-4 flex flex-wrap gap-x-6 gap-y-3">
+                                        <label class="inline-flex cursor-pointer items-center gap-3">
+                                            <span class="relative inline-flex h-6 w-11 flex-shrink-0">
+                                                <input wire:model.live="programStages.{{ $index }}.requiere_asignacion" type="checkbox" class="peer sr-only" />
+                                                <span class="h-6 w-11 rounded-full bg-slate-200 transition-colors peer-checked:bg-primary dark:bg-slate-700 dark:peer-checked:bg-primary"></span>
+                                                <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></span>
+                                            </span>
+                                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Requiere asignacion del responsable</span>
                                         </label>
-                                        <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                            <input wire:model.live="programStages.{{ $index }}.emisor_define_destinatario" @disabled(!($stage['requiere_asignacion'] ?? false)) type="checkbox" class="rounded border-slate-300 text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800" />
-                                            El emisor define el destinatario al enviar
+                                        <label class="inline-flex cursor-pointer items-center gap-3">
+                                            <span class="relative inline-flex h-6 w-11 flex-shrink-0">
+                                                <input wire:model.live="programStages.{{ $index }}.emisor_define_destinatario" type="checkbox" class="peer sr-only" />
+                                                <span class="h-6 w-11 rounded-full bg-slate-200 transition-colors peer-checked:bg-primary dark:bg-slate-700 dark:peer-checked:bg-primary"></span>
+                                                <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></span>
+                                            </span>
+                                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">El emisor define el destinatario al enviar</span>
                                         </label>
                                         <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
                                             <input wire:model="programStages.{{ $index }}.activo" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />

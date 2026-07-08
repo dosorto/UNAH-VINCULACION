@@ -13,6 +13,7 @@ use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\Proyecto;
 use App\Models\PpsServicioSocial;
+use App\Models\User;
 use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
@@ -73,6 +74,19 @@ class ProyectosPorFirmar extends Component
 
         $firma = $this->authorizeFirmaAction((int) $this->rechazarId);
 
+        if ($firma->usaFlujoPorEtapa()) {
+            $this->rechazarFirmaPorEtapa($firma->fresh(), Auth::user(), $this->rechazarComentario);
+
+            $this->rechazarModal = false;
+            $this->rechazarId = null;
+            $this->rechazarComentario = '';
+            $this->viewModal = false;
+
+            Notification::make()->title('¡Realizado!')->body('Proyecto enviado a subsanacion')->info()->send();
+
+            return;
+        }
+
         if ($firma->firmable_type == Proyecto::class) {
             $firma->proyecto->firma_proyecto()->update([
                 'estado_revision' => 'Pendiente',
@@ -113,6 +127,17 @@ class ProyectosPorFirmar extends Component
     public function aprobar(int $id): void
     {
         $firma = $this->authorizeFirmaAction($id);
+
+        if ($firma->usaFlujoPorEtapa()) {
+            $this->aprobarFirmaPorEtapa($firma->fresh(), Auth::user());
+
+            $this->viewModal = false;
+            $this->viewId = null;
+
+            Notification::make()->title('¡Realizado!')->body('Proyecto Aprobado correctamente')->info()->send();
+
+            return;
+        }
 
         if ($firma->firmable_type == Proyecto::class) {
             $firma->update([
@@ -422,20 +447,33 @@ class ProyectosPorFirmar extends Component
         $user = Auth::user();
         $activeRoleName = $user?->activeRole?->name;
         $empleadoId = $user?->empleado?->id;
+        $firmasPorEtapaIds = $this->firmasPorEtapaDisponiblesIds($user);
 
         return FirmaProyecto::query()
             ->select('firma_proyecto.*')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
             ->where('firma_proyecto.estado_revision', 'Pendiente')
-            ->where(function ($query) use ($activeRoleName, $empleadoId) {
-                if ($activeRoleName) {
-                    $query->whereHas('cargo_firma.tipoCargoFirma', fn ($roleQuery) => $roleQuery->where('nombre', $activeRoleName));
-                    return;
-                }
+            ->whereNull('firma_proyecto.deleted_at')
+            ->where(function ($query) use ($activeRoleName, $empleadoId, $firmasPorEtapaIds) {
+                $query->where(function ($legacyQuery) use ($activeRoleName, $empleadoId) {
+                    $legacyQuery->whereNull('firma_proyecto.flujo_aprobacion_etapa_id')
+                        ->where(function ($authorizationQuery) use ($activeRoleName, $empleadoId) {
+                            if ($activeRoleName) {
+                                $authorizationQuery->whereHas('cargo_firma.tipoCargoFirma', fn ($roleQuery) => $roleQuery->where('nombre', $activeRoleName));
+                                return;
+                            }
 
-                if ($empleadoId) {
-                    $query->where('firma_proyecto.empleado_id', $empleadoId);
-                }
+                            if ($empleadoId) {
+                                $authorizationQuery->where('firma_proyecto.empleado_id', $empleadoId);
+                                return;
+                            }
+
+                            $authorizationQuery->whereRaw('1 = 0');
+                        });
+                })->orWhere(function ($workflowStageQuery) use ($firmasPorEtapaIds) {
+                    $workflowStageQuery->whereNotNull('firma_proyecto.flujo_aprobacion_etapa_id')
+                        ->whereIn('firma_proyecto.id', $firmasPorEtapaIds ?: [0]);
+                });
             })
             ->where(function ($query) {
                 $query->where(function ($projectQuery) {
@@ -468,6 +506,46 @@ class ProyectosPorFirmar extends Component
                         ->where('firma_proyecto.firmable_type', '!=', DocumentoProyecto::class);
                 });
             });
+    }
+
+    private function firmasPorEtapaDisponiblesIds(?User $user): array
+    {
+        $activeRole = $user?->activeRole;
+        $empleadoId = $user?->empleado?->id;
+
+        if (! $user || ! $activeRole || ! $empleadoId) {
+            return [];
+        }
+
+        if (! $user->roles()
+            ->where('roles.id', $activeRole->id)
+            ->where('roles.name', $activeRole->name)
+            ->exists()) {
+            return [];
+        }
+
+        return FirmaProyecto::query()
+            ->where('estado_revision', 'Pendiente')
+            ->whereNull('deleted_at')
+            ->whereNotNull('flujo_aprobacion_id')
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->whereNotNull('revision_ciclo')
+            ->where('revision_ciclo', '>=', 1)
+            ->whereNotNull('orden_revision')
+            ->whereIn('firmable_type', [Proyecto::class, DocumentoProyecto::class])
+            ->where('empleado_id', $empleadoId)
+            ->where(function ($query) use ($user): void {
+                $query
+                    ->whereNull('responsable_usuario_id')
+                    ->orWhere('responsable_usuario_id', $user->id);
+            })
+            ->where('rol_requerido', $activeRole->name)
+            ->orderBy('created_at', 'desc')
+            ->limit(250)
+            ->get()
+            ->filter(fn (FirmaProyecto $firma): bool => $this->canActOnWorkflowStageFirma($firma, $user))
+            ->pluck('id')
+            ->all();
     }
 
     private function authorizeFirmaAction(int $firmaId): FirmaProyecto
@@ -650,6 +728,396 @@ class ProyectosPorFirmar extends Component
         return filled($revision->rol_requerido) && $revision->rol_requerido === $activeRoleName;
     }
 
+    protected function canActOnWorkflowStageFirma(FirmaProyecto $firma, ?User $user = null): bool
+    {
+        $user = $user ?: Auth::user();
+
+        if (! $user || $firma->estado_revision !== 'Pendiente' || filled($firma->deleted_at)) {
+            return false;
+        }
+
+        if (! $firma->usaFlujoPorEtapa()
+            || ! $firma->flujo_aprobacion_id
+            || ! $firma->flujo_aprobacion_etapa_id
+            || (int) $firma->revision_ciclo < 1
+            || blank($firma->orden_revision)
+            || ! in_array($firma->firmable_type, [Proyecto::class, DocumentoProyecto::class], true)
+        ) {
+            return false;
+        }
+
+        $proyecto = $this->proyectoDeFirmaPorEtapa($firma);
+
+        if (! $proyecto || ! $proyecto->firmaEsActualEnFlujoPorEtapa($firma)) {
+            return false;
+        }
+
+        if (! $this->estadoActualCoincideConCargoDeFirma($firma)) {
+            return false;
+        }
+
+        if (! $this->usuarioCoincideConEmpleadoDeFirma($user, $firma)) {
+            return false;
+        }
+
+        if ($firma->responsable_usuario_id) {
+            if ((int) $firma->responsable_usuario_id !== (int) $user->id) {
+                return false;
+            }
+
+            return blank($firma->rol_requerido)
+                || $this->usuarioCumpleRolRequeridoDeFirma($user, $firma);
+        }
+
+        return filled($firma->rol_requerido)
+            && $this->usuarioCumpleRolRequeridoDeFirma($user, $firma);
+    }
+
+    protected function proyectoDeFirmaPorEtapa(FirmaProyecto $firma): ?Proyecto
+    {
+        if ($firma->firmable_type === Proyecto::class) {
+            return Proyecto::query()->whereKey($firma->firmable_id)->first();
+        }
+
+        if ($firma->firmable_type === DocumentoProyecto::class) {
+            return $this->documentoDeFirmaPorEtapa($firma)?->proyecto()->first();
+        }
+
+        return null;
+    }
+
+    protected function usuarioCoincideConEmpleadoDeFirma(User $user, FirmaProyecto $firma): bool
+    {
+        if (! $firma->empleado_id) {
+            return false;
+        }
+
+        $empleado = $user->empleado()->first();
+
+        return $empleado && (int) $empleado->id === (int) $firma->empleado_id;
+    }
+
+    protected function usuarioCumpleRolRequeridoDeFirma(User $user, FirmaProyecto $firma): bool
+    {
+        if (blank($firma->rol_requerido) || blank($user->active_role_id)) {
+            return false;
+        }
+
+        $activeRole = $user->activeRole;
+
+        if (! $activeRole || $activeRole->name !== $firma->rol_requerido) {
+            return false;
+        }
+
+        return $user->roles()
+            ->where('roles.id', $activeRole->id)
+            ->where('roles.name', $firma->rol_requerido)
+            ->exists();
+    }
+
+    protected function estadoActualCoincideConCargoDeFirma(FirmaProyecto $firma): bool
+    {
+        $cargoEstadoId = $firma->cargo_firma()->value('tipo_estado_id');
+
+        if (! $cargoEstadoId) {
+            return false;
+        }
+
+        if ($firma->firmable_type === Proyecto::class) {
+            $estadoActualId = Proyecto::query()
+                ->whereKey($firma->firmable_id)
+                ->first()
+                ?->estado
+                ?->tipo_estado_id;
+
+            return $estadoActualId && (int) $estadoActualId === (int) $cargoEstadoId;
+        }
+
+        if ($firma->firmable_type === DocumentoProyecto::class) {
+            $estadoActualId = $this->documentoDeFirmaPorEtapa($firma)
+                ?->estado
+                ?->tipo_estado_id;
+
+            return $estadoActualId && (int) $estadoActualId === (int) $cargoEstadoId;
+        }
+
+        return false;
+    }
+
+    protected function documentoDeFirmaPorEtapa(FirmaProyecto $firma): ?DocumentoProyecto
+    {
+        if ($firma->firmable_type !== DocumentoProyecto::class) {
+            return null;
+        }
+
+        return DocumentoProyecto::query()->whereKey($firma->firmable_id)->first();
+    }
+
+    protected function aprobarFirmaPorEtapa(FirmaProyecto $firma, User $user): FirmaProyecto
+    {
+        return DB::transaction(function () use ($firma, $user): FirmaProyecto {
+            $firmaBloqueada = FirmaProyecto::query()
+                ->whereKey($firma->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $firmaBloqueada || ! $this->canActOnWorkflowStageFirma($firmaBloqueada, $user)) {
+                throw new \RuntimeException('La firma ya no se encuentra disponible para aprobación.');
+            }
+
+            $proyecto = $this->proyectoDeFirmaPorEtapa($firmaBloqueada);
+
+            if (! $proyecto) {
+                throw new \RuntimeException('La firma no pertenece a un proyecto válido.');
+            }
+
+            $documento = $this->documentoDeFirmaPorEtapa($firmaBloqueada);
+            $empleado = $user->empleado()->with(['firma', 'sello'])->first();
+
+            if (! $empleado) {
+                throw new \RuntimeException('El usuario no tiene un empleado activo asociado.');
+            }
+
+            $firmaBloqueada->update([
+                'estado_revision' => 'Aprobado',
+                'firma_id' => $empleado->firma?->id,
+                'sello_id' => $empleado->sello?->id,
+                'fecha_firma' => now(),
+            ]);
+
+            $firmaAprobada = $firmaBloqueada->fresh();
+
+            $proyecto->anularFirmasPendientesDuplicadasDeEtapa(
+                (int) $firmaAprobada->flujo_aprobacion_etapa_id,
+                (int) $firmaAprobada->revision_ciclo,
+                $firmaAprobada->id,
+                $documento
+            );
+
+            $siguienteFirma = $proyecto->siguienteFirmaDeEtapa($firmaAprobada);
+
+            if ($siguienteFirma) {
+                $this->registrarEstadoSiguienteDeFirmaPorEtapa($firmaAprobada, $siguienteFirma, $user);
+            } else {
+                $this->finalizarFlujoDeFirmaPorEtapa($firmaAprobada, $user);
+            }
+
+            return $firmaAprobada->fresh();
+        });
+    }
+
+    protected function registrarEstadoSiguienteDeFirmaPorEtapa(
+        FirmaProyecto $firmaAprobada,
+        FirmaProyecto $siguienteFirma,
+        User $user
+    ): void {
+        $proyecto = $this->proyectoDeFirmaPorEtapa($firmaAprobada);
+        $documento = $this->documentoDeFirmaPorEtapa($firmaAprobada);
+
+        if (! $proyecto || $siguienteFirma->estado_revision !== 'Pendiente' || ! $proyecto->firmaEsActualEnFlujoPorEtapa($siguienteFirma)) {
+            throw new \RuntimeException('No se pudo determinar de forma segura la siguiente etapa del flujo.');
+        }
+
+        $tipoEstadoId = $siguienteFirma->cargo_firma()->value('tipo_estado_id');
+
+        if (! $tipoEstadoId) {
+            throw new \RuntimeException('No se pudo determinar de forma segura la siguiente etapa del flujo.');
+        }
+
+        $empleadoId = $user->empleado?->id;
+
+        if (! $empleadoId) {
+            throw new \RuntimeException('El usuario no tiene un empleado activo asociado.');
+        }
+
+        $payload = [
+            'empleado_id' => $empleadoId,
+            'tipo_estado_id' => $tipoEstadoId,
+            'fecha' => now(),
+            'comentario' => $documento
+                ? 'Firma aprobada y documento avanzado a la siguiente etapa del flujo.'
+                : 'Firma aprobada y proyecto avanzado a la siguiente etapa del flujo.',
+        ];
+
+        if ($documento) {
+            $documento->estado_documento()->create($payload);
+            return;
+        }
+
+        $proyecto->estado_proyecto()->create($payload);
+    }
+
+    protected function finalizarFlujoDeFirmaPorEtapa(FirmaProyecto $firmaAprobada, User $user): void
+    {
+        $proyecto = $this->proyectoDeFirmaPorEtapa($firmaAprobada);
+        $documento = $this->documentoDeFirmaPorEtapa($firmaAprobada);
+
+        if (! $proyecto || ! $firmaAprobada->flujo_aprobacion_id || ! $firmaAprobada->revision_ciclo) {
+            throw new \RuntimeException('El recorrido de firmas no está completo o contiene una etapa bloqueada.');
+        }
+
+        if (! $proyecto->firmasDeEtapasCompletadas(
+            (int) $firmaAprobada->flujo_aprobacion_id,
+            (int) $firmaAprobada->revision_ciclo,
+            $documento
+        )) {
+            throw new \RuntimeException('El recorrido de firmas no está completo o contiene una etapa bloqueada.');
+        }
+
+        if ($documento) {
+            $proceso = Proyecto::procesoFlujoParaDocumento($documento->tipo_documento);
+
+            if (! $proceso) {
+                throw new \RuntimeException('No se puede determinar el proceso del documento.');
+            }
+
+            $this->marcarDocumentoAprobado($documento);
+            return;
+        }
+
+        $estadoFinalId = $proyecto->estadoFinalProcesoId(Proyecto::FLUJO_INSCRIPCION);
+
+        if (! $estadoFinalId) {
+            throw new \RuntimeException('No existe un estado final configurado para el flujo de inscripción.');
+        }
+
+        $empleadoId = $user->empleado?->id;
+
+        if (! $empleadoId) {
+            throw new \RuntimeException('El usuario no tiene un empleado activo asociado.');
+        }
+
+        $proyecto->estado_proyecto()->create([
+            'empleado_id' => $empleadoId,
+            'tipo_estado_id' => $estadoFinalId,
+            'fecha' => now(),
+            'comentario' => 'Todas las etapas del flujo de inscripción fueron aprobadas.',
+        ]);
+    }
+
+    protected function rechazarFirmaPorEtapa(FirmaProyecto $firma, User $user, string $comentario): FirmaProyecto
+    {
+        $comentario = trim($comentario);
+
+        if ($comentario === '') {
+            throw new \RuntimeException('Debe indicar el motivo de la subsanación.');
+        }
+
+        return DB::transaction(function () use ($firma, $user, $comentario): FirmaProyecto {
+            $firmaBloqueada = FirmaProyecto::query()
+                ->whereKey($firma->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $firmaBloqueada || ! $this->canActOnWorkflowStageFirma($firmaBloqueada, $user)) {
+                throw new \RuntimeException('La firma ya no se encuentra disponible para rechazo.');
+            }
+
+            $proyecto = $this->proyectoDeFirmaPorEtapa($firmaBloqueada);
+
+            if (! $proyecto) {
+                throw new \RuntimeException('La firma no pertenece a un proyecto válido.');
+            }
+
+            $documento = $this->documentoDeFirmaPorEtapa($firmaBloqueada);
+            $empleadoId = $user->empleado?->id;
+
+            if (! $empleadoId) {
+                throw new \RuntimeException('El usuario no tiene un empleado activo asociado.');
+            }
+
+            $firmaBloqueada->update([
+                'estado_revision' => 'Rechazado',
+                'firma_id' => null,
+                'sello_id' => null,
+                'fecha_firma' => now(),
+            ]);
+
+            $firmaRechazada = $firmaBloqueada->fresh();
+
+            $proyecto->anularFirmasPendientesDuplicadasDeEtapa(
+                (int) $firmaRechazada->flujo_aprobacion_etapa_id,
+                (int) $firmaRechazada->revision_ciclo,
+                $firmaRechazada->id,
+                $documento
+            );
+
+            $this->registrarSubsanacionPorRechazoDeEtapa($proyecto, $documento, $empleadoId, $comentario);
+            $this->verificarRecorridoBloqueadoPorRechazo($firmaRechazada->fresh(), $proyecto, $documento);
+
+            return $firmaRechazada->fresh();
+        });
+    }
+
+    protected function verificarRecorridoBloqueadoPorRechazo(
+        FirmaProyecto $firmaRechazada,
+        Proyecto $proyecto,
+        ?DocumentoProyecto $documento = null
+    ): void {
+        $firmaRechazada = $firmaRechazada->fresh();
+
+        if ($firmaRechazada->estado_revision !== 'Rechazado') {
+            throw new \RuntimeException('No se pudo bloquear de forma segura el recorrido después del rechazo.');
+        }
+
+        if ($proyecto->firmaActualDeEtapasDelFlujo(
+            (int) $firmaRechazada->flujo_aprobacion_id,
+            (int) $firmaRechazada->revision_ciclo,
+            $documento
+        )) {
+            throw new \RuntimeException('No se pudo bloquear de forma segura el recorrido después del rechazo.');
+        }
+
+        if ($proyecto->firmasDeEtapasCompletadas(
+            (int) $firmaRechazada->flujo_aprobacion_id,
+            (int) $firmaRechazada->revision_ciclo,
+            $documento
+        )) {
+            throw new \RuntimeException('No se pudo bloquear de forma segura el recorrido después del rechazo.');
+        }
+
+        $firmasPosteriores = $proyecto->firmasDeEtapasDelFlujo(
+            (int) $firmaRechazada->flujo_aprobacion_id,
+            (int) $firmaRechazada->revision_ciclo,
+            $documento
+        )->filter(fn (FirmaProyecto $firma): bool => (int) $firma->orden_revision > (int) $firmaRechazada->orden_revision);
+
+        foreach ($firmasPosteriores as $firmaPosterior) {
+            if ($firmaPosterior->estado_revision !== 'Pendiente' || $proyecto->firmaEsActualEnFlujoPorEtapa($firmaPosterior)) {
+                throw new \RuntimeException('No se pudo bloquear de forma segura el recorrido después del rechazo.');
+            }
+        }
+    }
+
+    protected function registrarSubsanacionPorRechazoDeEtapa(
+        Proyecto $proyecto,
+        ?DocumentoProyecto $documento,
+        int $empleadoId,
+        string $comentario
+    ): void {
+        $subsanacionId = TipoEstado::query()
+            ->where('nombre', 'Subsanacion')
+            ->value('id');
+
+        if (! $subsanacionId) {
+            throw new \RuntimeException('No existe un estado de subsanación configurado.');
+        }
+
+        $payload = [
+            'empleado_id' => $empleadoId,
+            'tipo_estado_id' => $subsanacionId,
+            'fecha' => now(),
+            'comentario' => $comentario,
+        ];
+
+        if ($documento) {
+            $documento->estado_documento()->create($payload);
+            return;
+        }
+
+        $proyecto->estado_proyecto()->create($payload);
+    }
+
     private function estadosRevisionEnfPendiente(): array
     {
         return ['PENDIENTE', 'PENDIENTE_ASIGNACION', 'ASIGNADO', 'EN_PROCESO'];
@@ -709,6 +1177,10 @@ class ProyectosPorFirmar extends Component
 
     private function canActOnFirma(FirmaProyecto $firma): bool
     {
+        if ($firma->usaFlujoPorEtapa()) {
+            return $this->canActOnWorkflowStageFirma($firma);
+        }
+
         if ($firma->estado_revision !== 'Pendiente') {
             return false;
         }
