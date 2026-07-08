@@ -922,9 +922,6 @@ class CreateProyectoVinculacion extends Component
             'fecha_finalizacion' => $this->fecha_finalizacion ?: null,
             'programa_pertenece' => $this->programa_pertenece,
             'lineas_investigacion_academica' => $this->lineas_investigacion_academica,
-            'flujo_aprobacion_id' => FlujoAprobacion::defaultForProyectos($this->tipo_accion_id, $this->codigoFormularioFlujo())?->id
-                ?? FlujoAprobacion::defaultForProyectos($this->tipo_accion_id)?->id
-                ?? FlujoAprobacion::defaultForProyectos()?->id,
         ]);
         $record->coordinador_proyecto()->firstOrCreate(
             ['empleado_id' => $empleado->id],
@@ -1123,7 +1120,6 @@ class CreateProyectoVinculacion extends Component
         $this->guardarPresupuestoParcial($record);
         $this->guardarAnexoParcial($record);
         $this->guardarEspaciosInstitucionalesParcial($record);
-        $this->guardarFirmasParcial($record);
     }
 
     private function metodologiaSeguimientoNormalizada(): array
@@ -1535,41 +1531,6 @@ class CreateProyectoVinculacion extends Component
         $path = $this->newAnexo->store('anexos', 'public');
         $record->anexos()->create(['documento_url' => $path]);
         $this->newAnexo = null;
-    }
-
-    private function guardarFirmasParcial(Proyecto $record): void
-    {
-        $map = [
-            'Jefe Departamento' => $this->jefe_empleado_id,
-            'Director centro' => $this->decano_empleado_id,
-            'Enlace Vinculacion' => $this->enlace_empleado_id,
-        ];
-
-        foreach ($map as $nombre => $empId) {
-            $cargo = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                ->where('tipo_cargo_firma.nombre', $nombre)
-                ->select('cargo_firma.*')
-                ->first();
-
-            if (!$cargo) {
-                continue;
-            }
-
-            if (!$empId) {
-                $record->firma_proyecto()
-                    ->where('cargo_firma_id', $cargo->id)
-                    ->where('estado_revision', 'Pendiente')
-                    ->delete();
-                continue;
-            }
-
-            $record->guardarFirmaDeCargo($cargo->id, \App\Models\Personal\Empleado::findOrFail((int) $empId), [
-                'estado_revision' => 'Pendiente',
-                'firma_id' => null,
-                'sello_id' => null,
-                'fecha_firma' => null,
-            ]);
-        }
     }
 
     private function limpiarRelacionesDependientes(): void
@@ -2560,7 +2521,7 @@ class CreateProyectoVinculacion extends Component
             'nuevaContraparte.nombre_contacto' => 'nullable|string|max:255',
             'nuevaContraparte.cargo_contacto' => 'nullable|string|max:255',
             'nuevaContraparte.telefono' => 'nullable|string|max:255',
-            'nuevaContraparte.correo' => 'nullable|email|max:255',
+            'nuevaContraparte.correo' => 'required|email|max:255',
             'nuevaContraparte.descripcion_acuerdos' => 'nullable|string',
             'nuevaContraparte.instrumento_formalizacion.*.tipo_documento' => 'nullable|in:' . implode(',', $this->instrumentoTipos),
             'nuevaContraparte.instrumento_formalizacion.*.documento_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',

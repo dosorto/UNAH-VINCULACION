@@ -961,22 +961,27 @@
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre Contacto</label>
                                 <input type="text" wire:model="nuevaContraparte.nombre_contacto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                @error('nuevaContraparte.nombre_contacto') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Cargo</label>
                                 <input type="text" wire:model="nuevaContraparte.cargo_contacto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                @error('nuevaContraparte.cargo_contacto') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Teléfono</label>
                                 <input type="text" wire:model="nuevaContraparte.telefono" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                @error('nuevaContraparte.telefono') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo</label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo <span class="text-red-500">*</span></label>
                                 <input type="email" wire:model="nuevaContraparte.correo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                @error('nuevaContraparte.correo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div class="sm:col-span-2">
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción de Acuerdos</label>
                                 <textarea wire:model="nuevaContraparte.descripcion_acuerdos" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
+                                @error('nuevaContraparte.descripcion_acuerdos') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
                         {{-- Instrumentos de formalización --}}
