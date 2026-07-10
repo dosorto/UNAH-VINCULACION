@@ -43,6 +43,10 @@ class ProyectosPorFirmar extends Component
     public bool $ppsSubsanarModal = false;
     public ?int $ppsSubsanarRegistroId = null;
     public string $ppsSubsanarComentario = '';
+    public bool $reasignarModal = false;
+    public ?int $reasignarFirmaId = null;
+    public ?int $reasignarNuevoUsuarioId = null;
+    public array $reasignarCandidatos = [];
 
     public function mount($docente = null): void
     {
@@ -59,6 +63,75 @@ class ProyectosPorFirmar extends Component
     {
         $this->viewModal = false;
         $this->viewId = null;
+    }
+
+    public function puedeReasignar(?FirmaProyecto $firma): bool
+    {
+        return $firma
+            && $firma->usaFlujoPorEtapa()
+            && $firma->estado_revision === 'Pendiente'
+            && $firma->responsable_usuario_id
+            && (int) $firma->responsable_usuario_id === (int) Auth::id();
+    }
+
+    public function firmaPendienteDePps(PpsServicioSocial $registro): ?FirmaProyecto
+    {
+        if (! $registro->etapa_actual_id) {
+            return null;
+        }
+
+        return $registro->firmasDeEtapa()
+            ->where('flujo_aprobacion_etapa_id', $registro->etapa_actual_id)
+            ->where('estado_revision', 'Pendiente')
+            ->first();
+    }
+
+    public function openReasignar(int $firmaId): void
+    {
+        $firma = FirmaProyecto::findOrFail($firmaId);
+
+        abort_unless($this->puedeReasignar($firma), 403);
+
+        $this->reasignarFirmaId = $firmaId;
+        $this->reasignarNuevoUsuarioId = null;
+        $this->reasignarCandidatos = User::query()
+            ->whereHas('roles', fn (Builder $query) => $query->where('roles.name', $firma->rol_requerido))
+            ->where('id', '!=', Auth::id())
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (User $user): array => ['id' => $user->id, 'name' => $user->name])
+            ->all();
+        $this->reasignarModal = true;
+    }
+
+    public function closeReasignar(): void
+    {
+        $this->reasignarModal = false;
+        $this->reasignarFirmaId = null;
+        $this->reasignarNuevoUsuarioId = null;
+        $this->reasignarCandidatos = [];
+    }
+
+    public function confirmarReasignacion(): void
+    {
+        $this->validate(['reasignarNuevoUsuarioId' => 'required|integer|exists:users,id']);
+
+        $firma = FirmaProyecto::findOrFail($this->reasignarFirmaId);
+
+        abort_unless($this->puedeReasignar($firma), 403);
+
+        $nuevoUsuario = User::findOrFail($this->reasignarNuevoUsuarioId);
+
+        try {
+            $firma->reasignarA($nuevoUsuario, Auth::user());
+        } catch (\RuntimeException $e) {
+            Notification::make()->title('No se pudo reasignar')->body($e->getMessage())->danger()->send();
+            return;
+        }
+
+        $this->closeReasignar();
+
+        Notification::make()->title('¡Realizado!')->body('La etapa fue reasignada correctamente.')->success()->send();
     }
 
     public function openRechazar(int $id): void

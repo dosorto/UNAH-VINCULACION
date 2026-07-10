@@ -91,6 +91,7 @@
                 @endforeach
 
                 @foreach ($ppsRegistros as $registro)
+                    @php($firmaPpsPendiente = $this->firmaPendienteDePps($registro))
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
                         <td class="px-4 py-3 text-gray-900 dark:text-white">
                             {{ $registro->nombre_estudiante ?: ($registro->codigo_registro ?: 'Registro PPS/SS') }}
@@ -130,6 +131,12 @@
                                     class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-green-600 text-white hover:bg-green-700">
                                     Aprobar
                                 </button>
+                                @if ($this->puedeReasignar($firmaPpsPendiente))
+                                    <button wire:click="openReasignar({{ $firmaPpsPendiente->id }})"
+                                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700">
+                                        Reasignar
+                                    </button>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -172,6 +179,12 @@
                         <button wire:click="aprobar({{ $viewFirma->id }})" wire:confirm="¿Estás seguro de que deseas aprobar la firma de este proyecto?"
                             class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-green-600 text-white hover:bg-green-700">
                             Aprobar
+                        </button>
+                    @endif
+                    @if ($this->puedeReasignar($viewFirma))
+                        <button wire:click="openReasignar({{ $viewFirma->id }})"
+                            class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700">
+                            Reasignar
                         </button>
                     @endif
                     <button wire:click="closeView"
@@ -265,6 +278,44 @@
                     <button wire:click="subsanarPpsRegistro"
                         class="px-4 py-2 text-sm font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700">
                         Enviar a subsanación
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal Reasignar --}}
+    @if ($reasignarModal)
+        <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+            <div class="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-xl mx-4">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Reasignar etapa</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Elige a otra persona con el mismo rol de revisor de esta etapa para que continúe con la revisión.</p>
+                </div>
+                <div class="p-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Nuevo responsable <span class="text-red-500">*</span>
+                    </label>
+                    <select wire:model="reasignarNuevoUsuarioId"
+                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">Seleccione una persona</option>
+                        @foreach ($reasignarCandidatos as $candidato)
+                            <option value="{{ $candidato['id'] }}">{{ $candidato['name'] }}</option>
+                        @endforeach
+                    </select>
+                    @if (empty($reasignarCandidatos))
+                        <p class="text-xs text-amber-600 dark:text-amber-400 mt-2">No hay otras personas con el rol requerido para esta etapa.</p>
+                    @endif
+                    @error('reasignarNuevoUsuarioId') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+                    <button wire:click="closeReasignar"
+                        class="px-4 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">
+                        Cancelar
+                    </button>
+                    <button wire:click="confirmarReasignacion" wire:confirm="¿Confirmas reasignar esta etapa a la persona seleccionada?"
+                        class="px-4 py-2 text-sm font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700">
+                        Confirmar reasignación
                     </button>
                 </div>
             </div>

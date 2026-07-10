@@ -148,7 +148,6 @@ class PpsServicioSocial extends Model
         }
 
         $activeRole = $user->activeRole;
-        $activeRoleId = (int) $activeRole->id;
         $isActiveAdmin = $activeRole->name === 'admin';
 
         return self::query()
@@ -161,35 +160,34 @@ class PpsServicioSocial extends Model
             ->whereNotNull('flujo_aprobacion_id')
             ->whereNotNull('etapa_actual_id')
             ->whereHas('flujoAprobacion', fn ($query) => $query->where('proceso', self::PROCESO_FLUJO))
-            ->whereHas('etapaActual', function ($query) use ($user, $activeRoleId, $isActiveAdmin): void {
-                $query
-                    ->whereColumn('flujos_aprobacion_etapas.flujo_aprobacion_id', 'pps_servicio_social.flujo_aprobacion_id')
-                    ->where('activo', true)
-                    ->whereHas('flujo', fn ($flujoQuery) => $flujoQuery->where('proceso', self::PROCESO_FLUJO));
-
-                if ($isActiveAdmin) {
-                    return;
-                }
-
-                $query->where(function ($responsableQuery) use ($user, $activeRoleId): void {
-                    $responsableQuery
-                        ->where(function ($asignacionQuery) use ($user, $activeRoleId): void {
-                            $asignacionQuery
-                                ->where('requiere_asignacion', true)
-                                ->where('usuario_responsable_id', $user->id)
-                                ->where(function ($roleQuery) use ($activeRoleId): void {
-                                    $roleQuery
-                                        ->whereNull('rol_revisor_id')
-                                        ->orWhere('rol_revisor_id', $activeRoleId);
-                                });
-                        })
-                        ->orWhere(function ($rolQuery) use ($activeRoleId): void {
-                            $rolQuery
-                                ->where('requiere_asignacion', false)
-                                ->where('rol_revisor_id', $activeRoleId);
-                        });
-                });
-            });
+            ->whereHas('etapaActual', fn ($query) => $query
+                ->whereColumn('flujos_aprobacion_etapas.flujo_aprobacion_id', 'pps_servicio_social.flujo_aprobacion_id')
+                ->where('activo', true))
+            // Igual que Proyecto: la firma pendiente de la etapa actual (por
+            // registro, ya puede haber sido reasignada) es la fuente de verdad
+            // de autorización, no el campo compartido de la etapa.
+            ->when(! $isActiveAdmin, fn ($query) => $query->whereHas('firmasDeEtapa', function ($firmaQuery) use ($user, $activeRole): void {
+                $firmaQuery
+                    ->whereColumn('firma_proyecto.flujo_aprobacion_etapa_id', 'pps_servicio_social.etapa_actual_id')
+                    ->where('estado_revision', 'Pendiente')
+                    ->where(function ($responsableQuery) use ($user, $activeRole): void {
+                        $responsableQuery
+                            ->where(function ($asignacionQuery) use ($user, $activeRole): void {
+                                $asignacionQuery
+                                    ->where('responsable_usuario_id', $user->id)
+                                    ->where(function ($roleQuery) use ($activeRole): void {
+                                        $roleQuery
+                                            ->whereNull('rol_requerido')
+                                            ->orWhere('rol_requerido', $activeRole->name);
+                                    });
+                            })
+                            ->orWhere(function ($rolQuery) use ($activeRole): void {
+                                $rolQuery
+                                    ->whereNull('responsable_usuario_id')
+                                    ->where('rol_requerido', $activeRole->name);
+                            });
+                    });
+            }));
     }
 
     // ── Motor de flujo por etapas compartido (App\Concerns\TieneFlujoPorEtapas) ──
@@ -420,9 +418,7 @@ class PpsServicioSocial extends Model
             return false;
         }
 
-        $activeRoleId = (int) $activeRole->id;
-
-        if ($activeRole?->name === 'admin') {
+        if ($activeRole->name === 'admin') {
             return true;
         }
 
@@ -430,31 +426,37 @@ class PpsServicioSocial extends Model
             ? $this->etapaActual
             : $this->etapaActual()->first();
 
-        if (!$etapaActual || !($etapaActual->activo ?? true)) {
+        if (!$etapaActual || !($etapaActual->activo ?? true) || !$this->etapa_actual_id) {
             return false;
         }
 
-        if ((bool) ($etapaActual->requiere_asignacion ?? false)) {
-            $usuarioAsignado = $etapaActual->usuario_responsable_id !== null
-                && isset($user->id)
-                && (int) $etapaActual->usuario_responsable_id === (int) $user->id;
+        // Igual que Proyecto: la autorización se resuelve por la firma pendiente
+        // de esta etapa (que ya tiene su propio responsable_usuario_id/rol_requerido
+        // por registro), no por el campo compartido de la etapa. Esto permite que
+        // una etapa reasignada a otra persona (FirmaProyecto::reasignarA()) se
+        // refleje correctamente aquí sin afectar a otros registros en la misma etapa.
+        $firma = $this->firmasDeEtapa()
+            ->where('flujo_aprobacion_etapa_id', $this->etapa_actual_id)
+            ->where('estado_revision', 'Pendiente')
+            ->first();
 
-            if (!$usuarioAsignado) {
+        if (!$firma) {
+            return false;
+        }
+
+        if (blank($firma->rol_requerido) && !$firma->responsable_usuario_id) {
+            return false;
+        }
+
+        if ($firma->responsable_usuario_id) {
+            if ((int) $firma->responsable_usuario_id !== (int) $user->id) {
                 return false;
             }
 
-            if (!$etapaActual->rol_revisor_id) {
-                return true;
-            }
-
-            return (int) $etapaActual->rol_revisor_id === $activeRoleId;
+            return blank($firma->rol_requerido) || $firma->rol_requerido === $activeRole->name;
         }
 
-        if (!$etapaActual->rol_revisor_id) {
-            return false;
-        }
-
-        return (int) $etapaActual->rol_revisor_id === $activeRoleId;
+        return filled($firma->rol_requerido) && $firma->rol_requerido === $activeRole->name;
     }
 
     private function fechaParaComparar(mixed $value): Carbon
