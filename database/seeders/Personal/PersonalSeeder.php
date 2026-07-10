@@ -124,7 +124,7 @@ class PersonalSeeder extends Seeder
         $usuariosPruebaVinculacion = [
             [
                 'name' => 'Coordinador Proyecto Prueba',
-                'email' => 'anbetancourt@unah.hn',
+                'email' => '1anbetancourt@unah.hn',
                 'given_name' => 'Coordinador',
                 'surname' => 'Proyecto',
                 'role' => 'Coordinador Proyecto',
@@ -132,7 +132,7 @@ class PersonalSeeder extends Seeder
             ],
             [
                 'name' => 'Enlace Vinculacion Prueba',
-                'email' => 'anbetancourt@unah.hn',
+                'email' => '2anbetancourt@unah.hn',
                 'given_name' => 'Enlace',
                 'surname' => 'Vinculacion',
                 'role' => 'Enlace Vinculacion',
@@ -140,7 +140,7 @@ class PersonalSeeder extends Seeder
             ],
             [
                 'name' => 'Jefe Departamento Prueba',
-                'email' => 'anbetancourt@unah.hn',
+                'email' => '3anbetancourt@unah.hn',
                 'given_name' => 'Jefe',
                 'surname' => 'Departamento',
                 'role' => 'Jefe Departamento',
@@ -148,7 +148,7 @@ class PersonalSeeder extends Seeder
             ],
             [
                 'name' => 'Director Centro Prueba',
-                'email' => 'anbetancourt@unah.hn',
+                'email' => '4anbetancourt@unah.hn',
                 'given_name' => 'Director',
                 'surname' => 'Centro',
                 'role' => 'Director centro',
@@ -156,7 +156,7 @@ class PersonalSeeder extends Seeder
             ],
             [
                 'name' => 'Revisor Vinculacion Prueba',
-                'email' => 'anbetancourt@unah.hn',
+                'email' => '5anbetancourt@unah.hn',
                 'given_name' => 'Revisor',
                 'surname' => 'Vinculacion',
                 'role' => 'Revisor Vinculacion',
@@ -164,7 +164,7 @@ class PersonalSeeder extends Seeder
             ],
             [
                 'name' => 'Director Vinculacion Prueba',
-                'email' => 'anbetancourt@unah.hn',
+                'email' => '6anbetancourt@unah.hn',
                 'given_name' => 'Director',
                 'surname' => 'Vinculacion',
                 'role' => 'Director Vinculacion',

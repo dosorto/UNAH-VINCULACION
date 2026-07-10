@@ -143,13 +143,8 @@
                         </td>
                         <td class="px-4 py-3">
                             <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $estadoBadge }}">
-                                {{ ucfirst($record->estado ?: 'sin estado') }}
+                                {{ ($record->estado === 'enviado' && $record->etapaActual) ? $record->etapaActual->nombre : ucfirst($record->estado ?: 'sin estado') }}
                             </span>
-                            @if($viewMode === 'pendientes' && $record->etapaActual)
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                    Etapa: {{ $record->etapaActual->nombre }}
-                                </p>
-                            @endif
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex flex-wrap gap-2">

@@ -2,6 +2,10 @@
 
 namespace App\Models;
 
+use App\Concerns\TieneFlujoPorEtapas;
+use App\Models\Estado\EstadoProyecto;
+use App\Models\Estado\TipoEstado;
+use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
@@ -9,6 +13,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -17,6 +23,7 @@ class PpsServicioSocial extends Model
 {
     use HasFactory;
     use SoftDeletes;
+    use TieneFlujoPorEtapas;
 
     public const ESTADO_BORRADOR = 'borrador';
     public const ESTADO_ENVIADO = 'enviado';
@@ -126,6 +133,115 @@ class PpsServicioSocial extends Model
     {
         return $this->hasMany(PpsServicioSocialRevisionHistorial::class, 'pps_servicio_social_id')
             ->latest();
+    }
+
+    /**
+     * Registros PPS/SS pendientes de revisión para el usuario y rol activo
+     * indicados. Única fuente de verdad usada por la bandeja de tareas
+     * (ProyectosPorFirmar), el contador de la barra de navegación
+     * (DataNavBar) y los dashboards, para que los tres coincidan siempre.
+     */
+    public static function pendientesParaUsuario(?\App\Models\User $user): \Illuminate\Database\Eloquent\Builder
+    {
+        if (! $user || empty($user->active_role_id) || ! $user->activeRole) {
+            return self::query()->whereRaw('1 = 0');
+        }
+
+        $activeRole = $user->activeRole;
+        $activeRoleId = (int) $activeRole->id;
+        $isActiveAdmin = $activeRole->name === 'admin';
+
+        return self::query()
+            ->whereNotIn('estado', [
+                self::ESTADO_BORRADOR,
+                self::ESTADO_APROBADO,
+                self::ESTADO_RECHAZADO,
+                'subsanacion',
+            ])
+            ->whereNotNull('flujo_aprobacion_id')
+            ->whereNotNull('etapa_actual_id')
+            ->whereHas('flujoAprobacion', fn ($query) => $query->where('proceso', self::PROCESO_FLUJO))
+            ->whereHas('etapaActual', function ($query) use ($user, $activeRoleId, $isActiveAdmin): void {
+                $query
+                    ->whereColumn('flujos_aprobacion_etapas.flujo_aprobacion_id', 'pps_servicio_social.flujo_aprobacion_id')
+                    ->where('activo', true)
+                    ->whereHas('flujo', fn ($flujoQuery) => $flujoQuery->where('proceso', self::PROCESO_FLUJO));
+
+                if ($isActiveAdmin) {
+                    return;
+                }
+
+                $query->where(function ($responsableQuery) use ($user, $activeRoleId): void {
+                    $responsableQuery
+                        ->where(function ($asignacionQuery) use ($user, $activeRoleId): void {
+                            $asignacionQuery
+                                ->where('requiere_asignacion', true)
+                                ->where('usuario_responsable_id', $user->id)
+                                ->where(function ($roleQuery) use ($activeRoleId): void {
+                                    $roleQuery
+                                        ->whereNull('rol_revisor_id')
+                                        ->orWhere('rol_revisor_id', $activeRoleId);
+                                });
+                        })
+                        ->orWhere(function ($rolQuery) use ($activeRoleId): void {
+                            $rolQuery
+                                ->where('requiere_asignacion', false)
+                                ->where('rol_revisor_id', $activeRoleId);
+                        });
+                });
+            });
+    }
+
+    // ── Motor de flujo por etapas compartido (App\Concerns\TieneFlujoPorEtapas) ──
+
+    public function firmasDeEtapa(): MorphMany
+    {
+        return $this->morphMany(FirmaProyecto::class, 'firmable');
+    }
+
+    public function historialEstados(): MorphMany
+    {
+        return $this->morphMany(EstadoProyecto::class, 'estadoable');
+    }
+
+    public function estadoActual(): HasOne
+    {
+        return $this->hasOne(EstadoProyecto::class, 'estadoable_id')
+            ->where('estadoable_type', self::class)
+            ->where('es_actual', true);
+    }
+
+    public function resolveFlujoAprobacion(): ?FlujoAprobacion
+    {
+        if ($this->flujoAprobacion) {
+            return $this->flujoAprobacion->loadMissing('etapas.cargoFirma.tipoCargoFirma');
+        }
+
+        return $this->resolveFlujoAprobacionPorProceso(self::PROCESO_FLUJO, 'FORM-DVUS-014');
+    }
+
+    /**
+     * Refleja el estado actual (tabla estado_proyecto, fuente de verdad) en la
+     * columna corta `estado` para no romper el resto de la app (List/Edit/Show),
+     * que sigue leyendo `estado` como antes.
+     */
+    public function sincronizarEstadoCorto(): void
+    {
+        $nombre = $this->estadoActual()->with('tipoestado')->first()?->tipoestado?->nombre;
+
+        if (! $nombre) {
+            return;
+        }
+
+        $estadoCorto = match ($nombre) {
+            'Borrador' => self::ESTADO_BORRADOR,
+            'Aprobado' => self::ESTADO_APROBADO,
+            'Rechazado' => self::ESTADO_RECHAZADO,
+            'Subsanacion' => 'subsanacion',
+            default => self::ESTADO_ENVIADO,
+        };
+
+        $this->forceFill(['estado' => $estadoCorto])->saveQuietly();
     }
 
     public function perteneceAlUsuario(?int $userId): bool

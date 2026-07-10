@@ -226,14 +226,14 @@ class ConfiguracionFlujosAcademicScopeTest extends TestCase
 
         $etapaExistente->refresh();
         $etapaNueva = FlujoAprobacionEtapa::query()->where('codigo', 'ETAPA_NUEVA_LEGACY')->firstOrFail();
-        $ppsSugeridas = $component->ppsSugeridas();
+        $etapaSugerida = $component->etapaSugerida();
 
         $this->assertSame(FlujoAprobacionEtapa::ALCANCE_CENTRO, $etapaExistente->alcance_academico);
         $this->assertSame(FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD, $etapaExistente->multiplicidad_revision);
         $this->assertSame(FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO, $etapaNueva->alcance_academico);
         $this->assertSame(FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO, $etapaNueva->multiplicidad_revision);
-        $this->assertSame(FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO, $ppsSugeridas[0]['alcance_academico']);
-        $this->assertSame(FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO, $ppsSugeridas[1]['multiplicidad_revision']);
+        $this->assertSame(FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO, $etapaSugerida['alcance_academico']);
+        $this->assertSame(FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO, $etapaSugerida['multiplicidad_revision']);
     }
 
     private function crearCatalogosBase(): array
@@ -288,8 +288,8 @@ class ConfiguracionFlujosAcademicScopeComponentFake extends ConfiguracionFlujosP
         $this->syncFlowStages($flow, $stages);
     }
 
-    public function ppsSugeridas(): array
+    public function etapaSugerida(): array
     {
-        return $this->defaultPpsStages();
+        return $this->blankStage(1);
     }
 }

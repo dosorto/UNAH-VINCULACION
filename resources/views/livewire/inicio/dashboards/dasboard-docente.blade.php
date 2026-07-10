@@ -452,6 +452,9 @@
                                             Nombre del proyecto
                                         </th>
                                         <th scope="col" class="px-6 py-3">
+                                            Progreso
+                                        </th>
+                                        <th scope="col" class="px-6 py-3">
                                             Fecha Inicio
                                         </th>
                                         <th scope="col" class="px-6 py-3">
@@ -464,12 +467,59 @@
                                 </thead>
                                 <tbody>
                                     @forelse($proyectosUserTable as $proyecto)
+                                        @php
+                                            // Deduplicate: one firma per etapa (latest revision_ciclo first)
+                                            $etapasFirmas = $proyecto->firmasDeEtapa
+                                                ->unique('flujo_aprobacion_etapa_id')
+                                                ->values();
+                                            $hayProgreso = $etapasFirmas->isNotEmpty();
+                                            // First Pendiente = current stage
+                                            $etapaActualId = $etapasFirmas
+                                                ->firstWhere('estado_revision', 'Pendiente')
+                                                ?->flujo_aprobacion_etapa_id;
+                                        @endphp
                                         <tr
                                             class="bg-white border-t hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-800 dark:border-gray-700 border-gray-200">
                                             <th scope="row"
                                                 class="px-6 py-4 font-medium text-gray-900 max-w-sm dark:text-white">
                                                 {{ $proyecto->nombre_proyecto }}
                                             </th>
+                                            <td class="px-6 py-4">
+                                                @if($hayProgreso)
+                                                <div class="flex items-center gap-1">
+                                                    @foreach($etapasFirmas as $firma)
+                                                        @php
+                                                            $esCurrent = $firma->flujo_aprobacion_etapa_id === $etapaActualId;
+                                                            $colorClase = match($firma->estado_revision) {
+                                                                'Aprobado' => 'bg-emerald-500 text-white',
+                                                                'Rechazado' => 'bg-red-500 text-white',
+                                                                default => $esCurrent
+                                                                    ? 'bg-amber-400 text-white ring-2 ring-amber-300 ring-offset-1'
+                                                                    : 'bg-slate-200 text-slate-400 dark:bg-slate-700',
+                                                            };
+                                                            $icono = match($firma->estado_revision) {
+                                                                'Aprobado' => '✓',
+                                                                'Rechazado' => '✕',
+                                                                default => $esCurrent ? '●' : '○',
+                                                            };
+                                                        @endphp
+                                                        <div class="flex flex-col items-center gap-0.5" title="{{ $firma->etapa_nombre }}">
+                                                            <span class="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold {{ $colorClase }}">
+                                                                {{ $icono }}
+                                                            </span>
+                                                            <span class="hidden text-[9px] text-slate-400 dark:text-slate-500 max-w-[40px] text-center leading-tight truncate sm:block">
+                                                                {{ \Illuminate\Support\Str::limit($firma->etapa_nombre, 8) }}
+                                                            </span>
+                                                        </div>
+                                                        @if(! $loop->last)
+                                                            <div class="h-px w-3 bg-slate-300 dark:bg-slate-600 mb-3 shrink-0"></div>
+                                                        @endif
+                                                    @endforeach
+                                                </div>
+                                                @else
+                                                    <span class="text-xs text-slate-400">Sin enviar</span>
+                                                @endif
+                                            </td>
                                             <td class="px-6 py-4">
                                                 {{ \Carbon\Carbon::parse($proyecto->fecha_inicio)->isoFormat('D [de] MMMM YYYY') }}
                                             </td>
@@ -502,6 +552,108 @@
                     </div>
                 </div>
             </div>
+            <!-- tabla de registros PPS/SS -->
+            <div>
+                <div class="w-full pt-6 md:pt-6 sm:pt-6">
+                    <div
+                        class="h-full bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                        <h4 class="text-lg p-4 text-gray-900 dark:text-white font-semibold">Mis registros PPS/SS</h4>
+                        <div class="relative overflow-x-auto sm:rounded-lg">
+                            <table
+                                class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                                <thead
+                                    class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                    <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 transition duration-150">
+                                        <th scope="col" class="px-6 py-3">Código</th>
+                                        <th scope="col" class="px-6 py-3">Estudiante</th>
+                                        <th scope="col" class="px-6 py-3">Progreso</th>
+                                        <th scope="col" class="px-6 py-3">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($ppsUserTable as $registroPps)
+                                        @php
+                                            $etapasFirmasPps = $registroPps->firmasDeEtapa
+                                                ->unique('flujo_aprobacion_etapa_id')
+                                                ->values();
+                                            $hayProgresoPps = $etapasFirmasPps->isNotEmpty();
+                                            $etapaActualIdPps = $etapasFirmasPps
+                                                ->firstWhere('estado_revision', 'Pendiente')
+                                                ?->flujo_aprobacion_etapa_id;
+                                        @endphp
+                                        <tr
+                                            class="bg-white border-t hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-800 dark:border-gray-700 border-gray-200">
+                                            <th scope="row"
+                                                class="px-6 py-4 font-medium text-gray-900 max-w-sm dark:text-white">
+                                                {{ $registroPps->codigo_registro ?: '#'.$registroPps->id }}
+                                            </th>
+                                            <td class="px-6 py-4">{{ $registroPps->nombre_estudiante }}</td>
+                                            <td class="px-6 py-4">
+                                                @if($hayProgresoPps)
+                                                <div class="flex items-center gap-1">
+                                                    @foreach($etapasFirmasPps as $firmaPps)
+                                                        @php
+                                                            $esCurrentPps = $firmaPps->flujo_aprobacion_etapa_id === $etapaActualIdPps;
+                                                            $colorClasePps = match($firmaPps->estado_revision) {
+                                                                'Aprobado' => 'bg-emerald-500 text-white',
+                                                                'Rechazado' => 'bg-red-500 text-white',
+                                                                default => $esCurrentPps
+                                                                    ? 'bg-amber-400 text-white ring-2 ring-amber-300 ring-offset-1'
+                                                                    : 'bg-slate-200 text-slate-400 dark:bg-slate-700',
+                                                            };
+                                                            $iconoPps = match($firmaPps->estado_revision) {
+                                                                'Aprobado' => '✓',
+                                                                'Rechazado' => '✕',
+                                                                default => $esCurrentPps ? '●' : '○',
+                                                            };
+                                                        @endphp
+                                                        <div class="flex flex-col items-center gap-0.5" title="{{ $firmaPps->etapa_nombre }}">
+                                                            <span class="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold {{ $colorClasePps }}">
+                                                                {{ $iconoPps }}
+                                                            </span>
+                                                            <span class="hidden text-[9px] text-slate-400 dark:text-slate-500 max-w-[40px] text-center leading-tight truncate sm:block">
+                                                                {{ \Illuminate\Support\Str::limit($firmaPps->etapa_nombre, 8) }}
+                                                            </span>
+                                                        </div>
+                                                        @if(! $loop->last)
+                                                            <div class="h-px w-3 bg-slate-300 dark:bg-slate-600 mb-3 shrink-0"></div>
+                                                        @endif
+                                                    @endforeach
+                                                </div>
+                                                @else
+                                                    <span class="text-xs text-slate-400">Sin enviar</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                @php
+                                                    $estadoTextoPps = ($registroPps->estado === 'enviado' && $registroPps->etapaActual)
+                                                        ? $registroPps->etapaActual->nombre
+                                                        : ucfirst($registroPps->estado ?: 'sin estado');
+                                                @endphp
+                                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                                    {{ $estadoTextoPps }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr
+                                            class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
+                                            <th scope="row"
+                                                class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                                No hay registros PPS/SS
+                                            </th>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                            <div class="flex items-center justify-end px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                                {{$ppsUserTable->links()}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- /tabla de registros PPS/SS -->
             <div class="container mx-auto py-6">
                 <h4 class="text-lg py-2 text-gray-900 dark:text-white font-semibold">Panel de estados de proyectos</h4>
                 <div class="flex flex-wrap -mx-3 -mb-8">

@@ -159,19 +159,7 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
 
     private function estadoPermiteEdicion(PpsServicioSocial $registro): bool
     {
-        if ($registro->estado === PpsServicioSocial::ESTADO_BORRADOR) {
-            return true;
-        }
-
-        if ($registro->estado !== 'subsanacion' || !$registro->flujo_aprobacion_id || !$registro->etapa_actual_id) {
-            return false;
-        }
-
-        $etapaActual = $registro->etapaActual;
-
-        return $etapaActual !== null
-            && (int) $etapaActual->flujo_aprobacion_id === (int) $registro->flujo_aprobacion_id
-            && (bool) $etapaActual->permite_edicion;
+        return in_array($registro->estado, [PpsServicioSocial::ESTADO_BORRADOR, 'subsanacion'], true);
     }
 
     protected function fillFromRegistro(PpsServicioSocial $registro): void
