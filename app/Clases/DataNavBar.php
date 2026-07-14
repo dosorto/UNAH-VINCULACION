@@ -133,7 +133,13 @@ public static function obtenerCantidadInformesSolicitados()
                                 ->where('estado_proyecto.es_actual', true)
                                 ->whereColumn('estado_proyecto.tipo_estado_id', 'cargo_firma.tipo_estado_id');
                         });
-                })->orWhere('firma_proyecto.firmable_type', '!=', Proyecto::class);
+                })->orWhere(function ($otherQuery) {
+                    // PPS/Servicio Social se cuenta aparte (obtenerCantidadPpsPorRevisar) porque
+                    // su columna `estado` es la fuente de verdad, no el estado_proyecto polimórfico.
+                    $otherQuery
+                        ->where('firma_proyecto.firmable_type', '!=', Proyecto::class)
+                        ->where('firma_proyecto.firmable_type', '!=', \App\Models\PpsServicioSocial::class);
+                });
             })
             ->count();
 
@@ -198,63 +204,7 @@ public static function obtenerCantidadInformesSolicitados()
 
     public static function obtenerCantidadPpsPorRevisar(): int
     {
-        $user = auth()->user();
-
-        if (! $user || empty($user->active_role_id)) {
-            return 0;
-        }
-
-        $activeRole = $user->activeRole;
-
-        if (! $activeRole) {
-            return 0;
-        }
-
-        $activeRoleId = (int) $activeRole->id;
-        $isActiveAdmin = $activeRole->name === 'admin';
-
-        return PpsServicioSocial::query()
-            ->whereNotIn('estado', [
-                PpsServicioSocial::ESTADO_BORRADOR,
-                PpsServicioSocial::ESTADO_APROBADO,
-                PpsServicioSocial::ESTADO_RECHAZADO,
-                'subsanacion',
-            ])
-            ->whereNotNull('flujo_aprobacion_id')
-            ->whereNotNull('etapa_actual_id')
-            ->whereHas('flujoAprobacion', fn (Builder $query) => $query
-                ->where('proceso', PpsServicioSocial::PROCESO_FLUJO))
-            ->whereHas('etapaActual', function (Builder $query) use ($user, $activeRoleId, $isActiveAdmin): void {
-                $query
-                    ->whereColumn('flujos_aprobacion_etapas.flujo_aprobacion_id', 'pps_servicio_social.flujo_aprobacion_id')
-                    ->where('activo', true)
-                    ->whereHas('flujo', fn (Builder $flujoQuery) => $flujoQuery
-                        ->where('proceso', PpsServicioSocial::PROCESO_FLUJO));
-
-                if ($isActiveAdmin) {
-                    return;
-                }
-
-                $query->where(function (Builder $responsableQuery) use ($user, $activeRoleId): void {
-                    $responsableQuery
-                        ->where(function (Builder $asignacionQuery) use ($user, $activeRoleId): void {
-                            $asignacionQuery
-                                ->where('requiere_asignacion', true)
-                                ->where('usuario_responsable_id', $user->id)
-                                ->where(function (Builder $roleQuery) use ($activeRoleId): void {
-                                    $roleQuery
-                                        ->whereNull('rol_revisor_id')
-                                        ->orWhere('rol_revisor_id', $activeRoleId);
-                                });
-                        })
-                        ->orWhere(function (Builder $rolQuery) use ($activeRoleId): void {
-                            $rolQuery
-                                ->where('requiere_asignacion', false)
-                                ->where('rol_revisor_id', $activeRoleId);
-                        });
-                });
-            })
-            ->count();
+        return PpsServicioSocial::pendientesParaUsuario(auth()->user())->count();
     }
 
     // metodo para obtener la cantidad de fichas de actualización por firmar del usuario logueado

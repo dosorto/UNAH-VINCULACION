@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Inicio\Dashboards;
 
+use App\Concerns\ResolvesFirmasPendientes;
 use App\Models\Estado\EstadoProyecto;
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
+use App\Models\PpsServicioSocial;
 use App\Models\Proyecto\Proyecto;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +16,7 @@ use Livewire\WithPagination;
 class DashboardDirector extends Component
 {
     use WithPagination;
+    use ResolvesFirmasPendientes;
 
     public int $perPage           = 5;
     public int $perPagePendientes = 5;
@@ -97,28 +100,11 @@ class DashboardDirector extends Component
         $this->dispatch('updateChart-Director', dataUser: $this->projectsDataUser);
     }
 
-    // ── Mapeo rol activo → TipoEstado que le corresponde revisar ──────────
+    // ── Rol activo → etiqueta mostrada junto al contador de pendientes ────
 
     private function estadoPendienteParaRol(): ?string
     {
-        $rol = auth()->user()->activeRole?->name;
-
-        return match ($rol) {
-            'Coordinador Proyecto' => 'Coordinador Proyecto',
-            'Director/Enlace'      => 'Enlace Vinculacion',
-            'Enlace Vinculacion'   => 'Enlace Vinculacion',
-            'Jefe Departamento'    => 'Jefe Departamento',
-            'Director centro'      => 'Director centro',
-            'Revisor Vinculacion'  => 'En revision',
-            'Director Vinculacion' => 'En revision final',
-            default                => null,
-        };
-    }
-
-    private function tipoEstadoPendiente(): ?TipoEstado
-    {
-        $nombre = $this->estadoPendienteParaRol();
-        return $nombre ? TipoEstado::where('nombre', $nombre)->first() : null;
+        return auth()->user()->activeRole?->name;
     }
 
     // ── Proyectos propios ─────────────────────────────────────────────────
@@ -239,23 +225,26 @@ class DashboardDirector extends Component
     }
 
     // ── Pendientes de revisión según rol activo ───────────────────────────
+    // Usa el mismo criterio que la bandeja de tareas del docente
+    // (ResolvesFirmasPendientes::firmasDisponiblesQuery) para que ambos
+    // lugares cuenten exactamente lo mismo.
 
     private function proyectosPendientesQuery()
     {
-        $tipoEstado = $this->tipoEstadoPendiente();
+        $proyectoIds = $this->proyectoIdsConFirmaPendienteParaRolActivo();
 
-        if (!$tipoEstado) {
+        if ($proyectoIds->isEmpty()) {
             return Proyecto::query()->whereRaw('1 = 0');
         }
 
-        return Proyecto::query()
-            ->whereIn('id', function ($sub) use ($tipoEstado) {
-                $sub->select('estadoable_id')
-                    ->from('estado_proyecto')
-                    ->where('estadoable_type', Proyecto::class)
-                    ->where('tipo_estado_id', $tipoEstado->id)
-                    ->where('es_actual', true);
-            });
+        return Proyecto::query()->whereIn('id', $proyectoIds);
+    }
+
+    // ── Pendientes de revisión PPS/SS (mismo criterio que la bandeja) ─────
+
+    private function pendientesPpsQuery()
+    {
+        return PpsServicioSocial::pendientesParaUsuario(auth()->user());
     }
 
     // ── Cantidad de proyectos (propio empleado) ───────────────────────────
@@ -284,17 +273,7 @@ class DashboardDirector extends Component
                 ->toArray()
             : [];
 
-        $tipoEstado    = $this->tipoEstadoPendiente();
-        $pendientesIds = [];
-        if ($tipoEstado) {
-            $pendientesIds = Proyecto::whereIn('id', function ($sub) use ($tipoEstado) {
-                $sub->select('estadoable_id')
-                    ->from('estado_proyecto')
-                    ->where('estadoable_type', Proyecto::class)
-                    ->where('tipo_estado_id', $tipoEstado->id)
-                    ->where('es_actual', true);
-            })->pluck('id')->toArray();
-        }
+        $pendientesIds = $this->proyectoIdsConFirmaPendienteParaRolActivo()->toArray();
 
         $allIds = array_unique(array_merge($propiosIds, $pendientesIds));
 
@@ -353,11 +332,20 @@ class DashboardDirector extends Component
         $panelFinalizados = $this->misProyectosPorEstadoPaginado('Finalizado');
 
         // Pendientes según rol activo
-        $totalPendientes = $this->proyectosPendientesQuery()->count();
+        $totalPendientesProyectos = $this->proyectosPendientesQuery()->count();
         $pendientesTable = $this->proyectosPendientesQuery()
             ->with(['estadoActual.tipoestado'])
             ->orderBy('proyecto.created_at', 'desc')
             ->paginate($this->perPagePendientes);
+
+        // Pendientes PPS/SS según rol activo (mismo criterio que la bandeja de tareas)
+        $totalPendientesPps = $this->pendientesPpsQuery()->count();
+        $pendientesPpsTable = $this->pendientesPpsQuery()
+            ->with('etapaActual')
+            ->orderByDesc('created_at')
+            ->paginate($this->perPagePendientes, ['*'], 'pageuPps');
+
+        $totalPendientes = $totalPendientesProyectos + $totalPendientesPps;
 
         $activitiesUser     = $this->getLatestActivitiesUser();
         $empleadosWithCount = $this->getProjectsCountByEmployee();
@@ -381,6 +369,7 @@ class DashboardDirector extends Component
             // Pendientes
             'totalPendientes'        => $totalPendientes,
             'pendientesTable'        => $pendientesTable,
+            'pendientesPpsTable'     => $pendientesPpsTable,
             // Actividades y cantidad
             'activitiesUser'         => $activitiesUser,
             'empleadosWithCount'     => $empleadosWithCount,

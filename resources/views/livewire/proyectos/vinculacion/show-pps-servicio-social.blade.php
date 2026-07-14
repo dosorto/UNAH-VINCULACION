@@ -3,7 +3,9 @@
         use Carbon\Carbon;
 
         $registro = $this->registro;
-        $estadoTexto = ucfirst(str_replace('_', ' ', $registro->estado ?: 'sin estado'));
+        $estadoTexto = ($registro->estado === 'enviado' && $registro->etapaActual)
+            ? $registro->etapaActual->nombre
+            : ucfirst(str_replace('_', ' ', $registro->estado ?: 'sin estado'));
         $estadoBadge = match($registro->estado) {
             'borrador' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200',
             'enviado' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
@@ -47,7 +49,7 @@
                     <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $estadoBadge }}">
                         {{ $estadoTexto }}
                     </span>
-                    @if($registro->etapaActual)
+                    @if($registro->etapaActual && $registro->estado !== 'enviado')
                         <span class="text-xs text-gray-500 dark:text-gray-400">
                             Etapa: {{ $registro->etapaActual->nombre }}
                         </span>

@@ -240,8 +240,7 @@ class Empleado extends Model
             }
             // Firmas de documentos (informes, etc.)
             else if (
-                ($firma->firmable_type != Proyecto::class && 
-                 $firma->firmable_type != \App\Models\Proyecto\FichaActualizacion::class &&
+                ($firma->firmable_type == \App\Models\Proyecto\DocumentoProyecto::class &&
                     ($firma->cargo_firma->tipo_estado_id == $firma->documento_proyecto->estado->tipoestado->id))
                 && ($firma->cargo_firma->tipoCargoFirma->nombre !== "Revisor Vinculacion")
             ) {

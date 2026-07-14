@@ -2,6 +2,10 @@
 
 namespace App\Models;
 
+use App\Concerns\TieneFlujoPorEtapas;
+use App\Models\Estado\EstadoProyecto;
+use App\Models\Estado\TipoEstado;
+use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
@@ -9,6 +13,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -17,6 +23,7 @@ class PpsServicioSocial extends Model
 {
     use HasFactory;
     use SoftDeletes;
+    use TieneFlujoPorEtapas;
 
     public const ESTADO_BORRADOR = 'borrador';
     public const ESTADO_ENVIADO = 'enviado';
@@ -126,6 +133,113 @@ class PpsServicioSocial extends Model
     {
         return $this->hasMany(PpsServicioSocialRevisionHistorial::class, 'pps_servicio_social_id')
             ->latest();
+    }
+
+    /**
+     * Registros PPS/SS pendientes de revisión para el usuario y rol activo
+     * indicados. Única fuente de verdad usada por la bandeja de tareas
+     * (ProyectosPorFirmar), el contador de la barra de navegación
+     * (DataNavBar) y los dashboards, para que los tres coincidan siempre.
+     */
+    public static function pendientesParaUsuario(?\App\Models\User $user): \Illuminate\Database\Eloquent\Builder
+    {
+        if (! $user || empty($user->active_role_id) || ! $user->activeRole) {
+            return self::query()->whereRaw('1 = 0');
+        }
+
+        $activeRole = $user->activeRole;
+        $isActiveAdmin = $activeRole->name === 'admin';
+
+        return self::query()
+            ->whereNotIn('estado', [
+                self::ESTADO_BORRADOR,
+                self::ESTADO_APROBADO,
+                self::ESTADO_RECHAZADO,
+                'subsanacion',
+            ])
+            ->whereNotNull('flujo_aprobacion_id')
+            ->whereNotNull('etapa_actual_id')
+            ->whereHas('flujoAprobacion', fn ($query) => $query->where('proceso', self::PROCESO_FLUJO))
+            ->whereHas('etapaActual', fn ($query) => $query
+                ->whereColumn('flujos_aprobacion_etapas.flujo_aprobacion_id', 'pps_servicio_social.flujo_aprobacion_id')
+                ->where('activo', true))
+            // Igual que Proyecto: la firma pendiente de la etapa actual (por
+            // registro, ya puede haber sido reasignada) es la fuente de verdad
+            // de autorización, no el campo compartido de la etapa.
+            ->when(! $isActiveAdmin, fn ($query) => $query->whereHas('firmasDeEtapa', function ($firmaQuery) use ($user, $activeRole): void {
+                $firmaQuery
+                    ->whereColumn('firma_proyecto.flujo_aprobacion_etapa_id', 'pps_servicio_social.etapa_actual_id')
+                    ->where('estado_revision', 'Pendiente')
+                    ->where(function ($responsableQuery) use ($user, $activeRole): void {
+                        $responsableQuery
+                            ->where(function ($asignacionQuery) use ($user, $activeRole): void {
+                                $asignacionQuery
+                                    ->where('responsable_usuario_id', $user->id)
+                                    ->where(function ($roleQuery) use ($activeRole): void {
+                                        $roleQuery
+                                            ->whereNull('rol_requerido')
+                                            ->orWhere('rol_requerido', $activeRole->name);
+                                    });
+                            })
+                            ->orWhere(function ($rolQuery) use ($activeRole): void {
+                                $rolQuery
+                                    ->whereNull('responsable_usuario_id')
+                                    ->where('rol_requerido', $activeRole->name);
+                            });
+                    });
+            }));
+    }
+
+    // ── Motor de flujo por etapas compartido (App\Concerns\TieneFlujoPorEtapas) ──
+
+    public function firmasDeEtapa(): MorphMany
+    {
+        return $this->morphMany(FirmaProyecto::class, 'firmable');
+    }
+
+    public function historialEstados(): MorphMany
+    {
+        return $this->morphMany(EstadoProyecto::class, 'estadoable');
+    }
+
+    public function estadoActual(): HasOne
+    {
+        return $this->hasOne(EstadoProyecto::class, 'estadoable_id')
+            ->where('estadoable_type', self::class)
+            ->where('es_actual', true);
+    }
+
+    public function resolveFlujoAprobacion(): ?FlujoAprobacion
+    {
+        if ($this->flujoAprobacion) {
+            return $this->flujoAprobacion->loadMissing('etapas.cargoFirma.tipoCargoFirma');
+        }
+
+        return $this->resolveFlujoAprobacionPorProceso(self::PROCESO_FLUJO, 'FORM-DVUS-014');
+    }
+
+    /**
+     * Refleja el estado actual (tabla estado_proyecto, fuente de verdad) en la
+     * columna corta `estado` para no romper el resto de la app (List/Edit/Show),
+     * que sigue leyendo `estado` como antes.
+     */
+    public function sincronizarEstadoCorto(): void
+    {
+        $nombre = $this->estadoActual()->with('tipoestado')->first()?->tipoestado?->nombre;
+
+        if (! $nombre) {
+            return;
+        }
+
+        $estadoCorto = match ($nombre) {
+            'Borrador' => self::ESTADO_BORRADOR,
+            'Aprobado' => self::ESTADO_APROBADO,
+            'Rechazado' => self::ESTADO_RECHAZADO,
+            'Subsanacion' => 'subsanacion',
+            default => self::ESTADO_ENVIADO,
+        };
+
+        $this->forceFill(['estado' => $estadoCorto])->saveQuietly();
     }
 
     public function perteneceAlUsuario(?int $userId): bool
@@ -304,9 +418,7 @@ class PpsServicioSocial extends Model
             return false;
         }
 
-        $activeRoleId = (int) $activeRole->id;
-
-        if ($activeRole?->name === 'admin') {
+        if ($activeRole->name === 'admin') {
             return true;
         }
 
@@ -314,31 +426,37 @@ class PpsServicioSocial extends Model
             ? $this->etapaActual
             : $this->etapaActual()->first();
 
-        if (!$etapaActual || !($etapaActual->activo ?? true)) {
+        if (!$etapaActual || !($etapaActual->activo ?? true) || !$this->etapa_actual_id) {
             return false;
         }
 
-        if ((bool) ($etapaActual->requiere_asignacion ?? false)) {
-            $usuarioAsignado = $etapaActual->usuario_responsable_id !== null
-                && isset($user->id)
-                && (int) $etapaActual->usuario_responsable_id === (int) $user->id;
+        // Igual que Proyecto: la autorización se resuelve por la firma pendiente
+        // de esta etapa (que ya tiene su propio responsable_usuario_id/rol_requerido
+        // por registro), no por el campo compartido de la etapa. Esto permite que
+        // una etapa reasignada a otra persona (FirmaProyecto::reasignarA()) se
+        // refleje correctamente aquí sin afectar a otros registros en la misma etapa.
+        $firma = $this->firmasDeEtapa()
+            ->where('flujo_aprobacion_etapa_id', $this->etapa_actual_id)
+            ->where('estado_revision', 'Pendiente')
+            ->first();
 
-            if (!$usuarioAsignado) {
+        if (!$firma) {
+            return false;
+        }
+
+        if (blank($firma->rol_requerido) && !$firma->responsable_usuario_id) {
+            return false;
+        }
+
+        if ($firma->responsable_usuario_id) {
+            if ((int) $firma->responsable_usuario_id !== (int) $user->id) {
                 return false;
             }
 
-            if (!$etapaActual->rol_revisor_id) {
-                return true;
-            }
-
-            return (int) $etapaActual->rol_revisor_id === $activeRoleId;
+            return blank($firma->rol_requerido) || $firma->rol_requerido === $activeRole->name;
         }
 
-        if (!$etapaActual->rol_revisor_id) {
-            return false;
-        }
-
-        return (int) $etapaActual->rol_revisor_id === $activeRoleId;
+        return filled($firma->rol_requerido) && $firma->rol_requerido === $activeRole->name;
     }
 
     private function fechaParaComparar(mixed $value): Carbon

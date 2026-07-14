@@ -508,7 +508,12 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
         $proyectosUserTable = Proyecto::query()
             ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
             ->where('empleado_proyecto.empleado_id', $userId)
+            ->select('proyecto.*')
             ->distinct()
+            ->with([
+                'estadoActual.tipoestado',
+                'firmasDeEtapa' => fn ($q) => $q->orderByDesc('revision_ciclo')->orderBy('orden_revision'),
+            ])
             ->paginate( 10);
 
         $proyectosUser = Proyecto::query()
@@ -516,6 +521,16 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
             ->where('empleado_proyecto.empleado_id', $userId)
             ->distinct()
             ->get();
+
+        // Mis registros PPS/SS (FORM-DVUS-014), con su progreso por etapa
+        $ppsUserTable = PpsServicioSocial::query()
+            ->where('created_by', $authUserId)
+            ->with([
+                'etapaActual',
+                'firmasDeEtapa' => fn ($q) => $q->orderByDesc('revision_ciclo')->orderBy('orden_revision'),
+            ])
+            ->orderByDesc('created_at')
+            ->paginate(10, ['*'], 'ppsPage');
 
 
         //obtener lista de años en los cuales hay proyectos creados
@@ -605,6 +620,7 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
             'borradorUser' => $borradorUser,
             'proyectosUserTable' => $proyectosUserTable,
             'proyectosUser' => $proyectosUser,
+            'ppsUserTable' => $ppsUserTable,
             //chartAdmin
             'chartData' => array_values($this->projectsData),
             'años' => $años,
