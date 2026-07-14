@@ -191,7 +191,7 @@
                         <label class="{{ $label }}">Tipo de acción ENF</label>
                         <select name="catalogos[tipo_accion_enf][]" class="{{ $input }}">
                             <option value="">Seleccione...</option>
-                            @foreach ($catalog('tipo_accion_enf') as $item)
+                            @foreach ($tiposAccionForm018 as $item)
                                 <option value="{{ $item->id }}" @selected(old('catalogos.tipo_accion_enf.0', $selectedTipoAccionEnfId) == $item->id)>{{ $item->nombre }}</option>
                             @endforeach
                         </select>
