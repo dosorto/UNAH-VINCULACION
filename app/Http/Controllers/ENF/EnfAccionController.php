@@ -44,6 +44,14 @@ class EnfAccionController extends Controller
     private const FORM_CERTIFICADO_UNIVERSITARIO_ENABLED = true;
     private const TIPO_ACCION_CERTIFICADO = 'Certificado universitario';
     private const TIPO_ACCION_ENF_VISIBLE = 'Proyecto de educacion continua';
+    private const TIPOS_ACCION_FORM_018 = [
+        'Certificado universitario',
+        'Proyecto de educacion continua',
+        'Programa de educacion continua',
+        'Diplomado',
+        'Congreso',
+        'Seminario',
+    ];
 
     public static function formularioCertificadoUniversitarioDisponible(): bool
     {
@@ -134,6 +142,13 @@ class EnfAccionController extends Controller
             'tiposAccion' => VinculacionTipoAccion::where('codigo', 'EDUCACION_NO_FORMAL')->orderBy('nombre')->get(),
             'tipoAccionVinculacionEnfId' => VinculacionTipoAccion::where('codigo', 'EDUCACION_NO_FORMAL')->value('id'),
             'selectedTipoAccionEnfId' => $selectedTipoAccionEnfId,
+            'tiposAccionForm018' => EnfCatalogo::query()
+                ->where('tipo', 'tipo_accion_enf')
+                ->whereIn('nombre', self::TIPOS_ACCION_FORM_018)
+                ->where('activo', true)
+                ->orderBy('orden')
+                ->orderBy('nombre')
+                ->get(),
             'clearDraftOnLoad' => $clearDraftOnLoad,
             'programasAprobados' => $this->programasAprobadosEducacionContinua(),
             'modalidades' => Modalidad::orderBy('nombre')->get(),
