@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
+use App\Concerns\ResolvesFirmasPendientes;
+use App\Concerns\ResuelveFirmaPorEtapa;
 use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Models\Estado\TipoEstado;
 use App\Models\Proyecto\DocumentoProyecto;
@@ -20,6 +22,8 @@ use Livewire\WithPagination;
 class ListInformesSolicitado extends Component
 {
     use WithPagination;
+    use ResolvesFirmasPendientes;
+    use ResuelveFirmaPorEtapa;
 
     public string $search = '';
 
@@ -58,7 +62,22 @@ class ListInformesSolicitado extends Component
         $this->validate(['rechazarComentario' => 'required|string']);
 
         $doc = DocumentoProyecto::findOrFail($this->rechazarDocumentoId);
-        $this->authorizeInformeAction($doc);
+        $firma = $this->authorizeInformeAction($doc);
+
+        if ($firma->usaFlujoPorEtapa()) {
+            try {
+                $this->rechazarFirmaPorEtapa($firma->fresh(), Auth::user(), $this->rechazarComentario);
+            } catch (\RuntimeException $e) {
+                Notification::make()->title('No se pudo rechazar')->body($e->getMessage())->danger()->send();
+                return;
+            }
+
+            $this->rechazarModal = false;
+            $this->rechazarDocumentoId = null;
+            $this->viewModal = false;
+            Notification::make()->title('¡Realizado!')->body('Informe enviado a subsanación.')->warning()->send();
+            return;
+        }
 
         $doc->firma_documento()->update([
             'estado_revision' => 'Pendiente',
@@ -103,6 +122,20 @@ class ListInformesSolicitado extends Component
     {
         $doc = DocumentoProyecto::findOrFail($this->aprobarDocumentoId);
         $firma = $this->authorizeInformeAction($doc);
+
+        if ($firma->usaFlujoPorEtapa()) {
+            try {
+                $this->aprobarFirmaPorEtapa($firma->fresh(), Auth::user());
+            } catch (\RuntimeException $e) {
+                Notification::make()->title('No se pudo aprobar')->body($e->getMessage())->danger()->send();
+                return;
+            }
+
+            $this->aprobarModal = false;
+            $this->viewModal = false;
+            Notification::make()->title('¡Realizado!')->body('Informe aprobado correctamente.')->success()->send();
+            return;
+        }
 
         $firma->update([
             'estado_revision' => 'Aprobado',
@@ -190,10 +223,6 @@ class ListInformesSolicitado extends Component
 
     public function render(): View
     {
-        $user = Auth::user();
-        $activeRoleName = $user?->activeRole?->name;
-        $isAdmin = (bool) $user?->hasRole('admin');
-
         $candidates = DocumentoProyecto::query()
             ->whereIn('id', function ($query) {
                 $query->select('estadoable_id')
@@ -201,13 +230,7 @@ class ListInformesSolicitado extends Component
                     ->where('estadoable_type', DocumentoProyecto::class)
                     ->where('es_actual', true);
             })
-            ->whereHas('firma_documento', function ($query) use ($activeRoleName, $isAdmin) {
-                $query->where('estado_revision', 'Pendiente');
-
-                if (! $isAdmin) {
-                    $query->whereHas('cargo_firma.tipoCargoFirma', fn ($roleQuery) => $roleQuery->where('nombre', $activeRoleName));
-                }
-            })
+            ->whereHas('firma_documento', fn ($query) => $query->where('estado_revision', 'Pendiente'))
             ->when($this->search, fn($q) => $q->whereHas('proyecto', fn($q2) =>
                 $q2->where('nombre_proyecto', 'like', '%' . $this->search . '%')
             ))
@@ -247,6 +270,20 @@ class ListInformesSolicitado extends Component
             return null;
         }
 
+        $firmasPendientes = $documento
+            ->firma_documento()
+            ->with('cargo_firma.tipoCargoFirma')
+            ->where('estado_revision', 'Pendiente')
+            ->get();
+
+        $firmaPorEtapa = $firmasPendientes
+            ->filter(fn (FirmaProyecto $firma): bool => $firma->usaFlujoPorEtapa())
+            ->first(fn (FirmaProyecto $firma): bool => $this->canActOnWorkflowStageFirma($firma, $user));
+
+        if ($firmaPorEtapa) {
+            return $firmaPorEtapa;
+        }
+
         $estadoActual = $documento->estadoActual ?? $documento->estado;
         $estadoActualId = $estadoActual?->tipo_estado_id;
 
@@ -257,13 +294,13 @@ class ListInformesSolicitado extends Component
         $activeRoleName = $user->activeRole?->name;
         $isAdmin = $user->hasRole('admin');
 
-        $firma = $documento
-            ->firma_documento()
-            ->with('cargo_firma.tipoCargoFirma')
-            ->where('estado_revision', 'Pendiente')
-            ->whereHas('cargo_firma', fn ($query) => $query->where('tipo_estado_id', $estadoActualId))
-            ->get()
-            ->first(function (FirmaProyecto $firma) use ($activeRoleName, $isAdmin) {
+        return $firmasPendientes
+            ->reject(fn (FirmaProyecto $firma): bool => $firma->usaFlujoPorEtapa())
+            ->first(function (FirmaProyecto $firma) use ($estadoActualId, $activeRoleName, $isAdmin) {
+                if ((int) $firma->cargo_firma?->tipo_estado_id !== (int) $estadoActualId) {
+                    return false;
+                }
+
                 if ($isAdmin) {
                     return true;
                 }
@@ -271,12 +308,6 @@ class ListInformesSolicitado extends Component
                 return filled($activeRoleName)
                     && $activeRoleName === $firma->cargo_firma?->tipoCargoFirma?->nombre;
             });
-
-        if (! $firma) {
-            return null;
-        }
-
-        return $firma;
     }
 
     private function paginateCollection($items, int $perPage = 10): LengthAwarePaginator
