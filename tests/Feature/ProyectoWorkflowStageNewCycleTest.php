@@ -20,12 +20,13 @@ class ProyectoWorkflowStageNewCycleTest extends TestCase
 {
     use DatabaseTransactions;
 
-    public function test_crea_nuevo_ciclo_desde_firma_rechazada_con_etapas_posteriores_y_conserva_ciclo_anterior(): void
+    public function test_crea_nuevo_ciclo_desde_firma_rechazada_reinicia_flujo_completo_desde_la_primera_etapa(): void
     {
         $context = $this->crearContexto(3);
         [$responsableUser, $responsableEmpleado] = $this->crearUsuarioEmpleado();
         $nuevoEmpleadoPosterior = $this->crearEmpleado();
-        $firmaUno = $this->crearFirmaDeEtapa($context['proyecto'], $context['etapas'][0], $this->crearEmpleado(), [
+        $empleadoAnterior = $this->crearEmpleado();
+        $firmaUno = $this->crearFirmaDeEtapa($context['proyecto'], $context['etapas'][0], $empleadoAnterior, [
             'estado_revision' => 'Aprobado',
             'firma_id' => 111,
             'sello_id' => 222,
@@ -56,39 +57,46 @@ class ProyectoWorkflowStageNewCycleTest extends TestCase
         ]);
 
         $creadas = $context['proyecto']->crearNuevoCicloDesdeFirmaRechazada($firmaDos, [
+            $context['etapas'][0]->id => $empleadoAnterior->id,
             $context['etapas'][1]->id => $responsableEmpleado->id,
             $context['etapas'][2]->id => $nuevoEmpleadoPosterior->id,
         ]);
 
-        $this->assertCount(2, $creadas);
-        $this->assertSame([2, 3], $creadas->pluck('orden_revision')->all());
-        $this->assertSame($context['etapas'][1]->id, $creadas[0]->flujo_aprobacion_etapa_id);
-        $this->assertSame($context['etapas'][2]->id, $creadas[1]->flujo_aprobacion_etapa_id);
+        $this->assertCount(3, $creadas);
+        $this->assertSame([1, 2, 3], $creadas->pluck('orden_revision')->all());
+        $this->assertSame($context['etapas'][0]->id, $creadas[0]->flujo_aprobacion_etapa_id);
+        $this->assertSame($context['etapas'][1]->id, $creadas[1]->flujo_aprobacion_etapa_id);
+        $this->assertSame($context['etapas'][2]->id, $creadas[2]->flujo_aprobacion_etapa_id);
         $this->assertSame(2, $creadas[0]->revision_ciclo);
         $this->assertSame(2, $creadas[1]->revision_ciclo);
+        $this->assertSame(2, $creadas[2]->revision_ciclo);
         $this->assertSame('Pendiente', $creadas[0]->estado_revision);
         $this->assertSame('Pendiente', $creadas[1]->estado_revision);
+        $this->assertSame('Pendiente', $creadas[2]->estado_revision);
         $this->assertNull($creadas[0]->firma_id);
         $this->assertNull($creadas[0]->sello_id);
         $this->assertNull($creadas[0]->fecha_firma);
-        $this->assertNotSame($firmaDos->hash, $creadas[0]->hash);
-        $this->assertNotSame($firmaTres->hash, $creadas[1]->hash);
-        $this->assertSame($snapshotRechazada, $creadas[0]->only($this->camposSnapshot()));
-        $this->assertSame($snapshotPosterior, $creadas[1]->only($this->camposSnapshot()));
-        $this->assertSame($responsableEmpleado->id, $creadas[0]->empleado_id);
-        $this->assertSame($nuevoEmpleadoPosterior->id, $creadas[1]->empleado_id);
-        $this->assertSame($responsableUser->id, $creadas[0]->responsable_usuario_id);
-        $this->assertSame($firmasAntes + 2, FirmaProyecto::count());
+        $this->assertNotSame($firmaDos->hash, $creadas[1]->hash);
+        $this->assertNotSame($firmaTres->hash, $creadas[2]->hash);
+        $this->assertSame($snapshotRechazada, $creadas[1]->only($this->camposSnapshot()));
+        $this->assertSame($snapshotPosterior, $creadas[2]->only($this->camposSnapshot()));
+        $this->assertSame($empleadoAnterior->id, $creadas[0]->empleado_id);
+        $this->assertSame($responsableEmpleado->id, $creadas[1]->empleado_id);
+        $this->assertSame($nuevoEmpleadoPosterior->id, $creadas[2]->empleado_id);
+        $this->assertSame($responsableUser->id, $creadas[1]->responsable_usuario_id);
+        $this->assertSame($firmasAntes + 3, FirmaProyecto::count());
         $this->assertSame('Aprobado', $firmaUno->refresh()->estado_revision);
         $this->assertSame('Rechazado', $firmaDos->refresh()->estado_revision);
         $this->assertSame('Pendiente', $firmaTres->refresh()->estado_revision);
         $this->assertSame('Anulado', $duplicadoAnulado->refresh()->estado_revision);
+        $this->assertSame(1, $firmaUno->revision_ciclo);
         $this->assertSame(1, $firmaDos->revision_ciclo);
         $this->assertSame(111, $firmaUno->firma_id);
         $this->assertSame(222, $firmaUno->sello_id);
         $this->assertSame($estadoActualId, $context['proyecto']->estado->id);
         $this->assertSame($creadas[0]->id, $context['proyecto']->firmaActualDeEtapasDelFlujo($context['flujo']->id, 2)?->id);
         $this->assertFalse($context['proyecto']->firmaEsActualEnFlujoPorEtapa($creadas[1]));
+        $this->assertFalse($context['proyecto']->firmaEsActualEnFlujoPorEtapa($creadas[2]));
         $this->assertFalse($context['proyecto']->firmasDeEtapasCompletadas($context['flujo']->id, 2));
     }
 
@@ -268,14 +276,17 @@ class ProyectoWorkflowStageNewCycleTest extends TestCase
         $firmaTres = $this->crearFirmaDeEtapa($context['proyecto'], $context['etapas'][2], $this->crearEmpleado());
 
         $creadas = $context['proyecto']->crearNuevoCicloDesdeFirmaRechazada($firmaDos, [
+            $context['etapas'][0]->id => $firmaUno->empleado_id,
             $context['etapas'][1]->id => $firmaDos->empleado_id,
             $context['etapas'][2]->id => $firmaTres->empleado_id,
         ]);
 
         $this->assertSame($context['cargos'][0]->id, $creadas[0]->cargo_firma_id);
         $this->assertSame($context['cargos'][0]->id, $creadas[1]->cargo_firma_id);
-        $this->assertSame($context['etapas'][1]->id, $creadas[0]->flujo_aprobacion_etapa_id);
-        $this->assertSame($context['etapas'][2]->id, $creadas[1]->flujo_aprobacion_etapa_id);
+        $this->assertSame($context['cargos'][0]->id, $creadas[2]->cargo_firma_id);
+        $this->assertSame($context['etapas'][0]->id, $creadas[0]->flujo_aprobacion_etapa_id);
+        $this->assertSame($context['etapas'][1]->id, $creadas[1]->flujo_aprobacion_etapa_id);
+        $this->assertSame($context['etapas'][2]->id, $creadas[2]->flujo_aprobacion_etapa_id);
         $this->assertSame('Aprobado', $firmaUno->refresh()->estado_revision);
     }
 

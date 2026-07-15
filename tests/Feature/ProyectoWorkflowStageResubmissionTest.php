@@ -46,35 +46,40 @@ class ProyectoWorkflowStageResubmissionTest extends TestCase
         Mail::fake();
 
         $creadas = $component->reenviarPorEtapa($firmaRechazada, $coordinadorUser, [
+            $context['etapas'][0]->id => $firmaAnterior->empleado_id,
             $context['etapas'][1]->id => $primerRevisor->id,
             $context['etapas'][2]->id => $segundoRevisor->id,
         ]);
 
-        $this->assertCount(2, $creadas);
+        $this->assertCount(3, $creadas);
         $this->assertSame(2, $creadas[0]->revision_ciclo);
-        $this->assertSame($context['etapas'][1]->id, $creadas[0]->flujo_aprobacion_etapa_id);
-        $this->assertSame($context['etapas'][2]->id, $creadas[1]->flujo_aprobacion_etapa_id);
+        $this->assertSame($context['etapas'][0]->id, $creadas[0]->flujo_aprobacion_etapa_id);
+        $this->assertSame($context['etapas'][1]->id, $creadas[1]->flujo_aprobacion_etapa_id);
+        $this->assertSame($context['etapas'][2]->id, $creadas[2]->flujo_aprobacion_etapa_id);
         $this->assertSame('Pendiente', $creadas[0]->estado_revision);
         $this->assertSame('Pendiente', $creadas[1]->estado_revision);
+        $this->assertSame('Pendiente', $creadas[2]->estado_revision);
         $this->assertNull($creadas[0]->firma_id);
         $this->assertNull($creadas[0]->sello_id);
         $this->assertNull($creadas[0]->fecha_firma);
-        $this->assertSame($primerRevisor->id, $creadas[0]->empleado_id);
-        $this->assertSame($segundoRevisor->id, $creadas[1]->empleado_id);
+        $this->assertSame($firmaAnterior->empleado_id, $creadas[0]->empleado_id);
+        $this->assertSame($primerRevisor->id, $creadas[1]->empleado_id);
+        $this->assertSame($segundoRevisor->id, $creadas[2]->empleado_id);
         $this->assertSame('Aprobado', $firmaAnterior->refresh()->estado_revision);
         $this->assertSame('Rechazado', $firmaRechazada->refresh()->estado_revision);
         $this->assertSame('Pendiente', $firmaPosterior->refresh()->estado_revision);
-        $this->assertSame($firmasAntes + 2, FirmaProyecto::count());
+        $this->assertSame($firmasAntes + 3, FirmaProyecto::count());
         $this->assertDatabaseHas('estado_proyecto', ['id' => $estadoSubsanacionId]);
         $this->assertSame($estadoCount + 1, $context['proyecto']->estado_proyecto()->count());
-        $this->assertSame($context['cargos'][1]->tipo_estado_id, $context['proyecto']->estado->tipo_estado_id);
+        $this->assertSame($context['cargos'][0]->tipo_estado_id, $context['proyecto']->estado->tipo_estado_id);
         $this->assertSame($coordinador->id, $context['proyecto']->estado->empleado_id);
         $this->assertStringContainsString($creadas[0]->etapa_nombre, $context['proyecto']->estado->comentario);
         $this->assertSame($creadas[0]->id, $context['proyecto']->firmaActualDeEtapasDelFlujo($context['flujo']->id, 2)?->id);
         $this->assertFalse($context['proyecto']->firmaEsActualEnFlujoPorEtapa($creadas[1]));
+        $this->assertFalse($context['proyecto']->firmaEsActualEnFlujoPorEtapa($creadas[2]));
         $this->assertFalse($context['proyecto']->firmasDeEtapasCompletadas($context['flujo']->id, 2));
-        $this->assertTrue($this->componenteAutorizacion()->puedeActuar($creadas[0]->fresh(), $primerRevisorUser));
-        $this->assertFalse($this->componenteAutorizacion()->puedeActuar($creadas[1]->fresh(), $segundoRevisorUser));
+        $this->assertFalse($this->componenteAutorizacion()->puedeActuar($creadas[1]->fresh(), $primerRevisorUser));
+        $this->assertFalse($this->componenteAutorizacion()->puedeActuar($creadas[2]->fresh(), $segundoRevisorUser));
         $this->assertFalse($component->subsanarModal);
         Mail::assertNothingSent();
     }
@@ -321,15 +326,18 @@ class ProyectoWorkflowStageResubmissionTest extends TestCase
         $firmaOtroFlujo = $this->crearFirmaDeEtapa($context['proyecto'], $otraEtapa, $this->crearEmpleado());
 
         $creadas = $this->componente($context['proyecto'])->reenviarPorEtapa($firmaDos, $user, [
+            $context['etapas'][0]->id => $firmaUno->empleado_id,
             $context['etapas'][1]->id => $firmaDos->empleado_id,
             $context['etapas'][2]->id => $firmaTres->empleado_id,
         ]);
 
-        $this->assertCount(2, $creadas);
-        $this->assertSame($context['etapas'][1]->id, $creadas[0]->flujo_aprobacion_etapa_id);
-        $this->assertSame($context['etapas'][2]->id, $creadas[1]->flujo_aprobacion_etapa_id);
+        $this->assertCount(3, $creadas);
+        $this->assertSame($context['etapas'][0]->id, $creadas[0]->flujo_aprobacion_etapa_id);
+        $this->assertSame($context['etapas'][1]->id, $creadas[1]->flujo_aprobacion_etapa_id);
+        $this->assertSame($context['etapas'][2]->id, $creadas[2]->flujo_aprobacion_etapa_id);
         $this->assertSame($context['cargos'][0]->id, $creadas[0]->cargo_firma_id);
         $this->assertSame($context['cargos'][0]->id, $creadas[1]->cargo_firma_id);
+        $this->assertSame($context['cargos'][0]->id, $creadas[2]->cargo_firma_id);
         $this->assertSame('Aprobado', $firmaUno->refresh()->estado_revision);
         $this->assertSame('Pendiente', $firmaTres->refresh()->estado_revision);
         $this->assertSame('Pendiente', $firmaOtroFlujo->refresh()->estado_revision);
