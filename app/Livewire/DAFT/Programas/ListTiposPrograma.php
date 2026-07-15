@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Livewire\SGCU\Programas;
+namespace App\Livewire\DAFT\Programas;
 
-use App\Models\SGCU\TipoPrograma;
+use App\Models\DAFT\TipoPrograma;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
@@ -58,7 +58,7 @@ class ListTiposPrograma extends Component
         ];
 
         if ($this->plantillaDocumento) {
-            $path = $this->plantillaDocumento->store('sgcu/plantillas', 'public');
+            $path = $this->plantillaDocumento->store('daft/plantillas', 'public');
             $payload['plantilla_docx_path'] = $path;
         }
 
@@ -99,7 +99,7 @@ class ListTiposPrograma extends Component
     {
         $tiposPrograma = TipoPrograma::orderBy('nombre')->get();
 
-        return view('livewire.sgcu.programas.list-tipos-programa', compact('tiposPrograma'))
+        return view('livewire.daft.programas.list-tipos-programa', compact('tiposPrograma'))
             ->layout('layouts.app', ['hideHorizontalNav' => true]);
     }
 

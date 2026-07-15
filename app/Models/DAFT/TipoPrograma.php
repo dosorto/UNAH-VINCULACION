@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\SGCU;
+namespace App\Models\DAFT;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;

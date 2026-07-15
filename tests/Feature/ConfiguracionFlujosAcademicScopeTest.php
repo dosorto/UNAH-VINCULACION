@@ -8,7 +8,7 @@ use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\TipoCargoFirma;
-use App\Models\SGCU\TipoPrograma;
+use App\Models\DAFT\TipoPrograma;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
@@ -65,16 +65,20 @@ class ConfiguracionFlujosAcademicScopeTest extends TestCase
         $this->assertSame(FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD, $etapa->multiplicidad_revision);
     }
 
-    public function test_guardar_flujo_sgcu_persiste_alcance_y_multiplicidad(): void
+    public function test_guardar_flujo_daft_persiste_alcance_y_multiplicidad(): void
     {
         $context = $this->crearCatalogosBase();
         $role = $this->crearRol();
         $this->actingAs(User::factory()->create());
 
-        Livewire::test(ConfiguracionFlujosProyectos::class)
+        $component = Livewire::test(ConfiguracionFlujosProyectos::class)
             ->call('showProgramFlows')
-            ->set('programWorkflow.codigo', 'FLUJO_CONFIG_SGCU_'.uniqid())
-            ->set('programWorkflow.nombre', 'Flujo config SGCU')
+            ->call('selectProgramTipoPrograma', $context['tipoPrograma']->id);
+        $codigoGenerado = $component->get('programWorkflow.codigo');
+
+        $component
+            ->set('programWorkflow.codigo', 'CODIGO_MANIPULADO')
+            ->set('programWorkflow.nombre', 'Flujo config DAFT')
             ->set('programStages.0.codigo', 'REVISION_CARRERA')
             ->set('programStages.0.nombre', 'Revision por carrera')
             ->set('programStages.0.rol_revisor_id', (string) $role->id)
@@ -86,6 +90,8 @@ class ConfiguracionFlujosAcademicScopeTest extends TestCase
 
         $etapa = FlujoAprobacionEtapa::query()->where('codigo', 'REVISION_CARRERA')->firstOrFail();
 
+        $this->assertSame($codigoGenerado, $etapa->flujo()->value('codigo'));
+        $this->assertStringStartsWith('PROGRAMA_TIPO_CONFIG_', $codigoGenerado);
         $this->assertSame(FlujoAprobacionEtapa::ALCANCE_CARRERA, $etapa->alcance_academico);
         $this->assertSame(FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD, $etapa->multiplicidad_revision);
     }
@@ -250,7 +256,7 @@ class ConfiguracionFlujosAcademicScopeTest extends TestCase
             ]
         );
 
-        TipoPrograma::create([
+        $tipoPrograma = TipoPrograma::create([
             'nombre' => 'Tipo config '.uniqid(),
             'activo' => true,
         ]);
@@ -269,7 +275,7 @@ class ConfiguracionFlujosAcademicScopeTest extends TestCase
             'activo' => true,
         ]);
 
-        return compact('cargo', 'flujo');
+        return compact('cargo', 'flujo', 'tipoPrograma');
     }
 
     private function crearRol(): Role
