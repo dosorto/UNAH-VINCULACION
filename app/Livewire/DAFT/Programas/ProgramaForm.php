@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Livewire\SGCU\Programas;
+namespace App\Livewire\DAFT\Programas;
 
 use App\Models\Asignatura;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
-use App\Models\SGCU\ProgramaCertificacion;
-use App\Models\SGCU\ProgramaRevision;
-use App\Models\SGCU\TipoPrograma;
+use App\Models\DAFT\ProgramaCertificacion;
+use App\Models\DAFT\ProgramaRevision;
+use App\Models\DAFT\TipoPrograma;
 use App\Models\User;
 use App\Models\UnidadAcademica\FacultadCentro;
 use Illuminate\Contracts\View\View;
@@ -118,7 +118,7 @@ class ProgramaForm extends Component
         $this->syncProgramaRelations($programa);
         session()->flash('programas_status', 'Programa guardado correctamente.');
 
-        $this->redirectRoute('sgcu.programas.edit', $programa, navigate: true);
+        $this->redirectRoute('daft.programas.edit', $programa, navigate: true);
     }
 
     public function openEditProgramModal(): void
@@ -248,7 +248,7 @@ class ProgramaForm extends Component
 
         ProgramaCertificacion::findOrFail($this->programaId)->delete();
         session()->flash('programas_status', 'Programa eliminado.');
-        $this->redirectRoute('sgcu.programas', navigate: true);
+        $this->redirectRoute('daft.programas', navigate: true);
     }
 
     public function sendToReview(): void
@@ -357,7 +357,7 @@ class ProgramaForm extends Component
         });
 
         session()->flash('programas_status', 'Programa enviado a revisión.');
-        $this->redirectRoute('sgcu.programas', navigate: true);
+        $this->redirectRoute('daft.programas', navigate: true);
     }
 
     public function updatedAsignaturas(): void
@@ -374,7 +374,7 @@ class ProgramaForm extends Component
             ? TipoPrograma::find($this->programaForm['tipo_programa_id'])
             : $programa?->tipoPrograma;
 
-        return view('livewire.sgcu.programas.programa-form', [
+        return view('livewire.daft.programas.programa-form', [
             'programa' => $programa,
             'tiposPrograma' => TipoPrograma::where('activo', true)->orderBy('nombre')->get(),
             'centrosFacultad' => FacultadCentro::orderBy('nombre')->get(),

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Livewire\SGCU\Programas;
+namespace App\Livewire\DAFT\Programas;
 
-use App\Models\SGCU\ProgramaCertificacion;
-use App\Models\SGCU\ProgramaRevision;
-use App\Models\SGCU\TipoPrograma;
+use App\Models\DAFT\ProgramaCertificacion;
+use App\Models\DAFT\ProgramaRevision;
+use App\Models\DAFT\TipoPrograma;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\User;
@@ -241,7 +241,7 @@ class ListProgramas extends Component
             'revision' => ProgramaCertificacion::where('estado_flujo', 'EN_REVISION')->count(),
         ];
 
-        return view('livewire.sgcu.programas.list-programas', [
+        return view('livewire.daft.programas.list-programas', [
             'records' => $records,
             'metricas' => $metricas,
             'tiposPrograma' => TipoPrograma::where('activo', true)->orderBy('nombre')->get(),

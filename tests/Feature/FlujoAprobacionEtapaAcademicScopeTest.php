@@ -167,7 +167,7 @@ class FlujoAprobacionEtapaAcademicScopeTest extends TestCase
         $this->assertSame(FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD, $etapa->multiplicidad_revision);
     }
 
-    public function test_pps_enf_sgcu_y_creacion_actual_de_etapas_funcionan_sin_campos_nuevos(): void
+    public function test_pps_enf_daft_y_creacion_actual_de_etapas_funcionan_sin_campos_nuevos(): void
     {
         $context = $this->crearContexto(proceso: 'PROYECTO');
         $pps = $this->crearEtapa($context['flujo'], $context['cargo'], [
@@ -181,17 +181,17 @@ class FlujoAprobacionEtapaAcademicScopeTest extends TestCase
             'nombre' => 'Revision ENF',
             'orden' => 2,
         ]);
-        $sgcuContext = $this->crearContexto(proceso: 'PROGRAMA');
-        $sgcu = $this->crearEtapa($sgcuContext['flujo'], $sgcuContext['cargo'], [
-            'codigo' => 'SGCU_REVISION',
-            'nombre' => 'Revision SGCU',
+        $daftContext = $this->crearContexto(proceso: 'PROGRAMA');
+        $daft = $this->crearEtapa($daftContext['flujo'], $daftContext['cargo'], [
+            'codigo' => 'DAFT_REVISION',
+            'nombre' => 'Revision DAFT',
         ]);
 
         $this->assertSame(FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO, $pps->refresh()->alcance_academico);
         $this->assertSame(FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO, $enf->refresh()->multiplicidad_revision);
-        $this->assertSame(FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO, $sgcu->refresh()->alcance_academico);
+        $this->assertSame(FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO, $daft->refresh()->alcance_academico);
         $this->assertCount(2, $context['flujo']->fresh('etapas')->etapas);
-        $this->assertCount(1, $sgcuContext['flujo']->fresh('etapas')->etapas);
+        $this->assertCount(1, $daftContext['flujo']->fresh('etapas')->etapas);
     }
 
     public function test_metadatos_no_cambian_creacion_autorizacion_avance_ni_reenvio_de_firmas(): void

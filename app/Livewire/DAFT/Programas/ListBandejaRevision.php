@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Livewire\SGCU\Programas;
+namespace App\Livewire\DAFT\Programas;
 
-use App\Models\SGCU\ProgramaRevision;
-use App\Models\SGCU\ProgramaCertificacion;
+use App\Models\DAFT\ProgramaRevision;
+use App\Models\DAFT\ProgramaCertificacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -155,7 +155,7 @@ class ListBandejaRevision extends Component
             ? 'Tienes '.$revisionesAccionables->count().' revision(es) pendiente(s) para el rol activo '.($this->activeRoleName() ?? 'actual').'.'
             : null;
 
-        return view('livewire.sgcu.programas.list-bandeja-revision', compact('programasPendientes', 'programasEnProceso', 'programasAprobados', 'pendingNotice'))
+        return view('livewire.daft.programas.list-bandeja-revision', compact('programasPendientes', 'programasEnProceso', 'programasAprobados', 'pendingNotice'))
             ->layout('layouts.app', ['hideHorizontalNav' => true]);
     }
 

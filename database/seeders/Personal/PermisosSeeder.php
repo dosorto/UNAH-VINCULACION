@@ -85,9 +85,9 @@ class PermisosSeeder extends Seeder
         $roleDirectorCentro = Role::firstOrCreate(['name' => 'Director centro', 'guard_name' => 'web']);
         $roleRevisorVinculacion = Role::firstOrCreate(['name' => 'Revisor Vinculacion', 'guard_name' => 'web']);
         $roleDirectorVinculacion = Role::firstOrCreate(['name' => 'Director Vinculacion', 'guard_name' => 'web']);
-        $roleSgcuGestor = Role::firstOrCreate(['name' => 'SGCU Gestor', 'guard_name' => 'web']);
-        $roleSgcuRevisorEtapa1 = Role::firstOrCreate(['name' => 'SGCU Revisor Etapa 1', 'guard_name' => 'web']);
-        $roleSgcuRevisorEtapa2 = Role::firstOrCreate(['name' => 'SGCU Revisor Etapa 2', 'guard_name' => 'web']);
+        $roleDaftGestor = Role::firstOrCreate(['name' => 'DAFT Gestor', 'guard_name' => 'web']);
+        $roleDaftRevisorEtapa1 = Role::firstOrCreate(['name' => 'DAFT Revisor Etapa 1', 'guard_name' => 'web']);
+        $roleDaftRevisorEtapa2 = Role::firstOrCreate(['name' => 'DAFT Revisor Etapa 2', 'guard_name' => 'web']);
 
         $role->syncPermissions([
             'demografia.pais', 'demografia.departamento', 'demografia.municipio',
@@ -165,7 +165,7 @@ class PermisosSeeder extends Seeder
             'global.set-role', 'configuracion.perfil', 'tickets.ver',
         ]);
 
-        $sgcuPermissions = [
+        $daftPermissions = [
             'configuracion.flujos',
             'inicio.admin',
             'dashboard.admin',
@@ -174,8 +174,8 @@ class PermisosSeeder extends Seeder
             'tickets.ver',
         ];
 
-        $roleSgcuGestor->syncPermissions($sgcuPermissions);
-        $roleSgcuRevisorEtapa1->syncPermissions($sgcuPermissions);
-        $roleSgcuRevisorEtapa2->syncPermissions($sgcuPermissions);
+        $roleDaftGestor->syncPermissions($daftPermissions);
+        $roleDaftRevisorEtapa1->syncPermissions($daftPermissions);
+        $roleDaftRevisorEtapa2->syncPermissions($daftPermissions);
     }
 }

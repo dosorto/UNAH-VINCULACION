@@ -18,7 +18,7 @@ use App\Models\Proyecto\EjesPrioritariosUnah;
 use App\Models\Proyecto\MetaContribuye;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\VinculacionTipoAccion;
-use App\Models\SGCU\ProgramaCertificacion;
+use App\Models\DAFT\ProgramaCertificacion;
 use App\Models\UnidadAcademica\Campus;
 use App\Models\UnidadAcademica\Carrera;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
@@ -241,7 +241,7 @@ class EnfAccionController extends Controller
                 ];
             });
 
-        $programasSgcu = ProgramaCertificacion::query()
+        $programasDaft = ProgramaCertificacion::query()
             ->with(['centroFacultad', 'tipoPrograma', 'centrosPrograma'])
             ->where('estado_flujo', 'APROBADO')
             ->orderBy('nombre')
@@ -256,14 +256,14 @@ class EnfAccionController extends Controller
                     ->all();
 
                 $totalHoras = (int) ($programa->horas_maximas_programa ?? 0);
-                $tipoAccionEnfId = $this->resolverTipoAccionEnfSgcuId(
+                $tipoAccionEnfId = $this->resolverTipoAccionEnfDaftId(
                     $programa->tipoPrograma?->nombre ?? $programa->tipo_programa,
                     $tiposAccionEnfPorNombre,
                     $tipoProgramaEnfId
                 );
 
                 return [
-                    'id' => 'sgcu-'.$programa->id,
+                    'id' => 'daft-'.$programa->id,
                     'label' => trim(($programa->codigo ? $programa->codigo.' · ' : '').$programa->nombre),
                     'fields' => [
                         'nombre_accion' => $programa->nombre,
@@ -277,13 +277,13 @@ class EnfAccionController extends Controller
                 ];
             });
 
-        return $programasSgcu
+        return $programasDaft
             ->concat($programasEnf)
             ->sortBy('label')
             ->values();
     }
 
-    private function resolverTipoAccionEnfSgcuId(?string $tipoPrograma, $tiposAccionEnfPorNombre, ?int $fallbackId): ?int
+    private function resolverTipoAccionEnfDaftId(?string $tipoPrograma, $tiposAccionEnfPorNombre, ?int $fallbackId): ?int
     {
         $tipoNormalizado = $this->normalizarNombreCatalogo($tipoPrograma);
 
