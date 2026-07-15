@@ -38,11 +38,13 @@ use Livewire\Attributes\Renderless;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use App\Mail\EtapaFlujoPendiente;
 use App\Mail\ProyectoCreado;
+use App\Concerns\ReenviaDesdeSubsanacionPorEtapa;
 use RuntimeException;
 
 class CreateProyectoVinculacion extends Component
 {
     use WithFileUploads;
+    use ReenviaDesdeSubsanacionPorEtapa;
 
     public int $currentStep = 1;
     public ?int $recordId = null;
@@ -2987,6 +2989,10 @@ class CreateProyectoVinculacion extends Component
             return;
         }
 
+        if ($this->reenviarAutomaticamenteTrasSubsanacion($proyecto)) {
+            return;
+        }
+
         $flujo = $proyecto->resolveFlujoAprobacion();
 
         if (! $flujo) {
@@ -3030,6 +3036,56 @@ class CreateProyectoVinculacion extends Component
         $this->modalDestinatarios = [];
         $this->modalStep = 0;
         $this->showEnviarModal = true;
+    }
+
+    /**
+     * Si el proyecto ya venía de un flujo de firmas por etapas y fue devuelto a
+     * Subsanación, el destinatario ya está definido por el ciclo anterior: se
+     * reenvía directamente al mismo firmante, sin pedir que se configure de nuevo.
+     */
+    private function reenviarAutomaticamenteTrasSubsanacion(Proyecto $proyecto): bool
+    {
+        $firmaRechazada = $this->firmaRechazadaActualPorEtapa($proyecto);
+
+        if (! $firmaRechazada) {
+            return false;
+        }
+
+        $user = auth()->user();
+
+        if (! $user) {
+            Notification::make()->title('Error')->body('No tiene autorización para reenviar este registro.')->danger()->send();
+            return true;
+        }
+
+        $this->validarFormularioAntesDeEnviar();
+
+        try {
+            $this->reenviarDesdeSubsanacionPorEtapa(
+                $firmaRechazada,
+                $user,
+                $this->empleadosPorEtapaParaReenvio($firmaRechazada)
+            );
+        } catch (\Exception $e) {
+            Notification::make()->title('Error al enviar')->body($e->getMessage())->danger()->send();
+            return true;
+        }
+
+        try {
+            Mail::to($user->email)->send(new ProyectoCreado($proyecto, $user));
+        } catch (\Exception $e) {
+            \Log::warning($e->getMessage());
+        }
+
+        Notification::make()->title('Proyecto enviado a firmar')->success()->send();
+        redirect()->route('proyectosDocente');
+
+        return true;
+    }
+
+    protected function proyectoEsperadoIdParaReenvio(): ?int
+    {
+        return $this->recordId;
     }
 
     public function modalSiguiente(): void

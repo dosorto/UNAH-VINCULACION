@@ -1423,7 +1423,6 @@ class Proyecto extends Model
     protected function firmasBaseParaNuevoCicloDesdeRechazo(FirmaProyecto $firmaRechazada, Collection $firmasCiclo): Collection
     {
         $firmasBase = $firmasCiclo
-            ->filter(fn (FirmaProyecto $firma): bool => (int) $firma->orden_revision >= (int) $firmaRechazada->orden_revision)
             ->groupBy(fn (FirmaProyecto $firma): int => (int) $firma->flujo_aprobacion_etapa_id)
             ->map(function (Collection $firmasEtapa) use ($firmaRechazada): FirmaProyecto {
                 $firmasActivas = $firmasEtapa
@@ -1442,8 +1441,16 @@ class Proyecto extends Model
                     throw new \RuntimeException('El ciclo contiene más de una firma activa para la misma etapa.');
                 }
 
-                if ((int) $firmaBase->id !== (int) $firmaRechazada->id && $firmaBase->estado_revision !== 'Pendiente') {
-                    throw new \RuntimeException('El ciclo rechazado contiene estados inconsistentes en las etapas posteriores.');
+                if ((int) $firmaBase->id !== (int) $firmaRechazada->id) {
+                    $esAnterior = (int) $firmaBase->orden_revision < (int) $firmaRechazada->orden_revision;
+
+                    if ($esAnterior && $firmaBase->estado_revision !== 'Aprobado') {
+                        throw new \RuntimeException('El ciclo rechazado contiene estados inconsistentes en las etapas anteriores.');
+                    }
+
+                    if (! $esAnterior && $firmaBase->estado_revision !== 'Pendiente') {
+                        throw new \RuntimeException('El ciclo rechazado contiene estados inconsistentes en las etapas posteriores.');
+                    }
                 }
 
                 return $firmaBase;
@@ -1454,7 +1461,7 @@ class Proyecto extends Model
             ])
             ->values();
 
-        if (! $firmasBase->first() || (int) $firmasBase->first()->id !== (int) $firmaRechazada->id) {
+        if (! $firmasBase->contains(fn (FirmaProyecto $firma): bool => (int) $firma->id === (int) $firmaRechazada->id)) {
             throw new \RuntimeException('No se pudo preparar de forma segura el nuevo ciclo de revisión.');
         }
 
@@ -1535,7 +1542,7 @@ class Proyecto extends Model
             || $firmasCreadas->count() !== $firmasBase->count()
             || $firmasNuevoCiclo->contains(fn (FirmaProyecto $firma): bool => $firma->estado_revision !== 'Pendiente')
             || $firmasNuevoCiclo->contains(fn (FirmaProyecto $firma): bool => (int) $firma->revision_ciclo !== $nuevoCiclo)
-            || (int) $firmasNuevoCiclo->first()?->flujo_aprobacion_etapa_id !== (int) $firmaRechazada->flujo_aprobacion_etapa_id
+            || (int) $firmasNuevoCiclo->first()?->flujo_aprobacion_etapa_id !== (int) $firmasBase->first()?->flujo_aprobacion_etapa_id
         ) {
             throw new \RuntimeException('No se pudo preparar de forma segura el nuevo ciclo de revisión.');
         }
@@ -1787,7 +1794,9 @@ class Proyecto extends Model
             throw new \RuntimeException('La primera etapa configurada no tiene un estado asociado.');
         }
 
-        return DB::transaction(function () use ($tipoDocumento, $path, $empleado, $proceso, $etapas, $primerEstadoId) {
+        $empleadosPorEtapa = $this->resolverEmpleadosPorEtapaParaDocumento($etapas);
+
+        return DB::transaction(function () use ($tipoDocumento, $path, $empleado, $proceso, $etapas, $primerEstadoId, $empleadosPorEtapa) {
             $this->documentos()->where('tipo_documento', $tipoDocumento)->each(function ($documento) {
                 $documento->firma_documento()->delete();
                 $documento->estado_documento()->delete();
@@ -1800,19 +1809,9 @@ class Proyecto extends Model
                 'documento_url' => $path,
             ]);
 
-            $this->sincronizarFirmasDelFlujo($proceso, $documento);
+            $firmasCreadas = $this->sincronizarFirmasDeEtapasDelFlujo($empleadosPorEtapa, $proceso, $documento, 1);
 
-            $firmasCreadas = $documento->firma_documento()
-                ->pluck('cargo_firma_id')
-                ->map(fn ($id) => (int) $id);
-
-            $faltantes = $etapas
-                ->pluck('cargo_firma_id')
-                ->map(fn ($id) => (int) $id)
-                ->diff($firmasCreadas)
-                ->values();
-
-            if ($faltantes->isNotEmpty()) {
+            if ($firmasCreadas->count() !== $etapas->count()) {
                 throw new \RuntimeException('No se pudieron crear todas las firmas del flujo. Revise roles y responsables configurados.');
             }
 
@@ -1825,6 +1824,42 @@ class Proyecto extends Model
 
             return $documento;
         });
+    }
+
+    /**
+     * Resuelve el firmante de cada etapa del proceso de Informe Intermedio/Final
+     * automáticamente (no hay UI de selección de destinatario para informes):
+     * primero el responsable fijo de la etapa, si no hay, el primer usuario con
+     * el rol de revisor de la etapa.
+     */
+    private function resolverEmpleadosPorEtapaParaDocumento(Collection $etapas): array
+    {
+        $empleadosPorEtapa = [];
+
+        foreach ($etapas as $etapa) {
+            $usuario = $etapa->usuarioResponsable;
+
+            if (! $usuario && $etapa->rolRevisor?->name) {
+                $usuario = User::role($etapa->rolRevisor->name)
+                    ->whereHas('empleado')
+                    ->with('empleado')
+                    ->orderBy('name')
+                    ->first();
+            }
+
+            $empleadoEtapa = $usuario?->empleado;
+
+            if (! $empleadoEtapa) {
+                throw new \RuntimeException(sprintf(
+                    'No se pudo resolver un responsable con empleado para la etapa "%s". Revise roles y responsables configurados.',
+                    $etapa->nombre
+                ));
+            }
+
+            $empleadosPorEtapa[$etapa->id] = $empleadoEtapa->id;
+        }
+
+        return $empleadosPorEtapa;
     }
 
 
