@@ -11,7 +11,7 @@
         "guzzlehttp/guzzle": "^7.9",
         "laravel/framework": "^11.9",
         "laravel/tinker": "^2.9",
-        "livewire/livewire": "^3.5",
+        "livewire/livewire": "3.7",
         "psr/simple-cache": "^2.0",
         "rappasoft/laravel-livewire-tables": "^3.7",
         "simplesoftwareio/simple-qrcode": "^4.2",

@@ -24,7 +24,7 @@
 
     <section class="flex flex-wrap items-center gap-2 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
         <button type="button" wire:click="showProgramFlows" class="rounded-full border px-4 py-2 text-sm font-semibold transition {{ $activeFlowTab === 'programas' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/60' }}">
-            Flujos de programa SGCU
+            Flujos de programa DAFT
         </button>
         <button type="button" wire:click="showProjectFlows" class="rounded-full border px-4 py-2 text-sm font-semibold transition {{ $activeFlowTab === 'proyectos' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/60' }}">
             Flujos de proyectos
@@ -122,7 +122,8 @@
                 <div class="mt-5 grid gap-4 md:grid-cols-2">
                     <label class="block space-y-2" >
                         <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400" >Codigo </span>
-                        <input wire:model="workflow.codigo" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                        <input wire:model="workflow.codigo" type="text" readonly aria-readonly="true" class="w-full cursor-not-allowed rounded-xl border-slate-300 bg-slate-100 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300" />
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Este código es generado automáticamente y no se puede editar.</p>
                         @error('workflow.codigo')<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                     </label>
                     <label class="block space-y-2">
@@ -240,6 +241,26 @@
                                     </select>
                                     @error("stages.$index.usuario_responsable_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                 </label>
+                                <label class="block space-y-2">
+                                    <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Alcance academico</span>
+                                    <select wire:model.live="stages.{{ $index }}.alcance_academico" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                        @foreach ($alcancesAcademicos as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Define de qué unidad académica saldrá el revisor de esta etapa.</p>
+                                    @error("stages.$index.alcance_academico")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                </label>
+                                <label class="block space-y-2">
+                                    <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Multiplicidad de revision</span>
+                                    <select wire:model.live="stages.{{ $index }}.multiplicidad_revision" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                        @foreach ($multiplicidadesRevision as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Define si se seleccionará un único revisor o uno por cada unidad académica.</p>
+                                    @error("stages.$index.multiplicidad_revision")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                </label>
                             </div>
 
                             <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
@@ -353,8 +374,9 @@
                     @if ($selectedTipoPrograma)
                         <div class="mt-5 grid gap-4 md:grid-cols-2">
                             <label class="block space-y-2">
-                                <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Codigo *</span>
-                                <input wire:model="programWorkflow.codigo" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                                <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Codigo</span>
+                                <input wire:model="programWorkflow.codigo" type="text" readonly aria-readonly="true" class="w-full cursor-not-allowed rounded-xl border-slate-300 bg-slate-100 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300" />
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Se genera como PROGRAMA_NOMBRE_DEL_PROGRAMA.</p>
                                 @error('programWorkflow.codigo')<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                             </label>
                             <label class="block space-y-2">
@@ -468,6 +490,26 @@
                                                 @endforeach
                                             </select>
                                             @error("programStages.$index.usuario_responsable_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                        </label>
+                                        <label class="block space-y-2">
+                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Alcance academico</span>
+                                            <select wire:model.live="programStages.{{ $index }}.alcance_academico" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                                @foreach ($alcancesAcademicos as $value => $label)
+                                                    <option value="{{ $value }}">{{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400">Define de qué unidad académica saldrá el revisor de esta etapa.</p>
+                                            @error("programStages.$index.alcance_academico")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                        </label>
+                                        <label class="block space-y-2">
+                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Multiplicidad de revision</span>
+                                            <select wire:model.live="programStages.{{ $index }}.multiplicidad_revision" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                                @foreach ($multiplicidadesRevision as $value => $label)
+                                                    <option value="{{ $value }}">{{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400">Define si se seleccionará un único revisor o uno por cada unidad académica.</p>
+                                            @error("programStages.$index.multiplicidad_revision")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                         </label>
                                     </div>
 

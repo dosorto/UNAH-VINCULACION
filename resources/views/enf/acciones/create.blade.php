@@ -127,11 +127,12 @@
             })();
         </script>
 
-        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}">
+        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}" data-record-id="{{ $editingAccion?->id }}" data-autosave-url="{{ route('enf.acciones.autoguardar-borrador') }}" data-autosave-update-url-template="{{ route('enf.acciones.autoguardar-borrador.update', ['accion' => '__ID__']) }}">
             @csrf
             @if ($editingAccion)
                 @method('PUT')
             @endif
+            <input type="hidden" name="borrador_autoguardado_id" value="{{ $editingAccion?->id }}">
             <input type="hidden" name="tipo_accion_id" value="{{ old('tipo_accion_id', $tipoAccionVinculacionEnfId ?: $tiposAccion->first()?->id) }}">
             <input type="hidden" name="codigo_formulario" value="FORM-DVUS-018">
             <input type="hidden" name="estado_flujo" value="BORRADOR">
@@ -190,7 +191,7 @@
                         <label class="{{ $label }}">Tipo de acción ENF</label>
                         <select name="catalogos[tipo_accion_enf][]" class="{{ $input }}">
                             <option value="">Seleccione...</option>
-                            @foreach ($catalog('tipo_accion_enf') as $item)
+                            @foreach ($tiposAccionForm018 as $item)
                                 <option value="{{ $item->id }}" @selected(old('catalogos.tipo_accion_enf.0', $selectedTipoAccionEnfId) == $item->id)>{{ $item->nombre }}</option>
                             @endforeach
                         </select>
@@ -1267,7 +1268,7 @@
                         Siguiente
                     </button>
                     <button data-submit-step class="rounded-md bg-blue-700 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">
-                        {{ $editingAccion ? 'Actualizar acción ENF' : 'Guardar acción ENF' }}
+                        {{ $editingAccion ? 'Actualizar borrador ENF' : 'Guardar borrador ENF' }}
                     </button>
                 </div>
             </div>
@@ -1489,6 +1490,9 @@
             const approvedPrograms = @js($programasAprobadosData);
             const empleados = @js($empleadosModalData);
             const initialDraft = @js($initialDraft ?? []);
+            const autosaveUrl = form.dataset.autosaveUrl;
+            const autosaveUpdateUrlTemplate = form.dataset.autosaveUpdateUrlTemplate || '';
+            const draftIdField = form.querySelector('[name="borrador_autoguardado_id"]');
             const oldObjetivosEspecificos = @js(array_values((array) old('objetivos_especificos', [])));
             const approvedProgramSelect = form.querySelector('[data-approved-program-select]');
             const panels = Array.from(form.querySelectorAll('[data-step-panel]'));
@@ -1562,17 +1566,24 @@
             let currentPresupuestoGroup = null;
             let currentPresupuestoIndex = null;
             let currentCronogramaIndex = null;
+            let draftRecordId = form.dataset.recordId || draftIdField?.value || '';
+            let localAutosaveTimer = null;
+            let serverAutosaveTimer = null;
+            let serverAutosavePromise = Promise.resolve();
+            let serverAutosaveDirty = false;
+            let serverAutosaveInFlight = false;
+            let submittingAfterAutosave = false;
+            let shouldPersistDraft = Boolean(draftRecordId);
             if (clearDraftOnLoad) {
                 window.localStorage.removeItem(storageKey);
                 window.localStorage.removeItem(`${storageKey}:step`);
             }
 
             let step = Number(window.localStorage.getItem(`${storageKey}:step`) || 1);
-            let autosaveTimer = null;
 
             const clampStep = (value) => Math.min(Math.max(Number(value) || 1, 1), totalSteps);
 
-            const save = () => {
+            const collectDraftData = () => {
                 const data = {};
 
                 form.querySelectorAll('input[name], select[name], textarea[name]').forEach((field) => {
@@ -1612,13 +1623,126 @@
                     data[field.name] = field.value;
                 });
 
+                return data;
+            };
+
+            const updateDraftRecord = (payload) => {
+                if (!payload?.id) {
+                    return;
+                }
+
+                draftRecordId = String(payload.id);
+                form.dataset.recordId = draftRecordId;
+
+                if (draftIdField) {
+                    draftIdField.value = draftRecordId;
+                }
+
+                if (payload.edit_url && !window.location.pathname.endsWith(`/enf/acciones/${draftRecordId}/edit`)) {
+                    window.history.replaceState({}, '', payload.edit_url);
+                }
+            };
+
+            const autosaveEndpoint = () => {
+                if (draftRecordId && autosaveUpdateUrlTemplate) {
+                    return autosaveUpdateUrlTemplate.replace('__ID__', encodeURIComponent(draftRecordId));
+                }
+
+                return autosaveUrl;
+            };
+
+            const buildServerAutosaveData = () => {
+                const formData = new FormData(form);
+
+                Array.from(formData.entries()).forEach(([key, value]) => {
+                    if (key === '_method') {
+                        formData.delete(key);
+                        return;
+                    }
+
+                    if (value instanceof File) {
+                        formData.delete(key);
+                    }
+                });
+
+                formData.set('estado_flujo', 'BORRADOR');
+
+                if (draftRecordId) {
+                    formData.set('borrador_autoguardado_id', draftRecordId);
+                }
+
+                return formData;
+            };
+
+            const serverAutosave = ({ force = false, keepalive = false } = {}) => {
+                window.clearTimeout(serverAutosaveTimer);
+
+                if (!force && !serverAutosaveDirty) {
+                    return serverAutosavePromise;
+                }
+
+                const endpoint = autosaveEndpoint();
+
+                if (!endpoint) {
+                    return Promise.resolve();
+                }
+
+                serverAutosaveDirty = false;
+                serverAutosaveInFlight = true;
+                status.textContent = 'Guardando borrador...';
+
+                serverAutosavePromise = fetch(endpoint, {
+                    method: 'POST',
+                    body: buildServerAutosaveData(),
+                    keepalive,
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                })
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error(`Autosave failed with status ${response.status}`);
+                        }
+
+                        return response.json();
+                    })
+                    .then((payload) => {
+                        updateDraftRecord(payload);
+                        status.textContent = `Borrador guardado ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                    })
+                    .catch(() => {
+                        serverAutosaveDirty = true;
+                        status.textContent = 'No se pudo guardar el borrador. Se reintentará.';
+                    })
+                    .finally(() => {
+                        serverAutosaveInFlight = false;
+                    });
+
+                return serverAutosavePromise;
+            };
+
+            const scheduleServerAutosave = () => {
+                shouldPersistDraft = true;
+                serverAutosaveDirty = true;
+                window.clearTimeout(serverAutosaveTimer);
+                serverAutosaveTimer = window.setTimeout(() => serverAutosave(), 1500);
+            };
+
+            const save = ({ persist = true } = {}) => {
+                const data = collectDraftData();
+
                 window.localStorage.setItem(storageKey, JSON.stringify(data));
                 status.textContent = `Autoguardado ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+                if (persist) {
+                    scheduleServerAutosave();
+                }
             };
 
             const debouncedSave = () => {
-                window.clearTimeout(autosaveTimer);
-                autosaveTimer = window.setTimeout(save, 600);
+                window.clearTimeout(localAutosaveTimer);
+                localAutosaveTimer = window.setTimeout(save, 600);
             };
 
             const renumberObjetivosEspecificos = () => {
@@ -2767,6 +2891,10 @@
                     }
 
                     if (field.name.endsWith('[]') && Array.isArray(value)) {
+                        if (field.tagName === 'SELECT') {
+                            field.value = value[0] || '';
+                        }
+
                         return;
                     }
 
@@ -2970,6 +3098,7 @@
                 render();
             });
             form.addEventListener('input', () => {
+                shouldPersistDraft = true;
                 syncTotalHoras();
                 syncTotalCupos();
                 updateRegisteredEmployeesDetails();
@@ -2983,6 +3112,7 @@
                 debouncedSave();
             });
             form.addEventListener('change', () => {
+                shouldPersistDraft = true;
                 syncTotalHoras();
                 syncTotalCupos();
                 updateRegisteredEmployeesDetails();
@@ -3139,6 +3269,10 @@
             });
             document.querySelector('[data-save-cronograma]')?.addEventListener('click', saveCronograma);
             form.addEventListener('submit', (event) => {
+                if (submittingAfterAutosave) {
+                    return;
+                }
+
                 const blockedStep = shouldLockStepNavigation ? firstIncompleteStepInForm() : null;
 
                 if (blockedStep) {
@@ -3148,12 +3282,30 @@
                 }
 
                 save();
+                event.preventDefault();
+                submitButton?.setAttribute('disabled', 'disabled');
+
+                serverAutosave({ force: true })
+                    .finally(() => {
+                        submittingAfterAutosave = true;
+                        HTMLFormElement.prototype.submit.call(form);
+                    });
             });
-            window.addEventListener('beforeunload', save);
-            window.addEventListener('pagehide', save);
+            window.addEventListener('beforeunload', () => save({ persist: shouldPersistDraft }));
+            window.addEventListener('pagehide', () => {
+                save({ persist: shouldPersistDraft });
+
+                if (shouldPersistDraft && (serverAutosaveDirty || serverAutosaveInFlight)) {
+                    serverAutosave({ force: true, keepalive: true });
+                }
+            });
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'hidden') {
-                    save();
+                    save({ persist: shouldPersistDraft });
+
+                    if (shouldPersistDraft) {
+                        serverAutosave({ force: true, keepalive: true });
+                    }
                 }
             });
         })();

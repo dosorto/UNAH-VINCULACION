@@ -1,7 +1,7 @@
 <div>
     <div class="mb-4">
-        <p class="text-zinc-950 dark:text-white font-bold mb-1">Proyectos de Vinculación</p>
-        <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm">Listado de todos los proyectos registrados en el sistema.</p>
+        <p class="text-zinc-950 dark:text-white font-bold mb-1">Historial de Vinculación</p>
+        <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm">Listado de proyectos y registros de educación no formal creados en el sistema.</p>
     </div>
 
     {{-- Barra de búsqueda --}}
@@ -127,44 +127,64 @@
             <thead class="bg-gray-50 dark:bg-gray-800">
                 <tr>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Código</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">N° Dictamen</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Nombre del Proyecto</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">N° Dictamen / Registro</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Nombre</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Estado</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Fecha Inicio</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Acciones</th>
                 </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
-                @forelse ($records as $proyecto)
-                    @php $estado = $proyecto->estado?->tipoestado?->nombre ?? ''; @endphp
+                @forelse ($records as $row)
+                    @php
+                        $estado = $row['estado'] ?? '';
+                        $record = $row['record'];
+                        $isEnf = ($row['kind'] ?? null) === 'enf';
+                        $badge = match($estado) {
+                            'En curso' => 'bg-green-100 text-green-800',
+                            'Subsanacion', 'SUBSANACION' => 'bg-red-100 text-red-800',
+                            'Borrador', 'BORRADOR' => 'bg-yellow-100 text-yellow-800',
+                            'Finalizado' => 'bg-blue-100 text-blue-800',
+                            'APROBADO', 'Aprobado' => 'bg-green-100 text-green-800',
+                            'EN REVISION', 'EN_REVISION' => 'bg-blue-100 text-blue-800',
+                            default => 'bg-gray-100 text-gray-800',
+                        };
+                    @endphp
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
-                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $proyecto->codigo_proyecto ?: '-' }}</td>
-                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $proyecto->numero_dictamen ?: '-' }}</td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $row['codigo'] ?: '-' }}</td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $row['secondary_code'] ?: '-' }}</td>
                         <td class="px-4 py-3 text-gray-900 dark:text-white max-w-xs">
-                            <a href="{{ route('historialproyecto', $proyecto) }}" class="hover:underline text-blue-600 dark:text-blue-400">
-                                {{ Str::limit($proyecto->nombre_proyecto, 50) }}
+                            <a href="{{ $isEnf ? route('enf.acciones.show', $record) : route('historialproyecto', $record) }}" class="hover:underline text-blue-600 dark:text-blue-400">
+                                {{ Str::limit($row['nombre'], 50) }}
                             </a>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $row['tipo'] }}</p>
                         </td>
                         <td class="px-4 py-3">
-                            @php $badge = match($estado) {
-                                'En curso' => 'bg-green-100 text-green-800',
-                                'Subsanacion' => 'bg-red-100 text-red-800',
-                                'Borrador' => 'bg-yellow-100 text-yellow-800',
-                                'Finalizado' => 'bg-blue-100 text-blue-800',
-                                default => 'bg-gray-100 text-gray-800',
-                            }; @endphp
                             <span class="px-2 py-1 text-xs font-medium rounded-full {{ $badge }}">{{ $estado ?: '-' }}</span>
                         </td>
-                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $proyecto->fecha_inicio?->format('d/m/Y') ?? '-' }}</td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $row['fecha'] ? \Carbon\Carbon::parse($row['fecha'])->format('d/m/Y') : '-' }}</td>
                         <td class="px-4 py-3">
                             <div class="flex gap-2">
-                                <a href="{{ route('historialproyecto', $proyecto) }}"
+                                <a href="{{ $isEnf ? route('enf.acciones.show', $record) : route('historialproyecto', $record) }}"
                                    class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Ver</a>
-                                @if(auth()->user()->hasRole(['admin', 'Director/Enlace']))
-                                <button wire:click="openFirmas({{ $proyecto->id }})"
-                                        class="px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg">Firmas</button>
-                                <button wire:click="openFlowModal({{ $proyecto->id }})"
-                                        class="px-3 py-1.5 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg">Flujo</button>
+
+                                @if($isEnf)
+                                    @php
+                                        $estadoEnf = strtoupper(str_replace(' ', '_', $record->estado_flujo ?? ''));
+                                        $puedeEditarEnf = auth()->id() !== null
+                                            && (int) $record->creado_por_usuario_id === (int) auth()->id()
+                                            && in_array($estadoEnf, ['BORRADOR', 'SUBSANACION', 'SUBSANACIÓN'], true);
+                                    @endphp
+
+                                    @if($puedeEditarEnf)
+                                        <a href="{{ route('enf.acciones.edit', $record) }}"
+                                           class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Editar</a>
+                                    @endif
+                                @elseif(auth()->user()->hasRole(['admin', 'Director/Enlace']))
+                                    <button wire:click="openFirmas({{ $record->id }})"
+                                            class="px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg">Firmas</button>
+                                    <button wire:click="openFlowModal({{ $record->id }})"
+                                            class="px-3 py-1.5 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg">Flujo</button>
                                 @endif
                             </div>
                         </td>

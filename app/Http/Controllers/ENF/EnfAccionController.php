@@ -18,7 +18,7 @@ use App\Models\Proyecto\EjesPrioritariosUnah;
 use App\Models\Proyecto\MetaContribuye;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\VinculacionTipoAccion;
-use App\Models\SGCU\ProgramaCertificacion;
+use App\Models\DAFT\ProgramaCertificacion;
 use App\Models\UnidadAcademica\Campus;
 use App\Models\UnidadAcademica\Carrera;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
@@ -41,9 +41,17 @@ class EnfAccionController extends Controller
 {
     private const FORM_CERTIFICADO_UNIVERSITARIO = 'FORM-DVUS-016';
     private const FORM_PROYECTO_ENF = 'FORM-DVUS-018';
-    private const FORM_CERTIFICADO_UNIVERSITARIO_ENABLED = false;
+    private const FORM_CERTIFICADO_UNIVERSITARIO_ENABLED = true;
     private const TIPO_ACCION_CERTIFICADO = 'Certificado universitario';
     private const TIPO_ACCION_ENF_VISIBLE = 'Proyecto de educacion continua';
+    private const TIPOS_ACCION_FORM_018 = [
+        'Certificado universitario',
+        'Proyecto de educacion continua',
+        'Programa de educacion continua',
+        'Diplomado',
+        'Congreso',
+        'Seminario',
+    ];
 
     public static function formularioCertificadoUniversitarioDisponible(): bool
     {
@@ -103,6 +111,19 @@ class EnfAccionController extends Controller
             return response()->json(['message' => $formCode.' disponible.']);
         }
 
+        if ($formCode === self::FORM_CERTIFICADO_UNIVERSITARIO && ! $request->boolean('nuevo')) {
+            $borradorExistente = EnfAccion::query()
+                ->where('codigo_formulario', self::FORM_CERTIFICADO_UNIVERSITARIO)
+                ->where('creado_por_usuario_id', $request->user()?->id)
+                ->whereIn('estado_flujo', ['BORRADOR', 'SUBSANACION', 'SUBSANACIÓN'])
+                ->latest('updated_at')
+                ->first();
+
+            if ($borradorExistente) {
+                return redirect()->route('enf.acciones.edit', $borradorExistente);
+            }
+        }
+
         $selectedTipoAccionEnfId = $request->integer('tipo_accion_enf_id')
             ?: $this->tipoAccionEnfDefaultId($formCode);
 
@@ -121,6 +142,13 @@ class EnfAccionController extends Controller
             'tiposAccion' => VinculacionTipoAccion::where('codigo', 'EDUCACION_NO_FORMAL')->orderBy('nombre')->get(),
             'tipoAccionVinculacionEnfId' => VinculacionTipoAccion::where('codigo', 'EDUCACION_NO_FORMAL')->value('id'),
             'selectedTipoAccionEnfId' => $selectedTipoAccionEnfId,
+            'tiposAccionForm018' => EnfCatalogo::query()
+                ->where('tipo', 'tipo_accion_enf')
+                ->whereIn('nombre', self::TIPOS_ACCION_FORM_018)
+                ->where('activo', true)
+                ->orderBy('orden')
+                ->orderBy('nombre')
+                ->get(),
             'clearDraftOnLoad' => $clearDraftOnLoad,
             'programasAprobados' => $this->programasAprobadosEducacionContinua(),
             'modalidades' => Modalidad::orderBy('nombre')->get(),
@@ -213,7 +241,7 @@ class EnfAccionController extends Controller
                 ];
             });
 
-        $programasSgcu = ProgramaCertificacion::query()
+        $programasDaft = ProgramaCertificacion::query()
             ->with(['centroFacultad', 'tipoPrograma', 'centrosPrograma'])
             ->where('estado_flujo', 'APROBADO')
             ->orderBy('nombre')
@@ -228,14 +256,14 @@ class EnfAccionController extends Controller
                     ->all();
 
                 $totalHoras = (int) ($programa->horas_maximas_programa ?? 0);
-                $tipoAccionEnfId = $this->resolverTipoAccionEnfSgcuId(
+                $tipoAccionEnfId = $this->resolverTipoAccionEnfDaftId(
                     $programa->tipoPrograma?->nombre ?? $programa->tipo_programa,
                     $tiposAccionEnfPorNombre,
                     $tipoProgramaEnfId
                 );
 
                 return [
-                    'id' => 'sgcu-'.$programa->id,
+                    'id' => 'daft-'.$programa->id,
                     'label' => trim(($programa->codigo ? $programa->codigo.' · ' : '').$programa->nombre),
                     'fields' => [
                         'nombre_accion' => $programa->nombre,
@@ -249,13 +277,13 @@ class EnfAccionController extends Controller
                 ];
             });
 
-        return $programasSgcu
+        return $programasDaft
             ->concat($programasEnf)
             ->sortBy('label')
             ->values();
     }
 
-    private function resolverTipoAccionEnfSgcuId(?string $tipoPrograma, $tiposAccionEnfPorNombre, ?int $fallbackId): ?int
+    private function resolverTipoAccionEnfDaftId(?string $tipoPrograma, $tiposAccionEnfPorNombre, ?int $fallbackId): ?int
     {
         $tipoNormalizado = $this->normalizarNombreCatalogo($tipoPrograma);
 
@@ -298,6 +326,9 @@ class EnfAccionController extends Controller
             'resultados',
             'presupuestos.detalles',
             'cronograma',
+            'certificado.tipoCertificado',
+            'certificado.carreras.carrera',
+            'espaciosAprendizaje',
             'documentos',
             'firmas',
             'accionCatalogos',
@@ -310,6 +341,7 @@ class EnfAccionController extends Controller
         $coordinador = $accion->equipo->firstWhere('rol', 'Coordinador de la accion');
         $sistematizador = $accion->equipo->firstWhere('rol', 'Responsable de sistematizacion');
         $contraparte = $accion->contrapartes->first();
+        $certificado = $accion->certificado;
 
         $draft = collect([
             'tipo_accion_id' => $accion->tipo_accion_id,
@@ -336,6 +368,18 @@ class EnfAccionController extends Controller
             'horas_practicas' => $accion->horas_practicas,
             'total_horas' => $accion->total_horas,
             'carga_horaria_creditos' => $accion->carga_horaria_creditos,
+            'certificado[nombre_certificado]' => $certificado?->nombre_certificado,
+            'certificado[codigo_certificado]' => $certificado?->codigo_certificado,
+            'certificado[tipo_certificado_id]' => $certificado?->tipo_certificado_id,
+            'certificado[figura_acreditacion_id]' => $certificado?->figura_acreditacion_id,
+            'certificado[horas_certificadas]' => $certificado?->horas_certificadas,
+            'certificado[requisitos_emision]' => $certificado?->requisitos_emision,
+            'certificado[vigencia_certificado]' => $certificado?->vigencia_certificado,
+            'certificado[fecha_emision_maxima]' => optional($certificado?->fecha_emision_maxima)->format('Y-m-d'),
+            'certificado[pac_certificado]' => $certificado?->pac_certificado,
+            'certificado[hora_inicio]' => $certificado?->hora_inicio,
+            'certificado[hora_finalizacion]' => $certificado?->hora_finalizacion,
+            'certificado[dias_imparticion][]' => array_values((array) ($certificado?->dias_imparticion ?? [])),
             'campus_id' => $lugar?->campus_id,
             'departamento_id' => $lugar?->departamento_id,
             'municipio_id' => $lugar?->municipio_id,
@@ -393,6 +437,29 @@ class EnfAccionController extends Controller
 
         foreach ($accion->accionCatalogos as $catalogo) {
             $draft["catalogos[{$catalogo->tipo}][]"][] = (string) $catalogo->enf_catalogo_id;
+        }
+
+        foreach ($accion->accionCatalogos->where('tipo', 'plataforma_presencial')->values() as $catalogo) {
+            $draft['plataformas_presencial[]'][] = (string) $catalogo->enf_catalogo_id;
+        }
+
+        foreach ($accion->accionCatalogos->where('tipo', 'plataforma_distancia')->values() as $catalogo) {
+            $draft['plataformas_distancia[]'][] = (string) $catalogo->enf_catalogo_id;
+        }
+
+        foreach ($certificado?->carreras?->values() ?? [] as $index => $carrera) {
+            $draft["certificado_carreras[{$index}][carrera_id]"] = $carrera->carrera_id;
+            $draft["certificado_carreras[{$index}][centro_facultad_id]"] = $carrera->centro_facultad_id;
+            $draft["certificado_carreras[{$index}][nombre_carrera]"] = $carrera->nombre_carrera;
+            $draft["certificado_carreras[{$index}][acuerdo_consejo_universitario]"] = $carrera->acuerdo_consejo_universitario;
+        }
+
+        foreach ($accion->espaciosAprendizaje->values() as $index => $espacio) {
+            $draft["espacios_aprendizaje[{$index}][nombre]"] = $espacio->nombre;
+            $draft["espacios_aprendizaje[{$index}][codigo]"] = $espacio->codigo;
+            $draft["espacios_aprendizaje[{$index}][creditos]"] = $espacio->creditos;
+            $draft["espacios_aprendizaje[{$index}][horas]"] = $espacio->horas;
+            $draft["espacios_aprendizaje[{$index}][descripcion]"] = $espacio->descripcion;
         }
 
         foreach ($accion->participacionUniversitaria->values() as $index => $participacion) {
@@ -456,12 +523,15 @@ class EnfAccionController extends Controller
 
         foreach (['equipo_docente' => 'Docente UNAH', 'consultores_nacionales' => 'Consultor nacional', 'consultores_internacionales' => 'Consultor internacional'] as $key => $rol) {
             foreach ($accion->equipo->where('rol', $rol)->values() as $index => $integrante) {
-                foreach (['nombre_completo', 'numero_empleado', 'correo', 'categoria', 'departamento', 'jornada_laboral', 'profesion', 'nacionalidad', 'horas_contratadas'] as $field) {
+                foreach (['nombre_completo', 'numero_empleado', 'identidad', 'espacio_aprendizaje', 'correo', 'categoria', 'departamento', 'jornada_laboral', 'profesion', 'nacionalidad', 'ultimo_titulo', 'pais_procedencia', 'universidad_procedencia', 'perfil_docente', 'horas_contratadas'] as $field) {
                     $value = $field === 'horas_contratadas' ? $integrante->horas_dedicadas : $integrante->{$field};
                     if (filled($value)) {
                         $draft["{$key}[{$index}][{$field}]"] = $value;
                     }
                 }
+
+                $draft["{$key}[{$index}][carga_academica_pac]"] = $integrante->carga_academica_pac ? 'Si' : null;
+                $draft["{$key}[{$index}][contratacion_jornada_contraria]"] = $integrante->contratacion_jornada_contraria ? 'Si' : null;
             }
         }
 
@@ -483,53 +553,35 @@ class EnfAccionController extends Controller
                 ->with('status', self::FORM_CERTIFICADO_UNIVERSITARIO.' no esta disponible temporalmente.');
         }
 
-        $accion = DB::transaction(function () use ($request, $validated) {
-            $accionFields = [
-                'codigo_formulario',
-                'tipo_accion_id',
-                'modalidad_id',
-                'centro_facultad_id',
-                'departamento_academico_id',
-                'carrera_id',
-                'unidad_academica_responsable_texto',
-                'escuela_departamento_texto',
-                'nombre_accion',
-                'numero_edicion',
-                'fecha_solicitud',
-                'fecha_inicio',
-                'fecha_finalizacion',
-                'resolucion_vra',
-                'resolucion_original',
-                'resolucion_actualizacion',
-                'horas_teoricas',
-                'horas_practicas',
-                'total_horas',
-                'carga_horaria_creditos',
-                'resumen',
-                'impacto_esperado',
-                'descripcion_participantes',
-                'definicion_problema',
-                'objetivo_general',
-                'alineamiento_reforma',
-                'metodologia',
-                'logistica',
-                'bibliografia',
-                'genera_ingresos',
-                'mecanismo_administracion',
-                'descripcion_excedente',
-                'estado_flujo',
-                'revision_ciclo',
-                'responsable_revision_id',
-                'fecha_aprobacion',
-                'fecha_registro',
-                'numero_libro',
-                'numero_tomo',
-                'numero_folio',
-                'numero_registro',
-            ];
+        if ($request->filled('borrador_autoguardado_id')) {
+            [$accion, $flujoIniciado] = DB::transaction(function () use ($request, $validated) {
+                $record = EnfAccion::findOrFail($request->integer('borrador_autoguardado_id'));
+
+                abort_unless($this->usuarioPuedeEditarBorrador($request->user(), $record), 403);
+
+                $this->actualizarRegistroFormulario($record, $validated, $request, true);
+                $flujoIniciado = $this->iniciarFlujoRevision($record->fresh());
+
+                return [$record->fresh(), $flujoIniciado];
+            });
+
+            if (! $request->expectsJson()) {
+                return redirect()
+                    ->route('enf.acciones.show', $accion)
+                    ->with('status', $flujoIniciado
+                        ? 'Accion de Educacion No Formal enviada a revisión.'
+                        : 'Accion de Educacion No Formal guardada como borrador. No hay flujo de revisión activo para este formulario.');
+            }
+
+            return response()->json($accion->fresh(), 201);
+        }
+
+        [$accion, $flujoIniciado] = DB::transaction(function () use ($request, $validated) {
+            $accionFields = $this->accionStoreFields();
 
             $data = array_intersect_key($validated, array_flip($accionFields));
             $data['codigo_formulario'] = $data['codigo_formulario'] ?? self::FORM_PROYECTO_ENF;
+            $data['estado_flujo'] = 'BORRADOR';
             $data['genera_ingresos'] = $request->boolean('genera_ingresos');
             if (empty($data['total_horas'])) {
                 $data['total_horas'] = (int) ($data['horas_teoricas'] ?? 0) + (int) ($data['horas_practicas'] ?? 0);
@@ -540,26 +592,191 @@ class EnfAccionController extends Controller
             $accion = EnfAccion::create($data);
 
             $this->guardarRelacionesFormulario($accion, $validated, $request);
-            $this->iniciarFlujoRevision($accion);
+            $flujoIniciado = $this->iniciarFlujoRevision($accion->fresh());
 
-            return $accion;
+            return [$accion->fresh(), $flujoIniciado];
         });
 
         if (! $request->expectsJson()) {
             return redirect()
                 ->route('enf.acciones.show', $accion)
-                ->with('status', 'Accion de Educacion No Formal registrada correctamente.');
+                ->with('status', $flujoIniciado
+                    ? 'Accion de Educacion No Formal enviada a revisión.'
+                    : 'Accion de Educacion No Formal guardada como borrador. No hay flujo de revisión activo para este formulario.');
         }
 
         return response()->json($accion->fresh(), 201);
     }
 
-    private function iniciarFlujoRevision(EnfAccion $accion): void
+    public function autoguardarBorrador(Request $request, ?int $accion = null): JsonResponse
+    {
+        $data = $this->draftDataFromRequest($request);
+        $recordId = $accion ?: $request->integer('borrador_autoguardado_id');
+
+        $record = DB::transaction(function () use ($request, $data, $recordId): EnfAccion {
+            if ($recordId) {
+                $record = EnfAccion::findOrFail($recordId);
+
+                abort_unless($this->usuarioPuedeEditarBorrador($request->user(), $record), 403);
+
+                $this->actualizarRegistroFormulario($record, $data, $request, true);
+
+                return $record->fresh();
+            }
+
+            $accionData = array_intersect_key($data, array_flip($this->accionStoreFields()));
+            $accionData['codigo_formulario'] = $accionData['codigo_formulario'] ?? self::FORM_PROYECTO_ENF;
+            $accionData['estado_flujo'] = 'BORRADOR';
+            $accionData['genera_ingresos'] = $request->boolean('genera_ingresos');
+            $accionData['creado_por_usuario_id'] = $request->user()?->id;
+            $accionData['modificado_por_usuario_id'] = $request->user()?->id;
+
+            if (empty($accionData['total_horas'])) {
+                $accionData['total_horas'] = (int) ($accionData['horas_teoricas'] ?? 0) + (int) ($accionData['horas_practicas'] ?? 0);
+            }
+
+            $record = EnfAccion::create($accionData);
+            $this->guardarRelacionesFormulario($record, $data, $request);
+
+            return $record->fresh();
+        });
+
+        return response()->json([
+            'id' => $record->id,
+            'estado_flujo' => $record->estado_flujo,
+            'edit_url' => route('enf.acciones.edit', $record),
+            'autosave_url' => route('enf.acciones.autoguardar-borrador.update', $record),
+        ]);
+    }
+
+    private function accionStoreFields(): array
+    {
+        return [
+            'codigo_formulario',
+            'tipo_accion_id',
+            'modalidad_id',
+            'centro_facultad_id',
+            'departamento_academico_id',
+            'carrera_id',
+            'unidad_academica_responsable_texto',
+            'escuela_departamento_texto',
+            'nombre_accion',
+            'numero_edicion',
+            'fecha_solicitud',
+            'fecha_inicio',
+            'fecha_finalizacion',
+            'resolucion_vra',
+            'resolucion_original',
+            'resolucion_actualizacion',
+            'horas_teoricas',
+            'horas_practicas',
+            'total_horas',
+            'carga_horaria_creditos',
+            'resumen',
+            'impacto_esperado',
+            'descripcion_participantes',
+            'definicion_problema',
+            'objetivo_general',
+            'alineamiento_reforma',
+            'metodologia',
+            'logistica',
+            'bibliografia',
+            'genera_ingresos',
+            'mecanismo_administracion',
+            'descripcion_excedente',
+            'estado_flujo',
+            'revision_ciclo',
+            'responsable_revision_id',
+            'fecha_aprobacion',
+            'fecha_registro',
+            'numero_libro',
+            'numero_tomo',
+            'numero_folio',
+            'numero_registro',
+        ];
+    }
+
+    private function draftDataFromRequest(Request $request): array
+    {
+        $data = $request->except(['_token', '_method', 'borrador_autoguardado_id']);
+        $data['codigo_formulario'] = $data['codigo_formulario'] ?? self::FORM_PROYECTO_ENF;
+        $data['estado_flujo'] = 'BORRADOR';
+        $data['nombre_accion'] = filled($data['nombre_accion'] ?? null)
+            ? $data['nombre_accion']
+            : 'Borrador sin título';
+
+        foreach ([
+            'tipo_accion_id',
+            'modalidad_id',
+            'centro_facultad_id',
+            'departamento_academico_id',
+            'carrera_id',
+            'numero_edicion',
+            'horas_teoricas',
+            'horas_practicas',
+            'total_horas',
+            'carga_horaria_creditos',
+            'revision_ciclo',
+            'responsable_revision_id',
+        ] as $field) {
+            if (! array_key_exists($field, $data)) {
+                continue;
+            }
+
+            $data[$field] = is_numeric($data[$field]) ? (int) $data[$field] : null;
+        }
+
+        foreach ([
+            'fecha_solicitud',
+            'fecha_inicio',
+            'fecha_finalizacion',
+            'fecha_aprobacion',
+            'fecha_registro',
+        ] as $field) {
+            if (! array_key_exists($field, $data) || blank($data[$field])) {
+                $data[$field] = null;
+                continue;
+            }
+
+            $data[$field] = strtotime((string) $data[$field]) !== false ? $data[$field] : null;
+        }
+
+        return $data;
+    }
+
+    private function actualizarRegistroFormulario(EnfAccion $record, array $data, Request $request, bool $mantenerBorrador = false): void
+    {
+        $accionData = array_intersect_key($data, array_flip($this->accionStoreFields()));
+        $accionData['codigo_formulario'] = $accionData['codigo_formulario'] ?? self::FORM_PROYECTO_ENF;
+        $accionData['genera_ingresos'] = $request->boolean('genera_ingresos');
+        $accionData['modificado_por_usuario_id'] = $request->user()?->id;
+
+        if ($mantenerBorrador) {
+            $accionData['estado_flujo'] = 'BORRADOR';
+        }
+
+        if (empty($accionData['total_horas'])) {
+            $accionData['total_horas'] = (int) ($accionData['horas_teoricas'] ?? 0) + (int) ($accionData['horas_practicas'] ?? 0);
+        }
+
+        $record->update($accionData);
+        $this->limpiarRelacionesFormulario($record);
+        $this->guardarRelacionesFormulario($record->fresh(), $data, $request);
+    }
+
+    private function usuarioPuedeEditarBorrador(?User $user, EnfAccion $accion): bool
+    {
+        return $user
+            && (int) $accion->creado_por_usuario_id === (int) $user->id
+            && in_array($accion->estado_flujo, ['BORRADOR', 'SUBSANACION', 'SUBSANACIÓN'], true);
+    }
+
+    private function iniciarFlujoRevision(EnfAccion $accion): bool
     {
         $flujo = $this->resolverFlujo($accion);
 
         if (! $flujo || $flujo->etapas->isEmpty()) {
-            return;
+            return false;
         }
 
         $nextCycle = ((int) $accion->revision_ciclo) + 1;
@@ -596,6 +813,8 @@ class EnfAccionController extends Controller
         if ($firstRevision) {
             $this->notificarRevision($accion->fresh(), $firstRevision->fresh('flujoEtapa.rolRevisor'));
         }
+
+        return true;
     }
 
     private function resolverFlujo(EnfAccion $accion): ?FlujoAprobacion
@@ -656,7 +875,7 @@ class EnfAccionController extends Controller
         }
     }
 
-    private function guardarRelacionesFormulario(EnfAccion $accion, array $data, StoreEnfAccionRequest $request): void
+    private function guardarRelacionesFormulario(EnfAccion $accion, array $data, Request $request): void
     {
         $catalogosData = $data['catalogos'] ?? [];
 
@@ -1095,22 +1314,29 @@ class EnfAccionController extends Controller
     {
         $record = EnfAccion::with($this->form018Relations())->findOrFail($accion);
 
-        abort_unless(($record->codigo_formulario ?? null) === self::FORM_PROYECTO_ENF, 404);
+        $formCode = $record->codigo_formulario ?? null;
+
+        abort_unless(in_array($formCode, [self::FORM_PROYECTO_ENF, self::FORM_CERTIFICADO_UNIVERSITARIO], true), 404);
 
         @set_time_limit(180);
         @ini_set('max_execution_time', '180');
         @ini_set('memory_limit', '512M');
 
-        $pdf = PDF::loadView('enf.acciones.partials.form-018-document', [
+        $view = $formCode === self::FORM_CERTIFICADO_UNIVERSITARIO
+            ? 'enf.acciones.partials.form-016-document'
+            : 'enf.acciones.partials.form-018-document';
+        $orientation = 'portrait';
+
+        $pdf = PDF::loadView($view, [
             'accion' => $record,
             'isPdf' => true,
-        ])->setPaper('letter', 'portrait')
+        ])->setPaper('letter', $orientation)
             ->setOption('isHtml5ParserEnabled', true)
             ->setOption('isRemoteEnabled', true)
             ->setOption('defaultFont', 'Arial')
             ->setOption('dpi', 96);
 
-        return $pdf->download("FORM-DVUS-018-{$record->id}.pdf");
+        return $pdf->download("{$formCode}-{$record->id}.pdf");
     }
 
     private function form018Relations(): array
@@ -1127,13 +1353,16 @@ class EnfAccionController extends Controller
             'participacionUniversitaria',
             'practicasAsignatura.asignatura',
             'practicasAsignatura.periodoAcademico',
-            'contrapartes',
+            'contrapartes.tipoContraparte',
+            'contrapartes.instrumentoAlianza',
             'objetivosEspecificos',
             'resultados',
             'presupuestos.detalles',
             'cronograma',
             'certificado.tipoCertificado',
+            'certificado.figuraAcreditacion',
             'certificado.carreras.carrera',
+            'certificado.carreras.centroFacultad',
             'espaciosAprendizaje',
             'informeFinal',
             'sistematizacion',
@@ -1245,6 +1474,10 @@ class EnfAccionController extends Controller
 
     private function revisionActual(EnfAccion $accion): ?EnfRevision
     {
+        if ($accion->estado_flujo !== 'EN_REVISION') {
+            return null;
+        }
+
         return $accion->revisiones
             ->where('revision_ciclo', (int) $accion->revision_ciclo)
             ->whereIn('estado', $this->estadosRevisionPendiente())
@@ -1292,59 +1525,20 @@ class EnfAccionController extends Controller
         $record = EnfAccion::findOrFail($accion);
         $validated = $request->validated();
 
-        DB::transaction(function () use ($record, $validated, $request): void {
-            $accionFields = [
-                'codigo_formulario',
-                'tipo_accion_id',
-                'modalidad_id',
-                'centro_facultad_id',
-                'departamento_academico_id',
-                'carrera_id',
-                'unidad_academica_responsable_texto',
-                'escuela_departamento_texto',
-                'nombre_accion',
-                'numero_edicion',
-                'fecha_solicitud',
-                'fecha_inicio',
-                'fecha_finalizacion',
-                'resolucion_vra',
-                'resolucion_original',
-                'resolucion_actualizacion',
-                'horas_teoricas',
-                'horas_practicas',
-                'total_horas',
-                'carga_horaria_creditos',
-                'resumen',
-                'impacto_esperado',
-                'descripcion_participantes',
-                'definicion_problema',
-                'objetivo_general',
-                'alineamiento_reforma',
-                'metodologia',
-                'logistica',
-                'bibliografia',
-                'genera_ingresos',
-                'mecanismo_administracion',
-                'descripcion_excedente',
-                'estado_flujo',
-            ];
+        abort_unless($this->usuarioPuedeEditarBorrador($request->user(), $record), 403);
 
-            $data = array_intersect_key($validated, array_flip($accionFields));
-            $data['genera_ingresos'] = $request->boolean('genera_ingresos');
-            if (empty($data['total_horas'])) {
-                $data['total_horas'] = (int) ($data['horas_teoricas'] ?? 0) + (int) ($data['horas_practicas'] ?? 0);
-            }
-            $data['modificado_por_usuario_id'] = $request->user()?->id;
+        $flujoIniciado = DB::transaction(function () use ($record, $validated, $request): bool {
+            $this->actualizarRegistroFormulario($record, $validated, $request, true);
 
-            $record->update($data);
-            $this->limpiarRelacionesFormulario($record);
-            $this->guardarRelacionesFormulario($record->fresh(), $validated, $request);
+            return $this->iniciarFlujoRevision($record->fresh());
         });
 
         if (! $request->expectsJson()) {
             return redirect()
                 ->route('enf.acciones.show', $record)
-                ->with('status', 'Accion de Educacion No Formal actualizada correctamente.');
+                ->with('status', $flujoIniciado
+                    ? 'Accion de Educacion No Formal enviada a revisión.'
+                    : 'Accion de Educacion No Formal guardada como borrador. No hay flujo de revisión activo para este formulario.');
         }
 
         return response()->json($record->fresh());
@@ -1408,6 +1602,9 @@ class EnfAccionController extends Controller
             'resultados',
             'presupuestos.detalles',
             'cronograma',
+            'certificado.tipoCertificado',
+            'certificado.carreras.carrera',
+            'espaciosAprendizaje',
             'documentos',
             'firmas',
             'accionCatalogos',
@@ -1426,11 +1623,19 @@ class EnfAccionController extends Controller
             403
         );
 
-        return view('enf.acciones.create', $this->formViewData(
-            self::FORM_PROYECTO_ENF,
-            $record->tipo_accion_id ?: $this->tipoAccionEnfDefaultId(self::FORM_PROYECTO_ENF),
-            $record
-        ));
+        $formCode = ($record->codigo_formulario ?? null) === self::FORM_CERTIFICADO_UNIVERSITARIO
+            ? self::FORM_CERTIFICADO_UNIVERSITARIO
+            : self::FORM_PROYECTO_ENF;
+
+        $selectedTipoAccionEnfId = $record->accionCatalogos
+            ->first(fn ($catalogo) => $catalogo->tipo === 'tipo_accion_enf')
+            ?->enf_catalogo_id
+            ?: $this->tipoAccionEnfDefaultId($formCode);
+
+        return view(
+            $formCode === self::FORM_CERTIFICADO_UNIVERSITARIO ? 'enf.acciones.create-certificado' : 'enf.acciones.create',
+            $this->formViewData($formCode, $selectedTipoAccionEnfId, $record)
+        );
     }
 
     public function destroy(int $accion): JsonResponse

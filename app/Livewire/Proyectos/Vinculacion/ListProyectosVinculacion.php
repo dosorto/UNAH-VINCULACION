@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Proyectos\Vinculacion;
 
+use App\Models\ENF\EnfAccion;
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Categoria;
@@ -13,6 +14,8 @@ use App\Models\Proyecto\FlujoAprobacion;
 use App\Support\AdminCsv;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
@@ -46,7 +49,14 @@ class ListProyectosVinculacion extends Component
     public ?int $flowSelectedId = null;
 
     public function updatingSearch(): void { $this->resetPage(); }
-    public function updatingFilterCentroFacultad(): void { $this->filterDepartamento = null; }
+    public function updatingFilterEstado(): void { $this->resetPage(); }
+    public function updatingFilterCategoria(): void { $this->resetPage(); }
+    public function updatingFilterModalidad(): void { $this->resetPage(); }
+    public function updatingFilterOds(): void { $this->resetPage(); }
+    public function updatingFilterFechaInicio(): void { $this->resetPage(); }
+    public function updatingFilterFechaFin(): void { $this->resetPage(); }
+    public function updatingFilterCentroFacultad(): void { $this->filterDepartamento = null; $this->resetPage(); }
+    public function updatingFilterDepartamento(): void { $this->resetPage(); }
 
     public function openView(int $id): void
     {
@@ -135,17 +145,19 @@ class ListProyectosVinculacion extends Component
         return AdminCsv::download('historial-vinculacion-' . now()->format('Y-m-d') . '.csv', [
             'Codigo',
             'Numero Dictamen',
-            'Nombre del Proyecto',
+            'Nombre',
+            'Tipo',
             'Estado',
             'Fecha Inicio',
         ], function () {
-            foreach ($this->recordsQuery()->with(['estadoActual.tipoestado'])->orderBy('proyecto.nombre_proyecto')->lazy() as $proyecto) {
+            foreach ($this->historialRows() as $row) {
                 yield [
-                    $proyecto->codigo_proyecto,
-                    $proyecto->numero_dictamen,
-                    $proyecto->nombre_proyecto,
-                    $proyecto->estadoActual?->tipoestado?->nombre,
-                    $proyecto->fecha_inicio,
+                    $row['codigo'],
+                    $row['secondary_code'],
+                    $row['nombre'],
+                    $row['tipo'],
+                    $row['estado'],
+                    $row['fecha'] ? \Carbon\Carbon::parse($row['fecha'])->format('Y-m-d') : null,
                 ];
             }
         });
@@ -186,10 +198,112 @@ class ListProyectosVinculacion extends Component
             ->distinct();
     }
 
+    private function enfRecordsQuery()
+    {
+        return EnfAccion::query()
+            ->with(['centroFacultad', 'departamentoAcademico', 'accionCatalogos.catalogo'])
+            ->when($this->search, fn($q) => $q->where(fn($q2) => $q2
+                ->where('nombre_accion', 'like', '%' . $this->search . '%')
+                ->orWhere('codigo_formulario', 'like', '%' . $this->search . '%')
+                ->orWhere('numero_registro', 'like', '%' . $this->search . '%')
+            ))
+            ->when($this->filterFechaInicio, fn($q) => $q->whereDate('fecha_inicio', '>=', $this->filterFechaInicio))
+            ->when($this->filterFechaFin, fn($q) => $q->whereDate('fecha_finalizacion', '<=', $this->filterFechaFin))
+            ->when($this->filterCentroFacultad, fn($q) => $q->where('centro_facultad_id', $this->filterCentroFacultad))
+            ->when($this->filterDepartamento, fn($q) => $q->where('departamento_academico_id', $this->filterDepartamento))
+            ->when($this->filterModalidad, fn($q) => $q->whereRaw('1 = 0'))
+            ->when($this->filterCategoria, fn($q) => $q->whereRaw('1 = 0'))
+            ->when($this->filterOds, fn($q) => $q->whereHas('ods', fn($odsQuery) => $odsQuery->where('ods.id', $this->filterOds)))
+            ->when($this->filterEstado, function ($q) {
+                $estadoNombre = TipoEstado::find($this->filterEstado)?->nombre;
+
+                if (! $estadoNombre) {
+                    return $q;
+                }
+
+                $normalized = str($estadoNombre)->ascii()->upper()->replace(' ', '_')->toString();
+
+                return $q->where(function ($stateQuery) use ($estadoNombre, $normalized) {
+                    $stateQuery
+                        ->where('estado_flujo', $estadoNombre)
+                        ->orWhere('estado_flujo', $normalized);
+                });
+            });
+    }
+
+    private function historialRows(): Collection
+    {
+        return collect($this->proyectoRows()->all())
+            ->merge($this->enfRows()->all())
+            ->sortByDesc(fn (array $row) => $row['sort_date']?->timestamp ?? 0)
+            ->values();
+    }
+
+    private function proyectoRows(): Collection
+    {
+        return $this->recordsQuery()
+            ->with(['estado_proyecto.tipoestado', 'tipoAccion'])
+            ->get()
+            ->map(function (Proyecto $proyecto): array {
+                $estadoActual = $proyecto->estado_proyecto->firstWhere('es_actual', true);
+
+                return [
+                    'kind' => 'proyecto',
+                    'record' => $proyecto,
+                    'codigo' => $proyecto->codigo_proyecto ?: '-',
+                    'secondary_code' => $proyecto->numero_dictamen ?: null,
+                    'nombre' => $proyecto->nombre_proyecto,
+                    'tipo' => $proyecto->tipoAccion?->nombre ?: 'Proyecto de vinculación',
+                    'estado' => $estadoActual?->tipoestado?->nombre ?? '',
+                    'fecha' => $proyecto->fecha_inicio,
+                    'sort_date' => $proyecto->created_at,
+                ];
+            });
+    }
+
+    private function enfRows(): Collection
+    {
+        return $this->enfRecordsQuery()
+            ->get()
+            ->map(function (EnfAccion $accion): array {
+                $tipoEnf = $accion->accionCatalogos
+                    ->first(fn ($catalogo) => $catalogo->tipo === 'tipo_accion_enf')
+                    ?->catalogo?->nombre;
+
+                return [
+                    'kind' => 'enf',
+                    'record' => $accion,
+                    'codigo' => $accion->codigo_formulario ?: ($accion->numero_registro ?: '#'.$accion->id),
+                    'secondary_code' => $accion->numero_registro ?: null,
+                    'nombre' => $accion->nombre_accion,
+                    'tipo' => $tipoEnf ?: 'Educación no formal',
+                    'estado' => str_replace('_', ' ', $accion->estado_flujo ?: '-'),
+                    'fecha' => $accion->fecha_inicio ?: $accion->fecha_solicitud,
+                    'sort_date' => $accion->created_at,
+                ];
+            });
+    }
+
+    private function paginateRows(Collection $rows): LengthAwarePaginator
+    {
+        $perPage = 10;
+        $page = $this->getPage();
+
+        return new LengthAwarePaginator(
+            $rows->forPage($page, $perPage)->values(),
+            $rows->count(),
+            $perPage,
+            $page,
+            [
+                'path' => request()->url(),
+                'pageName' => 'page',
+            ]
+        );
+    }
+
     public function render(): View
     {
-        $records = $this->recordsQuery()
-            ->paginate(10);
+        $records = $this->paginateRows($this->historialRows());
 
         $viewProyecto = $this->viewProyectoId
             ? Proyecto::with(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye'])->find($this->viewProyectoId)

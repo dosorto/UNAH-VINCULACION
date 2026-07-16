@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\SGCU\Catalogos;
+namespace App\Livewire\DAFT\Catalogos;
 
 use App\Models\Asignatura;
 use App\Models\PeriodoAcademico;
@@ -9,7 +9,7 @@ use App\Models\UnidadAcademica\FacultadCentro;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
-class SgcuCatalogos extends Component
+class DaftCatalogos extends Component
 {
     public function render(): View
     {
@@ -20,7 +20,7 @@ class SgcuCatalogos extends Component
             'periodos' => PeriodoAcademico::count(),
         ];
 
-        return view('livewire.sgcu.catalogos.sgcu-catalogos', compact('metricas'))
+        return view('livewire.daft.catalogos.daft-catalogos', compact('metricas'))
             ->layout('layouts.app', ['hideHorizontalNav' => true]);
     }
 }

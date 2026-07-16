@@ -1,32 +1,31 @@
 <?php
 
-namespace App\Models\SGCU;
+namespace App\Models\DAFT;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ProgramaAsignatura extends Model
+class SolicitudCambioPrograma extends Model
 {
-    protected $table = 'programas_asignaturas';
+    protected $table = 'solicitudes_cambio_programa';
 
     protected $fillable = [
         'programa_certificacion_id',
-        'asignatura_id',
-        'orden',
-        'es_obligatoria',
+        'solicitado_por_usuario_id',
+        'estado',
+        'motivo',
+        'solicitado_en',
+        'resuelto_en',
+        'resuelto_por_usuario_id',
     ];
 
     protected $casts = [
-        'es_obligatoria' => 'boolean',
+        'solicitado_en' => 'datetime',
+        'resuelto_en' => 'datetime',
     ];
 
     public function programa(): BelongsTo
     {
         return $this->belongsTo(ProgramaCertificacion::class, 'programa_certificacion_id');
-    }
-
-    public function asignatura(): BelongsTo
-    {
-        return $this->belongsTo(\App\Models\Asignatura::class, 'asignatura_id');
     }
 }

@@ -19,7 +19,7 @@
                     $codigoFormulario = $esCertificado ? 'FORM-DVUS-016' : 'FORM-DVUS-018';
                 @endphp
                 @if ($estaDisponible)
-                    <a href="{{ route('enf.acciones.create', array_merge(['tipo_accion_enf_id' => $tipo->id, 'nuevo' => 1], $formQuery)) }}"
+                    <a href="{{ route('enf.acciones.create', array_merge(['tipo_accion_enf_id' => $tipo->id], $esCertificado ? [] : ['nuevo' => 1], $formQuery)) }}"
                         class="group relative block rounded-xl border border-orange-200 bg-white p-8 shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:border-orange-700 dark:bg-gray-800">
                 @else
                     <div class="group relative block rounded-xl border border-gray-200 bg-white p-8 opacity-40 shadow-lg transition-all duration-300 dark:border-gray-700 dark:bg-gray-800">

@@ -17,9 +17,9 @@ class NotificacionesPoaRolesSeeder extends Seeder
             'Director centro',
             'Revisor Vinculacion',
             'Director Vinculacion',
-            'SGCU Gestor',
-            'SGCU Revisor Etapa 1',
-            'SGCU Revisor Etapa 2',
+            'DAFT Gestor',
+            'DAFT Revisor Etapa 1',
+            'DAFT Revisor Etapa 2',
         ];
 
         $user = User::where('email', 'notificacionespoa@unah.edu.hn')->first();

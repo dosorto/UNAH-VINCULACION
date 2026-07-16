@@ -5,7 +5,7 @@
             <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Bandeja de revision</h1>
             <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Seguimiento de programas donde ya participaste en el flujo de revision.</p>
         </div>
-        <a href="{{ route('sgcu.programas') }}" class="rounded-full border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">Volver a programas</a>
+        <a href="{{ route('daft.programas') }}" class="rounded-full border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">Volver a programas</a>
     </section>
 
     @if (session('programas_status'))
@@ -39,15 +39,15 @@
         </div>
 
         <div x-show="tab === 'pendientes'">
-            @include('livewire.sgcu.programas.partials.bandeja-table', ['records' => $programasPendientes, 'emptyMessage' => 'No tienes programas pendientes en tu bandeja de revision.'])
+            @include('livewire.daft.programas.partials.bandeja-table', ['records' => $programasPendientes, 'emptyMessage' => 'No tienes programas pendientes en tu bandeja de revision.'])
         </div>
 
         <div x-show="tab === 'proceso'">
-            @include('livewire.sgcu.programas.partials.bandeja-table', ['records' => $programasEnProceso, 'emptyMessage' => 'No tienes programas revisados que sigan en proceso.'])
+            @include('livewire.daft.programas.partials.bandeja-table', ['records' => $programasEnProceso, 'emptyMessage' => 'No tienes programas revisados que sigan en proceso.'])
         </div>
 
         <div x-show="tab === 'aprobados'">
-            @include('livewire.sgcu.programas.partials.bandeja-table', ['records' => $programasAprobados, 'emptyMessage' => 'No tienes programas aprobados en los que hayas participado.'])
+            @include('livewire.daft.programas.partials.bandeja-table', ['records' => $programasAprobados, 'emptyMessage' => 'No tienes programas aprobados en los que hayas participado.'])
         </div>
     </section>
 </div>

@@ -3,9 +3,9 @@
         <div>
             <p class="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-700 dark:text-cyan-400">Fase 1</p>
             <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Programas y ediciones</h1>
-            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Gestiona la oferta academica base del SGCU antes de matricula, pagos y emision.</p>
+            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Gestiona la oferta academica base de DAFT antes de matricula, pagos y emision.</p>
         </div>
-        <a href="{{ route('sgcu.programas.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-container">
+        <a href="{{ route('daft.programas.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-container">
             Nuevo programa
         </a>
     </section>
@@ -44,7 +44,7 @@
                 <input type="checkbox" wire:model.live="showTrashed" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800">
                 Eliminados
             </label>
-            <a href="{{ route('sgcu.bandeja-revision') }}" class="inline-flex items-center justify-center rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">Bandeja de revision</a>
+            <a href="{{ route('daft.bandeja-revision') }}" class="inline-flex items-center justify-center rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">Bandeja de revision</a>
         </div>
 
         <div class="mt-6 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
@@ -67,7 +67,7 @@
                             @php($currentStage = $row->etapaActual())
                             <tr
                                 class="{{ $row->trashed() ? 'opacity-60' : 'cursor-pointer' }} transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
-                                @unless ($row->trashed()) onclick="window.location='{{ route('sgcu.programas.edit', $row) }}'" @endunless
+                                @unless ($row->trashed()) onclick="window.location='{{ route('daft.programas.edit', $row) }}'" @endunless
                             >
                                 <td class="px-4 py-4 font-semibold text-slate-700 dark:text-slate-200">{{ $row->codigo ?: 'S/C' }}</td>
                                 <td class="px-4 py-4">
@@ -89,7 +89,7 @@
                                                 Restaurar
                                             </button>
                                         @else
-                                            <a href="{{ route('sgcu.programas.edit', $row) }}" wire:navigate onclick="event.stopPropagation()" class="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">
+                                            <a href="{{ route('daft.programas.edit', $row) }}" wire:navigate onclick="event.stopPropagation()" class="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200">
                                                 Editar
                                             </a>
                                             @if ($row->estaEditable())

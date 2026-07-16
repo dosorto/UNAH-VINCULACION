@@ -119,7 +119,7 @@
         </div>
     </div>
 
-    <form wire:submit.prevent="guardar" class="rounded-lg bg-white p-6 shadow dark:bg-gray-900">
+    <form wire:submit.prevent="guardar" wire:input.debounce.1500ms="autoGuardarBorrador" wire:change="autoGuardarBorrador" class="rounded-lg bg-white p-6 shadow dark:bg-gray-900">
         @if($currentStep === 1)
             <section>
                 <h2 class="mb-5 text-lg font-semibold text-gray-900 dark:text-white">Paso 1: Información general</h2>
