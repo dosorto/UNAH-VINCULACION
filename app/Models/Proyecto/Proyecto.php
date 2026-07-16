@@ -47,6 +47,7 @@ use App\Models\Proyecto\EquipoEjecutorNuevo;
 use DragonCode\Contracts\Cashier\Config\Payments\Statuses;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\User;
+use App\Models\InformeFinal\InformeFinalProyecto;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -295,6 +296,11 @@ class Proyecto extends Model
         return $this->documentos()
             ->where('tipo_documento', 'Informe Final')
             ->first();
+    }
+
+    public function informeFinalInf001()
+    {
+        return $this->hasOne(InformeFinalProyecto::class, 'proyecto_id');
     }
 
 

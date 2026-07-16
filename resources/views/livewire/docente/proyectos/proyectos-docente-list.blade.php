@@ -164,6 +164,15 @@
                                         @svg('heroicon-o-eye', ['class' => 'h-4 w-4'])
                                     </a>
 
+                                    @if ($esCoordinador && $proyecto->tipoAccion?->codigo === 'DESARROLLO_LOCAL_REGIONAL')
+                                        <a href="{{ route('proyectos.informe-final', $proyecto) }}"
+                                           class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-blue-700 shadow-sm transition hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900/60 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                                           title="Completar INF-001"
+                                           aria-label="Completar informe final INF-001">
+                                            @svg('heroicon-o-document-text', ['class' => 'h-4 w-4'])
+                                        </a>
+                                    @endif
+
                                     @if ($puedeSeguirEditando)
                                         <a href="{{ route('crearProyectoVinculacion', $proyecto) }}"
                                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-blue-700 shadow-sm transition hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900/60 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
