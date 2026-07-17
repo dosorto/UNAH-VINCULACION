@@ -907,7 +907,7 @@
                                             class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400">
                                             Editar
                                         </button>
-                                        <button wire:click="removeContraparte({{ $ci }})" type="button" wire:confirm="¿Eliminar esta entidad contraparte?"
+                                        <button x-on:click.prevent="confirmDialog('¿Eliminar esta entidad contraparte?', { type: 'danger' }).then((ok) => ok && $wire.removeContraparte({{ $ci }}))" type="button"
                                             class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400">
                                             Eliminar
                                         </button>
@@ -1119,7 +1119,7 @@
                                             class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400">
                                             Editar
                                         </button>
-                                        <button wire:click="removeActividad({{ $i }})" type="button" wire:confirm="¿Eliminar esta actividad?"
+                                        <button x-on:click.prevent="confirmDialog('¿Eliminar esta actividad?', { type: 'danger' }).then((ok) => ok && $wire.removeActividad({{ $i }}))" type="button"
                                             class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400">
                                             Eliminar
                                         </button>
@@ -1764,7 +1764,7 @@
                 @foreach($record->anexos as $anexo)
                 <div class="flex items-center justify-between py-2 px-3 border border-gray-200 dark:border-gray-700 rounded-lg mb-2">
                     <a href="{{ Storage::url($anexo->documento_url) }}" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 truncate max-w-xs">{{ basename($anexo->documento_url) }}</a>
-                    <button wire:click="deleteAnexo({{ $anexo->id }})" wire:confirm="¿Eliminar este anexo?" type="button" class="text-xs text-red-600 hover:text-red-800 ml-3 shrink-0">Eliminar</button>
+                    <button x-on:click.prevent="confirmDialog('¿Eliminar este anexo?', { type: 'danger' }).then((ok) => ok && $wire.deleteAnexo({{ $anexo->id }}))" type="button" class="text-xs text-red-600 hover:text-red-800 ml-3 shrink-0">Eliminar</button>
                 </div>
                 @endforeach
             </div>

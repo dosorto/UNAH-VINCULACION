@@ -561,7 +561,7 @@
                 @foreach($anexos as $anexo)
                 <div class="flex items-center justify-between py-2 px-3 border border-gray-200 dark:border-gray-700 rounded-lg mb-2">
                     <a href="{{ Storage::url($anexo->documento_url) }}" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 truncate max-w-xs">{{ basename($anexo->documento_url) }}</a>
-                    <button wire:click="deleteAnexo({{ $anexo->id }})" wire:confirm="¿Eliminar este anexo?" type="button" class="text-xs text-red-600 hover:text-red-800 ml-3 shrink-0">Eliminar</button>
+                    <button x-on:click.prevent="confirmDialog('¿Eliminar este anexo?', { type: 'danger' }).then((ok) => ok && $wire.deleteAnexo({{ $anexo->id }}))" type="button" class="text-xs text-red-600 hover:text-red-800 ml-3 shrink-0">Eliminar</button>
                 </div>
                 @endforeach
             </div>

@@ -138,7 +138,7 @@ class DasboardDocente extends Component
     {
         $userId = auth()->user()->empleado->id;
         $query = Empleado::query();
-        $query->where('id', 'like', '%' .$userId . '%');
+        $query->where('id', $userId);
         return $query->withCount('proyectos')->paginate(4);
     }
 

@@ -85,7 +85,7 @@
                                 <td class="px-4 py-4">
                                     <div class="flex justify-end gap-2">
                                         @if ($row->trashed())
-                                            <button wire:click="restorePrograma({{ $row->id }})" wire:confirm="¿Restaurar este programa?" onclick="event.stopPropagation()" class="rounded-full border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary">
+                                            <button x-on:click.prevent="confirmDialog('¿Restaurar este programa?').then((ok) => ok && $wire.restorePrograma({{ $row->id }}))" onclick="event.stopPropagation()" class="rounded-full border border-primary/40 px-3 py-1.5 text-xs font-semibold text-primary">
                                                 Restaurar
                                             </button>
                                         @else
@@ -93,11 +93,11 @@
                                                 Editar
                                             </a>
                                             @if ($row->estaEditable())
-                                                <button wire:click="sendToReview({{ $row->id }})" wire:confirm="¿Enviar este programa a revision?" onclick="event.stopPropagation()" class="rounded-full border border-cyan-300 px-3 py-1.5 text-xs font-semibold text-cyan-700 dark:border-cyan-800 dark:text-cyan-300">
+                                                <button x-on:click.prevent="confirmDialog('¿Enviar este programa a revision?').then((ok) => ok && $wire.sendToReview({{ $row->id }}))" onclick="event.stopPropagation()" class="rounded-full border border-cyan-300 px-3 py-1.5 text-xs font-semibold text-cyan-700 dark:border-cyan-800 dark:text-cyan-300">
                                                     Enviar
                                                 </button>
                                             @endif
-                                            <button wire:click="deletePrograma({{ $row->id }})" wire:confirm="¿Eliminar este programa?" onclick="event.stopPropagation()" class="rounded-full border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700">
+                                            <button x-on:click.prevent="confirmDialog('¿Eliminar este programa?', { type: 'danger' }).then((ok) => ok && $wire.deletePrograma({{ $row->id }}))" onclick="event.stopPropagation()" class="rounded-full border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700">
                                                 Eliminar
                                             </button>
                                         @endif

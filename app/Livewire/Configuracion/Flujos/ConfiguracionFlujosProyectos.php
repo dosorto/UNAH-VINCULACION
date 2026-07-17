@@ -137,6 +137,11 @@ class ConfiguracionFlujosProyectos extends Component
 
     public function updated(string $property, mixed $value): void
     {
+        if (preg_match('/^stages\.(\d+)\.tipo_etapa$/', $property, $matches) && $value !== 'APROBACION') {
+            $this->stages[(int) $matches[1]]['cargo_firma_id'] = '';
+            return;
+        }
+
         if (preg_match('/^stages\.(\d+)\.rol_revisor_id$/', $property, $matches)) {
             $this->clearInvalidResponsible($this->stages, (int) $matches[1]);
             return;
@@ -258,13 +263,17 @@ class ConfiguracionFlujosProyectos extends Component
             'stages.*.tipo_etapa' => ['required', 'in:FORMULACION,REVISION,APROBACION'],
             'stages.*.rol_revisor_id' => ['nullable', 'exists:roles,id'],
             'stages.*.usuario_responsable_id' => ['nullable', 'exists:users,id'],
-            'stages.*.cargo_firma_id' => ['nullable', 'exists:cargo_firma,id'],
+            'stages.*.cargo_firma_id' => ['nullable', 'required_if:stages.*.tipo_etapa,APROBACION', 'exists:cargo_firma,id'],
             'stages.*.requiere_asignacion' => ['boolean'],
             'stages.*.emisor_define_destinatario' => ['boolean'],
             'stages.*.activo' => ['boolean'],
         ]);
 
         $validated['stages'] = $this->prepareStagesForSave($validated['stages'], 'REVISION', $this->workflowId);
+
+        if ($this->hasDuplicateCargoFirmaEnEtapasActivas($validated['stages'], 'stages', soloAprobacion: true)) {
+            return;
+        }
 
         if ($this->workflowId) {
             $tieneProyectosActivos = Proyecto::where('flujo_aprobacion_id', $this->workflowId)
@@ -324,6 +333,15 @@ class ConfiguracionFlujosProyectos extends Component
         $selectedTipoPrograma = $tiposPrograma->firstWhere('id', $this->programSelectedTipoProgramaId);
         $roles = Role::query()->orderBy('name')->get();
         $usuarios = User::query()->orderBy('name')->get(['id', 'name']);
+        // 'descripcion' = Proyecto son los cargos vinculados al estado del propio Proyecto
+        // (los que usan estas etapas). Las variantes Documento_intermedio/Documento_final/
+        // Ficha_actualizacion son cargos equivalentes pero para otros documentos/flujos, y
+        // mostrarlas todas aquí solo duplica cada nombre de cargo varias veces en el select.
+        $cargoFirmas = CargoFirma::with('tipoCargoFirma')
+            ->where('descripcion', 'Proyecto')
+            ->get()
+            ->sortBy(fn (CargoFirma $cargo) => $cargo->tipoCargoFirma?->nombre ?? $cargo->descripcion)
+            ->values();
 
         return view('livewire.configuracion.flujos.configuracion-flujos-proyectos', [
             'roles' => $roles,
@@ -333,6 +351,7 @@ class ConfiguracionFlujosProyectos extends Component
             'subactions' => $this->subactionsForAction($this->selectedActionId),
             'tiposPrograma' => $tiposPrograma,
             'selectedTipoPrograma' => $selectedTipoPrograma,
+            'cargoFirmas' => $cargoFirmas,
         ])->layout('layouts.app', ['hideHorizontalNav' => true]);
     }
 
@@ -443,13 +462,17 @@ class ConfiguracionFlujosProyectos extends Component
             'programStages.*.nombre' => ['required', 'string', 'max:180'],
             'programStages.*.rol_revisor_id' => ['nullable', 'exists:roles,id'],
             'programStages.*.usuario_responsable_id' => ['nullable', 'exists:users,id'],
-            'programStages.*.cargo_firma_id' => ['nullable', 'exists:cargo_firma,id'],
+            'programStages.*.cargo_firma_id' => ['required', 'exists:cargo_firma,id'],
             'programStages.*.requiere_asignacion' => ['boolean'],
             'programStages.*.emisor_define_destinatario' => ['boolean'],
             'programStages.*.activo' => ['boolean'],
         ]);
 
         $validated['programStages'] = $this->prepareStagesForSave($validated['programStages'], 'REVISION');
+
+        if ($this->hasDuplicateCargoFirmaEnEtapasActivas($validated['programStages'], 'programStages')) {
+            return;
+        }
 
         if (! $this->programSelectedTipoProgramaId) {
             $this->addError('programWorkflow.nombre', 'Seleccione un tipo de programa.');
@@ -984,6 +1007,28 @@ class ConfiguracionFlujosProyectos extends Component
         }
 
         return $prepared;
+    }
+
+    protected function hasDuplicateCargoFirmaEnEtapasActivas(array $stages, string $field, bool $soloAprobacion = false): bool
+    {
+        $repetidos = collect($stages)
+            ->filter(fn (array $stage) => (bool) ($stage['activo'] ?? true))
+            ->filter(fn (array $stage) => ! $soloAprobacion || ($stage['tipo_etapa'] ?? null) === 'APROBACION')
+            ->groupBy('cargo_firma_id')
+            ->filter(fn ($grupo) => $grupo->count() > 1);
+
+        if ($repetidos->isEmpty()) {
+            return false;
+        }
+
+        $nombres = $repetidos->flatten(1)->pluck('nombre')->implode(', ');
+
+        $this->addError(
+            $field,
+            "Varias etapas activas tienen el mismo cargo de firma asignado ({$nombres}). Cada etapa activa debe tener un cargo de firma distinto."
+        );
+
+        return true;
     }
 
     protected function generateUniqueStageCode(array $stages = [], ?int $flowId = null): string

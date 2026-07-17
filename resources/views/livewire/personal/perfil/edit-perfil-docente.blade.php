@@ -147,7 +147,7 @@
                         <div class="flex items-center gap-2">
                             <span class="px-2 py-1 rounded-full text-xs font-medium {{ $badgeClass }}">{{ $badgeLabel }}</span>
                             @if ($codigo->estado_verificacion === 'pendiente')
-                                <button wire:click="eliminarCodigo({{ $codigo->id }})" wire:confirm="¿Eliminar este código?" type="button"
+                                <button x-on:click.prevent="confirmDialog('¿Eliminar este código?', { type: 'danger' }).then((ok) => ok && $wire.eliminarCodigo({{ $codigo->id }}))" type="button"
                                     class="px-2 py-1 text-xs rounded-md bg-red-600 text-white hover:bg-red-700">
                                     Eliminar
                                 </button>

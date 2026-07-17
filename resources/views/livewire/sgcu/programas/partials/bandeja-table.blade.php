@@ -38,10 +38,10 @@
                                 <textarea wire:model="observaciones.{{ $row->id }}" rows="2" placeholder="Observaciones" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"></textarea>
                                 @error("observaciones.$row->id") <p class="text-xs font-medium text-rose-600 dark:text-rose-300">{{ $message }}</p> @enderror
                                 <div class="flex justify-end gap-2">
-                                    <button wire:click="approveRevision({{ $row->id }})" wire:confirm="¿Aprobar esta etapa?" class="rounded-full border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">
+                                    <button x-on:click.prevent="confirmDialog('¿Aprobar esta etapa?').then((ok) => ok && $wire.approveRevision({{ $row->id }}))" class="rounded-full border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">
                                         Aprobar
                                     </button>
-                                    <button wire:click="rejectRevision({{ $row->id }})" wire:confirm="¿Enviar el programa a subsanacion?" class="rounded-full border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300">
+                                    <button x-on:click.prevent="confirmDialog('¿Enviar el programa a subsanacion?').then((ok) => ok && $wire.rejectRevision({{ $row->id }}))" class="rounded-full border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:border-rose-800 dark:text-rose-300">
                                         Subsanar
                                     </button>
                                 </div>
