@@ -68,6 +68,8 @@ use App\Http\Controllers\ENF\EnfSistematizacionController;
 use App\Http\Controllers\ENF\EnfDocumentoController;
 use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialAnexoController;
 use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialPdfController;
+use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalProyectoController;
+use App\Livewire\Proyectos\InformeFinal\EditInformeFinalProyecto;
 
 use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
 use App\Livewire\Constancia\ListConstancias;
@@ -307,6 +309,15 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         Route::get('/crearProyectoVinculacion/{record?}', CreateProyectoVinculacion::class)
             ->name('crearProyectoVinculacion')
             ->middleware('permission:docente.crear-proyecto');
+
+        Route::get('/proyectos/{proyecto}/informe-final', EditInformeFinalProyecto::class)
+            ->name('proyectos.informe-final');
+        Route::get('/informes-finales/{informe}/inf-001', [InformeFinalProyectoController::class, 'preview'])
+            ->name('informes-finales.inf-001.preview');
+        Route::get('/informes-finales/{informe}/inf-001/imprimir', [InformeFinalProyectoController::class, 'print'])
+            ->name('informes-finales.inf-001.print');
+        Route::get('/informes-finales/{informe}/inf-001/pdf', [InformeFinalProyectoController::class, 'pdf'])
+            ->name('informes-finales.inf-001.pdf');
 
         Route::get('/crearPpsServicioSocial', CreatePpsServicioSocial::class)
             ->name('crearPpsServicioSocial')
