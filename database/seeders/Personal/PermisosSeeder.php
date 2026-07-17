@@ -37,6 +37,7 @@ class PermisosSeeder extends Seeder
             ['name' => 'configuracion.perfil',     'display_name' => 'Editar Mi Perfil'],
             ['name' => 'configuracion.contactanos','display_name' => 'Administrar Contactanos'],
             ['name' => 'configuracion.flujos',     'display_name' => 'Administrar Flujos de Proyectos'],
+            ['name' => 'configuracion.integraciones-api', 'display_name' => 'Administrar Integraciones API'],
             // Dashboard / Inicio
             ['name' => 'inicio.admin',             'display_name' => 'Inicio Administrador'],
             ['name' => 'inicio.docente',           'display_name' => 'Inicio Docente'],
@@ -96,7 +97,7 @@ class PermisosSeeder extends Seeder
             'empleados.empleados',
             'proyectos.historial', 'proyectos.solicitados', 'proyectos.aprobados',
             'proyectos.firma-director', 'proyectos.informes', 'proyectos.revision-final',
-            'configuracion.logs', 'configuracion.perfil', 'configuracion.contactanos', 'configuracion.flujos',
+            'configuracion.logs', 'configuracion.perfil', 'configuracion.contactanos', 'configuracion.flujos', 'configuracion.integraciones-api',
             'inicio.admin', 'dashboard.admin',
             'constancia.constancias',
             'unidad-academica.campus', 'unidad-academica.carrera',

@@ -11,6 +11,7 @@ use App\Livewire\Demografia\Pais\CreatePais;
 use App\Livewire\Demografia\Pais\ListPaises;
 use App\Livewire\Configuracion\Logs\ListLogs;
 use App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
+use App\Livewire\Configuracion\IntegracionesApi;
 use App\Livewire\SGCU\Catalogos\SgcuCatalogos;
 use App\Livewire\SGCU\Flujos\FlujosProgramas;
 use App\Livewire\SGCU\Programas\ListBandejaRevision;
@@ -261,6 +262,10 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         Route::get('configuracion/flujos-proyectos', ConfiguracionFlujosProyectos::class)
             ->name('configuracion.flujos.proyectos')
             ->middleware('can:configuracion.flujos');
+
+        Route::get('configuracion/integraciones-api', IntegracionesApi::class)
+            ->name('configuracion.integraciones-api')
+            ->middleware('can:configuracion.integraciones-api');
 
         Route::prefix('sgcu')->middleware('can:configuracion.flujos')->group(function () {
             Route::get('catalogos', SgcuCatalogos::class)

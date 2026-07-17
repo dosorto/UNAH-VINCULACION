@@ -26,9 +26,14 @@ class InformeFinalProyectoController extends Controller
     {
         $this->authorizeInforme($informe);
         $informe = $this->load($informe);
-        return Pdf::loadView('proyectos.informe-final.inf-001-pdf', compact('informe'))
-            ->setPaper('letter')
-            ->download('INF-001-'.$informe->numero_registro.'.pdf');
+        $pdf = Pdf::loadView('pdf.informes-finales.inf-001', compact('informe'))
+            ->setPaper('letter', 'landscape');
+        $pdf->render();
+        $dompdf = $pdf->getDomPDF();
+        $font = $dompdf->getFontMetrics()->getFont('DejaVu Sans', 'normal');
+        $dompdf->getCanvas()->page_text(650, 585, 'Página {PAGE_NUM} de {PAGE_COUNT}', $font, 7, [0.29, 0.33, 0.39]);
+
+        return $pdf->download('INF-001-'.$informe->numero_registro.'.pdf');
     }
 
     private function authorizeInforme(InformeFinalProyecto $informe): void
