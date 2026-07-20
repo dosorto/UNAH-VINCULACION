@@ -241,18 +241,15 @@ class StoreEnfAccionRequest extends FormRequest
             'firmas.*.observaciones' => ['nullable', 'string'],
             'supervisor_documentos' => ['nullable', 'array'],
             'supervisor_documentos.oficio_remision_decano.aplica' => [
-                'nullable',
-                Rule::requiredIf(fn () => in_array('Oficio de remisión del Decano/Director Centro Regional', $this->input('documentos_requeridos', []), true)),
+                Rule::requiredIf(fn () => $this->input('codigo_formulario') === 'FORM-DVUS-018'),
                 'in:Si,No',
             ],
             'supervisor_documentos.documento_perfil_programa.aplica' => [
-                'nullable',
-                Rule::requiredIf(fn () => in_array('Documento perfil del programa de formación', $this->input('documentos_requeridos', []), true)),
+                Rule::requiredIf(fn () => $this->input('codigo_formulario') === 'FORM-DVUS-018'),
                 'in:Si,No',
             ],
             'supervisor_documentos.otros_documentos_respaldo.aplica' => [
-                'nullable',
-                Rule::requiredIf(fn () => in_array('Otros documentos de respaldo', $this->input('documentos_requeridos', []), true)),
+                Rule::requiredIf(fn () => $this->input('codigo_formulario') === 'FORM-DVUS-018'),
                 'in:Si,No',
             ],
             'supervisor_documentos_archivos' => ['nullable', 'array'],

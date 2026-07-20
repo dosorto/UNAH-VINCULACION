@@ -246,7 +246,7 @@ class PersonalSeeder extends Seeder
                 ['email' => $usuarioRol['email']],
                 [
                     'name' => $usuarioRol['name'],
-                    'password' => bcrypt('123'),
+                    'password' => bcrypt('DaftTest2026!'),
                     'surname' => $usuarioRol['surname'],
                     'given_name' => $usuarioRol['given_name'],
                     'active_role_id' => $role->id,

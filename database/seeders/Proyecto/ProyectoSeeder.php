@@ -149,7 +149,7 @@ class ProyectoSeeder extends Seeder
             ['nombre' => '9. Industria, innovación e infraestructura'],
             ['nombre' => '10. Reducción de las desigualdades'],
             ['nombre' => '11. Ciudades y comunidades sostenibles'],
-            ['nombre' => '12, Producción y consumo responsables'],
+            ['nombre' => '12. Producción y consumo responsables'],
             ['nombre' => '13. Acción por el clima'],
             ['nombre' => '14. Vida submarina'],
             ['nombre' => '15. Vida de ecosistemas terrestres'],

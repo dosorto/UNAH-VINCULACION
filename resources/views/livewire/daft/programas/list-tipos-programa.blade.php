@@ -1,5 +1,4 @@
 <div class="space-y-8">
-
     <section class="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800 md:flex-row md:items-end md:justify-between">
         <div>
             <p class="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-700 dark:text-cyan-400">Configuracion</p>
@@ -24,27 +23,32 @@
             </div>
             <form wire:submit.prevent="saveTipoPrograma" class="mt-5 space-y-4">
                 <label class="space-y-2">
-                    <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Nombre <span class="text-rose-600 dark:text-rose-300" aria-label="Campo requerido">*</span></span>
+                    <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Nombre <span class="text-red-500">*</span></span>
                     <input wire:model="tipoPrograma.nombre" type="text" required placeholder="Ej. Diplomado" class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                     @error('tipoPrograma.nombre') <p class="text-xs font-medium text-rose-600 dark:text-rose-300">{{ $message }}</p> @enderror
                 </label>
 
                 <div class="grid gap-4 md:grid-cols-2">
                     <label class="space-y-2">
-                        <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Horas minimas <span class="text-rose-600 dark:text-rose-300" aria-label="Campo requerido">*</span></span>
+                        <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Horas minimas <span class="text-red-500">*</span></span>
                         <input wire:model="tipoPrograma.horas_minimas" type="number" min="0" required placeholder="Ej. 8" class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                         @error('tipoPrograma.horas_minimas') <p class="text-xs font-medium text-rose-600 dark:text-rose-300">{{ $message }}</p> @enderror
                     </label>
 
                     <label class="space-y-2">
-                        <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Horas maximas <span class="text-rose-600 dark:text-rose-300" aria-label="Campo requerido">*</span></span>
+                        <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Horas maximas <span class="text-red-500">*</span></span>
                         <input wire:model="tipoPrograma.horas_maximas" type="number" min="0" required placeholder="Ej. 120" class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                         @error('tipoPrograma.horas_maximas') <p class="text-xs font-medium text-rose-600 dark:text-rose-300">{{ $message }}</p> @enderror
                     </label>
                 </div>
 
                 <label class="space-y-2">
-                    <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Plantilla .docx @if (! $editingTipoProgramaId)<span class="text-rose-600 dark:text-rose-300" aria-label="Campo requerido">*</span>@endif</span>
+                    <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+                        Plantilla .docx
+                        @if (! $editingTipoProgramaId)
+                            <span class="text-red-500">*</span>
+                        @endif
+                    </span>
                     <div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center dark:border-slate-700 dark:bg-slate-800/50">
                         <input wire:model="plantillaDocumento" type="file" @if (! $editingTipoProgramaId) required @endif accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="w-full text-sm text-slate-600 file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-primary-container dark:text-slate-300" />
                         <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">Solo se permite .docx.</p>
@@ -66,7 +70,7 @@
         <section class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
             <div class="flex items-center justify-between gap-3">
                 <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Tipos registrados</h2>
-                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ $tiposPrograma->count() }}</span>
+                <span wire:key="tipos-programa-count-{{ $tiposPrograma->count() }}" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ $tiposPrograma->count() }}</span>
             </div>
 
             <div class="mt-5 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
@@ -80,9 +84,9 @@
                             <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-200 bg-white dark:divide-slate-800 dark:bg-slate-900">
+                    <tbody wire:key="tipos-programa-list-{{ $tiposPrograma->pluck('id')->join('-') ?: 'empty' }}" class="divide-y divide-slate-200 bg-white dark:divide-slate-800 dark:bg-slate-900">
                         @forelse ($tiposPrograma as $tipo)
-                            <tr>
+                            <tr wire:key="tipo-programa-{{ $tipo->id }}">
                                 <td class="px-4 py-4 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $tipo->nombre }}</td>
                                 <td class="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">{{ $tipo->horas_minimas ?? 0 }} - {{ $tipo->horas_maximas ?? 0 }} h</td>
                                 <td class="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">

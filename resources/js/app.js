@@ -161,10 +161,64 @@ function initMobileMenu() {
     });
 }
 
+const sidebarScrollStorageKey = 'nexoSidebarScrollTop';
+
+function sidebarScrollElement() {
+    return document.querySelector('[data-sidebar-scroll]');
+}
+
+function saveSidebarScrollPosition() {
+    const sidebar = sidebarScrollElement();
+
+    if (sidebar) {
+        sessionStorage.setItem(sidebarScrollStorageKey, String(sidebar.scrollTop));
+    }
+}
+
+function restoreSidebarScrollPosition() {
+    const sidebar = sidebarScrollElement();
+
+    if (!sidebar) {
+        return;
+    }
+
+    const storedPosition = Number(sessionStorage.getItem(sidebarScrollStorageKey) || 0);
+
+    sidebar.scrollTop = storedPosition;
+    requestAnimationFrame(() => {
+        sidebar.scrollTop = storedPosition;
+    });
+}
+
+function initSidebarScrollPersistence() {
+    restoreSidebarScrollPosition();
+
+    if (window.nexoSidebarScrollPersistenceInitialized) {
+        return;
+    }
+
+    window.nexoSidebarScrollPersistenceInitialized = true;
+
+    document.addEventListener('scroll', (event) => {
+        if (event.target instanceof Element && event.target.matches('[data-sidebar-scroll]')) {
+            saveSidebarScrollPosition();
+        }
+    }, true);
+
+    document.addEventListener('click', (event) => {
+        if (event.target instanceof Element && event.target.closest('[data-sidebar-scroll] a')) {
+            saveSidebarScrollPosition();
+        }
+    }, true);
+
+    document.addEventListener('livewire:navigating', saveSidebarScrollPosition);
+}
+
 function initNexoUi() {
     initThemeToggle();
     initDropdowns();
     initMobileMenu();
+    initSidebarScrollPersistence();
 }
 
 document.addEventListener('DOMContentLoaded', initNexoUi);

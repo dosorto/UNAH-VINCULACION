@@ -122,8 +122,7 @@
                 <div class="mt-5 grid gap-4 md:grid-cols-2">
                     <label class="block space-y-2" >
                         <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400" >Codigo </span>
-                        <input wire:model="workflow.codigo" type="text" readonly aria-readonly="true" class="w-full cursor-not-allowed rounded-xl border-slate-300 bg-slate-100 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300" />
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Este código es generado automáticamente y no se puede editar.</p>
+                        <input wire:model="workflow.codigo" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                         @error('workflow.codigo')<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                     </label>
                     <label class="block space-y-2">
@@ -241,26 +240,6 @@
                                     </select>
                                     @error("stages.$index.usuario_responsable_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                 </label>
-                                <label class="block space-y-2">
-                                    <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Alcance academico</span>
-                                    <select wire:model.live="stages.{{ $index }}.alcance_academico" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                                        @foreach ($alcancesAcademicos as $value => $label)
-                                            <option value="{{ $value }}">{{ $label }}</option>
-                                        @endforeach
-                                    </select>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">Define de qué unidad académica saldrá el revisor de esta etapa.</p>
-                                    @error("stages.$index.alcance_academico")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
-                                </label>
-                                <label class="block space-y-2">
-                                    <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Multiplicidad de revision</span>
-                                    <select wire:model.live="stages.{{ $index }}.multiplicidad_revision" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                                        @foreach ($multiplicidadesRevision as $value => $label)
-                                            <option value="{{ $value }}">{{ $label }}</option>
-                                        @endforeach
-                                    </select>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">Define si se seleccionará un único revisor o uno por cada unidad académica.</p>
-                                    @error("stages.$index.multiplicidad_revision")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
-                                </label>
                             </div>
 
                             <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
@@ -374,14 +353,14 @@
                     @if ($selectedTipoPrograma)
                         <div class="mt-5 grid gap-4 md:grid-cols-2">
                             <label class="block space-y-2">
-                                <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Codigo</span>
-                                <input wire:model="programWorkflow.codigo" type="text" readonly aria-readonly="true" class="w-full cursor-not-allowed rounded-xl border-slate-300 bg-slate-100 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300" />
-                                <p class="text-xs text-slate-500 dark:text-slate-400">Se genera como PROGRAMA_NOMBRE_DEL_PROGRAMA.</p>
+                                <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Codigo <span class="text-red-500">*</span></span>
+                                <input wire:model="programWorkflow.codigo" type="text" readonly aria-readonly="true" class="w-full cursor-not-allowed rounded-xl border-slate-300 bg-slate-100 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-300" />
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Se genera automáticamente con el nombre del tipo de programa.</p>
                                 @error('programWorkflow.codigo')<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                             </label>
                             <label class="block space-y-2">
-                                <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Nombre *</span>
-                                <input wire:model.live.debounce.300ms="programWorkflow.nombre" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                                <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Nombre <span class="text-red-500">*</span></span>
+                                <input wire:model.live.debounce.300ms="programWorkflow.nombre" type="text" required class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                                 @error('programWorkflow.nombre')<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                             </label>
                             <label class="block space-y-2">
@@ -461,14 +440,23 @@
 
                                     <div class="mt-4 grid gap-4 pl-2 md:grid-cols-2 xl:grid-cols-3">
                                         <label class="block space-y-2">
-                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Codigo</span>
-                                            <input wire:model.live.debounce.300ms="programStages.{{ $index }}.codigo" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Codigo <span class="text-red-500">*</span></span>
+                                            <input wire:model.live.debounce.300ms="programStages.{{ $index }}.codigo" type="text" required class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                                             @error("programStages.$index.codigo")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                         </label>
                                         <label class="block space-y-2 xl:col-span-2">
-                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Nombre</span>
-                                            <input wire:model.live.debounce.300ms="programStages.{{ $index }}.nombre" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Nombre <span class="text-red-500">*</span></span>
+                                            <input wire:model.live.debounce.300ms="programStages.{{ $index }}.nombre" type="text" required class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                                             @error("programStages.$index.nombre")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                        </label>
+                                        <label class="block space-y-2">
+                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Tipo <span class="text-red-500">*</span></span>
+                                            <select wire:model="programStages.{{ $index }}.tipo_etapa" required class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                                <option value="FORMULACION">Formulacion</option>
+                                                <option value="REVISION">Revision</option>
+                                                <option value="APROBACION">Aprobacion</option>
+                                            </select>
+                                            @error("programStages.$index.tipo_etapa")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                         </label>
                                         <label class="block space-y-2">
                                             <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Rol revisor</span>
@@ -491,26 +479,24 @@
                                             </select>
                                             @error("programStages.$index.usuario_responsable_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                         </label>
-                                        <label class="block space-y-2">
-                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Alcance academico</span>
-                                            <select wire:model.live="programStages.{{ $index }}.alcance_academico" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                                                @foreach ($alcancesAcademicos as $value => $label)
-                                                    <option value="{{ $value }}">{{ $label }}</option>
-                                                @endforeach
-                                            </select>
-                                            <p class="text-xs text-slate-500 dark:text-slate-400">Define de qué unidad académica saldrá el revisor de esta etapa.</p>
-                                            @error("programStages.$index.alcance_academico")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
-                                        </label>
-                                        <label class="block space-y-2">
-                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Multiplicidad de revision</span>
-                                            <select wire:model.live="programStages.{{ $index }}.multiplicidad_revision" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                                                @foreach ($multiplicidadesRevision as $value => $label)
-                                                    <option value="{{ $value }}">{{ $label }}</option>
-                                                @endforeach
-                                            </select>
-                                            <p class="text-xs text-slate-500 dark:text-slate-400">Define si se seleccionará un único revisor o uno por cada unidad académica.</p>
-                                            @error("programStages.$index.multiplicidad_revision")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
-                                        </label>
+                                    </div>
+
+                                    <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/50">
+                                        <div class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Procesos donde aplica esta etapa</div>
+                                        <div class="mt-3 flex flex-wrap gap-4">
+                                            <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                                                <input wire:model.live="programStages.{{ $index }}.aplica_inscripcion" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                                Inscripcion
+                                            </label>
+                                            <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                                                <input wire:model.live="programStages.{{ $index }}.aplica_informe_intermedio" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                                Informe intermedio
+                                            </label>
+                                            <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+                                                <input wire:model.live="programStages.{{ $index }}.aplica_cierre_proyecto" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                                Cierre
+                                            </label>
+                                        </div>
                                     </div>
 
                                     <div class="mt-4 flex flex-wrap gap-x-6 gap-y-3">

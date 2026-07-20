@@ -47,25 +47,9 @@
         {{-- ── Navegación (scroll interno) ── --}}
         <div
             id="sidebar-navigation-scroll"
-            x-data="{
-                storageKey: 'sidebar-navigation-scroll-top',
-                rememberScroll() {
-                    sessionStorage.setItem(this.storageKey, this.$el.scrollTop);
-                },
-                restoreScroll() {
-                    const scrollTop = Number(sessionStorage.getItem(this.storageKey) || 0);
-
-                    this.$nextTick(() => {
-                        this.$el.scrollTop = scrollTop;
-                        requestAnimationFrame(() => this.$el.scrollTop = scrollTop);
-                    });
-                }
-            }"
-            x-init="restoreScroll()"
-            @scroll.passive="rememberScroll()"
-            @click.capture="rememberScroll()"
+            data-sidebar-scroll
             class="overflow-y-auto scrollbar-hidden pb-4 flex-1"
-            wire:scroll>
+            style="overflow-anchor: none;">
             {{ $slot }}
         </div>
 

@@ -67,25 +67,7 @@
         7 => 'Resultados',
         8 => 'Presupuesto',
         9 => 'Cronograma',
-        10 => 'Documentos y firmas',
-    ];
-    $firmaForm018Roles = [
-        [
-            'rol' => 'Coordinador de la acción por la UNAH',
-            'placeholder' => 'Nombre del coordinador de la acción',
-        ],
-        [
-            'rol' => 'Jefe de la Unidad Académica que lidera la acción',
-            'placeholder' => 'Nombre del jefe(a) de la unidad académica',
-        ],
-        [
-            'rol' => 'Coordinador(a) del Comité Local',
-            'placeholder' => 'Nombre del coordinador(a) del comité local',
-        ],
-        [
-            'rol' => 'Decano(a) o Director(a) del Centro Regional',
-            'placeholder' => 'Nombre del decano(a) o director(a)',
-        ],
+        10 => 'Documentos',
     ];
     $editingAccion = $accion ?? null;
     $formAction = $editingAccion ? route('enf.acciones.update', $editingAccion) : route('enf.acciones.store');
@@ -469,7 +451,7 @@
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div>
                         <label class="{{ $label }}">Modalidad de ejecución</label>
-                        <select name="modalidad_ejecucion" class="{{ $input }}">
+                        <select name="modalidad_ejecucion" data-modalidad-ejecucion class="{{ $input }}">
                             <option value="">Seleccione...</option>
                             <option>Presencial</option>
                             <option>Semi presencial (Virtual + presencial)</option>
@@ -515,7 +497,7 @@
                     <div class="md:col-span-3">
                         <label class="{{ $label }}">Descripción de las plataformas virtuales y de teledocencia</label>
                         <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                            <div class="rounded-md border border-slate-200 p-3 dark:border-slate-700">
+                            <div data-teledocencia-fields class="rounded-md border border-slate-200 p-3 transition-opacity dark:border-slate-700">
                                 <h3 class="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Teledocencia</h3>
                                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                     @foreach ($catalog('plataforma')->filter(fn ($item) => in_array($item->nombre, ['Teams', 'Zoom', 'Meet', 'Webex', 'Otro'], true)) as $item)
@@ -735,22 +717,15 @@
                 </div>
 
                 <div class="mt-5 rounded-md border border-slate-200 p-4 dark:border-slate-700">
-                    <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Participación de la comunidad universitaria</h3>
-                    </div>
-                    <div class="overflow-x-auto rounded-md border border-slate-100 dark:border-slate-800">
-                        <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
-                            <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-800/60">
-                                <tr>
-                                    <th class="px-3 py-2">Tipo</th>
-                                    <th class="px-3 py-2">Total</th>
-                                    <th class="px-3 py-2">Hombres</th>
-                                    <th class="px-3 py-2">Mujeres</th>
-                                    <th class="px-3 py-2"></th>
-                                </tr>
-                            </thead>
-                            <tbody data-participacion-list class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
-                        </table>
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Participación de la comunidad universitaria</h3>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Registre la distribución de hombres y mujeres por tipo de participación.</p>
+                        </div>
+                        <button type="button" data-open-participacion-list-modal
+                            class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">
+                            Gestionar participación
+                        </button>
                     </div>
                     <div class="hidden" data-participacion-fields>
                         @foreach ([
@@ -773,6 +748,36 @@
                                 <input type="number" min="0" name="participacion_universitaria[{{ $i }}][mujeres]" class="{{ $input }}" placeholder="M">
                             </div>
                         @endforeach
+                    </div>
+                </div>
+
+                <div data-participacion-list-modal role="dialog" aria-modal="true" aria-labelledby="participacion-list-modal-title"
+                    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+                    <div class="flex max-h-[90vh] w-full max-w-6xl flex-col rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900">
+                        <div class="mb-4 flex items-center justify-between gap-3">
+                            <div>
+                                <h2 id="participacion-list-modal-title" class="text-base font-semibold text-slate-900 dark:text-slate-100">Participación de la comunidad universitaria</h2>
+                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Seleccione “Editar” para ingresar la cantidad de hombres y mujeres.</p>
+                            </div>
+                            <button type="button" data-close-participacion-list-modal class="rounded-md px-3 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Cerrar</button>
+                        </div>
+                        <div class="overflow-auto rounded-md border border-slate-200 dark:border-slate-700">
+                            <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
+                                <thead class="sticky top-0 bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-800">
+                                    <tr>
+                                        <th class="px-3 py-2">Tipo</th>
+                                        <th class="px-3 py-2">Hombres</th>
+                                        <th class="px-3 py-2">Mujeres</th>
+                                        <th class="px-3 py-2">Total</th>
+                                        <th class="px-3 py-2"></th>
+                                    </tr>
+                                </thead>
+                                <tbody data-participacion-list class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                            </table>
+                        </div>
+                        <div class="mt-5 flex justify-end">
+                            <button type="button" data-close-participacion-list-modal class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Listo</button>
+                        </div>
                     </div>
                 </div>
 
@@ -1193,7 +1198,7 @@
             </div>
 
             <div class="{{ $card }} hidden" data-step-panel="10">
-                <h2 class="{{ $sectionTitle }}">10. Documentos adjuntos y firmas</h2>
+                <h2 class="{{ $sectionTitle }}">10. Documentos adjuntos</h2>
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     @foreach ([
                         [
@@ -1210,10 +1215,7 @@
                         ],
                     ] as $documentoSupervisor)
                     <section class="rounded-md border border-slate-200 p-4 shadow-sm dark:border-slate-700" data-doc-upload-card>
-                        <label class="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                            <input type="checkbox" name="documentos_requeridos[]" value="{{ $documentoSupervisor['label'] }}" class="rounded border-gray-300 text-blue-600" data-doc-upload-check>
-                            <span>{{ $documentoSupervisor['label'] }}</span>
-                        </label>
+                        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $documentoSupervisor['label'] }}</h3>
 
                         <div class="mt-4 space-y-4">
                             <div>
@@ -1242,18 +1244,6 @@
                     @endforeach
                 </div>
 
-                <div class="mt-6 border-t border-slate-200 pt-5 dark:border-slate-700">
-                    <h3 class="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Firmas requeridas</h3>
-                    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                        @foreach ($firmaForm018Roles as $i => $firmaRol)
-                            <section class="rounded-md border border-slate-200 p-4 shadow-sm dark:border-slate-700">
-                                <input type="hidden" name="firmas[{{ $i }}][rol_firma]" value="{{ $firmaRol['rol'] }}">
-                                <label class="{{ $label }}">{{ $firmaRol['rol'] }}</label>
-                                <input name="firmas[{{ $i }}][nombre_firmante]" class="{{ $input }}" placeholder="{{ $firmaRol['placeholder'] }}">
-                            </section>
-                        @endforeach
-                    </div>
-                </div>
             </div>
 
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1339,16 +1329,16 @@
                         <input data-participacion-tipo class="{{ $input }}" readonly>
                     </div>
                     <div>
-                        <label class="{{ $label }}">Total</label>
-                        <input type="number" min="0" data-participacion-cantidad class="{{ $input }}" readonly>
-                    </div>
-                    <div>
                         <label class="{{ $label }}">Hombres</label>
                         <input type="number" min="0" data-participacion-hombres class="{{ $input }}">
                     </div>
                     <div>
                         <label class="{{ $label }}">Mujeres</label>
                         <input type="number" min="0" data-participacion-mujeres class="{{ $input }}">
+                    </div>
+                    <div>
+                        <label class="{{ $label }}">Total</label>
+                        <input type="number" min="0" data-participacion-cantidad class="{{ $input }}" readonly>
                     </div>
                 </div>
                 <div class="mt-5 flex justify-end gap-3">
@@ -1373,22 +1363,15 @@
                         <label class="{{ $label }}">Nombre asignatura / posgrado</label>
                         <input data-practica-nombre class="{{ $input }}">
                     </div>
-                    <div class="md:col-span-3">
-                        <label class="{{ $label }}">Período registrado</label>
+                    <div class="md:col-span-6">
+                        <label class="{{ $label }}">Período académico</label>
                         <select data-practica-periodo-id class="{{ $input }}">
-                            <option value="">Período registrado...</option>
+                            <option value="">Seleccione un período académico...</option>
                             @foreach ($periodosAcademicos as $periodo)
                                 <option value="{{ $periodo->id }}">{{ $periodoAcademicoLabel($periodo) }}</option>
                             @endforeach
                         </select>
-                    </div>
-                    <div class="md:col-span-3">
-                        <label class="{{ $label }}">Período académico</label>
-                        <input data-practica-periodo-texto class="{{ $input }}" readonly>
-                    </div>
-                    <div>
-                        <label class="{{ $label }}">Matrícula</label>
-                        <input type="number" min="0" data-practica-matricula class="{{ $input }}">
+                        <input type="hidden" data-practica-periodo-texto>
                     </div>
                     <div>
                         <label class="{{ $label }}">Hombres</label>
@@ -1397,6 +1380,10 @@
                     <div>
                         <label class="{{ $label }}">Mujeres</label>
                         <input type="number" min="0" data-practica-mujeres class="{{ $input }}">
+                    </div>
+                    <div>
+                        <label class="{{ $label }}">Matrícula</label>
+                        <input type="number" min="0" data-practica-matricula class="{{ $input }} bg-slate-50 dark:bg-slate-800/70" readonly>
                     </div>
                 </div>
                 <div class="mt-5 flex justify-end gap-3">
@@ -1507,6 +1494,8 @@
             const horasTeoricasField = form.querySelector('[name="horas_teoricas"]');
             const horasPracticasField = form.querySelector('[name="horas_practicas"]');
             const totalHorasField = form.querySelector('[name="total_horas"]');
+            const modalidadEjecucionField = form.querySelector('[data-modalidad-ejecucion]');
+            const teledocenciaFields = form.querySelector('[data-teledocencia-fields]');
             const beneficiariosHombresField = form.querySelector('[name="beneficiarios[hombres]"]');
             const beneficiariosMujeresField = form.querySelector('[name="beneficiarios[mujeres]"]');
             const beneficiariosTotalField = form.querySelector('[name="beneficiarios[total]"]');
@@ -1523,6 +1512,7 @@
                 horas: document.querySelector('[data-consultor-horas]'),
             };
             const participacionModal = document.querySelector('[data-participacion-modal]');
+            const participacionListModal = form.querySelector('[data-participacion-list-modal]');
             const participacionModalTitle = document.querySelector('[data-participacion-modal-title]');
             const participacionInputs = {
                 tipo: document.querySelector('[data-participacion-tipo]'),
@@ -2313,9 +2303,9 @@
                 target.innerHTML = rows.map(({ row, index }) => `
                     <tr>
                         <td class="px-3 py-2 font-medium text-slate-700 dark:text-slate-200">${escapeHtml(rowValue(row, 'tipo_participacion'))}</td>
-                        <td class="px-3 py-2">${escapeHtml(rowValue(row, 'cantidad') || '0')}</td>
                         <td class="px-3 py-2">${escapeHtml(rowValue(row, 'hombres') || '0')}</td>
                         <td class="px-3 py-2">${escapeHtml(rowValue(row, 'mujeres') || '0')}</td>
+                        <td class="px-3 py-2">${escapeHtml(rowValue(row, 'cantidad') || '0')}</td>
                         <td class="px-3 py-2 text-right">
                             <button type="button" data-edit-participacion="${index}" class="text-sm font-semibold text-blue-700 hover:text-blue-900">Editar</button>
                         </td>
@@ -2609,8 +2599,16 @@
                 participacionInputs.hombres.value = rowValue(row, 'hombres');
                 participacionInputs.mujeres.value = rowValue(row, 'mujeres');
                 updateParticipacionTotal();
+                hideModal(participacionListModal);
                 showModal(participacionModal);
                 participacionInputs.hombres?.focus();
+            };
+
+            const cancelParticipacion = () => {
+                hideModal(participacionModal);
+                currentParticipacionIndex = null;
+                renderParticipacion();
+                showModal(participacionListModal);
             };
 
             const saveParticipacion = () => {
@@ -2631,6 +2629,7 @@
                 hideModal(participacionModal);
                 currentParticipacionIndex = null;
                 renderDynamicLists();
+                showModal(participacionListModal);
                 save();
                 render();
             };
@@ -2646,6 +2645,14 @@
             const updatePracticaPeriodoTexto = () => {
                 if (practicaInputs.periodo_academico) {
                     practicaInputs.periodo_academico.value = selectedOptionText(practicaInputs.periodo_academico_id);
+                }
+            };
+
+            const updatePracticaMatriculaTotal = () => {
+                if (practicaInputs.matricula_total) {
+                    practicaInputs.matricula_total.value = String(
+                        numericValue(practicaInputs.hombres?.value) + numericValue(practicaInputs.mujeres?.value),
+                    );
                 }
             };
 
@@ -2673,6 +2680,7 @@
                     updatePracticaPeriodoTexto();
                 }
 
+                updatePracticaMatriculaTotal();
                 showModal(practicaModal);
                 practicaInputs.codigo?.focus();
             };
@@ -2687,6 +2695,7 @@
                 }
 
                 updatePracticaPeriodoTexto();
+                updatePracticaMatriculaTotal();
 
                 setRowValues(row, Object.fromEntries(
                     Object.entries(practicaInputs).map(([fieldName, input]) => [fieldName, input?.value || '']),
@@ -3011,16 +3020,10 @@
 
             const updateSupervisorDocumentUploadState = () => {
                 form.querySelectorAll('[data-doc-upload-card]').forEach((card) => {
-                    const check = card.querySelector('[data-doc-upload-check]');
                     const radios = Array.from(card.querySelectorAll('[data-doc-upload-radio]'));
                     const file = card.querySelector('[data-doc-upload-file]');
                     const selectedRadio = radios.find((radio) => radio.checked);
-                    const enabled = Boolean(check?.checked);
-                    const uploadEnabled = enabled && selectedRadio?.value === 'Si';
-
-                    radios.forEach((radio) => {
-                        radio.disabled = !enabled;
-                    });
+                    const uploadEnabled = selectedRadio?.value === 'Si';
 
                     if (file) {
                         file.disabled = !uploadEnabled;
@@ -3073,6 +3076,22 @@
                 emptyState?.classList.toggle('hidden', visibleCount > 0);
             };
 
+            const updateTeledocenciaState = () => {
+                const isPresencial = modalidadEjecucionField?.value === 'Presencial';
+
+                teledocenciaFields?.classList.toggle('opacity-50', isPresencial);
+                teledocenciaFields?.classList.toggle('cursor-not-allowed', isPresencial);
+                teledocenciaFields?.setAttribute('aria-disabled', isPresencial ? 'true' : 'false');
+
+                teledocenciaFields?.querySelectorAll('input, select, textarea').forEach((field) => {
+                    field.disabled = isPresencial;
+
+                    if (isPresencial && (field.type === 'checkbox' || field.type === 'radio')) {
+                        field.checked = false;
+                    }
+                });
+            };
+
             restore();
             syncTotalHoras();
             syncTotalCupos();
@@ -3080,6 +3099,7 @@
             updateSupervisorDocumentUploadState();
             updateContraparteState();
             updateMetasContribuyeState();
+            updateTeledocenciaState();
             renderDynamicLists();
             syncRequiredMarkers();
             step = shouldLockStepNavigation ? firstIncompleteStepBefore(step) || step : step;
@@ -3105,6 +3125,7 @@
                 updateSupervisorDocumentUploadState();
                 updateContraparteState();
                 updateMetasContribuyeState();
+                updateTeledocenciaState();
                 renderDynamicLists();
                 syncRequiredMarkers();
                 render();
@@ -3119,6 +3140,7 @@
                 updateSupervisorDocumentUploadState();
                 updateContraparteState();
                 updateMetasContribuyeState();
+                updateTeledocenciaState();
                 renderDynamicLists();
                 syncRequiredMarkers();
                 render();
@@ -3237,8 +3259,15 @@
                 button.addEventListener('click', () => hideModal(consultorModal));
             });
             document.querySelector('[data-add-consultor]')?.addEventListener('click', addConsultor);
+            form.querySelector('[data-open-participacion-list-modal]')?.addEventListener('click', () => {
+                renderParticipacion();
+                showModal(participacionListModal);
+            });
+            form.querySelectorAll('[data-close-participacion-list-modal]').forEach((button) => {
+                button.addEventListener('click', () => hideModal(participacionListModal));
+            });
             document.querySelectorAll('[data-close-participacion-modal]').forEach((button) => {
-                button.addEventListener('click', () => hideModal(participacionModal));
+                button.addEventListener('click', cancelParticipacion);
             });
             participacionInputs.hombres?.addEventListener('input', updateParticipacionTotal);
             participacionInputs.mujeres?.addEventListener('input', updateParticipacionTotal);
@@ -3248,6 +3277,8 @@
                 button.addEventListener('click', () => hideModal(practicaModal));
             });
             practicaInputs.periodo_academico_id?.addEventListener('change', updatePracticaPeriodoTexto);
+            practicaInputs.hombres?.addEventListener('input', updatePracticaMatriculaTotal);
+            practicaInputs.mujeres?.addEventListener('input', updatePracticaMatriculaTotal);
             document.querySelector('[data-save-practica]')?.addEventListener('click', savePractica);
             document.querySelectorAll('[data-close-presupuesto-modal]').forEach((button) => {
                 button.addEventListener('click', () => hideModal(presupuestoModal));

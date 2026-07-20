@@ -1,4 +1,4 @@
-<div x-data="{ tab: 'pendientes' }" class="space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+<div x-data="{ tab: 'pendientes' }" @daft-review-assigned.window="tab = 'proceso'" class="space-y-8 px-4 py-8 sm:px-6 lg:px-8">
     <section class="flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800 lg:flex-row lg:items-end lg:justify-between">
         <div>
             <p class="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-700 dark:text-cyan-400">Revision institucional</p>
@@ -11,6 +11,12 @@
     @if (session('programas_status'))
         <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300">
             {{ session('programas_status') }}
+        </div>
+    @endif
+
+    @if (session('programas_warning'))
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+            {{ session('programas_warning') }}
         </div>
     @endif
 

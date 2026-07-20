@@ -1038,7 +1038,7 @@ class EnfAccionController extends Controller
                 'codigo_asignatura' => $item['codigo'] ?? null,
                 'nombre_asignatura' => $item['nombre'] ?? null,
                 'periodo_academico_texto' => $item['periodo_academico'] ?? null,
-                'cantidad_estudiantes' => (int) ($item['matricula_total'] ?? 0),
+                'cantidad_estudiantes' => (int) ($item['hombres'] ?? 0) + (int) ($item['mujeres'] ?? 0),
                 'matricula_hombres' => (int) ($item['hombres'] ?? 0),
                 'matricula_mujeres' => (int) ($item['mujeres'] ?? 0),
             ]);
@@ -1198,34 +1198,26 @@ class EnfAccionController extends Controller
             'Otros documentos de respaldo' => 'otros_documentos_respaldo',
         ];
 
-        foreach (array_filter($data['documentos_requeridos'] ?? []) as $documento) {
-            $slug = $supervisorDocumentMap[$documento] ?? null;
-
-            if (
-                $slug
-                && data_get($data, "supervisor_documentos.{$slug}.aplica") === 'Si'
-                && $request->hasFile("supervisor_documentos_archivos.{$slug}")
-            ) {
-                $file = $request->file("supervisor_documentos_archivos.{$slug}");
-                $path = $file->store('enf/documentos', 'public');
-
-                $accion->documentos()->create([
-                    'tipo_documento' => $slug,
-                    'nombre' => $documento,
-                    'ruta' => $path,
-                    'mime_type' => $file->getClientMimeType(),
-                    'tamano_bytes' => $file->getSize(),
-                    'subido_por_usuario_id' => $request->user()?->id,
-                    'descripcion' => 'Documento adjunto desde el paso Supervisor.',
-                ]);
-
+        foreach ($supervisorDocumentMap as $documento => $slug) {
+            if (data_get($data, "supervisor_documentos.{$slug}.aplica") !== 'Si') {
                 continue;
             }
 
+            if (! $request->hasFile("supervisor_documentos_archivos.{$slug}")) {
+                continue;
+            }
+
+            $file = $request->file("supervisor_documentos_archivos.{$slug}");
+            $path = $file->store('enf/documentos', 'public');
+
             $accion->documentos()->create([
-                'tipo_documento' => 'requerido_form_018',
+                'tipo_documento' => $slug,
                 'nombre' => $documento,
-                'ruta' => 'pendiente',
+                'ruta' => $path,
+                'mime_type' => $file->getClientMimeType(),
+                'tamano_bytes' => $file->getSize(),
+                'subido_por_usuario_id' => $request->user()?->id,
+                'descripcion' => 'Documento adjunto desde el paso Supervisor.',
             ]);
         }
     }

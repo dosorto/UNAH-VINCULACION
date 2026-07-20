@@ -566,7 +566,7 @@ class MetasContribuyeSeeder extends Seeder
         }
 
       // Obtener ODS 12: Producción y consumo responsables
-        $ods12 = Od::where('nombre', '12. Producción y consumo responsables')->first();
+        $ods12 = Od::where('nombre', 'like', '12%Producción y consumo responsables')->first();
         if ($ods12) {
             MetaContribuye::create([
                 'ods_id' => $ods12->id,
@@ -943,4 +943,3 @@ class MetasContribuyeSeeder extends Seeder
         }
     }
 }
-

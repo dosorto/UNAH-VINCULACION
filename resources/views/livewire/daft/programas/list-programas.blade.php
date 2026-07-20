@@ -3,7 +3,7 @@
         <div>
             <p class="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-700 dark:text-cyan-400">Fase 1</p>
             <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Programas y ediciones</h1>
-            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Gestiona la oferta academica base de DAFT antes de matricula, pagos y emision.</p>
+            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Gestiona la oferta academica base del DAFT antes de matricula, pagos y emision.</p>
         </div>
         <a href="{{ route('daft.programas.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-container">
             Nuevo programa
