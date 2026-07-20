@@ -48,7 +48,7 @@ class InformeFinalProyectoInitializer
 
             $informe = InformeFinalProyecto::create([
                 'proyecto_id' => $proyecto->id,
-                'numero_registro' => $proyecto->codigo_proyecto ?: 'Proyecto #'.$proyecto->id,
+                'numero_registro' => $this->numeroRegistroOficial($proyecto),
                 'fecha_registro' => $proyecto->fecha_registro,
                 'nombre_proyecto' => $proyecto->nombre_proyecto ?: 'Sin nombre registrado',
                 'objetivo_general' => $proyecto->objetivo_general,
@@ -211,6 +211,11 @@ class InformeFinalProyectoInitializer
             return;
         }
 
+        // Corrige únicamente el valor heredado que expuso un ID interno.
+        if (preg_match('/^Proyecto #\d+$/', trim((string) $informe->numero_registro))) {
+            $informe->update(['numero_registro' => $this->numeroRegistroOficial($proyecto)]);
+        }
+
         $informe->load(['estudiantes', 'voluntarios', 'actividades.participantes']);
 
         foreach ($informe->estudiantes->whereNull('sexo') as $snapshot) {
@@ -279,6 +284,11 @@ class InformeFinalProyectoInitializer
             return collect($valor)->filter()->implode(', ') ?: null;
         }
         return filled($valor) ? (string) $valor : null;
+    }
+
+    private function numeroRegistroOficial(Proyecto $proyecto): ?string
+    {
+        return $this->texto($proyecto->codigo_proyecto);
     }
 
     private function tipoParticipacionEstudiante(?string $tipo): string

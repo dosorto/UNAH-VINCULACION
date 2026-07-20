@@ -391,8 +391,28 @@ class EditInformeFinalProyecto extends Component
             $this->addError("actividades.$actividadIndex.participantes", 'La persona ya participa en esta actividad.');
             return;
         }
-        $participante['orden'] = $actuales->count();
+        $participante['orden'] = $actuales->count() + 1;
+        $participante['es_responsable'] = $actuales->isEmpty();
+        if ($participante['es_responsable']) {
+            $participante['rol'] = 'Responsable principal';
+            $this->actividades[$actividadIndex]['responsable'] = $participante['nombre'];
+        }
         $this->actividades[$actividadIndex]['participantes'][] = $participante;
+        $this->guardarFilaAutoguardado('actividades', $actividadIndex);
+    }
+
+    public function marcarResponsableActividad(int $actividadIndex, int $participanteIndex): void
+    {
+        $this->authorizeSensitive();
+        abort_unless(isset($this->actividades[$actividadIndex]['participantes'][$participanteIndex]), 404);
+        foreach ($this->actividades[$actividadIndex]['participantes'] as $index => &$row) {
+            $row['es_responsable'] = $index === $participanteIndex;
+            if ($index === $participanteIndex) {
+                $row['rol'] = 'Responsable principal';
+                $this->actividades[$actividadIndex]['responsable'] = $row['nombre'];
+            }
+        }
+        unset($row);
         $this->guardarFilaAutoguardado('actividades', $actividadIndex);
     }
 
@@ -401,14 +421,21 @@ class EditInformeFinalProyecto extends Component
         $this->authorizeSensitive();
         $participante = $this->actividades[$actividadIndex]['participantes'][$participanteIndex] ?? null;
         if (! $participante) return;
-        if (! empty($participante['id'])) {
-            $actividadId = $this->actividades[$actividadIndex]['id'] ?? null;
-            $actividad = $actividadId ? $this->informe->actividades()->whereKey($actividadId)->first() : null;
-            $actividad?->participantes()->whereKey($participante['id'])->delete();
-        }
         unset($this->actividades[$actividadIndex]['participantes'][$participanteIndex]);
         $this->actividades[$actividadIndex]['participantes'] = array_values($this->actividades[$actividadIndex]['participantes']);
-        $this->estadoGuardado = 'guardado';
+        if ($participante['es_responsable'] ?? false) {
+            $nextIndex = collect($this->actividades[$actividadIndex]['participantes'])->sortBy('orden')->keys()->first();
+            if ($nextIndex === null) {
+                $this->actividades[$actividadIndex]['responsable'] = '';
+            } else {
+                foreach ($this->actividades[$actividadIndex]['participantes'] as $index => &$row) {
+                    $row['es_responsable'] = $index === $nextIndex;
+                    if ($index === $nextIndex) { $row['rol'] = 'Responsable principal'; $this->actividades[$actividadIndex]['responsable'] = $row['nombre']; }
+                }
+                unset($row);
+            }
+        }
+        $this->guardarFilaAutoguardado('actividades', $actividadIndex);
     }
 
     public function guardarBorrador(): void
@@ -870,6 +897,19 @@ class EditInformeFinalProyecto extends Component
         $record = ! empty($actividad['id']) ? $this->informe->actividades()->whereKey($actividad['id'])->first() : null;
         if (! $record) return;
         $rows = $actividad['participantes'] ?? [];
+        $responsables = collect($rows)->filter(fn ($row) => ! empty($row['es_responsable']));
+        if ($rows && $responsables->isEmpty()) {
+            $firstIndex = collect($rows)->sortBy('orden')->keys()->first();
+            $rows[$firstIndex]['es_responsable'] = true;
+        }
+        if ($responsables->count() > 1) {
+            $firstIndex = $responsables->sortBy('orden')->keys()->first();
+            foreach ($rows as $index => &$row) $row['es_responsable'] = $index === $firstIndex;
+            unset($row);
+        }
+        $responsable = collect($rows)->first(fn ($row) => ! empty($row['es_responsable']));
+        $actividad['responsable'] = $responsable['nombre'] ?? '';
+        $record->update(['responsable' => $actividad['responsable']]);
         $ids = [];
         $seen = [];
         foreach ($rows as $index => &$row) {

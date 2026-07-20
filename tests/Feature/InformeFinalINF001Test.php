@@ -58,7 +58,56 @@ class InformeFinalINF001Test extends TestCase
     public function test_se_precarga_informacion_general(): void
     {
         [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
-        $this->assertSame('Transformación digital en patronatos y juntas de agua de Orocuina',$report->nombre_proyecto); $this->assertSame('2026-01-12',$report->fecha_inicio->format('Y-m-d')); $this->assertSame(266792.44,(float)$report->presupuesto_planificado);
+        $this->assertSame('Transformación digital en patronatos y juntas de agua de Orocuina',$report->nombre_proyecto); $this->assertSame($project->codigo_proyecto,$report->numero_registro); $this->assertSame('2026-01-12',$report->fecha_inicio->format('Y-m-d')); $this->assertSame(266792.44,(float)$report->presupuesto_planificado);
+    }
+
+    public function test_el_numero_de_registro_no_usa_el_id_interno_y_solo_se_corrige_en_borrador(): void
+    {
+        [$user,$project]=$this->scenario();
+        $report=$this->initialize($project,$user);
+        $report->update(['numero_registro'=>'Proyecto #'.$project->id]);
+
+        $corrected=$this->initialize($project,$user);
+        $this->assertSame($project->codigo_proyecto,$corrected->numero_registro);
+
+        $corrected->update(['estado'=>'COMPLETO','numero_registro'=>'Proyecto #'.$project->id]);
+        $completed=$this->initialize($project,$user);
+        $this->assertSame('Proyecto #'.$project->id,$completed->numero_registro);
+    }
+
+    public function test_el_primer_paso_muestra_nombre_registro_y_fecha_en_orden_oficial(): void
+    {
+        [$user,$project]=$this->scenario();
+        $html=$this->livewireComponent($user,$project)->html();
+
+        $namePosition=strpos($html,'Nombre del programa o proyecto');
+        $registrationPosition=strpos($html,'Número de registro');
+        $datePosition=strpos($html,'Fecha de registro');
+        $this->assertNotFalse($namePosition);
+        $this->assertNotFalse($registrationPosition);
+        $this->assertNotFalse($datePosition);
+        $this->assertLessThan($registrationPosition,$namePosition);
+        $this->assertLessThan($datePosition,$registrationPosition);
+    }
+
+    public function test_el_numero_pendiente_no_se_reemplaza_por_el_id_interno(): void
+    {
+        [$user,$project]=$this->scenario();
+        $project->update(['codigo_proyecto'=>null]);
+        $report=$this->initialize($project,$user);
+
+        $this->assertNull($report->numero_registro);
+        $this->livewireComponent($user,$project)->assertSee('Pendiente de asignación');
+    }
+
+    public function test_el_pdf_usa_el_numero_de_registro_oficial(): void
+    {
+        [$user,$project]=$this->scenario();
+        $report=$this->initialize($project,$user);
+        $pdfView=view('pdf.informes-finales.inf-001', ['informe'=>$report])->render();
+
+        $this->assertStringContainsString($project->codigo_proyecto,$pdfView);
+        $this->assertStringNotContainsString('Proyecto #'.$project->id,$pdfView);
     }
 
     public function test_se_precargan_objetivos(): void
@@ -468,19 +517,116 @@ class InformeFinalINF001Test extends TestCase
             ->assertSee('Descargar PDF');
     }
 
-    public function test_pdf_usa_plantilla_institucional_exclusiva_en_horizontal(): void
+    public function test_pdf_usa_plantilla_institucional_en_carta_vertical_y_generacion_centralizada(): void
     {
         $template=file_get_contents(resource_path('views/pdf/informes-finales/inf-001.blade.php'));
-        $this->assertStringContainsString('letter landscape',$template);
-        $this->assertStringContainsString('form-018-header.png',$template);
-        $this->assertStringContainsString('form-018-watermark.png',$template);
-        $this->assertStringContainsString('vinculacion.sociedad@unah.edu.hn',$template);
+        $documento=file_get_contents(resource_path('views/proyectos/informe-final/partials/inf-001-document.blade.php'));
+        $chrome=file_get_contents(resource_path('views/proyectos/informe-final/partials/inf-001-page-chrome.blade.php'));
+        $controlador=file_get_contents(app_path('Http/Controllers/Proyectos/InformeFinal/InformeFinalProyectoController.php'));
+        $this->assertStringContainsString('crearPdfInf001',$controlador);
+        $this->assertStringContainsString('loadMissing',$controlador);
+        $this->assertStringContainsString('setPaper([0, 0, 612, 792])',$controlador);
+        $this->assertStringContainsString("->stream(",$controlador);
+        $this->assertStringContainsString("->download(",$controlador);
+        $this->assertStringContainsString('page_text',$controlador);
+        $this->assertStringNotContainsString("setPaper('letter', 'landscape')",$controlador);
+        $this->assertStringContainsString('body { padding: 78pt 30pt 42pt 30pt',$documento);
+        $this->assertStringContainsString('inf-001-document',$template);
+        $this->assertStringContainsString('images/enf/form-018-header.png',$chrome);
+        $this->assertStringContainsString('images/enf/form-018-watermark.png',$chrome);
+        $this->assertStringContainsString("'file://'.public_path",$chrome);
+        $this->assertStringContainsString('font-size: 8pt',$documento);
+        $this->assertStringContainsString('"Liberation Sans"',$documento);
+        $this->assertStringContainsString('width: 12pt; height: 82pt',$chrome);
+        $this->assertStringNotContainsString('height: 100%',$chrome);
+        $this->assertStringNotContainsString('border-right',$chrome);
+        $this->assertStringContainsString('table-layout: fixed',$documento);
+        $this->assertStringContainsString('border-collapse: collapse',$documento);
+        $this->assertStringContainsString('display: table-header-group',$documento);
+        $this->assertDirectoryDoesNotExist(public_path('images/informes-finales/inf-001/pages'));
+        $this->assertDirectoryDoesNotExist(resource_path('views/proyectos/informe-final/partials/pages'));
         $this->assertStringNotContainsString('INF-002',$template);
+    }
+
+    public function test_vista_previa_y_pdf_usan_el_mismo_partial_compartido(): void
+    {
+        $template=file_get_contents(resource_path('views/proyectos/informe-final/partials/inf-001-document.blade.php'));
+        $preview=file_get_contents(resource_path('views/proyectos/informe-final/inf-001.blade.php'));
+        $pdf=file_get_contents(resource_path('views/pdf/informes-finales/inf-001.blade.php'));
+        $partial="@include('proyectos.informe-final.partials.inf-001-document'";
+
+        $this->assertStringContainsString('inf-001-page-chrome',$template);
+        $this->assertStringContainsString('Pendiente de asignación',$template);
+        $this->assertStringNotContainsString(implode('-', ['page','template']),$template);
+        $this->assertStringNotContainsString(implode('-', ['page','overlay']),$template);
+        $this->assertStringNotContainsString('position: absolute; padding',$template);
+        $this->assertStringContainsString($partial,$preview);
+        $this->assertStringContainsString($partial,$pdf);
+        $this->assertFileDoesNotExist(resource_path('views/proyectos/informe-final/inf-001-pdf.blade.php'));
+    }
+
+    public function test_documento_compartido_conserva_campos_y_tablas_oficiales_sin_resumir(): void
+    {
+        $documento=file_get_contents(resource_path('views/proyectos/informe-final/partials/inf-001-document.blade.php'));
+        foreach (['beneficiarios','equipoDocente','cooperacion','estudiantes','voluntarios','contrapartes','resultados','actividades','accionesNoEjecutadas','accionesEmergentes','ods','presupuestoDetalles','anexos','firmas'] as $dato) {
+            $this->assertStringContainsString($dato,$documento);
+        }
+        foreach (['I. Información general del proyecto','II. Equipo ejecutor del proyecto','III. Cuantificación de participación de estudiantes','IV. Cuantificación de participación de voluntarios','V. Información de la entidad contraparte','VI. Informe de ejecución','VII. Reporte de acciones','VIII. Reporte de acciones emergentes','IX. Reflexión','X. Ejecución presupuestaria','XI. Firmas','XII. Anexos'] as $seccion) {
+            $this->assertStringContainsString($seccion,$documento);
+        }
+        $this->assertStringContainsString('<table class="inf-table',$documento);
+        $this->assertStringContainsString('ASIG / PPS / VOL',$documento);
+        $this->assertStringNotContainsString('<th>Nombre completo</th><th>Cantidad</th>',$documento);
+        $this->assertStringContainsString("firstWhere('es_responsable', true)",$documento);
+        $this->assertStringNotContainsString("participantes->pluck",$documento);
+    }
+
+    public function test_las_filas_excedentes_crecen_dinamicamente_en_tablas_html(): void
+    {
+        [$user,$project]=$this->scenario();
+        $report=$this->initialize($project,$user);
+        foreach (range(1,6) as $index) {
+            $report->estudiantes()->create([
+                'nombre'=>'Estudiante adicional '.$index,
+                'tipo_participacion'=>'voluntariado',
+                'cantidad'=>1,
+                'horas_dedicadas'=>10,
+            ]);
+        }
+
+        $html=view('pdf.informes-finales.inf-001',['informe'=>$report->fresh()])->render();
+
+        foreach (range(1,6) as $index) {
+            $this->assertStringContainsString('Estudiante adicional '.$index,$html);
+        }
+        $this->assertStringContainsString('display: table-header-group',$html);
+        $this->assertStringNotContainsString('page-'.'04.png',$html);
+    }
+
+    public function test_la_tabla_de_firmas_renderiza_solo_firmas_existentes(): void
+    {
+        $documento=file_get_contents(resource_path('views/proyectos/informe-final/partials/inf-001-document.blade.php'));
+
+        $this->assertStringContainsString("data_get(\$firmas,'coordinador.firma')",$documento);
+        $this->assertStringContainsString("data_get(\$firmas,'jefe.firma')",$documento);
+        $this->assertStringContainsString("data_get(\$firmas,'enlace.firma')",$documento);
+        $this->assertStringContainsString("data_get(\$firmas,'decano.firma')",$documento);
     }
 
     public function test_se_genera_pdf_inf001(): void
     {
         [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user); $response=$this->actingAs($user)->get(route('informes-finales.inf-001.pdf',$report)); $response->assertOk(); $this->assertStringContainsString('application/pdf',(string)$response->headers->get('content-type'));
+    }
+
+    public function test_ruta_imprimir_genera_pdf_inline_con_el_mismo_constructor(): void
+    {
+        [$user,$project]=$this->scenario();
+        $report=$this->initialize($project,$user);
+        $response=$this->actingAs($user)->get(route('informes-finales.inf-001.print',$report));
+
+        $response->assertOk();
+        $this->assertStringContainsString('application/pdf',(string)$response->headers->get('content-type'));
+        $this->assertStringStartsWith('inline; filename="INF-001-',(string)$response->headers->get('content-disposition'));
     }
 
     public function test_no_existe_ruta_o_boton_inf002(): void
