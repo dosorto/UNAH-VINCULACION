@@ -8,7 +8,10 @@ use App\Models\Proyecto\Proyecto;
 use App\Models\Personal\Empleado;
 use App\Models\Estado\EstadoProyecto;
 use App\Models\Proyecto\DocumentoProyecto;
+use App\Models\ENF\EnfAccion;
+use App\Models\ENF\EnfRevision;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Collection;
 use Livewire\Component;
 use Carbon\Carbon;
 use Spatie\Activitylog\Models\Activity;
@@ -138,13 +141,152 @@ class DasboardDocente extends Component
     {
         $userId = auth()->user()->empleado->id;
         $query = Empleado::query();
-        $query->where('id', 'like', '%' .$userId . '%');
+        $query->where('id', $userId);
         return $query->withCount('proyectos')->paginate(4);
     }
 
     public function empleadosVinculacion()
     {
         return Empleado::whereHas('proyectos')->count();
+    }
+
+    /**
+     * Unifica en una sola lista "Mis proyectos" todos los formularios que el
+     * docente tiene: Proyecto (Desarrollo Local/Voluntariado), PPS/Servicio
+     * Social y ENF (Educación No Formal). Cada fila trae su propio stepper
+     * de progreso, calculado según el flujo de aprobación real configurado
+     * para ese formulario (no una lista fija de 5 etapas).
+     */
+    private function misFormularios(?int $empleadoId, ?int $userId): Collection
+    {
+        $rows = collect();
+
+        if ($empleadoId) {
+            Proyecto::query()
+                ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+                ->where('empleado_proyecto.empleado_id', $empleadoId)
+                ->select('proyecto.*')
+                ->distinct()
+                ->with(['categoria'])
+                ->get()
+                ->each(function (Proyecto $proyecto) use ($rows): void {
+                    [$proceso, $documento] = $proyecto->procesoActivoParaStepper();
+
+                    $rows->push([
+                        'kind' => 'proyecto',
+                        'nombre' => $proyecto->nombre_proyecto,
+                        'categoria' => $proyecto->categoria->pluck('nombre')->implode(', ') ?: null,
+                        'fecha_inicio' => $proyecto->fecha_inicio,
+                        'fecha_fin' => $proyecto->fecha_finalizacion,
+                        'fase' => $this->faseStepperLabel($proceso),
+                        'stepper' => $this->stepperEstados($proyecto->firmasParaFicha($proceso, $documento)),
+                        'sort_date' => $proyecto->created_at,
+                    ]);
+                });
+        }
+
+        if ($userId) {
+            PpsServicioSocial::query()
+                ->where('created_by', $userId)
+                ->get()
+                ->each(function (PpsServicioSocial $registro) use ($rows): void {
+                    $rows->push([
+                        'kind' => 'pps',
+                        'nombre' => $registro->nombre_estudiante ?: $registro->nombre_institucion,
+                        'categoria' => 'PPS / Servicio Social',
+                        'fecha_inicio' => $registro->created_at,
+                        'fecha_fin' => null,
+                        'fase' => 'Aprobación',
+                        'stepper' => $this->stepperEstados($registro->stepperDeAprobacion()),
+                        'sort_date' => $registro->created_at,
+                    ]);
+                });
+
+            EnfAccion::query()
+                ->where('creado_por_usuario_id', $userId)
+                ->get()
+                ->each(function (EnfAccion $accion) use ($rows): void {
+                    $rows->push([
+                        'kind' => 'enf',
+                        'nombre' => $accion->nombre_accion,
+                        'categoria' => 'Educación no formal',
+                        'fecha_inicio' => $accion->fecha_solicitud ?: $accion->created_at,
+                        'fecha_fin' => null,
+                        'fase' => 'Aprobación',
+                        'stepper' => $this->enfStepper($accion),
+                        'sort_date' => $accion->created_at,
+                    ]);
+                });
+        }
+
+        return $rows->sortByDesc('sort_date')->take(15)->values();
+    }
+
+    /**
+     * Etiqueta legible de la fase que representa el stepper actual de un
+     * Proyecto: aprobación inicial, informe intermedio o informe final. Solo
+     * aplica a Proyecto — PPS/ENF tienen un único flujo (siempre "Aprobación").
+     */
+    private function faseStepperLabel(string $proceso): string
+    {
+        return match ($proceso) {
+            Proyecto::FLUJO_INFORME_INTERMEDIO => 'Informe Intermedio',
+            Proyecto::FLUJO_CIERRE_PROYECTO => 'Informe Final',
+            default => 'Aprobación',
+        };
+    }
+
+    /**
+     * Convierte una colección [etapa, firma] (Proyecto::firmasParaFicha /
+     * TieneFlujoPorEtapas::stepperDeAprobacion) en la forma plana que usa el
+     * partial del stepper: ['nombre' => ..., 'estado' => aprobado|actual|pendiente|rechazado].
+     */
+    private function stepperEstados(Collection $filas): array
+    {
+        $actualMarcado = false;
+
+        return $filas->map(function (array $fila) use (&$actualMarcado): array {
+            $firma = $fila['firma'];
+            $estado = 'pendiente';
+
+            if ($firma?->estado_revision === 'Aprobado') {
+                $estado = 'aprobado';
+            } elseif ($firma?->estado_revision === 'Rechazado') {
+                $estado = 'rechazado';
+            } elseif (! $actualMarcado) {
+                $estado = 'actual';
+                $actualMarcado = true;
+            }
+
+            return ['nombre' => $fila['etapa']->nombre, 'estado' => $estado];
+        })->all();
+    }
+
+    private function enfStepper(EnfAccion $accion): array
+    {
+        $ultimoCiclo = (int) EnfRevision::where('enf_accion_id', $accion->id)->max('revision_ciclo') ?: 1;
+
+        $actualMarcado = false;
+
+        return EnfRevision::where('enf_accion_id', $accion->id)
+            ->where('revision_ciclo', $ultimoCiclo)
+            ->orderBy('orden')
+            ->get()
+            ->map(function (EnfRevision $revision) use (&$actualMarcado): array {
+                $estado = 'pendiente';
+
+                if ($revision->estado === 'APROBADO') {
+                    $estado = 'aprobado';
+                } elseif ($revision->estado === 'SUBSANACION') {
+                    $estado = 'rechazado';
+                } elseif (! $actualMarcado) {
+                    $estado = 'actual';
+                    $actualMarcado = true;
+                }
+
+                return ['nombre' => $revision->etapa_nombre, 'estado' => $estado];
+            })
+            ->all();
     }
 
     /**
@@ -504,33 +646,17 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
                 ->get();
         }
 
-        // Si necesitas obtener todos los proyectos asociados al usuario sin filtrar por estado:
-        $proyectosUserTable = Proyecto::query()
-            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
-            ->where('empleado_proyecto.empleado_id', $userId)
-            ->select('proyecto.*')
-            ->distinct()
-            ->with([
-                'estadoActual.tipoestado',
-                'firmasDeEtapa' => fn ($q) => $q->orderByDesc('revision_ciclo')->orderBy('orden_revision'),
-            ])
-            ->paginate( 10);
-
         $proyectosUser = Proyecto::query()
             ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
             ->where('empleado_proyecto.empleado_id', $userId)
             ->distinct()
             ->get();
 
-        // Mis registros PPS/SS (FORM-DVUS-014), con su progreso por etapa
-        $ppsUserTable = PpsServicioSocial::query()
-            ->where('created_by', $authUserId)
-            ->with([
-                'etapaActual',
-                'firmasDeEtapa' => fn ($q) => $q->orderByDesc('revision_ciclo')->orderBy('orden_revision'),
-            ])
-            ->orderByDesc('created_at')
-            ->paginate(10, ['*'], 'ppsPage');
+        // Mis formularios: unifica Proyecto (Desarrollo Local/Voluntariado), PPS/SS
+        // y ENF en una sola lista, cada fila con su stepper de progreso calculado
+        // según el flujo de aprobación configurado (incluye informe intermedio/
+        // final si el proyecto ya pasó la aprobación inicial y está en esa fase).
+        $misFormularios = $this->misFormularios($userId, $authUserId);
 
 
         //obtener lista de años en los cuales hay proyectos creados
@@ -618,9 +744,8 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
             'totalSubsanar' => $totalSubsanar,
             'ejecucionUser' => $ejecucionUser,
             'borradorUser' => $borradorUser,
-            'proyectosUserTable' => $proyectosUserTable,
             'proyectosUser' => $proyectosUser,
-            'ppsUserTable' => $ppsUserTable,
+            'misFormularios' => $misFormularios,
             //chartAdmin
             'chartData' => array_values($this->projectsData),
             'años' => $años,

@@ -67,8 +67,7 @@
 
                 @if($puedeEnviarRevision)
                     <button type="button"
-                            wire:click="enviarRevision"
-                            wire:confirm="Al enviar este registro a revisión ya no podrá editarse. Desea continuar?"
+                            x-on:click.prevent="confirmDialog('Al enviar este registro a revisión ya no podrá editarse. ¿Desea continuar?').then((ok) => ok && $wire.enviarRevision())"
                             wire:loading.attr="disabled"
                             wire:target="enviarRevision"
                             class="inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-70">
@@ -87,8 +86,7 @@
 
                 @if($puedeAprobar)
                     <button type="button"
-                            wire:click="aprobarEtapa"
-                            wire:confirm="Desea aprobar esta etapa del registro PPS / Servicio Social?"
+                            x-on:click.prevent="confirmDialog('¿Desea aprobar esta etapa del registro PPS / Servicio Social?').then((ok) => ok && $wire.aprobarEtapa())"
                             wire:loading.attr="disabled"
                             wire:target="aprobarEtapa"
                             class="inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-70">
@@ -99,8 +97,7 @@
 
                 @if($puedeSubsanar)
                     <button type="button"
-                            wire:click="iniciarSubsanacion"
-                            wire:confirm="Desea iniciar la subsanación? El registro volverá a borrador para editarlo."
+                            x-on:click.prevent="confirmDialog('¿Desea iniciar la subsanación? El registro volverá a borrador para editarlo.').then((ok) => ok && $wire.iniciarSubsanacion())"
                             wire:loading.attr="disabled"
                             wire:target="iniciarSubsanacion"
                             class="inline-flex items-center rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70">

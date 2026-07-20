@@ -26,7 +26,7 @@
                         class="rounded-full px-4 py-2 text-sm font-semibold text-white shadow-sm transition {{ $draftSetup['ready_for_review'] ? 'bg-amber-500 shadow-amber-500/20 hover:bg-amber-600' : 'cursor-not-allowed bg-slate-300 shadow-none dark:bg-slate-700' }}">
                         Enviar a revisión
                     </button>
-                    <button wire:click="deleteDraft" wire:confirm="¿Deseas borrar este programa? Esta acción no se puede deshacer." class="rounded-full border border-rose-300 px-4 py-2 text-sm font-medium text-rose-700 dark:border-rose-800 dark:text-rose-300">Borrar</button>
+                    <button x-on:click.prevent="confirmDialog('¿Deseas borrar este programa? Esta acción no se puede deshacer.', { type: 'danger' }).then((ok) => ok && $wire.deleteDraft())" class="rounded-full border border-rose-300 px-4 py-2 text-sm font-medium text-rose-700 dark:border-rose-800 dark:text-rose-300">Borrar</button>
                 @endif
             </div>
         </div>

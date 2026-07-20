@@ -160,6 +160,47 @@ trait TieneFlujoPorEtapas
         });
     }
 
+    /**
+     * Etapas de tipo "APROBACION" del flujo de este registro, junto con la
+     * firma vigente (del ciclo de revisión actual) para cada una, si existe.
+     * Fuente de verdad para pintar steppers de progreso en listados/paneles.
+     *
+     * @return Collection<int, array{etapa: FlujoAprobacionEtapa, firma: ?FirmaProyecto}>
+     */
+    public function stepperDeAprobacion(): Collection
+    {
+        $flujo = $this->resolveFlujoAprobacion();
+
+        if (! $flujo) {
+            return collect();
+        }
+
+        $etapasFirmantes = $this->etapasActivasDelFlujo($flujo)
+            ->filter(fn (FlujoAprobacionEtapa $etapa) => $etapa->tipo_etapa === 'APROBACION' && $etapa->cargo_firma_id)
+            ->values();
+
+        if ($etapasFirmantes->isEmpty()) {
+            return collect();
+        }
+
+        $cicloVigente = max(1, $this->ultimoCicloDeFirmasPorEtapa((int) $flujo->id));
+
+        $firmasDelCiclo = $this->firmasDeEtapa()
+            ->where('flujo_aprobacion_id', $flujo->id)
+            ->where('revision_ciclo', $cicloVigente)
+            ->whereIn('flujo_aprobacion_etapa_id', $etapasFirmantes->pluck('id'))
+            ->whereNull('deleted_at')
+            ->orderByRaw("estado_revision = 'Aprobado' desc")
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('flujo_aprobacion_etapa_id');
+
+        return $etapasFirmantes->map(fn (FlujoAprobacionEtapa $etapa) => [
+            'etapa' => $etapa,
+            'firma' => $firmasDelCiclo->get($etapa->id)?->first(),
+        ]);
+    }
+
     public function firmasDeEtapasDelFlujo(int $flujoAprobacionId, int $revisionCiclo = 1): Collection
     {
         $this->validarParametrosFirmasDeEtapas($flujoAprobacionId, $revisionCiclo);
