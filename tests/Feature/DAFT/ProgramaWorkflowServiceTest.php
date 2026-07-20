@@ -27,6 +27,7 @@ use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class ProgramaWorkflowServiceTest extends TestCase
@@ -198,7 +199,8 @@ class ProgramaWorkflowServiceTest extends TestCase
             ->assertSee('Panel de programas')
             ->assertSee('Revisiones pendientes')
             ->assertSee($programa->nombre)
-            ->assertSee('PENDIENTE ASIGNACION');
+            ->assertSee('Pendiente de asignación')
+            ->assertSee('Sin responsable asignado');
     }
 
     public function test_menu_daft_muestra_la_notificacion_de_revisiones_visibles(): void
@@ -232,6 +234,9 @@ class ProgramaWorkflowServiceTest extends TestCase
         $destinatario = User::factory()->create(['active_role_id' => $actor->active_role_id]);
         $destinatario->assignRole($actor->activeRole);
         $usuarioSinRol = User::factory()->create();
+        $usuarioInactivo = User::factory()->create(['active_role_id' => $actor->active_role_id]);
+        $usuarioInactivo->assignRole($actor->activeRole);
+        $usuarioInactivo->delete();
         $service = app(ProgramaWorkflowService::class);
         $service->enviarARevision($programa, $actor);
         $revision = $programa->fresh()->etapaActual();
@@ -243,11 +248,18 @@ class ProgramaWorkflowServiceTest extends TestCase
             $this->assertStringContainsString('no pertenece al rol revisor', $exception->getMessage());
         }
 
+        try {
+            $service->asignarAUsuario($revision, $actor, $usuarioInactivo);
+            $this->fail('No debía permitir asignar la revisión a un usuario inactivo.');
+        } catch (\DomainException $exception) {
+            $this->assertStringContainsString('no está activo', $exception->getMessage());
+        }
+
         $this->assertSame('PENDIENTE_ASIGNACION', $revision->fresh()->estado);
         $this->actingAs($actor);
 
         Livewire::test(ListBandejaRevision::class)
-            ->assertSee('Seleccione revisor')
+            ->assertSee('Seleccione responsable')
             ->assertSee($destinatario->email)
             ->set('reviewerSelections.'.$revision->id, $destinatario->id)
             ->call('assignReviewer', $revision->id)
@@ -407,6 +419,123 @@ class ProgramaWorkflowServiceTest extends TestCase
         $component
             ->call('assignToMe', $revision->id)
             ->assertSee('La revisión ya fue tomada o resuelta. La bandeja fue actualizada.');
+    }
+
+    public function test_etapa_que_requiere_asignacion_no_puede_procesarse_antes_de_asignarla(): void
+    {
+        [$programa, $revisor, $flujo] = $this->escenarioConDosEtapas();
+        $flujo->etapas()->firstOrFail()->update([
+            'requiere_asignacion' => true,
+            'usuario_responsable_id' => null,
+        ]);
+        $service = app(ProgramaWorkflowService::class);
+        $service->enviarARevision($programa, $revisor);
+        $revision = $programa->fresh()->etapaActual();
+
+        $this->assertSame('PENDIENTE_ASIGNACION', $revision?->estado);
+        $this->assertNull($revision?->asignado_usuario_id);
+        $this->assertFalse($service->usuarioPuedeActuar($revision, $revisor));
+
+        foreach (['aprobar', 'rechazar'] as $accion) {
+            try {
+                $accion === 'aprobar'
+                    ? $service->aprobar($revision->fresh(), $revisor)
+                    : $service->rechazar($revision->fresh(), $revisor, 'Requiere correcciones');
+                $this->fail("No debía permitir {$accion} una etapa pendiente de asignación.");
+            } catch (HttpException $exception) {
+                $this->assertSame(403, $exception->getStatusCode());
+            }
+        }
+
+        $this->assertSame('PENDIENTE_ASIGNACION', $revision->fresh()->estado);
+    }
+
+    public function test_usuario_sin_autorizacion_no_puede_asignar_responsable(): void
+    {
+        [$programa, $revisor, $flujo] = $this->escenarioConDosEtapas();
+        $flujo->etapas()->firstOrFail()->update(['requiere_asignacion' => true]);
+        $rolAjeno = Role::findOrCreate('DAFT Rol ajeno '.uniqid(), 'web');
+        $usuarioNoAutorizado = User::factory()->create(['active_role_id' => $rolAjeno->id]);
+        $usuarioNoAutorizado->assignRole($rolAjeno);
+        $service = app(ProgramaWorkflowService::class);
+        $service->enviarARevision($programa, $revisor);
+        $revision = $programa->fresh()->etapaActual();
+
+        try {
+            $service->asignarAUsuario($revision, $usuarioNoAutorizado, $revisor);
+            $this->fail('Un usuario sin el rol de la etapa no debía poder asignar al responsable.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+        }
+
+        $this->assertSame('PENDIENTE_ASIGNACION', $revision->fresh()->estado);
+    }
+
+    public function test_solo_responsable_asignado_puede_procesar_etapa_y_admin_conserva_acceso(): void
+    {
+        [$programa, $revisor, $flujo] = $this->escenarioConDosEtapas();
+        $flujo->etapas()->firstOrFail()->update(['requiere_asignacion' => true]);
+        $otroRevisor = User::factory()->create(['active_role_id' => $revisor->active_role_id]);
+        $otroRevisor->assignRole($revisor->activeRole);
+        $adminRole = Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create(['active_role_id' => $adminRole->id]);
+        $admin->assignRole($adminRole);
+        $service = app(ProgramaWorkflowService::class);
+        $service->enviarARevision($programa, $revisor);
+        $revision = $programa->fresh()->etapaActual();
+        $service->asignarAUsuario($revision, $admin, $otroRevisor);
+        $revision->refresh();
+
+        $this->assertFalse($service->usuarioPuedeActuar($revision, $revisor));
+        $this->assertTrue($service->usuarioPuedeActuar($revision, $otroRevisor));
+        $this->assertTrue($service->usuarioPuedeActuar($revision, $admin));
+
+        try {
+            $service->aprobar($revision, $revisor);
+            $this->fail('Un revisor distinto al responsable asignado no debía poder aprobar.');
+        } catch (HttpException $exception) {
+            $this->assertSame(403, $exception->getStatusCode());
+        }
+
+        $service->aprobar($revision->fresh(), $admin, 'Validado por administración');
+        $this->assertSame('ETAPA_2', $programa->fresh()->etapaActual()?->etapa_codigo);
+    }
+
+    public function test_subsanacion_conserva_responsable_anterior_si_sigue_siendo_elegible(): void
+    {
+        [$programa, $revisor, $flujo] = $this->escenarioConDosEtapas();
+        $flujo->etapas()->firstOrFail()->update(['requiere_asignacion' => true]);
+        $service = app(ProgramaWorkflowService::class);
+        $service->enviarARevision($programa, $revisor);
+        $revision = $programa->fresh()->etapaActual();
+        $service->asignarAUsuario($revision, $revisor, $revisor);
+        $service->rechazar($revision->fresh(), $revisor, 'Debe corregir la documentación');
+
+        $service->enviarARevision($programa->fresh(), $revisor);
+        $revisionSubsanada = $programa->fresh()->etapaActual();
+
+        $this->assertSame(2, $revisionSubsanada?->revision_ciclo);
+        $this->assertSame('ASIGNADO', $revisionSubsanada?->estado);
+        $this->assertSame($revisor->id, $revisionSubsanada?->asignado_usuario_id);
+    }
+
+    public function test_subsanacion_vuelve_a_pendiente_si_responsable_anterior_ya_no_es_elegible(): void
+    {
+        [$programa, $revisor, $flujo] = $this->escenarioConDosEtapas();
+        $etapa = $flujo->etapas()->firstOrFail();
+        $etapa->update(['requiere_asignacion' => true]);
+        $service = app(ProgramaWorkflowService::class);
+        $service->enviarARevision($programa, $revisor);
+        $revision = $programa->fresh()->etapaActual();
+        $service->asignarAUsuario($revision, $revisor, $revisor);
+        $service->rechazar($revision->fresh(), $revisor, 'Debe corregir la documentación');
+        $revisor->removeRole($etapa->rolRevisor);
+
+        $service->enviarARevision($programa->fresh(), $revisor);
+        $revisionSubsanada = $programa->fresh()->etapaActual();
+
+        $this->assertSame('PENDIENTE_ASIGNACION', $revisionSubsanada?->estado);
+        $this->assertNull($revisionSubsanada?->asignado_usuario_id);
     }
 
     public function test_edita_una_asignatura_del_programa_y_reemplaza_su_documento(): void

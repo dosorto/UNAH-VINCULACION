@@ -83,11 +83,14 @@
 
                 <div class="mt-5 max-h-64 space-y-3 overflow-y-auto pr-1">
                     @forelse ($revisionesPendientes as $revision)
+                        @php($estadoRevision = $revision->estado === 'PENDIENTE_ASIGNACION' ? 'Pendiente de asignación' : ucfirst(strtolower(str_replace('_', ' ', $revision->estado))))
+                        @php($responsableRevision = $revision->asignadoUsuario?->name ?? $revision->responsableUsuario?->name)
                         <a href="{{ route('daft.bandeja-revision') }}" wire:navigate class="block rounded-2xl border border-slate-200 bg-[#faf8f4] p-4 transition hover:border-sky-300 hover:bg-sky-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-sky-700 dark:hover:bg-slate-800/80">
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
                                     <p class="truncate text-sm font-bold text-[#062a52] dark:text-white">{{ $revision->programa?->nombre ?? 'Programa sin nombre' }}</p>
-                                    <p class="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">{{ $revision->etapa_nombre }} · {{ str_replace('_', ' ', $revision->estado) }}</p>
+                                    <p class="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">{{ $revision->etapa_nombre }} · {{ $estadoRevision }}</p>
+                                    <p class="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">{{ $responsableRevision ? 'Responsable: '.$responsableRevision : 'Sin responsable asignado' }}</p>
                                 </div>
                                 @svg('heroicon-o-chevron-right', ['class' => 'mt-1 h-4 w-4 shrink-0 text-slate-400'])
                             </div>

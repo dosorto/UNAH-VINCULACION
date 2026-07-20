@@ -44,8 +44,7 @@
                                class="rounded border-gray-300 text-blue-600">
                         {{ $slide->estado ? 'Activo' : 'Inactivo' }}
                     </label>
-                    <button wire:click="deleteSlide({{ $slide->id }})"
-                            wire:confirm="¿Estás seguro de eliminar este slide?"
+                    <button x-on:click.prevent="confirmDialog('¿Estás seguro de eliminar este slide?', { type: 'danger' }).then((ok) => ok && $wire.deleteSlide({{ $slide->id }}))"
                             class="px-3 py-1 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg">
                         Eliminar
                     </button>

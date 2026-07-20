@@ -647,7 +647,9 @@ class Proyecto extends Model
         return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
             ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
-            ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto');
+            ->where('tipo_cargo_firma.nombre', 'Coordinador Proyecto')
+            ->orderByDesc('firma_proyecto.revision_ciclo')
+            ->orderByDesc('firma_proyecto.id');
     }
 
 
@@ -656,7 +658,9 @@ class Proyecto extends Model
         return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
             ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
-            ->where('tipo_cargo_firma.nombre', 'Revisor Vinculacion');
+            ->where('tipo_cargo_firma.nombre', 'Revisor Vinculacion')
+            ->orderByDesc('firma_proyecto.revision_ciclo')
+            ->orderByDesc('firma_proyecto.id');
     }
 
     public function firma_director_vinculacion()
@@ -664,7 +668,9 @@ class Proyecto extends Model
         return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
             ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
-            ->where('tipo_cargo_firma.nombre', 'Director Vinculacion');
+            ->where('tipo_cargo_firma.nombre', 'Director Vinculacion')
+            ->orderByDesc('firma_proyecto.revision_ciclo')
+            ->orderByDesc('firma_proyecto.id');
     }
 
     public function getDirectorVinculacionAttribute()
@@ -688,7 +694,9 @@ class Proyecto extends Model
         return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
             ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
-            ->where('tipo_cargo_firma.nombre', 'Enlace Vinculacion');
+            ->where('tipo_cargo_firma.nombre', 'Enlace Vinculacion')
+            ->orderByDesc('firma_proyecto.revision_ciclo')
+            ->orderByDesc('firma_proyecto.id');
     }
     // firma del decano
     public function firma_proyecto_decano()
@@ -696,7 +704,9 @@ class Proyecto extends Model
         return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
             ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
-            ->where('tipo_cargo_firma.nombre', 'Director centro');
+            ->where('tipo_cargo_firma.nombre', 'Director centro')
+            ->orderByDesc('firma_proyecto.revision_ciclo')
+            ->orderByDesc('firma_proyecto.id');
     }
 
     public function firma_proyecto_jefe()
@@ -704,7 +714,9 @@ class Proyecto extends Model
         return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->join('cargo_firma', 'firma_proyecto.cargo_firma_id', '=', 'cargo_firma.id')
             ->join('tipo_cargo_firma', 'cargo_firma.tipo_cargo_firma_id', '=', 'tipo_cargo_firma.id')
-            ->where('tipo_cargo_firma.nombre', 'Jefe Departamento');
+            ->where('tipo_cargo_firma.nombre', 'Jefe Departamento')
+            ->orderByDesc('firma_proyecto.revision_ciclo')
+            ->orderByDesc('firma_proyecto.id');
     }
 
     public function firma_proyecto_cargo()
@@ -1173,6 +1185,74 @@ class Proyecto extends Model
                 })
                 ->values();
         });
+    }
+
+    /**
+     * Determina qué sub-flujo mostrarle al usuario como "progreso actual":
+     * el de inscripción (por defecto) o, si ya se envió un Informe Intermedio
+     * o Informe Final al flujo, el de ese documento (el más reciente que
+     * tenga firmas generadas), sin importar si ya se completó o sigue
+     * pendiente. Pensado para paneles/listados (ej. dashboard del docente).
+     *
+     * @return array{0: string, 1: ?DocumentoProyecto}
+     */
+    public function procesoActivoParaStepper(): array
+    {
+        $documentoActivo = $this->documentos()
+            ->whereIn('tipo_documento', ['Informe Intermedio', 'Informe Final'])
+            ->latest('id')
+            ->get()
+            ->first(fn (DocumentoProyecto $doc) => FirmaProyecto::query()
+                ->where('firmable_type', DocumentoProyecto::class)
+                ->where('firmable_id', $doc->id)
+                ->exists());
+
+        if ($documentoActivo) {
+            return [self::procesoFlujoParaDocumento($documentoActivo->tipo_documento) ?? self::FLUJO_INSCRIPCION, $documentoActivo];
+        }
+
+        return [self::FLUJO_INSCRIPCION, null];
+    }
+
+    /**
+     * Etapas de tipo "APROBACION" del proceso indicado, junto con la firma
+     * vigente (del ciclo de revisión actual) para cada una, si existe. Es la
+     * fuente de verdad para pintar los cuadros de firma en las fichas/PDF: a
+     * diferencia de las relaciones firma_coodinador_proyecto/firma_proyecto_*
+     * (fijas a 6 cargos hardcodeados), esto se adapta a cualquier flujo,
+     * mostrando exactamente las etapas que ese flujo definió como firmantes.
+     *
+     * @return Collection<int, array{etapa: FlujoAprobacionEtapa, firma: ?FirmaProyecto}>
+     */
+    public function firmasParaFicha(string $proceso = self::FLUJO_INSCRIPCION, ?DocumentoProyecto $documento = null): Collection
+    {
+        $etapasFirmantes = $this->flujoEtapasActivasOrdenadas($proceso)
+            ->filter(fn (FlujoAprobacionEtapa $etapa) => $etapa->tipo_etapa === 'APROBACION' && $etapa->cargo_firma_id)
+            ->values();
+
+        if ($etapasFirmantes->isEmpty()) {
+            return collect();
+        }
+
+        $flujoId = $this->flujoAprobacion?->id ?? $this->flujo_aprobacion_id;
+        $cicloVigente = $flujoId ? max(1, $this->ultimoCicloDeFirmasPorEtapa((int) $flujoId, $documento)) : 1;
+
+        $firmasDelCiclo = $flujoId
+            ? $this->relacionFirmasDeEtapas($documento)
+                ->where('flujo_aprobacion_id', $flujoId)
+                ->where('revision_ciclo', $cicloVigente)
+                ->whereIn('flujo_aprobacion_etapa_id', $etapasFirmantes->pluck('id'))
+                ->whereNull('deleted_at')
+                ->orderByRaw("estado_revision = 'Aprobado' desc")
+                ->orderByDesc('id')
+                ->get()
+                ->groupBy('flujo_aprobacion_etapa_id')
+            : collect();
+
+        return $etapasFirmantes->map(fn (FlujoAprobacionEtapa $etapa) => [
+            'etapa' => $etapa,
+            'firma' => $firmasDelCiclo->get($etapa->id)?->first(),
+        ]);
     }
 
     public function firmasDeEtapasDelFlujo(

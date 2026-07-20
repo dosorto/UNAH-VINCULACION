@@ -126,10 +126,32 @@
                 <h2 class="mt-2 text-lg font-extrabold text-slate-900 dark:text-white">{{ $revision->etapa_nombre }}</h2>
                 <p class="mt-2 text-sm leading-5 text-slate-500 dark:text-slate-400">Revisa el expediente académico completo antes de aprobar o solicitar correcciones.</p>
 
-                <div class="mt-5 rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/60"><p class="text-[9px] font-black uppercase tracking-wider text-slate-500">Estado de la etapa</p><p class="mt-2 text-sm font-extrabold text-slate-900 dark:text-white">{{ str_replace('_', ' ', $revision->estado) }}</p><p class="mt-1 text-xs text-slate-500">{{ $revision->rol_requerido ?: 'Sin rol específico' }}</p></div>
+                @php($estadoEtapa = $revision->estado === 'PENDIENTE_ASIGNACION' ? 'Pendiente de asignación' : ucfirst(strtolower(str_replace('_', ' ', $revision->estado))))
+                @php($responsableEtapa = $revision->asignadoUsuario?->name ?? $revision->responsableUsuario?->name)
+                <div class="mt-5 rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/60">
+                    <p class="text-[9px] font-black uppercase tracking-wider text-slate-500">Estado de la etapa</p>
+                    <p class="mt-2 text-sm font-extrabold text-slate-900 dark:text-white">{{ $estadoEtapa }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ $responsableEtapa ? 'Responsable: '.$responsableEtapa : 'Sin responsable asignado' }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ $revision->rol_requerido ?: 'Sin rol específico' }}</p>
+                </div>
 
-                @if ($canTake)
-                    <button wire:click="assignToMe" class="mt-5 w-full rounded-full bg-cyan-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-cyan-700">Tomar revisión</button>
+                @if ($canAssign)
+                    <div class="mt-5 space-y-3">
+                        <label class="block space-y-2">
+                            <span class="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Responsable de la etapa</span>
+                            <select wire:model="responsableSeleccionadoId" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                <option value="">Seleccione responsable</option>
+                                @foreach ($eligibleReviewers as $reviewer)
+                                    <option value="{{ $reviewer->id }}">{{ $reviewer->name }}{{ filled($reviewer->email) ? ' — '.$reviewer->email : '' }}</option>
+                                @endforeach
+                            </select>
+                            @error('responsableSeleccionadoId')<p class="text-xs font-medium text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                        </label>
+                        <button wire:click="assignResponsible" class="w-full rounded-full bg-cyan-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-cyan-700 disabled:opacity-60" @disabled($eligibleReviewers->isEmpty())>Asignar responsable</button>
+                        @if ($eligibleReviewers->isEmpty())
+                            <p class="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">No hay usuarios elegibles para esta etapa.</p>
+                        @endif
+                    </div>
                 @elseif ($canAct)
                     <label class="mt-5 block space-y-2"><span class="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Observaciones</span><textarea wire:model="observaciones" rows="6" placeholder="Escribe observaciones o las correcciones requeridas" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"></textarea>@error('observaciones')<p class="text-xs font-medium text-rose-600">{{ $message }}</p>@enderror</label>
                     <div class="mt-5 space-y-3">

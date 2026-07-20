@@ -52,8 +52,7 @@
                         </td>
                         <td class="px-4 py-3 text-right space-x-2">
                             @if($record->trashed())
-                                <button wire:click="restore({{ $record->id }})"
-                                    wire:confirm="¿Restaurar este campus?"
+                                <button x-on:click.prevent="confirmDialog('¿Restaurar este campus?').then((ok) => ok && $wire.restore({{ $record->id }}))"
                                     class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 rounded-md">
                                     Restaurar
                                 </button>
@@ -62,8 +61,7 @@
                                     class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-md">
                                     Editar
                                 </button>
-                                <button wire:click="delete({{ $record->id }})"
-                                    wire:confirm="¿Eliminar este campus?"
+                                <button x-on:click.prevent="confirmDialog('¿Eliminar este campus?', { type: 'danger' }).then((ok) => ok && $wire.delete({{ $record->id }}))"
                                     class="inline-flex items-center px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-md">
                                     Eliminar
                                 </button>

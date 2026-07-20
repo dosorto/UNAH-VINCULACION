@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\DAFT\ProgramaWorkflowService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 
 class ListBandejaRevision extends Component
@@ -35,10 +36,14 @@ class ListBandejaRevision extends Component
     public function assignReviewer(int $revisionId): void
     {
         $validated = $this->validate([
-            'reviewerSelections.'.$revisionId => ['required', 'integer', 'exists:users,id'],
+            'reviewerSelections.'.$revisionId => [
+                'required',
+                'integer',
+                Rule::exists('users', 'id')->whereNull('deleted_at'),
+            ],
         ], [
-            'reviewerSelections.*.required' => 'Selecciona el revisor que recibirá el programa.',
-            'reviewerSelections.*.exists' => 'El revisor seleccionado ya no está disponible.',
+            'reviewerSelections.*.required' => 'Selecciona el responsable de la etapa.',
+            'reviewerSelections.*.exists' => 'El responsable seleccionado ya no está disponible.',
         ]);
         $reviewerId = (int) data_get($validated, 'reviewerSelections.'.$revisionId);
         $reviewer = User::findOrFail($reviewerId);
@@ -56,7 +61,7 @@ class ListBandejaRevision extends Component
         }
 
         unset($this->reviewerSelections[$revisionId]);
-        session()->flash('programas_status', 'Revisión asignada a '.$reviewer->name.'.');
+        session()->flash('programas_status', 'Responsable asignado: '.$reviewer->name.'.');
         if ($reviewer->is(Auth::user())) {
             $this->dispatch('daft-review-assigned');
         }
@@ -123,17 +128,10 @@ class ListBandejaRevision extends Component
             : null;
         $reviewerCandidatesByRevision = $programasPendientes
             ->where('estado', 'PENDIENTE_ASIGNACION')
-            ->mapWithKeys(function (ProgramaRevision $revision): array {
-                $roleName = $revision->flujoEtapa?->rolRevisor?->name ?: $revision->rol_requerido;
-                if (! $roleName) {
-                    return [$revision->id => collect()];
-                }
-
-                return [$revision->id => User::role($roleName)
-                    ->with('roles')
-                    ->orderBy('name')
-                    ->get()];
-            });
+            ->mapWithKeys(fn (ProgramaRevision $revision): array => [
+                $revision->id => app(ProgramaWorkflowService::class)
+                    ->usuariosElegiblesParaRevision($revision),
+            ]);
 
         return view('livewire.daft.programas.list-bandeja-revision', compact('programasPendientes', 'programasEnProceso', 'programasAprobados', 'pendingNotice', 'reviewerCandidatesByRevision'))
             ->layout('layouts.app', ['hideHorizontalNav' => true]);

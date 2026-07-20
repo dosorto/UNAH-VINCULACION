@@ -7,6 +7,7 @@ use App\Models\DAFT\ProgramaRevision;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ProgramaWorkflowService
@@ -38,6 +39,9 @@ class ProgramaWorkflowService
                         ? $stage->asignadoUsuario
                         : ($flowStage instanceof FlujoAprobacionEtapa ? $this->resolverRevisorPredeterminado($flowStage) : null));
                 $requiresAssignment = ! $emisorDefineDestinatario && (bool) ($flowStage?->requiere_asignacion ?? false);
+                $assignedReviewer = $requiresAssignment
+                    ? $this->responsableAnteriorElegible($stage)
+                    : $defaultReviewer;
 
                 ProgramaRevision::create([
                     'programa_certificacion_id' => $programa->id,
@@ -48,8 +52,8 @@ class ProgramaWorkflowService
                     'etapa_nombre' => $stage instanceof ProgramaRevision ? $stage->etapa_nombre : $stage->nombre,
                     'rol_requerido' => $stage instanceof ProgramaRevision ? $stage->rol_requerido : $flowStage?->rolRevisor?->name,
                     'responsable_usuario_id' => $stage instanceof ProgramaRevision ? $stage->responsable_usuario_id : $flowStage?->usuario_responsable_id,
-                    'asignado_usuario_id' => $requiresAssignment ? null : $defaultReviewer?->id,
-                    'estado' => $requiresAssignment ? 'PENDIENTE_ASIGNACION' : ($defaultReviewer ? 'ASIGNADO' : 'PENDIENTE'),
+                    'asignado_usuario_id' => $assignedReviewer?->id,
+                    'estado' => $assignedReviewer ? 'ASIGNADO' : ($requiresAssignment ? 'PENDIENTE_ASIGNACION' : 'PENDIENTE'),
                 ]);
             }
 
@@ -89,14 +93,10 @@ class ProgramaWorkflowService
             if (! $revisionActual->programa || $revisionActual->programa->etapaActual()?->id !== $revisionActual->id) {
                 throw new \DomainException('La revisión ya no es la etapa actual del programa. La bandeja fue actualizada.');
             }
-            abort_if(! $this->usuarioTieneRolDeEtapa($revisionActual, $actor), 403);
+            abort_if(! $this->usuarioPuedeAsignar($revisionActual, $actor), 403);
 
-            $roleName = $revisionActual->flujoEtapa?->rolRevisor?->name ?: $revisionActual->rol_requerido;
-            if (! $roleName) {
-                throw new \DomainException('La etapa no tiene un rol revisor configurado para asignar usuarios.');
-            }
-            if (! $destinatario->hasRole($roleName)) {
-                throw new \DomainException('El usuario seleccionado no pertenece al rol revisor de esta etapa.');
+            if (! $this->usuarioEsElegibleParaRevision($revisionActual, $destinatario)) {
+                throw new \DomainException('El usuario seleccionado no está activo o no pertenece al rol revisor de esta etapa.');
             }
 
             $revisionActual->update(['asignado_usuario_id' => $destinatario->id, 'estado' => 'ASIGNADO']);
@@ -246,12 +246,33 @@ class ProgramaWorkflowService
         return ! $roleName || $actor->activeRole?->name === $roleName;
     }
 
+    public function usuarioPuedeAsignar(ProgramaRevision $revision, User $actor): bool
+    {
+        return $revision->estado === 'PENDIENTE_ASIGNACION'
+            && ($this->esAdministrador($actor) || $this->usuarioTieneRolDeEtapa($revision, $actor));
+    }
+
+    public function usuariosElegiblesParaRevision(ProgramaRevision $revision): Collection
+    {
+        $roleName = $revision->flujoEtapa?->rolRevisor?->name ?: $revision->rol_requerido;
+        $query = User::query()->with('roles')->orderBy('name');
+
+        if ($roleName) {
+            $query->role($roleName);
+        }
+
+        return $query->get();
+    }
+
     public function usuarioPuedeActuar(ProgramaRevision $revision, User $actor): bool
     {
-        if ($revision->asignado_usuario_id && (int) $revision->asignado_usuario_id !== (int) $actor->id) {
+        if ($revision->estado === 'PENDIENTE_ASIGNACION') {
             return false;
         }
-        if ($revision->estado === 'PENDIENTE_ASIGNACION') {
+        if ($this->esAdministrador($actor)) {
+            return true;
+        }
+        if ($revision->asignado_usuario_id && (int) $revision->asignado_usuario_id !== (int) $actor->id) {
             return false;
         }
 
@@ -266,6 +287,11 @@ class ProgramaWorkflowService
 
         if (! $programa) {
             return false;
+        }
+
+        if ($this->esAdministrador($actor)) {
+            return $programa->estado_flujo === 'APROBADO'
+                || $programa->etapaActual()?->id === $revision->id;
         }
 
         if ($programa->estado_flujo === 'APROBADO') {
@@ -290,6 +316,10 @@ class ProgramaWorkflowService
 
     public function usuarioParticipoEnEtapa(ProgramaRevision $revision, User $actor): bool
     {
+        if ($this->esAdministrador($actor)) {
+            return true;
+        }
+
         $participantes = array_map('intval', array_filter([
             $revision->asignado_usuario_id,
             $revision->responsable_usuario_id,
@@ -298,6 +328,35 @@ class ProgramaWorkflowService
 
         return in_array((int) $actor->id, $participantes, true)
             || $this->usuarioTieneRolDeEtapa($revision, $actor);
+    }
+
+    protected function responsableAnteriorElegible(FlujoAprobacionEtapa|ProgramaRevision $stage): ?User
+    {
+        if (! $stage instanceof ProgramaRevision || ! $stage->flujoEtapa) {
+            return null;
+        }
+
+        $responsable = $stage->asignadoUsuario;
+
+        return $responsable && $this->usuarioEsElegibleParaRevision($stage, $responsable)
+            ? $responsable
+            : null;
+    }
+
+    protected function usuarioEsElegibleParaRevision(ProgramaRevision $revision, User $user): bool
+    {
+        if (! $user->exists || $user->trashed()) {
+            return false;
+        }
+
+        $roleName = $revision->flujoEtapa?->rolRevisor?->name ?: $revision->rol_requerido;
+
+        return ! $roleName || $user->hasRole($roleName);
+    }
+
+    protected function esAdministrador(User $user): bool
+    {
+        return $user->activeRole?->name === 'admin';
     }
 
     protected function etapasParaNuevoCiclo(ProgramaCertificacion $programa, FlujoAprobacion $flujo)

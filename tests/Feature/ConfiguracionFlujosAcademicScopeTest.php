@@ -84,6 +84,27 @@ class ConfiguracionFlujosAcademicScopeTest extends TestCase
         $this->assertSame(FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD, $etapa->multiplicidad_revision);
     }
 
+    public function test_nueva_etapa_daft_muestra_asignacion_de_responsable_desactivada_por_defecto(): void
+    {
+        $this->crearCatalogosBase();
+        $tipoPrograma = TipoPrograma::create([
+            'nombre' => 'Tipo sin flujo '.uniqid(),
+            'activo' => true,
+        ]);
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(ConfiguracionFlujosProyectos::class)
+            ->call('showProgramFlows')
+            ->call('selectProgramTipoPrograma', $tipoPrograma->id)
+            ->assertSee('Requiere asignación de responsable')
+            ->assertSet('programStages.0.requiere_asignacion', false)
+            ->call('addStage')
+            ->assertSet('programStages.1.requiere_asignacion', false)
+            ->call('removeStage', 1)
+            ->call('removeStage', 0)
+            ->assertSet('programStages.0.requiere_asignacion', false);
+    }
+
     public function test_codigo_del_flujo_daft_se_genera_con_el_nombre_y_no_admite_cambios_manuales(): void
     {
         $context = $this->crearCatalogosBase();

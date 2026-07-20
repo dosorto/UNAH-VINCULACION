@@ -4,11 +4,13 @@ namespace App\Livewire\DAFT\Programas;
 
 use App\Models\DAFT\ProgramaAsignatura;
 use App\Models\DAFT\ProgramaRevision;
+use App\Models\User;
 use App\Services\DAFT\ProgramaWorkflowService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -19,6 +21,8 @@ class ProgramaRevisionDetail extends Component
     public string $observaciones = '';
 
     public ?int $selectedProgramaAsignaturaId = null;
+
+    public ?int $responsableSeleccionadoId = null;
 
     public function mount(ProgramaRevision $revision): void
     {
@@ -62,6 +66,37 @@ class ProgramaRevisionDetail extends Component
         }
 
         session()->flash('programas_status', 'Revisión asignada correctamente. Ya puedes evaluar el programa.');
+    }
+
+    public function assignResponsible(): void
+    {
+        $validated = $this->validate([
+            'responsableSeleccionadoId' => [
+                'required',
+                'integer',
+                Rule::exists('users', 'id')->whereNull('deleted_at'),
+            ],
+        ], [
+            'responsableSeleccionadoId.required' => 'Selecciona el responsable de la etapa.',
+            'responsableSeleccionadoId.exists' => 'El responsable seleccionado ya no está disponible.',
+        ]);
+
+        $responsable = User::findOrFail($validated['responsableSeleccionadoId']);
+
+        try {
+            app(ProgramaWorkflowService::class)->asignarAUsuario(
+                $this->revision(),
+                Auth::user(),
+                $responsable
+            );
+        } catch (\DomainException $exception) {
+            $this->addError('responsableSeleccionadoId', $exception->getMessage());
+
+            return;
+        }
+
+        $this->responsableSeleccionadoId = null;
+        session()->flash('programas_status', 'Responsable asignado correctamente.');
     }
 
     public function approveRevision(): void
@@ -130,6 +165,7 @@ class ProgramaRevisionDetail extends Component
             ->firstWhere('id', $this->selectedProgramaAsignaturaId);
         $documentPath = $selectedAssignment?->asignatura?->ruta_documento_descripcion_minima;
         $isCurrentStage = $programa?->etapaActual()?->id === $revision->id;
+        $canAssign = $isCurrentStage && $workflow->usuarioPuedeAsignar($revision, Auth::user());
 
         return view('livewire.daft.programas.programa-revision-detail', [
             'revision' => $revision,
@@ -137,9 +173,10 @@ class ProgramaRevisionDetail extends Component
             'canAct' => $isCurrentStage
                 && in_array($revision->estado, ['PENDIENTE', 'ASIGNADO', 'EN_PROCESO'], true)
                 && $workflow->usuarioPuedeActuar($revision, Auth::user()),
-            'canTake' => $isCurrentStage
-                && $revision->estado === 'PENDIENTE_ASIGNACION'
-                && $workflow->usuarioTieneRolDeEtapa($revision, Auth::user()),
+            'canAssign' => $canAssign,
+            'eligibleReviewers' => $canAssign
+                ? $workflow->usuariosElegiblesParaRevision($revision)
+                : collect(),
             'currentStages' => $programa?->revisiones
                 ->where('revision_ciclo', $programa->revision_ciclo)
                 ->sortBy('orden')
