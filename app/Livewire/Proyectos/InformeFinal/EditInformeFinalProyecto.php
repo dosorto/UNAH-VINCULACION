@@ -11,11 +11,14 @@ use App\Models\Proyecto\Proyecto;
 use App\Services\InformeFinal\InformeFinalProyectoInitializer;
 use App\Services\InformeFinal\InformeFinalProyectoValidator;
 use App\Services\Integraciones\IntegracionApiService;
+use App\Support\InformeFinal\ParticipacionEstudiantil;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
@@ -34,6 +37,7 @@ class EditInformeFinalProyecto extends Component
     public array $beneficiarios = [];
     public array $equipo = [];
     public array $cooperacion = [];
+    public array $gruposEstudiantes = [];
     public array $estudiantes = [];
     public array $voluntarios = [];
     public array $contrapartes = [];
@@ -45,9 +49,15 @@ class EditInformeFinalProyecto extends Component
     public array $presupuesto = [];
     public array $anexos = [];
     public array $anexoArchivos = [];
+    public array $fotografiasTemporales = [];
     public array $participanteSeleccion = [];
     public bool $showEstudianteModal = false;
     public bool $showVoluntarioModal = false;
+    public bool $showNoParticipacionModal = false;
+    public string $tipoParticipanteNoParticipacion = '';
+    public ?int $indiceParticipanteNoParticipacion = null;
+    public string $estadoNoParticipacion = 'no_participo';
+    public string $observacionNoParticipacion = '';
     public string $estudianteBusquedaCuenta = '';
     public string $voluntarioBusquedaNumero = '';
     public ?array $estudianteEncontrado = null;
@@ -55,6 +65,8 @@ class EditInformeFinalProyecto extends Component
     public bool $mostrarRegistroManual = false;
     public ?array $voluntarioEncontrado = null;
     public ?int $editEstudianteIndex = null;
+    public ?int $grupoEstudianteSeleccionadoId = null;
+    public string $tipoParticipacionSinPlanificacion = 'voluntariado';
     public ?int $editVoluntarioIndex = null;
     public array $estudianteModal = ['tipo_participacion'=>'practica_asignatura','horas_dedicadas'=>0];
     public array $estudianteManual = ['nombres'=>'','apellidos'=>'','numero_cuenta'=>'','sexo'=>'','carrera'=>'','correo'=>'','tipo_participacion'=>'practica_asignatura','horas_dedicadas'=>0];
@@ -97,7 +109,7 @@ class EditInformeFinalProyecto extends Component
 
     public function anterior(): void { $this->currentStep = max(1, $this->currentStep - 1); }
 
-    public function openEstudianteModal(?int $index = null): void
+    public function openEstudianteModal(?int $index = null, ?int $grupoId = null): void
     {
         $this->resetErrorBag();
         $this->editEstudianteIndex = $index;
@@ -105,30 +117,45 @@ class EditInformeFinalProyecto extends Component
         $this->estudianteEncontrado = null;
         $this->estudianteOrigen = 'PROYECTO';
         $this->mostrarRegistroManual = false;
-        $this->estudianteModal = ['tipo_participacion'=>'practica_asignatura','horas_dedicadas'=>0];
-        $this->estudianteManual = ['nombres'=>'','apellidos'=>'','numero_cuenta'=>'','sexo'=>'','carrera'=>'','correo'=>'','tipo_participacion'=>'practica_asignatura','horas_dedicadas'=>0];
+        $this->estudianteModal = ['horas_dedicadas'=>0];
+        $this->estudianteManual = ['nombres'=>'','apellidos'=>'','numero_cuenta'=>'','sexo'=>'','carrera'=>'','correo'=>'','horas_dedicadas'=>0];
         if ($index !== null && isset($this->estudiantes[$index])) {
             $row = $this->estudiantes[$index];
+            $grupoId = (int) ($row['informe_final_grupo_estudiante_id'] ?? 0);
             if (! empty($row['estudiante_id'])) {
                 $this->estudianteEncontrado = Arr::only($row, ['estudiante_id','nombre','sexo','numero_cuenta','carrera','correo']);
-                $this->estudianteModal = Arr::only($row, ['tipo_participacion','horas_dedicadas']);
+                $this->estudianteModal = Arr::only($row, ['horas_dedicadas']);
             } else {
                 $this->mostrarRegistroManual = true;
                 $this->estudianteManual = array_replace($this->estudianteManual, [
                     'nombres'=>$row['nombre'] ?? '', 'numero_cuenta'=>$row['numero_cuenta'] ?? '',
                     'sexo'=>$row['sexo'] ?? '', 'carrera'=>$row['carrera'] ?? '', 'correo'=>$row['correo'] ?? '',
-                    'tipo_participacion'=>$row['tipo_participacion'] ?? 'practica_asignatura',
                     'horas_dedicadas'=>$row['horas_dedicadas'] ?? 0,
                 ]);
             }
         }
+        abort_unless(collect($this->gruposEstudiantes)->contains(fn ($grupo) => (int) $grupo['id'] === (int) $grupoId), 404);
+        $this->grupoEstudianteSeleccionadoId = (int) $grupoId;
         $this->showEstudianteModal = true;
+    }
+
+    public function openEstudianteSinPlanificacionModal(): void
+    {
+        $this->authorizeSensitive();
+        $this->validate(['tipoParticipacionSinPlanificacion' => [Rule::in(['practica_asignatura','pps_servicio_social','voluntariado'])]]);
+        $grupo = $this->informe->gruposEstudiantes()->firstOrCreate(
+            ['estudiante_proyecto_id' => null, 'tipo_participacion' => $this->tipoParticipacionSinPlanificacion],
+            ['hombres_planificados' => 0, 'mujeres_planificadas' => 0]
+        );
+        $this->cargarFormulario();
+        $this->openEstudianteModal(null, $grupo->id);
     }
 
     public function closeEstudianteModal(): void
     {
         $this->showEstudianteModal = false;
         $this->editEstudianteIndex = null;
+        $this->grupoEstudianteSeleccionadoId = null;
         $this->estudianteEncontrado = null;
         $this->mostrarRegistroManual = false;
         $this->resetErrorBag();
@@ -151,7 +178,6 @@ class EditInformeFinalProyecto extends Component
         $this->estudianteBusquedaCuenta = $cuenta;
         $estudiante = Estudiante::query()
             ->with(['carrera','user'])
-            ->whereHas('proyectosEstudiante', fn ($query) => $query->where('proyecto_id', $this->proyecto->id))
             ->where('cuenta', $cuenta)
             ->first();
         if (! $estudiante) {
@@ -159,7 +185,7 @@ class EditInformeFinalProyecto extends Component
                 $api=$integraciones->buscarEstudiantePorCuenta($cuenta);
                 if ($api['ok']) {
                     $datos=$api['datos'];
-                    $this->estudianteEncontrado=['estudiante_id'=>null,'nombre'=>$datos['nombre_completo'] ?? trim(($datos['nombres'] ?? '').' '.($datos['apellidos'] ?? '')),'sexo'=>$datos['sexo'] ?? null,'numero_cuenta'=>$datos['numero_cuenta'] ?? $cuenta,'carrera'=>$datos['carrera'] ?? null,'correo'=>$datos['correo'] ?? null];
+                    $this->estudianteEncontrado=['estudiante_id'=>null,'nombre'=>$datos['nombre_completo'] ?? trim(($datos['nombres'] ?? '').' '.($datos['apellidos'] ?? '')),'sexo'=>$this->sexoVisual($datos['sexo'] ?? null),'numero_cuenta'=>$datos['numero_cuenta'] ?? $cuenta,'carrera'=>$datos['carrera'] ?? null,'correo'=>$datos['correo'] ?? null];
                     $this->estudianteOrigen = 'API';
                     return;
                 }
@@ -169,8 +195,8 @@ class EditInformeFinalProyecto extends Component
             $this->estudianteManual['numero_cuenta'] = $cuenta;
             return;
         }
-        if (collect($this->estudiantes)->contains(fn ($row, $index) => (int) ($row['estudiante_id'] ?? 0) === $estudiante->id && $index !== $this->editEstudianteIndex)) {
-            $this->addError('estudianteBusquedaCuenta', 'Este estudiante ya fue agregado al informe final.');
+        if ($this->estudianteDuplicadoEnGrupo($estudiante->id, $cuenta)) {
+            $this->addError('estudianteBusquedaCuenta', 'Este estudiante ya fue agregado al grupo.');
             return;
         }
         $this->estudianteEncontrado = $this->snapshotEstudiante($estudiante);
@@ -182,7 +208,7 @@ class EditInformeFinalProyecto extends Component
         $this->estudianteBusquedaCuenta = '';
         $this->estudianteEncontrado = null;
         $this->mostrarRegistroManual = false;
-        $this->estudianteManual = ['nombres'=>'','apellidos'=>'','numero_cuenta'=>'','sexo'=>'','carrera'=>'','correo'=>'','tipo_participacion'=>'practica_asignatura','horas_dedicadas'=>0];
+        $this->estudianteManual = ['nombres'=>'','apellidos'=>'','numero_cuenta'=>'','sexo'=>'','carrera'=>'','correo'=>'','horas_dedicadas'=>0];
     }
 
     private function snapshotEstudiante(Estudiante $estudiante): array
@@ -190,7 +216,7 @@ class EditInformeFinalProyecto extends Component
         return [
             'estudiante_id'=>$estudiante->id,
             'nombre'=>trim($estudiante->nombre.' '.$estudiante->apellido),
-            'sexo'=>$estudiante->sexo,
+            'sexo'=>$this->sexoVisual($estudiante->sexo),
             'numero_cuenta'=>$estudiante->cuenta,
             'carrera'=>$estudiante->carrera?->nombre,
             'correo'=>$estudiante->user?->email,
@@ -201,18 +227,27 @@ class EditInformeFinalProyecto extends Component
     {
         $this->authorizeSensitive();
         $this->validate([
-            'estudianteEncontrado.estudiante_id'=>['required','integer'],
-            'estudianteModal.tipo_participacion'=>[Rule::in(['practica_asignatura','pps_servicio_social','voluntariado'])],
+            'grupoEstudianteSeleccionadoId'=>['required','integer',Rule::exists('informe_final_grupos_estudiantes','id')->where(fn ($query) => $query->where('informe_final_proyecto_id',$this->informe->id))],
+            'estudianteEncontrado.estudiante_id'=>['nullable','integer'],
+            'estudianteEncontrado.nombre'=>['required','string','max:255'],
+            'estudianteEncontrado.numero_cuenta'=>['required','string','max:30'],
+            'estudianteEncontrado.sexo'=>['required', Rule::in(['Masculino','Femenino'])],
             'estudianteModal.horas_dedicadas'=>['required','numeric','min:0'],
         ]);
+        $grupo = $this->grupoEstudianteParaGuardar();
         $studentId = (int) $this->estudianteEncontrado['estudiante_id'];
-        $valid = $studentId ? Estudiante::whereKey($studentId)->whereHas('proyectosEstudiante', fn ($query) => $query->where('proyecto_id', $this->proyecto->id))->exists() : $this->estudianteOrigen === 'API';
+        $valid = $studentId ? Estudiante::whereKey($studentId)->exists() : $this->estudianteOrigen === 'API';
         abort_unless($valid, 422);
-        if (collect($this->estudiantes)->contains(fn ($row, $index) => (int) ($row['estudiante_id'] ?? 0) === $studentId && $index !== $this->editEstudianteIndex)) {
-            $this->addError('estudianteEncontrado.estudiante_id', 'Este estudiante ya fue agregado.');
+        if ($this->estudianteDuplicadoEnGrupo($studentId ?: null, $this->estudianteEncontrado['numero_cuenta'])) {
+            $this->addError('estudianteEncontrado.estudiante_id', 'Este estudiante ya fue agregado al grupo.');
             return;
         }
-        $row = array_replace($this->estudianteEncontrado, $this->estudianteModal, ['cantidad'=>1]);
+        if (! $this->validarCupoGrupo($this->estudianteEncontrado['sexo'], 'estudianteEncontrado.sexo')) return;
+        $row = array_replace($this->estudianteEncontrado, $this->estudianteModal, [
+            'informe_final_grupo_estudiante_id'=>$grupo['id'],
+            'tipo_participacion'=>$grupo['tipo_participacion'],
+            'cantidad'=>1,
+        ]);
         $row['origen'] = $this->estudianteOrigen;
         $index = $this->editEstudianteIndex;
         if ($index === null) {
@@ -230,31 +265,31 @@ class EditInformeFinalProyecto extends Component
     {
         $this->authorizeSensitive();
         $this->validate([
+            'grupoEstudianteSeleccionadoId'=>['required','integer',Rule::exists('informe_final_grupos_estudiantes','id')->where(fn ($query) => $query->where('informe_final_proyecto_id',$this->informe->id))],
             'estudianteManual.nombres'=>['required','string','max:150'],
             'estudianteManual.apellidos'=>['nullable','string','max:150'],
             'estudianteManual.numero_cuenta'=>['required','regex:/^\d+$/','max:30'],
-            'estudianteManual.sexo'=>['nullable', Rule::in(['Masculino','Femenino','Otro'])],
+            'estudianteManual.sexo'=>['required', Rule::in(['Masculino','Femenino'])],
             'estudianteManual.carrera'=>['nullable','string','max:255'],
             'estudianteManual.correo'=>['nullable','email','max:255'],
-            'estudianteManual.tipo_participacion'=>[Rule::in(['practica_asignatura','pps_servicio_social','voluntariado'])],
             'estudianteManual.horas_dedicadas'=>['required','numeric','min:0'],
         ]);
+        $grupo = $this->grupoEstudianteParaGuardar();
         $cuenta = preg_replace('/\s+/', '', $this->estudianteManual['numero_cuenta']);
-        $duplicate = collect($this->estudiantes)->contains(function ($row, $index) use ($cuenta) {
-            return $index !== $this->editEstudianteIndex && ($row['numero_cuenta'] ?? null) === $cuenta;
-        });
-        if ($duplicate) {
-            $this->addError('estudianteManual.numero_cuenta', 'Este estudiante ya fue agregado al informe final.');
+        if ($this->estudianteDuplicadoEnGrupo(null, $cuenta)) {
+            $this->addError('estudianteManual.numero_cuenta', 'Este estudiante ya fue agregado al grupo.');
             return;
         }
+        if (! $this->validarCupoGrupo($this->estudianteManual['sexo'], 'estudianteManual.sexo')) return;
         $row = [
+            'informe_final_grupo_estudiante_id'=>$grupo['id'],
             'estudiante_id'=>null,
             'nombre'=>trim($this->estudianteManual['nombres'].' '.$this->estudianteManual['apellidos']),
             'sexo'=>$this->estudianteManual['sexo'] ?: null,
             'numero_cuenta'=>$cuenta,
             'carrera'=>$this->estudianteManual['carrera'] ?: null,
             'correo'=>$this->estudianteManual['correo'] ?: null,
-            'tipo_participacion'=>$this->estudianteManual['tipo_participacion'],
+            'tipo_participacion'=>$grupo['tipo_participacion'],
             'horas_dedicadas'=>$this->estudianteManual['horas_dedicadas'],
             'cantidad'=>1,
             'origen'=>'MANUAL',
@@ -269,6 +304,64 @@ class EditInformeFinalProyecto extends Component
         }
         $this->guardarFilaAutoguardado('estudiantes', $index);
         $this->closeEstudianteModal();
+    }
+
+    private function grupoEstudianteSeleccionado(): array
+    {
+        $grupo = collect($this->gruposEstudiantes)
+            ->first(fn ($row) => (int) $row['id'] === (int) $this->grupoEstudianteSeleccionadoId);
+        abort_unless($grupo, 422);
+
+        return $grupo;
+    }
+
+    private function grupoEstudianteParaGuardar(): array
+    {
+        if ($this->editEstudianteIndex !== null) {
+            $row = $this->estudiantes[$this->editEstudianteIndex] ?? null;
+            $persistido = ! empty($row['id'])
+                ? $this->informe->estudiantes()->whereKey($row['id'])->first()
+                : null;
+            if ($persistido) {
+                $this->grupoEstudianteSeleccionadoId = (int) $persistido->informe_final_grupo_estudiante_id;
+            }
+        }
+
+        return $this->grupoEstudianteSeleccionado();
+    }
+
+    private function estudianteDuplicadoEnGrupo(?int $estudianteId, ?string $cuenta): bool
+    {
+        return collect($this->estudiantes)->contains(function ($row, $index) use ($estudianteId, $cuenta) {
+            if ($index === $this->editEstudianteIndex || (int) ($row['informe_final_grupo_estudiante_id'] ?? 0) !== (int) $this->grupoEstudianteSeleccionadoId) {
+                return false;
+            }
+            if ($estudianteId && (int) ($row['estudiante_id'] ?? 0) === $estudianteId) {
+                return true;
+            }
+
+            return filled($cuenta) && (string) ($row['numero_cuenta'] ?? '') === (string) $cuenta;
+        });
+    }
+
+    private function validarCupoGrupo(string $sexo, string $campo): bool
+    {
+        $grupo = $this->grupoEstudianteSeleccionado();
+        $masculino = $sexo === 'Masculino';
+        $limite = (int) $grupo[$masculino ? 'hombres_planificados' : 'mujeres_planificadas'];
+        $registrados = collect($this->estudiantes)->filter(function ($row, $index) use ($sexo) {
+            return $index !== $this->editEstudianteIndex
+                && (int) ($row['informe_final_grupo_estudiante_id'] ?? 0) === (int) $this->grupoEstudianteSeleccionadoId
+                && ($row['estado_participacion'] ?? 'activo') === 'activo'
+                && ($row['sexo'] ?? null) === $sexo;
+        })->count();
+        if ($registrados < $limite) {
+            return true;
+        }
+
+        $this->addError($campo, 'Ya se registró la cantidad máxima de '.($masculino ? 'hombres' : 'mujeres').' planificada para este grupo.');
+
+        return false;
     }
 
     public function openVoluntarioModal(?int $index = null): void
@@ -305,7 +398,7 @@ class EditInformeFinalProyecto extends Component
             $this->addError('voluntarioBusquedaNumero', 'No se encontró una persona del proyecto con ese número de empleado.');
             return;
         }
-        $this->voluntarioEncontrado = ['empleado_id'=>$empleado->id,'nombre'=>$empleado->nombre_completo,'sexo'=>$empleado->sexo,'identidad'=>$empleado->numero_empleado,'departamento'=>$empleado->departamento_academico?->nombre];
+        $this->voluntarioEncontrado = ['empleado_id'=>$empleado->id,'nombre'=>$empleado->nombre_completo,'sexo'=>$this->sexoVisual($empleado->sexo),'identidad'=>$empleado->numero_empleado,'departamento'=>$empleado->departamento_academico?->nombre];
         $this->voluntarioModal = array_replace($this->voluntarioModal, $this->voluntarioEncontrado);
     }
 
@@ -314,6 +407,7 @@ class EditInformeFinalProyecto extends Component
         $this->authorizeSensitive();
         $this->validate([
             'voluntarioModal.nombre'=>['required','string','max:255'],
+            'voluntarioModal.sexo'=>['required', Rule::in(['Masculino','Femenino'])],
             'voluntarioModal.tipo'=>[Rule::in(['profesor_hora','pas','profesor_permanente','egresado'])],
             'voluntarioModal.horas_dedicadas'=>['required','numeric','min:0'],
         ]);
@@ -338,6 +432,140 @@ class EditInformeFinalProyecto extends Component
         $this->closeVoluntarioModal();
     }
 
+    public function openNoParticipacionModal(string $tipo, int $index): void
+    {
+        $this->authorizeSensitive();
+        $config = $this->configParticipantes()[$tipo] ?? null;
+        abort_unless($config && isset($this->{$config}[$index]), 404);
+        $this->tipoParticipanteNoParticipacion = $tipo;
+        $this->indiceParticipanteNoParticipacion = $index;
+        $this->estadoNoParticipacion = 'no_participo';
+        $this->observacionNoParticipacion = '';
+        $this->resetErrorBag();
+        $this->showNoParticipacionModal = true;
+    }
+
+    public function closeNoParticipacionModal(): void
+    {
+        $this->showNoParticipacionModal = false;
+        $this->tipoParticipanteNoParticipacion = '';
+        $this->indiceParticipanteNoParticipacion = null;
+        $this->observacionNoParticipacion = '';
+        $this->resetErrorBag();
+    }
+
+    public function confirmarNoParticipacion(): void
+    {
+        $this->authorizeSensitive();
+        $this->validate([
+            'estadoNoParticipacion' => ['required', Rule::in(['no_participo','retirado'])],
+            'observacionNoParticipacion' => ['required','string','min:10','max:500'],
+        ]);
+        $property = $this->configParticipantes()[$this->tipoParticipanteNoParticipacion] ?? null;
+        $index = $this->indiceParticipanteNoParticipacion;
+        abort_unless($property && $index !== null && isset($this->{$property}[$index]), 404);
+        $this->{$property}[$index]['estado_participacion'] = $this->estadoNoParticipacion;
+        $this->{$property}[$index]['observacion_no_participacion'] = trim($this->observacionNoParticipacion);
+        $this->{$property}[$index]['removido_en'] = now()->toDateTimeString();
+        $this->{$property}[$index]['removido_por'] = auth()->id();
+        $this->guardarFilaAutoguardado($property, $index);
+        $this->closeNoParticipacionModal();
+    }
+
+    public function restaurarParticipante(string $tipo, int $index): void
+    {
+        $this->authorizeSensitive();
+        $property = $this->configParticipantes()[$tipo] ?? null;
+        abort_unless($property && isset($this->{$property}[$index]), 404);
+        if ($property === 'estudiantes') {
+            $this->grupoEstudianteSeleccionadoId = (int) ($this->estudiantes[$index]['informe_final_grupo_estudiante_id'] ?? 0);
+            $this->editEstudianteIndex = $index;
+            if (! $this->validarCupoGrupo($this->estudiantes[$index]['sexo'], "estudiantes.$index.sexo")) return;
+        }
+        $this->{$property}[$index]['estado_participacion'] = 'activo';
+        $this->{$property}[$index]['observacion_no_participacion'] = null;
+        $this->{$property}[$index]['removido_en'] = null;
+        $this->{$property}[$index]['removido_por'] = null;
+        $this->guardarFilaAutoguardado($property, $index);
+        $this->grupoEstudianteSeleccionadoId = null;
+        $this->editEstudianteIndex = null;
+    }
+
+    public function updatedFotografiasTemporales(): void
+    {
+        $this->authorizeSensitive();
+        $existentes = collect($this->anexos)->where('categoria', 'fotografia')->count();
+        $disponibles = max(0, 20 - $existentes);
+        $guardadas = 0;
+        $huboErrores = false;
+
+        foreach ($this->fotografiasTemporales as $index => $foto) {
+            if ($index >= $disponibles) {
+                $this->addError('fotografiasTemporales', 'Solo se permiten hasta 20 fotografías por informe.');
+                $this->addError("fotografiasTemporales.$index", $foto->getClientOriginalName().': solo se permiten hasta 20 fotografías por informe.');
+                $huboErrores = true;
+                continue;
+            }
+
+            $validator = Validator::make(
+                ['fotografia' => $foto],
+                ['fotografia' => ['required','image','mimes:jpg,jpeg,png,webp','max:10240']],
+                [
+                    'fotografia.image' => 'El formato de la fotografía no está permitido.',
+                    'fotografia.mimes' => 'El formato de la fotografía no está permitido.',
+                    'fotografia.max' => 'La fotografía supera el tamaño máximo de 10 MB.',
+                ]
+            );
+            if ($validator->fails()) {
+                $this->addError("fotografiasTemporales.$index", $foto->getClientOriginalName().': '.$validator->errors()->first('fotografia'));
+                $huboErrores = true;
+                continue;
+            }
+
+            $ruta = $foto->store('informes-finales/'.$this->informe->id.'/fotografias', 'public');
+            $this->informe->anexos()->create([
+                'tipo' => 'fotografias',
+                'categoria' => 'fotografia',
+                'archivo' => $ruta,
+                'nombre_archivo' => $foto->getClientOriginalName(),
+                'tamano_bytes' => $foto->getSize(),
+                'fecha' => now()->toDateString(),
+                'orden' => $existentes + 1,
+                'origen' => 'INFORME',
+            ]);
+            $existentes++;
+            $guardadas++;
+        }
+        $this->fotografiasTemporales = [];
+        if ($guardadas > 0) {
+            $this->cargarFormulario();
+            $this->dispatch('fotografias-guardadas');
+        }
+        $this->estadoGuardado = $huboErrores ? 'error' : 'guardado';
+    }
+
+    public function quitarFotografia(int $id): void
+    {
+        $this->authorizeSensitive();
+        $foto = $this->informe->anexos()->whereKey($id)->where('categoria', 'fotografia')->firstOrFail();
+        if ($foto->origen === 'INFORME' && filled($foto->archivo)) Storage::disk('public')->delete($foto->archivo);
+        $foto->delete();
+        $this->cargarFormulario();
+        $this->estadoGuardado = 'guardado';
+    }
+
+    public function anexoUrl(?string $ruta): ?string
+    {
+        if (blank($ruta)) return null;
+
+        return filter_var($ruta, FILTER_VALIDATE_URL) ? $ruta : Storage::disk('public')->url($ruta);
+    }
+
+    private function configParticipantes(): array
+    {
+        return ['equipo'=>'equipo','cooperacion'=>'cooperacion','estudiante'=>'estudiantes','voluntario'=>'voluntarios'];
+    }
+
     public function updated(string $propertyName): void
     {
         if (! $this->debeAutoguardar($propertyName)) {
@@ -351,9 +579,9 @@ class EditInformeFinalProyecto extends Component
     {
         $this->authorizeSensitive();
         $defaults = [
-            'cooperacion' => ['nombre'=>'','pasaporte'=>'','correo'=>'','pais'=>'','universidad'=>'','horas_dedicadas'=>0],
-            'estudiantes' => ['estudiante_id'=>null,'nombre'=>'','sexo'=>'','numero_cuenta'=>'','carrera'=>'','tipo_participacion'=>'practica_asignatura','horas_dedicadas'=>0],
-            'voluntarios' => ['nombre'=>'','sexo'=>'','identidad'=>'','departamento'=>'','tipo'=>'egresado','horas_dedicadas'=>0],
+            'cooperacion' => ['nombre'=>'','pasaporte'=>'','correo'=>'','pais'=>'','universidad'=>'','horas_dedicadas'=>0,'estado_participacion'=>'activo'],
+            'estudiantes' => ['estudiante_id'=>null,'nombre'=>'','sexo'=>'','numero_cuenta'=>'','carrera'=>'','tipo_participacion'=>'practica_asignatura','horas_dedicadas'=>0,'estado_participacion'=>'activo'],
+            'voluntarios' => ['nombre'=>'','sexo'=>'','identidad'=>'','departamento'=>'','tipo'=>'egresado','horas_dedicadas'=>0,'estado_participacion'=>'activo'],
             'contrapartes' => ['existe_apoyo'=>true,'nombre'=>'','tipo'=>'sociedad_civil','contacto'=>'','correo'=>'','cargo'=>'','telefono'=>'','tipo_instrumento'=>null,'compromisos_asumidos'=>'','compromisos_cumplidos'=>'','territorio'=>'','aporte_monetario'=>0,'aporte_especie'=>0,'documento_respaldo'=>''],
             'resultados' => ['objetivo_especifico'=>'','resultado_planificado'=>'','indicador_propuesto'=>'','meta_numerica'=>null,'unidad_medida'=>'','valor_alcanzado'=>null,'porcentaje_cumplimiento'=>0,'estado'=>'no_alcanzado','producto_logrado'=>'','observaciones'=>''],
             'actividades' => ['actividad_planificada'=>'','actividad_realizada'=>'','responsable'=>'','fecha_inicial'=>null,'fecha_final'=>null,'horas_dedicadas'=>0,'medio_verificacion'=>'','estado'=>'no_ejecutada','origen'=>'emergente','participantes'=>[]],
@@ -361,7 +589,7 @@ class EditInformeFinalProyecto extends Component
             'accionesEmergentes' => ['producto_logrado'=>'','actividad_realizada'=>'','justificacion'=>'','responsables'=>'','fecha'=>null,'horas'=>0,'informe_final_resultado_id'=>null],
             'ods' => ['ods_id'=>'','meta_contribuye_id'=>null,'meta_ods'=>'','descripcion_aporte'=>'','evidencia'=>'','nivel_contribucion'=>'directa'],
             'presupuesto' => ['fuente'=>'UNAH','concepto'=>'otros','unidad'=>'','cantidad'=>0,'costo_unitario'=>0,'origen_fondos'=>'','informe_final_contraparte_id'=>null],
-            'anexos' => ['tipo'=>'otros','descripcion'=>'','archivo'=>null,'enlace'=>'','fecha'=>null,'informe_final_resultado_id'=>null,'informe_final_actividad_id'=>null,'orden'=>count($this->anexos)+1],
+            'anexos' => ['tipo'=>'otros','categoria'=>'documento_general','descripcion'=>'','archivo'=>null,'enlace'=>'','fecha'=>null,'informe_final_resultado_id'=>null,'informe_final_actividad_id'=>null,'informe_final_contraparte_id'=>null,'instrumento_formalizacion_id'=>null,'nombre_archivo'=>null,'tamano_bytes'=>null,'origen'=>'INFORME','orden'=>count($this->anexos)+1],
         ];
         abort_unless(array_key_exists($grupo, $defaults), 404);
         $this->{$grupo}[] = $defaults[$grupo];
@@ -372,6 +600,7 @@ class EditInformeFinalProyecto extends Component
     {
         $this->authorizeSensitive();
         abort_unless(property_exists($this, $grupo), 404);
+        abort_if(in_array($grupo, ['equipo','cooperacion','estudiantes','voluntarios'], true), 422, 'Los participantes deben marcarse como no participantes para conservar la trazabilidad.');
         $this->eliminarFilaPersistida($grupo, $this->{$grupo}[$indice] ?? []);
         unset($this->{$grupo}[$indice]);
         $this->{$grupo} = array_values($this->{$grupo});
@@ -455,6 +684,7 @@ class EditInformeFinalProyecto extends Component
     {
         $this->authorizeSensitive();
         $this->validate($this->draftRules());
+        $this->validarJustificacionesParticipacion();
         $this->persistir();
         $this->informe->refresh();
         $validator->validateForCompletion($this->informe);
@@ -491,16 +721,64 @@ class EditInformeFinalProyecto extends Component
         return ['subtotal'=>$subtotal,'infraestructura'=>$infraestructura,'servicios'=>$servicios,'unah'=>$unah,'contraparte'=>$contraparte,'ejecucion'=>$ejecucion,'porcentaje'=>$planificado > 0 ? round($ejecucion/$planificado*100, 2) : 0];
     }
 
+    public function getGruposEstudiantesConRegistroProperty(): array
+    {
+        return collect($this->gruposEstudiantes)->map(function ($grupo, $grupoIndex) {
+            $estudiantes = collect($this->estudiantes)
+                ->map(fn ($row, $index) => $row + ['indice_formulario' => $index])
+                ->filter(fn ($row) => (int) ($row['informe_final_grupo_estudiante_id'] ?? 0) === (int) $grupo['id'])
+                ->values();
+            $activos = $estudiantes->filter(fn ($row) => ($row['estado_participacion'] ?? 'activo') === 'activo');
+            $hombres = $activos->where('sexo', 'Masculino')->count();
+            $mujeres = $activos->where('sexo', 'Femenino')->count();
+            $asignatura = $grupo['asignatura'] ?? null;
+
+            return $grupo + [
+                'indice_formulario' => $grupoIndex,
+                'tipo_etiqueta' => ParticipacionEstudiantil::etiqueta($grupo['tipo_participacion']),
+                'tipo_codigo' => ParticipacionEstudiantil::codigo($grupo['tipo_participacion']),
+                'asignatura_etiqueta' => $asignatura ? collect([$asignatura['codigo'] ?? null, $asignatura['nombre'] ?? null])->filter()->implode(' - ') : null,
+                'total_planificado' => (int) $grupo['hombres_planificados'] + (int) $grupo['mujeres_planificadas'],
+                'hombres_registrados' => $hombres,
+                'mujeres_registradas' => $mujeres,
+                'total_registrado' => $hombres + $mujeres,
+                'hombres_pendientes' => max(0, (int) $grupo['hombres_planificados'] - $hombres),
+                'mujeres_pendientes' => max(0, (int) $grupo['mujeres_planificadas'] - $mujeres),
+                'estudiantes' => $estudiantes->all(),
+            ];
+        })->all();
+    }
+
+    public function getGrupoEstudianteActivoProperty(): ?array
+    {
+        return collect($this->gruposEstudiantesConRegistro)
+            ->first(fn ($grupo) => (int) $grupo['id'] === (int) $this->grupoEstudianteSeleccionadoId);
+    }
+
+    public function getResumenPlanificacionEstudiantesProperty(): array
+    {
+        $grupos = collect($this->gruposEstudiantesConRegistro);
+        $planificadosHombres = $grupos->sum('hombres_planificados');
+        $planificadasMujeres = $grupos->sum('mujeres_planificadas');
+        $registradosHombres = $grupos->sum('hombres_registrados');
+        $registradasMujeres = $grupos->sum('mujeres_registradas');
+
+        return [
+            'planificados' => ['hombres'=>$planificadosHombres,'mujeres'=>$planificadasMujeres,'total'=>$planificadosHombres+$planificadasMujeres],
+            'registrados' => ['hombres'=>$registradosHombres,'mujeres'=>$registradasMujeres,'total'=>$registradosHombres+$registradasMujeres],
+            'pendientes' => ['hombres'=>max(0,$planificadosHombres-$registradosHombres),'mujeres'=>max(0,$planificadasMujeres-$registradasMujeres),'total'=>max(0,$planificadosHombres+$planificadasMujeres-$registradosHombres-$registradasMujeres)],
+        ];
+    }
+
     public function getTotalesParticipacionProperty(): array
     {
-        $students = collect($this->estudiantes);
-        $volunteers = collect($this->voluntarios);
+        $students = collect($this->estudiantes)->filter(fn ($row) => ($row['estado_participacion'] ?? 'activo') === 'activo');
+        $volunteers = collect($this->voluntarios)->filter(fn ($row) => ($row['estado_participacion'] ?? 'activo') === 'activo');
         $sexo = fn ($value) => $this->sexoCanonico($value);
         return [
             'estudiantes' => $students->count(),
             'estudiantes_hombres' => $students->filter(fn ($row) => $sexo($row['sexo'] ?? null) === 'masculino')->count(),
             'estudiantes_mujeres' => $students->filter(fn ($row) => $sexo($row['sexo'] ?? null) === 'femenino')->count(),
-            'estudiantes_sin_especificar' => $students->reject(fn ($row) => in_array($sexo($row['sexo'] ?? null), ['masculino','femenino'], true))->count(),
             'estudiantes_practica' => $students->where('tipo_participacion', 'practica_asignatura')->count(),
             'estudiantes_pps' => $students->where('tipo_participacion', 'pps_servicio_social')->count(),
             'estudiantes_voluntariado' => $students->where('tipo_participacion', 'voluntariado')->count(),
@@ -508,7 +786,6 @@ class EditInformeFinalProyecto extends Component
             'voluntarios' => $volunteers->count(),
             'voluntarios_hombres' => $volunteers->filter(fn ($row) => $sexo($row['sexo'] ?? null) === 'masculino')->count(),
             'voluntarios_mujeres' => $volunteers->filter(fn ($row) => $sexo($row['sexo'] ?? null) === 'femenino')->count(),
-            'voluntarios_sin_especificar' => $volunteers->reject(fn ($row) => in_array($sexo($row['sexo'] ?? null), ['masculino','femenino'], true))->count(),
             'horas_voluntarios' => $volunteers->sum(fn ($row) => (float) ($row['horas_dedicadas'] ?? 0)),
         ];
     }
@@ -518,18 +795,62 @@ class EditInformeFinalProyecto extends Component
         return match ($this->sexoCanonico($value)) {
             'masculino' => 'Masculino',
             'femenino' => 'Femenino',
-            'otro' => 'Otro',
-            default => 'Sin especificar',
+            default => '',
+        };
+    }
+
+    public function estadoParticipacionVisual(?string $estado): string
+    {
+        return match ($estado ?: 'activo') {
+            'no_participo' => 'No participó',
+            'retirado' => 'Retirado',
+            default => 'Participó',
         };
     }
 
     public function getOpcionesParticipantesActividadProperty(): array
     {
         return [
-            'Equipo docente' => collect($this->equipo)->filter(fn ($row) => ! empty($row['empleado_id']))->map(fn ($row) => ['value'=>'docente:'.$row['empleado_id'],'label'=>$row['nombre']])->values()->all(),
-            'Estudiantes' => collect($this->estudiantes)->filter(fn ($row) => ! empty($row['id']))->map(fn ($row) => ['value'=>'estudiante:'.$row['id'],'label'=>$row['nombre'].' · '.$this->sexoVisual($row['sexo'] ?? null)])->values()->all(),
-            'Voluntarios' => collect($this->voluntarios)->filter(fn ($row) => ! empty($row['id']))->map(fn ($row) => ['value'=>'voluntario:'.$row['id'],'label'=>$row['nombre']])->values()->all(),
+            'Equipo docente' => collect($this->equipo)->filter(fn ($row) => ! empty($row['empleado_id']) && ($row['estado_participacion'] ?? 'activo') === 'activo')->map(fn ($row) => ['value'=>'docente:'.$row['empleado_id'],'label'=>$row['nombre']])->values()->all(),
+            'Estudiantes' => collect($this->estudiantes)->filter(fn ($row) => ! empty($row['id']) && ($row['estado_participacion'] ?? 'activo') === 'activo')->map(fn ($row) => ['value'=>'estudiante:'.$row['id'],'label'=>$row['nombre'].' · '.$this->sexoVisual($row['sexo'] ?? null)])->values()->all(),
+            'Voluntarios' => collect($this->voluntarios)->filter(fn ($row) => ! empty($row['id']) && ($row['estado_participacion'] ?? 'activo') === 'activo')->map(fn ($row) => ['value'=>'voluntario:'.$row['id'],'label'=>$row['nombre']])->values()->all(),
         ];
+    }
+
+    public function getFotografiasProperty(): array
+    {
+        return collect($this->anexos)
+            ->map(fn ($row, $index) => $row + ['indice_formulario' => $index])
+            ->where('categoria', 'fotografia')->values()->all();
+    }
+
+    public function getDocumentosAnexosProperty(): array
+    {
+        return collect($this->anexos)
+            ->map(fn ($row, $index) => $row + ['indice_formulario' => $index])
+            ->reject(fn ($row) => ($row['categoria'] ?? 'documento_general') === 'fotografia')->values()->all();
+    }
+
+    public function getContrapartesConInstrumentosProperty(): array
+    {
+        return collect($this->contrapartes)->map(function ($contraparte) {
+            $documentos = collect($this->anexos)->filter(fn ($anexo) => ($anexo['categoria'] ?? null) === 'instrumento_contraparte'
+                && (int) ($anexo['informe_final_contraparte_id'] ?? 0) === (int) $contraparte['id'])->values();
+            $disponible = $documentos->contains(fn ($anexo) => filled($anexo['archivo'] ?? null) || filled($anexo['enlace'] ?? null));
+
+            return $contraparte + [
+                'instrumentos' => $documentos->all(),
+                'estado_instrumento' => $documentos->isEmpty() ? 'No aplica' : ($disponible ? 'Disponible' : 'Pendiente'),
+            ];
+        })->all();
+    }
+
+    public function participanteNoParticipacionActual(): ?array
+    {
+        $property = $this->configParticipantes()[$this->tipoParticipanteNoParticipacion] ?? null;
+        return $property && $this->indiceParticipanteNoParticipacion !== null
+            ? ($this->{$property}[$this->indiceParticipanteNoParticipacion] ?? null)
+            : null;
     }
 
     public function getPorcentajesValoracionProperty(): array
@@ -545,7 +866,8 @@ class EditInformeFinalProyecto extends Component
                 && filled($this->general['fecha_inicio'] ?? null)
                 && filled($this->general['fecha_finalizacion'] ?? null),
             2 => ! empty($this->equipo),
-            3 => ! empty($this->estudiantes) || ! empty($this->voluntarios),
+            3 => collect($this->estudiantes)->contains(fn ($row) => ($row['estado_participacion'] ?? 'activo') === 'activo')
+                || collect($this->voluntarios)->contains(fn ($row) => ($row['estado_participacion'] ?? 'activo') === 'activo'),
             4 => collect($this->contrapartes)->contains(fn ($row) => filled($row['nombre'] ?? null)),
             5 => ! empty($this->resultados) && ! empty($this->actividades),
             6 => filled($this->general['transformacion_lograda'] ?? null)
@@ -614,16 +936,17 @@ class EditInformeFinalProyecto extends Component
 
     private function cargarFormulario(): void
     {
-        $this->informe->load(['beneficiarios','equipoDocente','cooperacion','estudiantes','voluntarios','contrapartes','resultados','actividades.participantes','accionesNoEjecutadas','accionesEmergentes','ods','presupuestoDetalles','anexos']);
+        $this->informe->load(['beneficiarios','equipoDocente','cooperacion','gruposEstudiantes.asignatura','estudiantes','voluntarios','contrapartes','resultados','actividades.participantes','accionesNoEjecutadas','accionesEmergentes','ods','presupuestoDetalles','anexos']);
         $date = fn ($value) => $value?->format('Y-m-d');
         $this->general = Arr::only($this->informe->toArray(), [
-            'numero_registro','nombre_proyecto','facultad_centro','unidad_academica','departamento_academico','carrera','programa_vinculacion','linea_investigacion','modalidad','ejes_prioritarios','categoria','pais','region','departamento_territorial','municipio','aldea_ciudad','caserio','objetivo_general','dificultades','acciones_dificultades','lecciones_aprendidas','buenas_practicas','problema_inicial','transformacion_lograda','mecanismos_sostenibilidad','acciones_contraparte_sostenibilidad','desafios','respuesta_reforma_universitaria','recomendaciones','bibliografia','valoracion_total_beneficiarios','valoracion_muestra','valoracion_excelente','valoracion_muy_buena','valoracion_regular','valoracion_mala','presupuesto_planificado','aporte_beneficiarios','otros_aportes','observaciones_finales','confirmacion_veracidad','estado',
+            'numero_registro','nombre_proyecto','facultad_centro','unidad_academica','departamento_academico','carrera','programa_vinculacion','linea_investigacion','modalidad','ejes_prioritarios','categoria','pais','region','departamento_territorial','municipio','aldea_ciudad','caserio','objetivo_general','dificultades','acciones_dificultades','lecciones_aprendidas','buenas_practicas','problema_inicial','transformacion_lograda','mecanismos_sostenibilidad','acciones_contraparte_sostenibilidad','desafios','respuesta_reforma_universitaria','recomendaciones','bibliografia','valoracion_total_beneficiarios','valoracion_muestra','valoracion_excelente','valoracion_muy_buena','valoracion_regular','valoracion_mala','presupuesto_planificado','aporte_beneficiarios','otros_aportes','observacion_voluntarios_no_incorporados','observaciones_finales','confirmacion_veracidad','estado',
         ]);
         $this->general['fecha_registro'] = $date($this->informe->fecha_registro);
         $this->general['fecha_inicio'] = $date($this->informe->fecha_inicio);
         $this->general['fecha_finalizacion'] = $date($this->informe->fecha_finalizacion);
         $this->general['fecha_cierre'] = $date($this->informe->fecha_cierre);
         $this->beneficiarios = Arr::except($this->informe->beneficiarios?->toArray() ?? [], ['id','informe_final_proyecto_id','created_at','updated_at']);
+        $this->gruposEstudiantes = $this->informe->gruposEstudiantes->toArray();
         foreach (['equipo'=>'equipoDocente','cooperacion'=>'cooperacion','estudiantes'=>'estudiantes','voluntarios'=>'voluntarios','contrapartes'=>'contrapartes','resultados'=>'resultados','actividades'=>'actividades','accionesNoEjecutadas'=>'accionesNoEjecutadas','accionesEmergentes'=>'accionesEmergentes','ods'=>'ods','presupuesto'=>'presupuestoDetalles','anexos'=>'anexos'] as $property => $relation) {
             $this->{$property} = $this->informe->{$relation}->toArray();
         }
@@ -644,10 +967,16 @@ class EditInformeFinalProyecto extends Component
             $mainFields = array_keys(Arr::except($this->general, ['estado','fecha_registro']));
             $this->informe->update(Arr::only($this->general, $mainFields) + ['updated_by' => auth()->id()]);
             $this->informe->beneficiarios()->updateOrCreate([], Arr::except($this->beneficiarios, ['id','informe_final_proyecto_id','created_at','updated_at']));
-            $this->syncRows('equipoDocente', $this->equipo, ['empleado_id','nombre','numero_empleado','correo','categoria','departamento','sexo','horas_dedicadas','tipo_participacion','es_coordinador']);
-            $this->syncRows('cooperacion', $this->cooperacion, ['nombre','pasaporte','correo','pais','universidad','horas_dedicadas']);
-            $this->syncRows('estudiantes', $this->estudiantes, ['estudiante_id','nombre','sexo','numero_cuenta','carrera','correo','tipo_participacion','horas_dedicadas','cantidad','origen']);
-            $this->syncRows('voluntarios', $this->voluntarios, ['empleado_id','nombre','sexo','identidad','departamento','tipo','horas_dedicadas']);
+            $participacion = ['estado_participacion','observacion_no_participacion','removido_en','removido_por'];
+            foreach ($this->estudiantes as $index => &$estudiante) {
+                $estudiante = $this->normalizarAsociacionEstudiante($estudiante, $index);
+            }
+            unset($estudiante);
+            $this->syncRows('gruposEstudiantes', $this->gruposEstudiantes, ['observacion_no_cumplimiento']);
+            $this->syncRows('equipoDocente', $this->equipo, array_merge(['empleado_id','nombre','numero_empleado','correo','categoria','departamento','sexo','horas_dedicadas'],$participacion));
+            $this->syncRows('cooperacion', $this->cooperacion, array_merge(['nombre','pasaporte','correo','pais','universidad','horas_dedicadas'],$participacion));
+            $this->syncRows('estudiantes', $this->estudiantes, array_merge(['informe_final_grupo_estudiante_id','estudiante_id','nombre','sexo','numero_cuenta','carrera','correo','tipo_participacion','horas_dedicadas','cantidad','origen'],$participacion));
+            $this->syncRows('voluntarios', $this->voluntarios, array_merge(['empleado_id','nombre','sexo','identidad','departamento','tipo','horas_dedicadas'],$participacion));
             $this->syncRows('contrapartes', $this->contrapartes, ['entidad_contraparte_id','existe_apoyo','nombre','tipo','contacto','correo','cargo','telefono','tipo_instrumento','compromisos_asumidos','compromisos_cumplidos','territorio','aporte_monetario','aporte_especie','documento_respaldo']);
             foreach ($this->resultados as &$resultado) {
                 if (is_numeric($resultado['meta_numerica'] ?? null) && (float) $resultado['meta_numerica'] > 0 && is_numeric($resultado['valor_alcanzado'] ?? null)) {
@@ -670,10 +999,13 @@ class EditInformeFinalProyecto extends Component
             $this->syncRows('presupuestoDetalles', $this->presupuesto, ['informe_final_contraparte_id','fuente','concepto','unidad','cantidad','costo_unitario','origen_fondos']);
             foreach ($this->anexoArchivos as $index => $file) {
                 if ($file) {
-                    $this->anexos[$index]['archivo'] = $file->store('informes-finales/inf-001', 'public');
+                    $this->anexos[$index]['archivo'] = $file->store('informes-finales/'.$this->informe->id.'/documentos', 'public');
+                    $this->anexos[$index]['nombre_archivo'] = $file->getClientOriginalName();
+                    $this->anexos[$index]['tamano_bytes'] = $file->getSize();
+                    $this->anexos[$index]['origen'] = 'INFORME';
                 }
             }
-            $this->syncRows('anexos', $this->anexos, ['informe_final_resultado_id','informe_final_actividad_id','tipo','descripcion','archivo','enlace','fecha','orden']);
+            $this->syncRows('anexos', $this->anexos, ['informe_final_resultado_id','informe_final_actividad_id','informe_final_contraparte_id','instrumento_formalizacion_id','tipo','categoria','descripcion','archivo','nombre_archivo','tamano_bytes','origen','enlace','fecha','orden']);
         }, 3);
         $this->informe->refresh();
         $this->cargarFormulario();
@@ -694,11 +1026,16 @@ class EditInformeFinalProyecto extends Component
                 'cooperacion.*.horas_dedicadas' => ['nullable','numeric','min:0'],
             ],
             3 => [
+                'gruposEstudiantes.*.observacion_no_cumplimiento' => ['nullable','string','min:10','max:1000'],
                 'estudiantes.*.nombre' => ['required','string'],
+                'estudiantes.*.informe_final_grupo_estudiante_id' => ['required','integer',Rule::exists('informe_final_grupos_estudiantes','id')->where(fn ($query) => $query->where('informe_final_proyecto_id',$this->informe->id))],
+                'estudiantes.*.sexo' => ['required', Rule::in(['Masculino','Femenino'])],
                 'estudiantes.*.tipo_participacion' => [Rule::in(['practica_asignatura','pps_servicio_social','voluntariado'])],
                 'estudiantes.*.horas_dedicadas' => ['nullable','numeric','min:0'],
                 'voluntarios.*.nombre' => ['required','string'],
+                'voluntarios.*.sexo' => ['required', Rule::in(['Masculino','Femenino'])],
                 'voluntarios.*.tipo' => [Rule::in(['profesor_hora','pas','profesor_permanente','egresado'])],
+                'general.observacion_voluntarios_no_incorporados' => ['nullable','string','min:10','max:1000'],
             ],
             4 => [
                 'contrapartes' => ['required','array','min:1'],
@@ -726,6 +1063,11 @@ class EditInformeFinalProyecto extends Component
                 'presupuesto.*.cantidad' => ['numeric','min:0'],
                 'presupuesto.*.costo_unitario' => ['numeric','min:0'],
             ],
+            8 => [
+                'anexos.*.categoria' => [Rule::in(['documento_general','instrumento_contraparte','fotografia'])],
+                'anexos.*.informe_final_contraparte_id' => ['required_if:anexos.*.categoria,instrumento_contraparte','nullable','integer',Rule::exists('informe_final_contrapartes','id')->where(fn ($query) => $query->where('informe_final_proyecto_id',$this->informe->id))],
+                'anexoArchivos.*' => ['nullable','file','mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png','max:10240'],
+            ],
             default => [],
         };
         if ($rules) {
@@ -739,6 +1081,20 @@ class EditInformeFinalProyecto extends Component
                 }
             }
         }
+        if ($this->currentStep === 3) $this->validarJustificacionesParticipacion();
+    }
+
+    private function validarJustificacionesParticipacion(): void
+    {
+        $errores = [];
+        foreach ($this->gruposEstudiantesConRegistro as $grupo) {
+            $tienePlanificacion = (int) $grupo['total_planificado'] > 0;
+            $tienePendientes = (int) $grupo['hombres_pendientes'] > 0 || (int) $grupo['mujeres_pendientes'] > 0;
+            if ($tienePlanificacion && $tienePendientes && blank($grupo['observacion_no_cumplimiento'] ?? null)) {
+                $errores['gruposEstudiantes.'.$grupo['indice_formulario'].'.observacion_no_cumplimiento'] = 'Debe explicar por qué no se agregó la totalidad de estudiantes planificados.';
+            }
+        }
+        if ($errores) throw ValidationException::withMessages($errores);
     }
 
     private function syncRows(string $relation, array $rows, array $fields): void
@@ -775,7 +1131,12 @@ class EditInformeFinalProyecto extends Component
             'general.otros_aportes' => $nonNegative,
             'general.confirmacion_veracidad' => ['boolean'],
             'beneficiarios.*' => ['nullable','integer','min:0'],
+            'estudiantes.*.informe_final_grupo_estudiante_id' => ['required','integer',Rule::exists('informe_final_grupos_estudiantes','id')->where(fn ($query) => $query->where('informe_final_proyecto_id',$this->informe->id))],
+            'estudiantes.*.sexo' => ['required', Rule::in(['Masculino','Femenino'])],
+            'voluntarios.*.sexo' => ['required', Rule::in(['Masculino','Femenino'])],
             'voluntarios.*.tipo' => [Rule::in(['profesor_hora','pas','profesor_permanente','egresado'])],
+            'gruposEstudiantes.*.observacion_no_cumplimiento' => ['nullable','string','min:10','max:1000'],
+            'general.observacion_voluntarios_no_incorporados' => ['nullable','string','min:10','max:1000'],
             'contrapartes.*.tipo' => [Rule::in(['gobierno_nacional','gobierno_municipal','ong','sociedad_civil','sector_privado','internacional'])],
             'resultados.*.porcentaje_cumplimiento' => ['numeric','between:0,100'],
             'resultados.*.estado' => [Rule::in(['alcanzado','parcialmente_alcanzado','no_alcanzado','no_aplica'])],
@@ -785,13 +1146,15 @@ class EditInformeFinalProyecto extends Component
             'actividades.*.participantes.*.horas_dedicadas' => $nonNegative,
             'ods.*.nivel_contribucion' => [Rule::in(['directa','indirecta'])],
             'presupuesto.*.fuente' => [Rule::in(['UNAH','CONTRAPARTE'])],
-            'anexoArchivos.*' => ['nullable','file','max:20480'],
+            'anexos.*.categoria' => [Rule::in(['documento_general','instrumento_contraparte','fotografia'])],
+            'anexos.*.informe_final_contraparte_id' => ['required_if:anexos.*.categoria,instrumento_contraparte','nullable','integer',Rule::exists('informe_final_contrapartes','id')->where(fn ($query) => $query->where('informe_final_proyecto_id',$this->informe->id))],
+            'anexoArchivos.*' => ['nullable','file','mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png','max:10240'],
         ];
     }
 
     private function debeAutoguardar(string $propertyName): bool
     {
-        foreach (['general.','beneficiarios.','equipo.','cooperacion.','estudiantes.','voluntarios.','contrapartes.','resultados.','actividades.','accionesNoEjecutadas.','accionesEmergentes.','ods.','presupuesto.','anexos.'] as $root) {
+        foreach (['general.','beneficiarios.','gruposEstudiantes.','equipo.','cooperacion.','estudiantes.','voluntarios.','contrapartes.','resultados.','actividades.','accionesNoEjecutadas.','accionesEmergentes.','ods.','presupuesto.','anexos.'] as $root) {
             if (str_starts_with($propertyName, $root)) return true;
         }
         return false;
@@ -854,6 +1217,10 @@ class EditInformeFinalProyecto extends Component
     {
         $config = $this->configColecciones()[$grupo] ?? null;
         $row = $this->{$grupo}[$index] ?? null;
+        if ($grupo === 'estudiantes' && is_array($row)) {
+            $row = $this->normalizarAsociacionEstudiante($row, $index);
+            $this->estudiantes[$index] = $row;
+        }
         if (! $config || ! is_array($row)) return;
         [$relation, $fields] = $config;
         $id = isset($row['id']) ? (int) $row['id'] : null;
@@ -864,6 +1231,26 @@ class EditInformeFinalProyecto extends Component
         if ($grupo === 'actividades') {
             $this->syncParticipantesActividad($this->actividades[$index], $index);
         }
+    }
+
+    private function normalizarAsociacionEstudiante(array $row, int $index): array
+    {
+        if (! empty($row['id'])) {
+            $persistido = $this->informe->estudiantes()->whereKey($row['id'])->first();
+            if ($persistido) $row['informe_final_grupo_estudiante_id'] = $persistido->informe_final_grupo_estudiante_id;
+        }
+        $grupo = $this->informe->gruposEstudiantes()
+            ->whereKey($row['informe_final_grupo_estudiante_id'] ?? null)
+            ->first();
+        if (! $grupo) {
+            throw ValidationException::withMessages([
+                "estudiantes.$index.informe_final_grupo_estudiante_id" => 'El estudiante debe pertenecer a un grupo válido de este Informe Final.',
+            ]);
+        }
+        $row['informe_final_grupo_estudiante_id'] = $grupo->id;
+        $row['tipo_participacion'] = $grupo->tipo_participacion;
+
+        return $row;
     }
 
     private function eliminarFilaPersistida(string $grupo, array $row): void
@@ -877,10 +1264,11 @@ class EditInformeFinalProyecto extends Component
     private function configColecciones(): array
     {
         return [
-            'equipo'=>['equipoDocente',['empleado_id','nombre','numero_empleado','correo','categoria','departamento','sexo','horas_dedicadas','tipo_participacion','es_coordinador']],
-            'cooperacion'=>['cooperacion',['nombre','pasaporte','correo','pais','universidad','horas_dedicadas']],
-            'estudiantes'=>['estudiantes',['estudiante_id','nombre','sexo','numero_cuenta','carrera','correo','tipo_participacion','horas_dedicadas','cantidad','origen']],
-            'voluntarios'=>['voluntarios',['empleado_id','nombre','sexo','identidad','departamento','tipo','horas_dedicadas']],
+            'gruposEstudiantes'=>['gruposEstudiantes',['observacion_no_cumplimiento']],
+            'equipo'=>['equipoDocente',['empleado_id','nombre','numero_empleado','correo','categoria','departamento','sexo','horas_dedicadas','estado_participacion','observacion_no_participacion','removido_en','removido_por']],
+            'cooperacion'=>['cooperacion',['nombre','pasaporte','correo','pais','universidad','horas_dedicadas','estado_participacion','observacion_no_participacion','removido_en','removido_por']],
+            'estudiantes'=>['estudiantes',['informe_final_grupo_estudiante_id','estudiante_id','nombre','sexo','numero_cuenta','carrera','correo','tipo_participacion','horas_dedicadas','cantidad','origen','estado_participacion','observacion_no_participacion','removido_en','removido_por']],
+            'voluntarios'=>['voluntarios',['empleado_id','nombre','sexo','identidad','departamento','tipo','horas_dedicadas','estado_participacion','observacion_no_participacion','removido_en','removido_por']],
             'contrapartes'=>['contrapartes',['entidad_contraparte_id','existe_apoyo','nombre','tipo','contacto','correo','cargo','telefono','tipo_instrumento','compromisos_asumidos','compromisos_cumplidos','territorio','aporte_monetario','aporte_especie','documento_respaldo']],
             'resultados'=>['resultados',['resultado_esperado_id','objetivo_especifico','resultado_planificado','indicador_propuesto','meta_numerica','unidad_medida','valor_alcanzado','porcentaje_cumplimiento','estado','producto_logrado','observaciones']],
             'actividades'=>['actividades',['actividad_id','actividad_planificada','actividad_realizada','responsable','fecha_inicial','fecha_final','horas_dedicadas','medio_verificacion','estado','origen']],
@@ -888,7 +1276,7 @@ class EditInformeFinalProyecto extends Component
             'accionesEmergentes'=>['accionesEmergentes',['informe_final_resultado_id','producto_logrado','actividad_realizada','justificacion','responsables','fecha','horas']],
             'ods'=>['ods',['ods_id','meta_contribuye_id','meta_ods','descripcion_aporte','evidencia','nivel_contribucion']],
             'presupuesto'=>['presupuestoDetalles',['informe_final_contraparte_id','fuente','concepto','unidad','cantidad','costo_unitario','origen_fondos']],
-            'anexos'=>['anexos',['informe_final_resultado_id','informe_final_actividad_id','tipo','descripcion','archivo','enlace','fecha','orden']],
+            'anexos'=>['anexos',['informe_final_resultado_id','informe_final_actividad_id','informe_final_contraparte_id','instrumento_formalizacion_id','tipo','categoria','descripcion','archivo','nombre_archivo','tamano_bytes','origen','enlace','fecha','orden']],
         ];
     }
 
@@ -986,7 +1374,6 @@ class EditInformeFinalProyecto extends Component
         return match ($value) {
             'm', 'masculino', 'male', 'hombre' => 'masculino',
             'f', 'femenino', 'female', 'mujer' => 'femenino',
-            'o', 'otro', 'otra', 'no binario' => 'otro',
             default => null,
         };
     }

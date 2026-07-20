@@ -165,7 +165,8 @@ class InformeFinalProyectoController extends Controller
             'beneficiarios',
             'equipoDocente',
             'cooperacion',
-            'estudiantes',
+            'gruposEstudiantes.asignatura',
+            'estudiantes.grupo.asignatura',
             'voluntarios',
             'contrapartes',
             'resultados',
@@ -175,7 +176,7 @@ class InformeFinalProyectoController extends Controller
             'ods.ods',
             'ods.meta',
             'presupuestoDetalles',
-            'anexos',
+            'anexos.contraparte',
         ]);
     }
 }

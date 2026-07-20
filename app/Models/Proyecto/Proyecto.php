@@ -399,6 +399,11 @@ class Proyecto extends Model
         return $this->hasMany(EstudianteProyecto::class, 'proyecto_id');
     }
 
+    public function gruposEstudiantesPlanificados()
+    {
+        return $this->hasMany(EstudianteProyecto::class, 'proyecto_id');
+    }
+
     // relacion muchos a muchos con integrantes internacionales
     public function integrante_internacional_proyecto()
     {

@@ -3,26 +3,60 @@
     $firmas = $firmas ?? ['coordinador' => null, 'jefe' => null, 'enlace' => null, 'decano' => null];
     $coordinadorProyecto = $coordinadorProyecto ?? null;
     $beneficiarios = $informe->beneficiarios;
-    $coordinador = $informe->equipoDocente->firstWhere('es_coordinador', true);
-    $docentes = $informe->equipoDocente->reject(fn ($row) => $row->es_coordinador)->values();
-    $estudiantes = $informe->estudiantes->values();
-    $voluntarios = $informe->voluntarios->values();
+    $activos = fn ($rows) => $rows->filter(fn ($row) => ($row->estado_participacion ?? 'activo') === 'activo')->values();
+    $equipoEjecutor = $activos($informe->equipoDocente);
+    $coordinador = $equipoEjecutor->firstWhere('es_coordinador', true);
+    $docentes = $equipoEjecutor->reject(fn ($row) => $row->es_coordinador)->values();
+    $cooperacion = $activos($informe->cooperacion);
+    $estudiantes = $activos($informe->estudiantes);
+    $voluntarios = $activos($informe->voluntarios);
+    $gruposEstudiantesObservados = $informe->gruposEstudiantes->filter(function ($grupo) use ($estudiantes) {
+        $registrados = $estudiantes->where('informe_final_grupo_estudiante_id', $grupo->id);
+        $hombresRegistrados = $registrados->where('sexo', 'Masculino')->count();
+        $mujeresRegistradas = $registrados->where('sexo', 'Femenino')->count();
+        $tienePendientes = $hombresRegistrados < $grupo->hombres_planificados || $mujeresRegistradas < $grupo->mujeres_planificadas;
+        return $tienePendientes && filled($grupo->observacion_no_cumplimiento);
+    });
     $actividades = $informe->actividades->where('origen', 'planificada')->values();
     $normalizar = fn ($value) => mb_strtolower((string) $value);
     $marcar = fn ($value, string $needle) => str_contains($normalizar($value), $normalizar($needle)) ? '☒' : '☐';
     $fecha = fn ($value) => $value?->format('d/m/Y') ?: '';
     $moneda = fn ($value) => 'L '.number_format((float) $value, 2, '.', ',');
     $porcentaje = fn ($value) => number_format((float) $value, 2, '.', ',').'%';
-    $tipoEstudiante = ['practica_asignatura' => 'ASIG', 'pps_servicio_social' => 'PPS', 'voluntariado' => 'VOL'];
+    $tipoEstudiante = fn ($tipo) => \App\Support\InformeFinal\ParticipacionEstudiantil::codigo((string) $tipo);
+    $asignaturaEstudiante = fn ($row) => $row->grupo?->asignatura
+        ? collect([$row->grupo->asignatura->codigo, $row->grupo->asignatura->nombre])->filter()->implode(' - ').($row->grupo->periodo_academico ? ' · '.$row->grupo->periodo_academico : '')
+        : '';
     $tipoVoluntario = ['profesor_hora' => 'PH', 'pas' => 'PAS', 'profesor_permanente' => 'PP', 'egresado' => 'EGR'];
     $hombres = fn ($rows) => $rows->filter(fn ($row) => in_array($normalizar($row->sexo), ['masculino', 'm'], true))->count();
     $mujeres = fn ($rows) => $rows->filter(fn ($row) => in_array($normalizar($row->sexo), ['femenino', 'f'], true))->count();
-    $responsable = fn ($actividad) => $actividad->participantes->firstWhere('es_responsable', true)?->nombre
-        ?: $actividad->responsable
-        ?: '';
+    $empleadosActivos = $equipoEjecutor->pluck('empleado_id')->filter()->map(fn ($id) => (int) $id);
+    $estudiantesActivos = $estudiantes->pluck('id')->map(fn ($id) => (int) $id);
+    $voluntariosActivos = $voluntarios->pluck('id')->map(fn ($id) => (int) $id);
+    $responsable = function ($actividad) use ($empleadosActivos, $estudiantesActivos, $voluntariosActivos) {
+        $participantes = $actividad->participantes->filter(fn ($row) => match ($row->tipo) {
+            'docente' => $empleadosActivos->contains((int) $row->empleado_id),
+            'estudiante' => $estudiantesActivos->contains((int) $row->informe_final_estudiante_id),
+            'voluntario' => $voluntariosActivos->contains((int) $row->informe_final_voluntario_id),
+            'externo' => true,
+            default => false,
+        });
+        return $participantes->firstWhere('es_responsable', true)?->nombre
+            ?: $participantes->first()?->nombre
+            ?: ($actividad->participantes->isEmpty() ? $actividad->responsable : '');
+    };
     $unidades = $informe->presupuestoDetalles->where('fuente', 'UNAH')->values();
     $contraparte = $informe->presupuestoDetalles->where('fuente', 'CONTRAPARTE')->values();
     $muestra = max(0, (int) $informe->valoracion_muestra);
+    $instrumentosContraparte = $informe->anexos->where('categoria', 'instrumento_contraparte')->sortBy('orden')->values();
+    $documentosGenerales = $informe->anexos->where('categoria', 'documento_general')->sortBy('orden')->values();
+    $fotografias = $informe->anexos->where('categoria', 'fotografia')->sortBy('orden')->values();
+    $rutaAnexo = function ($row) use ($isPdf) {
+        $ruta = $row->archivo ?: $row->enlace;
+        if (! $ruta) return null;
+        if (filter_var($ruta, FILTER_VALIDATE_URL)) return $ruta;
+        return $isPdf ? storage_path('app/public/'.$ruta) : \Illuminate\Support\Facades\Storage::disk('public')->url($ruta);
+    };
 @endphp
 
 <style>
@@ -60,6 +94,9 @@
     .inf-signature-cell { height: 88pt; text-align: center; vertical-align: bottom !important; }
     .inf-signature-cell img { display: inline-block; max-width: 92pt; max-height: 48pt; }
     .inf-signature-name { margin-top: 3pt; padding-top: 2pt; border-top: .55pt solid #222; }
+    .inf-photo-grid { width: 100%; font-size: 0; }
+    .inf-photo-card { display: inline-block; width: 24%; margin: 0 1% 6pt 0; border: .55pt solid #7f8790; padding: 3pt; vertical-align: top; page-break-inside: avoid; font-size: 7pt; }
+    .inf-photo-card img { display: block; width: 100%; height: 70pt; object-fit: cover; margin-bottom: 3pt; }
     @if(! $isPdf)
         .inf001-document { padding: 82pt 30pt 42pt; }
     @endif
@@ -109,16 +146,18 @@
     <table class="inf-table inf-small"><thead><tr><th colspan="7">Total de profesores(as) integrantes principales: {{ $docentes->count() }}</th></tr><tr><th style="width:5%">N.º</th><th>Nombre completo</th><th>N.º empleado/a</th><th>Correo electrónico</th><th>Categoría</th><th>Departamento</th><th>Horas</th></tr></thead><tbody>@forelse($docentes as $row)<tr><td class="inf-center">{{ $loop->iteration }}</td><td>{{ $row->nombre }}</td><td>{{ $row->numero_empleado }}</td><td>{{ $row->correo }}</td><td>{{ $row->categoria }}</td><td>{{ $row->departamento }}</td><td>{{ $row->horas_dedicadas }}</td></tr>@empty<tr><td colspan="7" class="inf-empty">Sin integrantes adicionales registrados.</td></tr>@endforelse</tbody></table>
 
     <h3 class="inf-subtitle">C. Integrantes del equipo de cooperación internacional / otras universidades</h3>
-    <table class="inf-table inf-small"><thead><tr><th colspan="7">Cantidad de integrantes: {{ $informe->cooperacion->count() }}</th></tr><tr><th style="width:5%">N.º</th><th>Nombre completo</th><th>Pasaporte</th><th>Correo electrónico</th><th>País</th><th>Universidad</th><th>Horas</th></tr></thead><tbody>@forelse($informe->cooperacion as $row)<tr><td class="inf-center">{{ $loop->iteration }}</td><td>{{ $row->nombre }}</td><td>{{ $row->pasaporte }}</td><td>{{ $row->correo }}</td><td>{{ $row->pais }}</td><td>{{ $row->universidad }}</td><td>{{ $row->horas_dedicadas }}</td></tr>@empty<tr><td colspan="7" class="inf-empty">Sin cooperación internacional registrada.</td></tr>@endforelse</tbody></table>
+    <table class="inf-table inf-small"><thead><tr><th colspan="7">Cantidad de integrantes: {{ $cooperacion->count() }}</th></tr><tr><th style="width:5%">N.º</th><th>Nombre completo</th><th>Pasaporte</th><th>Correo electrónico</th><th>País</th><th>Universidad</th><th>Horas</th></tr></thead><tbody>@forelse($cooperacion as $row)<tr><td class="inf-center">{{ $loop->iteration }}</td><td>{{ $row->nombre }}</td><td>{{ $row->pasaporte }}</td><td>{{ $row->correo }}</td><td>{{ $row->pais }}</td><td>{{ $row->universidad }}</td><td>{{ $row->horas_dedicadas }}</td></tr>@empty<tr><td colspan="7" class="inf-empty">Sin cooperación internacional registrada.</td></tr>@endforelse</tbody></table>
 
     <h2 class="inf-section-title">III. Cuantificación de participación de estudiantes</h2>
     <table class="inf-table inf-small inf-avoid"><tr><th rowspan="2">Participación de estudiantes</th><th colspan="2">Total</th><th colspan="6">Desglose del tipo de participación</th></tr><tr><th>Hombres</th><th>Mujeres</th><th colspan="2">Práctica de asignatura</th><th colspan="2">Servicio Social o PPS</th><th colspan="2">Voluntariado</th></tr><tr class="inf-center"><td>Expresado en números</td><td>{{ $hombres($estudiantes) }}</td><td>{{ $mujeres($estudiantes) }}</td><td>H {{ $hombres($estudiantes->where('tipo_participacion', 'practica_asignatura')) }}</td><td>M {{ $mujeres($estudiantes->where('tipo_participacion', 'practica_asignatura')) }}</td><td>H {{ $hombres($estudiantes->where('tipo_participacion', 'pps_servicio_social')) }}</td><td>M {{ $mujeres($estudiantes->where('tipo_participacion', 'pps_servicio_social')) }}</td><td>H {{ $hombres($estudiantes->where('tipo_participacion', 'voluntariado')) }}</td><td>M {{ $mujeres($estudiantes->where('tipo_participacion', 'voluntariado')) }}</td></tr></table>
-    <table class="inf-table inf-small"><thead><tr><th style="width:5%">N.º</th><th>Nombre completo</th><th>Tipo de participación<br>ASIG / PPS / VOL</th><th>N.º de cuenta</th><th>Carrera a la que pertenece</th><th>Horas dedicadas</th></tr></thead><tbody>@forelse($estudiantes as $row)<tr><td class="inf-center">{{ $loop->iteration }}</td><td>{{ $row->nombre }}</td><td>{{ $tipoEstudiante[$row->tipo_participacion] ?? $row->tipo_participacion }}</td><td>{{ $row->numero_cuenta }}</td><td>{{ $row->carrera }}</td><td>{{ $row->horas_dedicadas }}</td></tr>@empty<tr><td colspan="6" class="inf-empty">Sin estudiantes participantes registrados.</td></tr>@endforelse</tbody></table>
+    <table class="inf-table inf-small"><thead><tr><th style="width:5%">N.º</th><th>Nombre completo</th><th>Tipo<br>ASIG / PPS / VOL</th><th>Asignatura / período</th><th>N.º de cuenta</th><th>Carrera</th><th>Horas</th></tr></thead><tbody>@forelse($estudiantes as $row)<tr><td class="inf-center">{{ $loop->iteration }}</td><td>{{ $row->nombre }}</td><td>{{ $tipoEstudiante($row->tipo_participacion) }}</td><td>{{ $asignaturaEstudiante($row) }}</td><td>{{ $row->numero_cuenta }}</td><td>{{ $row->carrera }}</td><td>{{ $row->horas_dedicadas }}</td></tr>@empty<tr><td colspan="7" class="inf-empty">Sin estudiantes participantes registrados.</td></tr>@endforelse</tbody></table>
+    @foreach($gruposEstudiantesObservados as $grupo)<p class="inf-muted inf-avoid"><strong>Observación complementaria — {{ \App\Support\InformeFinal\ParticipacionEstudiantil::etiqueta($grupo->tipo_participacion) }}@if($grupo->asignatura) · {{ $grupo->asignatura->codigo }} - {{ $grupo->asignatura->nombre }}@endif:</strong> {{ $grupo->observacion_no_cumplimiento }}</p>@endforeach
     <p class="inf-muted">Nota: Se debe adjuntar bitácora de cada estudiante, con firma de aprobación del coordinador del proyecto o encargado de supervisión.</p>
 
     <h2 class="inf-section-title">IV. Cuantificación de participación de voluntarios</h2>
     <table class="inf-table inf-small inf-avoid"><tr><th rowspan="2">Participación de voluntarios</th><th colspan="2">Total</th><th colspan="8">Desglose del tipo de participación</th></tr><tr><th>Hombres</th><th>Mujeres</th><th colspan="2">Profesores por hora (PH)</th><th colspan="2">Personal administrativo (PAS)</th><th colspan="2">Profesores permanentes (PP)</th><th colspan="2">Egresados(as) (EGR)</th></tr><tr class="inf-center"><td>Expresado en números</td><td>{{ $hombres($voluntarios) }}</td><td>{{ $mujeres($voluntarios) }}</td>@foreach(['profesor_hora','pas','profesor_permanente','egresado'] as $tipo)<td>H {{ $hombres($voluntarios->where('tipo',$tipo)) }}</td><td>M {{ $mujeres($voluntarios->where('tipo',$tipo)) }}</td>@endforeach</tr></table>
     <table class="inf-table inf-small"><thead><tr><th style="width:5%">N.º</th><th>Nombre completo</th><th>Tipo<br>PH / PAS / PP / EGR</th><th>N.º de identidad</th><th>Departamento al que pertenece</th><th>Horas dedicadas</th></tr></thead><tbody>@forelse($voluntarios as $row)<tr><td class="inf-center">{{ $loop->iteration }}</td><td>{{ $row->nombre }}</td><td>{{ $tipoVoluntario[$row->tipo] ?? $row->tipo }}</td><td>{{ $row->identidad }}</td><td>{{ $row->departamento }}</td><td>{{ $row->horas_dedicadas }}</td></tr>@empty<tr><td colspan="6" class="inf-empty">Sin voluntarios registrados.</td></tr>@endforelse</tbody></table>
+    @if(filled($informe->observacion_voluntarios_no_incorporados))<p class="inf-muted inf-avoid"><strong>Observación complementaria sobre voluntarios:</strong> {{ $informe->observacion_voluntarios_no_incorporados }}</p>@endif
 
     <h2 class="inf-section-title">V. Información de la entidad contraparte del proyecto</h2>
     <p class="inf-muted">Si existe más de una contraparte, se presenta una tabla por cada una.</p>
@@ -164,5 +203,10 @@
 
     <h2 class="inf-section-title">XII. Anexos</h2>
     <p>Deberán adjuntarse, entre otros: material generado por el proyecto; formularios de encuestas; informes de procesamiento de datos; fotografías; videos cortos; y evidencias de difusión de las acciones del proyecto.</p>
-    <table class="inf-table inf-small"><thead><tr><th style="width:6%">N.º</th><th style="width:16%">Tipo</th><th>Descripción</th><th style="width:14%">Fecha</th><th style="width:24%">Referencia</th></tr></thead><tbody>@forelse($informe->anexos->sortBy('orden') as $row)<tr><td class="inf-center">{{ $loop->iteration }}</td><td>{{ $row->tipo }}</td><td>{{ $row->descripcion }}</td><td>{{ $fecha($row->fecha) }}</td><td>{{ $row->enlace ?: ($row->archivo ? 'Archivo adjunto: '.$row->archivo : '') }}</td></tr>@empty<tr><td colspan="5" class="inf-empty">Sin anexos registrados.</td></tr>@endforelse</tbody></table>
+    <h3 class="inf-subtitle">Instrumentos de formalización y respaldos de contraparte</h3>
+    <table class="inf-table inf-small"><thead><tr><th style="width:6%">N.º</th><th>Contraparte</th><th>Instrumento o respaldo</th><th style="width:24%">Archivo</th></tr></thead><tbody>@forelse($instrumentosContraparte as $row)<tr><td class="inf-center">{{ $loop->iteration }}</td><td>{{ $row->contraparte?->nombre }}</td><td>{{ $row->descripcion }}</td><td>{{ $row->nombre_archivo ?: ($row->archivo ? basename($row->archivo) : 'Pendiente') }}</td></tr>@empty<tr><td colspan="4" class="inf-empty">Sin instrumentos de contraparte registrados.</td></tr>@endforelse</tbody></table>
+    <h3 class="inf-subtitle">Documentos generales</h3>
+    <table class="inf-table inf-small"><thead><tr><th style="width:6%">N.º</th><th style="width:16%">Tipo</th><th>Descripción</th><th style="width:14%">Fecha</th><th style="width:24%">Referencia</th></tr></thead><tbody>@forelse($documentosGenerales as $row)<tr><td class="inf-center">{{ $loop->iteration }}</td><td>{{ $row->tipo }}</td><td>{{ $row->descripcion }}</td><td>{{ $fecha($row->fecha) }}</td><td>{{ $row->enlace ?: ($row->nombre_archivo ?: ($row->archivo ? basename($row->archivo) : '')) }}</td></tr>@empty<tr><td colspan="5" class="inf-empty">Sin documentos generales registrados.</td></tr>@endforelse</tbody></table>
+    <h3 class="inf-subtitle">Fotografías del proyecto</h3>
+    <div class="inf-photo-grid">@forelse($fotografias as $row)<div class="inf-photo-card">@if($rutaAnexo($row))<img src="{{ $rutaAnexo($row) }}" alt="">@endif<strong>{{ $row->nombre_archivo ?: 'Fotografía '.$loop->iteration }}</strong><br>{{ $row->descripcion ?: 'Sin descripción' }}@if($row->fecha)<br>{{ $fecha($row->fecha) }}@endif</div>@empty<p class="inf-empty">Sin fotografías registradas.</p>@endforelse</div>
 </main>
