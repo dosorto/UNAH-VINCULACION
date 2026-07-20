@@ -30,6 +30,19 @@ class ConfiguracionFlujosProyectos extends Component
     private const FORM_ENF_CERTIFICADO_ID = -1004;
     private const FORM_ENF_PROYECTO_ID = -1005;
 
+    /**
+     * Todo formulario tiene siempre estas 4 firmas fijas (etapas de tipo
+     * APROBACION), sin importar el flujo. Lo único configurable por flujo es
+     * el ROL con acceso a cada etapa (quién ocupa ese cargo), no el cargo en
+     * sí. Clave = nombre real en tipo_cargo_firma; valor = etiqueta a mostrar.
+     */
+    private const CARGOS_FIRMA_FIJOS = [
+        'Coordinador Proyecto' => 'Coordinador de la acción por la UNAH',
+        'Jefe Departamento' => 'Jefe de la Unidad Académica que lidera la acción',
+        'Enlace Vinculacion' => 'Coordinador(a) del Comité de Vinculación del Centro Regional',
+        'Director centro' => 'Decano(a) o Director(a) del Centro Regional',
+    ];
+
     protected array $cargoFirmaCache = [];
     protected array $tipoAccionIdCache = [];
 
@@ -333,14 +346,20 @@ class ConfiguracionFlujosProyectos extends Component
         $selectedTipoPrograma = $tiposPrograma->firstWhere('id', $this->programSelectedTipoProgramaId);
         $roles = Role::query()->orderBy('name')->get();
         $usuarios = User::query()->orderBy('name')->get(['id', 'name']);
-        // 'descripcion' = Proyecto son los cargos vinculados al estado del propio Proyecto
-        // (los que usan estas etapas). Las variantes Documento_intermedio/Documento_final/
-        // Ficha_actualizacion son cargos equivalentes pero para otros documentos/flujos, y
-        // mostrarlas todas aquí solo duplica cada nombre de cargo varias veces en el select.
-        $cargoFirmas = CargoFirma::with('tipoCargoFirma')
+        // Todo formulario tiene siempre las mismas 4 firmas fijas (lo que varía
+        // por flujo es el ROL con acceso a cada etapa, no el cargo de firma).
+        // 'descripcion' = Proyecto son los cargos vinculados al estado del propio
+        // Proyecto (los que usan estas etapas).
+        $cargosPorNombre = CargoFirma::with('tipoCargoFirma')
             ->where('descripcion', 'Proyecto')
             ->get()
-            ->sortBy(fn (CargoFirma $cargo) => $cargo->tipoCargoFirma?->nombre ?? $cargo->descripcion)
+            ->keyBy(fn (CargoFirma $cargo) => $cargo->tipoCargoFirma?->nombre);
+
+        $cargoFirmas = collect(self::CARGOS_FIRMA_FIJOS)
+            ->map(fn (string $label, string $nombreCargo) => $cargosPorNombre->has($nombreCargo)
+                ? (object) ['id' => $cargosPorNombre->get($nombreCargo)->id, 'label' => $label]
+                : null)
+            ->filter()
             ->values();
 
         return view('livewire.configuracion.flujos.configuracion-flujos-proyectos', [

@@ -1188,6 +1188,33 @@ class Proyecto extends Model
     }
 
     /**
+     * Determina qué sub-flujo mostrarle al usuario como "progreso actual":
+     * el de inscripción (por defecto) o, si ya se envió un Informe Intermedio
+     * o Informe Final al flujo, el de ese documento (el más reciente que
+     * tenga firmas generadas), sin importar si ya se completó o sigue
+     * pendiente. Pensado para paneles/listados (ej. dashboard del docente).
+     *
+     * @return array{0: string, 1: ?DocumentoProyecto}
+     */
+    public function procesoActivoParaStepper(): array
+    {
+        $documentoActivo = $this->documentos()
+            ->whereIn('tipo_documento', ['Informe Intermedio', 'Informe Final'])
+            ->latest('id')
+            ->get()
+            ->first(fn (DocumentoProyecto $doc) => FirmaProyecto::query()
+                ->where('firmable_type', DocumentoProyecto::class)
+                ->where('firmable_id', $doc->id)
+                ->exists());
+
+        if ($documentoActivo) {
+            return [self::procesoFlujoParaDocumento($documentoActivo->tipo_documento) ?? self::FLUJO_INSCRIPCION, $documentoActivo];
+        }
+
+        return [self::FLUJO_INSCRIPCION, null];
+    }
+
+    /**
      * Etapas de tipo "APROBACION" del proceso indicado, junto con la firma
      * vigente (del ciclo de revisión actual) para cada una, si existe. Es la
      * fuente de verdad para pintar los cuadros de firma en las fichas/PDF: a

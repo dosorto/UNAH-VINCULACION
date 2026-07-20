@@ -227,7 +227,7 @@
                                         <select wire:model="stages.{{ $index }}.cargo_firma_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
                                             <option value="">Seleccione</option>
                                             @foreach ($cargoFirmas as $cargo)
-                                                <option value="{{ $cargo->id }}">{{ $cargo->tipoCargoFirma?->nombre ?? $cargo->descripcion }}</option>
+                                                <option value="{{ $cargo->id }}">{{ $cargo->label }}</option>
                                             @endforeach
                                         </select>
                                         <p class="text-xs text-slate-400">Firma y sello que quedarán registrados en el documento cuando esta etapa apruebe.</p>
@@ -469,7 +469,7 @@
                                             <select wire:model="programStages.{{ $index }}.cargo_firma_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
                                                 <option value="">Seleccione</option>
                                                 @foreach ($cargoFirmas as $cargo)
-                                                    <option value="{{ $cargo->id }}">{{ $cargo->tipoCargoFirma?->nombre ?? $cargo->descripcion }}</option>
+                                                    <option value="{{ $cargo->id }}">{{ $cargo->label }}</option>
                                                 @endforeach
                                             </select>
                                             @error("programStages.$index.cargo_firma_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
