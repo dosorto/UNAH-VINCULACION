@@ -12,12 +12,6 @@ class InformeFinalProyectoInitializer
     {
         return DB::transaction(function () use ($proyecto, $userId) {
             $proyecto = Proyecto::query()->lockForUpdate()->findOrFail($proyecto->getKey());
-            $existente = InformeFinalProyecto::withTrashed()->where('proyecto_id', $proyecto->id)->first();
-
-            if ($existente) {
-                return $existente->load($this->relations());
-            }
-
             $proyecto->load([
                 'modalidad', 'categoria', 'facultades_centros', 'departamentos_academicos', 'carreras',
                 'departamento', 'municipio', 'ciudad', 'ejes_prioritarios_unah',
@@ -30,6 +24,14 @@ class InformeFinalProyectoInitializer
                 'objetivosEspecificos.resultados', 'actividades.empleados', 'aportesInstitucionales',
                 'presupuesto', 'ods', 'metasContribuye',
             ]);
+
+            $existente = InformeFinalProyecto::withTrashed()->where('proyecto_id', $proyecto->id)->first();
+
+            if ($existente) {
+                $this->completarSnapshotsFaltantes($existente, $proyecto);
+
+                return $existente->load($this->relations());
+            }
 
             $facultad = $proyecto->facultades_centros->first();
             $departamentoAcademico = $proyecto->departamentos_academicos->first();
@@ -46,7 +48,7 @@ class InformeFinalProyectoInitializer
 
             $informe = InformeFinalProyecto::create([
                 'proyecto_id' => $proyecto->id,
-                'numero_registro' => $proyecto->codigo_proyecto ?: 'Proyecto #'.$proyecto->id,
+                'numero_registro' => $this->numeroRegistroOficial($proyecto),
                 'fecha_registro' => $proyecto->fecha_registro,
                 'nombre_proyecto' => $proyecto->nombre_proyecto ?: 'Sin nombre registrado',
                 'objetivo_general' => $proyecto->objetivo_general,
@@ -127,18 +129,7 @@ class InformeFinalProyectoInitializer
                 }
             }
 
-            foreach ($proyecto->estudiante_proyecto as $registro) {
-                $estudiante = $registro->estudiante;
-                $informe->estudiantes()->create([
-                    'estudiante_id' => $estudiante?->id,
-                    'nombre' => $estudiante ? trim($estudiante->nombre.' '.$estudiante->apellido) : 'Grupo de estudiantes',
-                    'sexo' => $estudiante?->sexo,
-                    'numero_cuenta' => $estudiante?->cuenta,
-                    'carrera' => $estudiante?->carrera?->nombre ?: $registro->carrera?->nombre,
-                    'tipo_participacion' => $this->tipoParticipacionEstudiante($registro->tipo_participacion_estudiante ?? $estudiante?->tipo_participacion_estudiante),
-                    'cantidad' => max(1, (int) ($registro->total_estudiantes ?: 1)),
-                ]);
-            }
+            $this->crearSnapshotsEstudiantes($informe, $proyecto);
 
             foreach ($proyecto->entidad_contraparte as $entidad) {
                 $informe->contrapartes()->create([
@@ -167,14 +158,15 @@ class InformeFinalProyectoInitializer
             }
 
             foreach ($proyecto->actividades as $actividad) {
-                $informe->actividades()->create([
+                $snapshot = $informe->actividades()->create([
                     'actividad_id' => $actividad->id,
                     'actividad_planificada' => $actividad->descripcion,
-                    'responsable' => $actividad->empleados->pluck('nombre_completo')->implode(', '),
+                    'responsable' => $actividad->empleados->first()?->nombre_completo,
                     'fecha_inicial' => $actividad->fecha_inicio,
                     'fecha_final' => $actividad->fecha_finalizacion,
                     'horas_dedicadas' => max(0, (float) $actividad->horas),
                 ]);
+                $this->crearParticipantesActividad($snapshot, $actividad->empleados);
             }
 
             foreach ($proyecto->aportesInstitucionales as $aporte) {
@@ -210,8 +202,81 @@ class InformeFinalProyectoInitializer
 
     private function relations(): array
     {
-        return ['proyecto', 'beneficiarios', 'equipoDocente', 'cooperacion', 'estudiantes', 'voluntarios', 'contrapartes', 'resultados', 'actividades', 'accionesNoEjecutadas', 'accionesEmergentes', 'ods.ods', 'ods.meta', 'presupuestoDetalles', 'anexos'];
+        return ['proyecto', 'beneficiarios', 'equipoDocente', 'cooperacion', 'estudiantes', 'voluntarios', 'contrapartes', 'resultados', 'actividades.participantes', 'accionesNoEjecutadas', 'accionesEmergentes', 'ods.ods', 'ods.meta', 'presupuestoDetalles', 'anexos'];
     }
+
+    private function completarSnapshotsFaltantes(InformeFinalProyecto $informe, Proyecto $proyecto): void
+    {
+        if ($informe->estado !== 'BORRADOR') {
+            return;
+        }
+
+        // Corrige únicamente el valor heredado que expuso un ID interno.
+        if (preg_match('/^Proyecto #\d+$/', trim((string) $informe->numero_registro))) {
+            $informe->update(['numero_registro' => $this->numeroRegistroOficial($proyecto)]);
+        }
+
+        $informe->load(['estudiantes', 'voluntarios', 'actividades.participantes']);
+
+        foreach ($informe->estudiantes->whereNull('sexo') as $snapshot) {
+            $registro = $proyecto->estudiante_proyecto->firstWhere('estudiante_id', $snapshot->estudiante_id);
+            if (! $registro || $snapshot->created_at?->ne($snapshot->updated_at) || (float) $snapshot->horas_dedicadas !== 0.0) {
+                continue;
+            }
+            $this->repararSnapshotEstudiante($informe, $snapshot, $registro);
+        }
+
+        foreach ($informe->actividades as $snapshot) {
+            if ($snapshot->participantes->isNotEmpty() || ! $snapshot->actividad_id) {
+                continue;
+            }
+            $actividad = $proyecto->actividades->firstWhere('id', $snapshot->actividad_id);
+            if ($actividad) {
+                $this->crearParticipantesActividad($snapshot, $actividad->empleados);
+                if (blank($snapshot->responsable)) {
+                    $snapshot->update(['responsable' => $actividad->empleados->first()?->nombre_completo]);
+                }
+            }
+        }
+    }
+
+    private function crearSnapshotsEstudiantes(InformeFinalProyecto $informe, Proyecto $proyecto): void
+    {
+        foreach ($proyecto->estudiante_proyecto as $registro) {
+            $estudiante = $registro->estudiante;
+            $base = [
+                'estudiante_id' => $estudiante?->id,
+                'nombre' => $estudiante ? trim($estudiante->nombre.' '.$estudiante->apellido) : '',
+                'numero_cuenta' => $estudiante?->cuenta,
+                'carrera' => $estudiante?->carrera?->nombre ?: $registro->carrera?->nombre,
+                'correo' => $estudiante?->user?->email,
+                'tipo_participacion' => $this->tipoParticipacionEstudiante($registro->tipo_participacion_estudiante ?? $estudiante?->tipo_participacion_estudiante),
+            ];
+            $informe->estudiantes()->create($base + [
+                'sexo' => $estudiante?->sexo,
+                'cantidad' => 1,
+                'origen' => 'PROYECTO',
+            ]);
+        }
+    }
+
+    private function repararSnapshotEstudiante(InformeFinalProyecto $informe, $snapshot, $registro): void
+    {
+        if (filled($registro->estudiante?->sexo)) {
+            $snapshot->update(['sexo' => $registro->estudiante->sexo, 'cantidad' => 1]);
+        }
+    }
+
+    private function crearParticipantesActividad($snapshot, $empleados): void
+    {
+        foreach ($empleados->unique('id')->values() as $orden => $empleado) {
+            $snapshot->participantes()->firstOrCreate(
+                ['tipo' => 'docente', 'empleado_id' => $empleado->id],
+                ['nombre' => $empleado->nombre_completo, 'rol' => $orden === 0 ? 'Responsable principal' : 'Participante', 'es_responsable' => $orden === 0, 'orden' => $orden]
+            );
+        }
+    }
+
 
     private function texto(mixed $valor): ?string
     {
@@ -219,6 +284,11 @@ class InformeFinalProyectoInitializer
             return collect($valor)->filter()->implode(', ') ?: null;
         }
         return filled($valor) ? (string) $valor : null;
+    }
+
+    private function numeroRegistroOficial(Proyecto $proyecto): ?string
+    {
+        return $this->texto($proyecto->codigo_proyecto);
     }
 
     private function tipoParticipacionEstudiante(?string $tipo): string

@@ -11,11 +11,21 @@ use App\Livewire\Demografia\Pais\CreatePais;
 use App\Livewire\Demografia\Pais\ListPaises;
 use App\Livewire\Configuracion\Logs\ListLogs;
 use App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
+<<<<<<< HEAD
 use App\Livewire\DAFT\Catalogos\DaftCatalogos;
 use App\Livewire\DAFT\Programas\ListBandejaRevision;
 use App\Livewire\DAFT\Programas\ListProgramas;
 use App\Livewire\DAFT\Programas\ListTiposPrograma;
 use App\Livewire\DAFT\Programas\ProgramaForm;
+=======
+use App\Livewire\Configuracion\IntegracionesApi;
+use App\Livewire\SGCU\Catalogos\SgcuCatalogos;
+use App\Livewire\SGCU\Flujos\FlujosProgramas;
+use App\Livewire\SGCU\Programas\ListBandejaRevision;
+use App\Livewire\SGCU\Programas\ListProgramas;
+use App\Livewire\SGCU\Programas\ListTiposPrograma;
+use App\Livewire\SGCU\Programas\ProgramaForm;
+>>>>>>> 411cf063590694ffddafe6327a9ad6515ee67225
 use App\Livewire\Personal\Perfil\EditPerfil;
 use App\Livewire\Personal\Permiso\ListPermisos;
 use App\Livewire\Personal\Empleado\ListEmpleado;
@@ -263,9 +273,19 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('configuracion.flujos.proyectos')
             ->middleware('can:configuracion.flujos');
 
+<<<<<<< HEAD
         Route::prefix('daft')->middleware('can:configuracion.flujos')->group(function () {
             Route::get('catalogos', DaftCatalogos::class)
                 ->name('daft.catalogos');
+=======
+        Route::get('configuracion/integraciones-api', IntegracionesApi::class)
+            ->name('configuracion.integraciones-api')
+            ->middleware('can:configuracion.integraciones-api');
+
+        Route::prefix('sgcu')->middleware('can:configuracion.flujos')->group(function () {
+            Route::get('catalogos', SgcuCatalogos::class)
+                ->name('sgcu.catalogos');
+>>>>>>> 411cf063590694ffddafe6327a9ad6515ee67225
             Route::get('tipos-programa', ListTiposPrograma::class)
                 ->name('daft.tipos-programa');
             Route::get('programas', ListProgramas::class)
