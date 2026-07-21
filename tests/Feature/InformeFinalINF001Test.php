@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\Proyectos\InformeFinal\EditInformeFinalProyecto;
+use App\Models\Asignatura;
 use App\Models\Estudiante\Estudiante;
 use App\Models\Estudiante\EstudianteProyecto;
 use App\Models\InformeFinal\InformeFinalBeneficiario;
@@ -13,6 +14,7 @@ use App\Models\Presupuesto\Presupuesto;
 use App\Models\Proyecto\Actividad;
 use App\Models\Proyecto\AporteInstitucional;
 use App\Models\Proyecto\EntidadContraparte;
+use App\Models\Proyecto\InstrumenFormalizacion;
 use App\Models\Proyecto\ObjetivoEspecifico;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\ResultadoEsperado;
@@ -24,6 +26,8 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -206,7 +210,8 @@ class InformeFinalINF001Test extends TestCase
         [$user,$project]=$this->scenario();
         [, $otherProject]=$this->scenario();
         $otherReport=$this->initialize($otherProject,$user);
-        $otherStudent=$otherReport->estudiantes()->create(['nombre'=>'Fuera del proyecto','tipo_participacion'=>'voluntariado','cantidad'=>1]);
+        $otherGroup=$otherReport->gruposEstudiantes()->create(['tipo_participacion'=>'voluntariado','hombres_planificados'=>0,'mujeres_planificadas'=>0]);
+        $otherStudent=$otherReport->estudiantes()->create(['informe_final_grupo_estudiante_id'=>$otherGroup->id,'nombre'=>'Fuera del proyecto','sexo'=>'Masculino','tipo_participacion'=>'voluntariado','cantidad'=>1]);
         $this->livewireComponent($user,$project)
             ->set('participanteSeleccion.0','estudiante:'.$otherStudent->id)
             ->call('agregarParticipanteActividad',0)
@@ -217,6 +222,24 @@ class InformeFinalINF001Test extends TestCase
     {
         [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
         $this->assertSame('Dorian Adolfo Ordóñez Osorto',$report->equipoDocente->first()->nombre); $this->assertTrue($report->equipoDocente->first()->es_coordinador);
+    }
+
+    public function test_repara_participacion_vacia_desde_el_proyecto_y_no_permite_modificar_el_rol(): void
+    {
+        [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
+        $miembro=$report->equipoDocente()->firstOrFail();
+        $miembro->update(['tipo_participacion'=>'','es_coordinador'=>false]);
+
+        $reabierto=$this->initialize($project,$user);
+        $this->assertSame('Coordinador',$reabierto->equipoDocente()->firstOrFail()->tipo_participacion);
+        $this->assertTrue($reabierto->equipoDocente()->firstOrFail()->es_coordinador);
+
+        $this->livewireComponent($user,$project)
+            ->set('equipo.0.tipo_participacion','Integrante alterado')
+            ->set('equipo.0.es_coordinador',false)
+            ->call('guardarBorrador')->assertHasNoErrors();
+
+        $this->assertDatabaseHas('informe_final_equipo_docente',['id'=>$miembro->id,'tipo_participacion'=>'Coordinador','es_coordinador'=>true]);
     }
 
     public function test_se_guardan_beneficiarios(): void
@@ -244,31 +267,32 @@ class InformeFinalINF001Test extends TestCase
     public function test_se_guardan_estudiantes(): void
     {
         [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
-        $report->estudiantes()->create(['nombre'=>'Estudiante prueba','tipo_participacion'=>'pps_servicio_social','cantidad'=>4,'horas_dedicadas'=>320]);
+        $grupo=$report->gruposEstudiantes()->create(['tipo_participacion'=>'pps_servicio_social','hombres_planificados'=>0,'mujeres_planificadas'=>0]);
+        $report->estudiantes()->create(['informe_final_grupo_estudiante_id'=>$grupo->id,'nombre'=>'Estudiante prueba','sexo'=>'Masculino','tipo_participacion'=>'pps_servicio_social','cantidad'=>4,'horas_dedicadas'=>320]);
         $this->assertDatabaseHas('informe_final_estudiantes',['nombre'=>'Estudiante prueba','cantidad'=>4]);
     }
 
     public function test_se_guardan_voluntarios(): void
     {
         [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
-        $report->voluntarios()->create(['nombre'=>'Voluntario prueba','tipo'=>'egresado','horas_dedicadas'=>20]);
+        $report->voluntarios()->create(['nombre'=>'Voluntario prueba','sexo'=>'Femenino','tipo'=>'egresado','horas_dedicadas'=>20]);
         $this->assertDatabaseHas('informe_final_voluntarios',['nombre'=>'Voluntario prueba']);
     }
 
-    public function test_se_precargan_estudiantes_masculinos_femeninos_y_sin_especificar_sin_inferir_nombres(): void
+    public function test_se_precargan_estudiantes_masculinos_y_femeninos_sin_inferir_el_sexo_por_el_nombre(): void
     {
         [$user,$project]=$this->scenario();
         $male=Estudiante::create(['nombre'=>'Andrea','apellido'=>'Prueba','cuenta'=>'M-'.uniqid(),'sexo'=>'Masculino','user_id'=>$user->id]);
         $female=Estudiante::create(['nombre'=>'Carlos','apellido'=>'Prueba','cuenta'=>'F-'.uniqid(),'sexo'=>'Femenino','user_id'=>$user->id]);
-        $unknown=Estudiante::create(['nombre'=>'María','apellido'=>'Sin dato','cuenta'=>'N-'.uniqid(),'sexo'=>null,'user_id'=>$user->id]);
-        foreach ([[$male,2,0],[$female,0,3],[$unknown,0,0]] as [$student,$men,$women]) {
+        foreach ([[$male,2,0],[$female,0,3]] as [$student,$men,$women]) {
             EstudianteProyecto::create(['estudiante_id'=>$student->id,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Voluntariado','cantidad_estudiantes_hombres'=>$men,'cantidad_estudiantes_mujeres'=>$women,'total_estudiantes'=>$men+$women]);
         }
         $report=$this->initialize($project,$user);
         $this->assertDatabaseHas('informe_final_estudiantes',['informe_final_proyecto_id'=>$report->id,'nombre'=>'Andrea Prueba','sexo'=>'Masculino','cantidad'=>1]);
         $this->assertDatabaseHas('informe_final_estudiantes',['informe_final_proyecto_id'=>$report->id,'nombre'=>'Carlos Prueba','sexo'=>'Femenino','cantidad'=>1]);
-        $this->assertDatabaseHas('informe_final_estudiantes',['informe_final_proyecto_id'=>$report->id,'nombre'=>'María Sin dato','sexo'=>null]);
-        $this->livewireComponent($user,$project)->set('currentStep',3)->assertSee('Sin especificar');
+        $this->livewireComponent($user,$project)->set('currentStep',3)
+            ->assertSee('Hombres')
+            ->assertSee('Mujeres');
     }
 
     public function test_se_precarga_sexo_de_voluntarios_y_reabrir_no_duplica_snapshots(): void
@@ -277,10 +301,13 @@ class InformeFinalINF001Test extends TestCase
         $first=$this->initialize($project,$user);
         $component=$this->livewireComponent($user,$project)->call('openVoluntarioModal')
             ->set('voluntarioModal.nombre','Voluntaria Femenina')
-            ->set('voluntarioModal.sexo','Femenino')
+            ->set('voluntarioModal.sexo','No permitido')
             ->set('voluntarioModal.identidad','0801-TEST')
             ->set('voluntarioModal.tipo','egresado')
             ->set('voluntarioModal.horas_dedicadas',12)
+            ->call('saveVoluntarioModal')
+            ->assertHasErrors('voluntarioModal.sexo')
+            ->set('voluntarioModal.sexo','Femenino')
             ->call('saveVoluntarioModal')->assertHasNoErrors();
         $count=$first->voluntarios()->count();
         $this->assertDatabaseHas('informe_final_voluntarios',['informe_final_proyecto_id'=>$first->id,'nombre'=>'Voluntaria Femenina','sexo'=>'Femenino']);
@@ -288,36 +315,216 @@ class InformeFinalINF001Test extends TestCase
         $this->assertSame($count,$second->voluntarios()->count());
     }
 
-    public function test_totales_de_participacion_normalizan_codigos_y_separan_sin_especificar(): void
+    public function test_totales_de_participacion_muestran_unicamente_hombres_y_mujeres(): void
     {
         [$user,$project]=$this->scenario();
         $component=$this->livewireComponent($user,$project)
             ->set('estudiantes',[
-                ['nombre'=>'A','sexo'=>'M','tipo_participacion'=>'voluntariado','cantidad'=>2,'horas_dedicadas'=>0],
-                ['nombre'=>'B','sexo'=>'femenino','tipo_participacion'=>'voluntariado','cantidad'=>3,'horas_dedicadas'=>0],
-                ['nombre'=>'C','sexo'=>null,'tipo_participacion'=>'voluntariado','cantidad'=>4,'horas_dedicadas'=>0],
+                ['nombre'=>'A','sexo'=>'Masculino','tipo_participacion'=>'voluntariado','cantidad'=>2,'horas_dedicadas'=>0],
+                ['nombre'=>'B','sexo'=>'Femenino','tipo_participacion'=>'voluntariado','cantidad'=>3,'horas_dedicadas'=>0],
             ])
             ->set('voluntarios',[
-                ['nombre'=>'V1','sexo'=>'masculino','tipo'=>'egresado','horas_dedicadas'=>0],
-                ['nombre'=>'V2','sexo'=>'F','tipo'=>'egresado','horas_dedicadas'=>0],
-                ['nombre'=>'V3','sexo'=>'','tipo'=>'egresado','horas_dedicadas'=>0],
+                ['nombre'=>'V1','sexo'=>'Masculino','tipo'=>'egresado','horas_dedicadas'=>0],
+                ['nombre'=>'V2','sexo'=>'Femenino','tipo'=>'egresado','horas_dedicadas'=>0],
             ]);
-        $component->assertSet('totalesParticipacion.estudiantes_hombres',1)
-            ->assertSet('totalesParticipacion.estudiantes_mujeres',1)
-            ->assertSet('totalesParticipacion.estudiantes_sin_especificar',1)
-            ->assertSet('totalesParticipacion.voluntarios_hombres',1)
-            ->assertSet('totalesParticipacion.voluntarios_mujeres',1)
-            ->assertSet('totalesParticipacion.voluntarios_sin_especificar',1);
+        $totales=$component->get('totalesParticipacion');
+        $this->assertSame(1,$totales['estudiantes_hombres']);
+        $this->assertSame(1,$totales['estudiantes_mujeres']);
+        $this->assertSame(1,$totales['voluntarios_hombres']);
+        $this->assertSame(1,$totales['voluntarios_mujeres']);
+        $this->assertSame([],array_filter(array_keys($totales),fn ($key) => str_contains($key,'especificar')));
     }
 
-    public function test_estudiantes_modal_busca_agrega_edita_y_quita_registro_individual(): void
+    public function test_carga_grupos_planificados_con_asignatura_periodo_y_conserva_la_planificacion_al_completar(): void
     {
         [$user,$project]=$this->scenario();
+        $asignatura=Asignatura::create(['codigo'=>'AD-201-'.uniqid(),'nombre'=>'ADMON']);
+        $plan=EstudianteProyecto::create([
+            'estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Practica Asignatura',
+            'asignatura_id'=>$asignatura->id,'periodo_academico_id'=>'Primer período',
+            'cantidad_estudiantes_hombres'=>3,'cantidad_estudiantes_mujeres'=>2,'total_estudiantes'=>5,
+        ]);
+
         $report=$this->initialize($project,$user);
-        $student=Estudiante::create(['nombre'=>'Ana','apellido'=>'Modal','cuenta'=>'20260001234','sexo'=>'Femenino','user_id'=>$user->id]);
-        EstudianteProyecto::create(['estudiante_id'=>$student->id,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Voluntariado','cantidad_estudiantes_hombres'=>0,'cantidad_estudiantes_mujeres'=>1,'total_estudiantes'=>1]);
+        $grupo=$report->gruposEstudiantes()->with('asignatura')->firstOrFail();
+        $this->assertSame($plan->id,$grupo->estudiante_proyecto_id);
+        $this->assertSame('practica_asignatura',$grupo->tipo_participacion);
+        $this->assertSame(3,$grupo->hombres_planificados);
+        $this->assertSame(2,$grupo->mujeres_planificadas);
+        $this->assertSame('Primer período',$grupo->periodo_academico);
+        $this->assertSame(0,$report->estudiantes()->count());
         $component=$this->livewireComponent($user,$project)->set('currentStep',3)
-            ->call('openEstudianteModal')
+            ->assertSee($asignatura->codigo.' - ADMON')
+            ->assertSee('Primer período')
+            ->assertSee('openEstudianteModal(null, '.$grupo->id.')',false);
+        $component->call('openEstudianteModal',null,$grupo->id)
+            ->assertSet('grupoEstudianteSeleccionadoId',$grupo->id)
+            ->assertSet('grupoEstudianteActivo.tipo_participacion','practica_asignatura')
+            ->assertSet('grupoEstudianteActivo.periodo_academico','Primer período')
+            ->assertSee($asignatura->codigo.' - ADMON')
+            ->assertSee('type="hidden" wire:model="grupoEstudianteSeleccionadoId"',false);
+
+        $plan->update(['cantidad_estudiantes_hombres'=>4,'total_estudiantes'=>6]);
+        $this->assertSame(4,$this->initialize($project,$user)->gruposEstudiantes()->first()->hombres_planificados);
+        $report->update(['estado'=>'COMPLETO']);
+        $plan->update(['cantidad_estudiantes_hombres'=>5,'total_estudiantes'=>7]);
+        $completed=$this->initialize($project,$user);
+        $this->assertSame(4,$completed->gruposEstudiantes()->first()->hombres_planificados);
+        $this->assertSame(1,$completed->gruposEstudiantes()->count());
+    }
+
+    public function test_cupos_por_sexo_y_resumen_planificado_registrado_pendiente(): void
+    {
+        [$user,$project]=$this->scenario();
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Voluntariado','cantidad_estudiantes_hombres'=>1,'cantidad_estudiantes_mujeres'=>1,'total_estudiantes'=>2]);
+        $report=$this->initialize($project,$user);
+        $grupo=$report->gruposEstudiantes()->firstOrFail();
+        $component=$this->livewireComponent($user,$project);
+
+        foreach ([['Cuenta Uno','20260001001','Masculino'],['Cuenta Dos','20260001002','Femenino']] as [$nombre,$cuenta,$sexo]) {
+            $component->call('openEstudianteModal',null,$grupo->id)
+                ->set('estudianteManual.nombres',$nombre)
+                ->set('estudianteManual.numero_cuenta',$cuenta)
+                ->set('estudianteManual.sexo',$sexo)
+                ->call('saveEstudianteManual')
+                ->assertHasNoErrors();
+        }
+        $resumen=$component->get('resumenPlanificacionEstudiantes');
+        $this->assertSame(['hombres'=>1,'mujeres'=>1,'total'=>2],$resumen['planificados']);
+        $this->assertSame(['hombres'=>1,'mujeres'=>1,'total'=>2],$resumen['registrados']);
+        $this->assertSame(['hombres'=>0,'mujeres'=>0,'total'=>0],$resumen['pendientes']);
+
+        foreach ([['Cuenta Tres','20260001003','Masculino','hombres'],['Cuenta Cuatro','20260001004','Femenino','mujeres']] as [$nombre,$cuenta,$sexo,$plural]) {
+            $component->call('openEstudianteModal',null,$grupo->id)
+                ->set('estudianteManual.nombres',$nombre)
+                ->set('estudianteManual.numero_cuenta',$cuenta)
+                ->set('estudianteManual.sexo',$sexo)
+                ->call('saveEstudianteManual')
+                ->assertHasErrors('estudianteManual.sexo')
+                ->assertSee('Ya se registró la cantidad máxima de '.$plural.' planificada para este grupo.');
+        }
+        $this->assertSame(2,$report->estudiantes()->count());
+    }
+
+    public function test_observacion_es_obligatoria_por_cada_grupo_con_hombres_o_mujeres_pendientes_y_se_autoguarda(): void
+    {
+        [$user,$project]=$this->scenario();
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Voluntariado','cantidad_estudiantes_hombres'=>1,'cantidad_estudiantes_mujeres'=>0,'total_estudiantes'=>1]);
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Servicio Social o PPS','cantidad_estudiantes_hombres'=>0,'cantidad_estudiantes_mujeres'=>1,'total_estudiantes'=>1]);
+        $report=$this->initialize($project,$user);
+        $component=$this->livewireComponent($user,$project)->set('currentStep',3)
+            ->assertSee('Observación por estudiantes no incorporados')
+            ->call('siguiente')
+            ->assertHasErrors([
+                'gruposEstudiantes.0.observacion_no_cumplimiento',
+                'gruposEstudiantes.1.observacion_no_cumplimiento',
+            ]);
+        $component->assertSee('Debe explicar por qué no se agregó la totalidad de estudiantes planificados.');
+
+        $component->set('gruposEstudiantes.0.observacion_no_cumplimiento','Los estudiantes cancelaron su participación planificada.')
+            ->set('gruposEstudiantes.1.observacion_no_cumplimiento','No hubo matrícula disponible para el período académico.');
+        $grupos=$report->gruposEstudiantes()->orderBy('id')->get();
+        $this->assertSame('Los estudiantes cancelaron su participación planificada.',$grupos[0]->fresh()->observacion_no_cumplimiento);
+        $this->assertSame('No hubo matrícula disponible para el período académico.',$grupos[1]->fresh()->observacion_no_cumplimiento);
+        $component->call('siguiente')->assertHasNoErrors()->assertSet('currentStep',4);
+
+        $html=view('pdf.informes-finales.inf-001',['informe'=>$report->fresh()->load('gruposEstudiantes.asignatura','estudiantes')])->render();
+        $this->assertStringContainsString('Observación complementaria',$html);
+        $this->assertStringContainsString('Los estudiantes cancelaron su participación planificada.',$html);
+    }
+
+    public function test_observacion_de_estudiantes_se_oculta_al_completar_planificacion_y_no_se_exige_con_ceros(): void
+    {
+        [$user,$project]=$this->scenario();
+        $plan=EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Voluntariado','cantidad_estudiantes_hombres'=>1,'cantidad_estudiantes_mujeres'=>1,'total_estudiantes'=>2]);
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Practica Asignatura','cantidad_estudiantes_hombres'=>0,'cantidad_estudiantes_mujeres'=>0,'total_estudiantes'=>0]);
+        $report=$this->initialize($project,$user); $grupo=$report->gruposEstudiantes()->where('estudiante_proyecto_id',$plan->id)->firstOrFail();
+        $report->estudiantes()->create(['informe_final_grupo_estudiante_id'=>$grupo->id,'nombre'=>'Estudiante hombre','sexo'=>'Masculino','tipo_participacion'=>'voluntariado']);
+        $report->estudiantes()->create(['informe_final_grupo_estudiante_id'=>$grupo->id,'nombre'=>'Estudiante mujer','sexo'=>'Femenino','tipo_participacion'=>'voluntariado']);
+
+        $this->livewireComponent($user,$project)->set('currentStep',3)
+            ->assertDontSee('Observación por estudiantes no incorporados')
+            ->call('siguiente')->assertHasNoErrors()->assertSet('currentStep',4);
+    }
+
+    public function test_sin_planificacion_no_bloquea_y_permite_iniciar_registro_real(): void
+    {
+        [$user,$project]=$this->scenario();
+        $component=$this->livewireComponent($user,$project)->set('currentStep',3)
+            ->assertSee('Esto no bloquea el registro de la ejecución real')
+            ->set('tipoParticipacionSinPlanificacion','pps_servicio_social')
+            ->call('openEstudianteSinPlanificacionModal')
+            ->assertSet('showEstudianteModal',true)
+            ->assertSet('grupoEstudianteActivo.tipo_participacion','pps_servicio_social');
+        $component->call('closeEstudianteModal')->call('siguiente')->assertHasNoErrors()->assertSet('currentStep',4);
+    }
+
+    public function test_observacion_vuelve_a_ser_obligatoria_al_quitar_estudiante_y_deja_de_serlo_al_restaurar(): void
+    {
+        [$user,$project]=$this->scenario();
+        $student=Estudiante::create(['nombre'=>'Recalculado','apellido'=>'Participante','cuenta'=>'REC-'.uniqid(),'sexo'=>'Masculino','user_id'=>$user->id]);
+        EstudianteProyecto::create(['estudiante_id'=>$student->id,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Voluntariado','cantidad_estudiantes_hombres'=>1,'cantidad_estudiantes_mujeres'=>0,'total_estudiantes'=>1]);
+        $this->initialize($project,$user);
+        $component=$this->livewireComponent($user,$project)->set('currentStep',3)->assertDontSee('Observación por estudiantes no incorporados');
+        $component->call('openNoParticipacionModal','estudiante',0)
+            ->set('observacionNoParticipacion','Se retiró antes de iniciar las actividades.')
+            ->call('confirmarNoParticipacion')
+            ->assertSee('Observación por estudiantes no incorporados')
+            ->call('siguiente')->assertHasErrors('gruposEstudiantes.0.observacion_no_cumplimiento');
+        $component->call('restaurarParticipante','estudiante',0)
+            ->assertDontSee('Observación por estudiantes no incorporados')
+            ->call('siguiente')->assertHasNoErrors()->assertSet('currentStep',4);
+    }
+
+    public function test_voluntarios_tienen_observacion_opcional_autoguardada_y_nota_en_pdf(): void
+    {
+        [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
+        $texto='No se contó con participación voluntaria durante la ejecución.';
+        $this->livewireComponent($user,$project)->set('currentStep',3)
+            ->assertSee('Observación por voluntarios no incorporados')
+            ->assertSee('planificación desglosada de voluntarios')
+            ->set('general.observacion_voluntarios_no_incorporados',$texto)
+            ->assertHasNoErrors();
+        $this->assertDatabaseHas('informe_final_proyectos',['id'=>$report->id,'observacion_voluntarios_no_incorporados'=>$texto]);
+        $html=view('pdf.informes-finales.inf-001',['informe'=>$report->fresh()])->render();
+        $this->assertStringContainsString('Observación complementaria sobre voluntarios',$html);
+        $this->assertStringContainsString($texto,$html);
+    }
+
+    public function test_pdf_calcula_participacion_con_las_dos_opciones_permitidas(): void
+    {
+        [$user,$project]=$this->scenario();
+        $asignatura=Asignatura::create(['codigo'=>'PDF-101-'.uniqid(),'nombre'=>'Asignatura PDF']);
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Practica Asignatura','asignatura_id'=>$asignatura->id,'periodo_academico_id'=>'Segundo período','cantidad_estudiantes_hombres'=>2,'cantidad_estudiantes_mujeres'=>1,'total_estudiantes'=>3]);
+        $report=$this->initialize($project,$user);
+        $grupo=$report->gruposEstudiantes()->firstOrFail();
+        $report->estudiantes()->delete();
+        $report->voluntarios()->delete();
+        foreach (['Masculino','Masculino','Femenino'] as $index=>$sexo) {
+            $report->estudiantes()->create(['informe_final_grupo_estudiante_id'=>$grupo->id,'nombre'=>'Estudiante '.$index,'sexo'=>$sexo,'tipo_participacion'=>'practica_asignatura','cantidad'=>1,'horas_dedicadas'=>0]);
+        }
+        foreach (['Masculino','Femenino','Femenino'] as $index=>$sexo) {
+            $report->voluntarios()->create(['nombre'=>'Voluntario '.$index,'sexo'=>$sexo,'tipo'=>'egresado','horas_dedicadas'=>0]);
+        }
+
+        $html=view('pdf.informes-finales.inf-001',['informe'=>$report->fresh()])->render();
+
+        $this->assertMatchesRegularExpression('/Participación de estudiantes.*?Expresado en números<\/td><td>2<\/td><td>1<\/td>/s',$html);
+        $this->assertMatchesRegularExpression('/Participación de voluntarios.*?Expresado en números<\/td><td>1<\/td><td>2<\/td>/s',$html);
+        $this->assertStringContainsString($asignatura->codigo.' - Asignatura PDF · Segundo período',$html);
+    }
+
+    public function test_estudiantes_modal_busca_agrega_edita_y_marca_no_participacion_sin_borrar(): void
+    {
+        [$user,$project]=$this->scenario();
+        $student=Estudiante::create(['nombre'=>'Ana','apellido'=>'Modal','cuenta'=>'20260001234','sexo'=>'Femenino','user_id'=>$user->id]);
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Voluntariado','cantidad_estudiantes_hombres'=>0,'cantidad_estudiantes_mujeres'=>1,'total_estudiantes'=>1]);
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Servicio Social o PPS','cantidad_estudiantes_hombres'=>0,'cantidad_estudiantes_mujeres'=>1,'total_estudiantes'=>1]);
+        $report=$this->initialize($project,$user);
+        $grupo=$report->gruposEstudiantes()->where('tipo_participacion','voluntariado')->firstOrFail();
+        $otroGrupo=$report->gruposEstudiantes()->where('tipo_participacion','pps_servicio_social')->firstOrFail();
+        $component=$this->livewireComponent($user,$project)->set('currentStep',3)
+            ->call('openEstudianteModal',null,$grupo->id)
             ->assertSet('showEstudianteModal',true)
             ->assertSee('Agregar estudiante participante')
             ->assertSee('Buscar estudiante')
@@ -325,70 +532,227 @@ class InformeFinalINF001Test extends TestCase
             ->call('buscarEstudiante')
             ->assertSet('estudianteEncontrado.nombre','Ana Modal')
             ->assertSet('estudianteEncontrado.sexo','Femenino')
-            ->set('estudianteModal.tipo_participacion','pps_servicio_social')
             ->set('estudianteModal.horas_dedicadas',120)
             ->call('saveEstudianteModal')
             ->assertHasNoErrors()
             ->assertSet('showEstudianteModal',false);
-        $this->assertDatabaseHas('informe_final_estudiantes',['informe_final_proyecto_id'=>$report->id,'estudiante_id'=>$student->id,'nombre'=>'Ana Modal','sexo'=>'Femenino','numero_cuenta'=>'20260001234','tipo_participacion'=>'pps_servicio_social','horas_dedicadas'=>120,'cantidad'=>1]);
+        $this->assertDatabaseHas('informe_final_estudiantes',['informe_final_proyecto_id'=>$report->id,'informe_final_grupo_estudiante_id'=>$grupo->id,'estudiante_id'=>$student->id,'nombre'=>'Ana Modal','sexo'=>'Femenino','numero_cuenta'=>'20260001234','tipo_participacion'=>'voluntariado','horas_dedicadas'=>120,'cantidad'=>1]);
         $rows=$component->get('estudiantes');
         $index=collect($rows)->search(fn ($row) => (int) ($row['estudiante_id'] ?? 0) === $student->id);
         $component->call('openEstudianteModal',$index)
-            ->set('estudianteModal.tipo_participacion','voluntariado')
+            ->set('grupoEstudianteSeleccionadoId',$otroGrupo->id)
             ->set('estudianteModal.horas_dedicadas',140)
             ->call('saveEstudianteModal')->assertHasNoErrors();
-        $this->assertDatabaseHas('informe_final_estudiantes',['informe_final_proyecto_id'=>$report->id,'estudiante_id'=>$student->id,'tipo_participacion'=>'voluntariado','horas_dedicadas'=>140]);
-        $component->call('openEstudianteModal')->set('estudianteBusquedaCuenta','20260001234')->call('buscarEstudiante')->assertHasErrors('estudianteBusquedaCuenta');
+        $this->assertDatabaseHas('informe_final_estudiantes',['informe_final_proyecto_id'=>$report->id,'informe_final_grupo_estudiante_id'=>$grupo->id,'estudiante_id'=>$student->id,'tipo_participacion'=>'voluntariado','horas_dedicadas'=>140]);
+        $this->assertDatabaseMissing('informe_final_estudiantes',['informe_final_proyecto_id'=>$report->id,'informe_final_grupo_estudiante_id'=>$otroGrupo->id,'estudiante_id'=>$student->id]);
+        $component->call('openEstudianteModal',null,$grupo->id)->set('estudianteBusquedaCuenta','20260001234')->call('buscarEstudiante')->assertHasErrors('estudianteBusquedaCuenta');
         $component=$this->livewireComponent($user,$project);
         $rows=$component->get('estudiantes');
         $index=collect($rows)->search(fn ($row) => (int) ($row['estudiante_id'] ?? 0) === $student->id);
-        $component->call('quitarFila','estudiantes',$index);
-        $this->assertDatabaseMissing('informe_final_estudiantes',['informe_final_proyecto_id'=>$report->id,'estudiante_id'=>$student->id]);
+        $component->call('openNoParticipacionModal','estudiante',$index)
+            ->set('observacionNoParticipacion','No completó las horas planificadas.')
+            ->call('confirmarNoParticipacion')->assertHasNoErrors();
+        $this->assertDatabaseHas('informe_final_estudiantes',['informe_final_proyecto_id'=>$report->id,'estudiante_id'=>$student->id,'estado_participacion'=>'no_participo','observacion_no_participacion'=>'No completó las horas planificadas.']);
+        $this->assertDatabaseHas('estudiante_proyecto',['proyecto_id'=>$project->id,'estudiante_id'=>null]);
     }
 
-    public function test_estudiantes_listado_no_muestra_grupos_ni_cantidad_y_calcula_participacion(): void
+    public function test_equipo_se_marca_con_observacion_obligatoria_conserva_planificacion_y_se_restaura(): void
+    {
+        [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
+        $component=$this->livewireComponent($user,$project)->set('currentStep',2);
+        $html=$component->html();
+        $this->assertStringNotContainsString('wire:model="equipo.0.tipo_participacion"',$html);
+        $component->call('openNoParticipacionModal','equipo',0)->call('confirmarNoParticipacion')->assertHasErrors('observacionNoParticipacion');
+        $component->set('observacionNoParticipacion','Se retiró antes de iniciar las actividades.')
+            ->call('confirmarNoParticipacion')->assertHasNoErrors();
+        $this->assertDatabaseHas('informe_final_equipo_docente',['informe_final_proyecto_id'=>$report->id,'estado_participacion'=>'no_participo']);
+        $this->assertDatabaseHas('empleado_proyecto',['proyecto_id'=>$project->id,'rol'=>'Coordinador']);
+        $component->call('restaurarParticipante','equipo',0);
+        $this->assertDatabaseHas('informe_final_equipo_docente',['informe_final_proyecto_id'=>$report->id,'estado_participacion'=>'activo','observacion_no_participacion'=>null]);
+    }
+
+    public function test_participantes_inactivos_no_cuentan_ni_aparecen_en_pdf(): void
+    {
+        [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
+        $grupo=$report->gruposEstudiantes()->create(['tipo_participacion'=>'voluntariado','hombres_planificados'=>1,'mujeres_planificadas'=>0,'orden'=>99]);
+        $report->estudiantes()->create(['informe_final_grupo_estudiante_id'=>$grupo->id,'nombre'=>'Estudiante excluido','sexo'=>'Masculino','tipo_participacion'=>'voluntariado','estado_participacion'=>'no_participo','observacion_no_participacion'=>'No completó las horas planificadas.']);
+        $report->voluntarios()->create(['nombre'=>'Voluntario excluido','sexo'=>'Femenino','tipo'=>'egresado','estado_participacion'=>'retirado','observacion_no_participacion'=>'Se retiró antes de iniciar actividades.']);
+        $component=$this->livewireComponent($user,$project);
+        $component->assertSet('totalesParticipacion.estudiantes',0)->assertSet('totalesParticipacion.voluntarios',0);
+        $html=view('pdf.informes-finales.inf-001',['informe'=>$report->fresh()])->render();
+        $this->assertStringNotContainsString('Estudiante excluido',$html);
+        $this->assertStringNotContainsString('Voluntario excluido',$html);
+    }
+
+    public function test_instrumento_de_contraparte_se_precarga_en_anexos_sin_duplicar_archivo(): void
     {
         [$user,$project]=$this->scenario();
-        foreach ([['Uno','Masculino','Practica Profesional'],['Dos','Femenino','Servicio Social o PPS'],['Tres',null,'Voluntariado']] as $i=>[$name,$sex,$type]) {
+        $entidad=$project->entidad_contraparte()->firstOrFail();
+        $instrumento=InstrumenFormalizacion::create(['entidad_contraparte_id'=>$entidad->id,'tipo_documento'=>'carta_intenciones','documento_url'=>'instrumentos/carta-intenciones.pdf','nombre_archivo'=>'carta-intenciones.pdf']);
+        $report=$this->initialize($project,$user);
+        $this->assertDatabaseHas('informe_final_anexos',['informe_final_proyecto_id'=>$report->id,'instrumento_formalizacion_id'=>$instrumento->id,'categoria'=>'instrumento_contraparte','archivo'=>'instrumentos/carta-intenciones.pdf','origen'=>'PROYECTO']);
+        $this->initialize($project,$user);
+        $this->assertSame(1,$report->anexos()->where('instrumento_formalizacion_id',$instrumento->id)->count());
+        $this->livewireComponent($user,$project)->set('currentStep',4)->assertSee('Carta de intenciones con la UNAH')->assertSee('Disponible')->assertSee('carta-intenciones.pdf');
+    }
+
+    public function test_fotografias_validan_formato_tamano_limite_muestran_miniatura_y_se_pueden_quitar(): void
+    {
+        Storage::fake('public');
+        [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
+        $component=$this->livewireComponent($user,$project)->set('currentStep',8)
+            ->set('fotografiasTemporales',[
+                UploadedFile::fake()->image('evidencia.jpg',800,600)->size(500),
+                UploadedFile::fake()->image('segunda.png',800,600)->size(600),
+            ])
+            ->assertHasNoErrors();
+        $foto=$report->anexos()->where('categoria','fotografia')->firstOrFail();
+        Storage::disk('public')->assertExists($foto->archivo);
+        $component->assertSee('evidencia.jpg');
+        $component->assertSee('segunda.png');
+        $this->assertStringContainsString('object-cover',$component->html());
+        $component->set('fotografiasTemporales',[UploadedFile::fake()->create('evidencia.pdf',100,'application/pdf')])->assertHasErrors('fotografiasTemporales.0');
+        $component->set('fotografiasTemporales',[UploadedFile::fake()->image('grande.jpg')->size(10241)])->assertHasErrors('fotografiasTemporales.0');
+        $component->set('fotografiasTemporales',[
+            UploadedFile::fake()->image('valida.webp',800,600),
+            UploadedFile::fake()->create('invalida.txt',20,'text/plain'),
+        ])->assertHasErrors('fotografiasTemporales.1');
+        $this->assertDatabaseHas('informe_final_anexos',['informe_final_proyecto_id'=>$report->id,'categoria'=>'fotografia','nombre_archivo'=>'valida.webp']);
+        $report->anexos()->where('categoria','fotografia')->delete();
+        foreach (range(1,20) as $i) $report->anexos()->create(['tipo'=>'fotografias','categoria'=>'fotografia','archivo'=>'fotos/'.$i.'.jpg','nombre_archivo'=>$i.'.jpg','origen'=>'INFORME']);
+        $component=$this->livewireComponent($user,$project)->set('currentStep',8)
+            ->set('fotografiasTemporales',[UploadedFile::fake()->image('extra.jpg')])->assertHasErrors('fotografiasTemporales');
+        $id=$report->anexos()->where('categoria','fotografia')->firstOrFail()->id;
+        $component->call('quitarFotografia',$id);
+        $this->assertDatabaseMissing('informe_final_anexos',['id'=>$id]);
+    }
+
+    public function test_zona_de_fotografias_implementa_drag_drop_progreso_previsualizacion_y_accesibilidad(): void
+    {
+        $formulario=file_get_contents(resource_path('views/livewire/proyectos/informe-final/edit-informe-final-proyecto.blade.php'));
+        $dropzone=file_get_contents(resource_path('views/components/forms/image-dropzone.blade.php'));
+        $pdf=file_get_contents(resource_path('views/proyectos/informe-final/partials/inf-001-document.blade.php'));
+
+        $this->assertStringContainsString('<x-forms.image-dropzone model="fotografiasTemporales"',$formulario);
+        $this->assertStringNotContainsString('No hay fotografías adjuntas',$formulario);
+        foreach (['multiple','accept="{{ $accept }}"','x-on:dragenter.prevent','x-on:drop.prevent','Suelta las fotografías para cargarlas','Arrastra y suelta las fotografías aquí','o haz clic para seleccionarlas','wire:model="{{ $model }}"','livewire-upload-progress','role="progressbar"','previews','object-cover','tabindex="0"','x-on:keydown.enter.prevent','aria-live="assertive"'] as $fragmento) {
+            $this->assertStringContainsString($fragmento,$dropzone);
+        }
+        foreach (['.jpg','.jpeg','.png','.webp'] as $extension) $this->assertStringContainsString($extension,$dropzone);
+        $this->assertStringNotContainsString('fotografiasTemporales',$pdf);
+        $this->assertStringContainsString("where('categoria', 'fotografia')",$pdf);
+    }
+
+    public function test_pdf_lista_documentos_de_contraparte_y_fotografias_con_miniaturas(): void
+    {
+        [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user); $contraparte=$report->contrapartes()->firstOrFail();
+        $report->anexos()->create(['informe_final_contraparte_id'=>$contraparte->id,'tipo'=>'otros','categoria'=>'instrumento_contraparte','descripcion'=>'Convenio marco','archivo'=>'instrumentos/convenio.pdf','nombre_archivo'=>'convenio.pdf','origen'=>'PROYECTO']);
+        $report->anexos()->create(['tipo'=>'fotografias','categoria'=>'fotografia','descripcion'=>'Taller comunitario','archivo'=>'fotografias/taller.jpg','nombre_archivo'=>'taller.jpg','origen'=>'INFORME']);
+        $html=view('pdf.informes-finales.inf-001',['informe'=>$report->fresh()->load('anexos.contraparte')])->render();
+        $this->assertStringContainsString('Instrumentos de formalización y respaldos de contraparte',$html);
+        $this->assertStringContainsString('convenio.pdf',$html);
+        $this->assertStringContainsString('Fotografías del proyecto',$html);
+        $this->assertStringContainsString('Taller comunitario',$html);
+        $this->assertStringContainsString('inf-photo-card',$html);
+    }
+
+    public function test_estudiantes_se_muestran_por_grupo_sin_selector_editable_de_participacion(): void
+    {
+        [$user,$project]=$this->scenario();
+        foreach ([['Uno','Masculino','Practica Profesional'],['Dos','Femenino','Servicio Social o PPS'],['Tres','Masculino','Voluntariado']] as $i=>[$name,$sex,$type]) {
             $student=Estudiante::create(['nombre'=>$name,'apellido'=>'Individual','cuenta'=>'IND-'.$i.'-'.uniqid(),'sexo'=>$sex,'user_id'=>$user->id]);
-            EstudianteProyecto::create(['estudiante_id'=>$student->id,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>$type,'cantidad_estudiantes_hombres'=>0,'cantidad_estudiantes_mujeres'=>0,'total_estudiantes'=>1]);
+            EstudianteProyecto::create(['estudiante_id'=>$student->id,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>$type,'cantidad_estudiantes_hombres'=>$sex==='Masculino'?1:0,'cantidad_estudiantes_mujeres'=>$sex==='Femenino'?1:0,'total_estudiantes'=>1]);
         }
         $component=$this->livewireComponent($user,$project)->set('currentStep',3);
-        $component->assertDontSee('Grupo de estudiantes')->assertDontSee('Cantidad');
+        $component->assertSee('Grupos de estudiantes planificados')->assertSee('Planificados')->assertSee('Registrados')->assertSee('Pendientes');
+        $this->assertStringNotContainsString('estudiantes.0.tipo_participacion',$component->html());
         $component->assertSet('totalesParticipacion.estudiantes_practica',1)
             ->assertSet('totalesParticipacion.estudiantes_pps',1)
             ->assertSet('totalesParticipacion.estudiantes_voluntariado',1);
     }
 
-    public function test_busqueda_de_estudiantes_se_limita_a_los_vinculados_al_proyecto(): void
+    public function test_busqueda_institucional_asocia_el_estudiante_al_grupo_seleccionado(): void
     {
         [$user,$project]=$this->scenario();
-        $this->initialize($project,$user);
-        $linked=Estudiante::create(['nombre'=>'Ana','apellido'=>'Vinculada','cuenta'=>'20260009991','sexo'=>'Femenino','user_id'=>$user->id]);
-        EstudianteProyecto::create(['estudiante_id'=>$linked->id,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Voluntariado','cantidad_estudiantes_hombres'=>0,'cantidad_estudiantes_mujeres'=>1,'total_estudiantes'=>1]);
-        $otherProject=Proyecto::create([
-            'tipo_accion_id'=>$project->tipo_accion_id,
-            'codigo_proyecto'=>'PROY-OTRO-'.uniqid(),
-            'nombre_proyecto'=>'Proyecto externo de prueba',
-        ]);
-        $other=Estudiante::create(['nombre'=>'Ana','apellido'=>'Externa','cuenta'=>'20260009992','sexo'=>'Masculino','user_id'=>$user->id]);
-        EstudianteProyecto::create(['estudiante_id'=>$other->id,'proyecto_id'=>$otherProject->id,'tipo_participacion_estudiante'=>'Voluntariado','cantidad_estudiantes_hombres'=>1,'cantidad_estudiantes_mujeres'=>0,'total_estudiantes'=>1]);
+        $student=Estudiante::create(['nombre'=>'Ana','apellido'=>'Institucional','cuenta'=>'20260009992','sexo'=>'Masculino','user_id'=>$user->id]);
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Voluntariado','cantidad_estudiantes_hombres'=>1,'cantidad_estudiantes_mujeres'=>0,'total_estudiantes'=>1]);
+        $report=$this->initialize($project,$user);
+        $grupo=$report->gruposEstudiantes()->firstOrFail();
 
         $this->livewireComponent($user,$project)
-            ->call('openEstudianteModal')
-            ->set('estudianteBusquedaCuenta',$linked->cuenta)
+            ->call('openEstudianteModal',null,$grupo->id)
+            ->set('estudianteBusquedaCuenta',$student->cuenta)
             ->call('buscarEstudiante')
-            ->assertSet('estudianteEncontrado.estudiante_id',$linked->id)
-            ->set('estudianteBusquedaCuenta',$other->cuenta)
-            ->call('buscarEstudiante')
-            ->assertHasErrors('estudianteBusquedaCuenta');
+            ->assertSet('estudianteEncontrado.estudiante_id',$student->id)
+            ->set('estudianteModal.horas_dedicadas',10)
+            ->call('saveEstudianteModal')
+            ->assertHasNoErrors();
+        $this->assertDatabaseHas('informe_final_estudiantes',['informe_final_grupo_estudiante_id'=>$grupo->id,'estudiante_id'=>$student->id]);
+    }
+
+    public function test_no_permite_crear_estudiantes_sin_un_grupo_del_mismo_informe(): void
+    {
+        [$user,$project]=$this->scenario();
+        $report=$this->initialize($project,$user);
+
+        try {
+            $report->estudiantes()->create([
+                'nombre'=>'Estudiante huérfano',
+                'sexo'=>'Masculino',
+                'tipo_participacion'=>'voluntariado',
+            ]);
+            $this->fail('Se permitió crear un estudiante sin grupo.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('informe_final_grupo_estudiante_id',$exception->errors());
+        }
+
+        [, $otherProject]=$this->scenario();
+        $otherReport=$this->initialize($otherProject,$user);
+        $otherGroup=$otherReport->gruposEstudiantes()->create(['tipo_participacion'=>'voluntariado','hombres_planificados'=>0,'mujeres_planificadas'=>0]);
+
+        $this->expectException(ValidationException::class);
+        $report->estudiantes()->create([
+            'informe_final_grupo_estudiante_id'=>$otherGroup->id,
+            'nombre'=>'Estudiante en grupo ajeno',
+            'sexo'=>'Femenino',
+            'tipo_participacion'=>'voluntariado',
+        ]);
+    }
+
+    public function test_al_cargar_un_informe_repara_estudiantes_historicos_sin_grupo(): void
+    {
+        [$user,$project]=$this->scenario();
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Voluntariado','cantidad_estudiantes_hombres'=>1,'cantidad_estudiantes_mujeres'=>0,'total_estudiantes'=>1]);
+        $report=$this->initialize($project,$user);
+        $studentId=DB::table('informe_final_estudiantes')->insertGetId([
+            'informe_final_proyecto_id'=>$report->id,
+            'informe_final_grupo_estudiante_id'=>null,
+            'nombre'=>'Registro histórico',
+            'sexo'=>'Masculino',
+            'tipo_participacion'=>'voluntariado',
+            'horas_dedicadas'=>0,
+            'cantidad'=>1,
+            'created_at'=>now(),
+            'updated_at'=>now(),
+        ]);
+
+        $reopened=$this->initialize($project,$user);
+        $student=$reopened->estudiantes()->findOrFail($studentId);
+
+        $this->assertNotNull($student->informe_final_grupo_estudiante_id);
+        $this->assertTrue($reopened->gruposEstudiantes()->whereKey($student->informe_final_grupo_estudiante_id)->exists());
+        $this->assertSame('voluntariado',$student->tipo_participacion);
+        $this->livewireComponent($user,$project)->call('guardarBorrador')->assertHasNoErrors();
     }
 
     public function test_modal_estudiante_valida_cuenta_y_guarda_registro_manual_sin_crear_maestro(): void
     {
         [$user,$project]=$this->scenario();
         $before=Estudiante::count();
-        $component=$this->livewireComponent($user,$project)->call('openEstudianteModal');
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Servicio Social o PPS','cantidad_estudiantes_hombres'=>1,'cantidad_estudiantes_mujeres'=>0,'total_estudiantes'=>1]);
+        $report=$this->initialize($project,$user);
+        $grupo=$report->gruposEstudiantes()->firstOrFail();
+        $component=$this->livewireComponent($user,$project)->call('openEstudianteModal',null,$grupo->id);
         $component->assertSee('Buscar por número de cuenta')
             ->assertDontSee('Nombre (opcional)')
             ->set('estudianteBusquedaCuenta','')
@@ -410,7 +774,10 @@ class InformeFinalINF001Test extends TestCase
             ->set('estudianteManual.nombres','Estudiante')
             ->set('estudianteManual.apellidos','Manual')
             ->set('estudianteManual.numero_cuenta','20269990000')
-            ->set('estudianteManual.sexo','Otro')
+            ->set('estudianteManual.sexo','No permitido')
+            ->call('saveEstudianteManual')
+            ->assertHasErrors('estudianteManual.sexo')
+            ->set('estudianteManual.sexo','Masculino')
             ->set('estudianteManual.carrera','Ingeniería en Sistemas')
             ->set('estudianteManual.correo','manual@example.test')
             ->set('estudianteManual.horas_dedicadas',40)
@@ -418,7 +785,7 @@ class InformeFinalINF001Test extends TestCase
             ->assertHasNoErrors()
             ->assertSet('estadoGuardado','guardado');
         $this->assertSame($before, Estudiante::count());
-        $this->assertDatabaseHas('informe_final_estudiantes',['nombre'=>'Estudiante Manual','numero_cuenta'=>'20269990000','correo'=>'manual@example.test','origen'=>'MANUAL','estudiante_id'=>null]);
+        $this->assertDatabaseHas('informe_final_estudiantes',['informe_final_grupo_estudiante_id'=>$grupo->id,'nombre'=>'Estudiante Manual','numero_cuenta'=>'20269990000','sexo'=>'Masculino','tipo_participacion'=>'pps_servicio_social','correo'=>'manual@example.test','origen'=>'MANUAL','estudiante_id'=>null]);
     }
 
     public function test_se_guardan_contrapartes(): void
@@ -585,9 +952,12 @@ class InformeFinalINF001Test extends TestCase
     {
         [$user,$project]=$this->scenario();
         $report=$this->initialize($project,$user);
+        $grupo=$report->gruposEstudiantes()->create(['tipo_participacion'=>'voluntariado','hombres_planificados'=>0,'mujeres_planificadas'=>0]);
         foreach (range(1,6) as $index) {
             $report->estudiantes()->create([
+                'informe_final_grupo_estudiante_id'=>$grupo->id,
                 'nombre'=>'Estudiante adicional '.$index,
+                'sexo'=>$index % 2 === 0 ? 'Femenino' : 'Masculino',
                 'tipo_participacion'=>'voluntariado',
                 'cantidad'=>1,
                 'horas_dedicadas'=>10,

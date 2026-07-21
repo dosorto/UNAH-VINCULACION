@@ -81,7 +81,7 @@
                                     class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700">
                                     Subsanar
                                 </button>
-                                <button wire:click="aprobarEnfRevision({{ $revision->id }})" wire:confirm="¿Está seguro de aprobar esta etapa ENF?"
+                                <button x-on:click.prevent="confirmDialog('¿Está seguro de aprobar esta etapa ENF?').then((ok) => ok && $wire.aprobarEnfRevision({{ $revision->id }}))"
                                     class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-green-600 text-white hover:bg-green-700">
                                     Aprobar
                                 </button>
@@ -127,7 +127,7 @@
                                     class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700">
                                     Subsanar
                                 </button>
-                                <button wire:click="aprobarPpsRegistro({{ $registro->id }})" wire:confirm="¿Está seguro de aprobar esta etapa PPS/SS?"
+                                <button x-on:click.prevent="confirmDialog('¿Está seguro de aprobar esta etapa PPS/SS?').then((ok) => ok && $wire.aprobarPpsRegistro({{ $registro->id }}))"
                                     class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-green-600 text-white hover:bg-green-700">
                                     Aprobar
                                 </button>
@@ -176,7 +176,7 @@
                             class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700">
                             Subsanar
                         </button>
-                        <button wire:click="aprobar({{ $viewFirma->id }})" wire:confirm="¿Estás seguro de que deseas aprobar la firma de este proyecto?"
+                        <button x-on:click.prevent="confirmDialog('¿Estás seguro de que deseas aprobar la firma de este proyecto?').then((ok) => ok && $wire.aprobar({{ $viewFirma->id }}))"
                             class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-green-600 text-white hover:bg-green-700">
                             Aprobar
                         </button>
@@ -313,7 +313,7 @@
                         class="px-4 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">
                         Cancelar
                     </button>
-                    <button wire:click="confirmarReasignacion" wire:confirm="¿Confirmas reasignar esta etapa a la persona seleccionada?"
+                    <button x-on:click.prevent="confirmDialog('¿Confirmas reasignar esta etapa a la persona seleccionada?').then((ok) => ok && $wire.confirmarReasignacion())"
                         class="px-4 py-2 text-sm font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700">
                         Confirmar reasignación
                     </button>

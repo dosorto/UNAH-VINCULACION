@@ -101,7 +101,7 @@
                                             Rechazar
                                         </button>
                                     @else
-                                        <button wire:click="revertir({{ $record->id }})" wire:confirm="¿Revertir este código a estado pendiente?"
+                                        <button x-on:click.prevent="confirmDialog('¿Revertir este código a estado pendiente?').then((ok) => ok && $wire.revertir({{ $record->id }}))"
                                             class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md bg-yellow-500 text-white hover:bg-yellow-600">
                                             Revertir
                                         </button>

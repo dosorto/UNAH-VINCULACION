@@ -35,17 +35,16 @@ trait ResolvesFirmasPendientes
                 $query->where(function ($legacyQuery) use ($activeRoleName, $empleadoId) {
                     $legacyQuery->whereNull('firma_proyecto.flujo_aprobacion_etapa_id')
                         ->where(function ($authorizationQuery) use ($activeRoleName, $empleadoId) {
+                            if (! $empleadoId) {
+                                $authorizationQuery->whereRaw('1 = 0');
+                                return;
+                            }
+
+                            $authorizationQuery->where('firma_proyecto.empleado_id', $empleadoId);
+
                             if ($activeRoleName) {
                                 $authorizationQuery->whereHas('cargo_firma.tipoCargoFirma', fn ($roleQuery) => $roleQuery->where('nombre', $activeRoleName));
-                                return;
                             }
-
-                            if ($empleadoId) {
-                                $authorizationQuery->where('firma_proyecto.empleado_id', $empleadoId);
-                                return;
-                            }
-
-                            $authorizationQuery->whereRaw('1 = 0');
                         });
                 })->orWhere(function ($workflowStageQuery) use ($firmasPorEtapaIds) {
                     $workflowStageQuery->whereNotNull('firma_proyecto.flujo_aprobacion_etapa_id')

@@ -50,7 +50,9 @@ class HistorialProyecto extends Component
                 abort(403, 'No tiene permiso para ver este proyecto');
             }
 
-            $empleadoProyecto = EmpleadoProyecto::where('proyecto_id', $proyecto->id)->first();
+            $empleadoProyecto = EmpleadoProyecto::where('proyecto_id', $proyecto->id)
+                ->where('empleado_id', $user->empleado->id)
+                ->first();
 
             if ($empleadoProyecto) {
                 $this->authorize('view', $empleadoProyecto);

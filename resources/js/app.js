@@ -3,6 +3,43 @@ import ApexCharts from 'apexcharts';
 // Hacer ApexCharts disponible globalmente
 window.ApexCharts = ApexCharts;
 
+// Modal de confirmación propio del sistema (reemplaza window.confirm() nativo)
+document.addEventListener('alpine:init', () => {
+    Alpine.store('confirmDialog', {
+        show: false,
+        title: 'Confirmar acción',
+        message: '',
+        confirmText: 'Confirmar',
+        cancelText: 'Cancelar',
+        type: 'default',
+        resolve: null,
+        open(message, options = {}) {
+            this.message = message;
+            this.title = options.title || 'Confirmar acción';
+            this.confirmText = options.confirmText || 'Confirmar';
+            this.cancelText = options.cancelText || 'Cancelar';
+            this.type = options.type || 'default';
+            this.show = true;
+
+            return new Promise((resolve) => {
+                this.resolve = resolve;
+            });
+        },
+        confirm() {
+            this.show = false;
+            this.resolve?.(true);
+            this.resolve = null;
+        },
+        cancel() {
+            this.show = false;
+            this.resolve?.(false);
+            this.resolve = null;
+        },
+    });
+});
+
+window.confirmDialog = (message, options) => window.Alpine.store('confirmDialog').open(message, options);
+
 const THEME_KEY = 'theme';
 const LEGACY_THEME_KEY = 'color-theme';
 

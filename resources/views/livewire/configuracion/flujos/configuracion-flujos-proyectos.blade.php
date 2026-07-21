@@ -155,6 +155,7 @@
                     </div>
                     <button wire:click="addStage" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200">Agregar etapa</button>
                 </div>
+                @error('stages')<p class="mt-3 rounded-xl bg-rose-50 px-4 py-2 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">{{ $message }}</p>@enderror
 
                 <div class="mt-5 space-y-4">
                     @if (count($stages) > 0)
@@ -213,13 +214,27 @@
                                 </label>
                                 <label class="block space-y-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Tipo</span>
-                                    <select wire:model="stages.{{ $index }}.tipo_etapa" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                    <select wire:model.live="stages.{{ $index }}.tipo_etapa" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
                                         <option value="FORMULACION">Formulacion</option>
                                         <option value="REVISION">Revision</option>
                                         <option value="APROBACION">Aprobacion</option>
                                     </select>
+                                    <p class="text-xs text-slate-400">Revision solo pasa a la siguiente etapa. Aprobacion ademas deja una firma y sello registrados en el documento.</p>
                                     @error("stages.$index.tipo_etapa")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                 </label>
+                                @if (($stage['tipo_etapa'] ?? null) === 'APROBACION')
+                                    <label class="block space-y-2">
+                                        <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Cargo de firma *</span>
+                                        <select wire:model="stages.{{ $index }}.cargo_firma_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                            <option value="">Seleccione</option>
+                                            @foreach ($cargoFirmas as $cargo)
+                                                <option value="{{ $cargo->id }}">{{ $cargo->label }}</option>
+                                            @endforeach
+                                        </select>
+                                        <p class="text-xs text-slate-400">Firma y sello que quedarán registrados en el documento cuando esta etapa apruebe.</p>
+                                        @error("stages.$index.cargo_firma_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                    </label>
+                                @endif
                                 <label class="block space-y-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Rol con acceso</span>
                                     <select wire:model.live="stages.{{ $index }}.rol_revisor_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
@@ -410,7 +425,8 @@
                             </div>
                             <button wire:click="addStage" class="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200">Agregar etapa</button>
                         </div>
-                
+                        @error('programStages')<p class="mt-3 rounded-xl bg-rose-50 px-4 py-2 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">{{ $message }}</p>@enderror
+
                 <div class="mt-5 space-y-4">
                     @if (count($programStages) > 0)
                         <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/50">
@@ -469,6 +485,16 @@
                                             <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Nombre</span>
                                             <input wire:model.live.debounce.300ms="programStages.{{ $index }}.nombre" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                                             @error("programStages.$index.nombre")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                        </label>
+                                        <label class="block space-y-2">
+                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Cargo de firma *</span>
+                                            <select wire:model="programStages.{{ $index }}.cargo_firma_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                                <option value="">Seleccione</option>
+                                                @foreach ($cargoFirmas as $cargo)
+                                                    <option value="{{ $cargo->id }}">{{ $cargo->label }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error("programStages.$index.cargo_firma_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                         </label>
                                         <label class="block space-y-2">
                                             <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Rol revisor</span>

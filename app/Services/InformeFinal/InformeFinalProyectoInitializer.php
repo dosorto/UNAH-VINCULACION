@@ -4,6 +4,7 @@ namespace App\Services\InformeFinal;
 
 use App\Models\InformeFinal\InformeFinalProyecto;
 use App\Models\Proyecto\Proyecto;
+use App\Support\InformeFinal\ParticipacionEstudiantil;
 use Illuminate\Support\Facades\DB;
 
 class InformeFinalProyectoInitializer
@@ -19,8 +20,9 @@ class InformeFinalProyectoInitializer
                 'coordinador_proyecto.empleado.departamento_academico',
                 'docentes_proyecto.empleado.user', 'docentes_proyecto.empleado.categoria',
                 'docentes_proyecto.empleado.departamento_academico',
-                'estudiante_proyecto.estudiante.carrera', 'estudiante_proyecto.carrera',
-                'integrante_internacional_proyecto.integranteInternacional', 'entidad_contraparte',
+                'gruposEstudiantesPlanificados.estudiante.carrera', 'gruposEstudiantesPlanificados.estudiante.user',
+                'gruposEstudiantesPlanificados.carrera', 'gruposEstudiantesPlanificados.asignatura',
+                'integrante_internacional_proyecto.integranteInternacional', 'entidad_contraparte.instrumento_formalizacion',
                 'objetivosEspecificos.resultados', 'actividades.empleados', 'aportesInstitucionales',
                 'presupuesto', 'ods', 'metasContribuye',
             ]);
@@ -129,7 +131,7 @@ class InformeFinalProyectoInitializer
                 }
             }
 
-            $this->crearSnapshotsEstudiantes($informe, $proyecto);
+            $this->sincronizarGruposEstudiantes($informe, $proyecto);
 
             foreach ($proyecto->entidad_contraparte as $entidad) {
                 $informe->contrapartes()->create([
@@ -144,6 +146,7 @@ class InformeFinalProyectoInitializer
                     'territorio' => collect([$departamentoTerritorial?->nombre, $municipio?->nombre])->filter()->implode(', '),
                 ]);
             }
+            $this->sincronizarInstrumentosContraparte($informe, $proyecto);
 
             foreach ($proyecto->objetivosEspecificos as $objetivo) {
                 foreach ($objetivo->resultados as $resultado) {
@@ -202,12 +205,19 @@ class InformeFinalProyectoInitializer
 
     private function relations(): array
     {
-        return ['proyecto', 'beneficiarios', 'equipoDocente', 'cooperacion', 'estudiantes', 'voluntarios', 'contrapartes', 'resultados', 'actividades.participantes', 'accionesNoEjecutadas', 'accionesEmergentes', 'ods.ods', 'ods.meta', 'presupuestoDetalles', 'anexos'];
+        return ['proyecto', 'beneficiarios', 'equipoDocente', 'cooperacion', 'gruposEstudiantes.asignatura', 'gruposEstudiantes.estudiantes', 'estudiantes.grupo.asignatura', 'voluntarios', 'contrapartes', 'resultados', 'actividades.participantes', 'accionesNoEjecutadas', 'accionesEmergentes', 'ods.ods', 'ods.meta', 'presupuestoDetalles', 'anexos'];
     }
 
     private function completarSnapshotsFaltantes(InformeFinalProyecto $informe, Proyecto $proyecto): void
     {
         if ($informe->estado !== 'BORRADOR') {
+            if (! $informe->gruposEstudiantes()->exists()) {
+                $this->sincronizarGruposEstudiantes($informe, $proyecto);
+            }
+            if (! $informe->anexos()->where('categoria', 'instrumento_contraparte')->exists()) {
+                $this->sincronizarInstrumentosContraparte($informe, $proyecto);
+            }
+            $this->sincronizarEstudiantesConGrupos($informe, $proyecto);
             return;
         }
 
@@ -216,15 +226,11 @@ class InformeFinalProyectoInitializer
             $informe->update(['numero_registro' => $this->numeroRegistroOficial($proyecto)]);
         }
 
+        $this->sincronizarGruposEstudiantes($informe, $proyecto);
+        $this->sincronizarEstudiantesConGrupos($informe, $proyecto);
+        $this->sincronizarRolesEquipo($informe, $proyecto);
+        $this->sincronizarInstrumentosContraparte($informe, $proyecto);
         $informe->load(['estudiantes', 'voluntarios', 'actividades.participantes']);
-
-        foreach ($informe->estudiantes->whereNull('sexo') as $snapshot) {
-            $registro = $proyecto->estudiante_proyecto->firstWhere('estudiante_id', $snapshot->estudiante_id);
-            if (! $registro || $snapshot->created_at?->ne($snapshot->updated_at) || (float) $snapshot->horas_dedicadas !== 0.0) {
-                continue;
-            }
-            $this->repararSnapshotEstudiante($informe, $snapshot, $registro);
-        }
 
         foreach ($informe->actividades as $snapshot) {
             if ($snapshot->participantes->isNotEmpty() || ! $snapshot->actividad_id) {
@@ -240,30 +246,51 @@ class InformeFinalProyectoInitializer
         }
     }
 
-    private function crearSnapshotsEstudiantes(InformeFinalProyecto $informe, Proyecto $proyecto): void
+    private function sincronizarGruposEstudiantes(InformeFinalProyecto $informe, Proyecto $proyecto): void
     {
-        foreach ($proyecto->estudiante_proyecto as $registro) {
-            $estudiante = $registro->estudiante;
-            $base = [
-                'estudiante_id' => $estudiante?->id,
-                'nombre' => $estudiante ? trim($estudiante->nombre.' '.$estudiante->apellido) : '',
-                'numero_cuenta' => $estudiante?->cuenta,
-                'carrera' => $estudiante?->carrera?->nombre ?: $registro->carrera?->nombre,
-                'correo' => $estudiante?->user?->email,
-                'tipo_participacion' => $this->tipoParticipacionEstudiante($registro->tipo_participacion_estudiante ?? $estudiante?->tipo_participacion_estudiante),
-            ];
-            $informe->estudiantes()->create($base + [
-                'sexo' => $estudiante?->sexo,
-                'cantidad' => 1,
-                'origen' => 'PROYECTO',
-            ]);
-        }
-    }
+        $idsPlanificacion = [];
 
-    private function repararSnapshotEstudiante(InformeFinalProyecto $informe, $snapshot, $registro): void
-    {
-        if (filled($registro->estudiante?->sexo)) {
-            $snapshot->update(['sexo' => $registro->estudiante->sexo, 'cantidad' => 1]);
+        foreach ($proyecto->gruposEstudiantesPlanificados as $registro) {
+            $tipo = ParticipacionEstudiantil::normalizar($registro->tipo_participacion_estudiante);
+            $grupo = $informe->gruposEstudiantes()->updateOrCreate(
+                ['estudiante_proyecto_id' => $registro->id],
+                [
+                    'tipo_participacion' => $tipo,
+                    'asignatura_id' => $registro->asignatura_id,
+                    'periodo_academico' => $registro->periodo_academico_id,
+                    'hombres_planificados' => max(0, (int) $registro->cantidad_estudiantes_hombres),
+                    'mujeres_planificadas' => max(0, (int) $registro->cantidad_estudiantes_mujeres),
+                ]
+            );
+            $idsPlanificacion[] = $registro->id;
+
+            $estudiante = $registro->estudiante;
+            if ($estudiante) {
+                $informe->estudiantes()->firstOrCreate(
+                    ['informe_final_grupo_estudiante_id' => $grupo->id, 'estudiante_id' => $estudiante->id],
+                    [
+                        'nombre' => trim($estudiante->nombre.' '.$estudiante->apellido),
+                        'sexo' => $estudiante->sexo,
+                        'numero_cuenta' => $estudiante->cuenta,
+                        'carrera' => $estudiante->carrera?->nombre ?: $registro->carrera?->nombre,
+                        'correo' => $estudiante->user?->email,
+                        'tipo_participacion' => $tipo,
+                        'cantidad' => 1,
+                        'origen' => 'PROYECTO',
+                    ]
+                );
+            }
+        }
+
+        $obsoletos = $informe->gruposEstudiantes()
+            ->when($idsPlanificacion, fn ($query) => $query->whereNotIn('estudiante_proyecto_id', $idsPlanificacion))
+            ->when(! $idsPlanificacion, fn ($query) => $query)
+            ->withCount('estudiantes')
+            ->get();
+        foreach ($obsoletos as $grupo) {
+            if ($grupo->estudiantes_count === 0) {
+                $grupo->delete();
+            }
         }
     }
 
@@ -274,6 +301,79 @@ class InformeFinalProyectoInitializer
                 ['tipo' => 'docente', 'empleado_id' => $empleado->id],
                 ['nombre' => $empleado->nombre_completo, 'rol' => $orden === 0 ? 'Responsable principal' : 'Participante', 'es_responsable' => $orden === 0, 'orden' => $orden]
             );
+        }
+    }
+
+    private function sincronizarEstudiantesConGrupos(InformeFinalProyecto $informe, Proyecto $proyecto): void
+    {
+        $grupos = $informe->gruposEstudiantes()->get();
+        foreach ($informe->estudiantes()->get() as $estudiante) {
+            $grupoActual = $grupos->first(fn ($grupo) => (int) $grupo->id === (int) $estudiante->informe_final_grupo_estudiante_id);
+            if ($grupoActual) {
+                if ($estudiante->tipo_participacion !== $grupoActual->tipo_participacion) {
+                    $estudiante->update(['tipo_participacion' => $grupoActual->tipo_participacion]);
+                }
+                continue;
+            }
+
+            $tipo = ParticipacionEstudiantil::normalizar($estudiante->tipo_participacion) ?: 'voluntariado';
+            $grupo = null;
+            if ($estudiante->estudiante_id) {
+                $planificacion = $proyecto->gruposEstudiantesPlanificados
+                    ->first(fn ($registro) => (int) $registro->estudiante_id === (int) $estudiante->estudiante_id
+                        && ParticipacionEstudiantil::normalizar($registro->tipo_participacion_estudiante) === $tipo);
+                if ($planificacion) $grupo = $grupos->firstWhere('estudiante_proyecto_id', $planificacion->id);
+            }
+            $coincidentes = $grupos->where('tipo_participacion', $tipo);
+            if (! $grupo && $coincidentes->count() === 1) $grupo = $coincidentes->first();
+            if (! $grupo) {
+                $grupo = $informe->gruposEstudiantes()->firstOrCreate(
+                    ['estudiante_proyecto_id' => null, 'tipo_participacion' => $tipo],
+                    ['hombres_planificados' => 0, 'mujeres_planificadas' => 0]
+                );
+                $grupos->push($grupo);
+            }
+            $estudiante->update(['informe_final_grupo_estudiante_id' => $grupo->id, 'tipo_participacion' => $grupo->tipo_participacion]);
+        }
+    }
+
+    private function sincronizarRolesEquipo(InformeFinalProyecto $informe, Proyecto $proyecto): void
+    {
+        foreach ($proyecto->docentes_proyecto as $miembro) {
+            $snapshot = $informe->equipoDocente()->where('empleado_id', $miembro->empleado_id)->first();
+            if (! $snapshot) continue;
+
+            $rol = trim((string) $miembro->rol);
+            $esCoordinador = strcasecmp($rol, 'Coordinador') === 0;
+            $snapshot->update([
+                'tipo_participacion' => $rol ?: ($snapshot->es_coordinador ? 'Coordinador' : 'Integrante'),
+                'es_coordinador' => $esCoordinador || ($rol === '' && $snapshot->es_coordinador),
+            ]);
+        }
+    }
+
+    private function sincronizarInstrumentosContraparte(InformeFinalProyecto $informe, Proyecto $proyecto): void
+    {
+        foreach ($proyecto->entidad_contraparte as $entidad) {
+            $contraparte = $informe->contrapartes->firstWhere('entidad_contraparte_id', $entidad->id)
+                ?: $informe->contrapartes()->where('entidad_contraparte_id', $entidad->id)->first();
+            if (! $contraparte) continue;
+
+            foreach ($entidad->instrumento_formalizacion as $instrumento) {
+                $informe->anexos()->updateOrCreate(
+                    ['instrumento_formalizacion_id' => $instrumento->id],
+                    [
+                        'informe_final_contraparte_id' => $contraparte->id,
+                        'tipo' => 'otros',
+                        'categoria' => 'instrumento_contraparte',
+                        'descripcion' => $instrumento->tipo_documento_display,
+                        'archivo' => $instrumento->documento_url,
+                        'nombre_archivo' => $instrumento->nombre_archivo ?: basename((string) $instrumento->documento_url),
+                        'fecha' => $instrumento->created_at?->toDateString(),
+                        'origen' => 'PROYECTO',
+                    ]
+                );
+            }
         }
     }
 
@@ -289,13 +389,6 @@ class InformeFinalProyectoInitializer
     private function numeroRegistroOficial(Proyecto $proyecto): ?string
     {
         return $this->texto($proyecto->codigo_proyecto);
-    }
-
-    private function tipoParticipacionEstudiante(?string $tipo): string
-    {
-        $tipo = mb_strtolower((string) $tipo);
-        return str_contains($tipo, 'volunt') ? 'voluntariado'
-            : (str_contains($tipo, 'pps') || str_contains($tipo, 'servicio') ? 'pps_servicio_social' : 'practica_asignatura');
     }
 
     private function tipoContraparte(?string $tipo): string

@@ -36,6 +36,7 @@ class InformeFinalProyecto extends Model
     public function beneficiarios(): HasOne { return $this->hasOne(InformeFinalBeneficiario::class); }
     public function equipoDocente(): HasMany { return $this->hasMany(InformeFinalEquipoDocente::class); }
     public function cooperacion(): HasMany { return $this->hasMany(InformeFinalCooperacion::class); }
+    public function gruposEstudiantes(): HasMany { return $this->hasMany(InformeFinalGrupoEstudiante::class); }
     public function estudiantes(): HasMany { return $this->hasMany(InformeFinalEstudiante::class); }
     public function voluntarios(): HasMany { return $this->hasMany(InformeFinalVoluntario::class); }
     public function contrapartes(): HasMany { return $this->hasMany(InformeFinalContraparte::class); }

@@ -309,6 +309,7 @@
     {{-- /Alpine wrapper --}}
 
     @livewire('components.notifications')
+    <x-confirm-modal />
     @vite('resources/js/app.js')
 </body>
 

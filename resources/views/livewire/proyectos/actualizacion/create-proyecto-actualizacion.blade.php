@@ -102,7 +102,7 @@
                         <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $baja->nombre_integrante }}</p>
                         <p class="text-xs text-gray-500">{{ $baja->motivo_baja }}</p>
                     </div>
-                    <button wire:click="reincorporar({{ $baja->id }})" wire:confirm="¿Reincorporar a este integrante y cancelar la baja?" type="button"
+                    <button x-on:click.prevent="confirmDialog('¿Reincorporar a este integrante y cancelar la baja?').then((ok) => ok && $wire.reincorporar({{ $baja->id }}))" type="button"
                         class="text-xs text-green-600 hover:text-green-800 ml-3 shrink-0">Reincorporar</button>
                 </div>
                 @endforeach
@@ -119,7 +119,7 @@
                         <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $nuevo->nombre_integrante }}</p>
                         <p class="text-xs text-gray-500">{{ $nuevo->motivo_incorporacion }}</p>
                     </div>
-                    <button wire:click="cancelarSolicitud({{ $nuevo->id }})" wire:confirm="¿Cancelar esta solicitud de incorporación?" type="button"
+                    <button x-on:click.prevent="confirmDialog('¿Cancelar esta solicitud de incorporación?', { type: 'danger' }).then((ok) => ok && $wire.cancelarSolicitud({{ $nuevo->id }}))" type="button"
                         class="text-xs text-red-600 hover:text-red-800 ml-3 shrink-0">Cancelar</button>
                 </div>
                 @endforeach

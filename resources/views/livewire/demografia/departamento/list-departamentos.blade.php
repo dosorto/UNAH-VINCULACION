@@ -31,7 +31,7 @@
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $record->codigo_departamento }}</td>
                         <td class="px-4 py-3 text-right space-x-2">
                             <button wire:click="openEdit({{ $record->id }})" class="px-2.5 py-1 text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-md">Editar</button>
-                            <button wire:click="delete({{ $record->id }})" wire:confirm="¿Eliminar?" class="px-2.5 py-1 text-xs text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-md">Eliminar</button>
+                            <button x-on:click.prevent="confirmDialog('¿Eliminar?', { type: 'danger' }).then((ok) => ok && $wire.delete({{ $record->id }}))" class="px-2.5 py-1 text-xs text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-md">Eliminar</button>
                         </td>
                     </tr>
                 @empty

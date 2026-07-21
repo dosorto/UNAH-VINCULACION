@@ -46,8 +46,7 @@
                             class="inline-flex items-center rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">
                         Subsanar
                     </button>
-                    <button wire:click="aprobarFirmaPendiente"
-                            wire:confirm="¿Aprobar esta etapa y avanzar el proyecto?"
+                    <button x-on:click.prevent="confirmDialog('¿Aprobar esta etapa y avanzar el proyecto?').then((ok) => ok && $wire.aprobarFirmaPendiente())"
                             class="inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700">
                         Aprobar
                     </button>
