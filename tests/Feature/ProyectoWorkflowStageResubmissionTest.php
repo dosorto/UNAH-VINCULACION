@@ -485,6 +485,7 @@ class ProyectoWorkflowStageResubmissionTest extends TestCase
             'empleado_id' => $empleado->id,
             'tipo_estado_id' => $tipoEstado->id,
             'fecha' => now(),
+            'comentario' => $estadoNombre === 'Subsanacion' ? 'Motivo de subsanación de prueba.' : null,
             'es_actual' => true,
         ]);
     }

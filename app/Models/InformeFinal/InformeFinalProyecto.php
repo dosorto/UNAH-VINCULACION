@@ -3,6 +3,8 @@
 namespace App\Models\InformeFinal;
 
 use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\DocumentoProyecto;
+use App\Models\Proyecto\FirmaProyecto;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +16,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class InformeFinalProyecto extends Model
 {
     use SoftDeletes;
+
+    public const ESTADO_BORRADOR = 'BORRADOR';
+    public const ESTADO_COMPLETO = 'COMPLETO';
+    public const ESTADO_EN_REVISION = 'EN_REVISION';
+    public const ESTADO_RECHAZADO = 'RECHAZADO';
+    public const ESTADO_APROBADO = 'APROBADO';
 
     protected $table = 'informe_final_proyectos';
 
@@ -47,6 +55,55 @@ class InformeFinalProyecto extends Model
     public function ods(): HasMany { return $this->hasMany(InformeFinalOds::class); }
     public function presupuestoDetalles(): HasMany { return $this->hasMany(InformeFinalPresupuestoDetalle::class); }
     public function anexos(): HasMany { return $this->hasMany(InformeFinalAnexo::class); }
+    public function documentoCierre(): HasOne
+    {
+        return $this->hasOne(DocumentoProyecto::class, 'proyecto_id', 'proyecto_id')
+            ->where('tipo_documento', 'Informe Final');
+    }
+
+    public function estadoFlujo(): string
+    {
+        $documento = $this->relationLoaded('documentoCierre')
+            ? $this->documentoCierre
+            : $this->documentoCierre()->first();
+
+        if (! $documento) {
+            return $this->estado === self::ESTADO_COMPLETO
+                ? self::ESTADO_COMPLETO
+                : self::ESTADO_BORRADOR;
+        }
+
+        return match ($documento->estado?->tipoestado?->nombre) {
+            'Aprobado' => self::ESTADO_APROBADO,
+            'Subsanacion' => self::ESTADO_RECHAZADO,
+            default => self::ESTADO_EN_REVISION,
+        };
+    }
+
+    public function esEditable(): bool
+    {
+        return in_array($this->estadoFlujo(), [self::ESTADO_BORRADOR, self::ESTADO_COMPLETO, self::ESTADO_RECHAZADO], true);
+    }
+
+    public function firmaCierreActual(): ?FirmaProyecto
+    {
+        $documento = $this->documentoCierre;
+
+        if (! $documento) {
+            return null;
+        }
+
+        $ultimoCiclo = (int) $documento->firma_documento()
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->max('revision_ciclo');
+
+        return $documento->firma_documento()
+            ->where('revision_ciclo', $ultimoCiclo)
+            ->where('estado_revision', 'Pendiente')
+            ->orderBy('orden_revision')
+            ->orderBy('id')
+            ->first();
+    }
 
     public function scopePorUnidadAcademica(Builder $query, int $id): Builder { return $query->where('centro_facultad_id', $id); }
     public function scopePorModalidad(Builder $query, int $id): Builder { return $query->where('modalidad_id', $id); }

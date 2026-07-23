@@ -8,8 +8,8 @@ use App\Models\Personal\Empleado;
 use App\Models\Proyecto\MetaContribuye;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\Proyecto;
-use App\Services\InformeFinal\InformeFinalProyectoInitializer;
 use App\Services\InformeFinal\InformeFinalProyectoValidator;
+use App\Services\InformeFinal\InformeFinalProyectoWorkflowService;
 use App\Services\Integraciones\IntegracionApiService;
 use App\Support\InformeFinal\ParticipacionEstudiantil;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -75,13 +75,15 @@ class EditInformeFinalProyecto extends Component
     public string $estadoGuardado = 'guardado';
     private bool $autoGuardando = false;
 
-    public function mount(Proyecto $proyecto, InformeFinalProyectoInitializer $initializer): void
+    public function mount(Proyecto $proyecto, InformeFinalProyectoWorkflowService $workflow): void
     {
         abort_unless($proyecto->tipoAccion?->codigo === self::TIPO_ACCION_FORM_DVUS_001, 404);
-        abort_unless($this->canManage($proyecto), 403);
 
         $this->proyecto = $proyecto;
-        $this->informe = $initializer->initialize($proyecto, auth()->id());
+        $existente = $proyecto->informeFinalInf001()->first();
+        $this->informe = $existente
+            ? tap($existente, fn (InformeFinalProyecto $informe) => abort_unless($workflow->puedeContinuarInformeFinal($informe, auth()->user()), 403))
+            : $workflow->crearInformeFinal($proyecto, auth()->user());
         $this->cargarFormulario();
     }
 
@@ -688,7 +690,11 @@ class EditInformeFinalProyecto extends Component
         $this->persistir();
         $this->informe->refresh();
         $validator->validateForCompletion($this->informe);
-        $this->informe->update(['estado' => 'COMPLETO', 'updated_by' => auth()->id()]);
+        $eraCompleto = $this->informe->estado === InformeFinalProyecto::ESTADO_COMPLETO;
+        $this->informe->update(['estado' => InformeFinalProyecto::ESTADO_COMPLETO, 'updated_by' => auth()->id()]);
+        if (! $eraCompleto) {
+            app(InformeFinalProyectoWorkflowService::class)->registrarInformeCompleto($this->informe, auth()->user());
+        }
         $this->general['estado'] = 'COMPLETO';
         $this->mensaje = 'El INF-001 quedó marcado como completo. No se inició ningún flujo ni firma.';
     }
@@ -1395,21 +1401,10 @@ class EditInformeFinalProyecto extends Component
 
     private function authorizeSensitive(): void
     {
-        if (! $this->canManage($this->proyecto->fresh())) {
+        $informe = $this->informe->fresh();
+        if (! app(InformeFinalProyectoWorkflowService::class)->puedeContinuarInformeFinal($informe, auth()->user())) {
             throw new AuthorizationException('No está autorizado para modificar este informe final.');
         }
     }
 
-    private function canManage(Proyecto $proyecto): bool
-    {
-        $user = auth()->user();
-        if (! $user) {
-            return false;
-        }
-        if ($user->hasRole('admin')) {
-            return true;
-        }
-        $empleadoId = $user->empleado?->id;
-        return $empleadoId && $proyecto->coordinador_proyecto()->where('empleado_id', $empleadoId)->exists();
-    }
 }

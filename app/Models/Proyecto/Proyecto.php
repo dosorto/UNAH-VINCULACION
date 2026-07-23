@@ -794,7 +794,22 @@ class Proyecto extends Model
 
         return $flujo?->etapas
             ? $flujo->etapas
-                ->filter(fn ($etapa) => (bool) ($etapa->{$columnaAplicacion} ?? false))
+                ->filter(function ($etapa) use ($proceso, $columnaAplicacion): bool {
+                    if (! (bool) ($etapa->{$columnaAplicacion} ?? false)) {
+                        return false;
+                    }
+
+                    // Una etapa de cierre o de informe intermedio puede seguir
+                    // marcada como aplicable a inscripción por compatibilidad
+                    // con configuraciones antiguas. Nunca debe ejecutarse como
+                    // parte del recorrido normal del proyecto.
+                    if ($proceso === self::FLUJO_INSCRIPCION) {
+                        return ! $etapa->aplica_informe_intermedio
+                            && ! $etapa->aplica_cierre_proyecto;
+                    }
+
+                    return true;
+                })
                 ->sortBy('orden')
                 ->values()
             : collect();
@@ -821,6 +836,87 @@ class Proyecto extends Model
     public function tieneFlujoCierreProyecto(): bool
     {
         return $this->procesoTieneEtapasConfiguradas(self::FLUJO_CIERRE_PROYECTO);
+    }
+
+    public function usuarioPuedeGestionarInformeFinal(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+        $empleadoId = $user?->empleado?->id;
+
+        return (bool) ($empleadoId && $this->coordinador_proyecto()
+            ->where('empleado_id', $empleadoId)
+            ->exists());
+    }
+
+    public function usuarioPuedeAuditarInformeFinal(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole('admin')) {
+            return true;
+        }
+
+        $empleadoId = $user->empleado?->id;
+        $documento = $this->documentos()
+            ->where('tipo_documento', 'Informe Final')
+            ->first();
+
+        return (bool) ($empleadoId && $documento && $documento->firma_documento()
+            ->where('empleado_id', $empleadoId)
+            ->exists());
+    }
+
+    public function puedeMostrarCierreProyecto(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+
+        if (! $user
+            || (! $this->usuarioPuedeGestionarInformeFinal($user) && ! $this->usuarioPuedeAuditarInformeFinal($user))
+            || $this->estado?->tipoestado?->nombre !== 'En curso'
+            || ! $this->tieneFlujoCierreProyecto()
+        ) {
+            return false;
+        }
+
+        $flujo = $this->resolveFlujoAprobacion();
+        $etapasNormales = $this->flujoEtapasActivasOrdenadas(self::FLUJO_INSCRIPCION)
+            ->filter(fn (FlujoAprobacionEtapa $etapa) => $etapa->cargo_firma_id)
+            ->values();
+
+        if (! $flujo || $etapasNormales->isEmpty()) {
+            return false;
+        }
+
+        $ultimoCiclo = (int) $this->firma_proyecto()
+            ->where('flujo_aprobacion_id', $flujo->id)
+            ->whereIn('flujo_aprobacion_etapa_id', $etapasNormales->pluck('id'))
+            ->whereNull('deleted_at')
+            ->max('revision_ciclo');
+
+        if ($ultimoCiclo < 1) {
+            return false;
+        }
+
+        $firmasPorEtapa = $this->firma_proyecto()
+            ->where('flujo_aprobacion_id', $flujo->id)
+            ->where('revision_ciclo', $ultimoCiclo)
+            ->whereIn('flujo_aprobacion_etapa_id', $etapasNormales->pluck('id'))
+            ->whereNull('deleted_at')
+            ->get()
+            ->groupBy('flujo_aprobacion_etapa_id');
+
+        return $etapasNormales->every(function (FlujoAprobacionEtapa $etapa) use ($firmasPorEtapa): bool {
+            $firmasActivas = $firmasPorEtapa->get($etapa->id, collect())
+                ->reject(fn (FirmaProyecto $firma) => $firma->estado_revision === 'Anulado')
+                ->values();
+
+            return $firmasActivas->count() === 1
+                && $firmasActivas->first()->estado_revision === 'Aprobado';
+        });
     }
 
     public function nextCargoFirmaId(?int $cargoFirmaId, ?string $proceso = null): ?int
@@ -1888,17 +1984,31 @@ class Proyecto extends Model
         $empleadosPorEtapa = $this->resolverEmpleadosPorEtapaParaDocumento($etapas);
 
         return DB::transaction(function () use ($tipoDocumento, $path, $empleado, $proceso, $etapas, $primerEstadoId, $empleadosPorEtapa) {
-            $this->documentos()->where('tipo_documento', $tipoDocumento)->each(function ($documento) {
-                $documento->firma_documento()->delete();
-                $documento->estado_documento()->delete();
-            });
+            self::query()->whereKey($this->id)->lockForUpdate()->firstOrFail();
 
-            $this->documentos()->where('tipo_documento', $tipoDocumento)->delete();
+            $documentos = $this->documentos()
+                ->where('tipo_documento', $tipoDocumento)
+                ->lockForUpdate()
+                ->get();
 
-            $documento = $this->documentos()->create([
-                'tipo_documento' => $tipoDocumento,
-                'documento_url' => $path,
-            ]);
+            if ($documentos->count() > 1) {
+                throw new \RuntimeException('Existe más de un documento del mismo tipo y no puede iniciarse el flujo de forma segura.');
+            }
+
+            $documento = $documentos->first();
+
+            if ($documento && ($documento->firma_documento()->exists() || $documento->estado_documento()->exists())) {
+                throw new \RuntimeException('El documento ya inició su flujo. Para reenviarlo debe encontrarse en subsanación.');
+            }
+
+            if ($documento) {
+                $documento->update(['documento_url' => $path]);
+            } else {
+                $documento = $this->documentos()->create([
+                    'tipo_documento' => $tipoDocumento,
+                    'documento_url' => $path,
+                ]);
+            }
 
             $firmasCreadas = $this->sincronizarFirmasDeEtapasDelFlujo($empleadosPorEtapa, $proceso, $documento, 1);
 
@@ -1910,7 +2020,9 @@ class Proyecto extends Model
                 'empleado_id' => $empleado->id,
                 'tipo_estado_id' => $primerEstadoId,
                 'fecha' => now(),
-                'comentario' => 'Documento creado',
+                'comentario' => $tipoDocumento === 'Informe Final'
+                    ? '[Cierre INF-001] Informe final enviado a revisión.'
+                    : 'Documento creado',
             ]);
 
             return $documento;
@@ -1991,6 +2103,162 @@ class Proyecto extends Model
         return in_array($this->obtenerUltimoEstado()
             ->tipo_estado_id, TipoEstado::whereIn('nombre', $estadoNombres)
             ->pluck('id')->toArray());
+    }
+
+    /**
+     * Guardar contenido nunca constituye una transición del flujo. Un registro
+     * nuevo nace como Borrador; uno existente conserva exactamente su estado.
+     */
+    public function estadoDespuesDeGuardar(): string
+    {
+        return $this->estado?->tipoestado?->nombre ?? 'Borrador';
+    }
+
+    public function firmaRechazadaSubsanacionVigente(): ?FirmaProyecto
+    {
+        $firma = $this->firma_proyecto()
+            ->whereNull('deleted_at')
+            ->where('estado_revision', 'Rechazado')
+            ->whereNotNull('flujo_aprobacion_id')
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->whereNotNull('revision_ciclo')
+            ->orderByDesc('revision_ciclo')
+            ->orderByDesc('id')
+            ->first();
+
+        if (! $firma) {
+            return null;
+        }
+
+        $ultimoCiclo = $this->firma_proyecto()
+            ->whereNull('deleted_at')
+            ->where('flujo_aprobacion_id', $firma->flujo_aprobacion_id)
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->max('revision_ciclo');
+
+        if ($ultimoCiclo === null || (int) $ultimoCiclo !== (int) $firma->revision_ciclo) {
+            return null;
+        }
+
+        $rechazadas = $this->firma_proyecto()
+            ->whereNull('deleted_at')
+            ->where('flujo_aprobacion_id', $firma->flujo_aprobacion_id)
+            ->where('revision_ciclo', $firma->revision_ciclo)
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->where('estado_revision', 'Rechazado')
+            ->count();
+
+        return $rechazadas === 1 ? $firma : null;
+    }
+
+    public function estadoSubsanacionVigente(): ?EstadoProyecto
+    {
+        return $this->estado_proyecto()
+            ->whereHas('tipoestado', fn ($query) => $query->where('nombre', 'Subsanacion'))
+            ->whereNotNull('comentario')
+            ->where('comentario', '!=', '')
+            ->latest('id')
+            ->first();
+    }
+
+    public function tieneEvidenciaSubsanacionActiva(): bool
+    {
+        return $this->firmaRechazadaSubsanacionVigente() !== null
+            && $this->estadoSubsanacionVigente() !== null;
+    }
+
+    public function estaEnSubsanacionActiva(): bool
+    {
+        return $this->estadoDespuesDeGuardar() === 'Subsanacion'
+            && $this->tieneEvidenciaSubsanacionActiva();
+    }
+
+    public function puedeRepararSubsanacionDegradada(): bool
+    {
+        if ($this->estadoDespuesDeGuardar() !== 'Borrador' || ! $this->tieneEvidenciaSubsanacionActiva()) {
+            return false;
+        }
+
+        $ultimosEstados = $this->estado_proyecto()
+            ->with('tipoestado')
+            ->latest('id')
+            ->limit(2)
+            ->get();
+
+        if ($ultimosEstados->count() !== 2) {
+            return false;
+        }
+
+        $estadoBorrador = $ultimosEstados->first();
+        $estadoSubsanacion = $ultimosEstados->last();
+
+        return $estadoBorrador?->tipoestado?->nombre === 'Borrador'
+            && Str::contains(Str::lower((string) $estadoBorrador->comentario), 'guardado como borrador')
+            && $estadoSubsanacion?->tipoestado?->nombre === 'Subsanacion'
+            && trim((string) $estadoSubsanacion->comentario) !== '';
+    }
+
+    public function restaurarSubsanacionDegradada(User $actor): void
+    {
+        if (! $this->puedeRepararSubsanacionDegradada() || ! $actor->empleado) {
+            throw new \RuntimeException(
+                'Se detectó una inconsistencia de subsanación que no puede repararse automáticamente de forma segura.'
+            );
+        }
+
+        $motivo = trim((string) $this->estadoSubsanacionVigente()?->comentario);
+        $tipoEstadoId = TipoEstado::query()->where('nombre', 'Subsanacion')->value('id');
+
+        if (! $tipoEstadoId || $motivo === '') {
+            throw new \RuntimeException(
+                'Se detectó una inconsistencia de subsanación que requiere restauración administrativa.'
+            );
+        }
+
+        DB::transaction(function () use ($actor, $motivo, $tipoEstadoId): void {
+            $this->estado_proyecto()->update(['es_actual' => false]);
+
+            EstadoProyecto::withoutEvents(function () use ($actor, $motivo, $tipoEstadoId): void {
+                $this->estado_proyecto()->create([
+                    'empleado_id' => $actor->empleado->id,
+                    'tipo_estado_id' => $tipoEstadoId,
+                    'fecha' => now(),
+                    'comentario' => 'Estado Subsanación restaurado de forma segura. Motivo original: '.$motivo,
+                    'es_actual' => true,
+                ]);
+            });
+
+            activity('Proyecto')
+                ->performedOn($this)
+                ->causedBy($actor)
+                ->withProperties([
+                    'correccion' => 'Borrador a Subsanacion',
+                    'firma_rechazada_id' => $this->firmaRechazadaSubsanacionVigente()?->id,
+                ])
+                ->log('Se corrigió un estado degradado por un guardado durante subsanación.');
+        });
+
+        $this->unsetRelation('estado');
+    }
+
+    public function detalleSubsanacionActiva(): ?array
+    {
+        $firma = $this->firmaRechazadaSubsanacionVigente();
+        $estado = $this->estadoSubsanacionVigente();
+
+        if (! $firma || ! $estado) {
+            return null;
+        }
+
+        $firma->loadMissing(['empleado', 'flujoEtapa']);
+
+        return [
+            'motivo' => $estado->comentario,
+            'rechazado_por' => $firma->empleado?->nombre_completo ?? 'Revisor no disponible',
+            'fecha' => $firma->fecha_firma ?? $estado->fecha ?? $estado->created_at,
+            'etapa' => $firma->etapa_nombre ?: $firma->flujoEtapa?->nombre ?: 'Etapa no disponible',
+            'ciclo' => (int) $firma->revision_ciclo,
+        ];
     }
 
     public function coordinadorIsCurrentUser(): bool

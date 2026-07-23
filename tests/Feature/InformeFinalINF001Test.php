@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\Proyectos\InformeFinal\EditInformeFinalProyecto;
+use App\Livewire\Docente\Proyectos\HistorialProyecto;
 use App\Models\Asignatura;
 use App\Models\Estudiante\Estudiante;
 use App\Models\Estudiante\EstudianteProyecto;
@@ -13,15 +14,22 @@ use App\Models\Personal\EmpleadoProyecto;
 use App\Models\Presupuesto\Presupuesto;
 use App\Models\Proyecto\Actividad;
 use App\Models\Proyecto\AporteInstitucional;
+use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\EntidadContraparte;
+use App\Models\Proyecto\FlujoAprobacion;
+use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\InstrumenFormalizacion;
 use App\Models\Proyecto\ObjetivoEspecifico;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\ResultadoEsperado;
+use App\Models\Proyecto\TipoCargoFirma;
 use App\Models\Proyecto\VinculacionTipoAccion;
+use App\Models\Estado\TipoEstado;
 use App\Models\User;
 use App\Services\InformeFinal\InformeFinalProyectoInitializer;
 use App\Services\InformeFinal\InformeFinalProyectoValidator;
+use App\Services\InformeFinal\InformeFinalProyectoWorkflowService;
+use App\Services\InformeFinal\InformeFinalPdfGenerator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -879,7 +887,7 @@ class InformeFinalINF001Test extends TestCase
         $component->assertSee('Los datos generales se precargan desde el registro del proyecto.')
             ->set('currentStep',8)
             ->assertSee('Guardar borrador')
-            ->assertSee('Validar informe')
+            ->assertSee('Marcar completo')
             ->assertSee('Vista previa')
             ->assertSee('Descargar PDF');
     }
@@ -890,13 +898,14 @@ class InformeFinalINF001Test extends TestCase
         $documento=file_get_contents(resource_path('views/proyectos/informe-final/partials/inf-001-document.blade.php'));
         $chrome=file_get_contents(resource_path('views/proyectos/informe-final/partials/inf-001-page-chrome.blade.php'));
         $controlador=file_get_contents(app_path('Http/Controllers/Proyectos/InformeFinal/InformeFinalProyectoController.php'));
-        $this->assertStringContainsString('crearPdfInf001',$controlador);
-        $this->assertStringContainsString('loadMissing',$controlador);
-        $this->assertStringContainsString('setPaper([0, 0, 612, 792])',$controlador);
+        $generador=file_get_contents(app_path('Services/InformeFinal/InformeFinalPdfGenerator.php'));
+        $this->assertStringContainsString('InformeFinalPdfGenerator',$controlador);
+        $this->assertStringContainsString('loadMissing',$generador);
+        $this->assertStringContainsString('setPaper([0, 0, 612, 792])',$generador);
         $this->assertStringContainsString("->stream(",$controlador);
         $this->assertStringContainsString("->download(",$controlador);
-        $this->assertStringContainsString('page_text',$controlador);
-        $this->assertStringNotContainsString("setPaper('letter', 'landscape')",$controlador);
+        $this->assertStringContainsString('page_text',$generador);
+        $this->assertStringNotContainsString("setPaper('letter', 'landscape')",$generador);
         $this->assertStringContainsString('body { padding: 78pt 30pt 42pt 30pt',$documento);
         $this->assertStringContainsString('inf-001-document',$template);
         $this->assertStringContainsString('images/enf/form-018-header.png',$chrome);
@@ -1036,6 +1045,184 @@ class InformeFinalINF001Test extends TestCase
         $this->assertSame('Texto final editado',$again->transformacion_lograda);
     }
 
+    public function test_accion_de_cierre_depende_de_la_aprobacion_real_de_etapas_normales(): void
+    {
+        [$user,$project]=$this->scenario();
+        $workflow=app(InformeFinalProyectoWorkflowService::class);
+        $firmaNormal=$project->firma_proyecto()->whereHas('flujoEtapa',fn($query)=>$query->where('aplica_cierre_proyecto',false))->firstOrFail();
+        $firmaNormal->update(['estado_revision'=>'Pendiente']);
+
+        $this->assertFalse($workflow->puedeIniciarInformeFinal($project->fresh(),$user));
+        $this->assertFalse($workflow->resumenCierre($project->fresh(),$user)['visible']);
+
+        $firmaNormal->update(['estado_revision'=>'Rechazado']);
+        $this->assertFalse($project->fresh()->puedeMostrarCierreProyecto($user));
+        $this->assertFalse($workflow->resumenCierre($project->fresh(),$user)['visible']);
+
+        $firmaNormal->update(['estado_revision'=>'Aprobado']);
+        $resumen=$workflow->resumenCierre($project->fresh(),$user);
+        $this->assertTrue($resumen['visible']);
+        $this->assertSame('crear',$resumen['accion']);
+        $this->assertSame('Crear informe final',$resumen['texto_accion']);
+        Livewire::actingAs($user)->test(HistorialProyecto::class,['proyecto'=>$project->fresh()])
+            ->assertSee('Cierre del proyecto')
+            ->assertSee('Crear informe final');
+    }
+
+    public function test_tarjeta_no_aparece_en_estados_anteriores_a_en_curso(): void
+    {
+        [$user,$project]=$this->scenario();
+
+        foreach (['Borrador','En revisión','Subsanacion'] as $estado) {
+            $this->ponerEstadoProyecto($project,$user,$estado);
+            $this->assertFalse($project->fresh()->puedeMostrarCierreProyecto($user));
+            Livewire::actingAs($user)->test(HistorialProyecto::class,['proyecto'=>$project->fresh()])
+                ->assertDontSee('Cierre del proyecto')
+                ->assertDontSee('Informe Final INF-001');
+        }
+    }
+
+    public function test_backend_rechaza_crear_informe_antes_de_completar_flujo_normal(): void
+    {
+        [$user,$project]=$this->scenario();
+        $this->ponerEstadoProyecto($project,$user,'Borrador');
+
+        $this->actingAs($user)->get(route('proyectos.informe-final',$project))->assertForbidden();
+        Livewire::actingAs($user)->test(HistorialProyecto::class,['proyecto'=>$project->fresh()])
+            ->call('crearInformeFinal')
+            ->assertStatus(403);
+        $this->assertDatabaseMissing('informe_final_proyectos',['proyecto_id'=>$project->id]);
+    }
+
+    public function test_informe_historico_fuera_de_condicion_solo_es_visible_para_auditoria(): void
+    {
+        [$coordinador,$project]=$this->scenario();
+        $report=$this->initialize($project,$coordinador);
+        $coordinador->syncRoles([]);
+        $this->ponerEstadoProyecto($project,$coordinador,'Subsanacion');
+        $workflow=app(InformeFinalProyectoWorkflowService::class);
+
+        $resumenCoordinador=$workflow->resumenCierre($project->fresh(),$coordinador->fresh());
+        $this->assertFalse($resumenCoordinador['visible']);
+        $this->assertFalse($resumenCoordinador['advertencia_interna']);
+        $this->actingAs($coordinador->fresh())->get(route('informes-finales.inf-001.preview',$report))->assertForbidden();
+
+        $admin=User::factory()->create();
+        $admin->assignRole(Role::firstOrCreate(['name'=>'admin','guard_name'=>'web']));
+        $resumenAdmin=$workflow->resumenCierre($project->fresh(),$admin);
+        $this->assertFalse($resumenAdmin['visible']);
+        $this->assertTrue($resumenAdmin['advertencia_interna']);
+        Livewire::actingAs($admin)->test(HistorialProyecto::class,['proyecto'=>$project->fresh()])
+            ->assertDontSee('Cierre del proyecto')
+            ->assertSee('Advertencia interna')
+            ->assertSee('Ver informe existente');
+        $this->actingAs($admin)->get(route('informes-finales.inf-001.preview',$report))->assertOk();
+    }
+
+    public function test_crear_informe_es_idempotente_y_no_inicia_firmas_de_cierre(): void
+    {
+        [$user,$project]=$this->scenario();
+        $workflow=app(InformeFinalProyectoWorkflowService::class);
+        $antes=$project->firma_proyecto()->count();
+        $primero=$workflow->crearInformeFinal($project,$user);
+        $segundo=$workflow->crearInformeFinal($project->fresh(),$user);
+
+        $this->assertSame($primero->id,$segundo->id);
+        $this->assertSame(1,InformeFinalProyecto::where('proyecto_id',$project->id)->count());
+        $this->assertSame($antes,$project->firma_proyecto()->count());
+        $this->assertFalse($project->documentos()->where('tipo_documento','Informe Final')->exists());
+    }
+
+    public function test_envio_crea_un_documento_y_solo_firmas_de_cierre_y_bloquea_editor(): void
+    {
+        Storage::fake('public');
+        [$user,$project]=$this->scenario();
+        $this->componentReadyForCompletion($user,$project)->call('marcarCompleto')->assertHasNoErrors();
+        $report=$project->informeFinalInf001()->firstOrFail();
+        $documento=app(InformeFinalProyectoWorkflowService::class)->enviarInformeFinal($report,$user);
+
+        $this->assertSame(1,$project->documentos()->where('tipo_documento','Informe Final')->count());
+        $this->assertSame(
+            $project->flujoEtapasActivasOrdenadas(Proyecto::FLUJO_CIERRE_PROYECTO)->pluck('id')->sort()->values()->all(),
+            $documento->firma_documento()->pluck('flujo_aprobacion_etapa_id')->sort()->values()->all()
+        );
+        $this->assertSame(InformeFinalProyecto::ESTADO_EN_REVISION,$report->fresh()->estadoFlujo());
+        Livewire::actingAs($user)->test(EditInformeFinalProyecto::class,['proyecto'=>$project->fresh()])->assertStatus(403);
+        Storage::disk('public')->assertExists($documento->documento_url);
+    }
+
+    public function test_subsanacion_reutiliza_documento_preserva_ciclo_y_habilita_edicion(): void
+    {
+        Storage::fake('public');
+        [$user,$project]=$this->scenario();
+        $this->componentReadyForCompletion($user,$project)->call('marcarCompleto')->assertHasNoErrors();
+        $workflow=app(InformeFinalProyectoWorkflowService::class);
+        $report=$project->informeFinalInf001()->firstOrFail();
+        $documento=$workflow->enviarInformeFinal($report,$user);
+        $firma=$documento->firma_documento()->firstOrFail();
+        $firma->update(['estado_revision'=>'Rechazado']);
+        $subsanacion=TipoEstado::firstOrCreate(['nombre'=>'Subsanacion']);
+        $documento->estado_documento()->create(['empleado_id'=>$user->empleado->id,'tipo_estado_id'=>$subsanacion->id,'fecha'=>now(),'comentario'=>'Corregir anexos.']);
+
+        $this->assertSame(InformeFinalProyecto::ESTADO_RECHAZADO,$report->fresh()->estadoFlujo());
+        $this->assertTrue($workflow->puedeContinuarInformeFinal($report->fresh(),$user));
+        Livewire::actingAs($user)->test(EditInformeFinalProyecto::class,['proyecto'=>$project->fresh()])->assertOk();
+
+        $reenviado=$workflow->enviarInformeFinal($report->fresh(),$user);
+        $this->assertSame($documento->id,$reenviado->id);
+        $this->assertSame(1,$project->documentos()->where('tipo_documento','Informe Final')->count());
+        $this->assertSame([1,2],$reenviado->firma_documento()->distinct()->orderBy('revision_ciclo')->pluck('revision_ciclo')->all());
+        $this->assertDatabaseHas('firma_proyecto',['id'=>$firma->id,'estado_revision'=>'Rechazado','revision_ciclo'=>1]);
+    }
+
+    public function test_aprobacion_habilita_pdf_final_sin_marca_borrador(): void
+    {
+        [$user,$project]=$this->scenario();
+        $report=$this->initialize($project,$user);
+        $aprobado=TipoEstado::firstOrCreate(['nombre'=>'Aprobado']);
+        $documento=$project->documentos()->create(['tipo_documento'=>'Informe Final','documento_url'=>'documentos/final.pdf']);
+        $documento->estado_documento()->create(['empleado_id'=>$user->empleado->id,'tipo_estado_id'=>$aprobado->id,'fecha'=>now(),'comentario'=>'[Cierre INF-001] Aprobado.']);
+
+        $this->assertSame(InformeFinalProyecto::ESTADO_APROBADO,$report->fresh()->estadoFlujo());
+        $data=app(InformeFinalPdfGenerator::class)->viewData($report->fresh(),true);
+        $this->assertFalse($data['esBorrador']);
+        $resumen=app(InformeFinalProyectoWorkflowService::class)->resumenCierre($project->fresh(),$user);
+        $this->assertSame('aprobado',$resumen['accion']);
+        $this->assertSame('Ver informe final aprobado',$resumen['texto_accion']);
+    }
+
+    public function test_usuario_no_autorizado_no_puede_crear_enviar_ni_ver_accion_de_cierre(): void
+    {
+        [$user,$project]=$this->scenario();
+        $otro=User::factory()->create();
+        $workflow=app(InformeFinalProyectoWorkflowService::class);
+        $this->assertFalse($workflow->puedeIniciarInformeFinal($project,$otro));
+        $this->assertFalse($workflow->resumenCierre($project,$otro)['visible']);
+        $this->actingAs($otro)->get(route('proyectos.informe-final',$project))->assertForbidden();
+    }
+
+    public function test_accion_principal_e_historial_de_cierre_estan_solo_en_ver_proyecto(): void
+    {
+        [$user,$project]=$this->scenario();
+        $workflow=app(InformeFinalProyectoWorkflowService::class);
+        $report=$workflow->crearInformeFinal($project,$user);
+        $report->update(['estado'=>InformeFinalProyecto::ESTADO_COMPLETO]);
+        $workflow->registrarInformeCompleto($report,$user);
+
+        $vistaProyecto=file_get_contents(resource_path('views/livewire/docente/proyectos/historial-proyecto.blade.php'));
+        $listado=file_get_contents(resource_path('views/livewire/docente/proyectos/proyectos-docente-list.blade.php'));
+        $this->assertStringContainsString('Cierre del proyecto',$vistaProyecto);
+        $this->assertStringContainsString('wire:click="crearInformeFinal"',$vistaProyecto);
+        $this->assertStringContainsString('wire:click="enviarInformeFinal"',$vistaProyecto);
+        $this->assertSame(1,substr_count($vistaProyecto,'puedeMostrarCierreProyecto(auth()->user())'));
+        $this->assertStringNotContainsString("cierreInformeFinal['visible']",$vistaProyecto);
+        $this->assertStringContainsString('Flujo de cierre INF-001',$vistaProyecto);
+        $this->assertStringContainsString('Flujo normal del proyecto',$vistaProyecto);
+        $this->assertStringNotContainsString('route(\'proyectos.informe-final\'',$listado);
+        $this->assertDatabaseHas('estado_proyecto',['estadoable_type'=>Proyecto::class,'estadoable_id'=>$project->id,'comentario'=>'[Cierre INF-001] Informe final creado en borrador.']);
+        $this->assertDatabaseHas('estado_proyecto',['estadoable_type'=>Proyecto::class,'estadoable_id'=>$project->id,'comentario'=>'[Cierre INF-001] Informe final completado y listo para envío.']);
+    }
+
     private function livewireComponent(User $user, Proyecto $project)
     {
         return Livewire::actingAs($user)->test(EditInformeFinalProyecto::class,['proyecto'=>$project]);
@@ -1056,6 +1243,21 @@ class InformeFinalINF001Test extends TestCase
         $this->actingAs($user); return app(InformeFinalProyectoInitializer::class)->initialize($project,$user->id);
     }
 
+    private function ponerEstadoProyecto(Proyecto $project, User $user, string $nombre): void
+    {
+        $tipoEstado=TipoEstado::firstOrCreate(['nombre'=>$nombre]);
+        $project->estado_proyecto()->update(['es_actual'=>false]);
+        \App\Models\Estado\EstadoProyecto::withoutEvents(function () use ($project,$user,$tipoEstado): void {
+            $project->estado_proyecto()->create([
+                'empleado_id'=>$user->empleado->id,
+                'tipo_estado_id'=>$tipoEstado->id,
+                'fecha'=>now(),
+                'comentario'=>'Estado de prueba.',
+                'es_actual'=>true,
+            ]);
+        });
+    }
+
     private function scenario(): array
     {
         $user=User::factory()->create(['name'=>'Dorian Adolfo Ordóñez Osorto','email'=>'dorian.orocuina.'.uniqid().'@example.test']);
@@ -1073,6 +1275,18 @@ class InformeFinalINF001Test extends TestCase
         Actividad::create(['proyecto_id'=>$project->id,'descripcion'=>'Levantamiento de requerimientos','fecha_inicio'=>'2026-01-12','fecha_finalizacion'=>'2026-02-15','horas'=>80]);
         AporteInstitucional::create(['proyecto_id'=>$project->id,'concepto'=>'horas_trabajo_docentes','unidad'=>'hra_profes','cantidad'=>1,'costo_unitario'=>200000,'costo_total'=>200000]);
         Presupuesto::create(['proyecto_id'=>$project->id,'aporte_contraparte'=>66792.44]);
+        $estadoNormal = TipoEstado::firstOrCreate(['nombre'=>'En curso']);
+        $estadoCierre = TipoEstado::firstOrCreate(['nombre'=>'Revisión cierre INF-001']);
+        $tipoCargoNormal = TipoCargoFirma::create(['nombre'=>'Revisor normal '.uniqid()]);
+        $tipoCargoCierre = TipoCargoFirma::create(['nombre'=>'Revisor cierre '.uniqid()]);
+        $cargoNormal = CargoFirma::create(['descripcion'=>'Proyecto','tipo_cargo_firma_id'=>$tipoCargoNormal->id,'tipo_estado_id'=>$estadoNormal->id]);
+        $cargoCierre = CargoFirma::create(['descripcion'=>'Proyecto','tipo_cargo_firma_id'=>$tipoCargoCierre->id,'tipo_estado_id'=>$estadoCierre->id]);
+        $flujo = FlujoAprobacion::create(['codigo'=>'INF001_'.uniqid(),'nombre'=>'Flujo INF-001','proceso'=>'PROYECTO','tipo_accion_id'=>$type->id,'codigo_formulario'=>'FORM-DVUS-001','activo'=>true]);
+        $etapaNormal = FlujoAprobacionEtapa::create(['flujo_aprobacion_id'=>$flujo->id,'orden'=>1,'codigo'=>'NORMAL_'.uniqid(),'nombre'=>'Aprobación normal','tipo_etapa'=>'APROBACION','cargo_firma_id'=>$cargoNormal->id,'usuario_responsable_id'=>$user->id,'activo'=>true,'aplica_inscripcion'=>true,'aplica_cierre_proyecto'=>false]);
+        FlujoAprobacionEtapa::create(['flujo_aprobacion_id'=>$flujo->id,'orden'=>2,'codigo'=>'CIERRE_'.uniqid(),'nombre'=>'Aprobación cierre','tipo_etapa'=>'APROBACION','cargo_firma_id'=>$cargoCierre->id,'usuario_responsable_id'=>$user->id,'activo'=>true,'aplica_inscripcion'=>true,'aplica_cierre_proyecto'=>true]);
+        $project->update(['flujo_aprobacion_id'=>$flujo->id]);
+        $project->firma_proyecto()->create(['empleado_id'=>$employee->id,'cargo_firma_id'=>$cargoNormal->id,'estado_revision'=>'Aprobado','hash'=>'normal-'.uniqid(),'flujo_aprobacion_id'=>$flujo->id,'flujo_aprobacion_etapa_id'=>$etapaNormal->id,'orden_revision'=>1,'etapa_codigo'=>$etapaNormal->codigo,'etapa_nombre'=>$etapaNormal->nombre,'revision_ciclo'=>1,'fecha_firma'=>now()]);
+        $project->estado_proyecto()->create(['empleado_id'=>$employee->id,'tipo_estado_id'=>$estadoNormal->id,'fecha'=>now(),'comentario'=>'Flujo normal aprobado.','es_actual'=>true]);
         return [$user,$project];
     }
 }

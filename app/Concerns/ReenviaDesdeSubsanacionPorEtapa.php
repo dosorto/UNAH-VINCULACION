@@ -122,11 +122,15 @@ trait ReenviaDesdeSubsanacionPorEtapa
             $this->bloquearFirmasDelCicloRechazadoParaReenvio($proyecto, $firmaBloqueada, $documento);
             $firmaBloqueada = $firmaBloqueada->fresh();
 
+            if ($firmaBloqueada->estado_revision !== 'Rechazado') {
+                throw new \RuntimeException('La firma indicada no corresponde a una etapa rechazada.');
+            }
+
             if (! $this->usuarioPuedeReenviarDesdeSubsanacion($proyecto, $user)) {
                 throw new \RuntimeException('No tiene autorización para reenviar este registro desde subsanación.');
             }
 
-            $this->validarRegistroEnSubsanacionParaReenvio($proyecto, $documento);
+            $this->validarRegistroEnSubsanacionParaReenvio($proyecto, $documento, $user);
 
             $firmasNuevoCiclo = $proyecto->crearNuevoCicloDesdeFirmaRechazada($firmaBloqueada, $empleadosPorEtapa);
 
@@ -230,15 +234,33 @@ trait ReenviaDesdeSubsanacionPorEtapa
             ->exists();
     }
 
-    protected function validarRegistroEnSubsanacionParaReenvio(Proyecto $proyecto, ?DocumentoProyecto $documento = null): void
+    protected function validarRegistroEnSubsanacionParaReenvio(
+        Proyecto $proyecto,
+        ?DocumentoProyecto $documento = null,
+        ?User $actor = null
+    ): void
     {
         $estado = $documento
             ? $documento->estado
             : $proyecto->estado;
 
-        if ($estado?->tipoestado?->nombre !== 'Subsanacion') {
-            throw new \RuntimeException('El registro no se encuentra en estado de Subsanación.');
+        if ($estado?->tipoestado?->nombre === 'Subsanacion') {
+            if (! $documento && trim((string) $estado->comentario) === '') {
+                throw new \RuntimeException(
+                    'El estado indica Subsanación, pero no existe un motivo de rechazo en el historial.'
+                );
+            }
+
+            return;
         }
+
+        if (! $documento && $actor && $proyecto->puedeRepararSubsanacionDegradada()) {
+            $proyecto->restaurarSubsanacionDegradada($actor);
+
+            return;
+        }
+
+        throw new \RuntimeException('El registro no se encuentra en estado de Subsanación.');
     }
 
     protected function validarPrimeraFirmaDeReenvioPorEtapa(

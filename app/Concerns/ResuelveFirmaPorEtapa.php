@@ -106,7 +106,9 @@ trait ResuelveFirmaPorEtapa
             'tipo_estado_id' => $tipoEstadoId,
             'fecha' => now(),
             'comentario' => $documento
-                ? 'Firma aprobada y documento avanzado a la siguiente etapa del flujo.'
+                ? ($documento->tipo_documento === 'Informe Final'
+                    ? sprintf('[Cierre INF-001] Etapa "%s" aprobada; avanzó a "%s".', $firmaAprobada->etapa_nombre, $siguienteFirma->etapa_nombre)
+                    : 'Firma aprobada y documento avanzado a la siguiente etapa del flujo.')
                 : 'Firma aprobada y proyecto avanzado a la siguiente etapa del flujo.',
         ];
 
@@ -305,7 +307,9 @@ trait ResuelveFirmaPorEtapa
             'empleado_id' => $empleadoId,
             'tipo_estado_id' => $subsanacionId,
             'fecha' => now(),
-            'comentario' => $comentario,
+            'comentario' => $documento?->tipo_documento === 'Informe Final'
+                ? '[Cierre INF-001] Rechazado para subsanación: '.$comentario
+                : $comentario,
         ];
 
         if ($documento) {
@@ -325,7 +329,7 @@ trait ResuelveFirmaPorEtapa
                 'empleado_id' => auth()->user()->empleado->id,
                 'tipo_estado_id' => TipoEstado::where('nombre', 'Finalizado')->first()->id,
                 'fecha' => now(),
-                'comentario' => 'El informe ha sido aprobado correctamente',
+                'comentario' => '[Cierre INF-001] Informe final aprobado; proyecto finalizado.',
             ]);
 
             VerificarConstancia::makeConstanciasProyecto($proyecto);
@@ -335,7 +339,9 @@ trait ResuelveFirmaPorEtapa
             'empleado_id' => auth()->user()->empleado->id,
             'tipo_estado_id' => TipoEstado::where('nombre', 'Aprobado')->first()->id,
             'fecha' => now(),
-            'comentario' => 'El informe ha sido aprobado correctamente',
+            'comentario' => $documento->tipo_documento === 'Informe Final'
+                ? '[Cierre INF-001] Todas las etapas de cierre fueron aprobadas.'
+                : 'El informe ha sido aprobado correctamente',
         ]);
     }
 

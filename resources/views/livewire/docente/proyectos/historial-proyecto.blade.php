@@ -15,10 +15,7 @@
         $estadoNombre = $proyecto->estado?->tipoestado?->nombre;
         $firmaRevisionPendiente = $this->firmaPendienteRevision();
         $tieneFlujoIntermedio = $proyecto->tieneFlujoInformeIntermedio();
-        $tieneFlujoCierre = $proyecto->tieneFlujoCierreProyecto();
         $documentoIntermedioEstado = $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre;
-        $documentoFinalEstado = $proyecto->documento_final()?->estado?->tipoestado?->nombre;
-        $intermedioPendiente = $tieneFlujoIntermedio && $documentoIntermedioEstado !== 'Aprobado';
     @endphp
 
     <div class="no-print rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
@@ -69,16 +66,6 @@
                         </button>
                     @endif
 
-                    @if ($tieneFlujoCierre &&
-                         $estadoNombre === 'En curso' &&
-                         ((! $intermedioPendiente && is_null($proyecto->documento_final())) ||
-                         $documentoFinalEstado === 'Subsanacion'))
-                        <button wire:click="openSubirFinal"
-                                class="inline-flex items-center rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">
-                            {{ $documentoFinalEstado === 'Subsanacion' ? 'Subsanar Inf. Final' : 'Subir Inf. Final' }}
-                        </button>
-                    @endif
-
                     @if ($estadoNombre === 'En curso')
                         <a href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}"
                            class="inline-flex items-center rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700">
@@ -89,6 +76,59 @@
             </div>
         </div>
     </div>
+
+    @if($proyecto->puedeMostrarCierreProyecto(auth()->user()))
+        <section class="no-print rounded-xl border border-emerald-200 bg-white p-5 shadow-sm dark:border-emerald-900 dark:bg-gray-900">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">Cierre del proyecto</p>
+                    <h2 class="mt-1 text-lg font-bold text-gray-900 dark:text-white">Informe Final INF-001</h2>
+                    <dl class="mt-3 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                        <div><dt class="text-gray-500">Estado</dt><dd class="font-semibold text-gray-900 dark:text-gray-100">{{ $cierreInformeFinal['etiqueta'] }}</dd></div>
+                        @if(!empty($cierreInformeFinal['fecha_creacion']))
+                            <div><dt class="text-gray-500">Fecha de creación</dt><dd class="text-gray-900 dark:text-gray-100">{{ $cierreInformeFinal['fecha_creacion']->format('d/m/Y H:i') }}</dd></div>
+                        @endif
+                        @if(!empty($cierreInformeFinal['fecha_envio']))
+                            <div><dt class="text-gray-500">Fecha de envío</dt><dd class="text-gray-900 dark:text-gray-100">{{ $cierreInformeFinal['fecha_envio']->format('d/m/Y H:i') }}</dd></div>
+                        @endif
+                        @if(!empty($cierreInformeFinal['etapa_actual']))
+                            <div><dt class="text-gray-500">Etapa actual</dt><dd class="text-gray-900 dark:text-gray-100">{{ $cierreInformeFinal['etapa_actual'] }}</dd></div>
+                        @endif
+                        @if(!empty($cierreInformeFinal['revisor_actual']))
+                            <div><dt class="text-gray-500">Revisor actual</dt><dd class="text-gray-900 dark:text-gray-100">{{ $cierreInformeFinal['revisor_actual'] }}</dd></div>
+                        @endif
+                    </dl>
+                    @if(!empty($cierreInformeFinal['motivo_rechazo']))
+                        <p class="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">
+                            <strong>Motivo de rechazo:</strong> {{ $cierreInformeFinal['motivo_rechazo'] }}
+                        </p>
+                    @endif
+                </div>
+
+                <div class="flex flex-wrap justify-end gap-2">
+                    @if($cierreInformeFinal['accion'] === 'crear')
+                        <button wire:click="crearInformeFinal" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Crear informe final</button>
+                    @elseif(in_array($cierreInformeFinal['accion'], ['continuar', 'subsanar'], true))
+                        <a href="{{ route('proyectos.informe-final', $proyecto) }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">{{ $cierreInformeFinal['texto_accion'] }}</a>
+                    @elseif($cierreInformeFinal['accion'] === 'enviar' && $cierreInformeFinal['puede_enviar'])
+                        <button wire:click="enviarInformeFinal" wire:confirm="¿Enviar el INF-001 al flujo de cierre? La edición quedará bloqueada." class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">{{ $cierreInformeFinal['texto_accion'] }}</button>
+                    @elseif($cierreInformeFinal['accion'] === 'ver')
+                        <a href="{{ route('informes-finales.inf-001.preview', $cierreInformeFinal['informe']) }}" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 dark:border-gray-600 dark:text-gray-200">Informe final en revisión</a>
+                    @elseif($cierreInformeFinal['accion'] === 'aprobado')
+                        <a href="{{ route('informes-finales.inf-001.preview', $cierreInformeFinal['informe']) }}" class="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">Ver informe final aprobado</a>
+                        <a href="{{ route('informes-finales.inf-001.pdf', $cierreInformeFinal['informe']) }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Descargar PDF final</a>
+                    @endif
+                </div>
+            </div>
+        </section>
+    @endif
+
+    @if($cierreInformeFinal['advertencia_interna'] ?? false)
+        <div class="no-print flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100 sm:flex-row sm:items-center sm:justify-between">
+            <p><strong>Advertencia interna:</strong> existe un INF-001 histórico, pero el proyecto no cumple actualmente las condiciones para habilitar el cierre. El informe permanece en modo de consulta.</p>
+            <a href="{{ route('informes-finales.inf-001.preview', $cierreInformeFinal['informe']) }}" class="whitespace-nowrap rounded-lg border border-amber-400 px-3 py-2 font-medium hover:bg-amber-100 dark:border-amber-700 dark:hover:bg-amber-900/40">Ver informe existente</a>
+        </div>
+    @endif
 
     <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <section class="min-w-0">
@@ -107,6 +147,11 @@
                 @if ($estados->count() > 0)
                     <ol class="relative border-s border-yellow-600">
                         @foreach ($estados as $index => $estado)
+                            @php
+                                $esMovimientoCierre = ($estado->estadoable instanceof \App\Models\Proyecto\DocumentoProyecto
+                                    && $estado->estadoable->tipo_documento === 'Informe Final')
+                                    || str_starts_with((string) $estado->comentario, '[Cierre INF-001]');
+                            @endphp
                             <li class="{{ $index < $estados->count() - 1 ? 'mb-8' : '' }} ms-4">
                                 <div class="absolute -start-1.5 mt-1.5 h-3 w-3 rounded-full border border-white bg-yellow-600"></div>
                                 <time class="text-sm font-normal leading-none text-yellow-600">
@@ -117,6 +162,9 @@
                                 <h3 class="mt-2 text-base font-semibold text-gray-900 dark:text-gray-200">
                                     Estado: {{ $estado->tipoestado?->nombre ?? 'Cambio de estado' }}
                                 </h3>
+                                <span class="mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $esMovimientoCierre ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800' }}">
+                                    {{ $esMovimientoCierre ? 'Flujo de cierre INF-001' : 'Flujo normal del proyecto' }}
+                                </span>
                                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                     @if ($estado->empleado)
                                         Realizado por: {{ $estado->empleado->nombre_completo }}
@@ -197,34 +245,4 @@
         </div>
     @endif
 
-    @if ($informeFinalModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-gray-800">
-                <div class="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold dark:text-white">Subir Informe Final</h3>
-                    <button wire:click="$set('informeFinalModal', false)" class="text-2xl leading-none text-gray-400 hover:text-gray-600">&times;</button>
-                </div>
-                <div class="space-y-4 p-4">
-                    <div>
-                        <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Archivo PDF</label>
-                        <input type="file" wire:model="informeFinalFile" accept=".pdf"
-                               class="w-full text-sm text-gray-700 file:mr-3 file:rounded file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 dark:text-gray-300">
-                        @error('informeFinalFile') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                        <div wire:loading wire:target="informeFinalFile" class="mt-1 text-sm text-gray-500">Cargando archivo...</div>
-                    </div>
-                    <div class="flex justify-end gap-3 pt-2">
-                        <button wire:click="$set('informeFinalModal', false)"
-                                class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            Cancelar
-                        </button>
-                        <button wire:click="subirInformeFinal" wire:loading.attr="disabled" wire:target="subirInformeFinal"
-                                class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50">
-                            <span wire:loading.remove wire:target="subirInformeFinal">Subir</span>
-                            <span wire:loading wire:target="subirInformeFinal">Subiendo...</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
 </div>
