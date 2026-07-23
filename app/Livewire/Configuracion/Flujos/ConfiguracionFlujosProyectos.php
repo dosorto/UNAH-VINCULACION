@@ -156,6 +156,11 @@ class ConfiguracionFlujosProyectos extends Component
             return;
         }
 
+        if (preg_match('/^programStages\.(\d+)\.tipo_etapa$/', $property, $matches) && $value !== 'APROBACION') {
+            $this->programStages[(int) $matches[1]]['cargo_firma_id'] = '';
+            return;
+        }
+
         if (preg_match('/^stages\.(\d+)\.rol_revisor_id$/', $property, $matches)) {
             $this->clearInvalidResponsible($this->stages, (int) $matches[1]);
             return;
@@ -486,10 +491,10 @@ class ConfiguracionFlujosProyectos extends Component
             'programStages.*.aplica_informe_intermedio' => ['boolean'],
             'programStages.*.aplica_cierre_proyecto' => ['boolean'],
             'programStages.*.nombre' => ['required', 'string', 'max:180'],
-            'programStages.*.tipo_etapa' => ['required', 'in:FORMULACION,REVISION,APROBACION'],
+            'programStages.*.tipo_etapa' => ['required', 'in:REVISION,APROBACION'],
             'programStages.*.rol_revisor_id' => ['nullable', 'exists:roles,id'],
             'programStages.*.usuario_responsable_id' => ['nullable', 'exists:users,id'],
-            'programStages.*.cargo_firma_id' => ['required', 'exists:cargo_firma,id'],
+            'programStages.*.cargo_firma_id' => ['nullable', 'required_if:programStages.*.tipo_etapa,APROBACION', 'exists:cargo_firma,id'],
             'programStages.*.requiere_asignacion' => ['boolean'],
             'programStages.*.emisor_define_destinatario' => ['boolean'],
             'programStages.*.activo' => ['boolean'],
@@ -501,7 +506,7 @@ class ConfiguracionFlujosProyectos extends Component
 
         $validated['programStages'] = $this->prepareStagesForSave($validated['programStages'], 'REVISION');
 
-        if ($this->hasDuplicateCargoFirmaEnEtapasActivas($validated['programStages'], 'programStages')) {
+        if ($this->hasDuplicateCargoFirmaEnEtapasActivas($validated['programStages'], 'programStages', soloAprobacion: true)) {
             return;
         }
 

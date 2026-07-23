@@ -3,6 +3,7 @@
 namespace Tests\Feature\DAFT;
 
 use App\Clases\DataNavBar;
+use App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
 use App\Livewire\DAFT\Dashboard;
 use App\Livewire\DAFT\Programas\ListBandejaRevision;
 use App\Livewire\DAFT\Programas\ListTiposPrograma;
@@ -308,6 +309,35 @@ class ProgramaWorkflowServiceTest extends TestCase
             ->assertSee('Etapa 2/2')
             ->assertSee('Etapa aprobada')
             ->assertSee('Contenido validado');
+    }
+
+    public function test_configuracion_daft_permite_elegir_revision_o_aprobacion(): void
+    {
+        [$programa, $revisor, $flujo] = $this->escenarioConDosEtapas();
+        $this->actingAs($revisor);
+
+        Livewire::test(ConfiguracionFlujosProyectos::class)
+            ->call('showProgramFlows')
+            ->call('selectProgramTipoPrograma', $programa->tipo_programa_id)
+            ->assertSee('Tipo')
+            ->assertSee('Revision')
+            ->assertSee('Aprobacion')
+            ->set('programStages.0.cargo_firma_id', $flujo->etapas()->firstOrFail()->cargo_firma_id)
+            ->set('programStages.0.tipo_etapa', 'APROBACION')
+            ->assertSet('programStages.0.tipo_etapa', 'APROBACION')
+            ->assertSee('Cargo de firma')
+            ->set('programStages.0.tipo_etapa', 'REVISION')
+            ->set('programStages.1.tipo_etapa', 'REVISION')
+            ->assertSet('programStages.0.tipo_etapa', 'REVISION')
+            ->assertSet('programStages.0.cargo_firma_id', '')
+            ->assertDontSee('Cargo de firma')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('flujos_aprobacion_etapas', [
+            'id' => $flujo->etapas()->firstOrFail()->id,
+            'tipo_etapa' => 'REVISION',
+        ]);
     }
 
     public function test_revisor_abre_el_expediente_del_programa_antes_de_aprobar(): void

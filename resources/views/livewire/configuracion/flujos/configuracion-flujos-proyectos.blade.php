@@ -466,15 +466,27 @@
                                             @error("programStages.$index.nombre")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                         </label>
                                         <label class="block space-y-2">
-                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Cargo de firma *</span>
-                                            <select wire:model="programStages.{{ $index }}.cargo_firma_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                                                <option value="">Seleccione</option>
-                                                @foreach ($cargoFirmas as $cargo)
-                                                    <option value="{{ $cargo->id }}">{{ $cargo->label }}</option>
-                                                @endforeach
+                                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Tipo</span>
+                                            <select wire:model.live="programStages.{{ $index }}.tipo_etapa" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                                <option value="REVISION">Revision</option>
+                                                <option value="APROBACION">Aprobacion</option>
                                             </select>
-                                            @error("programStages.$index.cargo_firma_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                            <p class="text-xs text-slate-400">Revision solo pasa a la siguiente etapa. Aprobacion ademas deja una firma registrada.</p>
+                                            @error("programStages.$index.tipo_etapa")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                         </label>
+                                        @if (($stage['tipo_etapa'] ?? null) === 'APROBACION')
+                                            <label class="block space-y-2">
+                                                <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Cargo de firma *</span>
+                                                <select wire:model="programStages.{{ $index }}.cargo_firma_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                                    <option value="">Seleccione</option>
+                                                    @foreach ($cargoFirmas as $cargo)
+                                                        <option value="{{ $cargo->id }}">{{ $cargo->label }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <p class="text-xs text-slate-400">Firma que quedará registrada cuando esta etapa apruebe.</p>
+                                                @error("programStages.$index.cargo_firma_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
+                                            </label>
+                                        @endif
                                         <label class="block space-y-2">
                                             <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Rol revisor</span>
                                             <select wire:model.live="programStages.{{ $index }}.rol_revisor_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
