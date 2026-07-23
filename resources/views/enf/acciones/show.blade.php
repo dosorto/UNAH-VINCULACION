@@ -3,6 +3,8 @@
 @php
     use Illuminate\Support\Facades\Storage;
     $esForm018 = ($accion->codigo_formulario ?? null) === 'FORM-DVUS-018';
+    $esForm016 = ($accion->codigo_formulario ?? null) === 'FORM-DVUS-016';
+    $esDocumentoEnf = $esForm018 || $esForm016;
 @endphp
 
 @push('styles')
@@ -16,11 +18,11 @@
 @endpush
 
 @section('main')
-    <div class="mx-auto {{ $esForm018 ? 'w-full max-w-none' : 'max-w-5xl' }} space-y-6">
+    <div class="mx-auto {{ $esDocumentoEnf ? 'w-full max-w-none' : 'max-w-5xl' }} space-y-6">
         <div class="no-print rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <a href="{{ $esForm018 ? route('listarProyectosVinculacion') : route('enf.acciones.index') }}" class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                    <a href="{{ $esDocumentoEnf ? route('listarProyectosVinculacion') : route('enf.acciones.index') }}" class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
                         Volver al historial
                     </a>
                     <h1 class="mt-1 text-xl font-bold text-gray-900 dark:text-white">{{ $accion->nombre_accion }}</h1>
@@ -30,7 +32,7 @@
                 </div>
 
                 <div class="flex flex-wrap gap-2">
-                    @if ($esForm018)
+                    @if ($esDocumentoEnf)
                         <a href="{{ route('enf.acciones.pdf', $accion) }}" class="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-white hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600">
                             @svg('heroicon-o-arrow-down-tray', ['class' => 'h-4 w-4'])
                             Descargar PDF
@@ -106,10 +108,14 @@
             </div>
         @endif
 
-        @if ($esForm018)
+        @if ($esDocumentoEnf)
             <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
                 <section class="min-w-0">
-                    @include('enf.acciones.partials.form-018-document', ['accion' => $accion])
+                    @if ($esForm018)
+                        @include('enf.acciones.partials.form-018-document', ['accion' => $accion])
+                    @else
+                        @include('enf.acciones.partials.form-016-document', ['accion' => $accion])
+                    @endif
                 </section>
 
                 <aside class="no-print rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">

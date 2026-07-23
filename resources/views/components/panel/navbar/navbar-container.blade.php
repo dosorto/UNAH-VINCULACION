@@ -45,7 +45,11 @@
         </div>
 
         {{-- ── Navegación (scroll interno) ── --}}
-        <div class="overflow-y-auto scrollbar-hidden pb-4 flex-1" wire:scroll>
+        <div
+            id="sidebar-navigation-scroll"
+            data-sidebar-scroll
+            class="overflow-y-auto scrollbar-hidden pb-4 flex-1"
+            style="overflow-anchor: none;">
             {{ $slot }}
         </div>
 

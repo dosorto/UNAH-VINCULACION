@@ -3,12 +3,12 @@
 namespace Tests\Feature;
 
 use App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
+use App\Models\DAFT\TipoPrograma;
 use App\Models\Estado\TipoEstado;
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\TipoCargoFirma;
-use App\Models\SGCU\TipoPrograma;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
@@ -20,24 +20,18 @@ class ConfiguracionFlujosAcademicScopeTest extends TestCase
 {
     use DatabaseTransactions;
 
-    public function test_pantalla_muestra_selectores_y_opciones_de_alcance_academico(): void
+    public function test_pantalla_no_expone_la_configuracion_tecnica_de_alcance_academico(): void
     {
         $this->crearCatalogosBase();
         $this->actingAs(User::factory()->create());
 
         Livewire::test(ConfiguracionFlujosProyectos::class)
-            ->assertSee('Alcance academico')
-            ->assertSee('Sin filtro académico')
-            ->assertSee('Global / Institucional')
-            ->assertSee('Departamento académico')
-            ->assertSee('Define de qué unidad académica saldrá el revisor de esta etapa.')
-            ->assertSee('Multiplicidad')
-            ->assertSee('Define si se seleccionará un único revisor o uno por cada unidad académica.')
-            ->assertSee('Un revisor por cada unidad')
+            ->assertDontSee('Alcance academico')
+            ->assertDontSee('Define de qué unidad académica saldrá el revisor de esta etapa.')
+            ->assertDontSee('Multiplicidad')
             ->call('showProgramFlows')
-            ->assertSee('Alcance academico')
-            ->assertSee('Carrera')
-            ->assertSee('Un único revisor');
+            ->assertDontSee('Alcance academico')
+            ->assertDontSee('Multiplicidad');
     }
 
     public function test_guardar_flujo_de_proyecto_persiste_alcance_y_multiplicidad(): void
@@ -65,7 +59,7 @@ class ConfiguracionFlujosAcademicScopeTest extends TestCase
         $this->assertSame(FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD, $etapa->multiplicidad_revision);
     }
 
-    public function test_guardar_flujo_sgcu_persiste_alcance_y_multiplicidad(): void
+    public function test_guardar_flujo_daft_persiste_alcance_y_multiplicidad(): void
     {
         $context = $this->crearCatalogosBase();
         $role = $this->crearRol();
@@ -73,8 +67,8 @@ class ConfiguracionFlujosAcademicScopeTest extends TestCase
 
         Livewire::test(ConfiguracionFlujosProyectos::class)
             ->call('showProgramFlows')
-            ->set('programWorkflow.codigo', 'FLUJO_CONFIG_SGCU_'.uniqid())
-            ->set('programWorkflow.nombre', 'Flujo config SGCU')
+            ->set('programWorkflow.codigo', 'FLUJO_CONFIG_DAFT_'.uniqid())
+            ->set('programWorkflow.nombre', 'Flujo config DAFT')
             ->set('programStages.0.codigo', 'REVISION_CARRERA')
             ->set('programStages.0.nombre', 'Revision por carrera')
             ->set('programStages.0.rol_revisor_id', (string) $role->id)
@@ -88,6 +82,58 @@ class ConfiguracionFlujosAcademicScopeTest extends TestCase
 
         $this->assertSame(FlujoAprobacionEtapa::ALCANCE_CARRERA, $etapa->alcance_academico);
         $this->assertSame(FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD, $etapa->multiplicidad_revision);
+    }
+
+    public function test_nueva_etapa_daft_muestra_asignacion_de_responsable_desactivada_por_defecto(): void
+    {
+        $this->crearCatalogosBase();
+        $tipoPrograma = TipoPrograma::create([
+            'nombre' => 'Tipo sin flujo '.uniqid(),
+            'activo' => true,
+        ]);
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(ConfiguracionFlujosProyectos::class)
+            ->call('showProgramFlows')
+            ->call('selectProgramTipoPrograma', $tipoPrograma->id)
+            ->assertSee('Requiere asignación de responsable')
+            ->assertSet('programStages.0.requiere_asignacion', false)
+            ->call('addStage')
+            ->assertSet('programStages.1.requiere_asignacion', false)
+            ->call('removeStage', 1)
+            ->call('removeStage', 0)
+            ->assertSet('programStages.0.requiere_asignacion', false);
+    }
+
+    public function test_codigo_del_flujo_daft_se_genera_con_el_nombre_y_no_admite_cambios_manuales(): void
+    {
+        $context = $this->crearCatalogosBase();
+        $suffix = strtoupper(uniqid());
+        $tipoPrograma = TipoPrograma::create([
+            'nombre' => 'Diplomado '.$suffix,
+            'activo' => true,
+        ]);
+        $expectedCode = 'PROGRAMA_DIPLOMADO_'.$suffix;
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(ConfiguracionFlujosProyectos::class)
+            ->call('showProgramFlows')
+            ->call('selectProgramTipoPrograma', $tipoPrograma->id)
+            ->assertSet('programWorkflow.codigo', $expectedCode)
+            ->assertSeeHtml('readonly')
+            ->set('programWorkflow.codigo', 'CODIGO_MANIPULADO')
+            ->set('programWorkflow.nombre', 'Flujo de diplomado')
+            ->set('programStages.0.nombre', 'Revision inicial')
+            ->set('programStages.0.cargo_firma_id', (string) $context['cargo']->id)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('flujos_aprobacion', [
+            'tipo_programa_id' => $tipoPrograma->id,
+            'proceso' => 'PROGRAMA',
+            'codigo' => $expectedCode,
+        ]);
+        $this->assertDatabaseMissing('flujos_aprobacion', ['codigo' => 'CODIGO_MANIPULADO']);
     }
 
     public function test_valida_multiplicidad_por_unidad_solo_en_alcances_academicos_filtrables(): void
@@ -178,7 +224,7 @@ class ConfiguracionFlujosAcademicScopeTest extends TestCase
     public function test_pps_sugeridas_y_payloads_legacy_usan_defaults_sin_borrar_valores_existentes(): void
     {
         $context = $this->crearCatalogosBase();
-        $component = new ConfiguracionFlujosAcademicScopeComponentFake();
+        $component = new ConfiguracionFlujosAcademicScopeComponentFake;
         $etapaExistente = $context['flujo']->etapas()->create([
             'orden' => 1,
             'codigo' => 'ETAPA_EXISTENTE',

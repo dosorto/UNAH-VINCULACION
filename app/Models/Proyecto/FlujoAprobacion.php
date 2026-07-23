@@ -35,7 +35,7 @@ class FlujoAprobacion extends Model
 
     public function tipoPrograma()
     {
-        return $this->belongsTo(\App\Models\SGCU\TipoPrograma::class, 'tipo_programa_id');
+        return $this->belongsTo(\App\Models\DAFT\TipoPrograma::class, 'tipo_programa_id');
     }
 
     public function tipoAccion()

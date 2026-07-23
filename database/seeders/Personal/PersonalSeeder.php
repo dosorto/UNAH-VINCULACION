@@ -209,34 +209,34 @@ class PersonalSeeder extends Seeder
             );
         }
 
-        $usuariosPruebaSgcu = [
+        $usuariosPruebaDaft = [
             [
-                'name' => 'SGCU Gestor Prueba',
-                'email' => 'sgcu.gestor@unah.test',
-                'given_name' => 'SGCU',
+                'name' => 'DAFT Gestor Prueba',
+                'email' => 'daft.gestor@unah.test',
+                'given_name' => 'DAFT',
                 'surname' => 'Gestor',
-                'role' => 'SGCU Gestor',
+                'role' => 'DAFT Gestor',
                 'numero_empleado' => '910001',
             ],
             [
-                'name' => 'SGCU Revisor Etapa 1',
-                'email' => 'sgcu.revisor1@unah.test',
-                'given_name' => 'SGCU',
+                'name' => 'DAFT Revisor Etapa 1',
+                'email' => 'daft.revisor1@unah.test',
+                'given_name' => 'DAFT',
                 'surname' => 'Revisor Etapa 1',
-                'role' => 'SGCU Revisor Etapa 1',
+                'role' => 'DAFT Revisor Etapa 1',
                 'numero_empleado' => '910002',
             ],
             [
-                'name' => 'SGCU Revisor Etapa 2',
-                'email' => 'sgcu.revisor2@unah.test',
-                'given_name' => 'SGCU',
+                'name' => 'DAFT Revisor Etapa 2',
+                'email' => 'daft.revisor2@unah.test',
+                'given_name' => 'DAFT',
                 'surname' => 'Revisor Etapa 2',
-                'role' => 'SGCU Revisor Etapa 2',
+                'role' => 'DAFT Revisor Etapa 2',
                 'numero_empleado' => '910003',
             ],
         ];
 
-        foreach ($usuariosPruebaSgcu as $usuarioRol) {
+        foreach ($usuariosPruebaDaft as $usuarioRol) {
             $role = Role::firstOrCreate([
                 'name' => $usuarioRol['role'],
                 'guard_name' => 'web',
@@ -246,7 +246,7 @@ class PersonalSeeder extends Seeder
                 ['email' => $usuarioRol['email']],
                 [
                     'name' => $usuarioRol['name'],
-                    'password' => bcrypt('SgcuTest2026!'),
+                    'password' => bcrypt('DaftTest2026!'),
                     'surname' => $usuarioRol['surname'],
                     'given_name' => $usuarioRol['given_name'],
                     'active_role_id' => $role->id,
@@ -271,7 +271,7 @@ class PersonalSeeder extends Seeder
             );
         }
 
-        $this->configurarRolesFlujosSgcu();
+        $this->configurarRolesFlujosDaft();
 
         if (app()->environment('local')) {
             $rolUsuarioEjemplo = Role::firstOrCreate([
@@ -334,10 +334,10 @@ class PersonalSeeder extends Seeder
         }
     }
 
-    private function configurarRolesFlujosSgcu(): void
+    private function configurarRolesFlujosDaft(): void
     {
-        $rolEtapa1 = Role::where('name', 'SGCU Revisor Etapa 1')->where('guard_name', 'web')->first();
-        $rolEtapa2 = Role::where('name', 'SGCU Revisor Etapa 2')->where('guard_name', 'web')->first();
+        $rolEtapa1 = Role::where('name', 'DAFT Revisor Etapa 1')->where('guard_name', 'web')->first();
+        $rolEtapa2 = Role::where('name', 'DAFT Revisor Etapa 2')->where('guard_name', 'web')->first();
 
         if (! $rolEtapa1 || ! $rolEtapa2) {
             return;
