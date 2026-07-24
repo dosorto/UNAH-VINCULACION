@@ -108,6 +108,7 @@ class PermisosSeeder extends Seeder
             'apariencia.slides',
             'estudiante.admin',
             'tickets.ver', 'tickets.administrar',
+            'daft.acceso',
         ]);
 
         $roleDocente->syncPermissions([

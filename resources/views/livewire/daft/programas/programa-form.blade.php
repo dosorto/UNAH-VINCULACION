@@ -181,25 +181,81 @@
 
                 <div class="mt-5 border-t border-slate-200 pt-5 dark:border-slate-800">
                     @if ($isEditableState)
-                        <div class="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+                        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/40">
                             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                                 <div>
                                     <p class="text-[11px] font-black uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">Construcción guiada</p>
                                     <h2 class="mt-1 text-base font-semibold text-slate-900 dark:text-slate-100">Completa los pasos obligatorios antes de enviar el programa a revisión</h2>
                                     <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Paso 1: define las asignaturas. Paso 2: selecciona los centros regionales donde podrá aperturarse.</p>
                                 </div>
-                                <div class="rounded-full px-4 py-2 text-sm font-semibold {{ $draftSetup['ready_for_review'] ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300' }}">{{ $draftSetup['ready_for_review'] ? 'Programa listo para revisión' : 'Faltan pasos obligatorios' }}</div>
+                                <div class="shrink-0 rounded-full px-4 py-2 text-sm font-semibold {{ $draftSetup['ready_for_review'] ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300' }}">{{ $draftSetup['ready_for_review'] ? 'Programa listo para revisión' : 'Faltan pasos obligatorios' }}</div>
+                            </div>
+
+                            <div class="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1.15fr)_minmax(240px,0.7fr)]">
+                                <button
+                                    type="button"
+                                    @click="tab = 'asignaturas'"
+                                    :class="tab === 'asignaturas'
+                                        ? 'border-primary bg-slate-100 shadow-sm dark:border-sky-500 dark:bg-slate-800'
+                                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600 dark:hover:bg-slate-800/70'"
+                                    class="flex min-h-20 items-center gap-4 rounded-2xl border px-4 py-3 text-left transition">
+                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-bold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">1</span>
+                                    <span class="min-w-0">
+                                        <span class="flex flex-wrap items-center gap-2">
+                                            <span class="text-sm font-bold text-slate-900 dark:text-slate-100">Definir asignaturas</span>
+                                            <span class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                                                {{ count($asignaturas) }} {{ count($asignaturas) === 1 ? 'registrada' : 'registradas' }}
+                                            </span>
+                                        </span>
+                                        <span class="mt-1 block text-sm text-slate-500 dark:text-slate-400">Agrega la estructura académica del programa.</span>
+                                    </span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    @click="tab = 'centros'"
+                                    :class="tab === 'centros'
+                                        ? 'border-primary bg-slate-100 shadow-sm dark:border-sky-500 dark:bg-slate-800'
+                                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600 dark:hover:bg-slate-800/70'"
+                                    class="flex min-h-20 items-center gap-4 rounded-2xl border px-4 py-3 text-left transition">
+                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-bold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">2</span>
+                                    <span class="min-w-0">
+                                        <span class="flex flex-wrap items-center gap-2">
+                                            <span class="text-sm font-bold text-slate-900 dark:text-slate-100">Definir centros regionales</span>
+                                            <span class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                                                {{ count($centros) }} {{ count($centros) === 1 ? 'seleccionado' : 'seleccionados' }}
+                                            </span>
+                                        </span>
+                                        <span class="mt-1 block text-sm text-slate-500 dark:text-slate-400">Indica en qué centros puede aperturarse.</span>
+                                    </span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    @click="tab = 'auditoria'"
+                                    :class="tab === 'auditoria'
+                                        ? 'border-primary bg-slate-100 shadow-sm dark:border-sky-500 dark:bg-slate-800'
+                                        : 'border-slate-300 bg-transparent hover:border-slate-400 hover:bg-white dark:border-slate-700 dark:hover:border-slate-600 dark:hover:bg-slate-900'"
+                                    class="flex min-h-20 items-center gap-4 rounded-2xl border border-dashed px-4 py-3 text-left transition">
+                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                                        @svg('heroicon-o-clock', ['class' => 'h-5 w-5'])
+                                    </span>
+                                    <span>
+                                        <span class="block text-sm font-bold text-slate-900 dark:text-slate-100">Auditoría</span>
+                                        <span class="mt-1 block text-sm text-slate-500 dark:text-slate-400">Consulta el historial y los movimientos del programa.</span>
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+                    @else
+                        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4 dark:border-slate-800">
+                            <div class="flex flex-wrap gap-2">
+                                <button @click="tab = 'asignaturas'" :class="tab === 'asignaturas' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'" class="rounded-full px-4 py-2 text-sm font-medium transition">Asignaturas <span class="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs">{{ count($asignaturas) }}</span></button>
+                                <button @click="tab = 'centros'" :class="tab === 'centros' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'" class="rounded-full px-4 py-2 text-sm font-medium transition">Centros regionales <span class="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs">{{ count($centros) }}</span></button>
+                                <button @click="tab = 'auditoria'" :class="tab === 'auditoria' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'" class="rounded-full px-4 py-2 text-sm font-medium transition">Auditoría</button>
                             </div>
                         </div>
                     @endif
-
-                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4 dark:border-slate-800">
-                        <div class="flex flex-wrap gap-2">
-                            <button @click="tab = 'asignaturas'" :class="tab === 'asignaturas' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'" class="rounded-full px-4 py-2 text-sm font-medium transition">Paso 1 · Asignaturas <span class="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs">{{ count($asignaturas) }}</span></button>
-                            <button @click="tab = 'centros'" :class="tab === 'centros' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'" class="rounded-full px-4 py-2 text-sm font-medium transition">Paso 2 · Centros regionales <span class="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs">{{ count($centros) }}</span></button>
-                            <button @click="tab = 'auditoria'" :class="tab === 'auditoria' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'" class="rounded-full px-4 py-2 text-sm font-medium transition">Auditoría</button>
-                        </div>
-                    </div>
                 </div>
 
                 <div x-show="tab === 'asignaturas'" x-transition class="pt-5">
