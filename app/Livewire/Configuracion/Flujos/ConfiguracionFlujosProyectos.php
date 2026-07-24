@@ -376,6 +376,8 @@ class ConfiguracionFlujosProyectos extends Component
             'tiposPrograma' => $tiposPrograma,
             'selectedTipoPrograma' => $selectedTipoPrograma,
             'cargoFirmas' => $cargoFirmas,
+            'alcancesAcademicos' => $this->alcancesAcademicos(),
+            'multiplicidadesRevision' => $this->multiplicidadesRevision(),
         ])->layout('layouts.app', ['hideHorizontalNav' => true]);
     }
 
@@ -497,9 +499,10 @@ class ConfiguracionFlujosProyectos extends Component
             ...$this->academicScopeValidationRules('programStages'),
         ], $this->academicScopeValidationMessages('programStages'));
 
-<<<<<<< HEAD
         if (! $this->validateAcademicStageRules($validated['programStages'], 'programStages')) {
-=======
+            return;
+        }
+
         $validated['programStages'] = $this->prepareStagesForSave($validated['programStages'], 'REVISION');
 
         if ($this->hasDuplicateCargoFirmaEnEtapasActivas($validated['programStages'], 'programStages')) {
@@ -508,11 +511,9 @@ class ConfiguracionFlujosProyectos extends Component
 
         if (! $this->programSelectedTipoProgramaId) {
             $this->addError('programWorkflow.nombre', 'Seleccione un tipo de programa.');
->>>>>>> 2b709bb14bb7b0d4a04faeaa08c78744259e43d0
+
             return;
         }
-
-        $validated['programStages'] = $this->prepareStagesForSave($validated['programStages'], 'REVISION');
 
         DB::transaction(function () use ($validated) {
             $flow = FlujoAprobacion::updateOrCreate(
