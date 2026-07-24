@@ -9,10 +9,12 @@ use App\Http\Controllers\ENF\EnfInformeFinalController;
 use App\Http\Controllers\ENF\EnfPresupuestoController;
 use App\Http\Controllers\ENF\EnfSistematizacionController;
 use App\Http\Controllers\PDFController;
+use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalProyectoController;
 use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialAnexoController;
 use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialPdfController;
 use App\Http\Controllers\SetRoleController;
 use App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
+use App\Livewire\Configuracion\IntegracionesApi;
 use App\Livewire\Configuracion\Logs\ListLogs;
 use App\Livewire\Constancia\ListConstancias;
 use App\Livewire\DAFT\Catalogos\DaftCatalogos;
@@ -48,6 +50,7 @@ use App\Livewire\Personal\Empleado\ListEmpleado;
 use App\Livewire\Personal\Perfil\EditPerfil;
 use App\Livewire\Personal\Permiso\ListPermisos;
 use App\Livewire\Proyectos\Actualizacion\EditProyectoActualizacion;
+use App\Livewire\Proyectos\InformeFinal\EditInformeFinalProyecto;
 use App\Livewire\Proyectos\Vinculacion\AreaProyectoSelector;
 use App\Livewire\Proyectos\Vinculacion\CategoriaProyectoSelector;
 use App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial;
@@ -400,6 +403,10 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         Route::get('listarLogs', ListLogs::class)
             ->name('listarLogs')
             ->middleware('can:configuracion.logs');
+
+        Route::get('configuracion/integraciones-api', IntegracionesApi::class)
+            ->name('configuracion.integraciones-api')
+            ->middleware('can:configuracion.integraciones-api');
     });
 
     // rutas para el modludo de constancias
