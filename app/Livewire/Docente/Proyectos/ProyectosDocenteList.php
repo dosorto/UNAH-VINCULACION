@@ -42,10 +42,6 @@ class ProyectosDocenteList extends Component
     public ?int $informeIntermedioProyectoId = null;
     public $informeIntermedioFile = null;
 
-    public bool $informeFinalModal = false;
-    public ?int $informeFinalProyectoId = null;
-    public $informeFinalFile = null;
-
     public bool $deleteModal = false;
     public ?int $deleteProyectoId = null;
     public bool $deleteEnfModal = false;
@@ -105,32 +101,6 @@ class ProyectosDocenteList extends Component
         $this->informeIntermedioModal = false;
         $this->informeIntermedioFile = null;
         Notification::make()->title('Informe subido')->body('El informe intermedio fue enviado correctamente.')->success()->send();
-    }
-
-    public function openSubirFinal(int $proyectoId): void
-    {
-        $this->informeFinalProyectoId = $proyectoId;
-        $this->informeFinalFile = null;
-        $this->informeFinalModal = true;
-    }
-
-    public function subirInformeFinal(): void
-    {
-        $this->validate(['informeFinalFile' => 'required|file|mimes:pdf|max:10240']);
-
-        $proyecto = Proyecto::findOrFail($this->informeFinalProyectoId);
-        $path = $this->informeFinalFile->store('documentos', 'public');
-
-        try {
-            $proyecto->registrarDocumentoDesdeFlujo('Informe Final', $path, auth()->user()->empleado);
-        } catch (\Throwable $e) {
-            Notification::make()->title('No se pudo enviar el informe')->body($e->getMessage())->danger()->send();
-            return;
-        }
-
-        $this->informeFinalModal = false;
-        $this->informeFinalFile = null;
-        Notification::make()->title('Informe subido')->body('El informe final fue enviado correctamente.')->success()->send();
     }
 
     public function constanciaInscripcion(int $proyectoId): mixed

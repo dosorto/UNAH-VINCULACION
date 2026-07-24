@@ -3,91 +3,83 @@
 namespace App\Livewire\DAFT\Programas;
 
 use App\Models\DAFT\ProgramaRevision;
-use App\Models\DAFT\ProgramaCertificacion;
-use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\User;
+use App\Services\DAFT\ProgramaWorkflowService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 
 class ListBandejaRevision extends Component
 {
     public array $observaciones = [];
 
+    public array $reviewerSelections = [];
+
     public function assignToMe(int $revisionId): void
     {
-        $revision = ProgramaRevision::with(['programa', 'flujoEtapa.rolRevisor'])->findOrFail($revisionId);
-        abort_if($revision->estado !== 'PENDIENTE_ASIGNACION', 422);
-        abort_if(! $revision->programa || $revision->programa->etapaActual()?->id !== $revision->id, 422);
-        abort_if(! $this->userHasStageRole($revision), 403);
+        try {
+            app(ProgramaWorkflowService::class)->asignarAlUsuario(
+                ProgramaRevision::findOrFail($revisionId),
+                Auth::user()
+            );
+        } catch (\DomainException $exception) {
+            session()->flash('programas_warning', $exception->getMessage());
 
-        $revision->update([
-            'asignado_usuario_id' => Auth::id(),
-            'estado' => 'ASIGNADO',
-        ]);
+            return;
+        }
 
         session()->flash('programas_status', 'Revision asignada correctamente.');
+        $this->dispatch('daft-review-assigned');
+    }
+
+    public function assignReviewer(int $revisionId): void
+    {
+        $validated = $this->validate([
+            'reviewerSelections.'.$revisionId => [
+                'required',
+                'integer',
+                Rule::exists('users', 'id')->whereNull('deleted_at'),
+            ],
+        ], [
+            'reviewerSelections.*.required' => 'Selecciona el responsable de la etapa.',
+            'reviewerSelections.*.exists' => 'El responsable seleccionado ya no está disponible.',
+        ]);
+        $reviewerId = (int) data_get($validated, 'reviewerSelections.'.$revisionId);
+        $reviewer = User::findOrFail($reviewerId);
+
+        try {
+            app(ProgramaWorkflowService::class)->asignarAUsuario(
+                ProgramaRevision::findOrFail($revisionId),
+                Auth::user(),
+                $reviewer
+            );
+        } catch (\DomainException $exception) {
+            $this->addError('reviewerSelections.'.$revisionId, $exception->getMessage());
+
+            return;
+        }
+
+        unset($this->reviewerSelections[$revisionId]);
+        session()->flash('programas_status', 'Responsable asignado: '.$reviewer->name.'.');
+        if ($reviewer->is(Auth::user())) {
+            $this->dispatch('daft-review-assigned');
+        }
     }
 
     public function approveRevision(int $revisionId): void
     {
-        $revision = ProgramaRevision::with(['programa', 'flujoEtapa.rolRevisor', 'flujoEtapa.usuarioResponsable'])->findOrFail($revisionId);
-        $programa = $revision->programa;
-        abort_if(! $programa || $programa->etapaActual()?->id !== $revision->id, 422);
-        abort_if(! $this->canActOnStage($revision), 403);
+        try {
+            app(ProgramaWorkflowService::class)->aprobar(
+                ProgramaRevision::findOrFail($revisionId),
+                Auth::user(),
+                $this->observaciones[$revisionId] ?? null
+            );
+        } catch (\DomainException $exception) {
+            session()->flash('programas_warning', $exception->getMessage());
 
-        DB::transaction(function () use ($programa, $revision) {
-            $revision->update([
-                'estado' => 'APROBADO',
-                'decidido_por_usuario_id' => Auth::id(),
-                'observaciones' => $this->observaciones[$revision->id] ?? null,
-                'firma_nombre' => Auth::user()?->name,
-                'firmado_en' => now(),
-            ]);
-
-            $next = $programa->revisiones()
-                ->with(['flujoEtapa.rolRevisor', 'flujoEtapa.usuarioResponsable'])
-                ->where('revision_ciclo', $programa->revision_ciclo)
-                ->where('orden', '>', $revision->orden)
-                ->orderBy('orden')
-                ->first();
-
-            if (! $next) {
-                $programa->update([
-                    'estado' => 1,
-                    'estado_flujo' => 'APROBADO',
-                    'observaciones_revision' => null,
-                    'subsanacion_revision_id' => null,
-                    'subsanacion_etapa_orden' => null,
-                    'subsanacion_etapa_nombre' => null,
-                    'subsanacion_devuelto_en' => null,
-                    'modificado_por_usuario_id' => Auth::id(),
-                ]);
-
-                $this->syncCurrentVersionRecord($programa->fresh([
-                    'centroFacultad',
-                    'tipoPrograma',
-                    'centrosPrograma.centroFacultad',
-                    'asignaturasPrograma.asignatura',
-                ]), 'APROBADO');
-
-                return;
-            }
-
-            if (in_array($next->estado, ['PENDIENTE', 'PENDIENTE_ASIGNACION'], true)) {
-                $defaultReviewer = $next->flujoEtapa
-                    ? $this->resolveDefaultReviewer($next->flujoEtapa)
-                    : ($next->rol_requerido ? User::role($next->rol_requerido)->orderBy('name')->first() : null);
-
-                $next->update([
-                    'estado' => $next->flujoEtapa?->requiere_asignacion
-                        ? 'PENDIENTE_ASIGNACION'
-                        : ($defaultReviewer ? 'ASIGNADO' : 'PENDIENTE'),
-                    'asignado_usuario_id' => $next->flujoEtapa?->requiere_asignacion ? null : $defaultReviewer?->id,
-                ]);
-            }
-        });
+            return;
+        }
 
         unset($this->observaciones[$revisionId]);
         session()->flash('programas_status', 'Etapa aprobada correctamente.');
@@ -95,44 +87,24 @@ class ListBandejaRevision extends Component
 
     public function rejectRevision(int $revisionId): void
     {
-        $revision = ProgramaRevision::with(['programa', 'flujoEtapa.rolRevisor'])->findOrFail($revisionId);
-        $programa = $revision->programa;
         $observacion = trim((string) ($this->observaciones[$revisionId] ?? ''));
-
-        abort_if(! $programa || $programa->etapaActual()?->id !== $revision->id, 422);
-        abort_if(! $this->canActOnStage($revision), 403);
 
         if ($observacion === '') {
             $this->addError('observaciones.'.$revisionId, 'Debe indicar las observaciones para subsanacion.');
+
             return;
         }
+        try {
+            app(ProgramaWorkflowService::class)->rechazar(
+                ProgramaRevision::findOrFail($revisionId),
+                Auth::user(),
+                $observacion
+            );
+        } catch (\DomainException $exception) {
+            session()->flash('programas_warning', $exception->getMessage());
 
-        DB::transaction(function () use ($programa, $revision, $observacion) {
-            $revision->update([
-                'estado' => 'RECHAZADO',
-                'decidido_por_usuario_id' => Auth::id(),
-                'observaciones' => $observacion,
-                'firma_nombre' => Auth::user()?->name,
-                'firmado_en' => now(),
-            ]);
-
-            $programa->update([
-                'estado_flujo' => 'SUBSANACION',
-                'observaciones_revision' => $observacion,
-                'subsanacion_revision_id' => $revision->id,
-                'subsanacion_etapa_orden' => $revision->orden,
-                'subsanacion_etapa_nombre' => $revision->etapa_nombre,
-                'subsanacion_devuelto_en' => now(),
-                'modificado_por_usuario_id' => Auth::id(),
-            ]);
-
-            $this->syncCurrentVersionRecord($programa->fresh([
-                'centroFacultad',
-                'tipoPrograma',
-                'centrosPrograma.centroFacultad',
-                'asignaturasPrograma.asignatura',
-            ]), 'SUBSANACION', $observacion);
-        });
+            return;
+        }
 
         unset($this->observaciones[$revisionId]);
         session()->flash('programas_status', 'Programa enviado a subsanacion.');
@@ -154,133 +126,39 @@ class ListBandejaRevision extends Component
         $pendingNotice = $revisionesAccionables->isNotEmpty()
             ? 'Tienes '.$revisionesAccionables->count().' revision(es) pendiente(s) para el rol activo '.($this->activeRoleName() ?? 'actual').'.'
             : null;
+        $reviewerCandidatesByRevision = $programasPendientes
+            ->where('estado', 'PENDIENTE_ASIGNACION')
+            ->mapWithKeys(fn (ProgramaRevision $revision): array => [
+                $revision->id => app(ProgramaWorkflowService::class)
+                    ->usuariosElegiblesParaRevision($revision),
+            ]);
 
-        return view('livewire.daft.programas.list-bandeja-revision', compact('programasPendientes', 'programasEnProceso', 'programasAprobados', 'pendingNotice'))
+        return view('livewire.daft.programas.list-bandeja-revision', compact('programasPendientes', 'programasEnProceso', 'programasAprobados', 'pendingNotice', 'reviewerCandidatesByRevision'))
             ->layout('layouts.app', ['hideHorizontalNav' => true]);
     }
 
     protected function canActOnStage(ProgramaRevision $stage): bool
     {
-        if ($stage->asignado_usuario_id && $stage->asignado_usuario_id !== Auth::id()) {
-            return false;
-        }
-
-        if ($stage->estado === 'PENDIENTE_ASIGNACION') {
-            return false;
-        }
-
-        if ($this->userHasStageRole($stage)) {
-            return true;
-        }
-
-        return ! $stage->rol_requerido
-            && in_array(Auth::id(), array_filter([$stage->asignado_usuario_id, $stage->responsable_usuario_id]), true);
+        return app(ProgramaWorkflowService::class)->usuarioPuedeActuar($stage, Auth::user());
     }
 
     protected function userHasStageRole(ProgramaRevision $stage): bool
     {
-        $roleName = $stage->flujoEtapa?->rolRevisor?->name ?: $stage->rol_requerido;
-
-        if (! $roleName) {
-            return true;
-        }
-
-        return $this->activeRoleName() === $roleName;
-    }
-
-    protected function resolveDefaultReviewer(FlujoAprobacionEtapa $stage): ?User
-    {
-        if ($stage->usuario_responsable_id && ! $stage->requiere_asignacion) {
-            return $stage->usuarioResponsable;
-        }
-
-        if (! $stage->rolRevisor?->name) {
-            return null;
-        }
-
-        if ($stage->rol_revisor_id) {
-            $preferredReviewer = User::role($stage->rolRevisor->name)
-                ->where('active_role_id', $stage->rol_revisor_id)
-                ->orderBy('name')
-                ->first();
-
-            if ($preferredReviewer) {
-                return $preferredReviewer;
-            }
-        }
-
-        return User::role($stage->rolRevisor->name)
-            ->orderBy('name')
-            ->first();
+        return app(ProgramaWorkflowService::class)->usuarioTieneRolDeEtapa($stage, Auth::user());
     }
 
     protected function userCanSeeStage(ProgramaRevision $stage): bool
     {
-        $programa = $stage->programa;
-
-        if (! $programa) {
-            return false;
-        }
-
-        if (($programa->estado_flujo ?? null) === 'APROBADO') {
-            return $this->userParticipatedInStage($stage);
-        }
-
-        if ($programa->etapaActual()?->id !== $stage->id) {
-            return false;
-        }
-
-        if (! $this->userHasStageRole($stage)) {
-            return false;
-        }
-
-        if ($stage->asignado_usuario_id) {
-            return (int) $stage->asignado_usuario_id === Auth::id();
-        }
-
-        if ($stage->responsable_usuario_id) {
-            return (int) $stage->responsable_usuario_id === Auth::id();
-        }
-
-        return true;
+        return app(ProgramaWorkflowService::class)->usuarioPuedeVer($stage, Auth::user());
     }
 
     protected function userParticipatedInStage(ProgramaRevision $stage): bool
     {
-        $userId = Auth::id();
-
-        return in_array($userId, array_filter([
-            $stage->asignado_usuario_id,
-            $stage->responsable_usuario_id,
-            $stage->decidido_por_usuario_id,
-        ]), true) || $this->userHasStageRole($stage);
+        return app(ProgramaWorkflowService::class)->usuarioParticipoEnEtapa($stage, Auth::user());
     }
 
     protected function activeRoleName(): ?string
     {
         return Auth::user()?->activeRole?->name;
-    }
-
-    protected function syncCurrentVersionRecord(ProgramaCertificacion $programa, string $estado, ?string $notas = null): void
-    {
-        $snapshot = $programa->buildVersionSnapshot();
-
-        if ($estado === 'APROBADO') {
-            $programa->versiones()->update(['vigente' => false]);
-        }
-
-        $programa->versiones()->updateOrCreate(
-            ['numero_version' => $programa->version_actual],
-            [
-                'estado' => $estado,
-                'vigente' => $estado === 'APROBADO',
-                'publicado_en' => $estado === 'APROBADO' ? now() : null,
-                'publicado_por_usuario_id' => $estado === 'APROBADO' ? Auth::id() : null,
-                'notas' => $notas,
-                'datos_programa' => $snapshot['programa'],
-                'centros_facultad' => $snapshot['centros_facultad'],
-                'asignaturas' => $snapshot['asignaturas'],
-            ]
-        );
     }
 }

@@ -3077,7 +3077,7 @@ class CreateProyectoVinculacion extends Component
             \Log::warning($e->getMessage());
         }
 
-        Notification::make()->title('Proyecto enviado a firmar')->success()->send();
+        Notification::make()->title('Proyecto reenviado a revisión')->success()->send();
         redirect()->route('proyectosDocente');
 
         return true;
@@ -3356,14 +3356,27 @@ class CreateProyectoVinculacion extends Component
         }
         $record = Proyecto::findOrFail($this->recordId);
         $empleado = auth()->user()->empleado;
+        $estadoConservado = $record->estadoDespuesDeGuardar();
+
         try {
             $record->agregarFirma(cargoFirma: 'Coordinador Proyecto', empleado: $empleado);
-            $record->agregarEstadoByName(empleado: $empleado, tipoEstadoNombre: 'Borrador', comentario: 'Guardado como borrador');
+
+            if ($estadoConservado === 'Subsanacion') {
+                activity('Proyecto')
+                    ->performedOn($record)
+                    ->causedBy(auth()->user())
+                    ->withProperties(['estado_conservado' => $estadoConservado])
+                    ->log('Cambios guardados durante la subsanación.');
+            }
         } catch (\Exception $e) {
             Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
             return;
         }
-        Notification::make()->title('Borrador guardado')->success()->send();
+
+        Notification::make()
+            ->title($estadoConservado === 'Subsanacion' ? 'Cambios de subsanación guardados' : 'Borrador guardado')
+            ->success()
+            ->send();
         redirect()->route('proyectosDocente');
     }
 
@@ -3490,6 +3503,10 @@ class CreateProyectoVinculacion extends Component
     public function render(): View
     {
         $record = $this->recordId ? Proyecto::with('anexos')->find($this->recordId) : null;
+        $enSubsanacion = $record
+            ? $record->estaEnSubsanacionActiva() || $record->puedeRepararSubsanacionDegradada()
+            : false;
+        $detalleSubsanacion = $enSubsanacion ? $record?->detalleSubsanacionActiva() : null;
 
         // Empleados para modal de búsqueda (paso 2)
         $empleadosModal = $this->showEmpleadoModal
@@ -3535,6 +3552,8 @@ class CreateProyectoVinculacion extends Component
             'tematicaPrincipalOpciones' => $this->tematicaPrincipalOpciones,
             'metodologiaSeguimientoOpciones' => $this->metodologiaSeguimientoOpciones,
             'record' => $record,
+            'enSubsanacion' => $enSubsanacion,
+            'detalleSubsanacion' => $detalleSubsanacion,
             'coordNombre' => auth()->user()->empleado?->nombre_completo ?? auth()->user()->name,
         ]);
     }

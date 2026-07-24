@@ -1,5 +1,6 @@
 @php
     $isPdf = $isPdf ?? false;
+    $esBorrador = $esBorrador ?? true;
     $firmas = $firmas ?? ['coordinador' => null, 'jefe' => null, 'enlace' => null, 'decano' => null];
     $coordinadorProyecto = $coordinadorProyecto ?? null;
     $beneficiarios = $informe->beneficiarios;
@@ -97,12 +98,17 @@
     .inf-photo-grid { width: 100%; font-size: 0; }
     .inf-photo-card { display: inline-block; width: 24%; margin: 0 1% 6pt 0; border: .55pt solid #7f8790; padding: 3pt; vertical-align: top; page-break-inside: avoid; font-size: 7pt; }
     .inf-photo-card img { display: block; width: 100%; height: 70pt; object-fit: cover; margin-bottom: 3pt; }
+    .inf-draft-watermark { position: fixed; z-index: 0; top: 43%; left: 13%; width: 74%; color: rgba(120, 20, 20, .12); font-size: 62pt; font-weight: 700; text-align: center; transform: rotate(-32deg); }
     @if(! $isPdf)
         .inf001-document { padding: 82pt 30pt 42pt; }
     @endif
 </style>
 
 @include('proyectos.informe-final.partials.inf-001-page-chrome')
+
+@if($esBorrador)
+    <div class="inf-draft-watermark">BORRADOR</div>
+@endif
 
 <main class="inf001-document">
     <h1 class="inf001-title">INF-001 — Informe final de programas y proyectos de vinculación</h1>

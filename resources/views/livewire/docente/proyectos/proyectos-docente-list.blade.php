@@ -143,18 +143,11 @@
                                             in_array($estadoProyecto, ['Autoguardado', 'Borrador', 'Subsanacion', 'Subsanación'], true)
                                         );
                                         $tieneFlujoIntermedio = $proyecto->tieneFlujoInformeIntermedio();
-                                        $tieneFlujoCierre = $proyecto->tieneFlujoCierreProyecto();
                                         $documentoIntermedioEstado = $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre;
-                                        $documentoFinalEstado = $proyecto->documento_final()?->estado?->tipoestado?->nombre;
-                                        $intermedioPendiente = $tieneFlujoIntermedio && $documentoIntermedioEstado !== 'Aprobado';
                                         $puedeSubirIntermedio = $esCoordinador
                                             && $tieneFlujoIntermedio
                                             && $estadoProyecto === 'En curso'
                                             && (is_null($proyecto->documento_intermedio()) || $documentoIntermedioEstado === 'Subsanacion');
-                                        $puedeSubirFinal = $esCoordinador
-                                            && $tieneFlujoCierre
-                                            && $estadoProyecto === 'En curso'
-                                            && ((! $intermedioPendiente && is_null($proyecto->documento_final())) || $documentoFinalEstado === 'Subsanacion');
                                     @endphp
 
                                     <a href="{{ route('historialproyecto', $proyecto) }}"
@@ -163,15 +156,6 @@
                                        aria-label="Ver proyecto">
                                         @svg('heroicon-o-eye', ['class' => 'h-4 w-4'])
                                     </a>
-
-                                    @if ($esCoordinador && $proyecto->tipoAccion?->codigo === 'DESARROLLO_LOCAL_REGIONAL')
-                                        <a href="{{ route('proyectos.informe-final', $proyecto) }}"
-                                           class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-blue-700 shadow-sm transition hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900/60 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
-                                           title="Completar INF-001"
-                                           aria-label="Completar informe final INF-001">
-                                            @svg('heroicon-o-document-text', ['class' => 'h-4 w-4'])
-                                        </a>
-                                    @endif
 
                                     @if ($puedeSeguirEditando)
                                         <a href="{{ route('crearProyectoVinculacion', $proyecto) }}"
@@ -202,15 +186,6 @@
                                         </button>
                                     @endif
 
-                                    @if ($puedeSubirFinal)
-                                        <button type="button"
-                                                wire:click="openSubirFinal({{ $proyecto->id }})"
-                                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm transition hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
-                                                title="{{ $documentoFinalEstado === 'Subsanacion' ? 'Subsanar informe final' : 'Subir informe final' }}"
-                                                aria-label="{{ $documentoFinalEstado === 'Subsanacion' ? 'Subsanar informe final' : 'Subir informe final' }}">
-                                            @svg('heroicon-o-arrow-up-tray', ['class' => 'h-4 w-4'])
-                                        </button>
-                                    @endif
                                 @elseif ($row['kind'] === 'pps_servicio_social')
                                     @php
                                         $registro = $row['record'];
@@ -306,38 +281,6 @@
                             class="px-4 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg disabled:opacity-50">
                         <span wire:loading.remove wire:target="subirInformeIntermedio">Subir</span>
                         <span wire:loading wire:target="subirInformeIntermedio">Subiendo...</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    {{-- Modal Subir Informe Final --}}
-    @if ($informeFinalModal)
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg">
-            <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold dark:text-white">Subir Informe Final</h3>
-                <button wire:click="$set('informeFinalModal', false)" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
-            </div>
-            <div class="p-4 space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Archivo PDF</label>
-                    <input type="file" wire:model="informeFinalFile" accept=".pdf"
-                           class="w-full text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                    @error('informeFinalFile') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                    <div wire:loading wire:target="informeFinalFile" class="mt-1 text-sm text-gray-500">Cargando archivo...</div>
-                </div>
-                <div class="flex justify-end gap-3 pt-2">
-                    <button wire:click="$set('informeFinalModal', false)"
-                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                        Cancelar
-                    </button>
-                    <button wire:click="subirInformeFinal()" wire:loading.attr="disabled" wire:target="subirInformeFinal"
-                            class="px-4 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg disabled:opacity-50">
-                        <span wire:loading.remove wire:target="subirInformeFinal">Subir</span>
-                        <span wire:loading wire:target="subirInformeFinal">Subiendo...</span>
                     </button>
                 </div>
             </div>

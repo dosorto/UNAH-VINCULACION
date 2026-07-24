@@ -128,7 +128,7 @@
                         @php
                             $childIsActive     = request()->route()->getName() === $child['route'];
                             $resultado_funcion = 0;
-                            if (isset($child['funcion']) && isset($DataNavBar) && auth()->user()->hasPermissionTo($child['permiso'])) {
+                            if (isset($child['funcion']) && auth()->user()->hasPermissionTo($child['permiso'])) {
                                 $resultado_funcion = App\Clases\DataNavBar::{$child['funcion']}();
                             }
                         @endphp

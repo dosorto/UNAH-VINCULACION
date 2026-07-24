@@ -352,7 +352,7 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $detalle = file_get_contents(resource_path('views/livewire/docente/proyectos/historial-proyecto.blade.php'));
 
         $this->assertStringNotContainsString('Descargar PDF', $ficha);
-        $this->assertSame(1, substr_count($detalle, 'Descargar PDF'));
+        $this->assertSame(1, substr_count($detalle, "route('proyecto.perfil.pdf.download'"));
         $this->assertStringContainsString("route('proyecto.perfil.pdf.download'", $detalle);
         $this->assertStringNotContainsString("route('proyecto.perfil.pdf',", $detalle);
         $this->assertStringNotContainsString('<iframe src="{{ route(\'proyecto.perfil.pdf.download', $detalle);

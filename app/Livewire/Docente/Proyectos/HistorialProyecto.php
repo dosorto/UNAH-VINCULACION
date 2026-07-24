@@ -11,6 +11,7 @@ use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Estado\TipoEstado;
 use App\Concerns\ReenviaDesdeSubsanacionPorEtapa;
 use App\Support\Notification;
+use App\Services\InformeFinal\InformeFinalProyectoWorkflowService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -28,24 +29,20 @@ class HistorialProyecto extends Component
     public bool $informeIntermedioModal = false;
     public $informeIntermedioFile = null;
 
-    public bool $informeFinalModal = false;
-    public $informeFinalFile = null;
-
     public bool $subsanarModal = false;
     public string $subsanarComentario = '';
 
-    public function mount(Proyecto $proyecto): void
+    public function mount(Proyecto $proyecto, InformeFinalProyectoWorkflowService $workflow): void
     {
         $this->proyecto = $proyecto;
 
         $user = auth()->user();
         $esAdminSistema = $user && $user->hasAnyRole(['admin', 'Director/Enlace', 'Revisor Vinculacion']);
+        $puedeAuditarInformeFinal = $proyecto->usuarioPuedeAuditarInformeFinal($user);
 
-        if ($user && $user->empleado) {
-            $this->esCoordinador = $proyecto->coordinador && $proyecto->coordinador->id === $user->empleado->id;
-        }
+        $this->esCoordinador = $workflow->usuarioPuedeGestionar($proyecto, $user);
 
-        if (!$esAdminSistema) {
+        if (!$esAdminSistema && ! $puedeAuditarInformeFinal) {
             if (!$user || !$user->empleado) {
                 abort(403, 'No tiene permiso para ver este proyecto');
             }
@@ -96,30 +93,33 @@ class HistorialProyecto extends Component
         Notification::make()->title('Éxito')->body('Informe Intermedio subido correctamente')->success()->send();
     }
 
-    public function openSubirFinal(): void
+    public function crearInformeFinal(InformeFinalProyectoWorkflowService $workflow)
     {
-        $this->informeFinalFile = null;
-        $this->informeFinalModal = true;
+        $informe = $workflow->crearInformeFinal($this->proyecto->fresh(), auth()->user());
+
+        return $this->redirectRoute('proyectos.informe-final', ['proyecto' => $informe->proyecto_id]);
     }
 
-    public function subirInformeFinal(): void
+    public function enviarInformeFinal(InformeFinalProyectoWorkflowService $workflow): void
     {
-        $this->validate(['informeFinalFile' => 'required|file|mimes:pdf|max:20480']);
-
-        $path = $this->informeFinalFile->store('documentos', 'public');
-        $proyecto = $this->proyecto;
+        $informe = $this->proyecto->informeFinalInf001()->firstOrFail();
+        abort_unless($workflow->puedeEnviarInformeFinal($informe, auth()->user()), 403);
 
         try {
-            $proyecto->registrarDocumentoDesdeFlujo('Informe Final', $path, auth()->user()->empleado);
-        } catch (\Throwable $e) {
-            Notification::make()->title('No se pudo enviar el informe')->body($e->getMessage())->danger()->send();
-            return;
+            $workflow->enviarInformeFinal($informe, auth()->user());
+            $this->proyecto = $this->proyecto->fresh();
+            Notification::make()
+                ->title('Informe final enviado')
+                ->body('El INF-001 inició el flujo de cierre del proyecto.')
+                ->success()
+                ->send();
+        } catch (\Throwable $exception) {
+            Notification::make()
+                ->title('No se pudo enviar el informe final')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
         }
-
-        $this->informeFinalModal = false;
-        $this->informeFinalFile = null;
-
-        Notification::make()->title('Éxito')->body('Informe Final subido correctamente')->success()->send();
     }
 
     public function firmaPendienteRevision(): ?FirmaProyecto
@@ -226,7 +226,7 @@ class HistorialProyecto extends Component
         return isset($this->proyecto) && $this->proyecto->exists ? (int) $this->proyecto->id : null;
     }
 
-    public function render(): View
+    public function render(InformeFinalProyectoWorkflowService $workflow): View
     {
         $proyecto = $this->proyecto;
 
@@ -242,7 +242,7 @@ class HistorialProyecto extends Component
                 });
             }
         })
-        ->with(['empleado', 'tipoestado'])
+        ->with(['empleado', 'tipoestado', 'estadoable'])
         ->orderByDesc('created_at')
         ->get();
 
@@ -250,7 +250,9 @@ class HistorialProyecto extends Component
             ? (int) $proyecto->created_at->diffInDays(now())
             : 0;
 
-        return view('livewire.docente.proyectos.historial-proyecto', compact('proyecto', 'estados', 'diasTranscurridos'));
+        $cierreInformeFinal = $workflow->resumenCierre($proyecto, auth()->user());
+
+        return view('livewire.docente.proyectos.historial-proyecto', compact('proyecto', 'estados', 'diasTranscurridos', 'cierreInformeFinal'));
     }
 
     private function authorizeFirmaPendiente(): FirmaProyecto

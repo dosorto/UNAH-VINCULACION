@@ -3,19 +3,22 @@
 namespace App\Livewire\DAFT\Programas;
 
 use App\Models\Asignatura;
-use App\Models\Proyecto\FlujoAprobacion;
-use App\Models\Proyecto\FlujoAprobacionEtapa;
+use App\Models\DAFT\ProgramaAsignatura;
 use App\Models\DAFT\ProgramaCertificacion;
 use App\Models\DAFT\ProgramaRevision;
 use App\Models\DAFT\TipoPrograma;
-use App\Models\User;
 use App\Models\UnidadAcademica\FacultadCentro;
+use App\Models\User;
+use App\Services\DAFT\ProgramaWorkflowService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProgramaForm extends Component
 {
@@ -32,19 +35,51 @@ class ProgramaForm extends Component
     ];
 
     public array $centros = [];
+
     public array $asignaturas = [];
 
     public ?int $selectedCentroId = null;
+
     public ?int $selectedAsignaturaId = null;
+
     public bool $editProgramModal = false;
+
     public bool $showCreateAsignaturaModal = false;
+
     public array $newAsignatura = [
         'codigo' => '',
         'nombre' => '',
         'creditos_academicos' => '',
         'horas_academicas' => '',
     ];
+
     public $newAsignaturaDocumento = null;
+
+    public bool $showEditAsignaturaModal = false;
+
+    public ?int $editingAsignaturaId = null;
+
+    public array $editingAsignatura = [
+        'codigo' => '',
+        'nombre' => '',
+        'creditos_academicos' => '',
+        'horas_academicas' => '',
+        'ruta_documento_descripcion_minima' => null,
+    ];
+
+    public $editingAsignaturaDocumento = null;
+
+    public bool $showPrerequisitosModal = false;
+
+    public ?int $prerequisiteAsignaturaId = null;
+
+    public array $selectedPrerequisiteIds = [];
+
+    public bool $showSendReviewModal = false;
+
+    public array $reviewRecipientStages = [];
+
+    public array $reviewRecipients = [];
 
     protected array $validationAttributes = [
         'newAsignatura.codigo' => 'código',
@@ -52,6 +87,11 @@ class ProgramaForm extends Component
         'newAsignatura.creditos_academicos' => 'créditos',
         'newAsignatura.horas_academicas' => 'horas',
         'newAsignaturaDocumento' => 'documento de descripción mínima',
+        'editingAsignatura.codigo' => 'código',
+        'editingAsignatura.nombre' => 'nombre',
+        'editingAsignatura.creditos_academicos' => 'créditos',
+        'editingAsignatura.horas_academicas' => 'horas',
+        'editingAsignaturaDocumento' => 'documento de descripción mínima',
     ];
 
     protected array $messages = [
@@ -64,21 +104,26 @@ class ProgramaForm extends Component
         'newAsignaturaDocumento.mimes' => 'El documento debe ser PDF, DOC o DOCX.',
         'newAsignaturaDocumento.max' => 'El documento no debe pesar más de 10 MB.',
         'newAsignaturaDocumento.uploaded' => 'No se pudo subir el documento. Revisa el tamaño del archivo e inténtalo de nuevo.',
+        'editingAsignaturaDocumento.mimes' => 'El documento debe ser PDF, DOC o DOCX.',
+        'editingAsignaturaDocumento.max' => 'El documento no debe pesar más de 10 MB.',
+        'editingAsignaturaDocumento.uploaded' => 'No se pudo subir el documento. Revisa el tamaño del archivo e inténtalo de nuevo.',
     ];
 
     public function mount(mixed $programa = null): void
     {
         if ($programa instanceof ProgramaCertificacion && $programa->exists) {
             $this->programaId = $programa->id;
-            $this->fillFromPrograma($programa->load(['centrosPrograma.centroFacultad', 'asignaturasPrograma.asignatura']));
+            $this->fillFromPrograma($programa->load(['centrosPrograma.centroFacultad', 'asignaturasPrograma.asignatura.prerrequisitos']));
+
             return;
         }
 
         if (filled($programa) && $programa !== 'crear') {
-            $programa = ProgramaCertificacion::with(['centrosPrograma.centroFacultad', 'asignaturasPrograma.asignatura'])
+            $programa = ProgramaCertificacion::with(['centrosPrograma.centroFacultad', 'asignaturasPrograma.asignatura.prerrequisitos'])
                 ->findOrFail($programa);
             $this->programaId = $programa->id;
             $this->fillFromPrograma($programa);
+
             return;
         }
 
@@ -137,6 +182,7 @@ class ProgramaForm extends Component
 
         if (collect($this->centros)->contains('centro_facultad_id', (int) $this->selectedCentroId)) {
             $this->selectedCentroId = null;
+
             return;
         }
 
@@ -163,6 +209,7 @@ class ProgramaForm extends Component
 
         if (collect($this->asignaturas)->contains('asignatura_id', (int) $this->selectedAsignaturaId)) {
             $this->selectedAsignaturaId = null;
+
             return;
         }
 
@@ -228,6 +275,112 @@ class ProgramaForm extends Component
         session()->flash('programas_status', 'Asignatura creada y agregada al programa.');
     }
 
+    public function openEditAsignaturaModal(int $asignaturaId): void
+    {
+        $asignatura = $this->programSubject($asignaturaId);
+
+        $this->resetErrorBag();
+        $this->editingAsignaturaId = $asignatura->id;
+        $this->editingAsignatura = [
+            'codigo' => $asignatura->codigo ?? '',
+            'nombre' => $asignatura->nombre,
+            'creditos_academicos' => $asignatura->creditos_academicos,
+            'horas_academicas' => $asignatura->horas_academicas,
+            'ruta_documento_descripcion_minima' => $asignatura->ruta_documento_descripcion_minima,
+        ];
+        $this->editingAsignaturaDocumento = null;
+        $this->showEditAsignaturaModal = true;
+    }
+
+    public function closeEditAsignaturaModal(): void
+    {
+        $this->showEditAsignaturaModal = false;
+        $this->editingAsignaturaId = null;
+        $this->editingAsignaturaDocumento = null;
+        $this->resetErrorBag();
+    }
+
+    public function updateAsignatura(): void
+    {
+        $asignatura = $this->programSubject((int) $this->editingAsignaturaId);
+        $validated = $this->validate([
+            'editingAsignatura.codigo' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('asignaturas', 'codigo')->ignore($asignatura->id),
+            ],
+            'editingAsignatura.nombre' => ['required', 'string', 'max:255'],
+            'editingAsignatura.creditos_academicos' => ['required', 'numeric', 'min:0', 'max:999.99'],
+            'editingAsignatura.horas_academicas' => ['required', 'integer', 'min:1', 'max:9999'],
+            'editingAsignaturaDocumento' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
+        ]);
+
+        $payload = collect($validated['editingAsignatura'])
+            ->except('ruta_documento_descripcion_minima')
+            ->all();
+
+        if ($this->editingAsignaturaDocumento) {
+            $payload['ruta_documento_descripcion_minima'] = $this->editingAsignaturaDocumento
+                ->store('asignaturas/descripciones-minimas', 'public');
+        }
+
+        $asignatura->update($payload);
+        $this->refreshLocalAsignatura($asignatura->fresh('prerrequisitos'));
+        $this->autoSaveRelations();
+        $this->closeEditAsignaturaModal();
+        session()->flash('programas_status', 'Asignatura actualizada correctamente.');
+    }
+
+    public function openPrerequisitosModal(int $asignaturaId): void
+    {
+        $asignatura = $this->programSubject($asignaturaId)->load('prerrequisitos');
+
+        $this->resetErrorBag('selectedPrerequisiteIds');
+        $this->prerequisiteAsignaturaId = $asignatura->id;
+        $this->selectedPrerequisiteIds = $asignatura->prerrequisitos
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        $this->showPrerequisitosModal = true;
+    }
+
+    public function closePrerequisitosModal(): void
+    {
+        $this->showPrerequisitosModal = false;
+        $this->prerequisiteAsignaturaId = null;
+        $this->selectedPrerequisiteIds = [];
+        $this->resetErrorBag('selectedPrerequisiteIds');
+    }
+
+    public function savePrerequisitos(): void
+    {
+        $asignatura = $this->programSubject((int) $this->prerequisiteAsignaturaId);
+        $validated = $this->validate([
+            'selectedPrerequisiteIds' => ['array'],
+            'selectedPrerequisiteIds.*' => ['integer', 'distinct', 'exists:asignaturas,id'],
+        ]);
+        $selectedIds = collect($validated['selectedPrerequisiteIds'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+        $allowedIds = collect($this->asignaturas)
+            ->pluck('asignatura_id')
+            ->map(fn ($id) => (int) $id)
+            ->reject(fn ($id) => $id === $asignatura->id);
+
+        if ($selectedIds->diff($allowedIds)->isNotEmpty()) {
+            $this->addError('selectedPrerequisiteIds', 'Solo puedes seleccionar otras asignaturas de este programa.');
+
+            return;
+        }
+
+        $asignatura->prerrequisitos()->sync($selectedIds->all());
+        $this->refreshLocalAsignatura($asignatura->fresh('prerrequisitos'));
+        $this->closePrerequisitosModal();
+        session()->flash('programas_status', 'Requisitos actualizados correctamente.');
+    }
+
     public function removeAsignatura(int $index): void
     {
         unset($this->asignaturas[$index]);
@@ -251,111 +404,120 @@ class ProgramaForm extends Component
         $this->redirectRoute('daft.programas', navigate: true);
     }
 
+    public function downloadTemplate(): StreamedResponse
+    {
+        $programa = ProgramaCertificacion::with('tipoPrograma')->findOrFail($this->programaId);
+        $tipoPrograma = $programa->tipoPrograma;
+        $path = $tipoPrograma?->plantilla_docx_path;
+
+        abort_if(! $path || ! Storage::disk('public')->exists($path), 404, 'La plantilla no está disponible.');
+
+        return Storage::disk('public')->download(
+            $path,
+            'Formato-'.Str::slug($tipoPrograma->nombre).'.docx'
+        );
+    }
+
+    public function openSendReviewModal(): void
+    {
+        if (! $this->programaId) {
+            return;
+        }
+
+        $programa = ProgramaCertificacion::with('tipoPrograma')->findOrFail($this->programaId);
+        $setup = $this->draftSetup($programa);
+
+        if (! $setup['ready_for_review']) {
+            session()->flash('programas_status', 'Completa asignaturas, centros y horas válidas antes de enviar a revisión.');
+
+            return;
+        }
+
+        $workflow = app(ProgramaWorkflowService::class);
+        $recipientStages = $workflow->etapasConDestinatarioDefinidoPorEmisor($programa);
+
+        if ($recipientStages->isEmpty()) {
+            $this->sendToReview();
+
+            return;
+        }
+
+        $this->reviewRecipientStages = $recipientStages
+            ->map(function ($stage): array {
+                $users = User::query()
+                    ->select(['id', 'name', 'email', 'active_role_id'])
+                    ->when($stage->rol_revisor_id, fn ($query) => $query->whereHas(
+                        'roles',
+                        fn ($roleQuery) => $roleQuery->where('roles.id', $stage->rol_revisor_id)
+                    ))
+                    ->orderByRaw('CASE WHEN active_role_id = ? THEN 0 ELSE 1 END', [$stage->rol_revisor_id ?: 0])
+                    ->orderBy('name')
+                    ->get()
+                    ->map(fn (User $user): array => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'active_role' => (int) $user->active_role_id === (int) $stage->rol_revisor_id,
+                    ])
+                    ->all();
+
+                return [
+                    'id' => $stage->id,
+                    'order' => $stage->orden,
+                    'name' => $stage->nombre,
+                    'role' => $stage->rolRevisor?->name ?? 'Sin rol específico',
+                    'users' => $users,
+                ];
+            })
+            ->all();
+        $this->reviewRecipients = [];
+        $this->resetErrorBag('reviewRecipients');
+        $this->showSendReviewModal = true;
+    }
+
+    public function closeSendReviewModal(): void
+    {
+        $this->showSendReviewModal = false;
+        $this->reviewRecipientStages = [];
+        $this->reviewRecipients = [];
+        $this->resetErrorBag('reviewRecipients');
+    }
+
     public function sendToReview(): void
     {
         if (! $this->programaId) {
             return;
         }
 
-        $programa = ProgramaCertificacion::with([
-            'flujoAprobacion.etapas.rolRevisor',
-            'flujoAprobacion.etapas.usuarioResponsable',
-            'centroFacultad',
-            'tipoPrograma',
-            'centrosPrograma.centroFacultad',
-            'asignaturasPrograma.asignatura',
-        ])->findOrFail($this->programaId);
+        $programa = ProgramaCertificacion::with('tipoPrograma')->findOrFail($this->programaId);
         $setup = $this->draftSetup($programa);
 
         if (! $setup['ready_for_review']) {
             session()->flash('programas_status', 'Completa asignaturas, centros y horas válidas antes de enviar a revisión.');
+
             return;
         }
 
-        if (! $programa->estaEditable()) {
-            session()->flash('programas_status', 'Solo los programas en elaboración o subsanación pueden enviarse a revisión.');
-            return;
-        }
-
-        $flujo = $this->resolveWorkflow($programa);
-
-        if (! $flujo || $flujo->etapas->isEmpty()) {
-            session()->flash('programas_status', 'No hay un flujo activo configurado para este tipo de programa.');
-            return;
-        }
-
-        DB::transaction(function () use ($programa, $flujo) {
-            $nextCycle = $programa->revision_ciclo + 1;
-            $stages = $flujo->etapas;
-
-            if ($programa->tieneSubsanacionPendiente()) {
-                $rejectedStage = $programa->revisiones()
-                    ->where('revision_ciclo', $programa->revision_ciclo)
-                    ->find($programa->subsanacion_revision_id);
-
-                if ($rejectedStage) {
-                    $stages = $programa->revisiones()
-                        ->with(['flujoEtapa.rolRevisor', 'flujoEtapa.usuarioResponsable', 'asignadoUsuario'])
-                        ->where('revision_ciclo', $programa->revision_ciclo)
-                        ->where('orden', '>=', $rejectedStage->orden)
-                        ->orderBy('orden')
-                        ->get();
-                }
+        if ($this->reviewRecipientStages !== []) {
+            $rules = [];
+            foreach ($this->reviewRecipientStages as $stage) {
+                $rules['reviewRecipients.'.$stage['id']] = ['required', 'integer', 'exists:users,id'];
             }
-
-            foreach ($stages as $stage) {
-                $flowStage = $stage instanceof ProgramaRevision ? $stage->flujoEtapa : $stage;
-                $defaultReviewer = $flowStage instanceof FlujoAprobacionEtapa
-                    ? $this->resolveDefaultReviewer($flowStage)
-                    : $stage->asignadoUsuario;
-                $requiresAssignment = (bool) ($flowStage?->requiere_asignacion ?? false);
-                $stageOrder = $stage instanceof ProgramaRevision ? $stage->orden : $stage->orden;
-                $stageCode = $stage instanceof ProgramaRevision ? $stage->etapa_codigo : $stage->codigo;
-                $stageName = $stage instanceof ProgramaRevision ? $stage->etapa_nombre : $stage->nombre;
-                $stageRole = $stage instanceof ProgramaRevision
-                    ? $stage->rol_requerido
-                    : $flowStage?->rolRevisor?->name;
-                $responsableId = $stage instanceof ProgramaRevision
-                    ? $stage->responsable_usuario_id
-                    : $flowStage?->usuario_responsable_id;
-
-                ProgramaRevision::create([
-                    'programa_certificacion_id' => $programa->id,
-                    'flujo_aprobacion_etapa_id' => $flowStage?->id,
-                    'revision_ciclo' => $nextCycle,
-                    'orden' => $stageOrder,
-                    'etapa_codigo' => $stageCode,
-                    'etapa_nombre' => $stageName,
-                    'rol_requerido' => $stageRole,
-                    'responsable_usuario_id' => $responsableId,
-                    'asignado_usuario_id' => $requiresAssignment ? null : $defaultReviewer?->id,
-                    'estado' => $requiresAssignment
-                        ? 'PENDIENTE_ASIGNACION'
-                        : ($defaultReviewer ? 'ASIGNADO' : 'PENDIENTE'),
-                ]);
-            }
-
-            $programa->update([
-                'estado_flujo' => 'EN_REVISION',
-                'revision_ciclo' => $nextCycle,
-                'enviado_revision_en' => now(),
-                'observaciones_revision' => null,
-                'subsanacion_revision_id' => null,
-                'subsanacion_etapa_orden' => null,
-                'subsanacion_etapa_nombre' => null,
-                'subsanacion_devuelto_en' => null,
-                'flujo_aprobacion_id' => $flujo->id,
-                'modificado_por_usuario_id' => Auth::id(),
+            $this->validate($rules, [
+                'reviewRecipients.*.required' => 'Selecciona el destinatario de esta etapa.',
+                'reviewRecipients.*.exists' => 'El destinatario seleccionado ya no está disponible.',
             ]);
+        }
 
-            $this->syncCurrentVersionRecord($programa->fresh([
-                'centroFacultad',
-                'tipoPrograma',
-                'centrosPrograma.centroFacultad',
-                'asignaturasPrograma.asignatura',
-            ]), 'EN_REVISION');
-        });
+        try {
+            app(ProgramaWorkflowService::class)->enviarARevision($programa, Auth::user(), $this->reviewRecipients);
+        } catch (\DomainException $exception) {
+            $this->addError('reviewRecipients', $exception->getMessage());
 
+            return;
+        }
+
+        $this->closeSendReviewModal();
         session()->flash('programas_status', 'Programa enviado a revisión.');
         $this->redirectRoute('daft.programas', navigate: true);
     }
@@ -368,11 +530,24 @@ class ProgramaForm extends Component
     public function render(): View
     {
         $programa = $this->programaId
-            ? ProgramaCertificacion::with(['centroFacultad', 'tipoPrograma', 'centrosPrograma.centroFacultad', 'asignaturasPrograma.asignatura', 'versiones'])->find($this->programaId)
+            ? ProgramaCertificacion::with([
+                'centroFacultad',
+                'tipoPrograma',
+                'centrosPrograma.centroFacultad',
+                'asignaturasPrograma.asignatura.prerrequisitos',
+                'versiones',
+                'revisiones.flujoEtapa.rolRevisor',
+                'revisiones.flujoEtapa.usuarioResponsable',
+                'revisiones.asignadoUsuario',
+                'revisiones.responsableUsuario',
+                'revisiones.decididoPorUsuario',
+            ])->find($this->programaId)
             : null;
         $currentTipoPrograma = filled($this->programaForm['tipo_programa_id'])
             ? TipoPrograma::find($this->programaForm['tipo_programa_id'])
             : $programa?->tipoPrograma;
+
+        $timelineEntries = $this->timelineEntries($programa);
 
         return view('livewire.daft.programas.programa-form', [
             'programa' => $programa,
@@ -382,10 +557,15 @@ class ProgramaForm extends Component
             'currentTipoPrograma' => $currentTipoPrograma,
             'hoursStatus' => $this->hoursStatus($currentTipoPrograma),
             'draftSetup' => $programa ? $this->draftSetup($programa) : null,
-            'timelineEntries' => $this->timelineEntries($programa),
-            'timelineProgress' => $this->timelineProgress($programa),
+            'timelineEntries' => $timelineEntries,
+            'timelineProgress' => $this->timelineProgress($timelineEntries),
             'activityFeed' => $this->activityFeed($programa),
             'isEditableState' => ! $programa || $programa->estaEditable(),
+            'prerequisiteCandidates' => collect($this->asignaturas)
+                ->reject(fn (array $item) => (int) ($item['asignatura_id'] ?? 0) === $this->prerequisiteAsignaturaId)
+                ->values(),
+            'prerequisiteSubject' => collect($this->asignaturas)
+                ->firstWhere('asignatura_id', $this->prerequisiteAsignaturaId),
         ])->layout('layouts.app', ['hideHorizontalNav' => true]);
     }
 
@@ -415,6 +595,13 @@ class ProgramaForm extends Component
                 'nombre' => $programaAsignatura->asignatura?->nombre,
                 'creditos_academicos' => $programaAsignatura->asignatura?->creditos_academicos,
                 'horas_academicas' => $programaAsignatura->asignatura?->horas_academicas,
+                'ruta_documento_descripcion_minima' => $programaAsignatura->asignatura?->ruta_documento_descripcion_minima,
+                'prerrequisitos' => $programaAsignatura->asignatura?->prerrequisitos
+                    ?->map(fn (Asignatura $prerrequisito) => [
+                        'id' => $prerrequisito->id,
+                        'codigo' => $prerrequisito->codigo,
+                        'nombre' => $prerrequisito->nombre,
+                    ])->values()->all() ?? [],
                 'orden' => $programaAsignatura->orden,
                 'es_obligatoria' => (bool) $programaAsignatura->es_obligatoria,
             ])
@@ -496,9 +683,49 @@ class ProgramaForm extends Component
             'nombre' => $asignatura->nombre,
             'creditos_academicos' => $asignatura->creditos_academicos,
             'horas_academicas' => $asignatura->horas_academicas,
+            'ruta_documento_descripcion_minima' => $asignatura->ruta_documento_descripcion_minima,
+            'prerrequisitos' => [],
             'orden' => count($this->asignaturas) + 1,
             'es_obligatoria' => true,
         ];
+    }
+
+    protected function programSubject(int $asignaturaId): Asignatura
+    {
+        abort_unless($this->programaId && $asignaturaId > 0, 404);
+
+        $programa = ProgramaCertificacion::findOrFail($this->programaId);
+        abort_unless($programa->estaEditable(), 422, 'El programa ya no se puede editar.');
+        abort_unless(ProgramaAsignatura::query()
+            ->where('programa_certificacion_id', $this->programaId)
+            ->where('asignatura_id', $asignaturaId)
+            ->exists(), 404);
+
+        return Asignatura::findOrFail($asignaturaId);
+    }
+
+    protected function refreshLocalAsignatura(Asignatura $asignatura): void
+    {
+        foreach ($this->asignaturas as &$item) {
+            if ((int) ($item['asignatura_id'] ?? 0) !== $asignatura->id) {
+                continue;
+            }
+
+            $item['codigo'] = $asignatura->codigo;
+            $item['nombre'] = $asignatura->nombre;
+            $item['creditos_academicos'] = $asignatura->creditos_academicos;
+            $item['horas_academicas'] = $asignatura->horas_academicas;
+            $item['ruta_documento_descripcion_minima'] = $asignatura->ruta_documento_descripcion_minima;
+            $item['prerrequisitos'] = $asignatura->prerrequisitos
+                ->map(fn (Asignatura $prerrequisito) => [
+                    'id' => $prerrequisito->id,
+                    'codigo' => $prerrequisito->codigo,
+                    'nombre' => $prerrequisito->nombre,
+                ])->values()->all();
+
+            break;
+        }
+        unset($item);
     }
 
     protected function hoursStatus(?TipoPrograma $tipoPrograma): array
@@ -515,7 +742,7 @@ class ProgramaForm extends Component
             'min' => $min,
             'max' => $max,
             'in_range' => $inRange,
-            'range_label' => $tipoPrograma ? $min . ' - ' . ($max ?? 'N/D') . ' horas' : 'Sin tipo seleccionado',
+            'range_label' => $tipoPrograma ? $min.' - '.($max ?? 'N/D').' horas' : 'Sin tipo seleccionado',
             'message' => $inRange
                 ? 'Las horas acumuladas cumplen el rango permitido.'
                 : 'Las horas acumuladas del programa están fuera del rango permitido para este tipo.',
@@ -540,30 +767,67 @@ class ProgramaForm extends Component
     protected function timelineEntries(?ProgramaCertificacion $programa): array
     {
         if (! $programa) {
-            return [['title' => 'Creación del programa', 'status' => 'PENDIENTE', 'tone' => 'slate']];
+            return [];
         }
 
-        return [
-            ['title' => 'Creación del programa', 'status' => 'COMPLETADO', 'tone' => 'sky'],
-            ['title' => 'Construcción académica', 'status' => $programa->estaEditable() ? 'ACTUAL' : 'COMPLETADO', 'tone' => $programa->estaEditable() ? 'sky' : 'emerald'],
-            ['title' => 'Revisión institucional', 'status' => $programa->estado_flujo === 'EN_REVISION' ? 'ACTUAL' : 'PENDIENTE', 'tone' => $programa->estado_flujo === 'EN_REVISION' ? 'sky' : 'slate'],
-            ['title' => 'Aprobación final', 'status' => $programa->estado_flujo === 'APROBADO' ? 'COMPLETADO' : 'PENDIENTE', 'tone' => $programa->estado_flujo === 'APROBADO' ? 'emerald' : 'slate'],
-        ];
+        $flow = app(ProgramaWorkflowService::class)->resolverFlujo($programa);
+        $revisiones = $programa->revisiones
+            ->sortByDesc(fn (ProgramaRevision $revision) => ($revision->revision_ciclo * 1_000_000_000) + $revision->id);
+        $ultimaPorEtapa = $revisiones
+            ->filter(fn (ProgramaRevision $revision) => $revision->flujo_aprobacion_etapa_id)
+            ->unique('flujo_aprobacion_etapa_id')
+            ->keyBy('flujo_aprobacion_etapa_id');
+        $revisionActual = $programa->etapaActual();
+
+        $entries = [];
+
+        foreach (($flow?->etapas ?? collect())->values() as $index => $stage) {
+            $revision = $ultimaPorEtapa->get($stage->id);
+            $isCurrent = $revision !== null && $revisionActual?->id === $revision->id;
+            $isWaitingToSend = $index === 0
+                && $programa->estado_flujo === 'ELABORACION'
+                && $programa->revisiones->isEmpty();
+            $status = match (true) {
+                $programa->estado_flujo === 'APROBADO', $revision?->estado === 'APROBADO' => 'COMPLETADO',
+                $revision?->estado === 'RECHAZADO' => 'RECHAZADO',
+                $isCurrent => str_replace('_', ' ', $revision->estado),
+                $isWaitingToSend => 'POR ENVIAR',
+                default => 'PENDIENTE',
+            };
+            $tone = match (true) {
+                $status === 'COMPLETADO' => 'emerald',
+                $status === 'RECHAZADO' => 'rose',
+                $isCurrent, $isWaitingToSend => 'sky',
+                default => 'slate',
+            };
+            $assignee = $revision?->asignadoUsuario?->name
+                ?? $revision?->responsableUsuario?->name
+                ?? $stage->usuarioResponsable?->name
+                ?? $stage->rolRevisor?->name;
+
+            $entries[] = [
+                'title' => $stage->nombre,
+                'status' => $status,
+                'tone' => $tone,
+                'assignee' => $assignee,
+                'cycle' => $revision?->revision_ciclo,
+                'description' => $stage->tipo_etapa === 'APROBACION' ? 'Aprobación institucional del programa.' : 'Revisión institucional del programa.',
+            ];
+        }
+
+        return $entries;
     }
 
-    protected function timelineProgress(?ProgramaCertificacion $programa): string
+    protected function timelineProgress(array $entries): string
     {
-        if (! $programa) {
-            return 'Etapa 1/4';
+        if ($entries === []) {
+            return 'Sin flujo';
         }
 
-        $current = match ($programa->estado_flujo) {
-            'EN_REVISION' => 3,
-            'APROBADO' => 4,
-            default => 2,
-        };
+        $current = collect($entries)->search(fn (array $entry) => $entry['tone'] === 'sky' || $entry['tone'] === 'rose');
+        $current = $current === false ? count($entries) : $current + 1;
 
-        return 'Etapa ' . $current . '/4';
+        return 'Etapa '.$current.'/'.count($entries);
     }
 
     protected function activityFeed(?ProgramaCertificacion $programa): array
@@ -574,84 +838,35 @@ class ProgramaForm extends Component
 
         $feed = [[
             'title' => 'Programa creado',
-            'description' => 'Registro inicial del programa.',
+            'description' => 'Se registró el programa '.$programa->codigo.'.',
             'at' => $programa->created_at,
         ]];
 
-        if ($programa->enviado_revision_en) {
+        foreach ($programa->revisiones->groupBy('revision_ciclo') as $cycle => $revisiones) {
             $feed[] = [
                 'title' => 'Enviado a revisión',
-                'description' => 'El programa entró al flujo institucional.',
-                'at' => $programa->enviado_revision_en,
+                'description' => 'El programa entró al ciclo '.$cycle.' del flujo institucional.',
+                'at' => $revisiones->min('created_at'),
             ];
-        }
 
-        return $feed;
-    }
+            foreach ($revisiones->whereIn('estado', ['APROBADO', 'RECHAZADO']) as $revision) {
+                $decision = $revision->estado === 'APROBADO' ? 'Etapa aprobada' : 'Devuelto para subsanación';
+                $description = $revision->etapa_nombre;
+                if ($revision->decididoPorUsuario?->name) {
+                    $description .= ' · '.$revision->decididoPorUsuario->name;
+                }
+                if (filled($revision->observaciones)) {
+                    $description .= ' · '.$revision->observaciones;
+                }
 
-    protected function resolveWorkflow(ProgramaCertificacion $programa): ?FlujoAprobacion
-    {
-        if ($programa->flujoAprobacion?->exists) {
-            return $programa->flujoAprobacion->load([
-                'etapas' => fn ($query) => $query->where('activo', true)->orderBy('orden'),
-                'etapas.rolRevisor',
-                'etapas.usuarioResponsable',
-            ]);
-        }
-
-        return FlujoAprobacion::query()
-            ->with([
-                'etapas' => fn ($query) => $query->where('activo', true)->orderBy('orden'),
-                'etapas.rolRevisor',
-                'etapas.usuarioResponsable',
-            ])
-            ->where('proceso', 'PROGRAMA')
-            ->where('tipo_programa_id', $programa->tipo_programa_id)
-            ->where('activo', true)
-            ->first();
-    }
-
-    protected function resolveDefaultReviewer(FlujoAprobacionEtapa $stage): ?User
-    {
-        if ($stage->usuario_responsable_id && ! $stage->requiere_asignacion) {
-            return $stage->usuarioResponsable;
-        }
-
-        if (! $stage->rolRevisor?->name) {
-            return null;
-        }
-
-        if ($stage->rol_revisor_id) {
-            $preferredReviewer = User::role($stage->rolRevisor->name)
-                ->where('active_role_id', $stage->rol_revisor_id)
-                ->orderBy('name')
-                ->first();
-
-            if ($preferredReviewer) {
-                return $preferredReviewer;
+                $feed[] = [
+                    'title' => $decision,
+                    'description' => $description,
+                    'at' => $revision->firmado_en ?? $revision->updated_at,
+                ];
             }
         }
 
-        return User::role($stage->rolRevisor->name)
-            ->orderBy('name')
-            ->first();
-    }
-
-    protected function syncCurrentVersionRecord(ProgramaCertificacion $programa, string $estado): void
-    {
-        $snapshot = $programa->buildVersionSnapshot();
-
-        $programa->versiones()->updateOrCreate(
-            ['numero_version' => $programa->version_actual],
-            [
-                'estado' => $estado,
-                'vigente' => $estado === 'APROBADO',
-                'publicado_en' => $estado === 'APROBADO' ? now() : null,
-                'publicado_por_usuario_id' => $estado === 'APROBADO' ? Auth::id() : null,
-                'datos_programa' => $snapshot['programa'],
-                'centros_facultad' => $snapshot['centros_facultad'],
-                'asignaturas' => $snapshot['asignaturas'],
-            ]
-        );
+        return collect($feed)->sortByDesc('at')->values()->all();
     }
 }

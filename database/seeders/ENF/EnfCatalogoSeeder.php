@@ -16,6 +16,8 @@ class EnfCatalogoSeeder extends Seeder
                 'Proyecto de educacion continua',
                 'Programa de educacion continua',
                 'Diplomado',
+                'Curso',
+                'Taller',
                 'Congreso',
                 'Seminario',
             ],

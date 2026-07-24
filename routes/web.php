@@ -1,101 +1,95 @@
 <?php
 
-use App\Livewire\Docente\Proyectos\HistorialProyecto;
-use App\Livewire\User\Roles;
-use App\Livewire\User\Users;
-use App\Livewire\Login\Login;
-use App\Livewire\Inicio\InicioAdmin;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
-use App\Livewire\Demografia\Pais\CreatePais;
-use App\Livewire\Demografia\Pais\ListPaises;
-use App\Livewire\Configuracion\Logs\ListLogs;
+use App\Http\Controllers\Auth\MicrosoftAuthController;
+use App\Http\Controllers\Docente\VerificarConstancia;
+use App\Http\Controllers\ENF\EnfAccionController;
+use App\Http\Controllers\ENF\EnfCronogramaController;
+use App\Http\Controllers\ENF\EnfDocumentoController;
+use App\Http\Controllers\ENF\EnfInformeFinalController;
+use App\Http\Controllers\ENF\EnfPresupuestoController;
+use App\Http\Controllers\ENF\EnfSistematizacionController;
+use App\Http\Controllers\PDFController;
+use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialAnexoController;
+use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialPdfController;
+use App\Http\Controllers\SetRoleController;
 use App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
 use App\Livewire\Configuracion\IntegracionesApi;
+use App\Livewire\Configuracion\Logs\ListLogs;
+use App\Livewire\Constancia\ListConstancias;
 use App\Livewire\DAFT\Catalogos\DaftCatalogos;
+use App\Livewire\DAFT\Dashboard as DaftDashboard;
 use App\Livewire\DAFT\Programas\ListBandejaRevision as DaftListBandejaRevision;
 use App\Livewire\DAFT\Programas\ListProgramas as DaftListProgramas;
 use App\Livewire\DAFT\Programas\ListTiposPrograma as DaftListTiposPrograma;
 use App\Livewire\DAFT\Programas\ProgramaForm as DaftProgramaForm;
+use App\Livewire\DAFT\Programas\ProgramaRevisionDetail;
 use App\Livewire\SGCU\Catalogos\SgcuCatalogos;
 use App\Livewire\SGCU\Flujos\FlujosProgramas;
 use App\Livewire\SGCU\Programas\ListBandejaRevision as SgcuListBandejaRevision;
 use App\Livewire\SGCU\Programas\ListProgramas as SgcuListProgramas;
 use App\Livewire\SGCU\Programas\ListTiposPrograma as SgcuListTiposPrograma;
 use App\Livewire\SGCU\Programas\ProgramaForm as SgcuProgramaForm;
-use App\Livewire\Personal\Perfil\EditPerfil;
-use App\Livewire\Personal\Permiso\ListPermisos;
-use App\Livewire\Personal\Empleado\ListEmpleado;
-use App\Livewire\Personal\Empleado\CreateEmpleado;
-use App\Http\Controllers\Docente\VerificarConstancia;
-use App\Http\Controllers\Auth\MicrosoftAuthController;
+use App\Livewire\Demografia\Departamento\CreateDepartamento;
+use App\Livewire\Demografia\Departamento\ListDepartamentos;
 use App\Livewire\Demografia\Municipio\CreateMunicipio;
 use App\Livewire\Demografia\Municipio\ListaMunicipios;
-use App\Livewire\Docente\Proyectos\ProyectosAprobados;
-use App\Livewire\Docente\Proyectos\ProyectosRechazados;
-use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
-use App\Livewire\Proyectos\Vinculacion\AreaProyectoSelector;
-use App\Livewire\Proyectos\Vinculacion\CategoriaProyectoSelector;
-use App\Livewire\Docente\Proyectos\ProyectosAntesDelSistema;
+use App\Livewire\Demografia\Pais\CreatePais;
+use App\Livewire\Demografia\Pais\ListPaises;
+use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
 use App\Livewire\Docente\Proyectos\EditProyectoAntesDelSistema;
+use App\Livewire\Docente\Proyectos\FichasActualizacionDocente;
+use App\Livewire\Docente\Proyectos\FichasActualizacionPorFirmar;
+use App\Livewire\Docente\Proyectos\HistorialProyecto;
+use App\Livewire\Docente\Proyectos\ProyectosAntesDelSistema;
+use App\Livewire\Docente\Proyectos\ProyectosAprobados;
+use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
+use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
+use App\Livewire\Docente\Proyectos\ProyectosRechazados;
 use App\Livewire\Estudiante\CreateEstudiante;
 use App\Livewire\Estudiante\ListarEstudiante;
-use App\Livewire\Ticket\HistorialTicket;
-use App\Livewire\Ticket\ListarTicket;
-
-use App\Livewire\Demografia\Departamento\ListDepartamentos;
-use App\Livewire\Demografia\Departamento\CreateDepartamento;
+use App\Livewire\Inicio\InicioAdmin;
+use App\Livewire\Login\Login;
+use App\Livewire\Personal\Contacto\ListContactos;
+use App\Livewire\Personal\Empleado\CreateEmpleado;
+use App\Livewire\Personal\Empleado\ListEmpleado;
+use App\Livewire\Personal\Perfil\EditPerfil;
+use App\Livewire\Personal\Permiso\ListPermisos;
+use App\Livewire\Proyectos\Actualizacion\EditProyectoActualizacion;
+use App\Livewire\Proyectos\Vinculacion\AreaProyectoSelector;
+use App\Livewire\Proyectos\Vinculacion\CategoriaProyectoSelector;
+use App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial;
+use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
+use App\Livewire\Proyectos\Vinculacion\EditPpsServicioSocial;
+use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
+use App\Livewire\Proyectos\Vinculacion\ListFichasActualizacionVinculacion;
 use App\Livewire\Proyectos\Vinculacion\ListInformesSolicitado;
+use App\Livewire\Proyectos\Vinculacion\ListProyectoRevisionFinal;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosSolicitado;
 use App\Livewire\Proyectos\Vinculacion\ListProyectosVinculacion;
-
-use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
-use App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial;
-use App\Livewire\Proyectos\Vinculacion\EditPpsServicioSocial;
 use App\Livewire\Proyectos\Vinculacion\ShowPpsServicioSocial;
-use App\Livewire\Proyectos\Actualizacion\EditProyectoActualizacion;
-use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
-
-use App\Livewire\Proyectos\Vinculacion\ListProyectoRevisionFinal;
-use App\Livewire\Proyectos\Vinculacion\ListFichasActualizacionVinculacion;
+use App\Livewire\ServicioTecnologico\CreateServicioTecnologico;
+use App\Livewire\ServicioTecnologico\ListServiciosTecnologicos;
 use App\Livewire\Slide\SlideConfig;
-
-use App\Http\Controllers\SetRoleController;
+use App\Livewire\Ticket\HistorialTicket;
+use App\Livewire\Ticket\ListarTicket;
+use App\Livewire\UnidadAcademica\Asignatura\Asignatura;
 use App\Livewire\UnidadAcademica\Campus\CampusList;
 use App\Livewire\UnidadAcademica\Carrera\CarreraList;
 use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList;
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
-use App\Livewire\UnidadAcademica\Asignatura\Asignatura;
-use App\Http\Controllers\PDFController;
-use App\Http\Controllers\ENF\EnfAccionController;
-use App\Http\Controllers\ENF\EnfPresupuestoController;
-use App\Http\Controllers\ENF\EnfCronogramaController;
-use App\Http\Controllers\ENF\EnfInformeFinalController;
-use App\Http\Controllers\ENF\EnfSistematizacionController;
-use App\Http\Controllers\ENF\EnfDocumentoController;
-use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialAnexoController;
-use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialPdfController;
-use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalProyectoController;
-use App\Livewire\Proyectos\InformeFinal\EditInformeFinalProyecto;
-
-use App\Livewire\DirectorFacultadCentro\Proyectos\ListProyectos;
-use App\Livewire\Constancia\ListConstancias;
-use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
-use App\Livewire\Docente\Proyectos\FichasActualizacionPorFirmar;
-use App\Livewire\Docente\Proyectos\FichasActualizacionDocente;
-use App\Models\Slide\Slide;
-use App\Livewire\Personal\Contacto\ListContactos;
-
-use App\Livewire\ServicioTecnologico\CreateServicioTecnologico;
-use App\Livewire\ServicioTecnologico\ListServiciosTecnologicos;
+use App\Livewire\User\Roles;
+use App\Livewire\User\Users;
 use App\Models\Proyecto\InstrumenFormalizacion;
+use App\Models\Slide\Slide;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
 Route::get('/acercade', function () {
     $slides = Slide::where('estado', true)
-                    ->get();
+        ->get();
 
-        $data = ['slides' => $slides];
+    $data = ['slides' => $slides];
 
     return view('aplicacion.home', $data);
 })->name('home');
@@ -103,8 +97,7 @@ Route::get('/acercade', function () {
 Route::get('verificacion_constancia', [VerificarConstancia::class, 'verificacionConstanciaVista'])
     ->name('validar');
 
-//...
-
+// ...
 
 Route::get('verificacion_constancia/{hash?}', [VerificarConstancia::class, 'index'])
     ->name('verificacion_constancia');
@@ -165,8 +158,6 @@ Route::middleware(['auth'])->prefix('enf')->name('enf.')->group(function () {
 // Rutas para redireccionar a los usuario  no autenticados
 Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfil::class])->group(function () {
 
-
-
     Route::get('campus', CampusList::class)
         ->name('campus')
         ->middleware('can:unidad-academica.campus');
@@ -187,11 +178,9 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         ->name('facultad-centro')
         ->middleware('can:unidad-academica.facultad');
 
-
     Route::get('setPerfil/{role_id}', [SetRoleController::class, 'SetRole'])
         ->name('setrole');
     // ->middleware('can:global.set-role');
-
 
     // rutas agrupadas para el modulo de inicio
     Route::get('inicio', InicioAdmin::class)
@@ -200,7 +189,6 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
     // rutas agrupadas para el modulo de demografia :)
     Route::middleware(['auth'])->group(function () {
 
-
         Route::get('crearPais', CreatePais::class)
             ->name('crearPais')
             ->middleware('can:demografia.pais');
@@ -208,7 +196,6 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         Route::get('listarPais', ListPaises::class)
             ->name('listarPaises')
             ->middleware('can:demografia.pais');
-
 
         Route::get('crearDepartamento', CreateDepartamento::class)
             ->name('crearDepartamento')
@@ -226,8 +213,7 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
         //     ->name('crearCiudad')
         //    ->middleware('can:demografia.ciudad');
 
-
-        //Route::get('ListarAldeas', ListAldeas::class)
+        // Route::get('ListarAldeas', ListAldeas::class)
         //   ->name('ListarAldeas')
         //   ->middleware('can:demografia.aldea');
 
@@ -243,10 +229,7 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('crearMunicipio')
             ->middleware('can:demografia.municipio');
 
-
-
     });
-
 
     // rutas agrupadas para el modulo de Usuarios
     Route::middleware(['auth'])->group(function () {
@@ -274,10 +257,11 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('configuracion.integraciones-api')
             ->middleware('can:configuracion.integraciones-api');
 
-        Route::prefix('daft')->middleware('can:configuracion.flujos')->group(function () {
+        Route::prefix('daft')->middleware('can:daft.acceso')->group(function () {
+            Route::get('dashboard', DaftDashboard::class)
+                ->name('daft.dashboard');
             Route::get('catalogos', DaftCatalogos::class)
                 ->name('daft.catalogos');
-
             Route::get('tipos-programa', DaftListTiposPrograma::class)
                 ->name('daft.tipos-programa');
             Route::get('programas', DaftListProgramas::class)
@@ -288,6 +272,8 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
                 ->name('daft.programas.edit');
             Route::get('bandeja-revision', DaftListBandejaRevision::class)
                 ->name('daft.bandeja-revision');
+            Route::get('bandeja-revision/{revision}', ProgramaRevisionDetail::class)
+                ->name('daft.bandeja-revision.show');
         });
 
         Route::prefix('sgcu')->middleware('can:configuracion.flujos')->group(function () {
@@ -307,7 +293,6 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
                 ->name('sgcu.bandeja-revision');
         });
     });
-
 
     // rutas agrupadas para el modulo de Personal
     Route::middleware(['auth'])->group(function () {
@@ -437,7 +422,6 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->middleware('can:proyectos.revision-final');
     });
 
-
     // rutas agrupadas para el modulo de Configuración
     Route::middleware(['auth'])->group(function () {
 
@@ -448,30 +432,28 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
     // rutas para el modludo de constancias
 
-
     Route::middleware(['auth'])->group(function () {
 
         Route::get('listConstancias', ListConstancias::class)
             ->name('constancias')
             ->middleware('can:constancia.constancias');
 
-        
-        Route::get('listContactanos', ListContactos::class) 
+        Route::get('listContactanos', ListContactos::class)
             ->name('contactanos')
             ->middleware('can:configuracion.contactanos');
     });
 
     // agregar rutas para el modulo de docente
     Route::middleware(['auth'])->group(function () {
-        Route::get('proyectosDocente',  ProyectosDocenteList::class)
+        Route::get('proyectosDocente', ProyectosDocenteList::class)
             ->name('proyectosDocente')
             ->middleware('can:docente.proyectos');
 
-        Route::get('selectorTipoAccion',  AreaProyectoSelector::class)
+        Route::get('selectorTipoAccion', AreaProyectoSelector::class)
             ->name('selectorTipoAccion')
             ->middleware('can:docente.proyectos');
 
-        Route::get('selectorCategoria',  CategoriaProyectoSelector::class)
+        Route::get('selectorCategoria', CategoriaProyectoSelector::class)
             ->name('selectorCategoria')
             ->middleware('can:docente.proyectos');
 
@@ -527,46 +509,46 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
 
     // rutas para el modulo de Tickets
 
-        Route::middleware(['auth'])->group(function () {
+    Route::middleware(['auth'])->group(function () {
 
-            Route::get('listarTicket', ListarTicket::class)
-                ->name('listarTicket')
-                ->middleware('can:tickets.ver');
+        Route::get('listarTicket', ListarTicket::class)
+            ->name('listarTicket')
+            ->middleware('can:tickets.ver');
 
-            Route::get('historialTicket', HistorialTicket::class)
-                ->name('historialTicket')
-                ->middleware('can:tickets.ver');
+        Route::get('historialTicket', HistorialTicket::class)
+            ->name('historialTicket')
+            ->middleware('can:tickets.ver');
 
-        });
+    });
 
-        // Servicios Tecnologicos
-        Route::middleware(['auth'])->group(function () {
+    // Servicios Tecnologicos
+    Route::middleware(['auth'])->group(function () {
 
-            Route::get('createServicioTecnologico', CreateServicioTecnologico::class)
-                ->name('createServicioTecnologico');
+        Route::get('createServicioTecnologico', CreateServicioTecnologico::class)
+            ->name('createServicioTecnologico');
 
-            Route::get('/servicios-tecnologicos', ListServiciosTecnologicos::class)
-                ->name('listServiciosTecnologicos');
+        Route::get('/servicios-tecnologicos', ListServiciosTecnologicos::class)
+            ->name('listServiciosTecnologicos');
 
-        });
-        
+    });
 
-        Route::get('/descargar-pdf', [PDFController::class, 'generateGenericPDF']);
-        
-        Route::get('/ver-pdf', [PDFController::class, 'verVista']);
+    Route::get('/descargar-pdf', [PDFController::class, 'generateGenericPDF']);
 
-        Route::get('/proyectos/{proyecto}/perfil-pdf', [PDFController::class, 'previsualizarPerfilProyecto'])
-            ->name('proyecto.perfil.pdf');
+    Route::get('/ver-pdf', [PDFController::class, 'verVista']);
 
-        Route::get('/proyectos/{proyecto}/perfil-pdf/descargar', [PDFController::class, 'descargarPerfilProyecto'])
-            ->name('proyecto.perfil.pdf.download');
+    Route::get('/proyectos/{proyecto}/perfil-pdf', [PDFController::class, 'previsualizarPerfilProyecto'])
+        ->name('proyecto.perfil.pdf');
+
+    Route::get('/proyectos/{proyecto}/perfil-pdf/descargar', [PDFController::class, 'descargarPerfilProyecto'])
+        ->name('proyecto.perfil.pdf.download');
 
     Route::delete('/eliminar-constancia/{path}', function ($path) {
-        $filePath = storage_path('app/public/' . $path);
+        $filePath = storage_path('app/public/'.$path);
         if (file_exists($filePath)) {
             unlink($filePath);
         }
+
         return response()->json(['message' => 'Archivo eliminado']);
     })->name('eliminar.constancia');
-    
+
 });

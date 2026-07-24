@@ -67,25 +67,7 @@
         7 => 'Resultados',
         8 => 'Presupuesto',
         9 => 'Cronograma',
-        10 => 'Documentos y firmas',
-    ];
-    $firmaForm018Roles = [
-        [
-            'rol' => 'Coordinador de la acción por la UNAH',
-            'placeholder' => 'Nombre del coordinador de la acción',
-        ],
-        [
-            'rol' => 'Jefe de la Unidad Académica que lidera la acción',
-            'placeholder' => 'Nombre del jefe(a) de la unidad académica',
-        ],
-        [
-            'rol' => 'Coordinador(a) del Comité Local',
-            'placeholder' => 'Nombre del coordinador(a) del comité local',
-        ],
-        [
-            'rol' => 'Decano(a) o Director(a) del Centro Regional',
-            'placeholder' => 'Nombre del decano(a) o director(a)',
-        ],
+        10 => 'Documentos',
     ];
     $editingAccion = $accion ?? null;
     $formAction = $editingAccion ? route('enf.acciones.update', $editingAccion) : route('enf.acciones.store');
@@ -174,11 +156,23 @@
                         @endforeach
                     </select>
                     <p class="mt-2 text-xs text-blue-800 dark:text-blue-200">
-                        Al seleccionar un programa aprobado se llenan los datos del primer paso. Puedes ajustar edición, fechas y demás campos antes de guardar.
+                        Los datos del programa seleccionado se copiarán como información de solo lectura. Los datos de la nueva edición permanecen editables.
                     </p>
+                    <div data-approved-program-summary class="mt-4 hidden rounded-md border border-blue-200 bg-white/80 p-4 dark:border-blue-800 dark:bg-slate-900/60"></div>
                 </div>
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div>
+                    <div class="md:col-span-3 flex items-center gap-2 border-b border-slate-200 pb-2 dark:border-slate-700">
+                        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">🔒</span>
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Datos del programa aprobado</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Al seleccionar un programa, los datos disponibles en esta sección no se pueden modificar.</p>
+                        </div>
+                    </div>
+                    <div class="order-1 md:col-span-3 mt-2 border-b border-slate-200 pb-2 dark:border-slate-700">
+                        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Datos de la nueva edición</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Completa la solicitud, número de edición y fechas correspondientes a esta acción.</p>
+                    </div>
+                    <div class="order-1">
                         <label class="{{ $label }}">Fecha de solicitud</label>
                         <input type="date" name="fecha_solicitud" value="{{ old('fecha_solicitud', now()->format('Y-m-d')) }}" class="{{ $input }}">
                     </div>
@@ -208,15 +202,15 @@
                         <label class="{{ $label }}">No. resolución última actualización</label>
                         <input name="resolucion_actualizacion" value="{{ old('resolucion_actualizacion') }}" class="{{ $input }}">
                     </div>
-                    <div>
+                    <div class="order-1">
                         <label class="{{ $label }}">Número de edición</label>
                         <input type="number" min="1" name="numero_edicion" value="{{ old('numero_edicion', 1) }}" class="{{ $input }}">
                     </div>
-                    <div>
+                    <div class="order-1">
                         <label class="{{ $label }}">Fecha de inicio</label>
                         <input type="date" name="fecha_inicio" value="{{ old('fecha_inicio') }}" class="{{ $input }}">
                     </div>
-                    <div>
+                    <div class="order-1">
                         <label class="{{ $label }}">Fecha de finalización</label>
                         <input type="date" name="fecha_finalizacion" value="{{ old('fecha_finalizacion') }}" class="{{ $input }}">
                     </div>
@@ -231,6 +225,12 @@
                     </div>
                     <div
                         @enf-approved-program-selected.window="
+                            lockedCentros = Boolean($event.detail.locked_centros);
+                            lockedDepartamentos = Boolean($event.detail.locked_departamentos);
+                            lockedCarreras = Boolean($event.detail.locked_carreras);
+                            openCentros = false;
+                            openDepartamentos = false;
+                            openCarreras = false;
                             selectedCentros = normalized($event.detail.centro_facultad_ids || []);
                             selectedDepartamentos = normalized($event.detail.departamento_academico_ids || []);
                             selectedCarreras = normalized($event.detail.carrera_ids || []);
@@ -241,6 +241,9 @@
                             openCentros: false,
                             openDepartamentos: false,
                             openCarreras: false,
+                            lockedCentros: false,
+                            lockedDepartamentos: false,
+                            lockedCarreras: false,
                             searchCentros: '',
                             searchDepartamentos: '',
                             searchCarreras: '',
@@ -336,16 +339,16 @@
                         <div>
                             <label class="{{ $label }}">Centro / Facultad</label>
                             <div @click.outside="openCentros = false" class="relative">
-                                <div @click="openCentros = true; $nextTick(() => $refs.searchCentros?.focus())"
+                                <div @click="if (!lockedCentros) { openCentros = true; $nextTick(() => $refs.searchCentros?.focus()) }"
                                     class="min-h-[42px] w-full cursor-text rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 dark:border-gray-600 dark:bg-gray-800">
                                     <div class="flex flex-wrap items-center gap-1.5">
                                         <template x-for="id in selectedCentros" :key="`centro-${id}`">
                                             <span class="inline-flex max-w-full items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                                                 <span class="truncate" x-text="label(centrosOptions, id)"></span>
-                                                <button type="button" @click.stop="remove('selectedCentros', id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
+                                                <button x-show="!lockedCentros" type="button" @click.stop="remove('selectedCentros', id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
                                             </span>
                                         </template>
-                                        <input x-ref="searchCentros" x-model="searchCentros" @focus="openCentros = true" @keydown.escape="openCentros = false"
+                                        <input x-ref="searchCentros" x-model="searchCentros" @focus="if (!lockedCentros) openCentros = true" @keydown.escape="openCentros = false" :disabled="lockedCentros"
                                             :placeholder="selectedCentros.length ? '' : 'Buscar o seleccionar centros/facultades...'"
                                             class="min-w-[180px] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 dark:text-white"
                                             type="text">
@@ -356,7 +359,7 @@
                                         <input type="checkbox" name="centro_facultad_ids[]" :value="id" checked class="hidden">
                                     </template>
                                 </div>
-                                <div x-show="openCentros" x-cloak class="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
+                                <div x-show="openCentros && !lockedCentros" x-cloak class="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
                                     <template x-if="optionEntries(centrosOptions, searchCentros).length === 0">
                                         <div class="px-3 py-2 text-sm text-gray-500">Sin resultados.</div>
                                     </template>
@@ -373,18 +376,18 @@
                         <div>
                             <label class="{{ $label }}">Departamento académico</label>
                             <div @click.outside="openDepartamentos = false" class="relative">
-                                <div @click="if (selectedCentros.length) { openDepartamentos = true; $nextTick(() => $refs.searchDepartamentos?.focus()) }"
+                                <div @click="if (selectedCentros.length && !lockedDepartamentos) { openDepartamentos = true; $nextTick(() => $refs.searchDepartamentos?.focus()) }"
                                     class="min-h-[42px] w-full rounded-md border px-3 py-2 text-sm shadow-sm transition"
                                     :class="selectedCentros.length ? 'cursor-text border-gray-300 bg-white focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 dark:border-gray-600 dark:bg-gray-800' : 'cursor-not-allowed border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/60'">
                                     <div class="flex flex-wrap items-center gap-1.5">
                                         <template x-for="id in selectedDepartamentos" :key="`departamento-${id}`">
                                             <span class="inline-flex max-w-full items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                                                 <span class="truncate" x-text="label(departamentosOptions, id)"></span>
-                                                <button type="button" @click.stop="remove('selectedDepartamentos', id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
+                                                <button x-show="!lockedDepartamentos" type="button" @click.stop="remove('selectedDepartamentos', id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
                                             </span>
                                         </template>
                                         <input x-ref="searchDepartamentos" x-model="searchDepartamentos" @focus="if (selectedCentros.length) openDepartamentos = true" @keydown.escape="openDepartamentos = false"
-                                            :disabled="!selectedCentros.length"
+                                            :disabled="!selectedCentros.length || lockedDepartamentos"
                                             :placeholder="selectedDepartamentos.length ? '' : (selectedCentros.length ? 'Buscar o seleccionar departamentos...' : 'Seleccione primero Centro / Facultad.')"
                                             class="min-w-[180px] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 disabled:cursor-not-allowed dark:text-white"
                                             type="text">
@@ -395,7 +398,7 @@
                                         <input type="checkbox" name="departamento_academico_ids[]" :value="id" checked class="hidden">
                                     </template>
                                 </div>
-                                <div x-show="openDepartamentos && selectedCentros.length" x-cloak class="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
+                                <div x-show="openDepartamentos && selectedCentros.length && !lockedDepartamentos" x-cloak class="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
                                     <template x-if="departamentoEntries().length === 0">
                                         <div class="px-3 py-2 text-sm text-gray-500">Sin resultados.</div>
                                     </template>
@@ -412,18 +415,18 @@
                         <div>
                             <label class="{{ $label }}">Carrera</label>
                             <div @click.outside="openCarreras = false" class="relative">
-                                <div @click="if (selectedCentros.length) { openCarreras = true; $nextTick(() => $refs.searchCarreras?.focus()) }"
+                                <div @click="if (selectedCentros.length && !lockedCarreras) { openCarreras = true; $nextTick(() => $refs.searchCarreras?.focus()) }"
                                     class="min-h-[42px] w-full rounded-md border px-3 py-2 text-sm shadow-sm transition"
                                     :class="selectedCentros.length ? 'cursor-text border-gray-300 bg-white focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 dark:border-gray-600 dark:bg-gray-800' : 'cursor-not-allowed border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/60'">
                                     <div class="flex flex-wrap items-center gap-1.5">
                                         <template x-for="id in selectedCarreras" :key="`carrera-${id}`">
                                             <span class="inline-flex max-w-full items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                                                 <span class="truncate" x-text="label(carrerasOptions, id)"></span>
-                                                <button type="button" @click.stop="remove('selectedCarreras', id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
+                                                <button x-show="!lockedCarreras" type="button" @click.stop="remove('selectedCarreras', id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
                                             </span>
                                         </template>
                                         <input x-ref="searchCarreras" x-model="searchCarreras" @focus="if (selectedCentros.length) openCarreras = true" @keydown.escape="openCarreras = false"
-                                            :disabled="!selectedCentros.length"
+                                            :disabled="!selectedCentros.length || lockedCarreras"
                                             :placeholder="selectedCarreras.length ? '' : (selectedCentros.length ? 'Buscar o seleccionar carreras...' : 'Seleccione primero Centro / Facultad.')"
                                             class="min-w-[180px] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 disabled:cursor-not-allowed dark:text-white"
                                             type="text">
@@ -434,7 +437,7 @@
                                         <input type="checkbox" name="carrera_ids[]" :value="id" checked class="hidden">
                                     </template>
                                 </div>
-                                <div x-show="openCarreras && selectedCentros.length" x-cloak class="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
+                                <div x-show="openCarreras && selectedCentros.length && !lockedCarreras" x-cloak class="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
                                     <template x-if="carreraEntries().length === 0">
                                         <div class="px-3 py-2 text-sm text-gray-500">Sin resultados.</div>
                                     </template>
@@ -469,7 +472,7 @@
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div>
                         <label class="{{ $label }}">Modalidad de ejecución</label>
-                        <select name="modalidad_ejecucion" class="{{ $input }}">
+                        <select name="modalidad_ejecucion" data-modalidad-ejecucion class="{{ $input }}">
                             <option value="">Seleccione...</option>
                             <option>Presencial</option>
                             <option>Semi presencial (Virtual + presencial)</option>
@@ -515,7 +518,7 @@
                     <div class="md:col-span-3">
                         <label class="{{ $label }}">Descripción de las plataformas virtuales y de teledocencia</label>
                         <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                            <div class="rounded-md border border-slate-200 p-3 dark:border-slate-700">
+                            <div data-teledocencia-fields class="rounded-md border border-slate-200 p-3 transition-opacity dark:border-slate-700">
                                 <h3 class="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Teledocencia</h3>
                                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                     @foreach ($catalog('plataforma')->filter(fn ($item) => in_array($item->nombre, ['Teams', 'Zoom', 'Meet', 'Webex', 'Otro'], true)) as $item)
@@ -735,22 +738,15 @@
                 </div>
 
                 <div class="mt-5 rounded-md border border-slate-200 p-4 dark:border-slate-700">
-                    <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Participación de la comunidad universitaria</h3>
-                    </div>
-                    <div class="overflow-x-auto rounded-md border border-slate-100 dark:border-slate-800">
-                        <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
-                            <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-800/60">
-                                <tr>
-                                    <th class="px-3 py-2">Tipo</th>
-                                    <th class="px-3 py-2">Total</th>
-                                    <th class="px-3 py-2">Hombres</th>
-                                    <th class="px-3 py-2">Mujeres</th>
-                                    <th class="px-3 py-2"></th>
-                                </tr>
-                            </thead>
-                            <tbody data-participacion-list class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
-                        </table>
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Participación de la comunidad universitaria</h3>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Registre la distribución de hombres y mujeres por tipo de participación.</p>
+                        </div>
+                        <button type="button" data-open-participacion-list-modal
+                            class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">
+                            Gestionar participación
+                        </button>
                     </div>
                     <div class="hidden" data-participacion-fields>
                         @foreach ([
@@ -773,6 +769,36 @@
                                 <input type="number" min="0" name="participacion_universitaria[{{ $i }}][mujeres]" class="{{ $input }}" placeholder="M">
                             </div>
                         @endforeach
+                    </div>
+                </div>
+
+                <div data-participacion-list-modal role="dialog" aria-modal="true" aria-labelledby="participacion-list-modal-title"
+                    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+                    <div class="flex max-h-[90vh] w-full max-w-6xl flex-col rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900">
+                        <div class="mb-4 flex items-center justify-between gap-3">
+                            <div>
+                                <h2 id="participacion-list-modal-title" class="text-base font-semibold text-slate-900 dark:text-slate-100">Participación de la comunidad universitaria</h2>
+                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Seleccione “Editar” para ingresar la cantidad de hombres y mujeres.</p>
+                            </div>
+                            <button type="button" data-close-participacion-list-modal class="rounded-md px-3 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Cerrar</button>
+                        </div>
+                        <div class="overflow-auto rounded-md border border-slate-200 dark:border-slate-700">
+                            <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
+                                <thead class="sticky top-0 bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-800">
+                                    <tr>
+                                        <th class="px-3 py-2">Tipo</th>
+                                        <th class="px-3 py-2">Hombres</th>
+                                        <th class="px-3 py-2">Mujeres</th>
+                                        <th class="px-3 py-2">Total</th>
+                                        <th class="px-3 py-2"></th>
+                                    </tr>
+                                </thead>
+                                <tbody data-participacion-list class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                            </table>
+                        </div>
+                        <div class="mt-5 flex justify-end">
+                            <button type="button" data-close-participacion-list-modal class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Listo</button>
+                        </div>
                     </div>
                 </div>
 
@@ -1193,7 +1219,7 @@
             </div>
 
             <div class="{{ $card }} hidden" data-step-panel="10">
-                <h2 class="{{ $sectionTitle }}">10. Documentos adjuntos y firmas</h2>
+                <h2 class="{{ $sectionTitle }}">10. Documentos adjuntos</h2>
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     @foreach ([
                         [
@@ -1210,10 +1236,7 @@
                         ],
                     ] as $documentoSupervisor)
                     <section class="rounded-md border border-slate-200 p-4 shadow-sm dark:border-slate-700" data-doc-upload-card>
-                        <label class="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                            <input type="checkbox" name="documentos_requeridos[]" value="{{ $documentoSupervisor['label'] }}" class="rounded border-gray-300 text-blue-600" data-doc-upload-check>
-                            <span>{{ $documentoSupervisor['label'] }}</span>
-                        </label>
+                        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $documentoSupervisor['label'] }}</h3>
 
                         <div class="mt-4 space-y-4">
                             <div>
@@ -1242,18 +1265,6 @@
                     @endforeach
                 </div>
 
-                <div class="mt-6 border-t border-slate-200 pt-5 dark:border-slate-700">
-                    <h3 class="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Firmas requeridas</h3>
-                    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                        @foreach ($firmaForm018Roles as $i => $firmaRol)
-                            <section class="rounded-md border border-slate-200 p-4 shadow-sm dark:border-slate-700">
-                                <input type="hidden" name="firmas[{{ $i }}][rol_firma]" value="{{ $firmaRol['rol'] }}">
-                                <label class="{{ $label }}">{{ $firmaRol['rol'] }}</label>
-                                <input name="firmas[{{ $i }}][nombre_firmante]" class="{{ $input }}" placeholder="{{ $firmaRol['placeholder'] }}">
-                            </section>
-                        @endforeach
-                    </div>
-                </div>
             </div>
 
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1339,16 +1350,16 @@
                         <input data-participacion-tipo class="{{ $input }}" readonly>
                     </div>
                     <div>
-                        <label class="{{ $label }}">Total</label>
-                        <input type="number" min="0" data-participacion-cantidad class="{{ $input }}" readonly>
-                    </div>
-                    <div>
                         <label class="{{ $label }}">Hombres</label>
                         <input type="number" min="0" data-participacion-hombres class="{{ $input }}">
                     </div>
                     <div>
                         <label class="{{ $label }}">Mujeres</label>
                         <input type="number" min="0" data-participacion-mujeres class="{{ $input }}">
+                    </div>
+                    <div>
+                        <label class="{{ $label }}">Total</label>
+                        <input type="number" min="0" data-participacion-cantidad class="{{ $input }}" readonly>
                     </div>
                 </div>
                 <div class="mt-5 flex justify-end gap-3">
@@ -1373,22 +1384,15 @@
                         <label class="{{ $label }}">Nombre asignatura / posgrado</label>
                         <input data-practica-nombre class="{{ $input }}">
                     </div>
-                    <div class="md:col-span-3">
-                        <label class="{{ $label }}">Período registrado</label>
+                    <div class="md:col-span-6">
+                        <label class="{{ $label }}">Período académico</label>
                         <select data-practica-periodo-id class="{{ $input }}">
-                            <option value="">Período registrado...</option>
+                            <option value="">Seleccione un período académico...</option>
                             @foreach ($periodosAcademicos as $periodo)
                                 <option value="{{ $periodo->id }}">{{ $periodoAcademicoLabel($periodo) }}</option>
                             @endforeach
                         </select>
-                    </div>
-                    <div class="md:col-span-3">
-                        <label class="{{ $label }}">Período académico</label>
-                        <input data-practica-periodo-texto class="{{ $input }}" readonly>
-                    </div>
-                    <div>
-                        <label class="{{ $label }}">Matrícula</label>
-                        <input type="number" min="0" data-practica-matricula class="{{ $input }}">
+                        <input type="hidden" data-practica-periodo-texto>
                     </div>
                     <div>
                         <label class="{{ $label }}">Hombres</label>
@@ -1397,6 +1401,10 @@
                     <div>
                         <label class="{{ $label }}">Mujeres</label>
                         <input type="number" min="0" data-practica-mujeres class="{{ $input }}">
+                    </div>
+                    <div>
+                        <label class="{{ $label }}">Matrícula</label>
+                        <input type="number" min="0" data-practica-matricula class="{{ $input }} bg-slate-50 dark:bg-slate-800/70" readonly>
                     </div>
                 </div>
                 <div class="mt-5 flex justify-end gap-3">
@@ -1495,6 +1503,7 @@
             const draftIdField = form.querySelector('[name="borrador_autoguardado_id"]');
             const oldObjetivosEspecificos = @js(array_values((array) old('objetivos_especificos', [])));
             const approvedProgramSelect = form.querySelector('[data-approved-program-select]');
+            const approvedProgramSummary = form.querySelector('[data-approved-program-summary]');
             const panels = Array.from(form.querySelectorAll('[data-step-panel]'));
             const previousButton = form.querySelector('[data-previous-step]');
             const nextButton = form.querySelector('[data-next-step]');
@@ -1507,6 +1516,8 @@
             const horasTeoricasField = form.querySelector('[name="horas_teoricas"]');
             const horasPracticasField = form.querySelector('[name="horas_practicas"]');
             const totalHorasField = form.querySelector('[name="total_horas"]');
+            const modalidadEjecucionField = form.querySelector('[data-modalidad-ejecucion]');
+            const teledocenciaFields = form.querySelector('[data-teledocencia-fields]');
             const beneficiariosHombresField = form.querySelector('[name="beneficiarios[hombres]"]');
             const beneficiariosMujeresField = form.querySelector('[name="beneficiarios[mujeres]"]');
             const beneficiariosTotalField = form.querySelector('[name="beneficiarios[total]"]');
@@ -1523,6 +1534,7 @@
                 horas: document.querySelector('[data-consultor-horas]'),
             };
             const participacionModal = document.querySelector('[data-participacion-modal]');
+            const participacionListModal = form.querySelector('[data-participacion-list-modal]');
             const participacionModalTitle = document.querySelector('[data-participacion-modal-title]');
             const participacionInputs = {
                 tipo: document.querySelector('[data-participacion-tipo]'),
@@ -2110,13 +2122,65 @@
             const setFieldValue = (name, value) => {
                 const field = form.querySelector(fieldSelector(name));
 
-                if (!field || value === null || value === undefined) {
+                if (!field || Array.isArray(value)) {
                     return;
                 }
 
-                field.value = value;
+                field.value = value ?? '';
                 field.dispatchEvent(new Event('input', { bubbles: true }));
                 field.dispatchEvent(new Event('change', { bubbles: true }));
+            };
+
+            const approvedProgramFieldNames = [...new Set(approvedPrograms.flatMap((program) =>
+                Object.keys(program.fields || {}).filter((name) => !name.endsWith('_ids[]'))
+            ))];
+
+            const setApprovedProgramFieldLocked = (name, locked) => {
+                const field = form.querySelector(fieldSelector(name));
+
+                if (!field) {
+                    return;
+                }
+
+                if (field.matches('input, textarea')) {
+                    if (!field.dataset.approvedProgramOriginalReadonly) {
+                        field.dataset.approvedProgramOriginalReadonly = field.readOnly ? '1' : '0';
+                    }
+                    field.readOnly = locked || field.dataset.approvedProgramOriginalReadonly === '1';
+                } else if (field.matches('select')) {
+                    field.classList.toggle('pointer-events-none', locked);
+                    field.setAttribute('aria-disabled', locked ? 'true' : 'false');
+                    field.tabIndex = locked ? -1 : 0;
+                }
+
+                field.classList.toggle('cursor-not-allowed', locked);
+                field.classList.toggle('bg-slate-100', locked);
+                field.classList.toggle('text-slate-600', locked);
+                field.classList.toggle('dark:bg-slate-800/70', locked);
+            };
+
+            const renderApprovedProgramSummary = (program) => {
+                if (!approvedProgramSummary || !program) {
+                    approvedProgramSummary?.classList.add('hidden');
+                    if (approvedProgramSummary) approvedProgramSummary.innerHTML = '';
+                    return;
+                }
+
+                const details = (program.details || []).map((detail) => `
+                    <div class="rounded-md bg-blue-50/70 px-3 py-2 dark:bg-blue-950/30">
+                        <dt class="text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">${escapeHtml(detail.label)}</dt>
+                        <dd class="mt-1 whitespace-pre-wrap text-sm text-slate-800 dark:text-slate-100">${escapeHtml(detail.value)}</dd>
+                    </div>
+                `).join('');
+
+                approvedProgramSummary.innerHTML = `
+                    <div class="mb-3 flex items-center justify-between gap-3">
+                        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Información disponible del programa</h3>
+                        <span class="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/50 dark:text-blue-200">${escapeHtml(program.source || 'Programa aprobado')}</span>
+                    </div>
+                    <dl class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">${details}</dl>
+                `;
+                approvedProgramSummary.classList.remove('hidden');
             };
 
             const setRegisteredEmployeeField = (group, fieldName, value) => {
@@ -2153,14 +2217,40 @@
             const applyApprovedProgram = (programId) => {
                 const program = approvedPrograms.find((item) => String(item.id) === String(programId));
 
+                approvedProgramFieldNames.forEach((name) => {
+                    setApprovedProgramFieldLocked(name, false);
+                    setFieldValue(name, '');
+                });
+
                 if (!program) {
+                    renderApprovedProgramSummary(null);
+                    form.dispatchEvent(new CustomEvent('enf-approved-program-selected', {
+                        bubbles: true,
+                        detail: {
+                            locked_centros: false,
+                            locked_departamentos: false,
+                            locked_carreras: false,
+                            centro_facultad_ids: [],
+                            departamento_academico_ids: [],
+                            carrera_ids: [],
+                        },
+                    }));
+                    syncTotalHoras();
+                    save();
                     return;
                 }
 
                 Object.entries(program.fields || {}).forEach(([name, value]) => setFieldValue(name, value));
+                Object.entries(program.fields || {})
+                    .filter(([name, value]) => !name.endsWith('_ids[]') && value !== null && value !== undefined && value !== '')
+                    .forEach(([name]) => setApprovedProgramFieldLocked(name, true));
+                renderApprovedProgramSummary(program);
                 form.dispatchEvent(new CustomEvent('enf-approved-program-selected', {
                     bubbles: true,
                     detail: {
+                        locked_centros: Boolean(program.fields?.['centro_facultad_ids[]']?.length || program.fields?.centro_facultad_id),
+                        locked_departamentos: Boolean(program.fields?.['departamento_academico_ids[]']?.length || program.fields?.departamento_academico_id),
+                        locked_carreras: Boolean(program.fields?.['carrera_ids[]']?.length || program.fields?.carrera_id),
                         centro_facultad_ids: program.fields?.['centro_facultad_ids[]'] || (program.fields?.centro_facultad_id ? [program.fields.centro_facultad_id] : []),
                         departamento_academico_ids: program.fields?.['departamento_academico_ids[]'] || (program.fields?.departamento_academico_id ? [program.fields.departamento_academico_id] : []),
                         carrera_ids: program.fields?.['carrera_ids[]'] || (program.fields?.carrera_id ? [program.fields.carrera_id] : []),
@@ -2313,9 +2403,9 @@
                 target.innerHTML = rows.map(({ row, index }) => `
                     <tr>
                         <td class="px-3 py-2 font-medium text-slate-700 dark:text-slate-200">${escapeHtml(rowValue(row, 'tipo_participacion'))}</td>
-                        <td class="px-3 py-2">${escapeHtml(rowValue(row, 'cantidad') || '0')}</td>
                         <td class="px-3 py-2">${escapeHtml(rowValue(row, 'hombres') || '0')}</td>
                         <td class="px-3 py-2">${escapeHtml(rowValue(row, 'mujeres') || '0')}</td>
+                        <td class="px-3 py-2">${escapeHtml(rowValue(row, 'cantidad') || '0')}</td>
                         <td class="px-3 py-2 text-right">
                             <button type="button" data-edit-participacion="${index}" class="text-sm font-semibold text-blue-700 hover:text-blue-900">Editar</button>
                         </td>
@@ -2609,8 +2699,16 @@
                 participacionInputs.hombres.value = rowValue(row, 'hombres');
                 participacionInputs.mujeres.value = rowValue(row, 'mujeres');
                 updateParticipacionTotal();
+                hideModal(participacionListModal);
                 showModal(participacionModal);
                 participacionInputs.hombres?.focus();
+            };
+
+            const cancelParticipacion = () => {
+                hideModal(participacionModal);
+                currentParticipacionIndex = null;
+                renderParticipacion();
+                showModal(participacionListModal);
             };
 
             const saveParticipacion = () => {
@@ -2631,6 +2729,7 @@
                 hideModal(participacionModal);
                 currentParticipacionIndex = null;
                 renderDynamicLists();
+                showModal(participacionListModal);
                 save();
                 render();
             };
@@ -2646,6 +2745,14 @@
             const updatePracticaPeriodoTexto = () => {
                 if (practicaInputs.periodo_academico) {
                     practicaInputs.periodo_academico.value = selectedOptionText(practicaInputs.periodo_academico_id);
+                }
+            };
+
+            const updatePracticaMatriculaTotal = () => {
+                if (practicaInputs.matricula_total) {
+                    practicaInputs.matricula_total.value = String(
+                        numericValue(practicaInputs.hombres?.value) + numericValue(practicaInputs.mujeres?.value),
+                    );
                 }
             };
 
@@ -2673,6 +2780,7 @@
                     updatePracticaPeriodoTexto();
                 }
 
+                updatePracticaMatriculaTotal();
                 showModal(practicaModal);
                 practicaInputs.codigo?.focus();
             };
@@ -2687,6 +2795,7 @@
                 }
 
                 updatePracticaPeriodoTexto();
+                updatePracticaMatriculaTotal();
 
                 setRowValues(row, Object.fromEntries(
                     Object.entries(practicaInputs).map(([fieldName, input]) => [fieldName, input?.value || '']),
@@ -3011,16 +3120,10 @@
 
             const updateSupervisorDocumentUploadState = () => {
                 form.querySelectorAll('[data-doc-upload-card]').forEach((card) => {
-                    const check = card.querySelector('[data-doc-upload-check]');
                     const radios = Array.from(card.querySelectorAll('[data-doc-upload-radio]'));
                     const file = card.querySelector('[data-doc-upload-file]');
                     const selectedRadio = radios.find((radio) => radio.checked);
-                    const enabled = Boolean(check?.checked);
-                    const uploadEnabled = enabled && selectedRadio?.value === 'Si';
-
-                    radios.forEach((radio) => {
-                        radio.disabled = !enabled;
-                    });
+                    const uploadEnabled = selectedRadio?.value === 'Si';
 
                     if (file) {
                         file.disabled = !uploadEnabled;
@@ -3073,6 +3176,22 @@
                 emptyState?.classList.toggle('hidden', visibleCount > 0);
             };
 
+            const updateTeledocenciaState = () => {
+                const isPresencial = modalidadEjecucionField?.value === 'Presencial';
+
+                teledocenciaFields?.classList.toggle('opacity-50', isPresencial);
+                teledocenciaFields?.classList.toggle('cursor-not-allowed', isPresencial);
+                teledocenciaFields?.setAttribute('aria-disabled', isPresencial ? 'true' : 'false');
+
+                teledocenciaFields?.querySelectorAll('input, select, textarea').forEach((field) => {
+                    field.disabled = isPresencial;
+
+                    if (isPresencial && (field.type === 'checkbox' || field.type === 'radio')) {
+                        field.checked = false;
+                    }
+                });
+            };
+
             restore();
             syncTotalHoras();
             syncTotalCupos();
@@ -3080,6 +3199,7 @@
             updateSupervisorDocumentUploadState();
             updateContraparteState();
             updateMetasContribuyeState();
+            updateTeledocenciaState();
             renderDynamicLists();
             syncRequiredMarkers();
             step = shouldLockStepNavigation ? firstIncompleteStepBefore(step) || step : step;
@@ -3105,6 +3225,7 @@
                 updateSupervisorDocumentUploadState();
                 updateContraparteState();
                 updateMetasContribuyeState();
+                updateTeledocenciaState();
                 renderDynamicLists();
                 syncRequiredMarkers();
                 render();
@@ -3119,6 +3240,7 @@
                 updateSupervisorDocumentUploadState();
                 updateContraparteState();
                 updateMetasContribuyeState();
+                updateTeledocenciaState();
                 renderDynamicLists();
                 syncRequiredMarkers();
                 render();
@@ -3237,8 +3359,15 @@
                 button.addEventListener('click', () => hideModal(consultorModal));
             });
             document.querySelector('[data-add-consultor]')?.addEventListener('click', addConsultor);
+            form.querySelector('[data-open-participacion-list-modal]')?.addEventListener('click', () => {
+                renderParticipacion();
+                showModal(participacionListModal);
+            });
+            form.querySelectorAll('[data-close-participacion-list-modal]').forEach((button) => {
+                button.addEventListener('click', () => hideModal(participacionListModal));
+            });
             document.querySelectorAll('[data-close-participacion-modal]').forEach((button) => {
-                button.addEventListener('click', () => hideModal(participacionModal));
+                button.addEventListener('click', cancelParticipacion);
             });
             participacionInputs.hombres?.addEventListener('input', updateParticipacionTotal);
             participacionInputs.mujeres?.addEventListener('input', updateParticipacionTotal);
@@ -3248,6 +3377,8 @@
                 button.addEventListener('click', () => hideModal(practicaModal));
             });
             practicaInputs.periodo_academico_id?.addEventListener('change', updatePracticaPeriodoTexto);
+            practicaInputs.hombres?.addEventListener('input', updatePracticaMatriculaTotal);
+            practicaInputs.mujeres?.addEventListener('input', updatePracticaMatriculaTotal);
             document.querySelector('[data-save-practica]')?.addEventListener('click', savePractica);
             document.querySelectorAll('[data-close-presupuesto-modal]').forEach((button) => {
                 button.addEventListener('click', () => hideModal(presupuestoModal));

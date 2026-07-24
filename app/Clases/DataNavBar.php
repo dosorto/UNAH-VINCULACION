@@ -2,14 +2,15 @@
 
 namespace App\Clases;
 
+use App\Models\DAFT\ProgramaRevision;
 use App\Models\ENF\EnfRevision;
-use App\Models\Proyecto\Proyecto;
+use App\Models\Estado\TipoEstado;
+use App\Models\PpsServicioSocial;
+use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Proyecto\FirmaProyecto;
-use App\Models\Proyecto\ProyectoEstado;
-use App\Models\Estado\TipoEstado;
-use App\Models\Proyecto\DocumentoProyecto;
-use App\Models\PpsServicioSocial;
+use App\Models\Proyecto\Proyecto;
+use App\Services\DAFT\ProgramaWorkflowService;
 use Illuminate\Database\Eloquent\Builder;
 
 class DataNavBar
@@ -19,10 +20,9 @@ class DataNavBar
         return [
             ['nombre' => 'Inicio', 'url' => '/'],
             ['nombre' => 'Acerca de', 'url' => '/acerca'],
-            ['nombre' => 'Contacto', 'url' => '/contacto']
+            ['nombre' => 'Contacto', 'url' => '/contacto'],
         ];
     }
-
 
     // metodo para obtner toda la cantidad de proyectos
     public static function obtenerCantidadProyectos()
@@ -30,66 +30,65 @@ class DataNavBar
         return Proyecto::count();
     }
 
-    /// metodo para obtener la cantidad de proyectos en estado de "En revisión"
-public static function obtenerCantidadProyectosEnRevision()
-{
-    $tipoEstado = TipoEstado::where('nombre', 'En revision')->first();
-    
-    if (!$tipoEstado) {
-        return 0; // Return 0 if the estado doesn't exist
-    }
-    
-    return Proyecto::query()
-        ->whereIn('id', function ($query) use ($tipoEstado) {
-            $query->select('estadoable_id')
-                ->from('estado_proyecto')
-                ->where('estadoable_type', Proyecto::class)
-                ->where('tipo_estado_id', $tipoEstado->id)
-                ->where('es_actual', true);
-        })
-        ->count();
-}
+    // / metodo para obtener la cantidad de proyectos en estado de "En revisión"
+    public static function obtenerCantidadProyectosEnRevision()
+    {
+        $tipoEstado = TipoEstado::where('nombre', 'En revision')->first();
 
-// metodo para obtener la cantidad de proyectos en estado de "En revisión final"
-public static function obtenerCantidadProyectosEnRevisionFinal()
-{
-    $tipoEstado = TipoEstado::where('nombre', 'En revision final')->first();
-    
-    if (!$tipoEstado) {
-        return 0; // Return 0 if the estado doesn't exist
-    }
-    
-    return Proyecto::query()
-        ->whereIn('id', function ($query) use ($tipoEstado) {
-            $query->select('estadoable_id')
-                ->from('estado_proyecto')
-                ->where('estadoable_type', Proyecto::class)
-                ->where('tipo_estado_id', $tipoEstado->id)
-                ->where('es_actual', true);
-        })
-        ->count();
-}
+        if (! $tipoEstado) {
+            return 0; // Return 0 if the estado doesn't exist
+        }
 
-// metodo para obtener todos los informes obtenerCantidadInformesSolicitados
-public static function obtenerCantidadInformesSolicitados()
-{
-    $tipoEstado = TipoEstado::where('nombre', 'En revision')->first();
-    
-    if (!$tipoEstado) {
-        return 0; // Return 0 if the estado doesn't exist
+        return Proyecto::query()
+            ->whereIn('id', function ($query) use ($tipoEstado) {
+                $query->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->where('tipo_estado_id', $tipoEstado->id)
+                    ->where('es_actual', true);
+            })
+            ->count();
     }
-    
-    return DocumentoProyecto::query()
-        ->whereIn('id', function ($query) use ($tipoEstado) {
-            $query->select('estadoable_id')
-                ->from('estado_proyecto')
-                ->where('estadoable_type', DocumentoProyecto::class)
-                ->where('tipo_estado_id', $tipoEstado->id)
-                ->where('es_actual', true);
-        })
-        ->count();
-}
 
+    // metodo para obtener la cantidad de proyectos en estado de "En revisión final"
+    public static function obtenerCantidadProyectosEnRevisionFinal()
+    {
+        $tipoEstado = TipoEstado::where('nombre', 'En revision final')->first();
+
+        if (! $tipoEstado) {
+            return 0; // Return 0 if the estado doesn't exist
+        }
+
+        return Proyecto::query()
+            ->whereIn('id', function ($query) use ($tipoEstado) {
+                $query->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', Proyecto::class)
+                    ->where('tipo_estado_id', $tipoEstado->id)
+                    ->where('es_actual', true);
+            })
+            ->count();
+    }
+
+    // metodo para obtener todos los informes obtenerCantidadInformesSolicitados
+    public static function obtenerCantidadInformesSolicitados()
+    {
+        $tipoEstado = TipoEstado::where('nombre', 'En revision')->first();
+
+        if (! $tipoEstado) {
+            return 0; // Return 0 if the estado doesn't exist
+        }
+
+        return DocumentoProyecto::query()
+            ->whereIn('id', function ($query) use ($tipoEstado) {
+                $query->select('estadoable_id')
+                    ->from('estado_proyecto')
+                    ->where('estadoable_type', DocumentoProyecto::class)
+                    ->where('tipo_estado_id', $tipoEstado->id)
+                    ->where('es_actual', true);
+            })
+            ->count();
+    }
 
     // metodo para obtener la cantidad de proyectos del usuario logueado
     public static function obtenerCantidadProyectosPorFirmar()
@@ -110,11 +109,13 @@ public static function obtenerCantidadInformesSolicitados()
             ->where(function ($query) use ($activeRoleName, $empleadoId) {
                 if ($activeRoleName) {
                     $query->whereHas('cargo_firma.tipoCargoFirma', fn ($roleQuery) => $roleQuery->where('nombre', $activeRoleName));
+
                     return;
                 }
 
                 if ($empleadoId) {
                     $query->where('firma_proyecto.empleado_id', $empleadoId);
+
                     return;
                 }
 
@@ -205,6 +206,24 @@ public static function obtenerCantidadInformesSolicitados()
     public static function obtenerCantidadPpsPorRevisar(): int
     {
         return PpsServicioSocial::pendientesParaUsuario(auth()->user())->count();
+    }
+
+    public static function obtenerCantidadRevisionesDaft(): int
+    {
+        $user = auth()->user();
+
+        if (! $user || ! $user->activeRole) {
+            return 0;
+        }
+
+        $workflow = app(ProgramaWorkflowService::class);
+
+        return ProgramaRevision::query()
+            ->with(['programa', 'flujoEtapa.rolRevisor'])
+            ->whereIn('estado', ['PENDIENTE', 'PENDIENTE_ASIGNACION', 'ASIGNADO', 'EN_PROCESO'])
+            ->get()
+            ->filter(fn (ProgramaRevision $revision): bool => $workflow->usuarioPuedeVer($revision, $user))
+            ->count();
     }
 
     // metodo para obtener la cantidad de fichas de actualización por firmar del usuario logueado

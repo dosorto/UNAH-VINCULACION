@@ -8,7 +8,7 @@
     </style>
 </head>
 <body>
-    <div class="toolbar"><a href="{{ route('proyectos.informe-final',$informe->proyecto) }}">Volver</a><a target="_blank" href="{{ route('informes-finales.inf-001.print',$informe) }}">Imprimir PDF</a><a href="{{ route('informes-finales.inf-001.pdf',$informe) }}">Descargar PDF</a></div>
+    <div class="toolbar"><a href="{{ route('historialproyecto',$informe->proyecto) }}">Volver al proyecto</a><a target="_blank" href="{{ route('informes-finales.inf-001.print',$informe) }}">Imprimir PDF</a><a href="{{ route('informes-finales.inf-001.pdf',$informe) }}">{{ $esBorrador ? 'Descargar PDF preliminar' : 'Descargar PDF final' }}</a></div>
     <div class="preview-scroll"><main class="sheet">@include('proyectos.informe-final.partials.inf-001-document', ['isPdf' => false])</main></div>
 </body>
 </html>

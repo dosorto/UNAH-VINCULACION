@@ -49,6 +49,8 @@ class EnfAccionController extends Controller
         'Proyecto de educacion continua',
         'Programa de educacion continua',
         'Diplomado',
+        'Curso',
+        'Taller',
         'Congreso',
         'Seminario',
     ];
@@ -219,15 +221,28 @@ class EnfAccionController extends Controller
                 return [
                     'id' => 'enf-'.$programa->id,
                     'label' => trim(($programa->numero_registro ? $programa->numero_registro.' · ' : '').$programa->nombre_accion),
+                    'source' => 'Registro ENF',
+                    'details' => array_values(array_filter([
+                        ['label' => 'No. de registro', 'value' => $programa->numero_registro],
+                        ['label' => 'Nombre', 'value' => $programa->nombre_accion],
+                        ['label' => 'Tipo', 'value' => $programa->accionCatalogos
+                            ->first(fn ($catalogo) => $catalogo->tipo === 'tipo_accion_enf')
+                            ?->catalogo?->nombre],
+                        ['label' => 'Modalidad', 'value' => $programa->modalidad?->nombre],
+                        ['label' => 'Centro / Facultad', 'value' => $programa->centroFacultad?->nombre],
+                        ['label' => 'Departamento académico', 'value' => $programa->departamentoAcademico?->nombre],
+                        ['label' => 'Carrera', 'value' => $programa->carrera?->nombre],
+                        ['label' => 'Resolución VRA', 'value' => $programa->resolucion_vra],
+                        ['label' => 'Resolución original', 'value' => $programa->resolucion_original],
+                        ['label' => 'Última actualización', 'value' => $programa->resolucion_actualizacion],
+                        ['label' => 'Horas', 'value' => $programa->total_horas.' horas'],
+                    ], fn (array $detail) => filled($detail['value']))),
                     'fields' => [
                         'nombre_accion' => $programa->nombre_accion,
                         'catalogos[tipo_accion_enf][]' => $tipoAccionEnfId,
                         'resolucion_vra' => $programa->resolucion_vra,
                         'resolucion_original' => $programa->resolucion_original,
                         'resolucion_actualizacion' => $programa->resolucion_actualizacion,
-                        'numero_edicion' => $programa->numero_edicion,
-                        'fecha_inicio' => optional($programa->fecha_inicio)->format('Y-m-d'),
-                        'fecha_finalizacion' => optional($programa->fecha_finalizacion)->format('Y-m-d'),
                         'modalidad_id' => $programa->modalidad_id,
                         'centro_facultad_id' => $programa->centro_facultad_id,
                         'centro_facultad_ids[]' => array_values(array_filter([(string) $programa->centro_facultad_id])),
@@ -237,12 +252,18 @@ class EnfAccionController extends Controller
                         'carrera_ids[]' => array_values(array_filter([(string) $programa->carrera_id])),
                         'horas_teoricas' => $programa->horas_teoricas,
                         'horas_practicas' => $programa->horas_practicas,
+                        'total_horas' => $programa->total_horas,
                     ],
                 ];
             });
 
         $programasDaft = ProgramaCertificacion::query()
-            ->with(['centroFacultad', 'tipoPrograma', 'centrosPrograma'])
+            ->with([
+                'centroFacultad',
+                'tipoPrograma',
+                'centrosPrograma.centroFacultad',
+                'asignaturasPrograma.asignatura',
+            ])
             ->where('estado_flujo', 'APROBADO')
             ->orderBy('nombre')
             ->get()
@@ -261,18 +282,46 @@ class EnfAccionController extends Controller
                     $tiposAccionEnfPorNombre,
                     $tipoProgramaEnfId
                 );
+                $tipoPrograma = $programa->tipoPrograma?->nombre ?? $programa->tipo_programa;
+                $centros = collect([$programa->centroFacultad?->nombre])
+                    ->merge($programa->centrosPrograma
+                        ->where('activo', true)
+                        ->pluck('centroFacultad.nombre'))
+                    ->filter()
+                    ->unique()
+                    ->implode(', ');
+                $asignaturas = $programa->asignaturasPrograma
+                    ->map(fn ($item) => trim(collect([
+                        $item->asignatura?->codigo,
+                        $item->asignatura?->nombre,
+                    ])->filter()->implode(' · ')))
+                    ->filter()
+                    ->implode(', ');
 
                 return [
                     'id' => 'daft-'.$programa->id,
                     'label' => trim(($programa->codigo ? $programa->codigo.' · ' : '').$programa->nombre),
+                    'source' => 'Programa DAFT',
+                    'details' => array_values(array_filter([
+                        ['label' => 'Código', 'value' => $programa->codigo],
+                        ['label' => 'Nombre', 'value' => $programa->nombre],
+                        ['label' => 'Tipo', 'value' => $tipoPrograma],
+                        ['label' => 'Versión aprobada', 'value' => 'V'.$programa->version_actual],
+                        ['label' => 'Centro principal', 'value' => $programa->centroFacultad?->nombre],
+                        ['label' => 'Centros habilitados', 'value' => $centros],
+                        ['label' => 'Horas del programa', 'value' => $totalHoras.' horas'],
+                        ['label' => 'Descripción', 'value' => $programa->descripcion],
+                        ['label' => 'Asignaturas', 'value' => $asignaturas],
+                    ], fn (array $detail) => filled($detail['value']))),
                     'fields' => [
                         'nombre_accion' => $programa->nombre,
                         'catalogos[tipo_accion_enf][]' => $tipoAccionEnfId,
-                        'numero_edicion' => 1,
                         'centro_facultad_id' => $centroIds[0] ?? null,
                         'centro_facultad_ids[]' => $centroIds,
                         'horas_teoricas' => 0,
                         'horas_practicas' => $totalHoras,
+                        'total_horas' => $totalHoras,
+                        'resumen' => $programa->descripcion,
                     ],
                 ];
             });
@@ -289,6 +338,8 @@ class EnfAccionController extends Controller
 
         $catalogoDestino = match (true) {
             str_contains($tipoNormalizado, 'diplom') => 'Diplomado',
+            str_contains($tipoNormalizado, 'curso') => 'Curso',
+            str_contains($tipoNormalizado, 'taller') => 'Taller',
             str_contains($tipoNormalizado, 'congreso') => 'Congreso',
             str_contains($tipoNormalizado, 'seminario') => 'Seminario',
             str_contains($tipoNormalizado, 'programa') => 'Programa de educacion continua',
@@ -1038,7 +1089,7 @@ class EnfAccionController extends Controller
                 'codigo_asignatura' => $item['codigo'] ?? null,
                 'nombre_asignatura' => $item['nombre'] ?? null,
                 'periodo_academico_texto' => $item['periodo_academico'] ?? null,
-                'cantidad_estudiantes' => (int) ($item['matricula_total'] ?? 0),
+                'cantidad_estudiantes' => (int) ($item['hombres'] ?? 0) + (int) ($item['mujeres'] ?? 0),
                 'matricula_hombres' => (int) ($item['hombres'] ?? 0),
                 'matricula_mujeres' => (int) ($item['mujeres'] ?? 0),
             ]);
@@ -1198,34 +1249,26 @@ class EnfAccionController extends Controller
             'Otros documentos de respaldo' => 'otros_documentos_respaldo',
         ];
 
-        foreach (array_filter($data['documentos_requeridos'] ?? []) as $documento) {
-            $slug = $supervisorDocumentMap[$documento] ?? null;
-
-            if (
-                $slug
-                && data_get($data, "supervisor_documentos.{$slug}.aplica") === 'Si'
-                && $request->hasFile("supervisor_documentos_archivos.{$slug}")
-            ) {
-                $file = $request->file("supervisor_documentos_archivos.{$slug}");
-                $path = $file->store('enf/documentos', 'public');
-
-                $accion->documentos()->create([
-                    'tipo_documento' => $slug,
-                    'nombre' => $documento,
-                    'ruta' => $path,
-                    'mime_type' => $file->getClientMimeType(),
-                    'tamano_bytes' => $file->getSize(),
-                    'subido_por_usuario_id' => $request->user()?->id,
-                    'descripcion' => 'Documento adjunto desde el paso Supervisor.',
-                ]);
-
+        foreach ($supervisorDocumentMap as $documento => $slug) {
+            if (data_get($data, "supervisor_documentos.{$slug}.aplica") !== 'Si') {
                 continue;
             }
 
+            if (! $request->hasFile("supervisor_documentos_archivos.{$slug}")) {
+                continue;
+            }
+
+            $file = $request->file("supervisor_documentos_archivos.{$slug}");
+            $path = $file->store('enf/documentos', 'public');
+
             $accion->documentos()->create([
-                'tipo_documento' => 'requerido_form_018',
+                'tipo_documento' => $slug,
                 'nombre' => $documento,
-                'ruta' => 'pendiente',
+                'ruta' => $path,
+                'mime_type' => $file->getClientMimeType(),
+                'tamano_bytes' => $file->getSize(),
+                'subido_por_usuario_id' => $request->user()?->id,
+                'descripcion' => 'Documento adjunto desde el paso Supervisor.',
             ]);
         }
     }

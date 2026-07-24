@@ -62,6 +62,11 @@ class ProgramaCertificacion extends Model
         return $this->belongsTo(\App\Models\Proyecto\FlujoAprobacion::class, 'flujo_aprobacion_id');
     }
 
+    public function creadoPor(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'creado_por_usuario_id');
+    }
+
     public function versiones(): HasMany
     {
         return $this->hasMany(VersionPrograma::class, 'programa_certificacion_id')->orderByDesc('numero_version');
@@ -99,7 +104,7 @@ class ProgramaCertificacion extends Model
     public function etapaActual(): ?ProgramaRevision
     {
         return $this->revisionesActuales()
-            ->first(fn (ProgramaRevision $revision) => in_array($revision->estado, ['PENDIENTE', 'PENDIENTE_ASIGNACION', 'ASIGNADO'], true));
+            ->first(fn (ProgramaRevision $revision) => in_array($revision->estado, ['PENDIENTE', 'PENDIENTE_ASIGNACION', 'ASIGNADO', 'EN_PROCESO'], true));
     }
 
     public function tieneSubsanacionPendiente(): bool

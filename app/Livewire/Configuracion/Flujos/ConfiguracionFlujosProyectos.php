@@ -137,7 +137,7 @@ class ConfiguracionFlujosProyectos extends Component
     public function addStage(): void
     {
         if ($this->activeFlowTab === 'programas') {
-            $this->programStages[] = $this->blankStage(count($this->programStages) + 1);
+            $this->programStages[] = $this->blankProgramStage(count($this->programStages) + 1);
             $this->normalizeProgramStageCodes();
             return;
         }
@@ -153,6 +153,11 @@ class ConfiguracionFlujosProyectos extends Component
     {
         if (preg_match('/^stages\.(\d+)\.tipo_etapa$/', $property, $matches) && $value !== 'APROBACION') {
             $this->stages[(int) $matches[1]]['cargo_firma_id'] = '';
+            return;
+        }
+
+        if (preg_match('/^programStages\.(\d+)\.tipo_etapa$/', $property, $matches) && $value !== 'APROBACION') {
+            $this->programStages[(int) $matches[1]]['cargo_firma_id'] = '';
             return;
         }
 
@@ -183,7 +188,7 @@ class ConfiguracionFlujosProyectos extends Component
             $this->programStages = array_values($this->programStages);
 
             if ($this->programStages === []) {
-                $this->programStages[] = $this->blankStage(1);
+                $this->programStages[] = $this->blankProgramStage(1);
             }
 
             $this->normalizeProgramStageCodes();
@@ -258,10 +263,11 @@ class ConfiguracionFlujosProyectos extends Component
             return;
         }
 
-        $this->workflow['codigo'] = $this->projectFlowCode();
+        $this->workflow['codigo'] = $this->workflow['codigo']
+            ?: $this->generateProjectFlowCode($this->selectedSubactionId);
         $this->normalizeStageCodes();
 
-        $validated = $this->validate([
+        $validated = $this->validate(array_merge([
             'workflow.codigo' => ['required', 'string', 'max:80', Rule::unique('flujos_aprobacion', 'codigo')->ignore($this->workflowId)],
             'workflow.nombre' => ['required', 'string', 'max:180'],
             'workflow.descripcion' => ['nullable', 'string'],
@@ -280,8 +286,7 @@ class ConfiguracionFlujosProyectos extends Component
             'stages.*.requiere_asignacion' => ['boolean'],
             'stages.*.emisor_define_destinatario' => ['boolean'],
             'stages.*.activo' => ['boolean'],
-            ...$this->academicScopeValidationRules('stages'),
-        ], $this->academicScopeValidationMessages('stages'));
+        ], $this->academicScopeValidationRules('stages')), $this->academicScopeValidationMessages('stages'));
 
         if (! $this->validateAcademicStageRules($validated['stages'], 'stages')) {
             return;
@@ -473,15 +478,10 @@ class ConfiguracionFlujosProyectos extends Component
 
     protected function saveProgramFlow(): void
     {
-        if (! $this->programSelectedTipoProgramaId) {
-            $this->addError('programWorkflow.nombre', 'Seleccione un tipo de programa.');
-            return;
-        }
-
-        $this->programWorkflow['codigo'] = $this->generateProgramFlowCode();
+        $this->programWorkflow['codigo'] = $this->automaticProgramFlowCode();
         $this->normalizeProgramStageCodes();
 
-        $validated = $this->validate([
+        $validated = $this->validate(array_merge([
             'programWorkflow.codigo' => ['required', 'string', 'max:80', Rule::unique('flujos_aprobacion', 'codigo')->ignore($this->programWorkflowId)],
             'programWorkflow.nombre' => ['required', 'string', 'max:180'],
             'programWorkflow.descripcion' => ['nullable', 'string'],
@@ -489,15 +489,18 @@ class ConfiguracionFlujosProyectos extends Component
             'programStages' => ['required', 'array', 'min:1'],
             'programStages.*.id' => ['nullable', 'integer', 'exists:flujos_aprobacion_etapas,id'],
             'programStages.*.codigo' => ['required', 'string', 'max:80'],
+            'programStages.*.aplica_inscripcion' => ['boolean'],
+            'programStages.*.aplica_informe_intermedio' => ['boolean'],
+            'programStages.*.aplica_cierre_proyecto' => ['boolean'],
             'programStages.*.nombre' => ['required', 'string', 'max:180'],
+            'programStages.*.tipo_etapa' => ['required', 'in:REVISION,APROBACION'],
             'programStages.*.rol_revisor_id' => ['nullable', 'exists:roles,id'],
             'programStages.*.usuario_responsable_id' => ['nullable', 'exists:users,id'],
-            'programStages.*.cargo_firma_id' => ['required', 'exists:cargo_firma,id'],
+            'programStages.*.cargo_firma_id' => ['nullable', 'required_if:programStages.*.tipo_etapa,APROBACION', 'exists:cargo_firma,id'],
             'programStages.*.requiere_asignacion' => ['boolean'],
             'programStages.*.emisor_define_destinatario' => ['boolean'],
             'programStages.*.activo' => ['boolean'],
-            ...$this->academicScopeValidationRules('programStages'),
-        ], $this->academicScopeValidationMessages('programStages'));
+        ], $this->academicScopeValidationRules('programStages')), $this->academicScopeValidationMessages('programStages'));
 
         if (! $this->validateAcademicStageRules($validated['programStages'], 'programStages')) {
             return;
@@ -505,7 +508,7 @@ class ConfiguracionFlujosProyectos extends Component
 
         $validated['programStages'] = $this->prepareStagesForSave($validated['programStages'], 'REVISION');
 
-        if ($this->hasDuplicateCargoFirmaEnEtapasActivas($validated['programStages'], 'programStages')) {
+        if ($this->hasDuplicateCargoFirmaEnEtapasActivas($validated['programStages'], 'programStages', soloAprobacion: true)) {
             return;
         }
 
@@ -901,13 +904,13 @@ class ConfiguracionFlujosProyectos extends Component
     {
         $this->programWorkflowId = null;
         $this->programWorkflow = [
-            'codigo' => $this->generateProgramFlowCode(),
+            'codigo' => $this->automaticProgramFlowCode(),
             'nombre' => 'Flujo de aprobacion de programas',
             'proceso' => 'PROGRAMA',
             'descripcion' => '',
             'activo' => true,
         ];
-        $this->programStages = [$this->blankStage(1)];
+        $this->programStages = [$this->blankProgramStage(1)];
     }
 
     protected function loadProgramWorkflowForSelectedTipo(): void
@@ -929,7 +932,7 @@ class ConfiguracionFlujosProyectos extends Component
 
         $this->programWorkflowId = $flow->id;
         $this->programWorkflow = [
-            'codigo' => $this->generateProgramFlowCode(),
+            'codigo' => $this->automaticProgramFlowCode($flow->id),
             'nombre' => $flow->nombre,
             'proceso' => $flow->proceso,
             'descripcion' => $flow->descripcion ?? '',
@@ -958,8 +961,16 @@ class ConfiguracionFlujosProyectos extends Component
             ->all();
 
         if ($this->programStages === []) {
-            $this->programStages[] = $this->blankStage(1);
+            $this->programStages[] = $this->blankProgramStage(1);
         }
+    }
+
+    protected function blankProgramStage(int $order): array
+    {
+        return array_replace($this->blankStage($order), [
+            'requiere_asignacion' => false,
+            'usuario_responsable_id' => '',
+        ]);
     }
 
     protected function normalizeProgramStageCodes(): void
@@ -1031,13 +1042,8 @@ class ConfiguracionFlujosProyectos extends Component
                 'activo' => (bool) ($stage['activo'] ?? true),
             ];
 
-            if (array_key_exists('alcance_academico', $stage)) {
-                $preparedStage['alcance_academico'] = $this->normalizeAcademicScope($stage['alcance_academico']);
-            }
-
-            if (array_key_exists('multiplicidad_revision', $stage)) {
-                $preparedStage['multiplicidad_revision'] = $this->normalizeReviewMultiplicity($stage['multiplicidad_revision']);
-            }
+            $preparedStage['alcance_academico'] = $this->normalizeAcademicScope($stage['alcance_academico'] ?? null);
+            $preparedStage['multiplicidad_revision'] = $this->normalizeReviewMultiplicity($stage['multiplicidad_revision'] ?? null);
 
             $prepared[] = $preparedStage;
         }
@@ -1235,7 +1241,7 @@ class ConfiguracionFlujosProyectos extends Component
 
     protected function generateUniqueFlowCode(string $base, ?int $ignoreId = null): string
     {
-        $base = substr($this->normalizeCode($base) ?: 'FLUJO', 0, 80);
+        $base = $this->normalizeCode($base) ?: 'FLUJO';
         $candidate = $base;
         $suffix = 2;
 
@@ -1244,12 +1250,23 @@ class ConfiguracionFlujosProyectos extends Component
             ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
             ->exists()
         ) {
-            $suffixText = '_'.$suffix;
-            $candidate = substr($base, 0, 80 - strlen($suffixText)).$suffixText;
+            $candidate = $base.'_'.$suffix;
             $suffix++;
         }
 
         return $candidate;
+    }
+
+    protected function automaticProgramFlowCode(?int $ignoreId = null): string
+    {
+        $tipoPrograma = $this->programSelectedTipoProgramaId
+            ? TipoPrograma::find($this->programSelectedTipoProgramaId)
+            : null;
+        $nombre = $tipoPrograma?->nombre
+            ? $this->normalizeCode(Str::ascii($tipoPrograma->nombre))
+            : 'SIN_TIPO';
+
+        return $this->generateUniqueFlowCode('PROGRAMA_'.$nombre, $ignoreId ?? $this->programWorkflowId);
     }
 
     protected function generateProjectFlowCode(int $actionId): string
@@ -1259,26 +1276,6 @@ class ConfiguracionFlujosProyectos extends Component
             ?? 'PROYECTO_'.($this->normalizeCode($subaction['codigo_formulario'] ?? '') ?: 'FLUJO');
 
         return $this->generateUniqueFlowCode($actionCode, $this->workflowId);
-    }
-
-    protected function projectFlowCode(): string
-    {
-        if ($this->workflowId) {
-            return (string) FlujoAprobacion::query()->whereKey($this->workflowId)->value('codigo');
-        }
-
-        return $this->generateProjectFlowCode((int) $this->selectedSubactionId);
-    }
-
-    protected function generateProgramFlowCode(): string
-    {
-        $tipoPrograma = $this->programSelectedTipoProgramaId
-            ? TipoPrograma::query()->find($this->programSelectedTipoProgramaId)
-            : null;
-        $nombre = $this->normalizeCode(Str::ascii((string) $tipoPrograma?->nombre));
-        $base = 'PROGRAMA_'.($nombre ?: 'SIN_TIPO');
-
-        return $this->generateUniqueFlowCode($base, $this->programWorkflowId);
     }
 
     protected function normalizeCode(string $value): string

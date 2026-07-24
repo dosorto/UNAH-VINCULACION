@@ -29,6 +29,32 @@
     </div>
     @endif
 
+    @if($enSubsanacion)
+    <div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-4 text-amber-950 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-100">
+        <p class="font-semibold">Este proyecto está en subsanación. Realice las correcciones solicitadas y presione Reenviar a revisión.</p>
+        @if($detalleSubsanacion)
+        <dl class="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+            <div class="sm:col-span-2">
+                <dt class="font-semibold">Motivo de rechazo</dt>
+                <dd>{{ $detalleSubsanacion['motivo'] }}</dd>
+            </div>
+            <div>
+                <dt class="font-semibold">Rechazado por</dt>
+                <dd>{{ $detalleSubsanacion['rechazado_por'] }}</dd>
+            </div>
+            <div>
+                <dt class="font-semibold">Fecha</dt>
+                <dd>{{ \Illuminate\Support\Carbon::parse($detalleSubsanacion['fecha'])->format('d/m/Y H:i') }}</dd>
+            </div>
+            <div class="sm:col-span-2">
+                <dt class="font-semibold">Etapa</dt>
+                <dd>{{ $detalleSubsanacion['etapa'] }}</dd>
+            </div>
+        </dl>
+        @endif
+    </div>
+    @endif
+
     {{-- Step progress --}}
     <div class="mb-6 bg-white dark:bg-gray-900 shadow rounded-lg p-4">
         <div class="flex items-center overflow-x-auto gap-0.5">
@@ -1843,13 +1869,13 @@
                 @elseif($currentStep === 9)
                 <button wire:click="borrador" type="button"
                     class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50">
-                    Guardar como Borrador
+                    {{ $enSubsanacion ? 'Guardar cambios' : 'Guardar como Borrador' }}
                 </button>
                 <button
                     wire:click="abrirModalEnviar"
                     type="button"
                     class="inline-flex items-center px-4 py-2 rounded-md text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 shadow-sm">
-                    Enviar para Firmar
+                    {{ $enSubsanacion ? 'Reenviar a revisión' : 'Enviar para Firmar' }}
                 </button>
                 @endif
             </div>
