@@ -37,6 +37,12 @@
                             @svg('heroicon-o-arrow-down-tray', ['class' => 'h-4 w-4'])
                             Descargar PDF
                         </a>
+                        @if ($esForm016 || $esForm018)
+                            <a href="{{ route('enf.acciones.informe-final.edit', $accion) }}" class="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-3 py-2 text-sm font-medium text-white hover:bg-blue-800">
+                                @svg('heroicon-o-document-text', ['class' => 'h-4 w-4'])
+                                Informe final
+                            </a>
+                        @endif
                     @endif
 
                     @if ($puedeReenviar ?? false)

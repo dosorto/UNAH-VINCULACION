@@ -19,6 +19,7 @@ class EnfInformeFinal extends Model
     protected $casts = [
         'fecha_presentacion' => 'date',
         'fecha_aprobacion' => 'date',
+        'confirmacion_veracidad' => 'boolean',
     ];
 
     public function accion()

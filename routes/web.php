@@ -77,8 +77,12 @@ use App\Livewire\UnidadAcademica\Campus\CampusList;
 use App\Livewire\UnidadAcademica\Carrera\CarreraList;
 use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList;
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
+use App\Livewire\ENF\EditInformeFinalForm016;
+use App\Livewire\ENF\EditInformeFinalForm018;
 use App\Livewire\User\Roles;
 use App\Livewire\User\Users;
+use App\Models\ENF\EnfAccion;
+use App\Livewire\Proyectos\InformeFinal\EditInformeFinalProyecto;
 use App\Models\Proyecto\InstrumenFormalizacion;
 use App\Models\Slide\Slide;
 use Illuminate\Support\Facades\Auth;
@@ -136,6 +140,21 @@ Route::middleware(['guest'])->group(function () {
 Route::middleware(['auth'])->prefix('enf')->name('enf.')->group(function () {
     Route::get('tipos', [EnfAccionController::class, 'tipos'])->name('tipos');
     Route::get('acciones/{accion}/pdf', [EnfAccionController::class, 'descargarPdf'])->name('acciones.pdf');
+    Route::get('acciones/{accion}/informe-final', function (EnfAccion $accion) {
+        abort_unless(in_array($accion->codigo_formulario, ['FORM-DVUS-016', 'FORM-DVUS-018'], true), 404);
+
+        return redirect()->route(
+            $accion->codigo_formulario === 'FORM-DVUS-016'
+                ? 'enf.acciones.informe-final.form016'
+                : 'enf.acciones.informe-final.form018',
+            $accion
+        );
+    })->name('acciones.informe-final.edit');
+    Route::get('acciones/{accion}/informe-final/form-016', EditInformeFinalForm016::class)->name('acciones.informe-final.form016');
+    Route::get('acciones/{accion}/informe-final/form-018', EditInformeFinalForm018::class)->name('acciones.informe-final.form018');
+    Route::get('acciones/{accion}/informe-final/vista-previa', [EnfInformeFinalController::class, 'previewByAccion'])->name('acciones.informe-final.preview-pdf');
+    Route::get('acciones/{accion}/informe-final/imprimir', [EnfInformeFinalController::class, 'printByAccion'])->name('acciones.informe-final.print');
+    Route::get('acciones/{accion}/informe-final/pdf', [EnfInformeFinalController::class, 'pdfByAccion'])->name('acciones.informe-final.pdf');
     Route::post('acciones/autoguardar-borrador', [EnfAccionController::class, 'autoguardarBorrador'])->name('acciones.autoguardar-borrador');
     Route::post('acciones/{accion}/autoguardar-borrador', [EnfAccionController::class, 'autoguardarBorrador'])->name('acciones.autoguardar-borrador.update');
     Route::post('acciones/{accion}/reenviar-revision', [EnfAccionController::class, 'reenviarRevision'])->name('acciones.reenviar-revision');
