@@ -50,7 +50,6 @@ class EmpleadoProyecto extends Model
 
         // Asegurarse de que el campo tipo siempre tenga un valor
         static::creating(function ($model) {
-            dd($model);
             // verificar si el registro trae el rol de Coordinador
             if ($model->rol == 'Coordinador') {
                 if (auth()->user()->id == $model->empleado_id) {

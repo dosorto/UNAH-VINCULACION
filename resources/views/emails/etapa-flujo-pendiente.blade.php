@@ -184,7 +184,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Revisión pendiente de proyecto</h1>
+            <h1>Revisión pendiente de {{ $tipoRegistro }}</h1>
             <div class="subtitle">Sistema de Gestión de Proyectos de Vinculación</div>
         </div>
 
@@ -199,7 +199,7 @@
             </div>
 
             <p style="text-align: justify; margin-bottom: 20px;">
-                Le informamos que tiene un proyecto asignado pendiente de revisión en el sistema <strong>{{ $appName }}</strong>.
+                Le informamos que tiene {{ $tipoRegistro === 'proyecto' ? 'un proyecto' : 'un '.mb_strtolower($tipoRegistro) }} pendiente de revisión en el sistema <strong>{{ $appName }}</strong>.
                 Le correspondre actuar en la siguiente etapa del flujo de aprobación:
             </p>
 
@@ -221,7 +221,7 @@
 
             <div class="action-section">
                 <p style="margin-bottom: 15px; font-weight: 600; color: #004080;">
-                    Acceda al sistema para revisar el proyecto:
+                    Acceda al sistema para revisar {{ $tipoRegistro === 'proyecto' ? 'el proyecto' : 'el '.mb_strtolower($tipoRegistro) }}:
                 </p>
                 <a href="{{ $actionUrl }}" class="action-button">
                     Ir al sistema NEXO

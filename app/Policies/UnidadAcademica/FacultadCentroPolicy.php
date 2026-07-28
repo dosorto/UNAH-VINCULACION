@@ -13,7 +13,6 @@ class FacultadCentroPolicy
     {
         // Verifica si el usuario tiene alguno de los permisos
         if ($user->hasPermissionTo('proyectos.historial')) {
-            dd('entro');
             return true; // Este permiso le da acceso total
         }
 
