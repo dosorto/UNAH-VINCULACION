@@ -21,6 +21,7 @@ use App\Models\Proyecto\Modalidad;
 use App\Models\Personal\EmpleadoProyecto;
 use App\Models\Estudiante\EstudianteProyecto;
 use App\Models\Proyecto\EntidadContraparte;
+use App\Models\Proyecto\EntidadContraparteProyecto;
 
 use App\Models\Demografia\Municipio;
 use App\Models\Demografia\Departamento;
@@ -48,9 +49,11 @@ use DragonCode\Contracts\Cashier\Config\Payments\Statuses;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\User;
 use App\Models\InformeFinal\InformeFinalProyecto;
+use App\Models\InformeIntermedio\InformeIntermedioProyecto;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Services\Proyecto\ProyectoWorkflowService;
 
 class Proyecto extends Model
 {
@@ -303,6 +306,11 @@ class Proyecto extends Model
         return $this->hasOne(InformeFinalProyecto::class, 'proyecto_id');
     }
 
+    public function informeIntermedio()
+    {
+        return $this->hasOne(InformeIntermedioProyecto::class, 'proyecto_id');
+    }
+
 
 
     public function responsable_revision()
@@ -422,10 +430,22 @@ class Proyecto extends Model
         ])->withTimestamps();
     }
 
-    // relacion uno a muchos con el modelo entidad contraparte
+    // relación pivote de contrapartes (hasMany al modelo intermedio)
+    public function entidad_contraparte_proyecto()
+    {
+        return $this->hasMany(EntidadContraparteProyecto::class, 'proyecto_id');
+    }
+
+    // relación muchos a muchos con el catálogo de contrapartes
     public function entidad_contraparte()
     {
-        return $this->hasMany(EntidadContraparte::class, 'proyecto_id');
+        return $this->belongsToMany(
+            EntidadContraparte::class,
+            'entidad_contraparte_proyecto',
+            'proyecto_id',
+            'entidad_contraparte_id'
+        )->withPivot(['rtn', 'descripcion_acuerdos'])
+         ->withTimestamps();
     }
 
     // relacion uno a uno con el modelo presupuesto
@@ -788,31 +808,9 @@ class Proyecto extends Model
 
     public function flujoEtapasOrdenadas(?string $proceso = null): Collection
     {
-        $flujo = $this->resolveFlujoAprobacion();
         $proceso = $proceso ?: self::FLUJO_INSCRIPCION;
-        $columnaAplicacion = self::columnaAplicacionFlujo($proceso);
 
-        return $flujo?->etapas
-            ? $flujo->etapas
-                ->filter(function ($etapa) use ($proceso, $columnaAplicacion): bool {
-                    if (! (bool) ($etapa->{$columnaAplicacion} ?? false)) {
-                        return false;
-                    }
-
-                    // Una etapa de cierre o de informe intermedio puede seguir
-                    // marcada como aplicable a inscripción por compatibilidad
-                    // con configuraciones antiguas. Nunca debe ejecutarse como
-                    // parte del recorrido normal del proyecto.
-                    if ($proceso === self::FLUJO_INSCRIPCION) {
-                        return ! $etapa->aplica_informe_intermedio
-                            && ! $etapa->aplica_cierre_proyecto;
-                    }
-
-                    return true;
-                })
-                ->sortBy('orden')
-                ->values()
-            : collect();
+        return app(ProyectoWorkflowService::class)->etapas($this, $proceso, false);
     }
 
     public function flujoEtapasActivasOrdenadas(?string $proceso = null): Collection
@@ -882,41 +880,21 @@ class Proyecto extends Model
             return false;
         }
 
-        $flujo = $this->resolveFlujoAprobacion();
-        $etapasNormales = $this->flujoEtapasActivasOrdenadas(self::FLUJO_INSCRIPCION)
-            ->filter(fn (FlujoAprobacionEtapa $etapa) => $etapa->cargo_firma_id)
-            ->values();
-
-        if (! $flujo || $etapasNormales->isEmpty()) {
+        if (! app(ProyectoWorkflowService::class)->inscripcionCompletada($this)) {
             return false;
         }
 
-        $ultimoCiclo = (int) $this->firma_proyecto()
-            ->where('flujo_aprobacion_id', $flujo->id)
-            ->whereIn('flujo_aprobacion_etapa_id', $etapasNormales->pluck('id'))
-            ->whereNull('deleted_at')
-            ->max('revision_ciclo');
-
-        if ($ultimoCiclo < 1) {
-            return false;
+        if (! $this->tieneFlujoInformeIntermedio()) {
+            return true;
         }
 
-        $firmasPorEtapa = $this->firma_proyecto()
-            ->where('flujo_aprobacion_id', $flujo->id)
-            ->where('revision_ciclo', $ultimoCiclo)
-            ->whereIn('flujo_aprobacion_etapa_id', $etapasNormales->pluck('id'))
-            ->whereNull('deleted_at')
-            ->get()
-            ->groupBy('flujo_aprobacion_etapa_id');
+        $informeIntermedio = $this->informeIntermedio;
 
-        return $etapasNormales->every(function (FlujoAprobacionEtapa $etapa) use ($firmasPorEtapa): bool {
-            $firmasActivas = $firmasPorEtapa->get($etapa->id, collect())
-                ->reject(fn (FirmaProyecto $firma) => $firma->estado_revision === 'Anulado')
-                ->values();
+        if ($informeIntermedio) {
+            return $informeIntermedio->estado === InformeIntermedioProyecto::ESTADO_APROBADO;
+        }
 
-            return $firmasActivas->count() === 1
-                && $firmasActivas->first()->estado_revision === 'Aprobado';
-        });
+        return $this->documento_intermedio()?->estado?->tipoestado?->nombre === 'Aprobado';
     }
 
     public function nextCargoFirmaId(?int $cargoFirmaId, ?string $proceso = null): ?int
@@ -1129,13 +1107,21 @@ class Proyecto extends Model
         string $cargoFirma,
         Empleado $empleado
     ): FirmaProyecto {
-        $cargoFirmaId = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+        $cargo = CargoFirma::query()
+            ->join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
             ->where('tipo_cargo_firma.nombre', $cargoFirma)
             ->where('cargo_firma.descripcion', 'Proyecto')
-            ->first()
-            ->id;
+            ->select('cargo_firma.id')
+            ->first();
 
-        return $this->guardarFirmaDeCargo($cargoFirmaId, $empleado, [
+        if (! $cargo) {
+            throw new \RuntimeException(sprintf(
+                'No se encontró el cargo de firma "%s" configurado para proyectos.',
+                $cargoFirma
+            ));
+        }
+
+        return $this->guardarFirmaDeCargo((int) $cargo->id, $empleado, [
             'estado_revision' => 'Aprobado',
             'firma_id' => $empleado?->firma?->id,
             'sello_id' => $empleado?->sello?->id,
@@ -1150,6 +1136,17 @@ class Proyecto extends Model
         ?DocumentoProyecto $documento = null
     ): FirmaProyecto
     {
+        if (! CargoFirma::query()->whereKey($cargoFirmaId)->exists()) {
+            throw new \RuntimeException(sprintf(
+                'No se encontró el cargo de firma configurado (ID: %d).',
+                $cargoFirmaId
+            ));
+        }
+
+        if (! $empleado->exists || $empleado->trashed()) {
+            throw new \RuntimeException('El empleado indicado para la firma no existe.');
+        }
+
         $relation = $documento
             ? $documento->firma_documento()
             : $this->firma_proyecto();
@@ -1513,7 +1510,24 @@ class Proyecto extends Model
             }
 
             $firmasBase = $this->firmasBaseParaNuevoCicloDesdeRechazo($firmaBloqueada->fresh(), $firmasCiclo);
-            $empleados = $this->validarAsignacionesParaNuevoCiclo($firmasBase, $empleadosPorEtapa);
+            $etapasCicloAnterior = $firmasCiclo
+                ->pluck('flujo_aprobacion_etapa_id')
+                ->map(fn ($id): int => (int) $id);
+
+            foreach (array_keys($empleadosPorEtapa) as $etapaAsignadaId) {
+                if (! $etapasCicloAnterior->contains((int) $etapaAsignadaId)) {
+                    throw new \RuntimeException('Se indicó una asignación para una etapa que no pertenece al nuevo ciclo.');
+                }
+            }
+
+            $etapasReanudadas = $firmasBase
+                ->pluck('flujo_aprobacion_etapa_id')
+                ->map(fn ($id): int => (int) $id)
+                ->flip();
+            $asignacionesReanudadas = collect($empleadosPorEtapa)
+                ->filter(fn ($empleadoId, $etapaId): bool => $etapasReanudadas->has((int) $etapaId))
+                ->all();
+            $empleados = $this->validarAsignacionesParaNuevoCiclo($firmasBase, $asignacionesReanudadas);
             $cantidadCicloAnterior = $firmasCiclo->count();
             $relation = $this->relacionFirmasDeEtapas($documento);
 
@@ -1642,6 +1656,7 @@ class Proyecto extends Model
 
                 return $firmaBase;
             })
+            ->filter(fn (FirmaProyecto $firma): bool => (int) $firma->orden_revision >= (int) $firmaRechazada->orden_revision)
             ->sortBy([
                 ['orden_revision', 'asc'],
                 ['id', 'asc'],
@@ -1801,6 +1816,13 @@ class Proyecto extends Model
             throw new \RuntimeException(sprintf('La etapa "%s" no tiene cargo de firma.', $etapa->nombre));
         }
 
+        if (! $etapa->cargoFirma()->exists()) {
+            throw new \RuntimeException(sprintf(
+                'No se encontró el cargo de firma configurado para la etapa "%s".',
+                $etapa->nombre
+            ));
+        }
+
         if ($revisionCiclo < 1) {
             throw new \RuntimeException('El ciclo de revisión debe ser mayor o igual a 1.');
         }
@@ -1955,7 +1977,12 @@ class Proyecto extends Model
         }
     }
 
-    public function registrarDocumentoDesdeFlujo(string $tipoDocumento, string $path, Empleado $empleado): DocumentoProyecto
+    public function registrarDocumentoDesdeFlujo(
+        string $tipoDocumento,
+        string $path,
+        Empleado $empleado,
+        array $usuariosElegidosPorEtapa = []
+    ): DocumentoProyecto
     {
         $proceso = self::procesoFlujoParaDocumento($tipoDocumento);
 
@@ -1981,7 +2008,8 @@ class Proyecto extends Model
             throw new \RuntimeException('La primera etapa configurada no tiene un estado asociado.');
         }
 
-        $empleadosPorEtapa = $this->resolverEmpleadosPorEtapaParaDocumento($etapas);
+        $empleadosPorEtapa = app(ProyectoWorkflowService::class)
+            ->resolverEmpleados($this, $proceso, $usuariosElegidosPorEtapa);
 
         return DB::transaction(function () use ($tipoDocumento, $path, $empleado, $proceso, $etapas, $primerEstadoId, $empleadosPorEtapa) {
             self::query()->whereKey($this->id)->lockForUpdate()->firstOrFail();
@@ -2028,43 +2056,6 @@ class Proyecto extends Model
             return $documento;
         });
     }
-
-    /**
-     * Resuelve el firmante de cada etapa del proceso de Informe Intermedio/Final
-     * automáticamente (no hay UI de selección de destinatario para informes):
-     * primero el responsable fijo de la etapa, si no hay, el primer usuario con
-     * el rol de revisor de la etapa.
-     */
-    private function resolverEmpleadosPorEtapaParaDocumento(Collection $etapas): array
-    {
-        $empleadosPorEtapa = [];
-
-        foreach ($etapas as $etapa) {
-            $usuario = $etapa->usuarioResponsable;
-
-            if (! $usuario && $etapa->rolRevisor?->name) {
-                $usuario = User::role($etapa->rolRevisor->name)
-                    ->whereHas('empleado')
-                    ->with('empleado')
-                    ->orderBy('name')
-                    ->first();
-            }
-
-            $empleadoEtapa = $usuario?->empleado;
-
-            if (! $empleadoEtapa) {
-                throw new \RuntimeException(sprintf(
-                    'No se pudo resolver un responsable con empleado para la etapa "%s". Revise roles y responsables configurados.',
-                    $etapa->nombre
-                ));
-            }
-
-            $empleadosPorEtapa[$etapa->id] = $empleadoEtapa->id;
-        }
-
-        return $empleadosPorEtapa;
-    }
-
 
     public function agregarEstado(
         Empleado $empleado,

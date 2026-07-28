@@ -14,8 +14,6 @@
 
         $estadoNombre = $proyecto->estado?->tipoestado?->nombre;
         $firmaRevisionPendiente = $this->firmaPendienteRevision();
-        $tieneFlujoIntermedio = $proyecto->tieneFlujoInformeIntermedio();
-        $documentoIntermedioEstado = $proyecto->documento_intermedio()?->estado?->tipoestado?->nombre;
     @endphp
 
     <div class="no-print rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
@@ -57,25 +55,104 @@
                         </a>
                     @endif
 
-                    @if ($tieneFlujoIntermedio &&
-                         $estadoNombre === 'En curso' &&
-                         (is_null($proyecto->documento_intermedio()) || $documentoIntermedioEstado === 'Subsanacion'))
-                        <button wire:click="openSubirIntermedio"
-                                class="inline-flex items-center rounded-lg bg-yellow-500 px-3 py-2 text-sm font-medium text-white hover:bg-yellow-600">
-                            {{ $documentoIntermedioEstado === 'Subsanacion' ? 'Subsanar Inf. Intermedio' : 'Subir Inf. Intermedio' }}
-                        </button>
-                    @endif
-
-                    @if ($estadoNombre === 'En curso')
+                    @if ($estadoNombre === 'En curso' && ! $fichaActualizacionPendiente)
                         <a href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}"
                            class="inline-flex items-center rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700">
                             Actualizar Equipo o Fechas
+                        </a>
+                    @elseif ($estadoNombre === 'En curso' && $fichaActualizacionPendiente)
+                        <a href="{{ route('FichasActualizacionDocente') }}"
+                           class="inline-flex items-center rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700">
+                            Ver actualización pendiente
                         </a>
                     @endif
                 @endif
             </div>
         </div>
     </div>
+
+    @if($informeIntermedio['visible'])
+        <section class="no-print rounded-xl border border-sky-200 bg-white p-5 shadow-sm dark:border-sky-900 dark:bg-gray-900">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div class="min-w-0 flex-1">
+                    <p class="text-xs font-bold uppercase tracking-wide text-sky-700 dark:text-sky-400">Seguimiento del proyecto</p>
+                    <h2 class="mt-1 text-lg font-bold text-gray-900 dark:text-white">Informe Intermedio</h2>
+                    <dl class="mt-3 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                        <div><dt class="text-gray-500">Estado</dt><dd class="font-semibold text-gray-900 dark:text-gray-100">{{ $informeIntermedio['etiqueta'] }}</dd></div>
+                        @if($informeIntermedio['informe'])
+                            <div><dt class="text-gray-500">Archivo</dt><dd class="truncate text-gray-900 dark:text-gray-100">{{ $informeIntermedio['informe']->nombre_original }}</dd></div>
+                            <div><dt class="text-gray-500">Tamaño</dt><dd class="text-gray-900 dark:text-gray-100">{{ number_format($informeIntermedio['informe']->tamano_bytes / 1048576, 2) }} MB</dd></div>
+                            <div><dt class="text-gray-500">Fecha de carga</dt><dd class="text-gray-900 dark:text-gray-100">{{ $informeIntermedio['informe']->fecha_carga?->format('d/m/Y H:i') }}</dd></div>
+                        @endif
+                        @if($informeIntermedio['etapa_actual'])
+                            <div><dt class="text-gray-500">Etapa actual</dt><dd class="text-gray-900 dark:text-gray-100">{{ $informeIntermedio['etapa_actual'] }}</dd></div>
+                        @endif
+                    </dl>
+
+                    @if($informeIntermedio['informe']?->observaciones)
+                        <p class="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+                            <strong>Observaciones de subsanación:</strong> {{ $informeIntermedio['informe']->observaciones }}
+                        </p>
+                    @endif
+
+                    @if($informeIntermedio['legacy'])
+                        <p class="mt-3 text-sm text-gray-600 dark:text-gray-300">
+                            Este informe fue enviado antes de habilitarse el registro documental con metadatos. Su historial de revisión se conserva sin reiniciar el flujo.
+                        </p>
+                    @endif
+
+                    @if($opcionesDestinatariosIntermedio->isNotEmpty() && $informeIntermedio['puede_enviar'])
+                        <div class="mt-4 grid gap-3 md:grid-cols-2">
+                            @foreach($opcionesDestinatariosIntermedio as $etapaId => $opcion)
+                                <label class="text-sm text-gray-700 dark:text-gray-200">
+                                    Destinatario para {{ $opcion['etapa']->nombre }}
+                                    <select wire:model="destinatariosIntermedio.{{ $etapaId }}" class="mt-1 w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800">
+                                        <option value="">Seleccione un destinatario</option>
+                                        @foreach($opcion['usuarios'] as $usuario)
+                                            <option value="{{ $usuario->id }}">{{ $usuario->empleado?->nombre_completo ?? $usuario->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+
+                <div class="flex flex-wrap justify-end gap-2">
+                    @if($informeIntermedio['informe'])
+                        <a href="{{ route('informes-intermedios.ver', $informeIntermedio['informe']) }}" target="_blank" class="rounded-lg border border-sky-300 px-3 py-2 text-sm font-medium text-sky-700 dark:border-sky-700 dark:text-sky-300">Ver PDF</a>
+                        <a href="{{ route('informes-intermedios.descargar', $informeIntermedio['informe']) }}" class="rounded-lg border border-sky-300 px-3 py-2 text-sm font-medium text-sky-700 dark:border-sky-700 dark:text-sky-300">Descargar</a>
+                    @endif
+                    @if($informeIntermedio['puede_editar'])
+                        <button wire:click="openSubirIntermedio" class="rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700">
+                            {{ $informeIntermedio['informe'] ? 'Reemplazar PDF' : 'Cargar PDF' }}
+                        </button>
+                    @endif
+                    @if($informeIntermedio['informe']?->estado === \App\Models\InformeIntermedio\InformeIntermedioProyecto::ESTADO_BORRADOR)
+                        <button wire:click="eliminarInformeIntermedio" wire:confirm="¿Eliminar el PDF en borrador?" class="rounded-lg border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700 dark:border-rose-800 dark:text-rose-300">Eliminar</button>
+                    @endif
+                    @if($informeIntermedio['puede_enviar'])
+                        <button wire:click="enviarInformeIntermedio" wire:confirm="¿Enviar el Informe Intermedio a revisión?" class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">Enviar a revisión</button>
+                    @endif
+                </div>
+            </div>
+
+            @if($informeIntermedio['historial']->isNotEmpty())
+                <details class="mt-4">
+                    <summary class="cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-200">Historial de revisión</summary>
+                    <ol class="mt-2 space-y-2 border-s border-sky-300 ps-4 text-sm">
+                        @foreach($informeIntermedio['historial'] as $movimiento)
+                            <li>
+                                <span class="font-medium">{{ $movimiento->tipoestado?->nombre ?? 'Movimiento' }}</span>
+                                · {{ $movimiento->created_at?->format('d/m/Y H:i') }}
+                                @if($movimiento->comentario) — {{ $movimiento->comentario }} @endif
+                            </li>
+                        @endforeach
+                    </ol>
+                </details>
+            @endif
+        </section>
+    @endif
 
     @if($proyecto->puedeMostrarCierreProyecto(auth()->user()))
         <section class="no-print rounded-xl border border-emerald-200 bg-white p-5 shadow-sm dark:border-emerald-900 dark:bg-gray-900">
@@ -103,13 +180,33 @@
                             <strong>Motivo de rechazo:</strong> {{ $cierreInformeFinal['motivo_rechazo'] }}
                         </p>
                     @endif
+                    @if($opcionesDestinatariosCierre->isNotEmpty() && $cierreInformeFinal['accion'] === 'enviar')
+                        <div class="mt-4 grid gap-3 md:grid-cols-2">
+                            @foreach($opcionesDestinatariosCierre as $etapaId => $opcion)
+                                <label class="text-sm text-gray-700 dark:text-gray-200">
+                                    Destinatario para {{ $opcion['etapa']->nombre }}
+                                    <select wire:model="destinatariosCierre.{{ $etapaId }}" class="mt-1 w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800">
+                                        <option value="">Seleccione un destinatario</option>
+                                        @foreach($opcion['usuarios'] as $usuario)
+                                            <option value="{{ $usuario->id }}">{{ $usuario->empleado?->nombre_completo ?? $usuario->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
 
                 <div class="flex flex-wrap justify-end gap-2">
                     @if($cierreInformeFinal['accion'] === 'crear')
                         <button wire:click="crearInformeFinal" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Crear informe final</button>
-                    @elseif(in_array($cierreInformeFinal['accion'], ['continuar', 'subsanar'], true))
+                    @elseif($cierreInformeFinal['accion'] === 'continuar')
                         <a href="{{ route('proyectos.informe-final', $proyecto) }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">{{ $cierreInformeFinal['texto_accion'] }}</a>
+                    @elseif($cierreInformeFinal['accion'] === 'subsanar')
+                        <a href="{{ route('proyectos.informe-final', $proyecto) }}" class="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">Editar subsanación</a>
+                        @if($cierreInformeFinal['puede_enviar'])
+                            <button wire:click="enviarInformeFinal" wire:confirm="¿Reenviar el INF-001 a la etapa que solicitó la subsanación?" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Reenviar informe final</button>
+                        @endif
                     @elseif($cierreInformeFinal['accion'] === 'enviar' && $cierreInformeFinal['puede_enviar'])
                         <button wire:click="enviarInformeFinal" wire:confirm="¿Enviar el INF-001 al flujo de cierre? La edición quedará bloqueada." class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">{{ $cierreInformeFinal['texto_accion'] }}</button>
                     @elseif($cierreInformeFinal['accion'] === 'ver')
@@ -121,13 +218,6 @@
                 </div>
             </div>
         </section>
-    @endif
-
-    @if($cierreInformeFinal['advertencia_interna'] ?? false)
-        <div class="no-print flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100 sm:flex-row sm:items-center sm:justify-between">
-            <p><strong>Advertencia interna:</strong> existe un INF-001 histórico, pero el proyecto no cumple actualmente las condiciones para habilitar el cierre. El informe permanece en modo de consulta.</p>
-            <a href="{{ route('informes-finales.inf-001.preview', $cierreInformeFinal['informe']) }}" class="whitespace-nowrap rounded-lg border border-amber-400 px-3 py-2 font-medium hover:bg-amber-100 dark:border-amber-700 dark:hover:bg-amber-900/40">Ver informe existente</a>
-        </div>
     @endif
 
     <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -234,10 +324,10 @@
                                 class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
                             Cancelar
                         </button>
-                        <button wire:click="subirInformeIntermedio" wire:loading.attr="disabled" wire:target="subirInformeIntermedio"
+                        <button wire:click="guardarInformeIntermedio" wire:loading.attr="disabled" wire:target="guardarInformeIntermedio"
                                 class="rounded-lg bg-yellow-500 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-600 disabled:opacity-50">
-                            <span wire:loading.remove wire:target="subirInformeIntermedio">Subir</span>
-                            <span wire:loading wire:target="subirInformeIntermedio">Subiendo...</span>
+                            <span wire:loading.remove wire:target="guardarInformeIntermedio">Guardar borrador</span>
+                            <span wire:loading wire:target="guardarInformeIntermedio">Guardando...</span>
                         </button>
                     </div>
                 </div>

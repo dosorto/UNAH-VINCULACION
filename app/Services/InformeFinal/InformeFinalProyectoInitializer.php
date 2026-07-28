@@ -22,7 +22,7 @@ class InformeFinalProyectoInitializer
                 'docentes_proyecto.empleado.departamento_academico',
                 'gruposEstudiantesPlanificados.estudiante.carrera', 'gruposEstudiantesPlanificados.estudiante.user',
                 'gruposEstudiantesPlanificados.carrera', 'gruposEstudiantesPlanificados.asignatura',
-                'integrante_internacional_proyecto.integranteInternacional', 'entidad_contraparte.instrumento_formalizacion',
+                'integrante_internacional_proyecto.integranteInternacional', 'entidad_contraparte_proyecto.entidadContraparte', 'entidad_contraparte_proyecto.instrumentoFormalizacion',
                 'objetivosEspecificos.resultados', 'actividades.empleados', 'aportesInstitucionales',
                 'presupuesto', 'ods', 'metasContribuye',
             ]);
@@ -133,17 +133,24 @@ class InformeFinalProyectoInitializer
 
             $this->sincronizarGruposEstudiantes($informe, $proyecto);
 
-            foreach ($proyecto->entidad_contraparte as $entidad) {
+            $contrapartesProyecto = $proyecto->entidad_contraparte_proyecto()->with('entidadContraparte')->get();
+            $aporteContrapartePlanificado = (float) optional($proyecto->presupuesto)->aporte_contraparte;
+
+            foreach ($contrapartesProyecto as $pivot) {
+                $catalogo = $pivot->entidadContraparte;
                 $informe->contrapartes()->create([
-                    'entidad_contraparte_id' => $entidad->id,
-                    'nombre' => $entidad->nombre,
-                    'tipo' => $this->tipoContraparte($entidad->tipo_entidad),
-                    'contacto' => $entidad->nombre_contacto,
-                    'correo' => $entidad->correo,
-                    'cargo' => $entidad->cargo_contacto,
-                    'telefono' => $entidad->telefono,
-                    'compromisos_asumidos' => $entidad->descripcion_acuerdos,
+                    'entidad_contraparte_id' => $catalogo->id,
+                    'nombre' => $catalogo->nombre,
+                    'tipo' => $this->tipoContraparte($catalogo->tipo_entidad),
+                    'contacto' => $pivot->nombre_contacto ?: $catalogo->nombre_contacto,
+                    'correo' => $pivot->correo ?: $catalogo->correo,
+                    'cargo' => $pivot->cargo_contacto ?: $catalogo->cargo_contacto,
+                    'telefono' => $pivot->telefono ?: $catalogo->telefono,
+                    'compromisos_asumidos' => $pivot->descripcion_acuerdos,
                     'territorio' => collect([$departamentoTerritorial?->nombre, $municipio?->nombre])->filter()->implode(', '),
+                    // El presupuesto inicial sólo guarda un monto global. Se asigna únicamente
+                    // cuando existe una sola contraparte, para no duplicarlo entre entidades.
+                    'aporte_monetario' => $contrapartesProyecto->count() === 1 ? $aporteContrapartePlanificado : 0,
                 ]);
             }
             $this->sincronizarInstrumentosContraparte($informe, $proyecto);
@@ -229,6 +236,7 @@ class InformeFinalProyectoInitializer
         $this->sincronizarGruposEstudiantes($informe, $proyecto);
         $this->sincronizarEstudiantesConGrupos($informe, $proyecto);
         $this->sincronizarRolesEquipo($informe, $proyecto);
+        $this->sincronizarAporteMonetarioContraparte($informe, $proyecto);
         $this->sincronizarInstrumentosContraparte($informe, $proyecto);
         $informe->load(['estudiantes', 'voluntarios', 'actividades.participantes']);
 
@@ -354,12 +362,13 @@ class InformeFinalProyectoInitializer
 
     private function sincronizarInstrumentosContraparte(InformeFinalProyecto $informe, Proyecto $proyecto): void
     {
-        foreach ($proyecto->entidad_contraparte as $entidad) {
-            $contraparte = $informe->contrapartes->firstWhere('entidad_contraparte_id', $entidad->id)
-                ?: $informe->contrapartes()->where('entidad_contraparte_id', $entidad->id)->first();
+        foreach ($proyecto->entidad_contraparte_proyecto()->with('entidadContraparte')->with('instrumentoFormalizacion')->get() as $pivot) {
+            $catalogo = $pivot->entidadContraparte;
+            $contraparte = $informe->contrapartes->firstWhere('entidad_contraparte_id', $catalogo->id)
+                ?: $informe->contrapartes()->where('entidad_contraparte_id', $catalogo->id)->first();
             if (! $contraparte) continue;
 
-            foreach ($entidad->instrumento_formalizacion as $instrumento) {
+            foreach ($pivot->instrumentoFormalizacion as $instrumento) {
                 $informe->anexos()->updateOrCreate(
                     ['instrumento_formalizacion_id' => $instrumento->id],
                     [
@@ -374,6 +383,21 @@ class InformeFinalProyectoInitializer
                     ]
                 );
             }
+        }
+    }
+
+    private function sincronizarAporteMonetarioContraparte(InformeFinalProyecto $informe, Proyecto $proyecto): void
+    {
+        $aporte = (float) optional($proyecto->presupuesto)->aporte_contraparte;
+        $contrapartes = $informe->contrapartes()->get();
+
+        if ($aporte <= 0 || $contrapartes->count() !== 1) {
+            return;
+        }
+
+        $contraparte = $contrapartes->first();
+        if ((float) $contraparte->aporte_monetario === 0.0) {
+            $contraparte->update(['aporte_monetario' => $aporte]);
         }
     }
 

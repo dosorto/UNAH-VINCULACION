@@ -36,7 +36,7 @@ class InstrumenFormalizacion extends Model
 
     public function entidadContraparte()
     {
-        return $this->belongsTo(EntidadContraparte::class, 'entidad_contraparte_id');
+        return $this->belongsTo(EntidadContraparteProyecto::class, 'entidad_contraparte_id');
     }
 
     protected $table = 'instrumento_formalizacion';

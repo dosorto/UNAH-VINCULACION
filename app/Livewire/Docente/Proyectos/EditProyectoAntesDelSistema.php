@@ -13,6 +13,7 @@ use App\Models\Proyecto\EjesPrioritariosUnah;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\MetaContribuye;
 use App\Models\Proyecto\IntegranteInternacional;
+use App\Models\Proyecto\EntidadContraparte;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\Carrera;
@@ -121,7 +122,7 @@ class EditProyectoAntesDelSistema extends Component
         $record->load([
             'objetivosEspecificos.resultados',
             'estudiante_proyecto',
-            'entidad_contraparte.instrumento_formalizacion',
+            'entidad_contraparte_proyecto.entidadContraparte', 'entidad_contraparte_proyecto.instrumentoFormalizacion',
             'actividades.empleados',
             'presupuesto',
             'ods',
@@ -173,15 +174,17 @@ class EditProyectoAntesDelSistema extends Component
             'nombre' => $ip->integranteInternacional?->nombre_completo ?? '',
         ])->toArray();
 
-        $this->entidad_contraparte = $record->entidad_contraparte->map(fn($e) => [
-            'nombre' => $e->nombre,
-            'tipo_entidad' => $e->tipo_entidad,
-            'nombre_contacto' => $e->nombre_contacto,
-            'cargo_contacto' => $e->cargo_contacto,
-            'telefono' => $e->telefono,
-            'correo' => $e->correo,
-            'descripcion_acuerdos' => $e->descripcion_acuerdos,
-            'instrumento_formalizacion' => $e->instrumento_formalizacion->map(fn($i) => [
+        $this->entidad_contraparte = $record->entidad_contraparte_proyecto()->with('entidadContraparte')->with('instrumentoFormalizacion')->get()->map(fn($pivot) => [
+            'entidad_contraparte_id' => $pivot->entidad_contraparte_id,
+            'rtn' => $pivot->entidadContraparte?->rtn ?? '',
+            'nombre' => $pivot->entidadContraparte?->nombre ?? '',
+            'tipo_entidad' => $pivot->entidadContraparte?->tipo_entidad ?? '',
+            'nombre_contacto' => $pivot->nombre_contacto ?? $pivot->entidadContraparte?->nombre_contacto ?? '',
+            'cargo_contacto' => $pivot->cargo_contacto ?? $pivot->entidadContraparte?->cargo_contacto ?? '',
+            'telefono' => $pivot->telefono ?? $pivot->entidadContraparte?->telefono ?? '',
+            'correo' => $pivot->correo ?? $pivot->entidadContraparte?->correo ?? '',
+            'descripcion_acuerdos' => $pivot->descripcion_acuerdos ?? '',
+            'instrumento_formalizacion' => ($pivot->instrumentoFormalizacion ?? collect())->map(fn($i) => [
                 'tipo_documento' => $i->tipo_documento,
                 'documento_url' => $i->documento_url,
             ])->toArray(),
@@ -260,7 +263,7 @@ class EditProyectoAntesDelSistema extends Component
             $this->objetivosEspecificos = [['descripcion' => '', 'resultados' => [['nombre_resultado' => '', 'nombre_indicador' => '', 'nombre_medio_verificacion' => '', 'plazo' => '']]]];
         }
         if (empty($this->entidad_contraparte)) {
-            $this->entidad_contraparte = [['nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '', 'cargo_contacto' => '', 'telefono' => '', 'correo' => '', 'descripcion_acuerdos' => '', 'instrumento_formalizacion' => []]];
+            $this->entidad_contraparte = [['entidad_contraparte_id' => null, 'rtn' => '', 'nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '', 'cargo_contacto' => '', 'telefono' => '', 'correo' => '', 'descripcion_acuerdos' => '', 'instrumento_formalizacion' => []]];
         }
         if (empty($this->actividades)) {
             $this->actividades = [['descripcion' => '', 'empleados' => [], 'fecha_inicio' => '', 'fecha_finalizacion' => '', 'horas' => '']];
@@ -346,19 +349,39 @@ class EditProyectoAntesDelSistema extends Component
 
     protected function saveStep3(): void
     {
-        $this->record->entidad_contraparte()->each(fn($e) => $e->instrumento_formalizacion()->delete());
-        $this->record->entidad_contraparte()->delete();
+        $this->record->entidad_contraparte_proyecto()->each(fn($pivot) => $pivot->instrumentoFormalizacion()->delete());
+        $this->record->entidad_contraparte_proyecto()->delete();
+
         foreach ($this->entidad_contraparte as $item) {
             if (!empty($item['nombre'])) {
-                $entidad = $this->record->entidad_contraparte()->create([
-                    'nombre' => $item['nombre'], 'tipo_entidad' => $item['tipo_entidad'] ?? '',
-                    'nombre_contacto' => $item['nombre_contacto'] ?? '', 'cargo_contacto' => $item['cargo_contacto'] ?? '',
-                    'telefono' => $item['telefono'] ?? '', 'correo' => $item['correo'] ?? '',
+                $catalogoId = $item['entidad_contraparte_id'] ?? null;
+                if (!$catalogoId) {
+                    $catalogo = EntidadContraparte::create([
+                        'rtn' => $item['rtn'] ?? null,
+                        'nombre' => $item['nombre'],
+                        'tipo_entidad' => $item['tipo_entidad'] ?? '',
+                    ]);
+                    $catalogoId = $catalogo->id;
+                }
+
+                $pivot = $this->record->entidad_contraparte_proyecto()->create([
+                    'entidad_contraparte_id' => $catalogoId,
+                    'nombre' => $item['nombre'],
+                    'tipo_entidad' => $item['tipo_entidad'] ?? '',
+                    'rtn' => $item['rtn'] ?? null,
+                    'nombre_contacto' => $item['nombre_contacto'] ?? '',
+                    'cargo_contacto' => $item['cargo_contacto'] ?? '',
+                    'telefono' => $item['telefono'] ?? '',
+                    'correo' => $item['correo'] ?? '',
                     'descripcion_acuerdos' => $item['descripcion_acuerdos'] ?? '',
                 ]);
+
                 foreach ($item['instrumento_formalizacion'] ?? [] as $inst) {
                     if (!empty($inst['tipo_documento'])) {
-                        $entidad->instrumento_formalizacion()->create(['tipo_documento' => $inst['tipo_documento'], 'documento_url' => $inst['documento_url'] ?? null]);
+                        $pivot->instrumentoFormalizacion()->create([
+                            'tipo_documento' => $inst['tipo_documento'],
+                            'documento_url' => $inst['documento_url'] ?? null,
+                        ]);
                     }
                 }
             }
@@ -465,7 +488,7 @@ class EditProyectoAntesDelSistema extends Component
     public function addEstudiante(): void { $this->estudiante_proyecto[] = ['tipo_participacion_estudiante' => '', 'asignatura_id' => null, 'periodo_academico_id' => null, 'cantidad_estudiantes_hombres' => 0, 'cantidad_estudiantes_mujeres' => 0, 'total_estudiantes' => 0]; }
     public function removeEstudiante(int $i): void { array_splice($this->estudiante_proyecto, $i, 1); }
     public function updateEstudianteTotal(int $i): void { $h = (int)($this->estudiante_proyecto[$i]['cantidad_estudiantes_hombres'] ?? 0); $m = (int)($this->estudiante_proyecto[$i]['cantidad_estudiantes_mujeres'] ?? 0); $this->estudiante_proyecto[$i]['total_estudiantes'] = $h + $m; }
-    public function addContraparte(): void { $this->entidad_contraparte[] = ['nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '', 'cargo_contacto' => '', 'telefono' => '', 'correo' => '', 'descripcion_acuerdos' => '', 'instrumento_formalizacion' => []]; }
+    public function addContraparte(): void { $this->entidad_contraparte[] = ['entidad_contraparte_id' => null, 'rtn' => '', 'nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '', 'cargo_contacto' => '', 'telefono' => '', 'correo' => '', 'descripcion_acuerdos' => '', 'instrumento_formalizacion' => []]; }
     public function removeContraparte(int $i): void { array_splice($this->entidad_contraparte, $i, 1); }
     public function addInstrumento(int $ci): void { $this->entidad_contraparte[$ci]['instrumento_formalizacion'][] = ['tipo_documento' => '', 'documento_url' => '']; }
     public function removeInstrumento(int $ci, int $ii): void { array_splice($this->entidad_contraparte[$ci]['instrumento_formalizacion'], $ii, 1); }

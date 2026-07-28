@@ -16,6 +16,7 @@ use App\Models\Proyecto\Actividad;
 use App\Models\Proyecto\AporteInstitucional;
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\EntidadContraparte;
+use App\Models\Proyecto\EntidadContraparteProyecto;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\InstrumenFormalizacion;
@@ -70,7 +71,7 @@ class InformeFinalINF001Test extends TestCase
     public function test_se_precarga_informacion_general(): void
     {
         [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
-        $this->assertSame('Transformación digital en patronatos y juntas de agua de Orocuina',$report->nombre_proyecto); $this->assertSame($project->codigo_proyecto,$report->numero_registro); $this->assertSame('2026-01-12',$report->fecha_inicio->format('Y-m-d')); $this->assertSame(266792.44,(float)$report->presupuesto_planificado);
+        $this->assertSame('Fortalecimiento de la gestión comunitaria',$report->nombre_proyecto); $this->assertSame($project->codigo_proyecto,$report->numero_registro); $this->assertSame('2026-01-12',$report->fecha_inicio->format('Y-m-d')); $this->assertSame(266792.44,(float)$report->presupuesto_planificado);
     }
 
     public function test_el_numero_de_registro_no_usa_el_id_interno_y_solo_se_corrige_en_borrador(): void
@@ -595,8 +596,8 @@ class InformeFinalINF001Test extends TestCase
     public function test_instrumento_de_contraparte_se_precarga_en_anexos_sin_duplicar_archivo(): void
     {
         [$user,$project]=$this->scenario();
-        $entidad=$project->entidad_contraparte()->firstOrFail();
-        $instrumento=InstrumenFormalizacion::create(['entidad_contraparte_id'=>$entidad->id,'tipo_documento'=>'carta_intenciones','documento_url'=>'instrumentos/carta-intenciones.pdf','nombre_archivo'=>'carta-intenciones.pdf']);
+        $pivot=$project->entidad_contraparte_proyecto()->firstOrFail();
+        $instrumento=InstrumenFormalizacion::create(['entidad_contraparte_id'=>$pivot->id,'tipo_documento'=>'carta_intenciones','documento_url'=>'instrumentos/carta-intenciones.pdf','nombre_archivo'=>'carta-intenciones.pdf']);
         $report=$this->initialize($project,$user);
         $this->assertDatabaseHas('informe_final_anexos',['informe_final_proyecto_id'=>$report->id,'instrumento_formalizacion_id'=>$instrumento->id,'categoria'=>'instrumento_contraparte','archivo'=>'instrumentos/carta-intenciones.pdf','origen'=>'PROYECTO']);
         $this->initialize($project,$user);
@@ -799,7 +800,7 @@ class InformeFinalINF001Test extends TestCase
     public function test_se_guardan_contrapartes(): void
     {
         [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
-        $this->assertSame('Patronato Pro Mejoramiento de Orocuina',$report->contrapartes->first()->nombre); $this->assertSame('sociedad_civil',$report->contrapartes->first()->tipo);
+        $this->assertSame('Asociación Comunitaria de Desarrollo',$report->contrapartes->first()->nombre); $this->assertSame('sociedad_civil',$report->contrapartes->first()->tipo);
     }
 
     public function test_se_calcula_cumplimiento_de_resultados(): void
@@ -874,7 +875,7 @@ class InformeFinalINF001Test extends TestCase
 
     public function test_se_genera_vista_previa_inf001(): void
     {
-        [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user); $this->actingAs($user)->get(route('informes-finales.inf-001.preview',$report))->assertOk()->assertSee('INF-001')->assertSee('Transformación digital');
+        [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user); $this->actingAs($user)->get(route('informes-finales.inf-001.preview',$report))->assertOk()->assertSee('INF-001')->assertSee('Fortalecimiento de la gestión comunitaria');
     }
 
     public function test_formulario_web_muestra_los_ocho_pasos_y_acciones_finales(): void
@@ -1104,18 +1105,15 @@ class InformeFinalINF001Test extends TestCase
 
         $resumenCoordinador=$workflow->resumenCierre($project->fresh(),$coordinador->fresh());
         $this->assertFalse($resumenCoordinador['visible']);
-        $this->assertFalse($resumenCoordinador['advertencia_interna']);
         $this->actingAs($coordinador->fresh())->get(route('informes-finales.inf-001.preview',$report))->assertForbidden();
 
         $admin=User::factory()->create();
         $admin->assignRole(Role::firstOrCreate(['name'=>'admin','guard_name'=>'web']));
         $resumenAdmin=$workflow->resumenCierre($project->fresh(),$admin);
         $this->assertFalse($resumenAdmin['visible']);
-        $this->assertTrue($resumenAdmin['advertencia_interna']);
         Livewire::actingAs($admin)->test(HistorialProyecto::class,['proyecto'=>$project->fresh()])
             ->assertDontSee('Cierre del proyecto')
-            ->assertSee('Advertencia interna')
-            ->assertSee('Ver informe existente');
+            ->assertDontSee('Advertencia interna');
         $this->actingAs($admin)->get(route('informes-finales.inf-001.preview',$report))->assertOk();
     }
 
@@ -1260,16 +1258,17 @@ class InformeFinalINF001Test extends TestCase
 
     private function scenario(): array
     {
-        $user=User::factory()->create(['name'=>'Dorian Adolfo Ordóñez Osorto','email'=>'dorian.orocuina.'.uniqid().'@example.test']);
+        $user=User::factory()->create(['name'=>'Dorian Adolfo Ordóñez Osorto','email'=>'coordinador.comunitario.'.uniqid().'@example.test']);
         $role=Role::firstOrCreate(['name'=>'admin','guard_name'=>'web']); $user->assignRole($role);
         $employee=Empleado::create(['nombre_completo'=>'Dorian Adolfo Ordóñez Osorto','numero_empleado'=>(string)random_int(100000,999999),'celular'=>'99999999','sexo'=>'Masculino','user_id'=>$user->id,'tipo_empleado'=>'docente']);
         $type=VinculacionTipoAccion::firstOrCreate(['codigo'=>'DESARROLLO_LOCAL_REGIONAL'],['nombre'=>'Desarrollo local y regional','activo'=>true]);
-        $project=Proyecto::create(['tipo_accion_id'=>$type->id,'codigo_proyecto'=>'PROY-ORO-'.uniqid(),'nombre_proyecto'=>'Transformación digital en patronatos y juntas de agua de Orocuina','fecha_inicio'=>'2026-01-12','fecha_finalizacion'=>'2026-11-30','objetivo_general'=>'Mejorar la gestión de patronatos y juntas de agua','poblacion_participante'=>3504,'hombres'=>1700,'mujeres'=>1804,'mestizos_hombres'=>1700,'mestizos_mujeres'=>1804,'impacto_deseado'=>'Aplicación informática para gestión comunitaria','total_aporte_institucional'=>200000]);
+        $project=Proyecto::create(['tipo_accion_id'=>$type->id,'codigo_proyecto'=>'PROY-COM-'.uniqid(),'nombre_proyecto'=>'Fortalecimiento de la gestión comunitaria','fecha_inicio'=>'2026-01-12','fecha_finalizacion'=>'2026-11-30','objetivo_general'=>'Mejorar la gestión de organizaciones comunitarias','poblacion_participante'=>3504,'hombres'=>1700,'mujeres'=>1804,'mestizos_hombres'=>1700,'mestizos_mujeres'=>1804,'impacto_deseado'=>'Herramientas fortalecidas para la gestión comunitaria','total_aporte_institucional'=>200000]);
         EmpleadoProyecto::create(['empleado_id'=>$employee->id,'proyecto_id'=>$project->id,'rol'=>'Coordinador']);
         $now=now(); $campus=DB::table('campus')->insertGetId(['nombre_campus'=>'UNAH Choluteca '.uniqid(),'direccion'=>'Choluteca','telefono'=>'00000000','url'=>'https://unah.edu.hn','created_at'=>$now,'updated_at'=>$now]);
         $center=DB::table('centro_facultad')->insertGetId(['nombre'=>'UNAH Choluteca','es_facultad'=>false,'siglas'=>'CURLP','campus_id'=>$campus,'created_at'=>$now,'updated_at'=>$now]);
         DB::table('proyecto_centro_facultad')->insert(['proyecto_id'=>$project->id,'centro_facultad_id'=>$center,'created_at'=>$now,'updated_at'=>$now]);
-        EntidadContraparte::create(['proyecto_id'=>$project->id,'nombre'=>'Patronato Pro Mejoramiento de Orocuina','tipo_entidad'=>'sociedad_civil','nombre_contacto'=>'Representante comunitario','cargo_contacto'=>'Presidencia','correo'=>'patronato@example.test','telefono'=>'00000000','descripcion_acuerdos'=>'Acompañar y validar la aplicación']);
+        $catalogo=EntidadContraparte::create(['nombre'=>'Asociación Comunitaria de Desarrollo','tipo_entidad'=>'sociedad_civil','nombre_contacto'=>'Representante comunitario','cargo_contacto'=>'Presidencia','correo'=>'asociacion@example.test','telefono'=>'00000000']);
+        EntidadContraparteProyecto::create(['proyecto_id'=>$project->id,'entidad_contraparte_id'=>$catalogo->id,'descripcion_acuerdos'=>'Acompañar y validar los resultados']);
         $objective=ObjetivoEspecifico::create(['proyecto_id'=>$project->id,'descripcion'=>'Fortalecer la gestión comunitaria','orden'=>1]);
         ResultadoEsperado::create(['objetivo_especifico_id'=>$objective->id,'nombre_resultado'=>'Aplicación informática disponible','nombre_indicador'=>'Una aplicación implementada','nombre_medio_verificacion'=>'Acta de entrega','plazo'=>'corto_plazo','orden'=>1]);
         Actividad::create(['proyecto_id'=>$project->id,'descripcion'=>'Levantamiento de requerimientos','fecha_inicio'=>'2026-01-12','fecha_finalizacion'=>'2026-02-15','horas'=>80]);
@@ -1283,9 +1282,10 @@ class InformeFinalINF001Test extends TestCase
         $cargoCierre = CargoFirma::create(['descripcion'=>'Proyecto','tipo_cargo_firma_id'=>$tipoCargoCierre->id,'tipo_estado_id'=>$estadoCierre->id]);
         $flujo = FlujoAprobacion::create(['codigo'=>'INF001_'.uniqid(),'nombre'=>'Flujo INF-001','proceso'=>'PROYECTO','tipo_accion_id'=>$type->id,'codigo_formulario'=>'FORM-DVUS-001','activo'=>true]);
         $etapaNormal = FlujoAprobacionEtapa::create(['flujo_aprobacion_id'=>$flujo->id,'orden'=>1,'codigo'=>'NORMAL_'.uniqid(),'nombre'=>'Aprobación normal','tipo_etapa'=>'APROBACION','cargo_firma_id'=>$cargoNormal->id,'usuario_responsable_id'=>$user->id,'activo'=>true,'aplica_inscripcion'=>true,'aplica_cierre_proyecto'=>false]);
-        FlujoAprobacionEtapa::create(['flujo_aprobacion_id'=>$flujo->id,'orden'=>2,'codigo'=>'CIERRE_'.uniqid(),'nombre'=>'Aprobación cierre','tipo_etapa'=>'APROBACION','cargo_firma_id'=>$cargoCierre->id,'usuario_responsable_id'=>$user->id,'activo'=>true,'aplica_inscripcion'=>true,'aplica_cierre_proyecto'=>true]);
+        $etapaCierre = FlujoAprobacionEtapa::create(['flujo_aprobacion_id'=>$flujo->id,'orden'=>2,'codigo'=>'CIERRE_'.uniqid(),'nombre'=>'Aprobación cierre','tipo_etapa'=>'APROBACION','cargo_firma_id'=>$cargoCierre->id,'usuario_responsable_id'=>$user->id,'activo'=>true,'aplica_inscripcion'=>true,'aplica_cierre_proyecto'=>true]);
         $project->update(['flujo_aprobacion_id'=>$flujo->id]);
         $project->firma_proyecto()->create(['empleado_id'=>$employee->id,'cargo_firma_id'=>$cargoNormal->id,'estado_revision'=>'Aprobado','hash'=>'normal-'.uniqid(),'flujo_aprobacion_id'=>$flujo->id,'flujo_aprobacion_etapa_id'=>$etapaNormal->id,'orden_revision'=>1,'etapa_codigo'=>$etapaNormal->codigo,'etapa_nombre'=>$etapaNormal->nombre,'revision_ciclo'=>1,'fecha_firma'=>now()]);
+        $project->firma_proyecto()->create(['empleado_id'=>$employee->id,'cargo_firma_id'=>$cargoCierre->id,'estado_revision'=>'Aprobado','hash'=>'inscripcion-cierre-'.uniqid(),'flujo_aprobacion_id'=>$flujo->id,'flujo_aprobacion_etapa_id'=>$etapaCierre->id,'orden_revision'=>2,'etapa_codigo'=>$etapaCierre->codigo,'etapa_nombre'=>$etapaCierre->nombre,'revision_ciclo'=>1,'fecha_firma'=>now()]);
         $project->estado_proyecto()->create(['empleado_id'=>$employee->id,'tipo_estado_id'=>$estadoNormal->id,'fecha'=>now(),'comentario'=>'Flujo normal aprobado.','es_actual'=>true]);
         return [$user,$project];
     }

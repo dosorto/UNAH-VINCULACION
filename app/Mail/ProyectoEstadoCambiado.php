@@ -21,17 +21,28 @@ class ProyectoEstadoCambiado extends Mailable implements ShouldQueue
     public $nuevoEstado;
     public $comentario;
     public $accion;
+    public string $actionUrl;
 
     /**
      * Create a new message instance.
      */
-    public function __construct(Proyecto $proyecto, User $usuario, string $nuevoEstado, string $comentario = '', string $accion = 'cambio de estado')
+    public function __construct(
+        Proyecto $proyecto,
+        User $usuario,
+        string $nuevoEstado,
+        string $comentario = '',
+        string $accion = 'cambio de estado',
+        ?string $actionUrl = null,
+    )
     {
         $this->proyecto = $proyecto;
         $this->usuario = $usuario;
         $this->nuevoEstado = $nuevoEstado;
         $this->comentario = $comentario;
         $this->accion = $accion;
+        $this->actionUrl = $actionUrl ?: ($usuario->can('docente.proyectos')
+            ? route('historialproyecto', $proyecto)
+            : url('/'));
     }
 
     /**
@@ -59,6 +70,7 @@ class ProyectoEstadoCambiado extends Mailable implements ShouldQueue
                 'nuevoEstado' => $this->nuevoEstado,
                 'comentario' => $this->comentario,
                 'accion' => $this->accion,
+                'actionUrl' => $this->actionUrl,
                 'appName' => config('app.name', 'NEXO'),
             ],
         );

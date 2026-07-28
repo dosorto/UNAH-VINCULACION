@@ -559,6 +559,7 @@
                         <thead class="bg-gray-50 dark:bg-gray-800">
                             <tr>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Nombre</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">RTN</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">País</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Institución</th>
                                 <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500"></th>
@@ -568,6 +569,7 @@
                             @foreach($integrante_internacional_proyecto as $i => $int)
                             <tr>
                                 <td class="px-4 py-2 text-gray-900 dark:text-white">{{ $int['nombre'] ?: 'Integrante #'.($int['integrante_internacional_id'] ?? '-') }}</td>
+                                <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['rtn'] ?? '-' }}</td>
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['pais'] ?? '-' }}</td>
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['institucion'] ?? '-' }}</td>
                                 <td class="px-4 py-2 text-right"><button wire:click="removeInternacional({{ $i }})" type="button" class="text-xs text-red-600 hover:text-red-800">Eliminar</button></td>
@@ -806,6 +808,11 @@
                                 @error('nuevoIntegranteInternacional.documento_identidad') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">RTN <span class="text-xs text-gray-400">(opcional, 14 dígitos)</span></label>
+                                <input type="text" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.rtn" maxlength="14" placeholder="00000000000000" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                                @error('nuevoIntegranteInternacional.rtn') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Sexo</label>
                                 <select wire:model.live="nuevoIntegranteInternacional.sexo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500">
                                     <option value="">No especificado</option>
@@ -872,6 +879,7 @@
                     <thead class="bg-gray-50 dark:bg-gray-800">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Nombre</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">RTN</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Tipo de entidad</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Contacto</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Cargo</th>
@@ -886,6 +894,9 @@
                             <tr class="align-top hover:bg-gray-50 dark:hover:bg-gray-800/70">
                                 <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
                                     {{ $contraparte['nombre'] ?? 'Sin nombre' }}
+                                </td>
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    {{ !empty($contraparte['rtn'] ?? null) ? $contraparte['rtn'] : '-' }}
                                 </td>
                                 <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
                                     {{ !empty($contraparte['tipo_entidad']) ? ucfirst(str_replace('_', ' ', $contraparte['tipo_entidad'])) : 'No especificado' }}
@@ -942,7 +953,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                                <td colspan="9" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
                                     No hay entidades contraparte agregadas.
                                 </td>
                             </tr>
@@ -965,7 +976,40 @@
                         <button wire:click="closeContraparteModal" type="button" class="text-gray-500 hover:text-gray-800 text-lg leading-none">✕</button>
                     </div>
                     <div class="p-5 space-y-3 max-h-[70vh] overflow-y-auto">
+                        {{-- Seleccionar contraparte existente --}}
+                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                            <h5 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Seleccionar contraparte existente</h5>
+                            <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start">
+                                <div>
+                                    <label class="sr-only" for="contraparte-existente">Seleccione una contraparte</label>
+                                    <select id="contraparte-existente" wire:model="contraparteSeleccionadoId"
+                                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500">
+                                        <option value="">Seleccione una contraparte existente</option>
+                                        @foreach($contrapartesExistentes as $id => $nombre)
+                                            <option value="{{ $id }}">{{ $nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('contraparteSeleccionadoId') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                                <button wire:click="agregarContraparteExistente" type="button"
+                                    class="inline-flex items-center justify-center px-3 py-2 text-xs font-medium rounded-md bg-orange-600 text-white hover:bg-orange-700">
+                                    Agregar seleccionada
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">O crear/editar manualmente</span>
+                            <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+                        </div>
+
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">RTN <span class="text-xs text-gray-400">(opcional, 14 dígitos)</span></label>
+                                <input type="text" wire:model="nuevaContraparte.rtn" maxlength="14" placeholder="00000000000000" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                                @error('nuevaContraparte.rtn') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
                             <div class="sm:col-span-2">
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre <span class="text-red-500">*</span></label>
                                 <input type="text" wire:model="nuevaContraparte.nombre" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
@@ -1000,7 +1044,7 @@
                                 @error('nuevaContraparte.telefono') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo <span class="text-red-500">*</span></label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo</label>
                                 <input type="email" wire:model="nuevaContraparte.correo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                                 @error('nuevaContraparte.correo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>

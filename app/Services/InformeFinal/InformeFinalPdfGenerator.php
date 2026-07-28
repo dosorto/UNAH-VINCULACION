@@ -66,7 +66,17 @@ class InformeFinalPdfGenerator
 
             $firmasCiclo = $documento->firma_documento
                 ->where('revision_ciclo', $ultimoCiclo)
-                ->where('estado_revision', 'Aprobado');
+                ->filter(fn (FirmaProyecto $firma) => filled($firma->flujo_aprobacion_etapa_id))
+                ->sortBy([
+                    ['fecha_firma', 'asc'],
+                    ['updated_at', 'asc'],
+                    ['id', 'asc'],
+                ])
+                ->groupBy('flujo_aprobacion_etapa_id')
+                ->map(fn ($decisiones) => $decisiones->last())
+                ->filter(fn (FirmaProyecto $firma) => $firma->estado_revision === 'Aprobado')
+                ->sortBy('orden_revision')
+                ->values();
         }
 
         foreach ($firmasCiclo as $firma) {
@@ -111,6 +121,7 @@ class InformeFinalPdfGenerator
             'firma' => $this->resolverRutaFirma($firma->firma?->ruta_storage, $isPdf),
             'sello' => $this->resolverRutaFirma($firma->sello?->ruta_storage, $isPdf),
             'fecha' => $firma->fecha_firma,
+            'cargo' => $firma->etapa_nombre ?: $firma->cargo_firma?->tipoCargoFirma?->nombre,
         ];
     }
 

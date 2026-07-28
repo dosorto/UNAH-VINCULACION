@@ -11,6 +11,8 @@ use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
+use App\Models\InformeFinal\InformeFinalProyecto;
+use App\Models\InformeIntermedio\InformeIntermedioProyecto;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -45,13 +47,24 @@ trait ResuelveFirmaPorEtapa
             $documento = $this->documentoDeFirmaPorEtapa($firmaBloqueada);
             $empleado = $user->empleado()->with(['firma', 'sello'])->first();
 
-            if (! $empleado) {
+            if (! $empleado || $empleado->trashed()) {
                 throw new \RuntimeException('El usuario no tiene un empleado activo asociado.');
+            }
+
+            if (! $firmaBloqueada->cargo_firma()->exists() || ! $firmaBloqueada->flujoEtapa()->exists()) {
+                throw new \RuntimeException('La etapa no tiene un cargo de firma válido configurado.');
+            }
+
+            $firmaEmpleado = $empleado->firma;
+
+            if (! $firmaEmpleado || blank($firmaEmpleado->ruta_storage)) {
+                throw new \RuntimeException('No puede aprobar esta etapa porque no tiene una firma registrada. Registre su firma antes de continuar.');
             }
 
             $firmaBloqueada->update([
                 'estado_revision' => 'Aprobado',
-                'firma_id' => $empleado->firma?->id,
+                'empleado_id' => $empleado->id,
+                'firma_id' => $firmaEmpleado->id,
                 'sello_id' => $empleado->sello?->id,
                 'fecha_firma' => now(),
             ]);
@@ -114,6 +127,16 @@ trait ResuelveFirmaPorEtapa
 
         if ($documento) {
             $documento->estado_documento()->create($payload);
+
+            if ($documento->tipo_documento === 'Informe Intermedio') {
+                InformeIntermedioProyecto::query()
+                    ->where('documento_proyecto_id', $documento->id)
+                    ->update([
+                        'estado' => InformeIntermedioProyecto::ESTADO_EN_REVISION,
+                        'etapa_actual_id' => $siguienteFirma->flujo_aprobacion_etapa_id,
+                        'etapa_retorno_id' => null,
+                    ]);
+            }
         } else {
             $proyecto->estado_proyecto()->create($payload);
         }
@@ -156,14 +179,27 @@ trait ResuelveFirmaPorEtapa
                 throw new \RuntimeException('No se puede determinar el proceso del documento.');
             }
 
-            $this->marcarDocumentoAprobado($documento);
+            $informeIntermedioFueAprobado = $this->marcarDocumentoAprobado($documento, $user);
 
-            $this->notificarCoordinadorProyecto(
-                $proyecto,
-                sprintf('%s aprobado', $documento->tipo_documento),
-                sprintf('Su %s completó todas las etapas de revisión y fue aprobado.', $documento->tipo_documento),
-                'aprobación de informe'
-            );
+            if ($documento->tipo_documento === 'Informe Intermedio' && $informeIntermedioFueAprobado) {
+                $this->notificarCoordinadorProyecto(
+                    $proyecto,
+                    'Informe intermedio aprobado',
+                    sprintf(
+                        'El informe intermedio del proyecto "%s" fue aprobado. Ya puede completar y enviar el Informe Final.',
+                        $proyecto->nombre_proyecto
+                    ),
+                    'aprobación de informe',
+                    route('proyectos.informe-final', $proyecto)
+                );
+            } elseif ($documento->tipo_documento === 'Informe Final') {
+                $this->notificarCoordinadorProyecto(
+                    $proyecto,
+                    'Informe Final aprobado',
+                    'El Informe Final INF-001 fue aprobado y el proyecto fue cerrado.',
+                    'aprobación de informe'
+                );
+            }
 
             return;
         }
@@ -190,7 +226,9 @@ trait ResuelveFirmaPorEtapa
         $this->notificarCoordinadorProyecto(
             $proyecto,
             'Flujo de inscripción aprobado',
-            'Su proyecto completó todas las etapas de firma del flujo de inscripción.',
+            'Su proyecto completó todas las etapas de Inscripción. El formulario INF-001'
+                .($proyecto->tieneFlujoCierreProyecto() ? ' ya está disponible.' : ' no tiene etapas de cierre configuradas.')
+                .($proyecto->tieneFlujoInformeIntermedio() ? ' El Informe Intermedio también está disponible para cargar y enviar.' : ''),
             'aprobación de proyecto'
         );
     }
@@ -244,6 +282,12 @@ trait ResuelveFirmaPorEtapa
 
             $this->registrarSubsanacionPorRechazoDeEtapa($proyecto, $documento, $empleadoId, $comentario);
             $this->verificarRecorridoBloqueadoPorRechazo($firmaRechazada->fresh(), $proyecto, $documento);
+            $this->notificarCoordinadorProyecto(
+                $proyecto,
+                $documento ? $documento->tipo_documento.' en subsanación' : 'Proyecto en subsanación',
+                $comentario,
+                'solicitud de subsanación'
+            );
 
             return $firmaRechazada->fresh();
         });
@@ -314,35 +358,81 @@ trait ResuelveFirmaPorEtapa
 
         if ($documento) {
             $documento->estado_documento()->create($payload);
+
+            if ($documento->tipo_documento === 'Informe Intermedio') {
+                InformeIntermedioProyecto::query()
+                    ->where('documento_proyecto_id', $documento->id)
+                    ->update([
+                        'estado' => InformeIntermedioProyecto::ESTADO_SUBSANACION,
+                        'etapa_actual_id' => null,
+                        'etapa_retorno_id' => $documento->firma_documento()
+                            ->where('estado_revision', 'Rechazado')
+                            ->latest('id')
+                            ->value('flujo_aprobacion_etapa_id'),
+                        'observaciones' => $comentario,
+                    ]);
+            }
             return;
         }
 
         $proyecto->estado_proyecto()->create($payload);
     }
 
-    protected function marcarDocumentoAprobado(DocumentoProyecto $documento): void
+    protected function marcarDocumentoAprobado(DocumentoProyecto $documento, User $user): bool
     {
+        $empleadoId = $user->empleado?->id;
+        $aprobadoId = TipoEstado::where('nombre', 'Aprobado')->value('id');
+
+        if (! $empleadoId || ! $aprobadoId) {
+            throw new \RuntimeException('No se pudo registrar la aprobación final del documento.');
+        }
+
         if ($documento->tipo_documento === 'Informe Final') {
             $proyecto = $documento->proyecto;
+            $finalizadoId = TipoEstado::where('nombre', 'Finalizado')->value('id');
 
+            if (! $finalizadoId) {
+                throw new \RuntimeException('No existe el estado Finalizado requerido para cerrar el proyecto.');
+            }
             $proyecto->estado_proyecto()->create([
-                'empleado_id' => auth()->user()->empleado->id,
-                'tipo_estado_id' => TipoEstado::where('nombre', 'Finalizado')->first()->id,
+                'empleado_id' => $empleadoId,
+                'tipo_estado_id' => $finalizadoId,
                 'fecha' => now(),
                 'comentario' => '[Cierre INF-001] Informe final aprobado; proyecto finalizado.',
             ]);
+            InformeFinalProyecto::query()
+                ->where('proyecto_id', $proyecto->id)
+                ->update(['fecha_cierre' => now()->toDateString()]);
 
             VerificarConstancia::makeConstanciasProyecto($proyecto);
         }
 
+        $informeIntermedioFueAprobado = false;
+
+        if ($documento->tipo_documento === 'Informe Intermedio') {
+            $informeIntermedioFueAprobado = InformeIntermedioProyecto::query()
+                ->where('documento_proyecto_id', $documento->id)
+                ->where('estado', '!=', InformeIntermedioProyecto::ESTADO_APROBADO)
+                ->update([
+                    'estado' => InformeIntermedioProyecto::ESTADO_APROBADO,
+                    'etapa_actual_id' => null,
+                    'etapa_retorno_id' => null,
+                    'aprobado_por' => $user->id,
+                    'fecha_aprobacion' => now(),
+                    'observaciones' => null,
+                ]);
+        }
+
         $documento->estado_documento()->create([
-            'empleado_id' => auth()->user()->empleado->id,
-            'tipo_estado_id' => TipoEstado::where('nombre', 'Aprobado')->first()->id,
+            'empleado_id' => $empleadoId,
+            'tipo_estado_id' => $aprobadoId,
             'fecha' => now(),
             'comentario' => $documento->tipo_documento === 'Informe Final'
                 ? '[Cierre INF-001] Todas las etapas de cierre fueron aprobadas.'
                 : 'El informe ha sido aprobado correctamente',
         ]);
+
+        return (bool) $informeIntermedioFueAprobado;
     }
 
     /**
@@ -369,7 +459,12 @@ trait ResuelveFirmaPorEtapa
         }
 
         try {
-            Mail::to($revisorUser->email)->send(new EtapaFlujoPendiente($proyecto, $revisorUser, $etapa));
+            $tipoRegistro = $siguienteFirma->firmable_type === DocumentoProyecto::class
+                ? DocumentoProyecto::find($siguienteFirma->firmable_id)?->tipo_documento
+                : null;
+            Mail::to($revisorUser->email)->send(
+                new EtapaFlujoPendiente($proyecto, $revisorUser, $etapa, $tipoRegistro)
+            );
         } catch (\Throwable $exception) {
             Log::warning('No se pudo notificar al siguiente revisor de etapa: ' . $exception->getMessage(), [
                 'firma_id' => $siguienteFirma->id,
@@ -385,7 +480,8 @@ trait ResuelveFirmaPorEtapa
         Proyecto $proyecto,
         string $nuevoEstado,
         string $comentario,
-        string $accion
+        string $accion,
+        ?string $actionUrl = null,
     ): void {
         $coordinador = $proyecto->coordinador_proyecto()->first()?->empleado?->user;
 
@@ -395,7 +491,7 @@ trait ResuelveFirmaPorEtapa
 
         try {
             Mail::to($coordinador->email)->send(
-                new ProyectoEstadoCambiado($proyecto, $coordinador, $nuevoEstado, $comentario, $accion)
+                new ProyectoEstadoCambiado($proyecto, $coordinador, $nuevoEstado, $comentario, $accion, $actionUrl)
             );
         } catch (\Throwable $exception) {
             Log::warning('No se pudo notificar al coordinador del proyecto: ' . $exception->getMessage(), [

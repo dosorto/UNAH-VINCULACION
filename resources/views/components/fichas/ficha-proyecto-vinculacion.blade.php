@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, user-scalable=yes">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <title>FORM-DVUS-001 - Registro de Proyectos de Vinculación</title>
     @if (!empty($isPdf))
         <style>
             {!! file_get_contents(public_path('css/app/fichaHistorial.css')) !!}
@@ -253,12 +253,71 @@
             width: 32%;
         }
 
+        .form-header-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-bottom: 8px;
+        }
+
+        .form-header-table td {
+            border: 0;
+        }
+
+        .form-header-brand {
+            text-align: center;
+            padding-bottom: 10px;
+        }
+
+        .form-header-brand img {
+            width: 76%;
+            height: auto;
+        }
+
+        .form-header-title {
+            width: 74%;
+            color: #001b5d;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 1.2;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        .form-header-contact {
+            width: 26%;
+            color: #001b5d;
+            font-size: 9px;
+            font-weight: bold;
+            line-height: 1.25;
+            padding-left: 12px;
+            text-align: left;
+            vertical-align: top;
+            border-left: 1px solid #001b5d !important;
+        }
+
+        .signature-image-cell,
+        .signature-name-cell {
+            text-align: center;
+        }
+
+        .signature-image-cell img {
+            display: block;
+            width: auto;
+            max-width: 200px;
+            max-height: 110px;
+            margin: 0 auto;
+        }
+
         @media print {
             .no-print {
                 display: none !important;
             }
         }
     </style>
+    @if (!empty($isPdf))
+        @include('components.fichas.partials.form-dvus-001-pdf-styles')
+    @endif
 </head>
 
 <body style="background-color: #f2f2f2; ">
@@ -305,6 +364,10 @@
         </details>
     @endif
 
+    @if (!empty($isPdf))
+        @include('components.fichas.partials.form-dvus-001-header', ['isPdf' => true])
+    @endif
+
     <div class="{{ empty($isPdf) ? 'rounded-xl border border-gray-200 bg-white shadow-sm' : '' }}">
         @if (empty($isPdf))
             <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 no-print">
@@ -314,27 +377,11 @@
 
         <div class="{{ !empty($isPdf) ? 'pdf-content-wrapper' : '' }}" style="display: flex; justify-content: center; margin-top: 20px; background-color: white;">
             <div class="container">
-                <div class="header">
-                    <table class="header-table">
-                        <tr>
-                            <td class="logos-cell" colspan="2">
-                                <img class="header-logo" src="{{ !empty($isPdf) ? public_path('images/Image/Imagen1.jpg') : asset('images/Image/Imagen1.jpg') }}"
-                                    width="500px" height="120px" alt="Escudo de la UNAH">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="title-cell">
-                                FORM-DVUS-001 - FORMULARIO DE REGISTRO DE PROYECTO DE VINCULACIÓN<br>
-                                DE DESARROLLO LOCAL Y REGIONAL
-                            </td>
-                            <td class="contact-cell">
-                                <a href="mailto:vinculacion.sociedad@unah.edu.hn">vinculacion.sociedad@unah.edu.hn</a><br>
-                                Tel. 2216-7070 Ext. 110576
-                            </td>
-                        </tr>
-                    </table>
-                </div>
+                @if (empty($isPdf))
+                    @include('components.fichas.partials.form-dvus-001-header', ['isPdf' => false])
+                @endif
 
+                {{-- INFORMACIÓN GENERAL --}}
                 <div class="section1">
                     <div class="section-title">I. INFORMACIÓN GENERAL DEL PROYECTO </div>
                     <table class="table_datos1 info-general-table">
@@ -706,127 +753,9 @@
 
                     </table>
 
-                    <!-- TABLA DE PRESUPUESTO DEL PROYECTO -->
-                    <table class="table_datos1 pdf-table pdf-section-avoid-break section-budget">
-                     <tr>
-                            <th class="full-width1" colspan="8"> 9. Presupuesto del Proyecto</th>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="2">Aporte académico de la UNAH:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->total_aporte_institucional ?? 0, 2, '.', ',') }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="2">Aporte de la contraparte:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_contraparte ?? 0, 2, '.', ',') }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="2">Aporte de la comunidad:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_comunidad ?? 0, 2, '.', ',') }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td class="sub-header" colspan="2">Aporte fondos internacionales</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_internacionales ?? 0, 2, '.', ',') }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        <tr>
-                            <td class="sub-header" colspan="2">Aportes de otras universidades:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_otras_universidades ?? 0, 2, '.', ',') }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td class="sub-header" colspan="2">Otros Aportes:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto?->otros_aportes ?? 0, 2, '.', ',') }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        </tr>
-                        
-                        
-                        <tr>
-                            <td class="sub-header4" colspan="2">TOTAL CONTRAPARTE:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ number_format(($proyecto->presupuesto?->aporte_contraparte ?? 0) + ($proyecto->presupuesto?->aporte_comunidad ?? 0), 2, '.', ',') }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header4" colspan="2">MONTO TOTAL DEL PROYECTO:</td>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ number_format(
-                                        ($proyecto->presupuesto?->aporte_internacionales ?? 0) +
-                                        ($proyecto->total_aporte_institucional ?? 0) +
-                                        ($proyecto->presupuesto?->aporte_otras_universidades ?? 0) +
-                                        ($proyecto->presupuesto?->otros_aportes ?? 0) +
-                                        ($proyecto->presupuesto?->aporte_contraparte ?? 0) +
-                                        ($proyecto->presupuesto?->aporte_comunidad ?? 0), 2, '.', ','
-                                    ) }}"
-                                    placeholder="Ingrese el nombre de la entidad">
-                            </td>
-                        </tr>
-                        <!-- <tr>
-                            <th class="full-width1" colspan="6"> En caso de superávit o rentabilidad en el proyecto,
-                                haga un
-                                desglose detallado
-                                en que se va a invertir el superávit según las normas de ejecución presupuestaria de la
-                                UNAH
-                            </th>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="4">Inversión:</td>
-                            <td class="sub-header" colspan="2">Monto:</td>
-                        </tr>
-
-                        @forelse ($proyecto->superavit as $superavit)
-                            <tr>
-                                <td class="full-width
-                                " colspan="4">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento" value="{{ $superavit->inversion }}"
-                                        disabled>
-                                </td>
-                                <td class="full-width
-                                " colspan="2">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento" value="{{ $superavit->monto }}"
-                                        disabled>
-                                </td>
-
-                            </tr>
-
-                        @empty
-                            <tr>
-                                <td class="full-width
-                            " colspan="19">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento" value="No hay superavit" disabled>
-                                </td>
-                            </tr>
-                        @endforelse -->
-                    </table>
                 </div>
 
+                {{-- EQUIPO EJECUTOR --}}
                 <div class="section2">
                     @php
                         $coordinador = optional($proyecto->coordinador_proyecto->first())->empleado;
@@ -1144,7 +1073,7 @@
                     $asistentesTecnicosMujeres = $contarIntegrantes($esAsistenteTecnico, 'femenino');
                 @endphp
 
-                <!-- SECCIÓN DE CUANTIFICACIÓN DEL TRABAJO VOLUNTARIO -->
+                {{-- PARTICIPACIÓN DE LA COMUNIDAD UNIVERSITARIA --}}
                 <div class="section3">
                     <div class="section-title">III. PARTICIPACIÓN MIEMBROS COMUNIDAD UNIVERSITARIA </div>
                     <table class="table_datos1">
@@ -1332,7 +1261,7 @@
                         </tr>
                     </table>
                 </div>
-                <!-- TABLA DE ENTIDAD CONTRAPARTE -->
+                {{-- ENTIDAD CONTRAPARTE --}}
                 <div class="section4">
                     <div class="section-title">IV. ENTIDAD CONTRAPARTE</div>
                     <table class="table_datos2">
@@ -1341,13 +1270,21 @@
                                 tabla
                                 de información por cada una de las contrapartes)</th>
                         </tr>
-                        @forelse ($proyecto->entidad_contraparte as $entidad)
+                        @forelse ($proyecto->entidad_contraparte_proyecto()->with('entidadContraparte')->with('instrumentoFormalizacion')->get() as $pivot)
+                            @php $entidad = $pivot->entidadContraparte; @endphp
                             <tr>
                                 <td class="sub-header">Nombre de la contraparte:</td>
                                 <td class="full-width" colspan="6">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el nombre de la entidad" value="{{ $entidad->nombre }}"
                                         disabled>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="sub-header" rowspan="1">RTN:</td>
+                                <td class="full-width" colspan="6">
+                                    <input disabled type="text" class="input-field"
+                                        placeholder="RTN" value="{{ $entidad->rtn ?? '' }}" disabled>
                                 </td>
                             </tr>
                             <tr>
@@ -1409,24 +1346,24 @@
                                 <td class="sub-header" colspan="1">Tipo de instrumento que da lugar a la alianza</td>
                                 <td class="sub-header1" colspan="2">Carta formal de solicitud a la unidad académica <br>
                                     <input disabled type="checkbox" class="No"
-                                        @if ($entidad->instrumento_formalizacion->contains('tipo_documento', 'carta_formal_solicitud')) checked @endif>
+                                        @if ($pivot->instrumentoFormalizacion->contains('tipo_documento', 'carta_formal_solicitud')) checked @endif>
                                 </td>
                                 <td class="sub-header1" colspan="2">Carta de intenciones con la UNAH<br>
                                     <input disabled type="checkbox" class="No"
-                                        @if ($entidad->instrumento_formalizacion->contains('tipo_documento', 'carta_intenciones')) checked @endif>
+                                        @if ($pivot->instrumentoFormalizacion->contains('tipo_documento', 'carta_intenciones')) checked @endif>
                                 </td>
                                 <td class="sub-header1" colspan="2">Convenio marco con la UNAH<br>
                                     <input disabled type="checkbox" class="No"
-                                        @if ($entidad->instrumento_formalizacion->contains('tipo_documento', 'convenio_marco')) checked @endif>
+                                        @if ($pivot->instrumentoFormalizacion->contains('tipo_documento', 'convenio_marco')) checked @endif>
                                 </td>
                             </tr>
                             <tr>
                                 <td class="sub-header" colspan="1">Breve descripción de los compromisos asumidos por la contraparte</td>
                                 <td class="full-width" colspan="6">
                                     @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText($entidad->descripcion_acuerdos) !!}</div>
+                                        <div class="pdf-text-block">{!! $renderPdfText($pivot->descripcion_acuerdos ?? '') !!}</div>
                                     @else
-                                        <textarea disabled class="input-field" rows="3" placeholder="Describa los compromisos">{{ $entidad->descripcion_acuerdos ?? '' }}</textarea>
+                                        <textarea disabled class="input-field" rows="3" placeholder="Describa los compromisos">{{ $pivot->descripcion_acuerdos ?? '' }}</textarea>
                                     @endif
                                 </td>
                             </tr>
@@ -1435,7 +1372,7 @@
                                     hubiese):</td>
                             </tr>
                             <tr>
-                                @forelse ($entidad->instrumento_formalizacion as $instrumento)
+                                @forelse ($pivot->instrumentoFormalizacion as $instrumento)
                             <tr>
                                 <td class="full-width
                                     " colspan="4">
@@ -1515,7 +1452,7 @@
 
 
                 <div class="section2">
-                    <div class="section-title">III. DATOS DEL PROYECTO. </div>
+                    <div class="section-title">V. DATOS DEL PROYECTO</div>
                     <table class="table_datos3">
                         <tr>
                             <th class="header" colspan="19">1. Descripción del proyecto: (Explicar brevemente en qué consiste el proyecto, 
@@ -1661,9 +1598,9 @@
                     </table>
                 </div>
 
-                <!-- SECCIÓN DE MARCO LOGICO DEL PROYECTO -->
-                    <div class="section2">
-                    <div class="section-title">I. RESUMEN MARCO LÓGICO DEL PROYECTO. </div>
+                {{-- FORMULACIÓN Y MARCO LÓGICO --}}
+                <div class="section2">
+                    <div class="section-title">VI. RESUMEN DEL MARCO LÓGICO DEL PROYECTO</div>
                     <table class="table_datos3">
                         {{-- Fila del Objetivo General --}}
                         <tr>
@@ -1802,12 +1739,123 @@
                     </table>
                 </div>
 
-                <!-- SECCIÓN DE DETALLE DEL PRESUPUESTO -->
+                {{-- CRONOGRAMA --}}
                 <div class="section2">
-                    <div class="section-title">II. DETALLE DEL PRESUPUESTO</div>
+                    <div class="section-title">VII. CRONOGRAMA DE ACTIVIDADES DEL PROYECTO</div>
+                    <table class="table_datos3">
+                        <thead>
+                            <tr>
+                                <th class="header" colspan="19">Descripción de las actividades del proyecto (incluye todas las actividades enmarcadas en el proyecto, las cuales pueden ser,
+                                    entre otras, la negociación inicial, la organización de los equipos de trabajo,
+                                    la planificación, el desarrollo de actividades de capacitación y fortalecimiento,
+                                    presentación de informe intermedio o parciales, presentación del informe final, proceso de evaluación, proceso de sistematización,
+                                    publicación de artículo, otras acciones de divulgación)</th>
+                            </tr>
+                            <tr>
+                                <td class="sub-header3" colspan="19">Cronograma de actividades</td>
+                            </tr>
+                            <tr>
+                                <td class="sub-header3" colspan="4">Actividades</td>
+                                <td class="sub-header3" colspan="4">Fecha de ejecución</td>
+                                <td class="sub-header3" colspan="5">Responsables</td>
+                                <td class="sub-header3" colspan="6">Detalle</td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($proyecto->actividades as $actividad)
+                                <tr>
+                            <td class="s3" colspan="4">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($actividad->descripcion) !!}</div>
+                                @else
+                                    {{ $actividad->descripcion }}
+                                @endif
+                            </td>
+                            <td class="s3" colspan="4">{{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</td>
+                            <td class="" colspan="5">
+                                @forelse ($actividad->empleados as $responsable)
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($responsable->nombre_completo) !!}</div>
+                                    @else
+                                        <input disabled type="text" class="input-field"
+                                            placeholder="Ingrese el nombre de la entidad"
+                                            value="{{ $responsable->nombre_completo }}" disabled>
+                                    @endif
+
+                                @empty
+                                @endforelse
+
+                            </td>
+                                <td class="" colspan="6">
+                                    @if (empty($isPdf))
+                                        <div x-data="{ open: false }">
+                                            <button type="button" @click="open = true"
+                                                class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition">
+                                                Ver Actividad
+                                            </button>
+                                            <div x-show="open" x-cloak class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+                                                <div class="fixed inset-0 bg-black/60" @click.self="open = false"></div>
+                                                <div class="relative flex min-h-full items-start justify-center p-4">
+                                                    <div class="relative w-full max-w-7xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl my-4">
+                                                        <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-3">
+                                                            <span class="text-sm font-semibold text-gray-900 dark:text-white">Actividad</span>
+                                                            <button type="button" @click="open = false"
+                                                                class="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                                                                aria-label="Cerrar">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
+                                                                    <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                        <div class="p-6">
+                                                            <div class="activity-container">
+                                                                <div class="activity-header">Detalles de la Actividad</div>
+                                                                <div class="activity-body">
+                                                                    <div class="row">
+                                                                        <div class="column"><strong>Fecha de Inicio:</strong>
+                                                                            {{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</div>
+                                                                    </div>
+                                                                    <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}</div>
+                                                                    <div class="highlight"><strong>Responsables:</strong>
+                                                                        @forelse ($actividad->empleados as $responsable)
+                                                                            <div>
+                                                                                <div>{{ $responsable->nombre_completo }}</div>
+                                                                            </div>
+                                                                        @empty
+                                                                            No asignado
+                                                                        @endforelse
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <span>Actividad registrada</span>
+                                    @endif
+                                </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td class="full-width" colspan="19">
+                                        <input disabled type="text" class="input-field"
+                                            value="No hay actividades registradas" disabled>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+
+                {{-- PRESUPUESTO --}}
+                <div class="section2 section-budget">
+                    <div class="section-title">VIII. PRESUPUESTO DEL PROYECTO</div>
                     <table class="table_datos3">
                         <tr>
-                            <td class="header" colspan="19">6.1. Aporte institucional (manifestado en lempiras)</td>
+                            <td class="header" colspan="19">9. Presupuesto del Proyecto — aporte institucional expresado en lempiras</td>
                         </tr>
                         <tr>
                             <td class="header" colspan="7">Concepto</td>
@@ -2008,134 +2056,26 @@
                             <td class="full-width" colspan="3">
                                 <input disabled type="text" class="input-field" 
                                      value="{{ number_format(
-                                        ($proyecto->presupuesto->aporte_internacionales ?? 0) +
+                                        ($proyecto->presupuesto?->aporte_internacionales ?? 0) +
                                         ($proyecto->total_aporte_institucional ?? 0) +
-                                        ($proyecto->presupuesto->aporte_otras_universidades ?? 0) +
-                                        ($proyecto->presupuesto->otros_aportes ?? 0) +
-                                        ($proyecto->presupuesto->aporte_contraparte ?? 0) +
-                                        ($proyecto->presupuesto->aporte_comunidad ?? 0), 2, '.', ','
+                                        ($proyecto->presupuesto?->aporte_otras_universidades ?? 0) +
+                                        ($proyecto->presupuesto?->otros_aportes ?? 0) +
+                                        ($proyecto->presupuesto?->aporte_contraparte ?? 0) +
+                                        ($proyecto->presupuesto?->aporte_comunidad ?? 0), 2, '.', ','
                                     ) }}">
                             </td>
                         </tr>
                     </table>
                 </div>
 
-                <div class="section2">
-                    <div class="section-title">III. CRONOGRAMA DE LAS ACTIVIDADES DEL PROYECTO</div>
-                    <table class="table_datos3">
-                        <!-- CRONOGRAMA DE ACTIVIDADES -->
-                        <tr>
-                            <th class="header" colspan="19">10. Descripción de actividades del proyecto (Descripción de todas las actividades enmarcadas en el proyecto, las cuales pueden ser, 
-                                entre otras, la negociación inicial, la organización de los equipos de trabajo, 
-                                la planificación, el desarrollo de actividades de capacitación y fortalecimiento, 
-                                presentación de informe intermedio o parciales, presentación del informe final, proceso de evaluación, proceso de sistematización,
-                                publicación de artículo, otras acciones de divulgación) </th>
-                        </tr>
-                        <tr>
-                            <td class="sub-header3" colspan="19"> Cronogramama de actividades</td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header3" colspan="4"> Actividades</td>
-                            <td class="sub-header3" colspan="4"> Fecha de ejecución</td>
-                            <td class="sub-header3" colspan="5"> Responsables</td>
-                            <td class="sub-header3" colspan="5"> Accion</td>
-                        </tr>
-                        <tr>
-                            @forelse ($proyecto->actividades as $actividad)
-                        <tr>
-                            <td class="s3" colspan="4">
-                                @if (!empty($isPdf))
-                                    <div class="pdf-text-block">{!! $renderPdfText($actividad->descripcion) !!}</div>
-                                @else
-                                    {{ $actividad->descripcion }}
-                                @endif
-                            </td>
-                            <td class="s3" colspan="4">{{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</td>
-                            <td class="" colspan="5">
-                                @forelse ($actividad->empleados as $responsable)
-                                    @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText($responsable->nombre_completo) !!}</div>
-                                    @else
-                                        <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese el nombre de la entidad"
-                                            value="{{ $responsable->nombre_completo }}" disabled>
-                                    @endif
-
-                                @empty
-                                @endforelse
-
-                            </td>
-                                <td class="" colspan="5">
-                                    @if (empty($isPdf))
-                                        <div x-data="{ open: false }">
-                                            <button type="button" @click="open = true"
-                                                class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition">
-                                                Ver Actividad
-                                            </button>
-                                            <div x-show="open" x-cloak class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
-                                                <div class="fixed inset-0 bg-black/60" @click.self="open = false"></div>
-                                                <div class="relative flex min-h-full items-start justify-center p-4">
-                                                    <div class="relative w-full max-w-7xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl my-4">
-                                                        <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-3">
-                                                            <span class="text-sm font-semibold text-gray-900 dark:text-white">Actividad</span>
-                                                            <button type="button" @click="open = false"
-                                                                class="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                                                                aria-label="Cerrar">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
-                                                                    <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/>
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                        <div class="p-6">
-                                                            <div class="activity-container">
-                                                                <div class="activity-header">Detalles de la Actividad</div>
-                                                                <div class="activity-body">
-                                                                    <div class="row">
-                                                                        <div class="column"><strong>Fecha de Inicio:</strong>
-                                                                            {{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</div>
-                                                                    </div>
-                                                                    <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}</div>
-                                                                    <div class="highlight"><strong>Responsables:</strong>
-                                                                        @forelse ($actividad->empleados as $responsable)
-                                                                            <div>
-                                                                                <div>{{ $responsable->nombre_completo }}</div>
-                                                                            </div>
-                                                                        @empty
-                                                                            No asignado
-                                                                        @endforelse
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <span>Actividad registrada</span>
-                                    @endif
-                                </td>
-                        </tr>
-                    @empty
-                        <td class="full-width
-                                " colspan="19">
-                            <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
-                                value="No hay actividades" disabled>
-
-                        </td>
-                        @endforelse
-                        </tr>
-                    </table>
-                </div>  
-
-                <!-- SECCIÓN DE FIRMAS -->
-                <div class="section3">
+                {{-- FIRMAS --}}
+                <div class="section3 section-signatures">
                     @include('components.fichas.firmas-dinamicas', ['proyecto' => $proyecto, 'isPdf' => $isPdf ?? false])
                 </div>
 
-                <!-- SECCIÓN DE DOCUMENTOS ADJUNTOS A LA FICHA 
-                <div class="section4">
-                    <div class="section-title">V. DOCUMENTOS ADJUNTOS A LA FICHA. </div>
+                {{-- DOCUMENTOS ADJUNTOS --}}
+                <div class="section4 section-documents">
+                    <div class="section-title">X. DOCUMENTOS ADJUNTOS A LA FICHA</div>
                     <table class="table_datos5">
                         <tr>
                             <th class="header" colspan="1">No</th>
@@ -2185,23 +2125,20 @@
                         </tr>
                     </table>
                     
-                    <div style="margin-top: 15px;">
-                        <p><strong>Nota:</strong></p>
-                        <p>- El documento 1 / documento 2 (cualquiera de los dos) es obligatorio</p>
-                        <p>- El documento 3 es obligatorio</p>
+                    <div class="documents-note">
+                        <p><strong>Nota:</strong> El documento 1 o el documento 2 (cualquiera de los dos) es obligatorio. El documento 3 es obligatorio.</p>
                     </div>
-                </div> -->
+                </div>
 
-                <!-- SECCIÓN DE ANEXOS Y DATOS DE REGISTRO -->
-                <div class="section4">
-                    <div class="section-title">VI. ANEXOS. </div>
+                {{-- ANEXOS DEL SISTEMA --}}
+                <div class="section4 section-annexes">
+                    <div class="section-title">XI. ANEXOS</div>
                     <table class="table_datos5">
                         <tr>
-                            <th class="header" colspan="19">3. Anexos </th>
+                            <th class="header" colspan="19">Anexos registrados en el sistema</th>
                         </tr>
-                        <tr>
-                            @forelse ($proyecto->anexos as $anexo)
-                        <tr>
+                        @forelse ($proyecto->anexos as $anexo)
+                            <tr>
                             <td class="full-width
                                 " colspan="8">
                                 <input disabled type="text" class="input-field"
@@ -2250,76 +2187,17 @@
                                     <span>Anexo adjunto</span>
                                 @endif
                             </td>
-                        </tr>
-                    @empty
-                        <td class="full-width
-                                " colspan="19">
-                            <input disabled type="text" class="input-field" placeholder="Ingrese el departamento"
-                                value="No hay anexos registrados en este momento" disabled>
-                        </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td class="full-width" colspan="19">
+                                    <input disabled type="text" class="input-field"
+                                        value="No hay anexos registrados en este momento" disabled>
+                                </td>
+                            </tr>
                         @endforelse
-                        </tr>
                     </table>
 
-                    <!-- DATOS DE REGISTRO 
-                <div class="section-title" style="margin-top: 20px;">VII. DATOS DE REGISTRO. </div>
-                    <table class="table_datos5">
-                        <tr>
-                            <td class="sub-header" colspan="1">Responsable de revisión</td>
-                            <td class="full-width" colspan="10">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ optional(optional($proyecto->firma_revisor_vinculacion()->first())->empleado)->nombre_completo }}"
-                                    placeholder="Ingrese el día">
-                            </td>
-                        </tr>
-                    </table>
-                    <table class="table_datos5">
-                        <tr>
-                            <td class="sub-header" colspan="1">Director de Vinculación</td>
-                            <td class="full-width" colspan="10">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ optional(optional($proyecto->firma_director_vinculacion()->first())->empleado)->nombre_completo }}"
-                                    placeholder="Ingrese el día">
-                            </td>
-                        </tr>
-                    </table>
-                    <table class="table_datos5">
-                        <td class="sub-header" colspan="1">Fecha de Aprobación</td>
-                        <td class="full-width" colspan="6">
-                            <input disabled type="text" class="input-field"
-                                value="{{ $proyecto->fecha_aprobacion }}" placeholder="Ingrese el día">
-                        </td>
-                        <td class="sub-header" colspan="1">Fecha de Registro</td>
-                        <td class="full-width" colspan="6">
-                            <input disabled type="text" class="input-field"
-                                value="{{ $proyecto->fecha_registro }}" placeholder="Ingrese el día">
-                        </td>
-                        </tr>
-                    </table>
-                    <table class="table_datos7">
-                        <td class="sub-header" colspan="1">No. de Libro </td>
-                        <td class="full-width" colspan="1">
-                            <input disabled type="text" class="input-field"
-                                value="{{ $proyecto->numero_libro }}" placeholder="Ingrese el día">
-                        </td>
-                        <td class="sub-header" colspan="1">No. de Tomo </td>
-                        <td class="full-width" colspan="1">
-                            <input disabled type="text" class="input-field" value="{{ $proyecto->numero_tomo }}"
-                                placeholder="Ingrese el día">
-                        </td>
-                        <td class="sub-header" colspan="1">No. de Folio </td>
-                        <td class="full-width" colspan="1">
-                            <input disabled type="text" class="input-field"
-                                value="{{ $proyecto->numero_folio }}" placeholder="Ingrese el día">
-                        </td>
-                        </tr>
-                    </table>
-
-                    <div class="header-box"> <input disabled type="text" class="input-field"
-                            value="{{ $proyecto->numero_dictamen }}" placeholder="Ingrese No. dictamen de Proyecto">
-                        <p class="header-text">No. dictamen de Proyecto</p>
-                    </div>
-                </div> -->
             </div>
         </div>
     </div>

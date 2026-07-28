@@ -48,28 +48,29 @@ class EmpleadoProyecto extends Model
     {
         parent::boot();
 
-        // Asegurarse de que el campo tipo siempre tenga un valor
         static::creating(function ($model) {
-            dd($model);
-            // verificar si el registro trae el rol de Coordinador
-            if ($model->rol == 'Coordinador') {
-                if (auth()->user()->id == $model->empleado_id) {
-                    // crear un nuevo registro en la tabla firma_proyecto
-                    $model->proyecto()->firma_proyecto()->create([
-                                'empleado_id' => $model->empleado_id,
-                                'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
-                                'estado_revision' => true,
-                                'hash' => 'hash'
-                            ]);
-                } else {
-                    $model->proyecto()->firma_proyecto()->create([
-                        'empleado_id' => $model->empleado_id,
-                        'cargo_firma_id' => CargoFirma::where('nombre', 'Coordinador Proyecto')->first()->id,
-                        'estado_revision' => false,
-                        'hash' => 'hash'
-                    ]);
-                }
+            if ($model->rol !== 'Coordinador') {
+                return;
             }
+
+            $cargo = CargoFirma::query()
+                ->where('descripcion', 'Proyecto')
+                ->whereHas('tipoCargoFirma', fn($q) => $q->where('nombre', 'Coordinador Proyecto'))
+                ->first();
+
+            if (!$cargo) {
+                return;
+            }
+
+            $empleado = Empleado::find($model->empleado_id);
+            $esPropietario = $empleado && auth()->check() && auth()->id() == $empleado->user_id;
+
+            $model->proyecto->firma_proyecto()->create([
+                'empleado_id' => $model->empleado_id,
+                'cargo_firma_id' => $cargo->id,
+                'estado_revision' => $esPropietario ? 'Aprobado' : 'Pendiente',
+                'hash' => 'hash',
+            ]);
         });
     }
 

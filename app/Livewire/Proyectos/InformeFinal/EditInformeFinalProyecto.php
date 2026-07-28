@@ -51,6 +51,15 @@ class EditInformeFinalProyecto extends Component
     public array $anexoArchivos = [];
     public array $fotografiasTemporales = [];
     public array $participanteSeleccion = [];
+    public bool $showResultadoModal = false;
+    public ?int $resultadoModalIndex = null;
+    public bool $resultadoModalSoloLectura = false;
+    public array $resultadoModal = [];
+    public bool $showActividadModal = false;
+    public ?int $actividadModalIndex = null;
+    public bool $actividadModalSoloLectura = false;
+    public array $actividadModal = [];
+    public string $participanteSeleccionActividadModal = 'externo:nuevo';
     public bool $showEstudianteModal = false;
     public bool $showVoluntarioModal = false;
     public bool $showNoParticipacionModal = false;
@@ -598,6 +607,172 @@ class EditInformeFinalProyecto extends Component
         $this->guardarFilaAutoguardado($grupo, array_key_last($this->{$grupo}));
     }
 
+    public function openResultadoModal(?int $index = null, bool $soloLectura = false): void
+    {
+        if (! $soloLectura) $this->authorizeSensitive();
+        abort_unless($index === null || isset($this->resultados[$index]), 404);
+        $this->resetErrorBag();
+        $this->resultadoModalIndex = $index;
+        $this->resultadoModalSoloLectura = $soloLectura;
+        $this->resultadoModal = array_replace($this->resultadoInicial(), $index === null ? [] : $this->resultados[$index]);
+        $this->showResultadoModal = true;
+    }
+
+    public function closeResultadoModal(): void
+    {
+        $this->showResultadoModal = false;
+        $this->resultadoModalIndex = null;
+        $this->resultadoModal = [];
+        $this->resetErrorBag();
+    }
+
+    public function guardarResultadoModal(): void
+    {
+        $this->authorizeSensitive();
+        abort_if($this->resultadoModalSoloLectura, 403);
+        $this->validate([
+            'resultadoModal.resultado_planificado' => ['required','string'],
+            'resultadoModal.meta_numerica' => ['nullable','numeric','min:0'],
+            'resultadoModal.valor_alcanzado' => ['nullable','numeric','min:0'],
+            'resultadoModal.porcentaje_cumplimiento' => ['numeric','between:0,100'],
+            'resultadoModal.estado' => [Rule::in(['alcanzado','parcialmente_alcanzado','no_alcanzado','no_aplica'])],
+        ]);
+        if (is_numeric($this->resultadoModal['meta_numerica'] ?? null) && (float) $this->resultadoModal['meta_numerica'] > 0 && is_numeric($this->resultadoModal['valor_alcanzado'] ?? null)) {
+            $this->resultadoModal['porcentaje_cumplimiento'] = min(100, round((float) $this->resultadoModal['valor_alcanzado'] / (float) $this->resultadoModal['meta_numerica'] * 100, 2));
+            if (($this->resultadoModal['estado'] ?? null) !== 'no_aplica') $this->resultadoModal['estado'] = $this->resultadoModal['porcentaje_cumplimiento'] >= 100 ? 'alcanzado' : ((float) $this->resultadoModal['porcentaje_cumplimiento'] > 0 ? 'parcialmente_alcanzado' : 'no_alcanzado');
+        }
+        $index = $this->resultadoModalIndex;
+        if ($index === null) { $this->resultados[] = $this->resultadoModal; $index = array_key_last($this->resultados); }
+        else $this->resultados[$index] = $this->resultadoModal;
+        $this->guardarFilaAutoguardado('resultados', $index);
+        $this->closeResultadoModal();
+        $this->mensaje = 'Resultado guardado correctamente.';
+    }
+
+    public function openActividadModal(?int $index = null, bool $soloLectura = false): void
+    {
+        if (! $soloLectura) $this->authorizeSensitive();
+        abort_unless($index === null || isset($this->actividades[$index]), 404);
+        $this->resetErrorBag();
+        $this->actividadModalIndex = $index;
+        $this->actividadModalSoloLectura = $soloLectura;
+        $this->actividadModal = array_replace($this->actividadInicial(), $index === null ? [] : $this->actividades[$index]);
+        $this->actividadModal['participantes'] = array_values($this->actividadModal['participantes'] ?? []);
+        $this->participanteSeleccionActividadModal = 'externo:nuevo';
+        $this->showActividadModal = true;
+    }
+
+    public function closeActividadModal(): void
+    {
+        $this->showActividadModal = false;
+        $this->actividadModalIndex = null;
+        $this->actividadModal = [];
+        $this->resetErrorBag();
+    }
+
+    public function guardarActividadModal(): void
+    {
+        $this->authorizeSensitive();
+        abort_if($this->actividadModalSoloLectura, 403);
+        $this->validate([
+            'actividadModal.actividad_planificada' => ['required','string'],
+            'actividadModal.fecha_inicial' => ['nullable','date'],
+            'actividadModal.fecha_final' => ['nullable','date','after_or_equal:actividadModal.fecha_inicial'],
+            'actividadModal.horas_dedicadas' => ['nullable','numeric','min:0'],
+            'actividadModal.estado' => [Rule::in(['ejecutada','parcial','no_ejecutada'])],
+            'actividadModal.origen' => [Rule::in(['planificada','emergente'])],
+            'actividadModal.participantes.*.horas_dedicadas' => ['nullable','numeric','min:0'],
+        ]);
+        $responsable = collect($this->actividadModal['participantes'] ?? [])->first(fn ($row) => ! empty($row['es_responsable']));
+        if (($this->actividadModal['estado'] ?? null) === 'ejecutada' && blank($this->actividadModal['responsable'] ?? null) && ! $responsable) throw ValidationException::withMessages(['actividadModal.responsable' => 'Indique un responsable principal para la actividad ejecutada.']);
+        if ($responsable) $this->actividadModal['responsable'] = $responsable['nombre'];
+        $index = $this->actividadModalIndex;
+        if ($index === null) { $this->actividades[] = $this->actividadModal; $index = array_key_last($this->actividades); }
+        else $this->actividades[$index] = $this->actividadModal;
+        $this->guardarFilaAutoguardado('actividades', $index);
+        $this->closeActividadModal();
+        $this->mensaje = 'Actividad guardada correctamente.';
+    }
+
+    public function agregarParticipanteActividadModal(): void
+    {
+        $this->authorizeSensitive();
+        abort_if($this->actividadModalSoloLectura, 403);
+        [$tipo, $id] = array_pad(explode(':', $this->participanteSeleccionActividadModal, 2), 2, null);
+        $participante = $this->resolverParticipante($tipo, $id);
+        $actuales = collect($this->actividadModal['participantes'] ?? []);
+        if ($actuales->contains(fn ($row) => $this->mismaPersona($row, $participante))) { $this->addError('actividadModal.participantes', 'La persona ya participa en esta actividad.'); return; }
+        $participante['orden'] = $actuales->count() + 1;
+        $participante['es_responsable'] = $actuales->isEmpty();
+        if ($participante['es_responsable']) { $participante['rol'] = 'Responsable principal'; $this->actividadModal['responsable'] = $participante['nombre']; }
+        $this->actividadModal['participantes'][] = $participante;
+    }
+
+    public function quitarParticipanteActividadModal(int $index): void
+    {
+        $this->authorizeSensitive();
+        abort_if($this->actividadModalSoloLectura, 403);
+        $eraResponsable = ! empty($this->actividadModal['participantes'][$index]['es_responsable']);
+        unset($this->actividadModal['participantes'][$index]);
+        $this->actividadModal['participantes'] = array_values($this->actividadModal['participantes'] ?? []);
+        if ($eraResponsable && ! empty($this->actividadModal['participantes'])) {
+            $this->marcarResponsableActividadModal(0);
+        }
+    }
+
+    public function marcarResponsableActividadModal(int $index): void
+    {
+        $this->authorizeSensitive();
+        abort_if($this->actividadModalSoloLectura, 403);
+        abort_unless(isset($this->actividadModal['participantes'][$index]), 404);
+        foreach ($this->actividadModal['participantes'] as $participantIndex => &$participante) {
+            $participante['es_responsable'] = $participantIndex === $index;
+            if ($participantIndex === $index) {
+                $participante['rol'] = 'Responsable principal';
+                $this->actividadModal['responsable'] = $participante['nombre'];
+            }
+        }
+        unset($participante);
+    }
+
+    private function resultadoInicial(): array
+    {
+        return ['objetivo_especifico'=>'','resultado_planificado'=>'','indicador_propuesto'=>'','meta_numerica'=>null,'unidad_medida'=>'','valor_alcanzado'=>null,'porcentaje_cumplimiento'=>0,'estado'=>'no_alcanzado','producto_logrado'=>'','observaciones'=>''];
+    }
+
+    private function actividadInicial(): array
+    {
+        return ['actividad_planificada'=>'','actividad_realizada'=>'','responsable'=>'','fecha_inicial'=>null,'fecha_final'=>null,'horas_dedicadas'=>0,'medio_verificacion'=>'','estado'=>'no_ejecutada','origen'=>'emergente','participantes'=>[]];
+    }
+
+    public function formatearPeriodoActividad(mixed $fechaInicial, mixed $fechaFinal): string
+    {
+        $formatear = static function (mixed $fecha): ?string {
+            if (blank($fecha)) {
+                return null;
+            }
+
+            return Carbon::parse($fecha)->format('d/m/Y');
+        };
+
+        $inicial = $formatear($fechaInicial);
+        $final = $formatear($fechaFinal);
+
+        if (! $inicial && ! $final) {
+            return 'No registrado';
+        }
+
+        if (! $inicial) {
+            return $final;
+        }
+
+        if (! $final || $inicial === $final) {
+            return $inicial;
+        }
+
+        return $inicial.' – '.$final;
+    }
+
     public function quitarFila(string $grupo, int $indice): void
     {
         $this->authorizeSensitive();
@@ -871,11 +1046,22 @@ class EditInformeFinalProyecto extends Component
             1 => filled($this->general['nombre_proyecto'] ?? null)
                 && filled($this->general['fecha_inicio'] ?? null)
                 && filled($this->general['fecha_finalizacion'] ?? null),
-            2 => ! empty($this->equipo),
-            3 => collect($this->estudiantes)->contains(fn ($row) => ($row['estado_participacion'] ?? 'activo') === 'activo')
-                || collect($this->voluntarios)->contains(fn ($row) => ($row['estado_participacion'] ?? 'activo') === 'activo'),
-            4 => collect($this->contrapartes)->contains(fn ($row) => filled($row['nombre'] ?? null)),
-            5 => ! empty($this->resultados) && ! empty($this->actividades),
+            2 => collect($this->equipo)->contains(fn ($row) => ($row['estado_participacion'] ?? 'activo') === 'activo')
+                && collect($this->equipo)->every(fn ($row) => is_numeric($row['horas_dedicadas'] ?? 0) && (float) ($row['horas_dedicadas'] ?? 0) >= 0),
+            3 => (collect($this->estudiantes)->contains(fn ($row) => ($row['estado_participacion'] ?? 'activo') === 'activo')
+                    || collect($this->voluntarios)->contains(fn ($row) => ($row['estado_participacion'] ?? 'activo') === 'activo'))
+                && collect($this->estudiantes)->every(fn ($row) => filled($row['nombre'] ?? null) && filled($row['sexo'] ?? null))
+                && collect($this->voluntarios)->every(fn ($row) => filled($row['nombre'] ?? null) && filled($row['sexo'] ?? null)),
+            4 => $this->contrapartes !== [] && collect($this->contrapartes)->every(fn ($row) => filled($row['nombre'] ?? null)
+                && in_array($row['tipo'] ?? null, ['gobierno_nacional','gobierno_municipal','ong','sociedad_civil','sector_privado','internacional'], true)),
+            5 => $this->resultados !== [] && $this->actividades !== []
+                && collect($this->resultados)->every(fn ($row) => filled($row['resultado_planificado'] ?? null)
+                    && is_numeric($row['porcentaje_cumplimiento'] ?? 0)
+                    && (float) ($row['porcentaje_cumplimiento'] ?? 0) >= 0
+                    && (float) ($row['porcentaje_cumplimiento'] ?? 0) <= 100)
+                && collect($this->actividades)->every(fn ($row) => filled($row['actividad_planificada'] ?? null)
+                    && in_array($row['estado'] ?? null, ['ejecutada','parcial','no_ejecutada'], true)
+                    && (blank($row['fecha_inicial'] ?? null) || blank($row['fecha_final'] ?? null) || $row['fecha_final'] >= $row['fecha_inicial'])),
             6 => filled($this->general['transformacion_lograda'] ?? null)
                 && filled($this->general['mecanismos_sostenibilidad'] ?? null),
             7 => (int) ($this->general['valoracion_muestra'] ?? 0)

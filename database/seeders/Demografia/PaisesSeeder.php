@@ -2,9 +2,8 @@
 
 namespace Database\Seeders\Demografia;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Demografia\Pais;
+use Illuminate\Database\Seeder;
 
 class PaisesSeeder extends Seeder
 {
@@ -158,12 +157,15 @@ class PaisesSeeder extends Seeder
                 'codigo_iso_alpha_2' => 'UY',
                 'nombre' => 'Uruguay',
                 'gentilicio' => 'Uruguayo/a',
-            ]
+            ],
         ];
 
-        // Inserta los países en la base de datos
+        // Mantiene el catálogo idempotente usando el código ISO como clave natural.
         foreach ($paises as $pais) {
-            Pais::create($pais);
+            Pais::updateOrCreate(
+                ['codigo_iso' => $pais['codigo_iso']],
+                $pais,
+            );
         }
     }
 }

@@ -8,10 +8,13 @@ use App\Models\Proyecto\EmpleadoProyecto;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FirmaProyecto;
+use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Estado\TipoEstado;
 use App\Concerns\ReenviaDesdeSubsanacionPorEtapa;
 use App\Support\Notification;
 use App\Services\InformeFinal\InformeFinalProyectoWorkflowService;
+use App\Services\InformeIntermedio\InformeIntermedioProyectoWorkflowService;
+use App\Services\Proyecto\ProyectoWorkflowService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +31,8 @@ class HistorialProyecto extends Component
 
     public bool $informeIntermedioModal = false;
     public $informeIntermedioFile = null;
+    public array $destinatariosIntermedio = [];
+    public array $destinatariosCierre = [];
 
     public bool $subsanarModal = false;
     public string $subsanarComentario = '';
@@ -73,24 +78,48 @@ class HistorialProyecto extends Component
         $this->informeIntermedioModal = true;
     }
 
-    public function subirInformeIntermedio(): void
+    public function guardarInformeIntermedio(InformeIntermedioProyectoWorkflowService $workflow): void
     {
         $this->validate(['informeIntermedioFile' => 'required|file|mimes:pdf|max:20480']);
 
-        $path = $this->informeIntermedioFile->store('documentos', 'public');
-        $proyecto = $this->proyecto;
-
         try {
-            $proyecto->registrarDocumentoDesdeFlujo('Informe Intermedio', $path, auth()->user()->empleado);
+            $workflow->guardarArchivo($this->proyecto->fresh(), $this->informeIntermedioFile, auth()->user());
         } catch (\Throwable $e) {
-            Notification::make()->title('No se pudo enviar el informe')->body($e->getMessage())->danger()->send();
+            Notification::make()->title('No se pudo guardar el informe')->body($e->getMessage())->danger()->send();
             return;
         }
 
         $this->informeIntermedioModal = false;
         $this->informeIntermedioFile = null;
 
-        Notification::make()->title('Éxito')->body('Informe Intermedio subido correctamente')->success()->send();
+        $this->proyecto = $this->proyecto->fresh();
+        Notification::make()->title('PDF guardado')->body('El Informe Intermedio quedó guardado como borrador.')->success()->send();
+    }
+
+    public function enviarInformeIntermedio(InformeIntermedioProyectoWorkflowService $workflow): void
+    {
+        $informe = $this->proyecto->informeIntermedio()->firstOrFail();
+
+        try {
+            $workflow->enviar($informe, auth()->user(), $this->destinatariosIntermedio);
+            $this->proyecto = $this->proyecto->fresh();
+            Notification::make()->title('Informe enviado')->body('El Informe Intermedio inició su flujo de revisión.')->success()->send();
+        } catch (\Throwable $e) {
+            Notification::make()->title('No se pudo enviar el informe')->body($e->getMessage())->danger()->send();
+        }
+    }
+
+    public function eliminarInformeIntermedio(InformeIntermedioProyectoWorkflowService $workflow): void
+    {
+        $informe = $this->proyecto->informeIntermedio()->firstOrFail();
+
+        try {
+            $workflow->eliminarArchivo($informe, auth()->user());
+            $this->proyecto = $this->proyecto->fresh();
+            Notification::make()->title('PDF eliminado')->body('El borrador del Informe Intermedio fue eliminado.')->success()->send();
+        } catch (\Throwable $e) {
+            Notification::make()->title('No se pudo eliminar el PDF')->body($e->getMessage())->danger()->send();
+        }
     }
 
     public function crearInformeFinal(InformeFinalProyectoWorkflowService $workflow)
@@ -106,7 +135,7 @@ class HistorialProyecto extends Component
         abort_unless($workflow->puedeEnviarInformeFinal($informe, auth()->user()), 403);
 
         try {
-            $workflow->enviarInformeFinal($informe, auth()->user());
+            $workflow->enviarInformeFinal($informe, auth()->user(), $this->destinatariosCierre);
             $this->proyecto = $this->proyecto->fresh();
             Notification::make()
                 ->title('Informe final enviado')
@@ -226,7 +255,11 @@ class HistorialProyecto extends Component
         return isset($this->proyecto) && $this->proyecto->exists ? (int) $this->proyecto->id : null;
     }
 
-    public function render(InformeFinalProyectoWorkflowService $workflow): View
+    public function render(
+        InformeFinalProyectoWorkflowService $workflow,
+        InformeIntermedioProyectoWorkflowService $intermedioWorkflow,
+        ProyectoWorkflowService $proyectoWorkflow
+    ): View
     {
         $proyecto = $this->proyecto;
 
@@ -251,8 +284,27 @@ class HistorialProyecto extends Component
             : 0;
 
         $cierreInformeFinal = $workflow->resumenCierre($proyecto, auth()->user());
+        $fichaActualizacionPendiente = FichaActualizacion::query()
+            ->where('proyecto_id', $proyecto->id)
+            ->pendientes()
+            ->latest('id')
+            ->first();
+        $informeIntermedio = $intermedioWorkflow->resumen($proyecto, auth()->user());
+        $opcionesDestinatariosIntermedio = $proyectoWorkflow
+            ->destinatariosSeleccionables($proyecto, Proyecto::FLUJO_INFORME_INTERMEDIO);
+        $opcionesDestinatariosCierre = $proyectoWorkflow
+            ->destinatariosSeleccionables($proyecto, Proyecto::FLUJO_CIERRE_PROYECTO);
 
-        return view('livewire.docente.proyectos.historial-proyecto', compact('proyecto', 'estados', 'diasTranscurridos', 'cierreInformeFinal'));
+        return view('livewire.docente.proyectos.historial-proyecto', compact(
+            'proyecto',
+            'estados',
+            'diasTranscurridos',
+            'cierreInformeFinal',
+            'fichaActualizacionPendiente',
+            'informeIntermedio',
+            'opcionesDestinatariosIntermedio',
+            'opcionesDestinatariosCierre'
+        ));
     }
 
     private function authorizeFirmaPendiente(): FirmaProyecto

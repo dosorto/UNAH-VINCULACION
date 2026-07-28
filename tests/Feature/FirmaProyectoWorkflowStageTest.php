@@ -10,6 +10,7 @@ use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\TipoCargoFirma;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Schema;
@@ -488,6 +489,34 @@ class FirmaProyectoWorkflowStageTest extends TestCase
         $this->assertSame($empleadoB->id, $firmaB->empleado_id);
         $this->assertNull($firmaB->flujo_aprobacion_etapa_id);
         $this->assertTrue($firmaB->esFirmaLegacy());
+    }
+
+    public function test_guardar_firma_de_cargo_rechaza_un_cargo_inexistente_antes_de_insertar(): void
+    {
+        $proyecto = $this->crearProyecto();
+        $empleado = $this->crearEmpleado();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('No se encontró el cargo de firma configurado (ID: 999999999).');
+
+        $proyecto->guardarFirmaDeCargo(999999999, $empleado);
+    }
+
+    public function test_agregar_firma_resuelve_el_cargo_configurado_sin_depender_del_id(): void
+    {
+        $proyecto = $this->crearProyecto();
+        $empleado = $this->crearEmpleado();
+        $nombreCargo = 'Coordinador Proyecto '.uniqid();
+        $tipoCargo = TipoCargoFirma::create(['nombre' => $nombreCargo]);
+        $cargo = CargoFirma::create([
+            'descripcion' => 'Proyecto',
+            'tipo_cargo_firma_id' => $tipoCargo->id,
+        ]);
+
+        $firma = $proyecto->agregarFirma($nombreCargo, $empleado);
+
+        $this->assertSame($cargo->id, $firma->cargo_firma_id);
+        $this->assertSame('Aprobado', $firma->estado_revision);
     }
 
     public function test_anular_duplicados_de_cargo_legacy_persiste_anulado(): void

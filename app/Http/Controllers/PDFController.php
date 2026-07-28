@@ -51,7 +51,7 @@ class PDFController extends Controller
             'empleados.categoria',
             'empleados.departamento_academico',
             'actividades.empleados',
-            'entidad_contraparte.instrumento_formalizacion',
+            'entidad_contraparte_proyecto.entidadContraparte', 'entidad_contraparte_proyecto.instrumentoFormalizacion',
             'anexos',
             'aporteInstitucional',
             'objetivosEspecificos.resultados',

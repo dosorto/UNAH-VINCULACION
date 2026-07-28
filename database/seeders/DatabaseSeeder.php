@@ -15,7 +15,6 @@ use Database\Seeders\Personal\PermisosSeeder;
 use Database\Seeders\EjesPrioritariosUnahSeeder;
 use Database\Seeders\Proyecto\MetasContribuyeSeeder;
 use Database\Seeders\ENF\EnfCatalogoSeeder;
-use Database\Seeders\ProyectoTransformacionDigitalSeeder;
 
 
 
@@ -41,10 +40,5 @@ class DatabaseSeeder extends Seeder
         $this->call(MetasContribuyeSeeder::class);
         $this->call(EnfCatalogoSeeder::class);
 
-        // Opt-in para desarrollo: NEXO_SEED_TRANSFORMACION_DIGITAL=true php artisan db:seed
-        if (app()->environment(['local', 'testing'])
-            && filter_var(env('NEXO_SEED_TRANSFORMACION_DIGITAL', false), FILTER_VALIDATE_BOOL)) {
-            $this->call(ProyectoTransformacionDigitalSeeder::class);
-        }
     }
 }

@@ -5,12 +5,12 @@ namespace App\Services\InformeFinal;
 use App\Models\Estado\EstadoProyecto;
 use App\Models\InformeFinal\InformeFinalProyecto;
 use App\Models\Proyecto\DocumentoProyecto;
-use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Services\Proyecto\DocumentoProyectoWorkflowService;
 
 class InformeFinalProyectoWorkflowService
 {
@@ -18,6 +18,7 @@ class InformeFinalProyectoWorkflowService
         private readonly InformeFinalProyectoInitializer $initializer,
         private readonly InformeFinalProyectoValidator $validator,
         private readonly InformeFinalPdfGenerator $pdfGenerator,
+        private readonly DocumentoProyectoWorkflowService $documentos,
     ) {}
 
     public function usuarioPuedeGestionar(Proyecto $proyecto, ?User $user): bool
@@ -91,7 +92,11 @@ class InformeFinalProyectoWorkflowService
         );
     }
 
-    public function enviarInformeFinal(InformeFinalProyecto $informe, User $user): DocumentoProyecto
+    public function enviarInformeFinal(
+        InformeFinalProyecto $informe,
+        User $user,
+        array $usuariosElegidosPorEtapa = []
+    ): DocumentoProyecto
     {
         abort_unless($this->puedeEnviarInformeFinal($informe, $user), 403);
         $this->validator->validateForCompletion($informe->fresh());
@@ -109,7 +114,7 @@ class InformeFinalProyectoWorkflowService
         }
 
         try {
-            return DB::transaction(function () use ($informe, $user, $path): DocumentoProyecto {
+            return DB::transaction(function () use ($informe, $user, $path, $usuariosElegidosPorEtapa): DocumentoProyecto {
                 $informeBloqueado = InformeFinalProyecto::query()->whereKey($informe->id)->lockForUpdate()->firstOrFail();
                 $proyecto = Proyecto::query()->whereKey($informeBloqueado->proyecto_id)->lockForUpdate()->firstOrFail();
                 $informeBloqueado->setRelation('proyecto', $proyecto);
@@ -124,16 +129,20 @@ class InformeFinalProyectoWorkflowService
                     ->first();
 
                 if (! $documento) {
-                    return $proyecto->registrarDocumentoDesdeFlujo('Informe Final', $path, $user->empleado);
+                    return $this->documentos->iniciar(
+                        $proyecto,
+                        'Informe Final',
+                        $path,
+                        $user,
+                        $usuariosElegidosPorEtapa
+                    );
                 }
 
                 if ($documento->estado?->tipoestado?->nombre !== 'Subsanacion') {
                     throw new \RuntimeException('El informe final ya inició su flujo de cierre.');
                 }
 
-                $this->reenviarDocumentoRechazado($proyecto, $documento, $path, $user);
-
-                return $documento->fresh();
+                return $this->documentos->reenviarDesdeSubsanacion($proyecto, $documento, $path, $user);
             });
         } catch (\Throwable $exception) {
             Storage::disk('public')->delete($path);
@@ -154,7 +163,6 @@ class InformeFinalProyectoWorkflowService
 
             return [
                 'visible' => $visible,
-                'advertencia_interna' => false,
                 'estado' => null,
                 'etiqueta' => 'Pendiente de creación',
                 'accion' => $visible && $this->puedeIniciarInformeFinal($proyecto, $user) ? 'crear' : null,
@@ -163,7 +171,6 @@ class InformeFinalProyectoWorkflowService
         }
 
         $visible = $proyecto->puedeMostrarCierreProyecto($user);
-        $advertenciaInterna = ! $visible && $proyecto->usuarioPuedeAuditarInformeFinal($user);
         $estado = $informe->estadoFlujo();
         $firmaActual = $informe->firmaCierreActual();
         $documento = $informe->documentoCierre;
@@ -194,7 +201,6 @@ class InformeFinalProyectoWorkflowService
 
         return [
             'visible' => $visible,
-            'advertencia_interna' => $advertenciaInterna,
             'informe' => $informe,
             'estado' => $estado,
             'etiqueta' => $etiqueta,
@@ -210,50 +216,6 @@ class InformeFinalProyectoWorkflowService
                 ? $documento?->estado?->comentario
                 : null,
         ];
-    }
-
-    private function reenviarDocumentoRechazado(
-        Proyecto $proyecto,
-        DocumentoProyecto $documento,
-        string $path,
-        User $user
-    ): void {
-        $ultimoCiclo = (int) $documento->firma_documento()
-            ->whereNotNull('flujo_aprobacion_etapa_id')
-            ->whereNull('deleted_at')
-            ->max('revision_ciclo');
-        $firmas = $documento->firma_documento()
-            ->where('revision_ciclo', $ultimoCiclo)
-            ->whereNotNull('flujo_aprobacion_etapa_id')
-            ->whereNull('deleted_at')
-            ->orderBy('orden_revision')
-            ->get();
-        $rechazadas = $firmas->where('estado_revision', 'Rechazado');
-
-        if ($rechazadas->count() !== 1) {
-            throw new \RuntimeException('No se pudo identificar una única etapa rechazada para reenviar el informe.');
-        }
-
-        $empleadosPorEtapa = $firmas
-            ->reject(fn (FirmaProyecto $firma) => $firma->estado_revision === 'Anulado')
-            ->mapWithKeys(fn (FirmaProyecto $firma) => [
-                (int) $firma->flujo_aprobacion_etapa_id => (int) $firma->empleado_id,
-            ])->all();
-        $firmasNuevas = $proyecto->crearNuevoCicloDesdeFirmaRechazada($rechazadas->first(), $empleadosPorEtapa);
-        $primera = $firmasNuevas->first();
-        $tipoEstadoId = $primera?->cargo_firma()->value('tipo_estado_id');
-
-        if (! $primera || ! $tipoEstadoId) {
-            throw new \RuntimeException('No se pudo iniciar el nuevo ciclo de cierre.');
-        }
-
-        $documento->update(['documento_url' => $path]);
-        $documento->estado_documento()->create([
-            'empleado_id' => $user->empleado->id,
-            'tipo_estado_id' => $tipoEstadoId,
-            'fecha' => now(),
-            'comentario' => sprintf('[Cierre INF-001] Informe final reenviado a la etapa "%s".', $primera->etapa_nombre),
-        ]);
     }
 
     private function registrarMovimientoProyecto(Proyecto $proyecto, User $user, string $comentario): void

@@ -21,24 +21,31 @@ class EtapaFlujoPendiente extends Mailable implements ShouldQueue
     public string $nombreProyecto;
     public string $nombreEtapa;
     public string $actionUrl;
+    public string $tipoRegistro;
 
     public function __construct(
         public Proyecto $proyecto,
         public User $revisor,
         public FlujoAprobacionEtapa $etapa,
+        ?string $tipoRegistro = null,
     ) {
         $this->nombreRevisor = $revisor->empleado?->nombre_completo
             ?? ($revisor->nombre . ' ' . ($revisor->apellido ?? ''));
         $this->nombreProyecto = $proyecto->nombre_proyecto ?? 'Proyecto sin nombre';
         $this->nombreEtapa = $etapa->nombre;
-        $this->actionUrl = url('/');
+        $this->tipoRegistro = $tipoRegistro ?: 'proyecto';
+        $this->actionUrl = $revisor->can('proyectos.informes')
+            ? route('listarInformesSolicitado')
+            : ($revisor->can('docente.proyectos')
+                ? route('SolicitudProyectosDocente')
+                : url('/'));
     }
 
     public function envelope(): Envelope
     {
         return new Envelope(
             from: new Address(env('MAIL_FROM_ADDRESS', 'nexo@unah.edu.hn'), env('APP_NAME', 'NEXO')),
-            subject: 'Revisión pendiente — ' . $this->nombreProyecto,
+            subject: 'Revisión pendiente de '.$this->tipoRegistro.' — '.$this->nombreProyecto,
         );
     }
 
@@ -50,6 +57,7 @@ class EtapaFlujoPendiente extends Mailable implements ShouldQueue
                 'nombreRevisor' => $this->nombreRevisor,
                 'nombreProyecto' => $this->nombreProyecto,
                 'nombreEtapa' => $this->nombreEtapa,
+                'tipoRegistro' => $this->tipoRegistro,
                 'actionUrl' => $this->actionUrl,
                 'appName' => env('APP_NAME', 'NEXO'),
             ],
