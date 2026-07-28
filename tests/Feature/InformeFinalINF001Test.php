@@ -179,6 +179,43 @@ class InformeFinalINF001Test extends TestCase
         $this->livewireComponent($user,$project)->assertSet('general.lecciones_aprendidas',$text);
     }
 
+    public function test_los_campos_de_reflexion_heredados_son_informativos_y_no_pueden_ser_alterados(): void
+    {
+        [$user,$project]=$this->scenario();
+        $origen = [
+            'definicion_problema' => 'Problema vigente del proyecto',
+            'impacto_deseado' => 'Transformación vigente del proyecto',
+            'alineamiento_reforma' => 'Respuesta vigente a la reforma',
+            'bibliografia' => 'Bibliografía vigente del proyecto',
+        ];
+        $project->update($origen);
+        $project = $project->fresh();
+        $report = $this->initialize($project,$user);
+
+        $this->assertSame($origen['definicion_problema'],$report->problema_inicial);
+        $this->assertSame($origen['impacto_deseado'],$report->transformacion_lograda);
+        $this->assertSame($origen['alineamiento_reforma'],$report->respuesta_reforma_universitaria);
+        $this->assertSame($origen['bibliografia'],$report->bibliografia);
+
+        $component = $this->livewireComponent($user,$project)
+            ->set('currentStep',6)
+            ->assertSet('general.problema_inicial',$origen['definicion_problema'])
+            ->assertSet('general.transformacion_lograda',$origen['impacto_deseado'])
+            ->assertSet('general.respuesta_reforma_universitaria',$origen['alineamiento_reforma'])
+            ->assertSet('general.bibliografia',$origen['bibliografia']);
+
+        $component->set('general.problema_inicial','Valor manipulado desde el navegador')
+            ->call('guardarBorrador')
+            ->assertSet('general.problema_inicial',$origen['definicion_problema'])
+            ->set('general.lecciones_aprendidas','Lección propia del informe')
+            ->call('guardarBorrador')
+            ->assertSet('general.lecciones_aprendidas','Lección propia del informe');
+
+        $this->assertDatabaseHas('informe_final_proyectos',['id'=>$report->id,'problema_inicial'=>$origen['definicion_problema'],'lecciones_aprendidas'=>'Lección propia del informe']);
+        $this->livewireComponent($user,$project)
+            ->assertSet('general.problema_inicial',$origen['definicion_problema']);
+    }
+
     public function test_autoguardado_no_valida_todo_y_guarda_fila_dinamica(): void
     {
         [$user,$project]=$this->scenario();
@@ -846,13 +883,13 @@ class InformeFinalINF001Test extends TestCase
     public function test_se_calcula_aporte_contraparte(): void
     {
         [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user); $report->presupuestoDetalles()->create(['fuente'=>'CONTRAPARTE','concepto'=>'Personal','cantidad'=>2,'costo_unitario'=>1000]); $report->load('presupuestoDetalles');
-        $this->assertSame(2000.0,$report->total_contraparte);
+        $this->assertSame(68792.44,$report->total_contraparte);
     }
 
     public function test_se_calcula_ejecucion_total(): void
     {
         [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user); $report->update(['aporte_beneficiarios'=>500,'otros_aportes'=>250]); $report->load('presupuestoDetalles');
-        $this->assertSame(212750.0,$report->ejecucion_total);
+        $this->assertSame(279542.44,$report->ejecucion_total);
     }
 
     public function test_se_guardan_anexos(): void

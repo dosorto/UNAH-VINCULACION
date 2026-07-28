@@ -10,6 +10,7 @@ use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Estado\TipoEstado;
+use App\Models\InformeFinal\InformeFinalDocumentoRevision;
 use App\Concerns\ReenviaDesdeSubsanacionPorEtapa;
 use App\Support\Notification;
 use App\Services\InformeFinal\InformeFinalProyectoWorkflowService;
@@ -18,6 +19,7 @@ use App\Services\Proyecto\ProyectoWorkflowService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -279,6 +281,14 @@ class HistorialProyecto extends Component
         ->orderByDesc('created_at')
         ->get();
 
+        $documentosRevisionInformeFinal = Schema::hasTable('informe_final_documentos_revision')
+            ? InformeFinalDocumentoRevision::query()
+                ->whereHas('informe', fn ($query) => $query->where('proyecto_id', $proyecto->id))
+                ->with(['firma', 'usuario'])
+                ->get()
+                ->groupBy('estado_proyecto_id')
+            : collect();
+
         $diasTranscurridos = $proyecto->created_at
             ? (int) $proyecto->created_at->diffInDays(now())
             : 0;
@@ -298,6 +308,7 @@ class HistorialProyecto extends Component
         return view('livewire.docente.proyectos.historial-proyecto', compact(
             'proyecto',
             'estados',
+            'documentosRevisionInformeFinal',
             'diasTranscurridos',
             'cierreInformeFinal',
             'fichaActualizacionPendiente',

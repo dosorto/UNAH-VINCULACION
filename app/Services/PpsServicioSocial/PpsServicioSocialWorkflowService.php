@@ -44,7 +44,7 @@ class PpsServicioSocialWorkflowService
     public function enviarARevision(PpsServicioSocial $registro, ?int $userId): PpsServicioSocial
     {
         return DB::transaction(function () use ($registro, $userId): PpsServicioSocial {
-            $registro->refresh();
+            $registro = PpsServicioSocial::query()->lockForUpdate()->findOrFail($registro->id);
 
             if ($registro->estado !== PpsServicioSocial::ESTADO_BORRADOR) {
                 throw new RuntimeException('Solo los registros en estado borrador pueden enviarse a revision.');
@@ -67,9 +67,11 @@ class PpsServicioSocialWorkflowService
 
             $empleadosPorEtapa = $this->resolverEmpleadosPorEtapa($registro, $etapas);
 
-            $registro->sincronizarFirmasDeEtapasDelFlujo($empleadosPorEtapa, $flujo, 1);
+            $ciclo = $this->obtenerCicloParaEnvio($registro);
 
-            $primeraFirma = $registro->firmaActualDeEtapasDelFlujo((int) $flujo->id, 1);
+            $registro->sincronizarFirmasDeEtapasDelFlujo($empleadosPorEtapa, $flujo, $ciclo);
+
+            $primeraFirma = $registro->firmaActualDeEtapasDelFlujo((int) $flujo->id, $ciclo);
 
             if (!$primeraFirma) {
                 throw new RuntimeException('No se pudo iniciar el flujo de revision de PPS/SS.');
@@ -118,7 +120,7 @@ class PpsServicioSocialWorkflowService
     public function aprobarEtapa(PpsServicioSocial $registro, ?int $userId, ?object $user = null): PpsServicioSocial
     {
         return DB::transaction(function () use ($registro, $userId, $user): PpsServicioSocial {
-            $registro->refresh();
+            $registro = PpsServicioSocial::query()->lockForUpdate()->findOrFail($registro->id);
             $this->validarUsuarioRevisor($registro, $userId, $user);
 
             $firmaActual = $this->firmaActualODie($registro);
@@ -209,7 +211,7 @@ class PpsServicioSocialWorkflowService
     public function rechazar(PpsServicioSocial $registro, string $motivo, ?int $userId, ?object $user = null): PpsServicioSocial
     {
         return DB::transaction(function () use ($registro, $motivo, $userId, $user): PpsServicioSocial {
-            $registro->refresh();
+            $registro = PpsServicioSocial::query()->lockForUpdate()->findOrFail($registro->id);
             $this->validarUsuarioRevisor($registro, $userId, $user);
 
             $motivo = trim($motivo);
@@ -271,7 +273,7 @@ class PpsServicioSocialWorkflowService
     public function iniciarSubsanacion(PpsServicioSocial $registro, ?int $userId): PpsServicioSocial
     {
         return DB::transaction(function () use ($registro, $userId): PpsServicioSocial {
-            $registro->refresh();
+            $registro = PpsServicioSocial::query()->lockForUpdate()->findOrFail($registro->id);
             $this->validarPuedeSubsanar($registro, $userId);
 
             $empleadoActor = $userId ? User::find($userId)?->empleado : null;
@@ -374,13 +376,47 @@ class PpsServicioSocialWorkflowService
             throw new RuntimeException('El registro no tiene un flujo asignado.');
         }
 
-        $firma = $registro->firmaActualDeEtapasDelFlujo((int) $registro->flujo_aprobacion_id, 1);
+        $firma = $registro->firmaActualDeEtapasDelFlujo(
+            (int) $registro->flujo_aprobacion_id,
+            $this->obtenerCicloVigente($registro)
+        );
 
         if (!$firma) {
             throw new RuntimeException('El registro no esta en una etapa revisable del flujo PPS/SS.');
         }
 
         return $firma;
+    }
+
+    public function obtenerUltimoCiclo(PpsServicioSocial $registro): int
+    {
+        return max(0, (int) $registro->firma_proyecto()
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->max('revision_ciclo'));
+    }
+
+    public function obtenerCicloVigente(PpsServicioSocial $registro): int
+    {
+        return max(1, $this->obtenerUltimoCiclo($registro));
+    }
+
+    public function esReenvioDespuesDeRechazo(PpsServicioSocial $registro): bool
+    {
+        $ciclo = $this->obtenerUltimoCiclo($registro);
+
+        return $ciclo > 0 && $registro->firma_proyecto()
+            ->where('revision_ciclo', $ciclo)
+            ->where('estado_revision', 'Rechazado')
+            ->exists();
+    }
+
+    public function obtenerCicloParaEnvio(PpsServicioSocial $registro): int
+    {
+        $ultimoCiclo = $this->obtenerUltimoCiclo($registro);
+
+        return $this->esReenvioDespuesDeRechazo($registro)
+            ? $ultimoCiclo + 1
+            : max(1, $ultimoCiclo ?: 1);
     }
 
     private function flujoPpsQuery(): Builder

@@ -10,6 +10,8 @@ use App\Http\Controllers\ENF\EnfPresupuestoController;
 use App\Http\Controllers\ENF\EnfSistematizacionController;
 use App\Http\Controllers\PDFController;
 use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalProyectoController;
+use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalDocumentoRevisionController;
+use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalAnexoController;
 use App\Http\Controllers\Proyectos\InformeIntermedio\InformeIntermedioProyectoController;
 use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialAnexoController;
 use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialPdfController;
@@ -308,6 +310,10 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('informes-finales.inf-001.print');
         Route::get('/informes-finales/{informe}/inf-001/pdf', [InformeFinalProyectoController::class, 'pdf'])
             ->name('informes-finales.inf-001.pdf');
+        Route::get('/informes-finales/documentos-revision/{documento}/descargar', [InformeFinalDocumentoRevisionController::class, 'descargar'])
+            ->name('informes-finales.documentos-revision.descargar');
+        Route::get('/informes-finales/anexos/{anexo}', [InformeFinalAnexoController::class, 'mostrar'])
+            ->name('informes-finales.anexos.mostrar');
         Route::get('/informes-intermedios/{informe}/ver', [InformeIntermedioProyectoController::class, 'ver'])
             ->name('informes-intermedios.ver');
         Route::get('/informes-intermedios/{informe}/descargar', [InformeIntermedioProyectoController::class, 'descargar'])

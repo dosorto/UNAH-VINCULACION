@@ -24,11 +24,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class ProyectosPorFirmar extends Component
 {
     use WithPagination;
+    use WithFileUploads;
     use ResolvesFirmasPendientes;
     use ResuelveFirmaPorEtapa;
 
@@ -48,6 +50,7 @@ class ProyectosPorFirmar extends Component
     public ?int $reasignarFirmaId = null;
     public ?int $reasignarNuevoUsuarioId = null;
     public array $reasignarCandidatos = [];
+    public $documentoRevision = null;
 
     public function mount($docente = null): void
     {
@@ -64,6 +67,23 @@ class ProyectosPorFirmar extends Component
     {
         $this->viewModal = false;
         $this->viewId = null;
+        $this->documentoRevision = null;
+    }
+
+    public function getDocumentosRevisionViewProperty()
+    {
+        $firma = $this->viewId ? FirmaProyecto::find($this->viewId) : null;
+        $documento = $firma?->documento_proyecto;
+
+        if ($documento?->tipo_documento !== 'Informe Final') {
+            return collect();
+        }
+
+        return \App\Models\InformeFinal\InformeFinalDocumentoRevision::query()
+            ->whereHas('informe', fn (Builder $query) => $query->where('proyecto_id', $documento->proyecto_id))
+            ->with(['firma.flujoEtapa', 'usuario'])
+            ->latest()
+            ->get();
     }
 
     public function puedeReasignar(?FirmaProyecto $firma): bool
@@ -203,12 +223,51 @@ class ProyectosPorFirmar extends Component
     public function aprobar(int $id): void
     {
         $firma = $this->authorizeFirmaAction($id);
+        $informe = $firma->firmable_type === DocumentoProyecto::class
+            && $firma->documento_proyecto?->tipo_documento === 'Informe Final'
+            ? \App\Models\InformeFinal\InformeFinalProyecto::where('proyecto_id', $firma->documento_proyecto->proyecto_id)->first()
+            : null;
 
+        if ($this->documentoRevision) {
+            abort_unless($informe, 422, 'El adjunto de revisión solo está disponible para INF-001.');
+            $this->validate(['documentoRevision' => ['nullable', 'file', 'mimes:pdf', 'mimetypes:application/pdf', 'max:10240']]);
+        }
+
+        $rutaDocumentoRevision = null;
+        if ($this->documentoRevision) {
+            $rutaDocumentoRevision = $this->documentoRevision->store('informes-finales/'.$informe->id.'/revisiones', 'local');
+        }
+
+        try {
         if ($firma->usaFlujoPorEtapa()) {
-            $this->aprobarFirmaPorEtapa($firma->fresh(), Auth::user());
+            $nombreOriginal = $this->documentoRevision?->getClientOriginalName();
+            $mimeType = $this->documentoRevision?->getMimeType();
+            $tamanoBytes = $this->documentoRevision?->getSize();
+            $firmaAprobada = $this->aprobarFirmaPorEtapa($firma->fresh(), Auth::user(), function (FirmaProyecto $firmaAprobada) use ($rutaDocumentoRevision, $informe, $nombreOriginal, $mimeType, $tamanoBytes): void {
+                if (! $rutaDocumentoRevision) {
+                    return;
+                }
+
+                $movimiento = $firmaAprobada->documento_proyecto?->estado_documento()->latest('id')->first();
+                abort_unless($movimiento, 422, 'No se pudo asociar el documento al movimiento de revisión.');
+
+                $informe->documentosRevision()->create([
+                    'firma_proyecto_id' => $firmaAprobada->id,
+                    'estado_proyecto_id' => $movimiento->id,
+                    'flujo_aprobacion_id' => $firmaAprobada->flujo_aprobacion_id,
+                    'flujo_aprobacion_etapa_id' => $firmaAprobada->flujo_aprobacion_etapa_id,
+                    'subido_por' => Auth::id(),
+                    'revision_ciclo' => $firmaAprobada->revision_ciclo,
+                    'ruta' => $rutaDocumentoRevision,
+                    'nombre_original' => $nombreOriginal,
+                    'mime_type' => $mimeType,
+                    'tamano_bytes' => $tamanoBytes,
+                ]);
+            });
 
             $this->viewModal = false;
             $this->viewId = null;
+            $this->documentoRevision = null;
 
             Notification::make()->title('¡Realizado!')->body('Proyecto Aprobado correctamente')->info()->send();
 
@@ -273,6 +332,12 @@ class ProyectosPorFirmar extends Component
         $this->viewId = null;
 
         Notification::make()->title('¡Realizado!')->body('Proyecto Aprobado correctamente')->info()->send();
+        } catch (\Throwable $exception) {
+            if ($rutaDocumentoRevision) {
+                \Illuminate\Support\Facades\Storage::disk('local')->delete($rutaDocumentoRevision);
+            }
+            throw $exception;
+        }
     }
 
     public function aprobarEnfRevision(int $revisionId): void

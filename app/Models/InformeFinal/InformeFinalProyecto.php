@@ -55,6 +55,7 @@ class InformeFinalProyecto extends Model
     public function ods(): HasMany { return $this->hasMany(InformeFinalOds::class); }
     public function presupuestoDetalles(): HasMany { return $this->hasMany(InformeFinalPresupuestoDetalle::class); }
     public function anexos(): HasMany { return $this->hasMany(InformeFinalAnexo::class); }
+    public function documentosRevision(): HasMany { return $this->hasMany(InformeFinalDocumentoRevision::class); }
     public function documentoCierre(): HasOne
     {
         return $this->hasOne(DocumentoProyecto::class, 'proyecto_id', 'proyecto_id')

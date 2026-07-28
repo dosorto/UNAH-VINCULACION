@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\Mail;
  */
 trait ResuelveFirmaPorEtapa
 {
-    protected function aprobarFirmaPorEtapa(FirmaProyecto $firma, User $user): FirmaProyecto
+    protected function aprobarFirmaPorEtapa(FirmaProyecto $firma, User $user, ?\Closure $despuesDeAprobar = null): FirmaProyecto
     {
         return DB::transaction(function () use ($firma, $user): FirmaProyecto {
             $firmaBloqueada = FirmaProyecto::query()
@@ -84,6 +84,10 @@ trait ResuelveFirmaPorEtapa
                 $this->registrarEstadoSiguienteDeFirmaPorEtapa($firmaAprobada, $siguienteFirma, $user);
             } else {
                 $this->finalizarFlujoDeFirmaPorEtapa($firmaAprobada, $user);
+            }
+
+            if ($despuesDeAprobar) {
+                $despuesDeAprobar($firmaAprobada->fresh());
             }
 
             return $firmaAprobada->fresh();

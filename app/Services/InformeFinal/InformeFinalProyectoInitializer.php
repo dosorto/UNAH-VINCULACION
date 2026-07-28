@@ -139,6 +139,7 @@ class InformeFinalProyectoInitializer
             foreach ($contrapartesProyecto as $pivot) {
                 $catalogo = $pivot->entidadContraparte;
                 $informe->contrapartes()->create([
+                    'origen' => 'PLANIFICADO',
                     'entidad_contraparte_id' => $catalogo->id,
                     'nombre' => $catalogo->nombre,
                     'tipo' => $this->tipoContraparte($catalogo->tipo_entidad),
@@ -187,13 +188,15 @@ class InformeFinalProyectoInitializer
                     'unidad' => 'aporte',
                     'cantidad' => 1,
                     'costo_unitario' => $total,
+                    'origen_fondos' => 'registro_proyecto',
                 ]);
             }
+            $this->sincronizarDetalleAporteContraparte($informe);
 
             foreach ($proyecto->ods as $ods) {
                 $metas = $proyecto->metasContribuye->where('ods_id', $ods->id);
                 if ($metas->isEmpty()) {
-                    $informe->ods()->create(['ods_id' => $ods->id, 'nivel_contribucion' => 'directa']);
+                    $informe->ods()->create(['ods_id' => $ods->id, 'nivel_contribucion' => 'directa', 'origen' => 'PLANIFICADO']);
                 } else {
                     foreach ($metas as $meta) {
                         $informe->ods()->create([
@@ -201,6 +204,7 @@ class InformeFinalProyectoInitializer
                             'meta_contribuye_id' => $meta->id,
                             'meta_ods' => trim('Meta '.$meta->numero_meta.': '.$meta->descripcion),
                             'nivel_contribucion' => 'directa',
+                            'origen' => 'PLANIFICADO',
                         ]);
                     }
                 }
@@ -237,6 +241,7 @@ class InformeFinalProyectoInitializer
         $this->sincronizarEstudiantesConGrupos($informe, $proyecto);
         $this->sincronizarRolesEquipo($informe, $proyecto);
         $this->sincronizarAporteMonetarioContraparte($informe, $proyecto);
+        $this->sincronizarDetalleAporteContraparte($informe);
         $this->sincronizarInstrumentosContraparte($informe, $proyecto);
         $informe->load(['estudiantes', 'voluntarios', 'actividades.participantes']);
 
@@ -307,7 +312,7 @@ class InformeFinalProyectoInitializer
         foreach ($empleados->unique('id')->values() as $orden => $empleado) {
             $snapshot->participantes()->firstOrCreate(
                 ['tipo' => 'docente', 'empleado_id' => $empleado->id],
-                ['nombre' => $empleado->nombre_completo, 'rol' => $orden === 0 ? 'Responsable principal' : 'Participante', 'es_responsable' => $orden === 0, 'orden' => $orden]
+                ['nombre' => $empleado->nombre_completo, 'rol' => $orden === 0 ? 'Responsable principal' : 'Participante', 'es_responsable' => $orden === 0, 'orden' => $orden, 'origen' => 'PLANIFICADO', 'estado_participacion' => 'activo']
             );
         }
     }
@@ -399,6 +404,30 @@ class InformeFinalProyectoInitializer
         if ((float) $contraparte->aporte_monetario === 0.0) {
             $contraparte->update(['aporte_monetario' => $aporte]);
         }
+    }
+
+    /** La fila agregada al presupuesto es la única fuente del subtotal de contraparte. */
+    private function sincronizarDetalleAporteContraparte(InformeFinalProyecto $informe): void
+    {
+        $total = round($informe->contrapartes()
+            ->where('existe_apoyo', true)
+            ->get()
+            ->sum(fn ($contraparte) => (float) $contraparte->aporte_monetario + (float) $contraparte->aporte_especie), 2);
+
+        if (! $informe->contrapartes()->exists()) {
+            return;
+        }
+
+        $informe->presupuestoDetalles()->updateOrCreate(
+            ['origen_fondos' => 'contrapartes_proyecto'],
+            [
+                'fuente' => 'CONTRAPARTE',
+                'concepto' => 'Aporte contraparte',
+                'unidad' => 'aporte',
+                'cantidad' => 1,
+                'costo_unitario' => $total,
+            ]
+        );
     }
 
 

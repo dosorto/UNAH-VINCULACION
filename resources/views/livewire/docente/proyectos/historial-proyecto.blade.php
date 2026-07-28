@@ -261,6 +261,13 @@
                                     @endif
                                     {{ $estado->comentario ? ' - ' . $estado->comentario : '' }}
                                 </p>
+                                @foreach($documentosRevisionInformeFinal->get($estado->id, collect()) as $documentoRevision)
+                                    <div class="mt-2 rounded-md bg-gray-50 p-2 text-sm dark:bg-gray-800">
+                                        <p class="font-medium">Documento de revisión · {{ $documentoRevision->firma?->etapa_nombre ?: 'Etapa de revisión' }}</p>
+                                        <p class="text-xs text-gray-500">{{ $documentoRevision->nombre_original }} · Ciclo {{ $documentoRevision->revision_ciclo }} · {{ $documentoRevision->usuario?->name }}</p>
+                                        <a class="text-blue-700 underline" href="{{ route('informes-finales.documentos-revision.descargar', $documentoRevision) }}">Ver PDF</a>
+                                    </div>
+                                @endforeach
                             </li>
                         @endforeach
                     </ol>
