@@ -52,7 +52,7 @@
     };
 @endphp
 
-<div class="section-title">IV. FIRMAS. </div>
+<div class="section-title">IX. FIRMAS</div>
 
 @if ($filasFirmas->isEmpty())
     <table class="table_datos4">
@@ -85,17 +85,17 @@
                         $sello = $resolverRutaFirma(optional(optional($fila['firma'])->sello)->ruta_storage);
                         $firmaImg = $resolverRutaFirma(optional(optional($fila['firma'])->firma)->ruta_storage);
                     @endphp
-                    <td class="full-width" colspan="2" style="{{ ($sello || $firmaImg) ? 'height: 200px; width: 200px;' : '' }}">
+                    <td class="full-width signature-image-cell" colspan="2">
                         @if ($sello)
-                            <img src="{{ $sello }}" alt="" width="200px">
+                            <img src="{{ $sello }}" alt="Sello de aprobación">
                         @endif
                         @if ($firmaImg)
-                            <img src="{{ $firmaImg }}" alt="" width="200px">
+                            <img src="{{ $firmaImg }}" alt="Firma de aprobación">
                         @endif
                         @if ($sello || $firmaImg)
                             <br>
-                            <p style="font-family: 'Courier New', Courier, monospace; font-size: 12px; line-height: 1.4; letter-spacing: 0.4px;">
-                                Firmado digitalmente </br>
+                            <p class="signature-digital-caption">
+                                Firmado digitalmente<br>
                                 {{ $formatearFechaFirma(optional($fila['firma'])->fecha_firma) }}
                             </p>
                         @endif
@@ -104,11 +104,9 @@
             </tr>
             <tr>
                 @foreach ($par as $fila)
-                    <th class="header" colspan="2">Firma y sello {{ $fila['etapa']->nombre }}
-                        <br>
-                        <p>
-                            {{ $formatearFechaFirma(optional($fila['firma'])->fecha_firma) }}
-                        </p>
+                    <th class="header" colspan="2">
+                        Firma y sello — {{ $fila['etapa']->nombre }}<br>
+                        <span>{{ $formatearFechaFirma(optional($fila['firma'])->fecha_firma) }}</span>
                     </th>
                 @endforeach
             </tr>

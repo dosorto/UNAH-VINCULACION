@@ -2,10 +2,9 @@
 
 namespace Database\Seeders\Demografia;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use App\Models\Demografia\Municipio;
 use App\Models\Demografia\Departamento;
+use App\Models\Demografia\Municipio;
+use Illuminate\Database\Seeder;
 
 class MunicipioSeeder extends Seeder
 {
@@ -357,13 +356,13 @@ class MunicipioSeeder extends Seeder
             ],
         ];
 
-        // Inserta cada municipio asociado al departamento correspondiente
+        // Mantiene cada municipio una sola vez dentro de su departamento.
         foreach ($municipios as $nombreDepartamento => $listaMunicipios) {
             $departamento = $departamentos->get($nombreDepartamento);
 
             if ($departamento) {
                 foreach ($listaMunicipios as $nombreMunicipio) {
-                    Municipio::create([
+                    Municipio::firstOrCreate([
                         'departamento_id' => $departamento->id,
                         'nombre' => $nombreMunicipio,
                     ]);
@@ -374,5 +373,3 @@ class MunicipioSeeder extends Seeder
         }
     }
 }
-
-

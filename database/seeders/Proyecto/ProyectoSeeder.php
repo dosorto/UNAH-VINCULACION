@@ -3,22 +3,17 @@
 namespace Database\Seeders\Proyecto;
 
 use App\Models\Constancia\TipoConstancia;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use App\Models\Proyecto\Proyecto;
-use App\Models\Proyecto\Modalidad;
-use App\Models\Proyecto\Categoria;
-use App\Models\Proyecto\Od;
-use App\Models\Estado\EstadoProyecto;
-use App\Models\Proyecto\CargoFirma;
 use App\Models\Estado\TipoEstado;
-use App\Models\Proyecto\TipoCargoFirma;
+use App\Models\Proyecto\CargoFirma;
+use App\Models\Proyecto\Categoria;
 use App\Models\Proyecto\FlujoAprobacion;
+use App\Models\Proyecto\Modalidad;
+use App\Models\Proyecto\Od;
+use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\TipoCargoFirma;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-
-
-
 
 class ProyectoSeeder extends Seeder
 {
@@ -27,25 +22,23 @@ class ProyectoSeeder extends Seeder
      */
     public function run(): void
     {
-        // crear los cargos de las firmas 
+        // crear los cargos de las firmas
         $cargosFirmas = collect(config('nexo.cargos_firmas'));
 
         $cargosFirmas->each(function ($cargo) {
-            TipoCargoFirma::create([
+            TipoCargoFirma::firstOrCreate([
                 'nombre' => $cargo,
             ]);
         });
-
 
         // crear los tipos de estado para el proyecto
         $estadosProyecto = collect(config('nexo.estados_proyecto'));
 
         $estadosProyecto->each(function ($estado) {
-            TipoEstado::create([
+            TipoEstado::firstOrCreate([
                 'nombre' => $estado,
             ]);
         });
-
 
         // crear los cargos de las firmas de los proyectos
         $fimasCargos = collect(config('nexo.firmas_cargos'));
@@ -53,7 +46,7 @@ class ProyectoSeeder extends Seeder
         $fimasCargos->each(function ($firma) {
             $firmas = collect($firma);
             $firmas->each(function ($firma) {
-                CargoFirma::create([
+                CargoFirma::firstOrCreate([
                     'descripcion' => $firma['descripcion'], // Cambiado a notación de arreglo
                     'tipo_cargo_firma_id' => TipoCargoFirma::where('nombre', $firma['cargo'])->first()->id,
                     'tipo_estado_id' => TipoEstado::where('nombre', $firma['estado'])->first()->id,
@@ -91,7 +84,7 @@ class ProyectoSeeder extends Seeder
             if (! $cargo) {
                 return;
             }
- 
+
             $code = Str::of($stage['cargo'])->upper()->replaceMatches('/[^A-Z0-9]+/', '_')->trim('_')->value();
 
             $defaultFlow->etapas()->create([
@@ -103,65 +96,61 @@ class ProyectoSeeder extends Seeder
             ]);
         });
 
-
-        Modalidad::insert([
-            ['nombre' => 'Transdisciplinar'],
-            ['nombre' => 'Interdisciplinar'],
-            ['nombre' => 'Multidisciplinar'],
-            ['nombre' => 'Unidisciplinar'],
-        ]);
+        collect([
+            'Transdisciplinar',
+            'Interdisciplinar',
+            'Multidisciplinar',
+            'Unidisciplinar',
+        ])->each(fn (string $nombre) => Modalidad::firstOrCreate(['nombre' => $nombre]));
 
         // crear las categorias para el proyecto
         //  Categorías de proyectos de vinculación
-        //Educación No Formal y/o Continua ______
-        //APS
-        //Desarrollo Regional
-        //Desarrollo local
-        //Investigación-acción-participación
-        //Asesoría técnico-científica
-        //Artísticos-culturales
-        //Otras áreas
+        // Educación No Formal y/o Continua ______
+        // APS
+        // Desarrollo Regional
+        // Desarrollo local
+        // Investigación-acción-participación
+        // Asesoría técnico-científica
+        // Artísticos-culturales
+        // Otras áreas
 
-        Categoria::insert([
-           // ['nombre' => 'APS'],
-            ['nombre' => 'Desarrollo Regional'],
-            ['nombre' => 'Desarrollo Local'],
-           /* ['nombre' => 'Volunt. Académico'],
-            ['nombre' => 'Seguim. a egresados'],
-            ['nombre' => 'I + D + i'],
-            ['nombre' => 'Cultural'],
-            ['nombre' => 'Comunicación'],*/
-        ]);
+        collect([
+            'Desarrollo Regional',
+            'Desarrollo Local',
+        ])->each(fn (string $nombre) => Categoria::firstOrCreate(['nombre' => $nombre]));
 
         /*
             ODS en el que se enmarca el proyecto: Utilizar el documento Agenda 20/45 y objetivos de desarrollo sostenible.
         */
 
-        Od::insert([
-            ['nombre' => '1. Fin de la pobreza'],
-            ['nombre' => '2. Hambre cero'],
-            ['nombre' => '3. Salud y bienestar'],
-            ['nombre' => '4. Educación de calidad'],
-            ['nombre' => '5. Igualdad de género'],
-            ['nombre' => '6. Agua limpia y saneamiento'],
-            ['nombre' => '7. Energía asequible y no contaminante'],
-            ['nombre' => '8. Trabajo decente y crecimiento económico'],
-            ['nombre' => '9. Industria, innovación e infraestructura'],
-            ['nombre' => '10. Reducción de las desigualdades'],
-            ['nombre' => '11. Ciudades y comunidades sostenibles'],
-            ['nombre' => '12. Producción y consumo responsables'],
-            ['nombre' => '13. Acción por el clima'],
-            ['nombre' => '14. Vida submarina'],
-            ['nombre' => '15. Vida de ecosistemas terrestres'],
-            ['nombre' => '16. Paz, justicia e instituciones sólidas'],
-            ['nombre' => '17. Alianzas para lograr los objetivos'],
-        ]);
+        collect([
+            '1. Fin de la pobreza',
+            '2. Hambre cero',
+            '3. Salud y bienestar',
+            '4. Educación de calidad',
+            '5. Igualdad de género',
+            '6. Agua limpia y saneamiento',
+            '7. Energía asequible y no contaminante',
+            '8. Trabajo decente y crecimiento económico',
+            '9. Industria, innovación e infraestructura',
+            '10. Reducción de las desigualdades',
+            '11. Ciudades y comunidades sostenibles',
+            '12. Producción y consumo responsables',
+            '13. Acción por el clima',
+            '14. Vida submarina',
+            '15. Vida de ecosistemas terrestres',
+            '16. Paz, justicia e instituciones sólidas',
+            '17. Alianzas para lograr los objetivos',
+        ])->each(fn (string $nombre) => Od::firstOrCreate(['nombre' => $nombre]));
 
-        TipoConstancia::insert([
+        collect([
             ['nombre' => 'Inscripcion', 'descripcion' => 'Se emite cuando un proyecto alcanza el estado en curso'],
             ['nombre' => 'Finalizacion', 'descripcion' => 'Se emite cuando un proyecto alcanza el estado Finalizado'],
             ['nombre' => 'Actualizacion', 'descripcion' => 'Se emite cuando hay cambios en el proyecto'],
             ['nombre' => 'Dictamen', 'descripcion' => 'Se emite el dictamen del proyecto'],
-        ]);
+        ])->each(fn (array $tipo) => TipoConstancia::updateOrCreate(
+            ['nombre' => $tipo['nombre']],
+            ['descripcion' => $tipo['descripcion']],
+        ));
     }
 }

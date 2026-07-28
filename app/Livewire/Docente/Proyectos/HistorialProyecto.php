@@ -8,6 +8,7 @@ use App\Models\Proyecto\EmpleadoProyecto;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FirmaProyecto;
+use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Estado\TipoEstado;
 use App\Concerns\ReenviaDesdeSubsanacionPorEtapa;
 use App\Support\Notification;
@@ -283,6 +284,11 @@ class HistorialProyecto extends Component
             : 0;
 
         $cierreInformeFinal = $workflow->resumenCierre($proyecto, auth()->user());
+        $fichaActualizacionPendiente = FichaActualizacion::query()
+            ->where('proyecto_id', $proyecto->id)
+            ->pendientes()
+            ->latest('id')
+            ->first();
         $informeIntermedio = $intermedioWorkflow->resumen($proyecto, auth()->user());
         $opcionesDestinatariosIntermedio = $proyectoWorkflow
             ->destinatariosSeleccionables($proyecto, Proyecto::FLUJO_INFORME_INTERMEDIO);
@@ -294,6 +300,7 @@ class HistorialProyecto extends Component
             'estados',
             'diasTranscurridos',
             'cierreInformeFinal',
+            'fichaActualizacionPendiente',
             'informeIntermedio',
             'opcionesDestinatariosIntermedio',
             'opcionesDestinatariosCierre'

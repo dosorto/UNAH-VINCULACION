@@ -10,6 +10,13 @@
 </head>
 
 <body style="background-color: #f2f2f2; ">
+@php
+    $coordinadorFicha = $proyecto->coordinador_proyecto->first()?->empleado;
+    $todosLosIntegrantesEnEseMomento = collect();
+    $idsEmpleadosNuevosFicha = collect();
+    $todosLosIntegrantesInternacionalesEnEseMomento = collect();
+    $idsInternacionalesNuevosFicha = collect();
+@endphp
 <details class="rounded-xl border border-gray-200 bg-white shadow-sm">
     <summary class="flex cursor-pointer list-none items-center justify-between gap-x-4 px-6 py-4">
         <span class="text-sm font-semibold text-gray-900">Ficha de actualización</span>
@@ -53,13 +60,13 @@
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el nombre completo"
-                                    value="{{ $proyecto->coordinador->nombre_completo }}" disabled>
+                                    value="{{ $coordinadorFicha?->nombre_completo ?? 'No registrado' }}" disabled>
                             </td>
                             <td class="sub-header">No. de empleado:</td>
                             <td class="full-width" colspan="">
                                 <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el número de empleado"
-                                    value="{{ $proyecto->coordinador->numero_empleado }}" disabled>
+                                    value="{{ $coordinadorFicha?->numero_empleado ?? 'No registrado' }}" disabled>
                             </td>
                         </tr>
                         <tr>
@@ -67,13 +74,13 @@
                             <td class="full-width" colspan="1">
                                 <input disabled type="text" class="input-field"
                                     placeholder="Ingrese el correo electrónico"
-                                    value="{{ $proyecto->coordinador->user->email }}" disabled>
+                                    value="{{ $coordinadorFicha?->user?->email ?? 'No registrado' }}" disabled>
                             </td>
                             <td class="sub-header">Celular:</td>
                             <td class="full-width" colspan="1">
                                 <input disabled type="email" class="input-field"
                                     placeholder="Ingrese el número de celular"
-                                    value="{{ $proyecto->coordinador->celular }}" disabled>
+                                    value="{{ $coordinadorFicha?->celular ?? 'No registrado' }}" disabled>
                             </td>
                         </tr>
                         <tr>
@@ -81,13 +88,13 @@
                             <td class="full-width" colspan="1">
                                 <input disabled type="email" class="input-field"
                                     placeholder="Ingrese el número de celular"
-                                    value="{{ $proyecto->coordinador->categoria->nombre }}" disabled>
+                                    value="{{ $coordinadorFicha?->categoria?->nombre ?? 'No registrado' }}" disabled>
                             </td>
                             <td class="sub-header">Departamento:</td>
                             <td class="full-width" colspan="1">
                                 <input disabled type="email" class="input-field"
                                     placeholder="Ingrese el número de celular"
-                                    value="{{ $proyecto->coordinador->departamento_academico->nombre }}" disabled>
+                                    value="{{ $coordinadorFicha?->departamento_academico?->nombre ?? 'No registrado' }}" disabled>
                             </td>
                         </tr>
                     </table>
@@ -215,17 +222,17 @@
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el correo electrónico"
-                                        value="{{ $integrante->user->email }}" disabled>
+                                        value="{{ $integrante->user?->email ?? 'No registrado' }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese la categoría"
-                                        value="{{ $integrante->categoria->nombre }}" disabled>
+                                        value="{{ $integrante->categoria?->nombre ?? 'No registrado' }}" disabled>
                                 </td>
                                 <td class="full-width" colspan="1">
                                     <input disabled type="text" class="input-field"
                                         placeholder="Ingrese el departamento"
-                                        value="{{ $integrante->departamento_academico->nombre }}" disabled>
+                                        value="{{ $integrante->departamento_academico?->nombre ?? 'No registrado' }}" disabled>
                                 </td>
                             </tr>
                         @empty

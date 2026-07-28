@@ -100,6 +100,7 @@ class PermisosSeeder extends Seeder
             'proyectos.historial', 'proyectos.solicitados', 'proyectos.aprobados',
             'proyectos.firma-director', 'proyectos.informes', 'proyectos.revision-final',
             'configuracion.logs', 'configuracion.perfil', 'configuracion.contactanos', 'configuracion.flujos',
+            'configuracion.integraciones-api',
             'inicio.admin', 'dashboard.admin',
             'constancia.constancias',
             'unidad-academica.campus', 'unidad-academica.carrera',

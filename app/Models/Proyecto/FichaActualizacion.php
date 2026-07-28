@@ -4,6 +4,7 @@ namespace App\Models\Proyecto;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class FichaActualizacion extends Model
 {
@@ -75,6 +76,21 @@ class FichaActualizacion extends Model
     public function obtenerUltimoEstado()
     {
         return $this->estado_proyecto()->orderBy('created_at', 'desc')->first();
+    }
+
+    /**
+     * Una ficha deja de bloquear nuevas solicitudes solamente al finalizar o
+     * rechazarse. Los demás estados legacy representan una solicitud vigente.
+     */
+    public function scopePendientes(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('estado_proyecto', function (Builder $estado): void {
+            $estado->where('es_actual', true)
+                ->whereHas('tipoestado', fn (Builder $tipo) => $tipo->whereIn('nombre', [
+                    'Actualizacion realizada',
+                    'Rechazado',
+                ]));
+        });
     }
 
     // Obtener el estado actual

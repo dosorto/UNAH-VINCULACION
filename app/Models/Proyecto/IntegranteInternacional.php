@@ -17,6 +17,7 @@ class IntegranteInternacional extends Model
     protected $fillable = [
         'nombre_completo',
         'documento_identidad', // Pasaporte
+        'rtn',
         'sexo',
         'email',
         'pais',
@@ -33,6 +34,8 @@ class IntegranteInternacional extends Model
         return LogOptions::defaults()
             ->logOnly([
                 'nombre_completo',
+                'documento_identidad',
+                'rtn',
                 'email',
                 'pais',
                 'institucion'

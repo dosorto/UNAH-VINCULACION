@@ -16,6 +16,7 @@ use App\Models\Proyecto\EjesPrioritariosUnah;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\MetaContribuye;
 use App\Models\Proyecto\IntegranteInternacional;
+use App\Models\Proyecto\EntidadContraparte;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Demografia\Municipio;
 use App\Models\Estado\TipoEstado;
@@ -103,17 +104,19 @@ class CreateProyectoVinculacion extends Component
     public array $nuevoIntegranteInternacional = [
         'nombre_completo' => '',
         'documento_identidad' => '',
+        'rtn' => '',
         'sexo' => '',
         'email' => '',
         'pais' => '',
         'institucion' => '',
     ];
 
-    // Step 3 – modal
+    // Step 3 – modal contraparte (refactor in-place)
     public bool $showContraparteModal = false;
     public ?int $editContraparteIndex = null;
+    public $contraparteSeleccionadoId = null;
     public array $nuevaContraparte = [
-        'nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '',
+        'rtn' => '', 'nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '',
         'cargo_contacto' => '', 'telefono' => '', 'correo' => '',
         'descripcion_acuerdos' => '', 'instrumento_formalizacion' => [],
     ];
@@ -324,7 +327,7 @@ class CreateProyectoVinculacion extends Component
         $record->load([
             'objetivosEspecificos.resultados',
             'estudiante_proyecto',
-            'entidad_contraparte.instrumento_formalizacion',
+            'entidad_contraparte_proyecto.entidadContraparte', 'entidad_contraparte_proyecto.instrumentoFormalizacion',
             'actividades.empleados',
             'presupuesto',
             'ods',
@@ -384,19 +387,22 @@ class CreateProyectoVinculacion extends Component
         $this->integrante_internacional_proyecto = $record->integrante_internacional_proyecto->map(fn($ip) => [
             'integrante_internacional_id' => $ip->integrante_internacional_id,
             'nombre' => $ip->integranteInternacional?->nombre_completo ?? '',
+            'rtn' => $ip->integranteInternacional?->rtn ?? '',
             'pais' => $ip->integranteInternacional?->pais ?? '',
             'institucion' => $ip->integranteInternacional?->institucion ?? '',
         ])->toArray();
 
-        $this->entidad_contraparte = $record->entidad_contraparte->map(fn($e) => [
-            'nombre' => $e->nombre,
-            'tipo_entidad' => $e->tipo_entidad,
-            'nombre_contacto' => $e->nombre_contacto,
-            'cargo_contacto' => $e->cargo_contacto,
-            'telefono' => $e->telefono,
-            'correo' => $e->correo,
-            'descripcion_acuerdos' => $e->descripcion_acuerdos,
-            'instrumento_formalizacion' => $e->instrumento_formalizacion->map(fn($i) => [
+        $this->entidad_contraparte = $record->entidad_contraparte_proyecto()->with('entidadContraparte')->with('instrumentoFormalizacion')->get()->map(fn($pivot) => [
+            'entidad_contraparte_id' => $pivot->entidad_contraparte_id,
+            'rtn' => $pivot->entidadContraparte?->rtn ?? '',
+            'nombre' => $pivot->entidadContraparte?->nombre ?? '',
+            'tipo_entidad' => $pivot->entidadContraparte?->tipo_entidad ?? '',
+            'nombre_contacto' => $pivot->nombre_contacto ?? $pivot->entidadContraparte?->nombre_contacto ?? '',
+            'cargo_contacto' => $pivot->cargo_contacto ?? $pivot->entidadContraparte?->cargo_contacto ?? '',
+            'telefono' => $pivot->telefono ?? $pivot->entidadContraparte?->telefono ?? '',
+            'correo' => $pivot->correo ?? $pivot->entidadContraparte?->correo ?? '',
+            'descripcion_acuerdos' => $pivot->descripcion_acuerdos ?? '',
+            'instrumento_formalizacion' => ($pivot->instrumentoFormalizacion ?? collect())->map(fn($i) => [
                 'id' => $i->id,
                 'tipo_documento' => $this->normalizeInstrumentoTipo($i->tipo_documento) ?: $i->tipo_documento,
                 'documento_url' => $i->documento_url,
@@ -986,6 +992,10 @@ class CreateProyectoVinculacion extends Component
             'metasDisponibles',
             'showInternacionalModal',
             'nuevoIntegranteInternacional',
+            'showContraparteModal',
+            'editContraparteIndex',
+            'contraparteSeleccionadoId',
+            'nuevaContraparte',
             'showActividadModal',
             'editActividadIndex',
             'nuevaActividad',
@@ -1286,8 +1296,8 @@ class CreateProyectoVinculacion extends Component
 
     private function guardarContrapartesParcial(Proyecto $record): void
     {
-        $record->entidad_contraparte()->each(fn($entidad) => $entidad->instrumento_formalizacion()->delete());
-        $record->entidad_contraparte()->delete();
+        $record->entidad_contraparte_proyecto()->each(fn($pivot) => $pivot->instrumentoFormalizacion()->delete());
+        $record->entidad_contraparte_proyecto()->delete();
 
         foreach ($this->entidad_contraparte as $ci => $item) {
             $tieneDatos = collect([
@@ -1304,7 +1314,22 @@ class CreateProyectoVinculacion extends Component
                 continue;
             }
 
-            $entidad = $record->entidad_contraparte()->create([
+            $catalogoId = $item['entidad_contraparte_id'] ?? null;
+            if (!$catalogoId) {
+                $catalogo = EntidadContraparte::create([
+                    'rtn' => $item['rtn'] ?? null,
+                    'nombre' => $item['nombre'] ?: 'Contraparte sin nombre',
+                    'tipo_entidad' => $item['tipo_entidad'] ?? '',
+                    'nombre_contacto' => $item['nombre_contacto'] ?? '',
+                    'cargo_contacto' => $item['cargo_contacto'] ?? '',
+                    'telefono' => $item['telefono'] ?? '',
+                    'correo' => $item['correo'] ?? '',
+                ]);
+                $catalogoId = $catalogo->id;
+            }
+
+            $pivot = $record->entidad_contraparte_proyecto()->create([
+                'entidad_contraparte_id' => $catalogoId,
                 'nombre' => $item['nombre'] ?: 'Contraparte sin nombre',
                 'tipo_entidad' => $item['tipo_entidad'] ?? '',
                 'nombre_contacto' => $item['nombre_contacto'] ?? '',
@@ -1328,7 +1353,7 @@ class CreateProyectoVinculacion extends Component
                     continue;
                 }
 
-                $instrumento = $entidad->instrumento_formalizacion()->create([
+                $instrumento = $pivot->instrumentoFormalizacion()->create([
                     'tipo_documento' => $tipo,
                     'documento_url' => $documentoUrl,
                     'nombre_archivo' => $nombreArchivo,
@@ -1985,11 +2010,26 @@ class CreateProyectoVinculacion extends Component
         if ($hasMissingDocument) return;
 
         $record = $this->ensureRecord();
-        $record->entidad_contraparte()->each(fn($e) => $e->instrumento_formalizacion()->delete());
-        $record->entidad_contraparte()->delete();
+        $record->entidad_contraparte_proyecto()->each(fn($pivot) => $pivot->instrumentoFormalizacion()->delete());
+        $record->entidad_contraparte_proyecto()->delete();
         foreach ($this->entidad_contraparte as $ci => $item) {
             if (!empty($item['nombre'])) {
-                $entidad = $record->entidad_contraparte()->create([
+                $catalogoId = $item['entidad_contraparte_id'] ?? null;
+                if (!$catalogoId) {
+                    $catalogo = EntidadContraparte::create([
+                        'rtn' => $item['rtn'] ?? null,
+                        'nombre' => $item['nombre'],
+                        'tipo_entidad' => $item['tipo_entidad'] ?? '',
+                        'nombre_contacto' => $item['nombre_contacto'] ?? '',
+                        'cargo_contacto' => $item['cargo_contacto'] ?? '',
+                        'telefono' => $item['telefono'] ?? '',
+                        'correo' => $item['correo'] ?? '',
+                    ]);
+                    $catalogoId = $catalogo->id;
+                }
+
+                $pivot = $record->entidad_contraparte_proyecto()->create([
+                    'entidad_contraparte_id' => $catalogoId,
                     'nombre' => $item['nombre'],
                     'tipo_entidad' => $item['tipo_entidad'] ?? '',
                     'nombre_contacto' => $item['nombre_contacto'] ?? '',
@@ -1998,6 +2038,7 @@ class CreateProyectoVinculacion extends Component
                     'correo' => $item['correo'] ?? '',
                     'descripcion_acuerdos' => $item['descripcion_acuerdos'] ?? '',
                 ]);
+
                 foreach ($item['instrumento_formalizacion'] ?? [] as $ii => $inst) {
                     if (!empty($inst['tipo_documento'])) {
                         $documentoUrl = $this->normalizarRutaDocumentoInstrumento($inst['documento_url'] ?? null);
@@ -2006,11 +2047,10 @@ class CreateProyectoVinculacion extends Component
                             $nombreArchivo = $inst['documento_file']->getClientOriginalName();
                             $documentoUrl = $this->guardarDocumentoInstrumento($inst['documento_file']);
                         }
-                        $instrumento = $entidad->instrumento_formalizacion()->create([
-                            'tipo_documento' => $inst['tipo_documento'],
-                            'documento_url' => $documentoUrl,
-                            'nombre_archivo' => $nombreArchivo,
-                        ]);
+                            $instrumento = $pivot->instrumentoFormalizacion()->create([
+                                'documento_url' => $documentoUrl,
+                                'nombre_archivo' => $nombreArchivo,
+                            ]);
                         $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['id'] = $instrumento->id;
                         $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['documento_url'] = $documentoUrl;
                         $this->entidad_contraparte[$ci]['instrumento_formalizacion'][$ii]['nombre_archivo'] = $nombreArchivo;
@@ -2434,6 +2474,7 @@ class CreateProyectoVinculacion extends Component
         $data = $this->validate([
             'nuevoIntegranteInternacional.nombre_completo' => 'required|string|max:255',
             'nuevoIntegranteInternacional.documento_identidad' => 'required|string|max:255',
+            'nuevoIntegranteInternacional.rtn' => 'nullable|string|size:14|regex:/^\d{14}$/',
             'nuevoIntegranteInternacional.sexo' => 'nullable|in:masculino,femenino,otro',
             'nuevoIntegranteInternacional.email' => 'required|email|max:255',
             'nuevoIntegranteInternacional.pais' => ['required', 'string', 'max:255', Rule::exists('pais', 'nombre')->whereNull('deleted_at')],
@@ -2443,15 +2484,21 @@ class CreateProyectoVinculacion extends Component
         $data = [
             'nombre_completo' => trim($data['nombre_completo']),
             'documento_identidad' => trim($data['documento_identidad']),
+            'rtn' => !empty($data['rtn']) ? trim($data['rtn']) : null,
             'sexo' => $data['sexo'] ?: null,
             'email' => trim($data['email']),
             'pais' => trim($data['pais']),
             'institucion' => trim($data['institucion']),
         ];
 
-        $integrante = IntegranteInternacional::where('email', $data['email'])
-            ->orWhere('documento_identidad', $data['documento_identidad'])
-            ->first();
+        $query = IntegranteInternacional::where('email', $data['email'])
+            ->orWhere('documento_identidad', $data['documento_identidad']);
+
+        if (!empty($data['rtn'])) {
+            $query->orWhere('rtn', $data['rtn']);
+        }
+
+        $integrante = $query->first();
 
         if (!$integrante) {
             $integrante = IntegranteInternacional::create($data);
@@ -2468,7 +2515,7 @@ class CreateProyectoVinculacion extends Component
 
     protected function resetNuevoIntegranteInternacional(): void
     {
-        $this->nuevoIntegranteInternacional = ['nombre_completo' => '', 'documento_identidad' => '', 'sexo' => '', 'email' => '', 'pais' => '', 'institucion' => ''];
+        $this->nuevoIntegranteInternacional = ['nombre_completo' => '', 'documento_identidad' => '', 'rtn' => '', 'sexo' => '', 'email' => '', 'pais' => '', 'institucion' => ''];
     }
 
     protected function selectIntegranteInternacional(int $integranteId, array $data = []): void
@@ -2480,6 +2527,7 @@ class CreateProyectoVinculacion extends Component
         $this->integrante_internacional_proyecto[] = [
             'integrante_internacional_id' => $integranteId,
             'nombre' => $integrante?->nombre_completo ?? ($data['nombre_completo'] ?? ''),
+            'rtn' => $integrante?->rtn ?? ($data['rtn'] ?? ''),
             'pais' => $integrante?->pais ?? ($data['pais'] ?? ''),
             'institucion' => $integrante?->institucion ?? ($data['institucion'] ?? ''),
         ];
@@ -2496,11 +2544,12 @@ class CreateProyectoVinculacion extends Component
     public function openContraparteModal(?int $index = null): void
     {
         $this->resetErrorBag();
+        $this->contraparteSeleccionadoId = null;
         if ($index !== null && isset($this->entidad_contraparte[$index])) {
             $this->nuevaContraparte = $this->entidad_contraparte[$index];
             $this->editContraparteIndex = $index;
         } else {
-            $this->nuevaContraparte = ['nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '', 'cargo_contacto' => '', 'telefono' => '', 'correo' => '', 'descripcion_acuerdos' => '', 'instrumento_formalizacion' => []];
+            $this->nuevaContraparte = ['rtn' => '', 'nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '', 'cargo_contacto' => '', 'telefono' => '', 'correo' => '', 'descripcion_acuerdos' => '', 'instrumento_formalizacion' => []];
             $this->editContraparteIndex = null;
         }
         $this->showContraparteModal = true;
@@ -2510,6 +2559,39 @@ class CreateProyectoVinculacion extends Component
     {
         $this->showContraparteModal = false;
         $this->editContraparteIndex = null;
+        $this->contraparteSeleccionadoId = null;
+    }
+
+    public function agregarContraparteExistente(): void
+    {
+        $this->resetErrorBag('contraparteSeleccionadoId');
+
+        if (empty($this->contraparteSeleccionadoId)) {
+            $this->addError('contraparteSeleccionadoId', 'Seleccione una contraparte existente.');
+            return;
+        }
+
+        $catalogo = EntidadContraparte::find($this->contraparteSeleccionadoId);
+
+        if (!$catalogo) {
+            $this->addError('contraparteSeleccionadoId', 'La contraparte seleccionada no existe.');
+            return;
+        }
+
+        $yaExiste = collect($this->entidad_contraparte)
+            ->contains(fn($item) => (int)($item['entidad_contraparte_id'] ?? 0) === (int)$catalogo->id);
+
+        $this->contraparteSeleccionadoId = null;
+
+        if ($yaExiste) {
+            Notification::make()->title('Contraparte ya agregada')->info()->send();
+            return;
+        }
+
+        $this->selectContraparte((int)$catalogo->id);
+        $this->showContraparteModal = false;
+        $this->resetNuevaContraparte();
+        $this->autoGuardarBorrador();
     }
 
     public function saveContraparte(): void
@@ -2518,12 +2600,13 @@ class CreateProyectoVinculacion extends Component
         $this->normalizarInstrumentosContraparteModal();
 
         $this->validate([
+            'nuevaContraparte.rtn' => 'nullable|string|size:14|regex:/^\d{14}$/',
             'nuevaContraparte.nombre' => 'required|string|max:255',
             'nuevaContraparte.tipo_entidad' => 'required|string',
             'nuevaContraparte.nombre_contacto' => 'nullable|string|max:255',
             'nuevaContraparte.cargo_contacto' => 'nullable|string|max:255',
             'nuevaContraparte.telefono' => 'nullable|string|max:255',
-            'nuevaContraparte.correo' => 'required|email|max:255',
+            'nuevaContraparte.correo' => 'nullable|email|max:255',
             'nuevaContraparte.descripcion_acuerdos' => 'nullable|string',
             'nuevaContraparte.instrumento_formalizacion.*.tipo_documento' => 'nullable|in:' . implode(',', $this->instrumentoTipos),
             'nuevaContraparte.instrumento_formalizacion.*.documento_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
@@ -2533,10 +2616,57 @@ class CreateProyectoVinculacion extends Component
             return;
         }
 
+        $data = [
+            'rtn' => !empty($this->nuevaContraparte['rtn']) ? trim($this->nuevaContraparte['rtn']) : null,
+            'nombre' => trim($this->nuevaContraparte['nombre']),
+            'tipo_entidad' => $this->nuevaContraparte['tipo_entidad'],
+            'nombre_contacto' => $this->nuevaContraparte['nombre_contacto'] ?? '',
+            'cargo_contacto' => $this->nuevaContraparte['cargo_contacto'] ?? '',
+            'telefono' => $this->nuevaContraparte['telefono'] ?? '',
+            'correo' => $this->nuevaContraparte['correo'] ?? '',
+            'descripcion_acuerdos' => $this->nuevaContraparte['descripcion_acuerdos'] ?? '',
+            'instrumento_formalizacion' => $this->nuevaContraparte['instrumento_formalizacion'] ?? [],
+        ];
+
+        // Reúso: buscar por rtn (si se ingresa), nombre+correo
+        $query = EntidadContraparte::where('nombre', $data['nombre']);
+        if (!empty($data['rtn'])) {
+            $query->orWhere('rtn', $data['rtn']);
+        }
+        if (!empty($data['correo'])) {
+            $query->orWhere('correo', $data['correo']);
+        }
+        $catalogo = $query->first();
+
+        if (!$catalogo) {
+            $catalogo = EntidadContraparte::create([
+                'rtn' => $data['rtn'],
+                'nombre' => $data['nombre'],
+                'tipo_entidad' => $data['tipo_entidad'],
+                'nombre_contacto' => $data['nombre_contacto'],
+                'cargo_contacto' => $data['cargo_contacto'],
+                'telefono' => $data['telefono'],
+                'correo' => $data['correo'],
+            ]);
+        }
+
+        $item = [
+            'entidad_contraparte_id' => $catalogo->id,
+            'rtn' => $data['rtn'] ?? $catalogo->rtn,
+            'nombre' => $catalogo->nombre,
+            'tipo_entidad' => $catalogo->tipo_entidad,
+            'nombre_contacto' => $catalogo->nombre_contacto,
+            'cargo_contacto' => $catalogo->cargo_contacto,
+            'telefono' => $catalogo->telefono,
+            'correo' => $catalogo->correo,
+            'descripcion_acuerdos' => $data['descripcion_acuerdos'],
+            'instrumento_formalizacion' => $data['instrumento_formalizacion'],
+        ];
+
         if ($this->editContraparteIndex !== null) {
-            $this->entidad_contraparte[$this->editContraparteIndex] = $this->nuevaContraparte;
+            $this->entidad_contraparte[$this->editContraparteIndex] = $item;
         } else {
-            $this->entidad_contraparte[] = $this->nuevaContraparte;
+            $this->entidad_contraparte[] = $item;
         }
 
         $this->autoGuardarBorrador();
@@ -2548,6 +2678,33 @@ class CreateProyectoVinculacion extends Component
     {
         array_splice($this->entidad_contraparte, $i, 1);
         $this->autoGuardarBorrador();
+    }
+
+    protected function selectContraparte(int $catalogoId, array $data = []): void
+    {
+        foreach ($this->entidad_contraparte as $item) {
+            if ((int)($item['entidad_contraparte_id'] ?? 0) === $catalogoId) return;
+        }
+
+        $catalogo = EntidadContraparte::find($catalogoId);
+        $this->entidad_contraparte[] = [
+            'entidad_contraparte_id' => $catalogoId,
+            'rtn' => $catalogo?->rtn ?? ($data['rtn'] ?? ''),
+            'nombre' => $catalogo?->nombre ?? ($data['nombre'] ?? ''),
+            'tipo_entidad' => $catalogo?->tipo_entidad ?? ($data['tipo_entidad'] ?? ''),
+            'nombre_contacto' => $catalogo?->nombre_contacto ?? ($data['nombre_contacto'] ?? ''),
+            'cargo_contacto' => $catalogo?->cargo_contacto ?? ($data['cargo_contacto'] ?? ''),
+            'telefono' => $catalogo?->telefono ?? ($data['telefono'] ?? ''),
+            'correo' => $catalogo?->correo ?? ($data['correo'] ?? ''),
+            'descripcion_acuerdos' => $data['descripcion_acuerdos'] ?? '',
+            'instrumento_formalizacion' => [],
+        ];
+    }
+
+    protected function resetNuevaContraparte(): void
+    {
+        $this->nuevaContraparte = ['rtn' => '', 'nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '', 'cargo_contacto' => '', 'telefono' => '', 'correo' => '', 'descripcion_acuerdos' => '', 'instrumento_formalizacion' => []];
+        $this->contraparteSeleccionadoId = null;
     }
 
     public function addInstrumentoToModal(): void
@@ -3540,6 +3697,7 @@ class CreateProyectoVinculacion extends Component
             'empleadosModal' => $empleadosModal,
             'responsablesOptions' => $this->responsableOptions($record),
             'internacionales' => IntegranteInternacional::orderBy('nombre_completo')->get()->mapWithKeys(fn($i) => [$i->id => "{$i->nombre_completo} ({$i->pais})"]),
+            'contrapartesExistentes' => EntidadContraparte::orderBy('nombre')->get()->mapWithKeys(fn($c) => [$c->id => "{$c->nombre} ({$c->tipo_entidad})"]),
             'paises' => Pais::orderBy('nombre')->pluck('nombre', 'id'),
             'tiposParticipacionEstudiante' => $this->tipoParticipacionEstudianteOpciones,
             'asignaturasOpciones' => $this->asignaturasDisponibles,

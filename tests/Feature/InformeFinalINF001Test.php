@@ -16,6 +16,7 @@ use App\Models\Proyecto\Actividad;
 use App\Models\Proyecto\AporteInstitucional;
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\EntidadContraparte;
+use App\Models\Proyecto\EntidadContraparteProyecto;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\InstrumenFormalizacion;
@@ -595,8 +596,8 @@ class InformeFinalINF001Test extends TestCase
     public function test_instrumento_de_contraparte_se_precarga_en_anexos_sin_duplicar_archivo(): void
     {
         [$user,$project]=$this->scenario();
-        $entidad=$project->entidad_contraparte()->firstOrFail();
-        $instrumento=InstrumenFormalizacion::create(['entidad_contraparte_id'=>$entidad->id,'tipo_documento'=>'carta_intenciones','documento_url'=>'instrumentos/carta-intenciones.pdf','nombre_archivo'=>'carta-intenciones.pdf']);
+        $pivot=$project->entidad_contraparte_proyecto()->firstOrFail();
+        $instrumento=InstrumenFormalizacion::create(['entidad_contraparte_id'=>$pivot->id,'tipo_documento'=>'carta_intenciones','documento_url'=>'instrumentos/carta-intenciones.pdf','nombre_archivo'=>'carta-intenciones.pdf']);
         $report=$this->initialize($project,$user);
         $this->assertDatabaseHas('informe_final_anexos',['informe_final_proyecto_id'=>$report->id,'instrumento_formalizacion_id'=>$instrumento->id,'categoria'=>'instrumento_contraparte','archivo'=>'instrumentos/carta-intenciones.pdf','origen'=>'PROYECTO']);
         $this->initialize($project,$user);
@@ -1266,7 +1267,8 @@ class InformeFinalINF001Test extends TestCase
         $now=now(); $campus=DB::table('campus')->insertGetId(['nombre_campus'=>'UNAH Choluteca '.uniqid(),'direccion'=>'Choluteca','telefono'=>'00000000','url'=>'https://unah.edu.hn','created_at'=>$now,'updated_at'=>$now]);
         $center=DB::table('centro_facultad')->insertGetId(['nombre'=>'UNAH Choluteca','es_facultad'=>false,'siglas'=>'CURLP','campus_id'=>$campus,'created_at'=>$now,'updated_at'=>$now]);
         DB::table('proyecto_centro_facultad')->insert(['proyecto_id'=>$project->id,'centro_facultad_id'=>$center,'created_at'=>$now,'updated_at'=>$now]);
-        EntidadContraparte::create(['proyecto_id'=>$project->id,'nombre'=>'Asociación Comunitaria de Desarrollo','tipo_entidad'=>'sociedad_civil','nombre_contacto'=>'Representante comunitario','cargo_contacto'=>'Presidencia','correo'=>'asociacion@example.test','telefono'=>'00000000','descripcion_acuerdos'=>'Acompañar y validar los resultados']);
+        $catalogo=EntidadContraparte::create(['nombre'=>'Asociación Comunitaria de Desarrollo','tipo_entidad'=>'sociedad_civil','nombre_contacto'=>'Representante comunitario','cargo_contacto'=>'Presidencia','correo'=>'asociacion@example.test','telefono'=>'00000000']);
+        EntidadContraparteProyecto::create(['proyecto_id'=>$project->id,'entidad_contraparte_id'=>$catalogo->id,'descripcion_acuerdos'=>'Acompañar y validar los resultados']);
         $objective=ObjetivoEspecifico::create(['proyecto_id'=>$project->id,'descripcion'=>'Fortalecer la gestión comunitaria','orden'=>1]);
         ResultadoEsperado::create(['objetivo_especifico_id'=>$objective->id,'nombre_resultado'=>'Aplicación informática disponible','nombre_indicador'=>'Una aplicación implementada','nombre_medio_verificacion'=>'Acta de entrega','plazo'=>'corto_plazo','orden'=>1]);
         Actividad::create(['proyecto_id'=>$project->id,'descripcion'=>'Levantamiento de requerimientos','fecha_inicio'=>'2026-01-12','fecha_finalizacion'=>'2026-02-15','horas'=>80]);

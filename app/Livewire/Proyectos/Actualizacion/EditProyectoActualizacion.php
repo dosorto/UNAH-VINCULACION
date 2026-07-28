@@ -68,6 +68,12 @@ class EditProyectoActualizacion extends Component
             return;
         }
 
+        if ($this->fichaPendiente($proyecto)) {
+            Notification::make()->title('Ficha pendiente')->body('Ya existe una ficha de actualización pendiente para este proyecto. Debe completar o esperar la resolución de esa solicitud antes de crear otra.')->warning()->send();
+            redirect()->route('FichasActualizacionDocente');
+            return;
+        }
+
         $this->record = $proyecto;
         $this->loadEstudianteProyecto();
     }
@@ -250,6 +256,11 @@ class EditProyectoActualizacion extends Component
 
     public function save(): void
     {
+        if ($this->fichaPendiente($this->record)) {
+            Notification::make()->title('Ficha pendiente')->body('Ya existe una ficha de actualización pendiente para este proyecto. Debe completar o esperar la resolución de esa solicitud antes de crear otra.')->warning()->send();
+            return;
+        }
+
         $hayBajas = EquipoEjecutorBaja::where('proyecto_id', $this->record->id)
             ->whereNull('ficha_actualizacion_id')->where('estado_baja', 'pendiente')->exists();
 
@@ -361,5 +372,10 @@ class EditProyectoActualizacion extends Component
                 ->orderBy('nombre_completo')->pluck('nombre_completo', 'id'),
             'internacionalesDisponibles' => IntegranteInternacional::orderBy('nombre_completo')->get()->mapWithKeys(fn($i) => [$i->id => "{$i->nombre_completo} ({$i->pais})"]),
         ]);
+    }
+
+    private function fichaPendiente(Proyecto $proyecto): bool
+    {
+        return $proyecto->ficha_actualizacion()->pendientes()->exists();
     }
 }

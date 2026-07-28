@@ -124,30 +124,21 @@ class ProyectoWorkflowService
             return false;
         }
 
-        $ultimoCiclo = (int) $proyecto->firma_proyecto()
-            ->where('flujo_aprobacion_id', $flujo->id)
-            ->whereIn('flujo_aprobacion_etapa_id', $etapas->pluck('id'))
-            ->whereNull('deleted_at')
-            ->max('revision_ciclo');
-
-        if ($ultimoCiclo < 1) {
-            return false;
-        }
-
         $firmas = $proyecto->firma_proyecto()
             ->where('flujo_aprobacion_id', $flujo->id)
-            ->where('revision_ciclo', $ultimoCiclo)
             ->whereIn('flujo_aprobacion_etapa_id', $etapas->pluck('id'))
             ->whereNull('deleted_at')
+            ->orderByDesc('revision_ciclo')
+            ->orderByDesc('id')
             ->get()
             ->groupBy('flujo_aprobacion_etapa_id');
 
         return $etapas->every(function (FlujoAprobacionEtapa $etapa) use ($firmas): bool {
-            $activas = $firmas->get($etapa->id, collect())
+            $ultimaDecisionVigente = $firmas->get($etapa->id, collect())
                 ->reject(fn ($firma): bool => $firma->estado_revision === 'Anulado')
-                ->values();
+                ->first();
 
-            return $activas->count() === 1 && $activas->first()->estado_revision === 'Aprobado';
+            return $ultimaDecisionVigente?->estado_revision === 'Aprobado';
         });
     }
 

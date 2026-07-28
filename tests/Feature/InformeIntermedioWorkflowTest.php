@@ -9,6 +9,7 @@ use App\Models\Estado\TipoEstado;
 use App\Models\InformeIntermedio\InformeIntermedioProyecto;
 use App\Models\Personal\Empleado;
 use App\Models\Personal\EmpleadoProyecto;
+use App\Models\Personal\FirmaSelloEmpleado;
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FlujoAprobacion;
@@ -150,7 +151,7 @@ class InformeIntermedioWorkflowTest extends TestCase
         $this->assertSame(4, $actual->orden_revision);
     }
 
-    public function test_aprobacion_avanza_y_la_ultima_no_finaliza_el_proyecto(): void
+    public function test_aprobacion_avanza_notifica_el_informe_final_y_no_finaliza_el_proyecto(): void
     {
         $contexto = $this->contexto();
         $workflow = app(InformeIntermedioProyectoWorkflowService::class);
@@ -168,10 +169,37 @@ class InformeIntermedioWorkflowTest extends TestCase
         $this->harness()->aprobarEtapa($firmas[1]->fresh(), $contexto['usuario']);
         $this->assertSame(InformeIntermedioProyecto::ESTADO_APROBADO, $informe->fresh()->estado);
         $this->assertSame('En curso', $contexto['proyecto']->fresh()->estado?->tipoestado?->nombre);
+        $this->assertTrue($contexto['proyecto']->fresh()->puedeMostrarCierreProyecto($contexto['usuario']));
         Mail::assertQueued(
             ProyectoEstadoCambiado::class,
-            fn (ProyectoEstadoCambiado $mail): bool => str_contains($mail->comentario, 'continúa en ejecución')
+            fn (ProyectoEstadoCambiado $mail): bool => $mail->nuevoEstado === 'Informe intermedio aprobado'
+                && str_contains($mail->comentario, 'Informe Final')
+                && $mail->actionUrl === route('proyectos.informe-final', $contexto['proyecto'])
         );
+
+    }
+
+    public function test_no_permite_aprobar_informe_intermedio_sin_firma_activa(): void
+    {
+        $contexto = $this->contexto(true, false);
+        $workflow = app(InformeIntermedioProyectoWorkflowService::class);
+        $informe = $workflow->guardarArchivo($contexto['proyecto'], $this->pdf(), $contexto['usuario']);
+        $documento = $workflow->enviar($informe, $contexto['usuario']);
+        $firma = $documento->firma_documento()->orderBy('orden_revision')->firstOrFail();
+
+        try {
+            $this->harness()->aprobarEtapa($firma, $contexto['usuario']);
+            $this->fail('La aprobación sin firma debió rechazarse.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame(
+                'No puede aprobar esta etapa porque no tiene una firma registrada. Registre su firma antes de continuar.',
+                $exception->getMessage()
+            );
+        }
+
+        $this->assertSame('Pendiente', $firma->fresh()->estado_revision);
+        $this->assertNull($firma->fresh()->firma_id);
+        $this->assertSame(1, $documento->estado_documento()->count());
     }
 
     public function test_pdf_requiere_autenticacion_y_autorizacion(): void
@@ -222,7 +250,7 @@ class InformeIntermedioWorkflowTest extends TestCase
         $workflow->resolverEmpleados($contexto['proyecto']->fresh(), Proyecto::FLUJO_INFORME_INTERMEDIO);
     }
 
-    private function contexto(bool $inscripcionAprobada = true): array
+    private function contexto(bool $inscripcionAprobada = true, bool $conFirma = true): array
     {
         $usuario = User::factory()->create();
         $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
@@ -235,6 +263,14 @@ class InformeIntermedioWorkflowTest extends TestCase
             'user_id' => $usuario->id,
             'tipo_empleado' => 'docente',
         ]);
+        if ($conFirma) {
+            FirmaSelloEmpleado::create([
+                'empleado_id' => $empleado->id,
+                'tipo' => 'firma',
+                'ruta_storage' => 'firmas/'.uniqid().'.png',
+                'estado' => true,
+            ]);
+        }
         $proyecto = Proyecto::create([
             'nombre_proyecto' => 'Proyecto workflow '.uniqid(),
             'codigo_proyecto' => 'PR-'.uniqid(),
@@ -330,4 +366,5 @@ class InformeIntermedioWorkflowHarness extends ProyectosPorFirmar
     {
         return $this->rechazarFirmaPorEtapa($firma, $user, $comentario);
     }
+
 }

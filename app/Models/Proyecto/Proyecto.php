@@ -21,6 +21,7 @@ use App\Models\Proyecto\Modalidad;
 use App\Models\Personal\EmpleadoProyecto;
 use App\Models\Estudiante\EstudianteProyecto;
 use App\Models\Proyecto\EntidadContraparte;
+use App\Models\Proyecto\EntidadContraparteProyecto;
 
 use App\Models\Demografia\Municipio;
 use App\Models\Demografia\Departamento;
@@ -429,10 +430,22 @@ class Proyecto extends Model
         ])->withTimestamps();
     }
 
-    // relacion uno a muchos con el modelo entidad contraparte
+    // relación pivote de contrapartes (hasMany al modelo intermedio)
+    public function entidad_contraparte_proyecto()
+    {
+        return $this->hasMany(EntidadContraparteProyecto::class, 'proyecto_id');
+    }
+
+    // relación muchos a muchos con el catálogo de contrapartes
     public function entidad_contraparte()
     {
-        return $this->hasMany(EntidadContraparte::class, 'proyecto_id');
+        return $this->belongsToMany(
+            EntidadContraparte::class,
+            'entidad_contraparte_proyecto',
+            'proyecto_id',
+            'entidad_contraparte_id'
+        )->withPivot(['rtn', 'descripcion_acuerdos'])
+         ->withTimestamps();
     }
 
     // relacion uno a uno con el modelo presupuesto
@@ -867,7 +880,21 @@ class Proyecto extends Model
             return false;
         }
 
-        return app(ProyectoWorkflowService::class)->inscripcionCompletada($this);
+        if (! app(ProyectoWorkflowService::class)->inscripcionCompletada($this)) {
+            return false;
+        }
+
+        if (! $this->tieneFlujoInformeIntermedio()) {
+            return true;
+        }
+
+        $informeIntermedio = $this->informeIntermedio;
+
+        if ($informeIntermedio) {
+            return $informeIntermedio->estado === InformeIntermedioProyecto::ESTADO_APROBADO;
+        }
+
+        return $this->documento_intermedio()?->estado?->tipoestado?->nombre === 'Aprobado';
     }
 
     public function nextCargoFirmaId(?int $cargoFirmaId, ?string $proceso = null): ?int
@@ -1080,13 +1107,21 @@ class Proyecto extends Model
         string $cargoFirma,
         Empleado $empleado
     ): FirmaProyecto {
-        $cargoFirmaId = CargoFirma::join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
+        $cargo = CargoFirma::query()
+            ->join('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
             ->where('tipo_cargo_firma.nombre', $cargoFirma)
             ->where('cargo_firma.descripcion', 'Proyecto')
-            ->first()
-            ->id;
+            ->select('cargo_firma.id')
+            ->first();
 
-        return $this->guardarFirmaDeCargo($cargoFirmaId, $empleado, [
+        if (! $cargo) {
+            throw new \RuntimeException(sprintf(
+                'No se encontró el cargo de firma "%s" configurado para proyectos.',
+                $cargoFirma
+            ));
+        }
+
+        return $this->guardarFirmaDeCargo((int) $cargo->id, $empleado, [
             'estado_revision' => 'Aprobado',
             'firma_id' => $empleado?->firma?->id,
             'sello_id' => $empleado?->sello?->id,
@@ -1101,6 +1136,17 @@ class Proyecto extends Model
         ?DocumentoProyecto $documento = null
     ): FirmaProyecto
     {
+        if (! CargoFirma::query()->whereKey($cargoFirmaId)->exists()) {
+            throw new \RuntimeException(sprintf(
+                'No se encontró el cargo de firma configurado (ID: %d).',
+                $cargoFirmaId
+            ));
+        }
+
+        if (! $empleado->exists || $empleado->trashed()) {
+            throw new \RuntimeException('El empleado indicado para la firma no existe.');
+        }
+
         $relation = $documento
             ? $documento->firma_documento()
             : $this->firma_proyecto();
@@ -1768,6 +1814,13 @@ class Proyecto extends Model
 
         if (! $etapa->cargo_firma_id) {
             throw new \RuntimeException(sprintf('La etapa "%s" no tiene cargo de firma.', $etapa->nombre));
+        }
+
+        if (! $etapa->cargoFirma()->exists()) {
+            throw new \RuntimeException(sprintf(
+                'No se encontró el cargo de firma configurado para la etapa "%s".',
+                $etapa->nombre
+            ));
         }
 
         if ($revisionCiclo < 1) {

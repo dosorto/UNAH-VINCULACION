@@ -55,10 +55,15 @@
                         </a>
                     @endif
 
-                    @if ($estadoNombre === 'En curso')
+                    @if ($estadoNombre === 'En curso' && ! $fichaActualizacionPendiente)
                         <a href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}"
                            class="inline-flex items-center rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700">
                             Actualizar Equipo o Fechas
+                        </a>
+                    @elseif ($estadoNombre === 'En curso' && $fichaActualizacionPendiente)
+                        <a href="{{ route('FichasActualizacionDocente') }}"
+                           class="inline-flex items-center rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700">
+                            Ver actualización pendiente
                         </a>
                     @endif
                 @endif

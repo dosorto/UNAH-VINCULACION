@@ -2,10 +2,9 @@
 
 namespace Database\Seeders\Demografia;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Demografia\Departamento;
 use App\Models\Demografia\Pais;
+use Illuminate\Database\Seeder;
 
 class DepartamentoSeeder extends Seeder
 {
@@ -39,13 +38,15 @@ class DepartamentoSeeder extends Seeder
                 ['nombre' => 'Yoro', 'codigo_departamento' => '18'],
             ];
 
-            // Inserta cada departamento asociado al país
+            // Mantiene el catálogo idempotente por país y código departamental.
             foreach ($departamentos as $departamento) {
-                Departamento::create([
-                    'pais_id' => $honduras->id,
-                    'nombre' => $departamento['nombre'],
-                    'codigo_departamento' => $departamento['codigo_departamento'],
-                ]);
+                Departamento::updateOrCreate(
+                    [
+                        'pais_id' => $honduras->id,
+                        'codigo_departamento' => $departamento['codigo_departamento'],
+                    ],
+                    ['nombre' => $departamento['nombre']],
+                );
             }
         } else {
             echo "El país Honduras no se encontró en la base de datos.\n";

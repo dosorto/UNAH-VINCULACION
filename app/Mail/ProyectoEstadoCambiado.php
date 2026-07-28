@@ -26,16 +26,23 @@ class ProyectoEstadoCambiado extends Mailable implements ShouldQueue
     /**
      * Create a new message instance.
      */
-    public function __construct(Proyecto $proyecto, User $usuario, string $nuevoEstado, string $comentario = '', string $accion = 'cambio de estado')
+    public function __construct(
+        Proyecto $proyecto,
+        User $usuario,
+        string $nuevoEstado,
+        string $comentario = '',
+        string $accion = 'cambio de estado',
+        ?string $actionUrl = null,
+    )
     {
         $this->proyecto = $proyecto;
         $this->usuario = $usuario;
         $this->nuevoEstado = $nuevoEstado;
         $this->comentario = $comentario;
         $this->accion = $accion;
-        $this->actionUrl = $usuario->can('docente.proyectos')
+        $this->actionUrl = $actionUrl ?: ($usuario->can('docente.proyectos')
             ? route('historialproyecto', $proyecto)
-            : url('/');
+            : url('/'));
     }
 
     /**
