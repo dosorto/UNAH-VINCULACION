@@ -314,6 +314,8 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('informes-finales.documentos-revision.descargar');
         Route::get('/informes-finales/anexos/{anexo}', [InformeFinalAnexoController::class, 'mostrar'])
             ->name('informes-finales.anexos.mostrar');
+        Route::get('/informes-finales/anexos/{anexo}/descargar', [InformeFinalAnexoController::class, 'descargar'])
+            ->name('informes-finales.anexos.descargar');
         Route::get('/informes-intermedios/{informe}/ver', [InformeIntermedioProyectoController::class, 'ver'])
             ->name('informes-intermedios.ver');
         Route::get('/informes-intermedios/{informe}/descargar', [InformeIntermedioProyectoController::class, 'descargar'])

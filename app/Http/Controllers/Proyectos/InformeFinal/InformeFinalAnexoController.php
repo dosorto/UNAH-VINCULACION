@@ -11,18 +11,45 @@ class InformeFinalAnexoController extends Controller
 {
     public function mostrar(InformeFinalAnexo $anexo)
     {
-        $informe = $anexo->informe()->with('proyecto')->firstOrFail();
-        abort_unless(app(InformeFinalProyectoWorkflowService::class)->usuarioPuedeVer($informe, request()->user()), 403);
-
-        $ruta = $this->rutaLocal($anexo->archivo);
-        abort_unless($ruta && Storage::disk('public')->exists($ruta), 404);
-
-        $nombre = $anexo->nombre_archivo ?: basename($ruta);
+        $this->autorizarAcceso($anexo);
+        $ruta = $this->resolverRutaSegura($anexo);
+        $nombre = $this->obtenerNombreDescarga($anexo, $ruta);
         $mime = Storage::disk('public')->mimeType($ruta) ?: 'application/octet-stream';
 
         return str_starts_with($mime, 'application/pdf') || str_starts_with($mime, 'image/')
             ? Storage::disk('public')->response($ruta, $nombre, ['Content-Type' => $mime])
             : Storage::disk('public')->download($ruta, $nombre);
+    }
+
+    public function descargar(InformeFinalAnexo $anexo)
+    {
+        $this->autorizarAcceso($anexo);
+        $ruta = $this->resolverRutaSegura($anexo);
+        $nombre = $this->obtenerNombreDescarga($anexo, $ruta);
+
+        return Storage::disk('public')->download($ruta, $nombre);
+    }
+
+    private function autorizarAcceso(InformeFinalAnexo $anexo): void
+    {
+        $informe = $anexo->informe()->with('proyecto')->firstOrFail();
+        abort_unless(
+            app(InformeFinalProyectoWorkflowService::class)->usuarioPuedeVer($informe, request()->user()),
+            403
+        );
+    }
+
+    private function resolverRutaSegura(InformeFinalAnexo $anexo): string
+    {
+        $ruta = $this->rutaLocal($anexo->archivo);
+        abort_unless($ruta && Storage::disk('public')->exists($ruta), 404);
+
+        return $ruta;
+    }
+
+    private function obtenerNombreDescarga(InformeFinalAnexo $anexo, string $ruta): string
+    {
+        return $anexo->nombre_archivo ?: basename($ruta);
     }
 
     private function rutaLocal(?string $ruta): ?string

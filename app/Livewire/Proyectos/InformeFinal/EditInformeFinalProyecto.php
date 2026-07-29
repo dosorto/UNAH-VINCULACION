@@ -579,13 +579,6 @@ class EditInformeFinalProyecto extends Component
         $this->estadoGuardado = 'guardado';
     }
 
-    public function anexoUrl(?string $ruta): ?string
-    {
-        if (blank($ruta)) return null;
-
-        return filter_var($ruta, FILTER_VALIDATE_URL) ? $ruta : Storage::disk('public')->url($ruta);
-    }
-
     public function anexoDocumentoUrl(?int $id): ?string
     {
         return $id ? route('informes-finales.anexos.mostrar', ['anexo' => $id], false) : null;
