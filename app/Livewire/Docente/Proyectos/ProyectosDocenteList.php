@@ -8,6 +8,7 @@ use App\Models\Estado\TipoEstado;
 use App\Models\PpsServicioSocial;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Proyecto;
+use App\Services\ENF\EnfWorkflowService;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -40,6 +41,9 @@ class ProyectosDocenteList extends Component
 
     public bool $informeIntermedioModal = false;
     public ?int $informeIntermedioProyectoId = null;
+    public ?int $informeIntermedioEnfAccionId = null;
+    public string $informeIntermedioTipo = 'proyecto';
+    public array $destinatariosIntermedioEnf = [];
     public $informeIntermedioFile = null;
 
     public bool $deleteModal = false;
@@ -80,6 +84,19 @@ class ProyectosDocenteList extends Component
     public function openSubirIntermedio(int $proyectoId): void
     {
         $this->informeIntermedioProyectoId = $proyectoId;
+        $this->informeIntermedioEnfAccionId = null;
+        $this->informeIntermedioTipo = 'proyecto';
+        $this->destinatariosIntermedioEnf = [];
+        $this->informeIntermedioFile = null;
+        $this->informeIntermedioModal = true;
+    }
+
+    public function openSubirIntermedioEnf(int $accionId): void
+    {
+        $this->informeIntermedioProyectoId = null;
+        $this->informeIntermedioEnfAccionId = $accionId;
+        $this->informeIntermedioTipo = 'enf';
+        $this->destinatariosIntermedioEnf = [];
         $this->informeIntermedioFile = null;
         $this->informeIntermedioModal = true;
     }
@@ -87,6 +104,26 @@ class ProyectosDocenteList extends Component
     public function subirInformeIntermedio(): void
     {
         $this->validate(['informeIntermedioFile' => 'required|file|mimes:pdf|max:10240']);
+
+        if ($this->informeIntermedioTipo === 'enf') {
+            $accion = EnfAccion::with('informeIntermedio')->findOrFail($this->informeIntermedioEnfAccionId);
+
+            try {
+                $workflow = app(EnfWorkflowService::class);
+                $informe = $workflow->guardarInformeIntermedio($accion, $this->informeIntermedioFile, auth()->user());
+                $workflow->enviarInformeIntermedio($informe->fresh('accion'), auth()->user(), $this->destinatariosIntermedioEnf);
+            } catch (\Throwable $e) {
+                Notification::make()->title('No se pudo enviar el informe')->body($e->getMessage())->danger()->send();
+                return;
+            }
+
+            $this->informeIntermedioModal = false;
+            $this->informeIntermedioFile = null;
+            $this->informeIntermedioEnfAccionId = null;
+            $this->destinatariosIntermedioEnf = [];
+            Notification::make()->title('Informe subido')->body('El informe intermedio ENF fue enviado correctamente.')->success()->send();
+            return;
+        }
 
         $proyecto = Proyecto::findOrFail($this->informeIntermedioProyectoId);
         $path = $this->informeIntermedioFile->store('documentos', 'public');
@@ -160,8 +197,22 @@ class ProyectosDocenteList extends Component
 
         $categorias = \App\Models\Proyecto\Categoria::orderBy('nombre')->pluck('nombre', 'id');
         $estadosTipo = TipoEstado::orderBy('nombre')->pluck('nombre', 'id');
+        $opcionesDestinatariosIntermedioEnf = $this->opcionesDestinatariosIntermedioEnf();
 
-        return view('livewire.docente.proyectos.proyectos-docente-list', compact('records', 'categorias', 'estadosTipo'));
+        return view('livewire.docente.proyectos.proyectos-docente-list', compact('records', 'categorias', 'estadosTipo', 'opcionesDestinatariosIntermedioEnf'));
+    }
+
+    private function opcionesDestinatariosIntermedioEnf(): Collection
+    {
+        if ($this->informeIntermedioTipo !== 'enf' || ! $this->informeIntermedioEnfAccionId) {
+            return collect();
+        }
+
+        $accion = EnfAccion::find($this->informeIntermedioEnfAccionId);
+
+        return $accion
+            ? app(EnfWorkflowService::class)->destinatariosSeleccionables($accion, EnfAccion::PROCESO_INFORME_INTERMEDIO)
+            : collect();
     }
 
     private function proyectosQuery(): Builder
@@ -288,7 +339,7 @@ class ProyectosDocenteList extends Component
         }
 
         return EnfAccion::query()
-            ->with(['tipoAccion', 'revisiones', 'accionCatalogos.catalogo'])
+            ->with(['tipoAccion', 'revisiones', 'accionCatalogos.catalogo', 'informeIntermedio'])
             ->whereIn('id', $ids)
             ->when($this->search, fn (Builder $query) => $query->where(function (Builder $subQuery): void {
                 $subQuery
@@ -300,6 +351,8 @@ class ProyectosDocenteList extends Component
             ->map(function (EnfAccion $accion) use ($user): array {
                 $isOwn = (int) $accion->creado_por_usuario_id === (int) $user->id;
                 $isPending = $this->enfAccionPendienteParaUsuario($accion);
+                $workflow = app(EnfWorkflowService::class);
+                $informeIntermedio = $accion->informeIntermedio;
                 $tipoEnf = $accion->accionCatalogos
                     ->first(fn ($catalogo) => $catalogo->tipo === 'tipo_accion_enf')
                     ?->catalogo?->nombre;
@@ -314,9 +367,12 @@ class ProyectosDocenteList extends Component
                     'descripcion' => $tipoEnf ?: ($accion->tipoAccion?->nombre ?: 'Educacion no formal'),
                     'tipo_accion' => 'Educacion no formal',
                     'rol' => $isPending ? 'Pendiente por revisar' : ($isOwn ? 'Creador' : '-'),
-                    'estado' => str_replace('_', ' ', $accion->estado_flujo ?: '-'),
+                    'estado' => $this->enfEstadoLabel($accion->estado_flujo),
                     'fecha' => $accion->fecha_solicitud ?: $accion->created_at,
                     'sort_date' => $accion->created_at,
+                    'puede_subir_intermedio' => $workflow->puedeGestionarInformeIntermedio($accion, $user)
+                        && (! $informeIntermedio || $informeIntermedio->esEditable()),
+                    'intermedio_estado' => $informeIntermedio?->estado,
                 ];
             });
     }
@@ -372,6 +428,18 @@ class ProyectosDocenteList extends Component
                     'sort_date' => $registro->created_at,
                 ];
             });
+    }
+
+    private function enfEstadoLabel(?string $estado): string
+    {
+        return match (strtoupper(str_replace(' ', '_', (string) $estado))) {
+            'BORRADOR' => 'Borrador',
+            'EN_REVISION' => 'En revisión',
+            'APROBADO' => 'En curso',
+            'FINALIZADO' => 'Finalizado',
+            'SUBSANACION', 'SUBSANACIÓN' => 'Subsanacion',
+            default => $estado ? str_replace('_', ' ', $estado) : '-',
+        };
     }
 
     private function paginateRows(Collection $rows): LengthAwarePaginator

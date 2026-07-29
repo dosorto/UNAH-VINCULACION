@@ -6,6 +6,7 @@ use App\Http\Controllers\ENF\EnfAccionController;
 use App\Http\Controllers\ENF\EnfCronogramaController;
 use App\Http\Controllers\ENF\EnfDocumentoController;
 use App\Http\Controllers\ENF\EnfInformeFinalController;
+use App\Http\Controllers\ENF\EnfInformeIntermedioController;
 use App\Http\Controllers\ENF\EnfPresupuestoController;
 use App\Http\Controllers\ENF\EnfSistematizacionController;
 use App\Http\Controllers\PDFController;
@@ -25,12 +26,6 @@ use App\Livewire\DAFT\Programas\ListProgramas as DaftListProgramas;
 use App\Livewire\DAFT\Programas\ListTiposPrograma as DaftListTiposPrograma;
 use App\Livewire\DAFT\Programas\ProgramaForm as DaftProgramaForm;
 use App\Livewire\DAFT\Programas\ProgramaRevisionDetail;
-use App\Livewire\SGCU\Catalogos\SgcuCatalogos;
-use App\Livewire\SGCU\Flujos\FlujosProgramas;
-use App\Livewire\SGCU\Programas\ListBandejaRevision as SgcuListBandejaRevision;
-use App\Livewire\SGCU\Programas\ListProgramas as SgcuListProgramas;
-use App\Livewire\SGCU\Programas\ListTiposPrograma as SgcuListTiposPrograma;
-use App\Livewire\SGCU\Programas\ProgramaForm as SgcuProgramaForm;
 use App\Livewire\Demografia\Departamento\CreateDepartamento;
 use App\Livewire\Demografia\Departamento\ListDepartamentos;
 use App\Livewire\Demografia\Municipio\CreateMunicipio;
@@ -85,7 +80,6 @@ use App\Livewire\ENF\EditInformeFinalForm018;
 use App\Livewire\User\Roles;
 use App\Livewire\User\Users;
 use App\Models\ENF\EnfAccion;
-use App\Livewire\Proyectos\InformeFinal\EditInformeFinalProyecto;
 use App\Models\Proyecto\InstrumenFormalizacion;
 use App\Models\Slide\Slide;
 use Illuminate\Support\Facades\Auth;
@@ -158,8 +152,14 @@ Route::middleware(['auth'])->prefix('enf')->name('enf.')->group(function () {
     Route::get('acciones/{accion}/informe-final/vista-previa', [EnfInformeFinalController::class, 'previewByAccion'])->name('acciones.informe-final.preview-pdf');
     Route::get('acciones/{accion}/informe-final/imprimir', [EnfInformeFinalController::class, 'printByAccion'])->name('acciones.informe-final.print');
     Route::get('acciones/{accion}/informe-final/pdf', [EnfInformeFinalController::class, 'pdfByAccion'])->name('acciones.informe-final.pdf');
+    Route::post('acciones/{accion}/informe-intermedio', [EnfInformeIntermedioController::class, 'store'])->name('acciones.informe-intermedio.store');
+    Route::post('informes-intermedios/{informe}/enviar', [EnfInformeIntermedioController::class, 'enviar'])->name('informes-intermedios.enviar');
+    Route::get('informes-intermedios/{informe}/ver', [EnfInformeIntermedioController::class, 'ver'])->name('informes-intermedios.ver');
+    Route::post('informes-finales/{informeFinal}/enviar', [EnfInformeFinalController::class, 'enviar'])->name('informes-finales.enviar');
     Route::post('acciones/autoguardar-borrador', [EnfAccionController::class, 'autoguardarBorrador'])->name('acciones.autoguardar-borrador');
     Route::post('acciones/{accion}/autoguardar-borrador', [EnfAccionController::class, 'autoguardarBorrador'])->name('acciones.autoguardar-borrador.update');
+    Route::get('acciones/{accion}/destinatarios-inscripcion', [EnfAccionController::class, 'destinatariosInscripcion'])->name('acciones.destinatarios-inscripcion');
+    Route::post('acciones/{accion}/enviar-revision', [EnfAccionController::class, 'enviarBorradorRevision'])->name('acciones.enviar-revision');
     Route::post('acciones/{accion}/reenviar-revision', [EnfAccionController::class, 'reenviarRevision'])->name('acciones.reenviar-revision');
     Route::post('acciones/{accion}/revisiones/{revision}/aprobar', [EnfAccionController::class, 'aprobarRevision'])->name('acciones.revisiones.aprobar');
     Route::post('acciones/{accion}/revisiones/{revision}/subsanar', [EnfAccionController::class, 'subsanarRevision'])->name('acciones.revisiones.subsanar');
@@ -298,22 +298,6 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
                 ->name('daft.bandeja-revision.show');
         });
 
-        Route::prefix('sgcu')->middleware('can:configuracion.flujos')->group(function () {
-            Route::get('catalogos', SgcuCatalogos::class)
-                ->name('sgcu.catalogos');
-            Route::get('flujos-programas', FlujosProgramas::class)
-                ->name('sgcu.flujos-programas');
-            Route::get('tipos-programa', SgcuListTiposPrograma::class)
-                ->name('sgcu.tipos-programa');
-            Route::get('programas', SgcuListProgramas::class)
-                ->name('sgcu.programas');
-            Route::get('programas/crear', SgcuProgramaForm::class)
-                ->name('sgcu.programas.create');
-            Route::get('programas/{programa}/editar', SgcuProgramaForm::class)
-                ->name('sgcu.programas.edit');
-            Route::get('bandeja-revision', SgcuListBandejaRevision::class)
-                ->name('sgcu.bandeja-revision');
-        });
     });
 
     // rutas agrupadas para el modulo de Personal

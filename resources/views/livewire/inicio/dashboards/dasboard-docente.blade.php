@@ -41,7 +41,7 @@
                                                 <p class="text-base font-medium text-gray-600 dark:text-gray-400">Proyectos
                                                 </p>
                                                 <h4 class="text-2xl font-bold text-gray-900 dark:text-white">
-                                                    {{ $proyectosUser->count() }}</h4>
+                                                    {{ $totalProyectosUser }}</h4>
                                             </div>
                                         </div>
     
@@ -64,7 +64,7 @@
                                                     Finalizados
                                                 </p>
                                                 <h4 class="text-2xl font-bold text-gray-900 dark:text-white">
-                                                    {{ $finalizadosUser->count() }}</h4>
+                                                    {{ $totalFinalizadosUser }}</h4>
                                             </div>
                                         </div>
     
@@ -85,7 +85,7 @@
                                                 <p class="text-base font-medium text-gray-600 dark:text-gray-400">Subsanar
                                                 </p>
                                                 <h4 class="text-2xl font-bold text-gray-900 dark:text-white">
-                                                    {{ $subsanacionUser->count() }}</h4>
+                                                    {{ $totalSubsanar }}</h4>
                                             </div>
                                         </div>
     
@@ -102,7 +102,7 @@
                                                 <p class="text-base font-medium text-gray-600 dark:text-gray-400">
                                                     En Curso
                                                 </p>
-                                                <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{$ejecucionUser->count()}}</h4>
+                                                <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{$totalEjecucionUser}}</h4>
                                             </div>
                                         </div>
     
@@ -124,7 +124,7 @@
                                             <div class="ml-5">
                                                 <p class="text-base font-medium text-gray-600 dark:text-gray-400">En revisión
                                                 </p>
-                                                <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{$enRevisionUser->count()}}</h4>
+                                                <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{$totalRevisionUser}}</h4>
                                             </div>
                                         </div>
     
@@ -146,7 +146,32 @@
                                                     Borradores
                                                 </p>
                                                 <h4 class="text-2xl font-bold text-gray-900 dark:text-white">
-                                                    {{ $borradorUser->count() }}</h4>
+                                                    {{ $totalBorradorUser }}</h4>
+                                            </div>
+                                        </div>
+
+                                        <!-- Tarjeta -->
+                                        <div
+                                            class="relative flex items-center p-8 rounded-xl border border-orange-200 bg-orange-50 dark:border-orange-700 dark:bg-orange-950">
+                                            <div
+                                                class="flex items-center justify-center w-14 h-14 rounded-full bg-orange-100 dark:bg-orange-800">
+                                                <svg class="w-8 h-8 text-orange-600 dark:text-orange-200" aria-hidden="true"
+                                                    xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                                    fill="currentColor" viewBox="0 0 24 24">
+                                                    <path fill-rule="evenodd"
+                                                        d="M5 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7.414A2 2 0 0 0 20.414 6L18 3.586A2 2 0 0 0 16.586 3H5Zm6 4a1 1 0 1 0-2 0v4.586l-1.293-1.293a1 1 0 1 0-1.414 1.414l3 3a1 1 0 0 0 1.414 0l3-3a1 1 0 0 0-1.414-1.414L11 11.586V7Zm-4 9a1 1 0 1 0 0 2h10a1 1 0 1 0 0-2H7Z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                            </div>
+                                            <div class="ml-5">
+                                                <p class="text-base font-medium text-orange-700 dark:text-orange-200">
+                                                    Pendientes
+                                                </p>
+                                                <p class="text-xs font-medium text-orange-700 dark:text-orange-200">
+                                                    {{ auth()->user()?->activeRole?->name }}
+                                                </p>
+                                                <h4 class="text-2xl font-bold text-gray-900 dark:text-white">
+                                                    {{ $totalPendientesRevisionUser }}</h4>
                                             </div>
                                         </div>
                                     </div>

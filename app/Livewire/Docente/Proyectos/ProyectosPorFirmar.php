@@ -16,6 +16,7 @@ use App\Models\Proyecto\Proyecto;
 use App\Models\PpsServicioSocial;
 use App\Models\User;
 use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
+use App\Services\ENF\EnfWorkflowService;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -41,11 +42,14 @@ class ProyectosPorFirmar extends Component
     public bool $enfSubsanarModal = false;
     public ?int $enfSubsanarRevisionId = null;
     public string $enfSubsanarComentario = '';
+    public bool $viewEnfModal = false;
+    public ?int $viewEnfRevisionId = null;
     public bool $ppsSubsanarModal = false;
     public ?int $ppsSubsanarRegistroId = null;
     public string $ppsSubsanarComentario = '';
     public bool $reasignarModal = false;
     public ?int $reasignarFirmaId = null;
+    public ?int $reasignarEnfRevisionId = null;
     public ?int $reasignarNuevoUsuarioId = null;
     public array $reasignarCandidatos = [];
 
@@ -66,6 +70,19 @@ class ProyectosPorFirmar extends Component
         $this->viewId = null;
     }
 
+    public function openEnfView(int $revisionId): void
+    {
+        EnfRevision::findOrFail($revisionId);
+        $this->viewEnfRevisionId = $revisionId;
+        $this->viewEnfModal = true;
+    }
+
+    public function closeEnfView(): void
+    {
+        $this->viewEnfModal = false;
+        $this->viewEnfRevisionId = null;
+    }
+
     public function puedeReasignar(?FirmaProyecto $firma): bool
     {
         return $firma
@@ -73,6 +90,20 @@ class ProyectosPorFirmar extends Component
             && $firma->estado_revision === 'Pendiente'
             && $firma->responsable_usuario_id
             && (int) $firma->responsable_usuario_id === (int) Auth::id();
+    }
+
+    public function puedeReasignarEnf(?EnfRevision $revision): bool
+    {
+        if (! $revision || ! in_array($revision->estado, $this->estadosRevisionEnfPendiente(), true)) {
+            return false;
+        }
+
+        $user = Auth::user();
+        if (! $user || ! $this->canActOnEnfRevision($revision)) {
+            return false;
+        }
+
+        return filled($revision->rol_requerido);
     }
 
     public function firmaPendienteDePps(PpsServicioSocial $registro): ?FirmaProyecto
@@ -105,10 +136,30 @@ class ProyectosPorFirmar extends Component
         $this->reasignarModal = true;
     }
 
+    public function openEnfReasignar(int $revisionId): void
+    {
+        $revision = EnfRevision::findOrFail($revisionId);
+
+        abort_unless($this->puedeReasignarEnf($revision), 403);
+
+        $this->reasignarFirmaId = null;
+        $this->reasignarEnfRevisionId = $revisionId;
+        $this->reasignarNuevoUsuarioId = null;
+        $this->reasignarCandidatos = User::query()
+            ->whereHas('roles', fn (Builder $query) => $query->where('roles.name', $revision->rol_requerido))
+            ->where('id', '!=', Auth::id())
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (User $user): array => ['id' => $user->id, 'name' => $user->name])
+            ->all();
+        $this->reasignarModal = true;
+    }
+
     public function closeReasignar(): void
     {
         $this->reasignarModal = false;
         $this->reasignarFirmaId = null;
+        $this->reasignarEnfRevisionId = null;
         $this->reasignarNuevoUsuarioId = null;
         $this->reasignarCandidatos = [];
     }
@@ -116,6 +167,26 @@ class ProyectosPorFirmar extends Component
     public function confirmarReasignacion(): void
     {
         $this->validate(['reasignarNuevoUsuarioId' => 'required|integer|exists:users,id']);
+
+        if ($this->reasignarEnfRevisionId) {
+            $revision = EnfRevision::findOrFail($this->reasignarEnfRevisionId);
+
+            abort_unless($this->puedeReasignarEnf($revision), 403);
+
+            $nuevoUsuario = User::findOrFail($this->reasignarNuevoUsuarioId);
+
+            $revision->update([
+                'asignado_usuario_id' => $nuevoUsuario->id,
+                'responsable_usuario_id' => $revision->responsable_usuario_id ?: Auth::id(),
+                'estado' => 'ASIGNADO',
+            ]);
+
+            $this->closeReasignar();
+            $this->closeEnfView();
+
+            Notification::make()->title('¡Realizado!')->body('La etapa ENF fue reasignada correctamente.')->success()->send();
+            return;
+        }
 
         $firma = FirmaProyecto::findOrFail($this->reasignarFirmaId);
 
@@ -278,40 +349,10 @@ class ProyectosPorFirmar extends Component
     public function aprobarEnfRevision(int $revisionId): void
     {
         $revision = $this->authorizeEnfRevisionAction($revisionId);
-        $accion = $revision->accion;
+        app(EnfWorkflowService::class)->aprobarRevision($revision, Auth::user());
 
-        DB::transaction(function () use ($accion, $revision): void {
-            $revision->update([
-                'estado' => 'APROBADO',
-                'decidido_por_usuario_id' => Auth::id(),
-                'firmado_en' => now(),
-            ]);
-
-            $siguiente = $accion->revisiones()
-                ->where('revision_ciclo', $accion->revision_ciclo)
-                ->where('orden', '>', $revision->orden)
-                ->whereIn('estado', $this->estadosRevisionEnfPendiente())
-                ->orderBy('orden')
-                ->first();
-
-            if ($siguiente) {
-                $siguiente->update([
-                    'estado' => $siguiente->asignado_usuario_id || $siguiente->responsable_usuario_id
-                        ? 'ASIGNADO'
-                        : 'PENDIENTE',
-                ]);
-
-                $accion->update(['estado_flujo' => 'EN_REVISION']);
-                $this->notificarRevisionEnf($accion->fresh(), $siguiente->fresh('flujoEtapa.rolRevisor'));
-
-                return;
-            }
-
-            $accion->update([
-                'estado_flujo' => 'APROBADO',
-                'fecha_aprobacion' => now()->toDateString(),
-            ]);
-        });
+        $this->viewEnfModal = false;
+        $this->viewEnfRevisionId = null;
 
         Notification::make()->title('¡Realizado!')->body('Etapa ENF aprobada correctamente.')->success()->send();
     }
@@ -320,6 +361,7 @@ class ProyectosPorFirmar extends Component
     {
         $this->authorizeEnfRevisionAction($revisionId);
 
+        $this->viewEnfModal = false;
         $this->enfSubsanarRevisionId = $revisionId;
         $this->enfSubsanarComentario = '';
         $this->enfSubsanarModal = true;
@@ -335,18 +377,7 @@ class ProyectosPorFirmar extends Component
         ]);
 
         $revision = $this->authorizeEnfRevisionAction((int) $this->enfSubsanarRevisionId);
-        $accion = $revision->accion;
-
-        DB::transaction(function () use ($accion, $revision): void {
-            $revision->update([
-                'estado' => 'SUBSANACION',
-                'observaciones' => $this->enfSubsanarComentario,
-                'decidido_por_usuario_id' => Auth::id(),
-                'firmado_en' => now(),
-            ]);
-
-            $accion->update(['estado_flujo' => 'SUBSANACION']);
-        });
+        app(EnfWorkflowService::class)->subsanarRevision($revision, $this->enfSubsanarComentario, Auth::user());
 
         $this->enfSubsanarModal = false;
         $this->enfSubsanarRevisionId = null;
@@ -504,6 +535,9 @@ class ProyectosPorFirmar extends Component
             ->get();
 
         $viewFirma = $this->viewId ? FirmaProyecto::find($this->viewId) : null;
+        $viewEnfRevision = $this->viewEnfRevisionId
+            ? EnfRevision::with(['accion' => fn ($query) => $query->with($this->enfViewRelations()), 'flujoEtapa.rolRevisor'])->find($this->viewEnfRevisionId)
+            : null;
         $viewProyecto = null;
         $viewDocumento = null;
         if ($viewFirma) {
@@ -515,7 +549,7 @@ class ProyectosPorFirmar extends Component
             }
         }
 
-        return view('livewire.docente.proyectos.proyectos-por-firmar', compact('records', 'enfRevisiones', 'ppsRegistros', 'viewFirma', 'viewProyecto', 'viewDocumento'));
+        return view('livewire.docente.proyectos.proyectos-por-firmar', compact('records', 'enfRevisiones', 'ppsRegistros', 'viewFirma', 'viewProyecto', 'viewDocumento', 'viewEnfRevision'));
     }
 
     private function authorizeFirmaAction(int $firmaId): FirmaProyecto
@@ -534,6 +568,43 @@ class ProyectosPorFirmar extends Component
         abort_unless($this->canActOnEnfRevision($revision), 403);
 
         return $revision;
+    }
+
+    private function enfViewRelations(): array
+    {
+        return [
+            'tipoAccion',
+            'modalidad',
+            'centroFacultad',
+            'departamentoAcademico',
+            'carrera',
+            'lugaresEjecucion.campus',
+            'lugaresEjecucion.departamento',
+            'lugaresEjecucion.municipio',
+            'beneficiarios',
+            'equipo',
+            'participacionUniversitaria',
+            'practicasAsignatura.asignatura',
+            'practicasAsignatura.periodoAcademico',
+            'contrapartes.tipoContraparte',
+            'contrapartes.instrumentoAlianza',
+            'objetivosEspecificos',
+            'resultados',
+            'presupuestos.detalles',
+            'cronograma',
+            'certificado.tipoCertificado',
+            'certificado.figuraAcreditacion',
+            'certificado.carreras.carrera',
+            'certificado.carreras.centroFacultad',
+            'espaciosAprendizaje',
+            'informeIntermedio',
+            'documentos',
+            'firmas',
+            'accionCatalogos.catalogo',
+            'ods',
+            'metasContribuye',
+            'ejesUnah',
+        ];
     }
 
     private function authorizePpsRegistroAction(int $registroId): PpsServicioSocial
@@ -558,17 +629,23 @@ class ProyectosPorFirmar extends Component
 
         return EnfRevision::query()
             ->whereIn('estado', $pendingStates)
-            ->whereHas('accion', fn (Builder $query) => $query
-                ->where('estado_flujo', 'EN_REVISION')
-                ->whereColumn('enf_revisiones.revision_ciclo', 'enf_acciones.revision_ciclo'))
             ->whereNotExists(function ($previousQuery) use ($pendingStates): void {
                 $previousQuery
                     ->selectRaw('1')
                     ->from('enf_revisiones as enf_revisiones_anteriores')
                     ->whereColumn('enf_revisiones_anteriores.enf_accion_id', 'enf_revisiones.enf_accion_id')
+                    ->whereColumn('enf_revisiones_anteriores.proceso', 'enf_revisiones.proceso')
                     ->whereColumn('enf_revisiones_anteriores.revision_ciclo', 'enf_revisiones.revision_ciclo')
                     ->whereColumn('enf_revisiones_anteriores.orden', '<', 'enf_revisiones.orden')
                     ->whereIn('enf_revisiones_anteriores.estado', $pendingStates);
+            })
+            ->whereNotExists(function ($newerCycleQuery): void {
+                $newerCycleQuery
+                    ->selectRaw('1')
+                    ->from('enf_revisiones as enf_revisiones_ciclo_nuevo')
+                    ->whereColumn('enf_revisiones_ciclo_nuevo.enf_accion_id', 'enf_revisiones.enf_accion_id')
+                    ->whereColumn('enf_revisiones_ciclo_nuevo.proceso', 'enf_revisiones.proceso')
+                    ->whereColumn('enf_revisiones_ciclo_nuevo.revision_ciclo', '>', 'enf_revisiones.revision_ciclo');
             })
             ->where(function (Builder $responsableQuery) use ($user, $activeRoleName): void {
                 $responsableQuery
@@ -606,36 +683,10 @@ class ProyectosPorFirmar extends Component
     private function canActOnEnfRevision(EnfRevision $revision): bool
     {
         $user = Auth::user();
-        $activeRoleName = $user?->activeRole?->name;
-        $accion = $revision->accion;
-
-        if (! $user || ! $activeRoleName || ! $accion || $accion->estado_flujo !== 'EN_REVISION') {
+        if (! $user || ! $revision->accion) {
             return false;
         }
-
-        $revisionActual = $accion->revisiones
-            ->where('revision_ciclo', (int) $accion->revision_ciclo)
-            ->whereIn('estado', $this->estadosRevisionEnfPendiente())
-            ->sortBy('orden')
-            ->first();
-
-        if (! $revisionActual || (int) $revisionActual->id !== (int) $revision->id) {
-            return false;
-        }
-
-        if (filled($revision->rol_requerido) && $revision->rol_requerido !== $activeRoleName) {
-            return false;
-        }
-
-        if ($revision->asignado_usuario_id) {
-            return (int) $revision->asignado_usuario_id === (int) $user->id;
-        }
-
-        if ($revision->responsable_usuario_id) {
-            return (int) $revision->responsable_usuario_id === (int) $user->id;
-        }
-
-        return filled($revision->rol_requerido) && $revision->rol_requerido === $activeRoleName;
+        return app(EnfWorkflowService::class)->puedeRevisar($revision, $user);
     }
 
     private function estadosRevisionEnfPendiente(): array

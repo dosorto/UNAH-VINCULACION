@@ -225,13 +225,14 @@
                                         @svg('heroicon-o-eye', ['class' => 'h-4 w-4'])
                                     </a>
 
-                                    @if (in_array($accionEnf->codigo_formulario, ['FORM-DVUS-016', 'FORM-DVUS-018'], true))
-                                        <a href="{{ route('enf.acciones.informe-final.edit', $accionEnf->id) }}"
-                                           class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-blue-700 shadow-sm transition hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900/60 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
-                                           title="Ver informe final ENF"
-                                           aria-label="Ver informe final ENF">
-                                            @svg('heroicon-o-document-text', ['class' => 'h-4 w-4'])
-                                        </a>
+                                    @if ($row['puede_subir_intermedio'] ?? false)
+                                        <button type="button"
+                                                wire:click="openSubirIntermedioEnf({{ $accionEnf->id }})"
+                                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-yellow-200 bg-yellow-50 text-yellow-700 shadow-sm transition hover:bg-yellow-100 hover:text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-900/20 dark:text-yellow-300 dark:hover:bg-yellow-900/40"
+                                                title="{{ ($row['intermedio_estado'] ?? null) === 'SUBSANACION' ? 'Subsanar informe intermedio ENF' : 'Subir informe intermedio ENF' }}"
+                                                aria-label="{{ ($row['intermedio_estado'] ?? null) === 'SUBSANACION' ? 'Subsanar informe intermedio ENF' : 'Subir informe intermedio ENF' }}">
+                                            @svg('heroicon-o-arrow-up-tray', ['class' => 'h-4 w-4'])
+                                        </button>
                                     @endif
 
                                     @if ($puedeEditarEnf)
@@ -281,6 +282,22 @@
                     @error('informeIntermedioFile') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     <div wire:loading wire:target="informeIntermedioFile" class="mt-1 text-sm text-gray-500">Cargando archivo...</div>
                 </div>
+                @if ($informeIntermedioTipo === 'enf' && $opcionesDestinatariosIntermedioEnf->isNotEmpty())
+                    <div class="space-y-3">
+                        @foreach($opcionesDestinatariosIntermedioEnf as $etapaId => $opcion)
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Destinatario para {{ $opcion['etapa']->nombre }}
+                                <select wire:model="destinatariosIntermedioEnf.{{ $etapaId }}"
+                                        class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white">
+                                    <option value="">Seleccione un destinatario</option>
+                                    @foreach($opcion['usuarios'] as $usuario)
+                                        <option value="{{ $usuario->id }}">{{ $usuario->empleado?->nombre_completo ?? $usuario->name }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                        @endforeach
+                    </div>
+                @endif
                 <div class="flex justify-end gap-3 pt-2">
                     <button wire:click="$set('informeIntermedioModal', false)"
                             class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">

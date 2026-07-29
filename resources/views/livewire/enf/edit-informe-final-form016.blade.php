@@ -271,7 +271,7 @@
                 </div>
             </section>
 
-            <div class="mt-6 rounded-md border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">Las firmas se reservan en el PDF. Completar este formulario no inicia aprobaciones ni cambia el flujo de revision.</div>
+            <div class="mt-6 rounded-md border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">Al validar el informe final, el envio al flujo queda disponible en el detalle de la accion ENF.</div>
 
             <section class="mt-6 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
                 <h3 class="font-semibold">Resumen final del informe</h3>
@@ -294,6 +294,9 @@
                     <a target="_blank" href="{{ route('enf.acciones.informe-final.preview-pdf', $accion) }}" class="{{ $button }} border border-blue-300 text-blue-700">Vista previa</a>
                     <a href="{{ route('enf.acciones.informe-final.pdf', $accion) }}" class="{{ $button }} border border-blue-300 text-blue-700">Descargar PDF</a>
                     <button type="button" wire:click="validarInforme" wire:confirm="Confirma que desea marcar completo el informe final FORM-DVUS-016?" class="{{ $button }} bg-green-700 text-white">Validar informe</button>
+                    @if(($general['estado'] ?? null) === 'completo' || ($general['estado'] ?? null) === 'SUBSANACION')
+                        <a href="{{ route('enf.acciones.show', $accion) }}" class="{{ $button }} bg-emerald-700 text-white">Ir a envio</a>
+                    @endif
                 @endif
             </div>
         </div>

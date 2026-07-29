@@ -21,7 +21,6 @@
     $assetUrl = fn (string $path) => $isPdf ? 'file://'.public_path($path) : asset($path);
     $headerUrl = $assetUrl('images/enf/form-018-header.png');
     $watermarkUrl = $assetUrl('images/enf/form-018-watermark.png');
-    $footerUrl = $assetUrl('images/enf/form-018-footer.png');
     $fecha = fn ($value) => $value ? \Illuminate\Support\Carbon::parse($value)->format('d/m/Y') : '';
     $money = fn ($value) => 'L '.number_format((float) $value, 2, '.', ',');
     $num = fn ($value) => (string) number_format((float) $value, 0, '.', ',');
@@ -89,19 +88,22 @@
     @page { margin: 0; }
     * { box-sizing: border-box; }
     html, body { margin: 0; color: #111; font-family: Arial, "Liberation Sans", "DejaVu Sans", sans-serif; font-size: 8pt; line-height: 1.2; }
-    .enf-final-page { position: relative; min-height: 11in; padding: 78pt 30pt 44pt; background: #fff; page-break-after: always; }
+    body { padding: 0; }
+    .enf-final-page { position: relative; z-index: 1; width: 100%; min-height: 0; padding: 82pt 30pt 42pt; background: #fff; page-break-after: always; }
     .enf-final-page:last-child { page-break-after: auto; }
-    .enf-final-header { position: absolute; top: 16pt; left: 30pt; right: 30pt; height: 52pt; }
-    .enf-final-header img { width: 300pt; height: auto; }
-    .enf-final-contact { position: absolute; top: 8pt; right: 0; color: #002060; font-size: 7pt; font-weight: 700; line-height: 1.22; text-align: right; }
-    .enf-final-strip { position: absolute; top: -4pt; right: -18pt; width: 7pt; height: 54pt; background: #ffc000; }
-    .enf-final-watermark { position: absolute; top: 330pt; right: -34pt; width: 265pt; opacity: .18; z-index: 0; }
-    .enf-final-footer { position: absolute; left: 80pt; bottom: 18pt; width: 315pt; }
-    .enf-final-content { position: relative; z-index: 1; }
-    .enf-final-title { margin: 0 0 10pt; padding: 6pt 8pt; background: #002060; color: #fff; font-size: 10pt; text-align: center; text-transform: uppercase; }
+    .enf-final-header { position: absolute; z-index: 3; top: 12pt; left: 0; right: 0; height: 58pt; border-bottom: .45pt solid #d9d9d9; }
+    .enf-final-header img { display: block; width: 260pt; height: 58pt; }
+    .enf-final-contact { position: absolute; top: 17pt; right: 17pt; color: #002060; font-size: 6.5pt; font-weight: 400; line-height: 1.35; text-align: right; }
+    .enf-final-strip { position: absolute; z-index: 4; top: 8pt; right: 8pt; width: 12pt; height: 82pt; background: #f9c900; }
+    .enf-final-watermark { position: absolute; z-index: 0; top: 250pt; left: 185pt; width: 285pt; height: 111pt; opacity: .055; }
+    .enf-final-footer { position: absolute; right: 0; bottom: 12pt; color: #596273; font-size: 6.5pt; }
+    .enf-final-content { position: relative; z-index: 1; width: 100%; }
+    .enf-final-title { margin: 0 0 10pt; padding: 5pt 7pt; background: #002060; color: #fff; font-size: 10pt; text-align: center; text-transform: uppercase; }
     .enf-section { margin: 10pt 0 5pt; padding: 4pt 6pt; background: #002060; color: #fff; font-size: 8.5pt; font-weight: 700; text-transform: uppercase; page-break-after: avoid; }
     .enf-subtitle { margin: 7pt 0 3pt; color: #002060; font-size: 8pt; font-weight: 700; page-break-after: avoid; }
-    .enf-table { width: 100%; margin: 0 0 6pt; border-collapse: collapse; table-layout: fixed; }
+    .enf-table { width: 100%; margin: 0 0 6pt; border-collapse: collapse; table-layout: fixed; page-break-inside: auto; }
+    .enf-table thead { display: table-header-group; }
+    .enf-table tfoot { display: table-row-group; }
     .enf-table tr { page-break-inside: avoid; }
     .enf-table th, .enf-table td { border: .55pt solid #7f8790; padding: 3pt 3.5pt; vertical-align: top; overflow-wrap: anywhere; }
     .enf-table th { background: #f2f2f2; color: #002060; font-weight: 700; text-align: left; }
@@ -113,18 +115,24 @@
     .enf-small { font-size: 7pt; }
     .enf-muted { color: #596273; font-size: 7pt; }
     .enf-empty { color: #596273; font-style: italic; }
-    .enf-field { min-height: 24pt; white-space: pre-wrap; }
-    .enf-signature { height: 70pt; vertical-align: bottom !important; text-align: center; }
+    .enf-field { min-height: 26pt; white-space: pre-wrap; }
+    .enf-signature { height: 88pt; vertical-align: bottom !important; text-align: center; }
+    .enf-page-break { page-break-before: always; }
     @if(! $isPdf)
-        .enf-final-page { padding-top: 82pt; }
+        .enf-final-page:not(:first-of-type) { padding-top: 0; }
+        .enf-final-page:not(:first-of-type) .enf-final-header,
+        .enf-final-page:not(:first-of-type) .enf-final-strip,
+        .enf-final-page:not(:first-of-type) .enf-final-watermark,
+        .enf-final-page:not(:first-of-type) .enf-final-footer { display: none; }
     @endif
 </style>
 
 @php
-    $pageChrome = function () use ($headerUrl, $watermarkUrl, $footerUrl, $isPdf) {
-        echo '<header class="enf-final-header"><img src="'.e($headerUrl).'" alt="UNAH VRA DVUS"><div class="enf-final-contact">vinculacion.sociedad@unah.edu.hn<br>Tel. 2216-7070 Ext. 110576<br>educacionnoformal@unah.edu.hn</div><div class="enf-final-strip"></div></header>';
+    $pageChrome = function () use ($headerUrl, $watermarkUrl, $isPdf, $accion) {
+        echo '<header class="enf-final-header"><img src="'.e($headerUrl).'" alt="UNAH VRA DVUS"><div class="enf-final-contact">Direcci&oacute;n de Vinculaci&oacute;n Universidad Sociedad<br>vinculacion.sociedad@unah.edu.hn<br>Tel. 2216-7070 Ext. 110576</div></header>';
+        echo '<div class="enf-final-strip" aria-hidden="true"></div>';
         echo '<img class="enf-final-watermark" src="'.e($watermarkUrl).'" alt="">';
-        if (! $isPdf) echo '<img class="enf-final-footer" src="'.e($footerUrl).'" alt="">';
+        if ($isPdf) echo '<div class="enf-final-footer">'.e($accion->codigo_formulario ?? 'ENF').' &middot; '.e($accion->numero_registro ?: 'Pendiente de asignacion').'</div>';
     };
 @endphp
 

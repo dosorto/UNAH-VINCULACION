@@ -22,6 +22,10 @@ class EnfAccion extends Model
     use HasFactory;
     use SoftDeletes;
 
+    public const PROCESO_INSCRIPCION = 'INSCRIPCION';
+    public const PROCESO_INFORME_INTERMEDIO = 'INFORME_INTERMEDIO';
+    public const PROCESO_INFORME_FINAL = 'INFORME_FINAL';
+
     protected $table = 'enf_acciones';
 
     protected $guarded = [];
@@ -166,6 +170,11 @@ class EnfAccion extends Model
     public function informeFinal()
     {
         return $this->hasOne(EnfInformeFinal::class, 'enf_accion_id');
+    }
+
+    public function informeIntermedio()
+    {
+        return $this->hasOne(EnfInformeIntermedio::class, 'enf_accion_id');
     }
 
     public function sistematizacion()

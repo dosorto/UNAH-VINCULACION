@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ENF\StoreEnfInformeFinalRequest;
 use App\Models\ENF\EnfAccion;
 use App\Models\ENF\EnfInformeFinal;
+use App\Services\ENF\EnfWorkflowService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 
 class EnfInformeFinalController extends Controller
@@ -39,6 +41,19 @@ class EnfInformeFinalController extends Controller
         $response = $pdf->download($filename);
 
         return $this->aplicarHeadersPdf($response, 'attachment', $filename);
+    }
+
+    public function enviar(Request $request, EnfInformeFinal $informeFinal, EnfWorkflowService $workflow): RedirectResponse
+    {
+        try {
+            $workflow->enviarInformeFinal($informeFinal, $request->user(), $request->input('destinatarios', []));
+        } catch (\RuntimeException $exception) {
+            return back()->withErrors(['informe_final' => $exception->getMessage()]);
+        }
+
+        return redirect()
+            ->route('enf.acciones.show', $informeFinal->accion)
+            ->with('status', 'Informe final ENF enviado a revision.');
     }
 
     public function index(): JsonResponse

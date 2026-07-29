@@ -46,7 +46,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}" data-record-id="{{ $editingAccion?->id }}" data-autosave-url="{{ route('enf.acciones.autoguardar-borrador') }}" data-autosave-update-url-template="{{ route('enf.acciones.autoguardar-borrador.update', ['accion' => '__ID__']) }}">
+        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}" data-record-id="{{ $editingAccion?->id }}" data-autosave-url="{{ route('enf.acciones.autoguardar-borrador') }}" data-autosave-update-url-template="{{ route('enf.acciones.autoguardar-borrador.update', ['accion' => '__ID__']) }}" data-destinatarios-url-template="{{ route('enf.acciones.destinatarios-inscripcion', ['accion' => '__ID__']) }}" data-send-review-url-template="{{ route('enf.acciones.enviar-revision', ['accion' => '__ID__']) }}">
             @csrf
             @if ($editingAccion)
                 @method('PUT')
@@ -537,6 +537,8 @@
             </div>
         </form>
 
+        @include('enf.acciones.partials.send-review-modal')
+
         <div data-career-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
             <div class="w-full max-w-2xl rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900">
                 <div class="mb-4 flex items-center justify-between gap-3">
@@ -664,6 +666,171 @@
             let draftRecordId = form.dataset.recordId || draftIdField?.value || '';
             let submittingAfterAutosave = false;
             let restoredDraftData = {};
+            let sendReviewEtapas = [];
+            let sendReviewStep = 0;
+            const sendReviewModal = document.querySelector('[data-enf-send-modal]');
+            const sendReviewSteps = document.querySelector('[data-enf-send-steps]');
+            const sendReviewBody = document.querySelector('[data-enf-send-body]');
+            const sendReviewPrev = document.querySelector('[data-enf-send-prev]');
+            const sendReviewNext = document.querySelector('[data-enf-send-next]');
+            const sendReviewConfirm = document.querySelector('[data-enf-send-confirm]');
+            const destinatariosUrlTemplate = form.dataset.destinatariosUrlTemplate || '';
+            const sendReviewUrlTemplate = form.dataset.sendReviewUrlTemplate || '';
+            const hideSendReviewModal = () => {
+                sendReviewModal?.classList.add('hidden');
+                sendReviewModal?.classList.remove('flex');
+            };
+            const showSendReviewModal = () => {
+                sendReviewModal?.classList.remove('hidden');
+                sendReviewModal?.classList.add('flex');
+            };
+            const destinatariosUrl = () => draftRecordId && destinatariosUrlTemplate
+                ? destinatariosUrlTemplate.replace('__ID__', encodeURIComponent(draftRecordId))
+                : '';
+            const selectedCandidate = (etapa) => {
+                const value = etapa.selected_user_id || sendReviewModal?.querySelector(`[data-enf-destinatario-select="${etapa.id}"]`)?.value;
+                return (etapa.candidatos || []).find((candidate) => String(candidate.user_id) === String(value));
+            };
+            const renderSendReviewModal = () => {
+                if (!sendReviewSteps || !sendReviewBody) return;
+                const total = sendReviewEtapas.length + 1;
+                sendReviewSteps.innerHTML = [
+                    ...sendReviewEtapas.map((etapa, index) => `
+                        <div class="flex items-center gap-1.5 ${sendReviewStep < index ? 'opacity-40' : ''}">
+                            <span class="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${sendReviewStep === index ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : (sendReviewStep > index ? 'bg-emerald-500 text-white' : 'border border-slate-300 text-slate-400 dark:border-slate-600')}">${sendReviewStep > index ? '✓' : index + 1}</span>
+                            <span class="hidden text-xs sm:block ${sendReviewStep === index ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-400'}">${etapa.nombre}</span>
+                        </div>
+                        <span class="text-xs text-slate-300 dark:text-slate-600">→</span>
+                    `),
+                    `<div class="flex items-center gap-1.5 ${sendReviewStep < sendReviewEtapas.length ? 'opacity-40' : ''}">
+                        <span class="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${sendReviewStep === sendReviewEtapas.length ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'border border-slate-300 text-slate-400 dark:border-slate-600'}">${total}</span>
+                        <span class="hidden text-xs sm:block ${sendReviewStep === sendReviewEtapas.length ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-400'}">Confirmación</span>
+                    </div>`,
+                ].join('');
+                if (sendReviewStep < sendReviewEtapas.length) {
+                    const etapa = sendReviewEtapas[sendReviewStep];
+                    sendReviewBody.innerHTML = `
+                        <div class="mt-5 rounded-xl border border-slate-200 p-5 dark:border-slate-700">
+                            <div class="mb-4">
+                                <h3 class="text-sm font-semibold text-slate-900 dark:text-white">${etapa.nombre}</h3>
+                                ${etapa.codigo ? `<span class="mt-1 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">${etapa.codigo}</span>` : ''}
+                                ${etapa.rol_nombre ? `<p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Rol requerido: <span class="font-medium">${etapa.rol_nombre}</span></p>` : ''}
+                            </div>
+                            <label class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">Seleccione el destinatario</label>
+                            <select data-enf-destinatario-select="${etapa.id}" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                <option value="">Seleccione un destinatario...</option>
+                                ${(etapa.candidatos || []).map((candidate) => `<option value="${candidate.user_id}" ${String(etapa.selected_user_id || '') === String(candidate.user_id) ? 'selected' : ''}>${candidate.nombre}</option>`).join('')}
+                            </select>
+                            <p data-enf-send-error class="mt-2 hidden text-xs text-red-600">Seleccione un destinatario para continuar.</p>
+                        </div>`;
+                } else {
+                    sendReviewBody.innerHTML = `
+                        <div class="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-900/50 dark:bg-emerald-950/30">
+                            <h3 class="font-semibold text-emerald-800 dark:text-emerald-200">Listo para enviar</h3>
+                            <p class="mt-1 text-sm text-emerald-700 dark:text-emerald-300">La acción ENF será enviada al flujo de aprobación configurado.</p>
+                            <div class="mt-4 space-y-2">
+                                ${sendReviewEtapas.map((etapa) => {
+                                    const selected = selectedCandidate(etapa);
+                                    return `<div class="flex items-center gap-2 text-xs text-emerald-800 dark:text-emerald-200"><span class="font-medium">${etapa.nombre}:</span><span>${selected ? selected.nombre : '—'}</span></div>`;
+                                }).join('')}
+                            </div>
+                        </div>`;
+                }
+                sendReviewPrev?.classList.toggle('hidden', sendReviewStep === 0);
+                sendReviewNext?.classList.toggle('hidden', sendReviewStep >= sendReviewEtapas.length);
+                sendReviewConfirm?.classList.toggle('hidden', sendReviewStep < sendReviewEtapas.length);
+            };
+            const appendDestinatariosToForm = () => {
+                form.querySelectorAll('[data-enf-destinatario-hidden]').forEach((field) => field.remove());
+                sendReviewEtapas.forEach((etapa) => {
+                    const selected = selectedCandidate(etapa);
+                    if (!selected) return;
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = `destinatarios[${etapa.id}]`;
+                    input.value = selected.user_id;
+                    input.dataset.enfDestinatarioHidden = '1';
+                    form.appendChild(input);
+                });
+            };
+            const finalSubmit = () => {
+                const sendUrl = draftRecordId && sendReviewUrlTemplate
+                    ? sendReviewUrlTemplate.replace('__ID__', encodeURIComponent(draftRecordId))
+                    : '';
+
+                if (sendUrl) {
+                    const flowForm = document.createElement('form');
+                    flowForm.method = 'POST';
+                    flowForm.action = sendUrl;
+
+                    const token = form.querySelector('[name="_token"]')?.value || '';
+                    const tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = '_token';
+                    tokenInput.value = token;
+                    flowForm.appendChild(tokenInput);
+
+                    appendDestinatariosToForm();
+                    form.querySelectorAll('[data-enf-destinatario-hidden]').forEach((field) => {
+                        flowForm.appendChild(field.cloneNode());
+                    });
+
+                    document.body.appendChild(flowForm);
+                    window.localStorage.removeItem(storageKey);
+                    window.localStorage.removeItem(`${storageKey}:step`);
+                    flowForm.submit();
+                    return;
+                }
+
+                window.localStorage.removeItem(storageKey);
+                window.localStorage.removeItem(`${storageKey}:step`);
+                submittingAfterAutosave = true;
+                HTMLFormElement.prototype.submit.call(form);
+            };
+            const openSendReviewOrSubmit = () => {
+                const url = destinatariosUrl();
+                if (!url) {
+                    finalSubmit();
+                    return;
+                }
+                fetch(url, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then((response) => response.ok ? response.json() : Promise.reject())
+                    .then((payload) => {
+                        sendReviewEtapas = payload.etapas || [];
+                        if (sendReviewEtapas.length === 0) {
+                            finalSubmit();
+                            return;
+                        }
+                        sendReviewStep = 0;
+                        renderSendReviewModal();
+                        showSendReviewModal();
+                        submitButton?.removeAttribute('disabled');
+                    })
+                    .catch(() => submitButton?.removeAttribute('disabled'));
+            };
+            document.querySelectorAll('[data-enf-send-close], [data-enf-send-cancel]').forEach((button) => button.addEventListener('click', hideSendReviewModal));
+            sendReviewPrev?.addEventListener('click', () => {
+                sendReviewStep = Math.max(0, sendReviewStep - 1);
+                renderSendReviewModal();
+            });
+            sendReviewNext?.addEventListener('click', () => {
+                const etapa = sendReviewEtapas[sendReviewStep];
+                const select = sendReviewModal?.querySelector(`[data-enf-destinatario-select="${etapa.id}"]`);
+                etapa.selected_user_id = select?.value || etapa.selected_user_id || '';
+                const selected = selectedCandidate(etapa);
+                const error = sendReviewBody?.querySelector('[data-enf-send-error]');
+                if (!selected) {
+                    error?.classList.remove('hidden');
+                    return;
+                }
+                sendReviewStep++;
+                renderSendReviewModal();
+            });
+            sendReviewConfirm?.addEventListener('click', () => {
+                appendDestinatariosToForm();
+                hideSendReviewModal();
+                finalSubmit();
+            });
             let certificateCareers = [];
             let learningSpaces = [];
             let editingCareerIndex = null;
@@ -1829,12 +1996,7 @@
                 submitButton?.setAttribute('disabled', 'disabled');
 
                 serverAutosave({ force: true })
-                    .finally(() => {
-                        window.localStorage.removeItem(storageKey);
-                        window.localStorage.removeItem(`${storageKey}:step`);
-                        submittingAfterAutosave = true;
-                        HTMLFormElement.prototype.submit.call(form);
-                    });
+                    .finally(() => openSendReviewOrSubmit());
             });
 
             window.addEventListener('beforeunload', () => save({ persist: shouldPersistDraft }));

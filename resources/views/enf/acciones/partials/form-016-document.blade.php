@@ -80,6 +80,7 @@
     }
 
     .form016-shell {
+        --form016-screen-scale: 1;
         color: #000;
         container-type: inline-size;
         font-family: "Arial Narrow", Arial, sans-serif;
@@ -125,6 +126,7 @@
 
     .form016-shell.screen-document .form016-page {
         box-shadow: 0 10px 30px rgba(15, 23, 42, .14);
+        zoom: var(--form016-screen-scale);
     }
 
     .form016-header-brand {
@@ -146,28 +148,28 @@
         border-left: 2px solid #8a96a8;
         color: #8b98aa;
         font-family: Arial, Helvetica, sans-serif;
-        font-size: 10.2pt;
+        font-size: 9.2pt;
         font-weight: 800;
-        left: 5.18in;
+        left: 5.26in;
         line-height: 1.02;
-        padding-left: 0.16in;
+        padding-left: 0.13in;
         position: absolute;
         top: 0.43in;
-        width: 1.45in;
+        width: 1.18in;
     }
 
     .form016-contact {
         color: #8b98aa;
         font-family: Arial, Helvetica, sans-serif;
-        font-size: 7.2pt;
+        font-size: 5.9pt;
         font-weight: 800;
         line-height: 1.18;
         position: absolute;
-        right: 0.46in;
+        right: 0.42in;
         text-align: right;
         top: 0.32in;
         white-space: nowrap;
-        width: 2.05in;
+        width: 1.56in;
     }
 
     .form016-contact span {
@@ -347,6 +349,26 @@
         vertical-align: top !important;
     }
 
+    .form016-file-actions {
+        align-items: center;
+        display: flex;
+        gap: 4px;
+        justify-content: center;
+    }
+
+    .form016-file-button {
+        background: #2563eb;
+        border-radius: 4px;
+        color: #fff;
+        display: inline-block;
+        font-family: Arial, sans-serif;
+        font-size: 7.5pt;
+        font-weight: 700;
+        line-height: 1;
+        padding: 5px 7px;
+        text-decoration: none;
+    }
+
     .form016-checkbox {
         border: 1px solid #111827;
         display: inline-block;
@@ -368,6 +390,7 @@
 
         .form016-page {
             box-shadow: none;
+            zoom: 1 !important;
             width: 8.5in;
             min-height: 11in;
         }
@@ -826,5 +849,78 @@
             <td class="form016-signature">Nombre: {{ $firmasPorRol->get('Decano(a) o Director(a) del Centro Regional')?->nombre_firmante }}<br><br>Nombre, firma y sello:</td>
         </tr>
     </table>
+
+    <div class="form016-section">VIII.&nbsp;&nbsp; DOCUMENTOS ADJUNTOS A LA FICHA</div>
+    <table class="form016-table">
+        <tr>
+            <td class="form016-blue form016-center" style="width: 7%">No</td>
+            <td class="form016-blue form016-center">Descripcion</td>
+            <td class="form016-blue form016-center" style="width: 8%">Si</td>
+            <td class="form016-blue form016-center" style="width: 8%">No</td>
+            @unless ($isPdf)
+                <td class="form016-blue form016-center" style="width: 20%">Archivo</td>
+            @endunless
+        </tr>
+        @forelse ($accion->documentos->values() as $documento)
+            @php
+                $tieneArchivo = filled($documento->ruta) && $documento->ruta !== 'pendiente';
+                $documentoUrl = $tieneArchivo ? \Illuminate\Support\Facades\Storage::url($documento->ruta) : null;
+            @endphp
+            <tr>
+                <td class="form016-center">{{ $loop->iteration }}</td>
+                <td>{{ $documento->nombre ?: ($documento->descripcion ?: 'Documento adjunto') }}</td>
+                <td class="form016-center">X</td>
+                <td class="form016-center"></td>
+                @unless ($isPdf)
+                    <td class="form016-center">
+                        @if ($documentoUrl)
+                            <div class="form016-file-actions">
+                                <a href="{{ $documentoUrl }}" target="_blank" rel="noopener" class="form016-file-button">Ver</a>
+                                <a href="{{ $documentoUrl }}" download class="form016-file-button">Descargar</a>
+                            </div>
+                        @else
+                            Pendiente
+                        @endif
+                    </td>
+                @endunless
+            </tr>
+        @empty
+            <tr>
+                <td class="form016-center">1</td>
+                <td>Descripciones minimas del plan de estudios oficial</td>
+                <td class="form016-center"></td>
+                <td class="form016-center">X</td>
+                @unless ($isPdf)
+                    <td></td>
+                @endunless
+            </tr>
+        @endforelse
+    </table>
     {!! $closePage !!}
 </div>
+
+@if (! $isPdf)
+    <script>
+        (() => {
+            const shells = document.querySelectorAll('.form016-shell.screen-document');
+            const pageWidth = 8.5 * 96;
+            const maxScale = 1.42;
+
+            const resize = (shell) => {
+                const availableWidth = shell.clientWidth;
+                const scale = Math.min(maxScale, Math.max(0.35, (availableWidth - 2) / pageWidth));
+                shell.style.setProperty('--form016-screen-scale', scale.toFixed(4));
+            };
+
+            shells.forEach((shell) => {
+                resize(shell);
+
+                if ('ResizeObserver' in window) {
+                    new ResizeObserver(() => resize(shell)).observe(shell);
+                }
+            });
+
+            window.addEventListener('resize', () => shells.forEach(resize));
+        })();
+    </script>
+@endif
