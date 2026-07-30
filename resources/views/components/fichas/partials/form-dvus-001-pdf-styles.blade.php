@@ -1,20 +1,11 @@
+@include('components.fichas.partials.institutional-pdf-chrome-styles')
+
 <style>
     @page { size: letter portrait; margin: 35mm 9mm 13mm; }
 
     body { background: #fff !important; color: #111 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 7.15pt !important; line-height: 1.12 !important; margin: 0 !important; padding: 0 !important; }
     .container { border: 0 !important; box-sizing: border-box !important; margin: 0 !important; max-width: none !important; padding: 0 !important; width: 100% !important; }
     .pdf-content-wrapper { background: transparent !important; display: block !important; margin: 0 !important; }
-
-    .pdf-running-header { height: 28mm; left: 0; position: fixed; right: 0; top: -31mm; z-index: 20; }
-    .form-header-table { border-collapse: collapse; table-layout: fixed; width: 100%; }
-    .form-header-table td { border: 0 !important; padding: 0 !important; }
-    .form-header-brand { vertical-align: top; width: 70%; }
-    .form-header-brand img { display: block; height: auto; margin-top: .3mm; width: 270pt; }
-    .form-header-contact { border-left: .6pt solid #002060 !important; color: #002060; font-size: 6.4pt; font-weight: 700; line-height: 1.2; padding: 1.3mm 2mm !important; text-align: right; vertical-align: top; width: 30%; }
-    .form-header-code { background: #002060; color: #fff; font-size: 7.2pt; font-weight: 700; line-height: 4.4mm; padding: 0 2mm; text-align: right; vertical-align: middle; width: 22%; }
-    .form-header-title { color: #002060; font-size: 8.1pt; font-weight: 700; letter-spacing: -.1pt; line-height: 1.06; padding-top: 1.1mm !important; text-align: center; vertical-align: middle; width: 78%; }
-    .pdf-yellow-marker { height: 24mm; position: fixed; right: -5.5mm; top: -31mm; width: 4.8mm; z-index: 30; }
-    .pdf-watermark { height: auto; left: 105pt; opacity: .075; position: fixed; top: 220pt; width: 292pt; z-index: 0; }
 
     .section1, .section2, .section3, .section4 { margin: 0 0 1.5mm !important; position: relative; z-index: 2; }
     .section-title { background: #ebeeef !important; border-left: 2.4mm solid #ffc400; color: #002060 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 7.7pt !important; font-style: normal !important; font-weight: 700 !important; line-height: 1.1 !important; margin: 1.7mm 0 .8mm !important; padding: 1mm 1.5mm !important; page-break-after: avoid !important; }

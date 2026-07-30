@@ -1306,6 +1306,46 @@ class InformeFinalINF001Test extends TestCase
         $this->assertSame($contenido, $response->streamedContent());
     }
 
+    public function test_verificacion_publica_permite_descargar_unicamente_constancia_vigente(): void
+    {
+        Storage::fake('local');
+        [, , , $constancia] = $this->cierreFinalizadoConConstancia(ConstanciaFinalizacionProyecto::ESTADO_EMITIDA);
+        $token = 'token-publico-constancia-vigente';
+        $constancia->update([
+            'token_hash' => hash('sha256', $token),
+            'snapshot' => ['proyecto' => ['nombre' => 'Proyecto público', 'codigo' => 'PUB-001', 'unidad_academica' => 'UNAH']],
+        ]);
+        $contenido = '%PDF-constancia-vigente';
+        Storage::disk('local')->put($constancia->ruta_archivo, $contenido);
+
+        $this->get(route('constancias.finalizacion.verificar', ['token' => $token]))
+            ->assertOk()
+            ->assertSee('Constancia vigente')
+            ->assertSee(route('constancias.finalizacion.verificar.pdf', ['token' => $token], false));
+
+        $response = $this->get(route('constancias.finalizacion.verificar.pdf', ['token' => $token]))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+
+        $this->assertSame($contenido, $response->streamedContent());
+    }
+
+    public function test_verificacion_publica_no_expone_pdf_de_constancia_no_vigente_o_token_invalido(): void
+    {
+        Storage::fake('local');
+        [, , , $constancia] = $this->cierreFinalizadoConConstancia(ConstanciaFinalizacionProyecto::ESTADO_PENDIENTE);
+        $token = 'token-publico-constancia-pendiente';
+        $constancia->update(['token_hash' => hash('sha256', $token)]);
+
+        $this->get(route('constancias.finalizacion.verificar', ['token' => $token]))
+            ->assertOk()
+            ->assertSee('Constancia no vigente')
+            ->assertDontSee('Descargar constancia vigente');
+
+        $this->get(route('constancias.finalizacion.verificar.pdf', ['token' => $token]))->assertNotFound();
+        $this->get(route('constancias.finalizacion.verificar', ['token' => 'token-invalido']))->assertNotFound();
+    }
+
     public function test_usuario_no_autorizado_no_puede_crear_enviar_ni_ver_accion_de_cierre(): void
     {
         [$user,$project]=$this->scenario();

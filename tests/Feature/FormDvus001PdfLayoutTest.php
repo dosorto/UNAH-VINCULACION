@@ -8,26 +8,29 @@ class FormDvus001PdfLayoutTest extends TestCase
 {
     public function test_usa_exclusivamente_los_tres_recursos_institucionales_configurados(): void
     {
-        $header = $this->viewSource('components/fichas/partials/form-dvus-001-header');
+        $header = $this->viewSource('components/fichas/partials/institutional-pdf-header');
+        $watermark = $this->viewSource('components/fichas/partials/institutional-pdf-watermark');
+        $combined = $header . "\n" . $watermark;
 
         $this->assertStringContainsString("assets/pdf/common/vra.png", $header);
         $this->assertStringContainsString("assets/pdf/common/rectangulo_amarillo.png", $header);
-        $this->assertStringContainsString("assets/pdf/common/sol_gris.png", $header);
-        $this->assertStringNotContainsString('base64', $header);
-        $this->assertSame(3, substr_count($header, "public_path('assets/pdf/common/"));
+        $this->assertStringContainsString("assets/pdf/common/sol_gris.png", $watermark);
+        $this->assertStringNotContainsString('base64', $combined);
+        $this->assertSame(3, substr_count($combined, 'assets/pdf/common/'));
     }
 
     public function test_encabezado_y_marca_de_agua_se_configuran_como_elementos_repetibles(): void
     {
-        $styles = $this->viewSource('components/fichas/partials/form-dvus-001-pdf-styles');
-        $header = $this->viewSource('components/fichas/partials/form-dvus-001-header');
+        $styles = $this->viewSource('components/fichas/partials/institutional-pdf-chrome-styles');
+        $wrapper = $this->viewSource('components/fichas/partials/form-dvus-001-header');
+        $institutionalHeader = $this->viewSource('components/fichas/partials/institutional-pdf-header');
 
-        $this->assertMatchesRegularExpression('/\\.pdf-running-header\\s*\\{[^}]*position:\\s*fixed/s', $styles);
-        $this->assertMatchesRegularExpression('/\\.pdf-watermark\\s*\\{[^}]*position:\\s*fixed/s', $styles);
-        $this->assertMatchesRegularExpression('/\\.pdf-yellow-marker\\s*\\{[^}]*position:\\s*fixed/s', $styles);
-        $this->assertStringContainsString('FORM-DVUS-001', $header);
-        $this->assertStringContainsString('vinculacion.sociedad@unah.edu.hn', $header);
-        $this->assertStringContainsString('Tel. 2216-6100 Ext. 110576', $header);
+        $this->assertMatchesRegularExpression('/\.institutional-pdf-header\s*\{[^}]*position:\s*fixed/s', $styles);
+        $this->assertMatchesRegularExpression('/\.institutional-pdf-watermark\s*\{[^}]*position:\s*fixed/s', $styles);
+        $this->assertMatchesRegularExpression('/\.institutional-pdf-accent\s*\{[^}]*position:\s*fixed/s', $styles);
+        $this->assertStringContainsString('FORM-DVUS-001', $wrapper);
+        $this->assertStringContainsString('vinculacion.sociedad@unah.edu.hn', $institutionalHeader);
+        $this->assertStringContainsString('2216-6100 Ext. 110576', $institutionalHeader);
     }
 
     public function test_secciones_conservan_el_orden_institucional_requerido(): void

@@ -808,8 +808,8 @@
                                 @error('nuevoIntegranteInternacional.documento_identidad') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">RTN <span class="text-xs text-gray-400">(opcional, 14 dígitos)</span></label>
-                                <input type="text" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.rtn" maxlength="14" placeholder="00000000000000" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">RTN / identificador fiscal <span class="text-xs text-gray-400">(opcional; RTN Honduras: 14 dígitos)</span></label>
+                                <input type="text" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.rtn" maxlength="50" placeholder="Identificador fiscal" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                                 @error('nuevoIntegranteInternacional.rtn') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
@@ -1006,8 +1006,8 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">RTN <span class="text-xs text-gray-400">(opcional, 14 dígitos)</span></label>
-                                <input type="text" wire:model="nuevaContraparte.rtn" maxlength="14" placeholder="00000000000000" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">RTN / identificador fiscal <span class="text-xs text-gray-400">(opcional; RTN Honduras: 14 dígitos)</span></label>
+                                <input type="text" wire:model="nuevaContraparte.rtn" maxlength="50" placeholder="Identificador fiscal" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                                 @error('nuevaContraparte.rtn') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div class="sm:col-span-2">

@@ -110,6 +110,10 @@ Route::get('/constancias/finalizacion/verificar/{token}', VerificarConstanciaFin
     ->middleware('throttle:30,1')
     ->name('constancias.finalizacion.verificar');
 
+Route::get('/constancias/finalizacion/verificar/{token}/pdf', [VerificarConstanciaFinalizacionController::class, 'descargar'])
+    ->middleware('throttle:30,1')
+    ->name('constancias.finalizacion.verificar.pdf');
+
 Route::get('/logout', function () {
     if (Auth::check()) {
         Auth::logout();

@@ -21,6 +21,7 @@ class ConstanciaFinalizacionPdfGenerator
                 'qr' => 'file://'.$qrPath,
                 'firma' => $this->localPath(data_get($constancia->snapshot, 'autoridad.firma_ruta')),
                 'sello' => $this->localPath(data_get($constancia->snapshot, 'autoridad.sello_ruta')),
+                'verificationUrl' => $url,
                 'header' => 'file://'.public_path('images/enf/form-018-header.png'),
                 'footer' => 'file://'.public_path('images/enf/form-018-footer.png'),
                 'watermark' => 'file://'.public_path('images/enf/form-018-watermark.png'),
