@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\InformeFinal\InformeFinalProyecto;
 use App\Models\InformeIntermedio\InformeIntermedioProyecto;
 use App\Services\Constancias\EmitirConstanciaFinalizacionProyecto;
+use App\Services\Constancias\EmitirConstanciaRegistroProyecto;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -224,6 +225,21 @@ trait ResuelveFirmaPorEtapa
             'fecha' => now(),
             'comentario' => 'Todas las etapas del flujo de inscripción fueron aprobadas.',
         ]);
+
+        DB::afterCommit(function () use ($proyecto, $user): void {
+            if (! Schema::hasTable('constancias_registro_proyecto')) {
+                Log::warning('La constancia de registro no se emitió porque la migración aún no está disponible.', ['proyecto_id' => $proyecto->id]);
+                return;
+            }
+            try {
+                app(EmitirConstanciaRegistroProyecto::class)->emitir($proyecto, $user->id);
+            } catch (\Throwable $exception) {
+                Log::error('No se pudo emitir la constancia de registro después de completar la inscripción.', [
+                    'proyecto_id' => $proyecto->id,
+                    'exception' => $exception,
+                ]);
+            }
+        });
 
         $this->notificarCoordinadorProyecto(
             $proyecto,

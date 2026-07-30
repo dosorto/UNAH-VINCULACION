@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Models\Constancias\ConstanciaFinalizacionProyecto;
-use App\Services\Constancias\ConstanciaFinalizacionPdfGenerator;
+use App\Models\Constancias\ConstanciaRegistroProyecto;
+use App\Services\Constancias\ConstanciaRegistroPdfGenerator;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
-class GenerarPdfConstanciaFinalizacionProyecto implements ShouldQueue
+class GenerarPdfConstanciaRegistroProyecto implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -24,31 +24,31 @@ class GenerarPdfConstanciaFinalizacionProyecto implements ShouldQueue
         $this->afterCommit();
     }
 
-    public function handle(ConstanciaFinalizacionPdfGenerator $generator): void
+    public function handle(ConstanciaRegistroPdfGenerator $generator): void
     {
-        $constancia = ConstanciaFinalizacionProyecto::query()->find($this->constanciaId);
+        $constancia = ConstanciaRegistroProyecto::query()->find($this->constanciaId);
 
-        if (! $constancia || ! in_array($constancia->estado, [ConstanciaFinalizacionProyecto::ESTADO_PENDIENTE, ConstanciaFinalizacionProyecto::ESTADO_ERROR], true)) {
+        if (! $constancia || ! in_array($constancia->estado, [ConstanciaRegistroProyecto::ESTADO_PENDIENTE, ConstanciaRegistroProyecto::ESTADO_ERROR], true)) {
             return;
         }
 
         try {
             $contenido = $generator->content($constancia);
             $codigo = preg_replace('/[^A-Za-z0-9_-]+/', '-', (string) data_get($constancia->snapshot, 'proyecto.codigo', 'proyecto'));
-            $ruta = sprintf('constancias/finalizacion/%d/%s/constancia-finalizacion-%s.pdf', $constancia->anio, trim($codigo, '-'), trim($codigo, '-'));
+            $ruta = sprintf('constancias/registro/%d/%s/constancia-registro-%s.pdf', $constancia->anio, trim($codigo, '-'), trim($codigo, '-'));
 
             if (! Storage::disk('local')->put($ruta, $contenido)) {
-                throw new \RuntimeException('No se pudo almacenar el PDF de la constancia.');
+                throw new \RuntimeException('No se pudo almacenar el PDF de la constancia de registro.');
             }
 
             $constancia->update([
                 'ruta_archivo' => $ruta,
                 'hash_archivo' => hash('sha256', $contenido),
-                'estado' => ConstanciaFinalizacionProyecto::ESTADO_EMITIDA,
+                'estado' => ConstanciaRegistroProyecto::ESTADO_EMITIDA,
             ]);
         } catch (Throwable $exception) {
-            $constancia->update(['estado' => ConstanciaFinalizacionProyecto::ESTADO_ERROR]);
-            Log::error('No se pudo generar la constancia de finalización.', ['constancia_id' => $constancia->id, 'exception' => $exception]);
+            $constancia->update(['estado' => ConstanciaRegistroProyecto::ESTADO_ERROR]);
+            Log::error('No se pudo generar la constancia de registro.', ['constancia_id' => $constancia->id, 'exception' => $exception]);
             throw $exception;
         }
     }

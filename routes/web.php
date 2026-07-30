@@ -14,6 +14,8 @@ use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalDocumentoRevisionCon
 use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalAnexoController;
 use App\Http\Controllers\Proyectos\ConstanciaFinalizacionProyectoController;
 use App\Http\Controllers\Constancias\VerificarConstanciaFinalizacionController;
+use App\Http\Controllers\Constancias\VerificarConstanciaRegistroController;
+use App\Http\Controllers\Proyectos\ConstanciaRegistroProyectoController;
 use App\Http\Controllers\Proyectos\InformeIntermedio\InformeIntermedioProyectoController;
 use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialAnexoController;
 use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialPdfController;
@@ -113,6 +115,14 @@ Route::get('/constancias/finalizacion/verificar/{token}', VerificarConstanciaFin
 Route::get('/constancias/finalizacion/verificar/{token}/pdf', [VerificarConstanciaFinalizacionController::class, 'descargar'])
     ->middleware('throttle:30,1')
     ->name('constancias.finalizacion.verificar.pdf');
+
+Route::get('/constancias/registro/verificar/{token}', VerificarConstanciaRegistroController::class)
+    ->middleware('throttle:30,1')
+    ->name('constancias.registro.verificar');
+
+Route::get('/constancias/registro/verificar/{token}/pdf', [VerificarConstanciaRegistroController::class, 'descargar'])
+    ->middleware('throttle:30,1')
+    ->name('constancias.registro.verificar.pdf');
 
 Route::get('/logout', function () {
     if (Auth::check()) {
@@ -322,6 +332,8 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('informes-finales.inf-001.pdf');
         Route::get('/proyectos/constancias-finalizacion/{constancia}/descargar', [ConstanciaFinalizacionProyectoController::class, 'descargar'])
             ->name('constancias.finalizacion.descargar');
+        Route::get('/proyectos/constancias-registro/{constancia}/descargar', [ConstanciaRegistroProyectoController::class, 'descargar'])
+            ->name('constancias.registro.descargar');
         Route::get('/informes-finales/documentos-revision/{documento}/descargar', [InformeFinalDocumentoRevisionController::class, 'descargar'])
             ->name('informes-finales.documentos-revision.descargar');
         Route::get('/informes-finales/anexos/{anexo}', [InformeFinalAnexoController::class, 'mostrar'])
