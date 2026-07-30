@@ -9,6 +9,7 @@ use App\Models\Estudiante\Estudiante;
 use App\Models\Estudiante\EstudianteProyecto;
 use App\Models\InformeFinal\InformeFinalBeneficiario;
 use App\Models\InformeFinal\InformeFinalProyecto;
+use App\Models\Constancias\ConstanciaFinalizacionProyecto;
 use App\Models\Personal\Empleado;
 use App\Models\Personal\EmpleadoProyecto;
 use App\Models\Presupuesto\Presupuesto;
@@ -156,6 +157,7 @@ class InformeFinalINF001Test extends TestCase
         $this->assertSame($snapshot->participantes->first()->nombre,$snapshot->responsable);
         $this->assertTrue($snapshot->participantes->first()->es_responsable);
         $component=$this->livewireComponent($user,$project)->set('currentStep',5);
+        $component->assertSet('actividades.0.participantes.1.nombre','Segundo Participante');
         $component->assertSee('Participantes')->assertSee('Segundo Participante');
         $this->assertStringNotContainsString('Dorian Adolfo Ordóñez Osorto, Segundo Participante',$component->html());
     }
@@ -864,6 +866,22 @@ class InformeFinalINF001Test extends TestCase
         $this->assertDatabaseHas('informe_final_ods',['informe_final_proyecto_id'=>$report->id,'ods_id'=>$odsId,'nivel_contribucion'=>'directa']);
     }
 
+    public function test_ods_planificado_es_solo_lectura_y_ods_de_ejecucion_permanece_editable(): void
+    {
+        [$user,$project]=$this->scenario();
+        $odsId=DB::table('ods')->where('nombre','6. Agua limpia y saneamiento')->value('id') ?: DB::table('ods')->insertGetId(['nombre'=>'6. Agua limpia y saneamiento','created_at'=>now(),'updated_at'=>now()]);
+        $project->ods()->syncWithoutDetaching([$odsId]);
+        $report=$this->initialize($project,$user);
+        $report->ods()->create(['ods_id'=>$odsId,'nivel_contribucion'=>'indirecta','origen'=>'EJECUCION']);
+
+        $html=$this->livewireComponent($user,$project)->set('currentStep',6)->html();
+
+        $this->assertStringContainsString('Cargado desde el registro del proyecto',$html);
+        $this->assertStringContainsString('Ejecución',$html);
+        $this->assertStringContainsString('readonly',$html);
+        $this->assertStringContainsString('wire:model="ods.1.ods_id"',$html);
+    }
+
     public function test_se_valida_muestra_comunitaria(): void
     {
         [$user,$project]=$this->scenario(); $this->livewireComponent($user,$project)->set('general.valoracion_total_beneficiarios',100)->set('general.valoracion_muestra',101)->call('guardarBorrador')->assertHasErrors('general.valoracion_muestra');
@@ -1226,6 +1244,68 @@ class InformeFinalINF001Test extends TestCase
         $this->assertSame('Ver informe final aprobado',$resumen['texto_accion']);
     }
 
+    public function test_historial_diferencia_pdf_final_y_constancia_emitida(): void
+    {
+        [$user, $project, $report, $constancia] = $this->cierreFinalizadoConConstancia(ConstanciaFinalizacionProyecto::ESTADO_EMITIDA);
+
+        $html = Livewire::actingAs($user)->test(HistorialProyecto::class, ['proyecto' => $project])
+            ->assertSee('Ver informe final aprobado')
+            ->assertSee('Descargar PDF final')
+            ->assertSee('Descargar constancia de finalización')
+            ->html();
+
+        $this->assertStringContainsString(route('informes-finales.inf-001.pdf', $report, false), $html);
+        $this->assertStringContainsString(route('constancias.finalizacion.descargar', $constancia, false), $html);
+        $this->assertNotSame(
+            route('informes-finales.inf-001.pdf', $report, false),
+            route('constancias.finalizacion.descargar', $constancia, false)
+        );
+    }
+
+    public function test_historial_informa_estados_pendiente_y_error_de_constancia_sin_ocultar_pdf(): void
+    {
+        foreach ([
+            ConstanciaFinalizacionProyecto::ESTADO_PENDIENTE => 'La constancia de finalización está en proceso de generación.',
+            ConstanciaFinalizacionProyecto::ESTADO_ERROR => 'No fue posible generar la constancia de finalización.',
+        ] as $estado => $mensaje) {
+            [$user, $project] = $this->cierreFinalizadoConConstancia($estado);
+            Livewire::actingAs($user)->test(HistorialProyecto::class, ['proyecto' => $project])
+                ->assertSee('Descargar PDF final')
+                ->assertSee($mensaje)
+                ->assertDontSee('Descargar constancia de finalización');
+        }
+    }
+
+    public function test_usuario_no_autorizado_no_puede_descargar_constancia_finalizacion(): void
+    {
+        [, $project, , $constancia] = $this->cierreFinalizadoConConstancia(ConstanciaFinalizacionProyecto::ESTADO_EMITIDA);
+        $otroUsuario = User::factory()->create();
+
+        $this->actingAs($otroUsuario)
+            ->get(route('constancias.finalizacion.descargar', $constancia))
+            ->assertForbidden();
+    }
+
+    public function test_descarga_constancia_entrega_el_pdf_privado_y_nunca_el_inf001(): void
+    {
+        Storage::fake('local');
+        [$user, , , $constancia] = $this->cierreFinalizadoConConstancia(ConstanciaFinalizacionProyecto::ESTADO_EMITIDA);
+        $contenido = '%PDF-constancia-finalizacion-prueba';
+        Storage::disk('local')->put($constancia->ruta_archivo, $contenido);
+
+        $response = $this->actingAs($user)
+            ->get(route('constancias.finalizacion.descargar', ['constancia' => $constancia->id]))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+
+        $disposition = (string) $response->headers->get('Content-Disposition');
+        $this->assertStringContainsString('attachment', $disposition);
+        $this->assertStringContainsString('constancia-finalizacion-', $disposition);
+        $this->assertStringNotContainsString('INF-001', $disposition);
+        $this->assertStringNotContainsString('Pendiente-de-asignacion', $disposition);
+        $this->assertSame($contenido, $response->streamedContent());
+    }
+
     public function test_usuario_no_autorizado_no_puede_crear_enviar_ni_ver_accion_de_cierre(): void
     {
         [$user,$project]=$this->scenario();
@@ -1249,8 +1329,8 @@ class InformeFinalINF001Test extends TestCase
         $this->assertStringContainsString('Cierre del proyecto',$vistaProyecto);
         $this->assertStringContainsString('wire:click="crearInformeFinal"',$vistaProyecto);
         $this->assertStringContainsString('wire:click="enviarInformeFinal"',$vistaProyecto);
-        $this->assertSame(1,substr_count($vistaProyecto,'puedeMostrarCierreProyecto(auth()->user())'));
-        $this->assertStringNotContainsString("cierreInformeFinal['visible']",$vistaProyecto);
+        $this->assertStringContainsString("cierreInformeFinal['visible']",$vistaProyecto);
+        $this->assertStringContainsString('Descargar constancia de finalización',$vistaProyecto);
         $this->assertStringContainsString('Flujo de cierre INF-001',$vistaProyecto);
         $this->assertStringContainsString('Flujo normal del proyecto',$vistaProyecto);
         $this->assertStringNotContainsString('route(\'proyectos.informe-final\'',$listado);
@@ -1276,6 +1356,35 @@ class InformeFinalINF001Test extends TestCase
     private function initialize(Proyecto $project, User $user): InformeFinalProyecto
     {
         $this->actingAs($user); return app(InformeFinalProyectoInitializer::class)->initialize($project,$user->id);
+    }
+
+    private function cierreFinalizadoConConstancia(string $estado): array
+    {
+        [$user, $project] = $this->scenario();
+        $report = $this->initialize($project, $user);
+        $report->update(['fecha_cierre' => now()->toDateString()]);
+        $aprobado = TipoEstado::firstOrCreate(['nombre' => 'Aprobado']);
+        $documento = $project->documentos()->create(['tipo_documento' => 'Informe Final', 'documento_url' => 'documentos/final.pdf']);
+        $documento->estado_documento()->create(['empleado_id' => $user->empleado->id, 'tipo_estado_id' => $aprobado->id, 'fecha' => now()]);
+        $this->ponerEstadoProyecto($project, $user, 'Finalizado');
+
+        $constancia = ConstanciaFinalizacionProyecto::create([
+            'proyecto_id' => $project->id,
+            'informe_final_proyecto_id' => $report->id,
+            'documento_proyecto_id' => $documento->id,
+            'numero' => 'VRA-DVUS-'.uniqid(),
+            'anio' => (int) now()->year,
+            'correlativo' => random_int(100000, 999999),
+            'codigo_validacion' => strtoupper(substr(sha1(uniqid('', true)), 0, 20)),
+            'token_hash' => hash('sha256', uniqid('', true)),
+            'ruta_archivo' => $estado === ConstanciaFinalizacionProyecto::ESTADO_EMITIDA ? 'constancias/finalizacion/prueba.pdf' : null,
+            'snapshot' => [],
+            'fecha_emision' => now(),
+            'emitida_por' => $user->id,
+            'estado' => $estado,
+        ]);
+
+        return [$user, $project->fresh(), $report->fresh(), $constancia];
     }
 
     private function ponerEstadoProyecto(Proyecto $project, User $user, string $nombre): void

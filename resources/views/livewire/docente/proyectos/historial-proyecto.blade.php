@@ -154,7 +154,7 @@
         </section>
     @endif
 
-    @if($proyecto->puedeMostrarCierreProyecto(auth()->user()))
+    @if($cierreInformeFinal['visible'] ?? false)
         <section class="no-print rounded-xl border border-emerald-200 bg-white p-5 shadow-sm dark:border-emerald-900 dark:bg-gray-900">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
@@ -167,6 +167,9 @@
                         @endif
                         @if(!empty($cierreInformeFinal['fecha_envio']))
                             <div><dt class="text-gray-500">Fecha de envío</dt><dd class="text-gray-900 dark:text-gray-100">{{ $cierreInformeFinal['fecha_envio']->format('d/m/Y H:i') }}</dd></div>
+                        @endif
+                        @if(!empty($cierreInformeFinal['informe']) && !empty($cierreInformeFinal['informe']->fecha_cierre))
+                            <div><dt class="text-gray-500">Fecha de cierre</dt><dd class="text-gray-900 dark:text-gray-100">{{ $cierreInformeFinal['informe']->fecha_cierre->format('d/m/Y') }}</dd></div>
                         @endif
                         @if(!empty($cierreInformeFinal['etapa_actual']))
                             <div><dt class="text-gray-500">Etapa actual</dt><dd class="text-gray-900 dark:text-gray-100">{{ $cierreInformeFinal['etapa_actual'] }}</dd></div>
@@ -214,6 +217,14 @@
                     @elseif($cierreInformeFinal['accion'] === 'aprobado')
                         <a href="{{ route('informes-finales.inf-001.preview', $cierreInformeFinal['informe']) }}" class="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">Ver informe final aprobado</a>
                         <a href="{{ route('informes-finales.inf-001.pdf', $cierreInformeFinal['informe']) }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Descargar PDF final</a>
+                    @endif
+                    <?php $constanciaFinalizacion = $cierreInformeFinal['constancia_finalizacion'] ?? null; ?>
+                    @if($cierreInformeFinal['accion'] === 'aprobado' && $constanciaFinalizacion?->estado === \App\Models\Constancias\ConstanciaFinalizacionProyecto::ESTADO_EMITIDA && ($cierreInformeFinal['puede_descargar_constancia'] ?? false))
+                        <a href="{{ route('constancias.finalizacion.descargar', ['constancia' => $constanciaFinalizacion->getKey()]) }}" class="rounded-lg bg-sky-700 px-4 py-2 text-sm font-medium text-white hover:bg-sky-800">Descargar constancia de finalización</a>
+                    @elseif($cierreInformeFinal['accion'] === 'aprobado' && $constanciaFinalizacion?->estado === \App\Models\Constancias\ConstanciaFinalizacionProyecto::ESTADO_PENDIENTE)
+                        <p class="basis-full text-right text-sm text-gray-500 dark:text-gray-400">La constancia de finalización está en proceso de generación.</p>
+                    @elseif($cierreInformeFinal['accion'] === 'aprobado' && $constanciaFinalizacion?->estado === \App\Models\Constancias\ConstanciaFinalizacionProyecto::ESTADO_ERROR)
+                        <p class="basis-full text-right text-sm text-amber-700 dark:text-amber-300">No fue posible generar la constancia de finalización.</p>
                     @endif
                 </div>
             </div>

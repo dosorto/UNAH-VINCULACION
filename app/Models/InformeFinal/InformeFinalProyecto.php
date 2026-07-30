@@ -5,6 +5,7 @@ namespace App\Models\InformeFinal;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FirmaProyecto;
+use App\Models\Constancias\ConstanciaFinalizacionProyecto;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -56,6 +57,7 @@ class InformeFinalProyecto extends Model
     public function presupuestoDetalles(): HasMany { return $this->hasMany(InformeFinalPresupuestoDetalle::class); }
     public function anexos(): HasMany { return $this->hasMany(InformeFinalAnexo::class); }
     public function documentosRevision(): HasMany { return $this->hasMany(InformeFinalDocumentoRevision::class); }
+    public function constanciaFinalizacion(): HasOne { return $this->hasOne(ConstanciaFinalizacionProyecto::class, 'informe_final_proyecto_id'); }
     public function documentoCierre(): HasOne
     {
         return $this->hasOne(DocumentoProyecto::class, 'proyecto_id', 'proyecto_id')

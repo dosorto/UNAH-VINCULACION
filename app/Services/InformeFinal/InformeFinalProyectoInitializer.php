@@ -6,6 +6,7 @@ use App\Models\InformeFinal\InformeFinalProyecto;
 use App\Models\Proyecto\Proyecto;
 use App\Support\InformeFinal\ParticipacionEstudiantil;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class InformeFinalProyectoInitializer
 {
@@ -138,8 +139,7 @@ class InformeFinalProyectoInitializer
 
             foreach ($contrapartesProyecto as $pivot) {
                 $catalogo = $pivot->entidadContraparte;
-                $informe->contrapartes()->create([
-                    'origen' => 'PLANIFICADO',
+                $datosContraparte = [
                     'entidad_contraparte_id' => $catalogo->id,
                     'nombre' => $catalogo->nombre,
                     'tipo' => $this->tipoContraparte($catalogo->tipo_entidad),
@@ -152,7 +152,11 @@ class InformeFinalProyectoInitializer
                     // El presupuesto inicial sólo guarda un monto global. Se asigna únicamente
                     // cuando existe una sola contraparte, para no duplicarlo entre entidades.
                     'aporte_monetario' => $contrapartesProyecto->count() === 1 ? $aporteContrapartePlanificado : 0,
-                ]);
+                ];
+                if (Schema::hasColumn('informe_final_contrapartes', 'origen')) {
+                    $datosContraparte['origen'] = 'PLANIFICADO';
+                }
+                $informe->contrapartes()->create($datosContraparte);
             }
             $this->sincronizarInstrumentosContraparte($informe, $proyecto);
 

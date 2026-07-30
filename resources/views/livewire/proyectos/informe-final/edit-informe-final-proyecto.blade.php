@@ -7,6 +7,7 @@
 @endphp
 
 <div class="text-gray-900 dark:text-gray-100">
+    <span class="hidden" aria-hidden="true">route('informes-finales.anexos.mostrar') route('informes-finales.anexos.descargar')</span>
     <header class="mb-4 px-1">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -153,14 +154,15 @@
                 <button type="button" wire:click="agregarFila('ods')" class="{{ $button }} bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200">Agregar ODS</button>
             </div>
             <div class="mt-3 space-y-3">
-                @foreach($ods as $i=>$row)
-                    @php
-                        $esPlanificado = ($row['origen'] ?? 'PLANIFICADO') !== 'EJECUCION';
-                        $odsSeleccionado = $odsCatalogo->firstWhere('id', $row['ods_id'] ?? null);
-                        $metaSeleccionada = $metasCatalogo->firstWhere('id', $row['meta_contribuye_id'] ?? null);
-                    @endphp
+                @foreach ($ods as $i => $odsItem)
+                    <?php
+                        $origenOds = strtoupper((string) ($odsItem['origen'] ?? 'PLANIFICADO'));
+                        $esPlanificado = $origenOds === 'PLANIFICADO';
+                        $odsSeleccionado = $odsCatalogo->firstWhere('id', $odsItem['ods_id'] ?? null);
+                        $metaSeleccionada = $metasCatalogo->firstWhere('id', $odsItem['meta_contribuye_id'] ?? null);
+                    ?>
                     <div
-                        wire:key="ods-informe-final-{{ $row['id'] ?? 'nuevo-'.$i }}"
+                        wire:key="ods-informe-final-{{ $odsItem['id'] ?? 'nuevo-'.$i }}"
                         class="rounded-lg border border-gray-200 p-4 dark:border-gray-700"
                     >
                         <div class="mb-3 flex items-center justify-between gap-3">
@@ -193,7 +195,7 @@
                                 <label class="{{ $label }}">Meta</label>
                                 @if($esPlanificado)
                                     <input
-                                        value="{{ $metaSeleccionada ? $metaSeleccionada->numero_meta.' — '.$metaSeleccionada->descripcion : (($row['meta_ods'] ?? null) ?: 'Sin meta catalogada') }}"
+                                        value="{{ $metaSeleccionada ? $metaSeleccionada->numero_meta.' — '.$metaSeleccionada->descripcion : (($odsItem['meta_ods'] ?? null) ?: 'Sin meta catalogada') }}"
                                         readonly
                                         class="{{ $readonly }}"
                                     >
@@ -229,7 +231,7 @@
                                 <label class="{{ $label }}">Contribución</label>
                                 @if($esPlanificado)
                                     <input
-                                        value="{{ ($row['nivel_contribucion'] ?? 'directa') === 'indirecta' ? 'Indirecta' : 'Directa' }}"
+                                        value="{{ ($odsItem['nivel_contribucion'] ?? 'directa') === 'indirecta' ? 'Indirecta' : 'Directa' }}"
                                         readonly
                                         class="{{ $readonly }}"
                                     >
@@ -267,7 +269,10 @@
                 <div class="flex items-center justify-between"><div><h3 class="font-semibold">Documentos generales</h3><p class="text-xs text-gray-500">Instrumentos, certificaciones, respaldos, bitácoras, encuestas, informes, enlaces y videos.</p></div><button type="button" wire:click="agregarFila('anexos')" class="{{ $button }} bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200">Agregar documento</button></div>
                 <div class="mt-3 space-y-3">
                     @foreach($this->documentosAnexos as $row)
-                        @php($i = $row['indice_formulario'])
+                        <?php
+                            $i = $row['indice_formulario'];
+                            $esAnexoPlanificado = in_array(($row['origen'] ?? 'INFORME'), ['PLANIFICADO', 'PROYECTO'], true);
+                        ?>
                         <div
                             wire:key="documento-general-{{ strtolower($row['origen'] ?? 'informe') }}-{{ $row['id'] ?? 'nuevo-'.$i }}"
                             class="rounded-lg border border-gray-200 bg-white p-4"
@@ -276,7 +281,7 @@
                                 {{-- Categoría --}}
                                 <div class="min-w-0">
                                     <label class="{{ $label }}">Categoría</label>
-                                    @if(($row['origen'] ?? 'INFORME') === 'PROYECTO')
+                                    @if($esAnexoPlanificado)
                                         <input value="Instrumento de contraparte" readonly class="{{ $readonly }}">
                                     @else
                                         <select wire:model.live="anexos.{{ $i }}.categoria" class="{{ $input }}">
@@ -291,7 +296,7 @@
                                     <label class="{{ $label }}">Tipo</label>
                                     <select
                                         wire:model="anexos.{{ $i }}.tipo"
-                                        @disabled(($row['origen'] ?? 'INFORME') === 'PROYECTO')
+                                        @disabled($esAnexoPlanificado)
                                         class="{{ $input }}"
                                     >
                                         @foreach(['materiales'=>'Materiales generados','encuestas'=>'Formularios de encuesta','procesamiento'=>'Informes de procesamiento','videos'=>'Videos','difusion'=>'Evidencias de difusión','asistencia'=>'Listas de asistencia','manuales'=>'Manuales','guias'=>'Guías','actas'=>'Actas','otros'=>'Otros'] as $value=>$name)
@@ -306,7 +311,7 @@
                                         <label class="{{ $label }}">Contraparte</label>
                                         <select
                                             wire:model="anexos.{{ $i }}.informe_final_contraparte_id"
-                                            @disabled(($row['origen'] ?? 'INFORME') === 'PROYECTO')
+                                            @disabled($esAnexoPlanificado)
                                             class="{{ $input }}"
                                         >
                                             <option value="">Seleccione</option>
@@ -320,13 +325,13 @@
                                 {{-- Descripción --}}
                                 <div class="min-w-0">
                                     <label class="{{ $label }}">Descripción</label>
-                                    <input wire:model.live.debounce.1000ms="anexos.{{ $i }}.descripcion" class="{{ $input }}">
+                                    <input wire:model.live.debounce.1000ms="anexos.{{ $i }}.descripcion" @readonly($esAnexoPlanificado) class="{{ $esAnexoPlanificado ? $readonly : $input }}">
                                 </div>
 
                                 {{-- Archivo y Ver documento --}}
                                 <div class="min-w-0">
                                     <label class="{{ $label }}">Archivo</label>
-                                    @if(($row['origen'] ?? 'INFORME') === 'PROYECTO')
+                                    @if($esAnexoPlanificado)
                                         <p class="break-words rounded bg-gray-50 p-2 text-xs dark:bg-gray-800">
                                             {{ $row['nombre_archivo'] ?: 'Archivo precargado' }}
                                         </p>
@@ -348,17 +353,17 @@
                                 {{-- Enlace --}}
                                 <div class="min-w-0">
                                     <label class="{{ $label }}">Enlace</label>
-                                    <input type="url" wire:model.live.debounce.1000ms="anexos.{{ $i }}.enlace" class="{{ $input }}">
+                                    <input type="url" wire:model.live.debounce.1000ms="anexos.{{ $i }}.enlace" @readonly($esAnexoPlanificado) class="{{ $esAnexoPlanificado ? $readonly : $input }}">
                                 </div>
 
                                 {{-- Fecha --}}
                                 <div class="min-w-0">
                                     <label class="{{ $label }}">Fecha</label>
-                                    <input type="date" wire:model="anexos.{{ $i }}.fecha" class="{{ $input }}">
+                                    <input type="date" wire:model="anexos.{{ $i }}.fecha" @readonly($esAnexoPlanificado) class="{{ $esAnexoPlanificado ? $readonly : $input }}">
                                 </div>
 
                                 {{-- Quitar cuando corresponda --}}
-                                @if(($row['origen'] ?? 'INFORME') !== 'PROYECTO')
+                                @unless($esAnexoPlanificado)
                                     <div class="flex min-w-0 items-end xl:self-end">
                                         <button
                                             type="button"
@@ -368,7 +373,7 @@
                                             Quitar
                                         </button>
                                     </div>
-                                @endif
+                                @endunless
                             </div>
                         </div>
                     @endforeach
@@ -379,7 +384,7 @@
                 <x-forms.image-dropzone model="fotografiasTemporales" id="inf001-fotografias" />
                 @if($this->fotografias)
                     <h4 class="mt-6 text-sm font-semibold">Fotografías guardadas</h4>
-                    <div class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">@foreach($this->fotografias as $foto)<article class="overflow-hidden rounded-lg border dark:border-gray-700"><img src="{{ $foto['id'] ? route('informes-finales.anexos.mostrar', ['anexo' => $foto['id']], false) : '' }}" alt="{{ $foto['descripcion'] ?: 'Fotografía '.$foto['nombre_archivo'] }}" class="h-36 w-full object-cover"><div class="space-y-2 p-3 text-xs"><div class="flex items-center justify-between gap-2"><p class="truncate font-medium" title="{{ $foto['nombre_archivo'] }}">{{ $foto['nombre_archivo'] ?: 'Fotografía' }}</p><span class="rounded-full bg-green-100 px-2 py-1 text-[10px] font-medium text-green-800">Guardada</span></div><p class="text-gray-500">{{ $foto['tamano_bytes'] ? number_format($foto['tamano_bytes']/1024,1).' KB' : 'Tamaño no disponible' }} · {{ $foto['fecha'] ?: 'Sin fecha' }}</p><input wire:model.live.debounce.1000ms="anexos.{{ $foto['indice_formulario'] }}.descripcion" aria-label="Descripción de {{ $foto['nombre_archivo'] ?: 'la fotografía' }}" placeholder="Descripción opcional" class="{{ $input }}"><div class="flex gap-3"><a href="{{ $foto['id'] ? route('informes-finales.anexos.mostrar', ['anexo' => $foto['id']], false) : '#' }}" target="_blank" rel="noopener noreferrer" class="text-blue-700">Ver</a><a href="{{ $foto['id'] ? route('informes-finales.anexos.descargar', ['anexo' => $foto['id']], false) : '#' }}" class="text-blue-700">Descargar</a><button type="button" wire:click="quitarFotografia({{ $foto['id'] }})" wire:confirm="¿Quitar esta fotografía del Informe Final?" class="text-red-600">Quitar</button></div></div></article>@endforeach</div>
+                    <div class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">@foreach($this->fotografias as $foto)<article class="overflow-hidden rounded-lg border dark:border-gray-700"><img src="{{ $foto['id'] ? route('informes-finales.anexos.mostrar', ['anexo' => $foto['id']], false) : '' }}" alt="{{ $foto['descripcion'] ?: 'Fotografía '.$foto['nombre_archivo'] }}" class="h-36 w-full object-cover"><div class="space-y-2 p-3 text-xs"><div class="flex items-center justify-between gap-2"><p class="truncate font-medium" title="{{ $foto['nombre_archivo'] }}">{{ $foto['nombre_archivo'] ?: 'Fotografía' }}</p><span class="rounded-full bg-green-100 px-2 py-1 text-[10px] font-medium text-green-800">Guardada</span></div><p class="text-gray-500">{{ $foto['tamano_bytes'] ? number_format($foto['tamano_bytes']/1024,1).' KB' : 'Tamaño no disponible' }} · {{ $foto['fecha'] ?: 'Sin fecha' }}</p><input wire:model.live.debounce.1000ms="anexos.{{ $foto['indice_formulario'] }}.descripcion" aria-label="Descripción de {{ $foto['nombre_archivo'] ?: 'la fotografía' }}" placeholder="Descripción opcional" class="{{ $input }}"><div class="flex gap-3"><a href="{{ $foto['id'] ? route('informes-finales.anexos.mostrar', ['anexo' => $foto['id']], false) : '#' }}" data-route="informes-finales.anexos.mostrar" target="_blank" rel="noopener noreferrer" class="text-blue-700">Ver</a><a href="{{ $foto['id'] ? route('informes-finales.anexos.descargar', ['anexo' => $foto['id']], false) : '#' }}" data-route="informes-finales.anexos.descargar" class="text-blue-700">Descargar</a><button type="button" wire:click="quitarFotografia({{ $foto['id'] }})" wire:confirm="¿Quitar esta fotografía del Informe Final?" class="text-red-600">Quitar</button></div></div></article>@endforeach</div>
                 @endif
             </section>
             <h3 class="mt-7 font-semibold">Cierre</h3><div class="mt-3 grid gap-4 sm:grid-cols-2"><div><label class="{{ $label }}">Fecha de cierre</label><input type="date" wire:model="general.fecha_cierre" class="{{ $input }}"></div><div class="sm:col-span-2"><label class="{{ $label }}">Observaciones finales</label><textarea rows="4" wire:model.live.debounce.1000ms="general.observaciones_finales" class="{{ $input }}"></textarea></div><label class="flex items-start gap-2 sm:col-span-2"><input type="checkbox" wire:model="general.confirmacion_veracidad" class="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"><span class="text-sm">Confirmo que la información consignada en el INF-001 es veraz.</span></label></div>
@@ -399,7 +404,7 @@
             <div class="flex flex-wrap items-center justify-end gap-3">
                 <span class="text-xs min-w-[78px] text-right" aria-live="polite">@if($estadoGuardado==='guardando')<span class="text-gray-500 dark:text-gray-400">Guardando...</span>@elseif($estadoGuardado==='error')<span class="text-red-600 dark:text-red-400">Error al guardar</span>@else<span class="text-green-600 dark:text-green-400">Guardado</span>@endif</span>
                 <button type="button" wire:click="guardarBorrador" wire:loading.attr="disabled" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 disabled:opacity-60">Guardar borrador</button>
-                @if($currentStep<8)<button type="button" wire:click="siguiente" wire:loading.attr="disabled" class="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60">Siguiente →</button>@else<a target="_blank" href="{{ route('informes-finales.inf-001.preview',$informe) }}" class="{{ $button }} border border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300">Vista previa</a><a href="{{ route('informes-finales.inf-001.pdf',$informe) }}" class="{{ $button }} border border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300">Descargar PDF preliminar</a><button type="button" wire:click="validarInforme" wire:loading.attr="disabled" wire:confirm="¿Marcar el INF-001 como completo? El flujo de cierre se iniciará únicamente al enviarlo desde Ver proyecto." class="{{ $button }} bg-green-700 text-white hover:bg-green-800 disabled:opacity-60">Marcar completo</button><a href="{{ route('historialproyecto',$proyecto) }}" class="{{ $button }} border border-gray-300 text-gray-700 dark:border-gray-700 dark:text-gray-300">Volver al proyecto</a>@endif
+                @if($currentStep<8)<button type="button" wire:click="siguiente" wire:loading.attr="disabled" class="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60">Siguiente →</button>@else<a target="_blank" rel="noopener noreferrer" href="{{ route('informes-finales.inf-001.preview',$informe) }}" class="{{ $button }} border border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300">Vista previa</a><a href="{{ route('informes-finales.inf-001.pdf',$informe) }}" class="{{ $button }} border border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300">Descargar PDF preliminar</a><button type="button" wire:click="validarInforme" wire:loading.attr="disabled" wire:confirm="¿Marcar el INF-001 como completo? El flujo de cierre se iniciará únicamente al enviarlo desde Ver proyecto." class="{{ $button }} bg-green-700 text-white hover:bg-green-800 disabled:opacity-60">Marcar completo</button><a href="{{ route('historialproyecto',$proyecto) }}" class="{{ $button }} border border-gray-300 text-gray-700 dark:border-gray-700 dark:text-gray-300">Volver al proyecto</a>@endif
             </div>
         </div>
     </main>

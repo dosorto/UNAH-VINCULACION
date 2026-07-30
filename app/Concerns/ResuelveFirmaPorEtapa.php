@@ -13,9 +13,11 @@ use App\Models\Proyecto\Proyecto;
 use App\Models\User;
 use App\Models\InformeFinal\InformeFinalProyecto;
 use App\Models\InformeIntermedio\InformeIntermedioProyecto;
+use App\Services\Constancias\EmitirConstanciaFinalizacionProyecto;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Motor de aprobar/rechazar una FirmaProyecto que usa flujo por etapas
@@ -28,7 +30,7 @@ trait ResuelveFirmaPorEtapa
 {
     protected function aprobarFirmaPorEtapa(FirmaProyecto $firma, User $user, ?\Closure $despuesDeAprobar = null): FirmaProyecto
     {
-        return DB::transaction(function () use ($firma, $user): FirmaProyecto {
+        return DB::transaction(function () use ($firma, $user, $despuesDeAprobar): FirmaProyecto {
             $firmaBloqueada = FirmaProyecto::query()
                 ->whereKey($firma->id)
                 ->lockForUpdate()
@@ -57,14 +59,10 @@ trait ResuelveFirmaPorEtapa
 
             $firmaEmpleado = $empleado->firma;
 
-            if (! $firmaEmpleado || blank($firmaEmpleado->ruta_storage)) {
-                throw new \RuntimeException('No puede aprobar esta etapa porque no tiene una firma registrada. Registre su firma antes de continuar.');
-            }
-
             $firmaBloqueada->update([
                 'estado_revision' => 'Aprobado',
                 'empleado_id' => $empleado->id,
-                'firma_id' => $firmaEmpleado->id,
+                'firma_id' => $firmaEmpleado?->id,
                 'sello_id' => $empleado->sello?->id,
                 'fecha_firma' => now(),
             ]);
@@ -435,6 +433,32 @@ trait ResuelveFirmaPorEtapa
                 ? '[Cierre INF-001] Todas las etapas de cierre fueron aprobadas.'
                 : 'El informe ha sido aprobado correctamente',
         ]);
+
+        if ($documento->tipo_documento === 'Informe Final') {
+            $proyecto = $documento->proyecto;
+            $informe = InformeFinalProyecto::query()->where('proyecto_id', $proyecto->id)->first();
+
+            if ($informe) {
+                // La constancia nueva es independiente del mecanismo legacy y se emite solo después del commit del cierre.
+                DB::afterCommit(function () use ($proyecto, $informe, $documento, $user): void {
+                    if (! Schema::hasTable('constancias_finalizacion_proyecto')) {
+                        Log::warning('La constancia de finalización no se emitió porque la migración aún no está disponible.', ['proyecto_id' => $proyecto->id]);
+
+                        return;
+                    }
+
+                    try {
+                        app(EmitirConstanciaFinalizacionProyecto::class)->emitir($proyecto, $informe, $documento, $user->id);
+                    } catch (\Throwable $exception) {
+                        Log::error('No se pudo emitir la constancia de finalización después del cierre.', [
+                            'proyecto_id' => $proyecto->id,
+                            'informe_final_proyecto_id' => $informe->id,
+                            'exception' => $exception,
+                        ]);
+                    }
+                });
+            }
+        }
 
         return (bool) $informeIntermedioFueAprobado;
     }

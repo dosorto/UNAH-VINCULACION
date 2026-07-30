@@ -20,20 +20,17 @@
 <div class="{{ $pdfMode ? 'pdf-running-header' : 'form-header' }}">
     <table class="form-header-table">
         <tr>
-            <td class="form-header-brand" colspan="2">
+            <td class="form-header-brand">
                 <img src="{{ $vraSrc }}" alt="UNAH, Vicerrectoría Académica y Dirección de Vinculación Universidad Sociedad">
-            </td>
-        </tr>
-        <tr>
-            <td class="form-header-title">
-                FORM-DVUS-001<br>
-                FORMULARIO DE REGISTRO DE PROYECTO DE VINCULACIÓN<br>
-                DE DESARROLLO LOCAL Y REGIONAL
             </td>
             <td class="form-header-contact">
                 <span>vinculacion.sociedad@unah.edu.hn</span><br>
                 Tel. 2216-6100 Ext. 110576
             </td>
+        </tr>
+        <tr>
+            <td class="form-header-title">FORMULARIO DE REGISTRO DE PROYECTO DE VINCULACIÓN<br>DE DESARROLLO LOCAL Y REGIONAL</td>
+            <td class="form-header-code">FORM-DVUS-001</td>
         </tr>
     </table>
 </div>

@@ -3,8 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\InformeFinal\InformeFinalAnexo;
+use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
+use App\Models\Proyecto\CargoFirma;
+use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\TipoCargoFirma;
 use App\Models\User;
 use App\Services\InformeFinal\InformeFinalProyectoWorkflowService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -280,6 +284,45 @@ class InformeFinalAnexoFotografiaTest extends TestCase
             'activo' => true,
         ]);
         $project->update(['flujo_aprobacion_id' => $flujo->id]);
+        $enCurso = TipoEstado::firstOrCreate(['nombre' => 'En curso']);
+        $tipoCargo = TipoCargoFirma::create(['nombre' => 'Cierre fotografía '.uniqid()]);
+        $cargo = CargoFirma::create([
+            'descripcion' => 'Cargo de cierre para fotografías',
+            'tipo_cargo_firma_id' => $tipoCargo->id,
+            'tipo_estado_id' => $enCurso->id,
+        ]);
+        $etapa = FlujoAprobacionEtapa::create([
+            'flujo_aprobacion_id' => $flujo->id,
+            'orden' => 1,
+            'codigo' => 'CIERRE_FOTO_'.uniqid(),
+            'nombre' => 'Etapa de cierre de prueba',
+            'tipo_etapa' => 'APROBACION',
+            'cargo_firma_id' => $cargo->id,
+            'usuario_responsable_id' => $user->id,
+            'activo' => true,
+            'aplica_inscripcion' => true,
+            'aplica_cierre_proyecto' => true,
+        ]);
+        $project->estado_proyecto()->create([
+            'empleado_id' => $employee->id,
+            'tipo_estado_id' => $enCurso->id,
+            'fecha' => now(),
+            'es_actual' => true,
+        ]);
+        $project->firma_proyecto()->create([
+            'empleado_id' => $employee->id,
+            'cargo_firma_id' => $cargo->id,
+            'estado_revision' => 'Aprobado',
+            'hash' => uniqid('firma_', true),
+            'flujo_aprobacion_id' => $flujo->id,
+            'flujo_aprobacion_etapa_id' => $etapa->id,
+            'orden_revision' => 1,
+            'etapa_codigo' => $etapa->codigo,
+            'etapa_nombre' => $etapa->nombre,
+            'responsable_usuario_id' => $user->id,
+            'revision_ciclo' => 1,
+            'fecha_firma' => now(),
+        ]);
         app(InformeFinalProyectoWorkflowService::class)->crearInformeFinal($project, $user);
         return [$user, $project];
     }

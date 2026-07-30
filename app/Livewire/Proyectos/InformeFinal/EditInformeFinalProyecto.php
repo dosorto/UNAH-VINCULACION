@@ -18,6 +18,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -855,6 +856,9 @@ class EditInformeFinalProyecto extends Component
         if ($grupo === 'contrapartes' && (($fila['origen'] ?? 'PLANIFICADO') !== 'EJECUCION')) {
             throw ValidationException::withMessages(['contrapartes' => 'Las contrapartes planificadas no se eliminan del Informe Final.']);
         }
+        if ($grupo === 'anexos' && in_array(($fila['origen'] ?? 'INFORME'), ['PLANIFICADO', 'PROYECTO'], true)) {
+            throw ValidationException::withMessages(['anexos' => 'Los anexos planificados no se eliminan del Informe Final.']);
+        }
         $this->eliminarFilaPersistida($grupo, $this->{$grupo}[$indice] ?? []);
         unset($this->{$grupo}[$indice]);
         $this->{$grupo} = array_values($this->{$grupo});
@@ -988,8 +992,8 @@ class EditInformeFinalProyecto extends Component
                 ->filter(fn ($row) => (int) ($row['informe_final_grupo_estudiante_id'] ?? 0) === (int) $grupo['id'])
                 ->values();
             $activos = $estudiantes->filter(fn ($row) => ($row['estado_participacion'] ?? 'activo') === 'activo');
-            $hombres = $activos->where('sexo', 'Masculino')->count();
-            $mujeres = $activos->where('sexo', 'Femenino')->count();
+            $hombres = $activos->filter(fn ($row) => mb_strtolower(trim((string) ($row['sexo'] ?? ''))) === 'masculino')->count();
+            $mujeres = $activos->filter(fn ($row) => mb_strtolower(trim((string) ($row['sexo'] ?? ''))) === 'femenino')->count();
             $asignatura = $grupo['asignatura'] ?? null;
 
             return $grupo + [
@@ -1245,9 +1249,16 @@ class EditInformeFinalProyecto extends Component
         $this->sincronizarCamposReflexionHeredados();
         $this->beneficiarios = Arr::except($this->informe->beneficiarios?->toArray() ?? [], ['id','informe_final_proyecto_id','created_at','updated_at']);
         $this->gruposEstudiantes = $this->informe->gruposEstudiantes->toArray();
-        foreach (['equipo'=>'equipoDocente','cooperacion'=>'cooperacion','estudiantes'=>'estudiantes','voluntarios'=>'voluntarios','contrapartes'=>'contrapartes','resultados'=>'resultados','actividades'=>'actividades','accionesNoEjecutadas'=>'accionesNoEjecutadas','accionesEmergentes'=>'accionesEmergentes','ods'=>'ods','presupuesto'=>'presupuestoDetalles','anexos'=>'anexos'] as $property => $relation) {
+        foreach (['equipo'=>'equipoDocente','cooperacion'=>'cooperacion','estudiantes'=>'estudiantes','voluntarios'=>'voluntarios','contrapartes'=>'contrapartes','resultados'=>'resultados','accionesNoEjecutadas'=>'accionesNoEjecutadas','accionesEmergentes'=>'accionesEmergentes','ods'=>'ods','presupuesto'=>'presupuestoDetalles','anexos'=>'anexos'] as $property => $relation) {
             $this->{$property} = $this->informe->{$relation}->toArray();
         }
+        $this->actividades = $this->informe->actividades
+            ->map(fn ($actividad) => array_replace(
+                $actividad->toArray(),
+                ['participantes' => $actividad->participantes->values()->toArray()]
+            ))
+            ->values()
+            ->all();
         foreach ($this->ods as &$ods) {
             $ods['origen'] = ($ods['origen'] ?? null) === 'EJECUCION' ? 'EJECUCION' : 'PLANIFICADO';
         }
@@ -1283,7 +1294,11 @@ class EditInformeFinalProyecto extends Component
             $this->syncRows('estudiantes', $this->estudiantes, array_merge(['informe_final_grupo_estudiante_id','estudiante_id','nombre','sexo','numero_cuenta','carrera','correo','tipo_participacion','horas_dedicadas','cantidad','origen'],$participacion));
             $this->syncRows('voluntarios', $this->voluntarios, array_merge(['empleado_id','nombre','sexo','identidad','departamento','tipo','horas_dedicadas'],$participacion));
             $this->protegerContrapartesPlanificadas();
-            $this->syncRows('contrapartes', $this->contrapartes, ['entidad_contraparte_id','existe_apoyo','nombre','tipo','contacto','correo','cargo','telefono','tipo_instrumento','compromisos_asumidos','compromisos_cumplidos','territorio','aporte_monetario','aporte_especie','documento_respaldo','origen']);
+            $camposContraparte = ['entidad_contraparte_id','existe_apoyo','nombre','tipo','contacto','correo','cargo','telefono','tipo_instrumento','compromisos_asumidos','compromisos_cumplidos','territorio','aporte_monetario','aporte_especie','documento_respaldo'];
+            if ($this->contrapartesSoportanOrigen()) {
+                $camposContraparte[] = 'origen';
+            }
+            $this->syncRows('contrapartes', $this->contrapartes, $camposContraparte);
             $this->sincronizarFilaAporteContraparte();
             foreach ($this->resultados as &$resultado) {
                 if (is_numeric($resultado['meta_numerica'] ?? null) && (float) $resultado['meta_numerica'] > 0 && is_numeric($resultado['valor_alcanzado'] ?? null)) {
@@ -1313,11 +1328,29 @@ class EditInformeFinalProyecto extends Component
                     $this->anexos[$index]['origen'] = 'INFORME';
                 }
             }
+            $this->protegerAnexosPlanificados();
             $this->syncRows('anexos', $this->anexos, ['informe_final_resultado_id','informe_final_actividad_id','informe_final_contraparte_id','instrumento_formalizacion_id','tipo','categoria','descripcion','archivo','nombre_archivo','tamano_bytes','origen','enlace','fecha','orden']);
         }, 3);
         $this->informe->refresh();
         $this->cargarFormulario();
         $this->estadoGuardado = 'guardado';
+    }
+
+    private function protegerAnexosPlanificados(): void
+    {
+        $protegidos = $this->informe->anexos()
+            ->whereIn('origen', ['PLANIFICADO', 'PROYECTO'])
+            ->get()
+            ->keyBy('id');
+
+        foreach ($this->anexos as $index => $anexo) {
+            $original = $protegidos->get($anexo['id'] ?? null);
+            if (! $original) {
+                continue;
+            }
+
+            $this->anexos[$index] = array_replace($anexo, $original->toArray());
+        }
     }
 
     private function sincronizarCamposReflexionHeredados(): void
@@ -1357,7 +1390,11 @@ class EditInformeFinalProyecto extends Component
 
     private function protegerContrapartesPlanificadas(): void
     {
-        $originales = $this->informe->contrapartes()->where(fn ($query) => $query->whereNull('origen')->orWhere('origen', 'PLANIFICADO'))->get()->keyBy('id');
+        $consulta = $this->informe->contrapartes();
+        if ($this->contrapartesSoportanOrigen()) {
+            $consulta->where(fn ($query) => $query->whereNull('origen')->orWhere('origen', 'PLANIFICADO'));
+        }
+        $originales = $consulta->get()->keyBy('id');
         foreach ($this->contrapartes as &$contraparte) {
             $original = ! empty($contraparte['id']) ? $originales->get($contraparte['id']) : null;
             if ($original) {
@@ -1369,6 +1406,11 @@ class EditInformeFinalProyecto extends Component
         foreach ($originales as $id => $original) {
             if (! collect($this->contrapartes)->contains(fn ($row) => (int) ($row['id'] ?? 0) === (int) $id)) $this->contrapartes[] = $original->toArray();
         }
+    }
+
+    private function contrapartesSoportanOrigen(): bool
+    {
+        return Schema::hasColumn('informe_final_contrapartes', 'origen');
     }
 
     private function validateCurrentStep(): void

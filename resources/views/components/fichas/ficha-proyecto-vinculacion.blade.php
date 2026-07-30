@@ -327,6 +327,9 @@
 
             return nl2br(e($text));
         };
+        $pdfCheck = static fn (bool $checked) => new \Illuminate\Support\HtmlString(
+            '<span class="pdf-check'.($checked ? ' is-checked' : '').'">'.($checked ? 'X' : '&nbsp;').'</span>'
+        );
     @endphp
     @if (empty($isPdf) && empty($hideEmbeddedDocuments) && $proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
         <details class="rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -375,7 +378,7 @@
             </div>
         @endif
 
-        <div class="{{ !empty($isPdf) ? 'pdf-content-wrapper' : '' }}" style="display: flex; justify-content: center; margin-top: 20px; background-color: white;">
+        <div class="{{ !empty($isPdf) ? 'pdf-content-wrapper' : '' }}" style="{{ empty($isPdf) ? 'display: flex; justify-content: center; margin-top: 20px; background-color: white;' : '' }}">
             <div class="container">
                 @if (empty($isPdf))
                     @include('components.fichas.partials.form-dvus-001-header', ['isPdf' => false])
@@ -471,40 +474,32 @@
                         </tr>
                         <tr>
                             <th class="full-width1" rowspan="1">3. Modalidad</th>
-                            <td class="sub-header1" colspan="1">Unidisciplinar <br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>
+                            <td class="sub-header1 pdf-choice" colspan="1">Unidisciplinar <br>
+                                @if (!empty($isPdf)){!! $pdfCheck($proyecto->modalidad?->nombre == 'Unidisciplinar') !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>@endif
                             </td>
-                            <td class="sub-header1" colspan="1">Multidisciplinar<br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Multidisciplinar') checked @endif>
+                            <td class="sub-header1 pdf-choice" colspan="1">Multidisciplinar<br>
+                                @if (!empty($isPdf)){!! $pdfCheck($proyecto->modalidad?->nombre == 'Multidisciplinar') !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Multidisciplinar') checked @endif>@endif
                             </td>
-                            <td class="sub-header1" colspan="1">Interdisciplinar <br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Interdisciplinar') checked @endif>
+                            <td class="sub-header1 pdf-choice" colspan="1">Interdisciplinar <br>
+                                @if (!empty($isPdf)){!! $pdfCheck($proyecto->modalidad?->nombre == 'Interdisciplinar') !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Interdisciplinar') checked @endif>@endif
                             </td>
-                            <td class="sub-header1" colspan="2">Transdisciplinar<br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>
+                            <td class="sub-header1 pdf-choice" colspan="2">Transdisciplinar<br>
+                                @if (!empty($isPdf)){!! $pdfCheck($proyecto->modalidad?->nombre == 'Transdisciplinar') !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Transdisciplinar') checked @endif>@endif
                             </td>
                         </tr>
                         <tr>
                             <th class="full-width1" rowspan="1">4. Alineamiento con ejes prioritarios de la UNAH</th>
-                            <td class="sub-header1" colspan="1">Desarrollo económico y social <br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Desarrollo económico y social')) checked @endif>
+                            <td class="sub-header1 pdf-choice" colspan="1">Desarrollo económico y social <br>
+                                @if (!empty($isPdf)){!! $pdfCheck((bool) $proyecto->ejes_prioritarios_unah?->contains('nombre', 'Desarrollo económico y social')) !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Desarrollo económico y social')) checked @endif>@endif
                             </td>
-                            <td class="sub-header1" colspan="1">Democracia y gobernabilidad<br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Democracia y gobernabilidad')) checked @endif>
+                            <td class="sub-header1 pdf-choice" colspan="1">Democracia y gobernabilidad<br>
+                                @if (!empty($isPdf)){!! $pdfCheck((bool) $proyecto->ejes_prioritarios_unah?->contains('nombre', 'Democracia y gobernabilidad')) !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Democracia y gobernabilidad')) checked @endif>@endif
                             </td>
-                            <td class="sub-header1" colspan="1">Población y condiciones de vida <br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Población y condiciones de vida')) checked @endif>
+                            <td class="sub-header1 pdf-choice" colspan="1">Población y condiciones de vida <br>
+                                @if (!empty($isPdf)){!! $pdfCheck((bool) $proyecto->ejes_prioritarios_unah?->contains('nombre', 'Población y condiciones de vida')) !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Población y condiciones de vida')) checked @endif>@endif
                             </td>
-                            <td class="sub-header1" colspan="2">Ambiente, biodiversidad y desarrollo<br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Ambiente, biodiversidad y desarrollo')) checked @endif>
+                            <td class="sub-header1 pdf-choice" colspan="2">Ambiente, biodiversidad y desarrollo<br>
+                                @if (!empty($isPdf)){!! $pdfCheck((bool) $proyecto->ejes_prioritarios_unah?->contains('nombre', 'Ambiente, biodiversidad y desarrollo')) !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Ambiente, biodiversidad y desarrollo')) checked @endif>@endif
                             </td>
                         </tr>
 
@@ -512,13 +507,11 @@
                         
                          <tr>
                             <th class="full-width1" rowspan="1">5. Categoría del proyecto:</th>
-                            <td class="sub-header1" colspan="2">Desarrollo Local <br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->categoria->contains('nombre', 'Desarrollo Local')) checked @endif>
+                            <td class="sub-header1 pdf-choice" colspan="2">Desarrollo Local <br>
+                                @if (!empty($isPdf)){!! $pdfCheck($proyecto->categoria->contains('nombre', 'Desarrollo Local')) !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->categoria->contains('nombre', 'Desarrollo Local')) checked @endif>@endif
                             </td>
-                            <td class="sub-header1" colspan="3">Desarrollo Regional<br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->categoria->contains('nombre', 'Desarrollo Regional')) checked @endif>
+                            <td class="sub-header1 pdf-choice" colspan="3">Desarrollo Regional<br>
+                                @if (!empty($isPdf)){!! $pdfCheck($proyecto->categoria->contains('nombre', 'Desarrollo Regional')) !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->categoria->contains('nombre', 'Desarrollo Regional')) checked @endif>@endif
                             </td>
                            <!-- <td class="sub-header1" colspan="1">Volunt. Académico<br>
                                 <input disabled type="checkbox" class="No"
@@ -596,76 +589,28 @@
                    
                         <!-- TABLA DE BENEFICIARIOS DIRECTOS -->
                         <tr>
-                            <th class="full-width1" rowspan="5" colspan="1">7. Beneficiarios directos (número aproximado)</th>
-                           <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="full-width" colspan="4">
-                               <input type="text" class="input-field" placeholder="0"
-                                    value="{{ $proyecto->hombres }}" disabled>
+                            <th class="full-width1" rowspan="3">7. Beneficiarios directos (número aproximado)</th>
+                            <td class="full-width" colspan="5" style="padding:0 !important;">
+                                <table class="beneficiary-summary"><tr>
+                                    <td><strong>Hombres</strong>{{ $proyecto->hombres ?? 0 }}</td>
+                                    <td><strong>Mujeres</strong>{{ $proyecto->mujeres ?? 0 }}</td>
+                                    <td><strong>Población beneficiada</strong>{{ floor($proyecto->poblacion_participante ?? 0) }}</td>
+                                </tr></table>
                             </td>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="1">Mujeres</td>
-                            <td class="full-width" colspan="4">
-                               <input type="text" class="input-field" placeholder="0"
-                                    value="{{ $proyecto->mujeres }}" disabled>
-                            </td>
-                        </tr>
-                      <!--  <tr>
-                            <td class="sub-header" colspan="1">Otros (indicar número y tipo)</td>
-                            <td class="full-width" colspan="4">
-                               <input type="text" class="input-field" placeholder="0"
-                                    value="{{ $proyecto->otros }}" disabled>
-                            </td>
-                        </tr> -->
-                        <tr>
-                            <td class="sub-header" rowspan="2" colspan="1">Indicar tipo de etnia</td>
-                            <td class="sub-header" colspan="1">Indígena</td>
-                            <td class="sub-header" colspan="1">Afrodescendiente</td>
-                            <td class="sub-header" colspan="1">Mestizo</td>
+                            <td class="sub-header" colspan="5">Población beneficiada por etnia</td>
                         </tr>
                         <tr>
-                            <td class="full-width" colspan="1">
-                                <div class="date-container">
-                                    <div class="date-part">
-                                        <span class="date-label">Hombres</span>
-                                        <input disabled type="text" class="input-field" value="{{$proyecto->indigenas_hombres}}" placeholder="0">
-                                    </div>
-                                    <div class="date-part">
-                                        <span class="date-label">Mujeres</span>
-                                        <input disabled type="text" class="input-field" value="{{$proyecto->indigenas_mujeres}}" placeholder="0">
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <div class="date-container">
-                                    <div class="date-part">
-                                        <span class="date-label">Hombres</span>
-                                        <input disabled type="text" class="input-field" value="{{$proyecto->afroamericanos_hombres}}" placeholder="0">
-                                    </div>
-                                    <div class="date-part">
-                                        <span class="date-label">Mujeres</span>
-                                        <input disabled type="text" class="input-field" value="{{$proyecto->afroamericanos_mujeres}}" placeholder="0">
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <div class="date-container">
-                                    <div class="date-part">
-                                        <span class="date-label">Hombres</span>
-                                        <input disabled type="text" class="input-field" value="{{$proyecto->mestizos_hombres}}" placeholder="0">
-                                    </div>
-                                    <div class="date-part">
-                                        <span class="date-label">Mujeres</span>
-                                        <input disabled type="text" class="input-field" value="{{$proyecto->mestizos_mujeres}}" placeholder="0">
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                         <tr>
-                            <td class="sub-header" colspan="2">7. Población beneficiada (número aproximado) </td>
-                            <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" placeholder="Ingrese el día"
-                                    value="{{ floor($proyecto->poblacion_participante) }}" disabled>
+                            <td class="full-width" colspan="5" style="padding:0 !important;">
+                                <table class="beneficiary-ethnicity">
+                                    <tr><th>Indígena</th><th>Afrodescendiente</th><th>Mestizo</th></tr>
+                                    <tr>
+                                        <td>Hombres: {{ $proyecto->indigenas_hombres ?? 0 }}<br>Mujeres: {{ $proyecto->indigenas_mujeres ?? 0 }}</td>
+                                        <td>Hombres: {{ $proyecto->afroamericanos_hombres ?? 0 }}<br>Mujeres: {{ $proyecto->afroamericanos_mujeres ?? 0 }}</td>
+                                        <td>Hombres: {{ $proyecto->mestizos_hombres ?? 0 }}<br>Mujeres: {{ $proyecto->mestizos_mujeres ?? 0 }}</td>
+                                    </tr>
+                                </table>
                             </td>
                         </tr>
         
@@ -1289,29 +1234,23 @@
                             </tr>
                             <tr>
                                 <td class="sub-header" rowspan="1">Tipo de contraparte:</td>
-                                <td class="sub-header1" colspan="1">Gobierno Nacional <br>
-                                    <input disabled type="checkbox" class="No"
-                                        @if ($entidad->tipo_entidad == 'gobierno_nacional') checked @endif>
+                                <td class="sub-header1 pdf-choice" colspan="1">Gobierno Nacional <br>
+                                    @if (!empty($isPdf)){!! $pdfCheck($entidad->tipo_entidad == 'gobierno_nacional') !!}@else<input disabled type="checkbox" class="No" @if ($entidad->tipo_entidad == 'gobierno_nacional') checked @endif>@endif
                                 </td>
-                                <td class="sub-header1" colspan="1">Gobierno Municipal<br>
-                                    <input disabled type="checkbox" class="No"
-                                        @if ($entidad->tipo_entidad == 'gobierno_municipal') checked @endif>
+                                <td class="sub-header1 pdf-choice" colspan="1">Gobierno Municipal<br>
+                                    @if (!empty($isPdf)){!! $pdfCheck($entidad->tipo_entidad == 'gobierno_municipal') !!}@else<input disabled type="checkbox" class="No" @if ($entidad->tipo_entidad == 'gobierno_municipal') checked @endif>@endif
                                 </td>
-                                <td class="sub-header1" colspan="1">ONG<br>
-                                    <input disabled type="checkbox" class="No"
-                                        @if ($entidad->tipo_entidad == 'ong') checked @endif>
+                                <td class="sub-header1 pdf-choice" colspan="1">ONG<br>
+                                    @if (!empty($isPdf)){!! $pdfCheck($entidad->tipo_entidad == 'ong') !!}@else<input disabled type="checkbox" class="No" @if ($entidad->tipo_entidad == 'ong') checked @endif>@endif
                                 </td>
-                                <td class="sub-header1" colspan="1">Sociedad Civil Organizada<br>
-                                    <input disabled type="checkbox" class="No"
-                                        @if ($entidad->tipo_entidad == 'sociedad_civil') checked @endif>
+                                <td class="sub-header1 pdf-choice" colspan="1">Sociedad Civil Organizada<br>
+                                    @if (!empty($isPdf)){!! $pdfCheck($entidad->tipo_entidad == 'sociedad_civil') !!}@else<input disabled type="checkbox" class="No" @if ($entidad->tipo_entidad == 'sociedad_civil') checked @endif>@endif
                                 </td>
-                                <td class="sub-header1" colspan="1">Sector Privado<br>
-                                    <input disabled type="checkbox" class="No"
-                                        @if ($entidad->tipo_entidad == 'sector_privado') checked @endif>
+                                <td class="sub-header1 pdf-choice" colspan="1">Sector Privado<br>
+                                    @if (!empty($isPdf)){!! $pdfCheck($entidad->tipo_entidad == 'sector_privado') !!}@else<input disabled type="checkbox" class="No" @if ($entidad->tipo_entidad == 'sector_privado') checked @endif>@endif
                                 </td>
-                                <td class="sub-header1" colspan="1">Internacional<br>
-                                    <input disabled type="checkbox" class="No"
-                                        @if ($entidad->tipo_entidad == 'internacional') checked @endif>
+                                <td class="sub-header1 pdf-choice" colspan="1">Internacional<br>
+                                    @if (!empty($isPdf)){!! $pdfCheck($entidad->tipo_entidad == 'internacional') !!}@else<input disabled type="checkbox" class="No" @if ($entidad->tipo_entidad == 'internacional') checked @endif>@endif
                                 </td>
                             </tr>
                             <tr>
@@ -1344,17 +1283,14 @@
                             </tr>
                             <tr>
                                 <td class="sub-header" colspan="1">Tipo de instrumento que da lugar a la alianza</td>
-                                <td class="sub-header1" colspan="2">Carta formal de solicitud a la unidad académica <br>
-                                    <input disabled type="checkbox" class="No"
-                                        @if ($pivot->instrumentoFormalizacion->contains('tipo_documento', 'carta_formal_solicitud')) checked @endif>
+                                <td class="sub-header1 pdf-choice" colspan="2">Carta formal de solicitud a la unidad académica <br>
+                                    @if (!empty($isPdf)){!! $pdfCheck($pivot->instrumentoFormalizacion->contains('tipo_documento', 'carta_formal_solicitud')) !!}@else<input disabled type="checkbox" class="No" @if ($pivot->instrumentoFormalizacion->contains('tipo_documento', 'carta_formal_solicitud')) checked @endif>@endif
                                 </td>
-                                <td class="sub-header1" colspan="2">Carta de intenciones con la UNAH<br>
-                                    <input disabled type="checkbox" class="No"
-                                        @if ($pivot->instrumentoFormalizacion->contains('tipo_documento', 'carta_intenciones')) checked @endif>
+                                <td class="sub-header1 pdf-choice" colspan="2">Carta de intenciones con la UNAH<br>
+                                    @if (!empty($isPdf)){!! $pdfCheck($pivot->instrumentoFormalizacion->contains('tipo_documento', 'carta_intenciones')) !!}@else<input disabled type="checkbox" class="No" @if ($pivot->instrumentoFormalizacion->contains('tipo_documento', 'carta_intenciones')) checked @endif>@endif
                                 </td>
-                                <td class="sub-header1" colspan="2">Convenio marco con la UNAH<br>
-                                    <input disabled type="checkbox" class="No"
-                                        @if ($pivot->instrumentoFormalizacion->contains('tipo_documento', 'convenio_marco')) checked @endif>
+                                <td class="sub-header1 pdf-choice" colspan="2">Convenio marco con la UNAH<br>
+                                    @if (!empty($isPdf)){!! $pdfCheck($pivot->instrumentoFormalizacion->contains('tipo_documento', 'convenio_marco')) !!}@else<input disabled type="checkbox" class="No" @if ($pivot->instrumentoFormalizacion->contains('tipo_documento', 'convenio_marco')) checked @endif>@endif
                                 </td>
                             </tr>
                             <tr>
@@ -2087,40 +2023,40 @@
                             <td class="sub-header" colspan="1">1</td>
                             <td class="full-width" colspan="10">Carta de solicitud del proyecto firmada por el representante legal de la contraparte</td>
                             <td class="full-width" colspan="4">
-                                <input disabled type="checkbox" class="checkbox-field">
+                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
                             </td>
                             <td class="full-width" colspan="4">
-                                <input disabled type="checkbox" class="checkbox-field">
+                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-header" colspan="1">2</td>
                             <td class="full-width" colspan="10">Convenio/ carta de intenciones firmada entre la UNAH y contraparte</td>
                             <td class="full-width" colspan="4">
-                                <input disabled type="checkbox" class="checkbox-field">
+                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
                             </td>
                             <td class="full-width" colspan="4">
-                                <input disabled type="checkbox" class="checkbox-field">
+                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-header" colspan="1">3</td>
                             <td class="full-width" colspan="10">Oficio de remisión del Decano/Director Centro Regional</td>
                             <td class="full-width" colspan="4">
-                                <input disabled type="checkbox" class="checkbox-field">
+                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
                             </td>
                             <td class="full-width" colspan="4">
-                                <input disabled type="checkbox" class="checkbox-field">
+                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-header" colspan="1">4</td>
                             <td class="full-width" colspan="10">Otros (detallar)</td>
                             <td class="full-width" colspan="4">
-                                <input disabled type="checkbox" class="checkbox-field">
+                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
                             </td>
                             <td class="full-width" colspan="4">
-                                <input disabled type="checkbox" class="checkbox-field">
+                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
                             </td>
                         </tr>
                     </table>

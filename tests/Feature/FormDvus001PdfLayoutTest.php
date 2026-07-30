@@ -83,6 +83,21 @@ class FormDvus001PdfLayoutTest extends TestCase
         $this->assertStringContainsString('display: table-header-group', $styles);
     }
 
+    public function test_pdf_usa_casillas_html_compatibles_y_beneficiarios_compactos(): void
+    {
+        $view = $this->viewSource('components/fichas/ficha-proyecto-vinculacion');
+        $styles = $this->viewSource('components/fichas/partials/form-dvus-001-pdf-styles');
+
+        $this->assertStringContainsString('$pdfCheck', $view);
+        $this->assertStringContainsString("'X' : '&nbsp;'", $view);
+        $this->assertStringContainsString('beneficiary-summary', $view);
+        $this->assertStringContainsString('beneficiary-ethnicity', $view);
+        $this->assertStringContainsString('.pdf-check', $styles);
+        $this->assertStringNotContainsString('☐', $view);
+        $this->assertStringNotContainsString('☑', $view);
+        $this->assertStringNotContainsString('✓', $view);
+    }
+
     private function viewSource(string $view): string
     {
         return file_get_contents(resource_path('views/' . str_replace('.', '/', $view) . '.blade.php'));

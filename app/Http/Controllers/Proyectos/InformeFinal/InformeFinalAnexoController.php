@@ -16,9 +16,13 @@ class InformeFinalAnexoController extends Controller
         $nombre = $this->obtenerNombreDescarga($anexo, $ruta);
         $mime = Storage::disk('public')->mimeType($ruta) ?: 'application/octet-stream';
 
-        return str_starts_with($mime, 'application/pdf') || str_starts_with($mime, 'image/')
+        $respuesta = str_starts_with($mime, 'application/pdf') || str_starts_with($mime, 'image/')
             ? Storage::disk('public')->response($ruta, $nombre, ['Content-Type' => $mime])
             : Storage::disk('public')->download($ruta, $nombre);
+
+        $respuesta->headers->set('Content-Disposition', 'inline; filename="'.$nombre.'"');
+
+        return $respuesta;
     }
 
     public function descargar(InformeFinalAnexo $anexo)
@@ -27,7 +31,10 @@ class InformeFinalAnexoController extends Controller
         $ruta = $this->resolverRutaSegura($anexo);
         $nombre = $this->obtenerNombreDescarga($anexo, $ruta);
 
-        return Storage::disk('public')->download($ruta, $nombre);
+        $respuesta = Storage::disk('public')->download($ruta, $nombre);
+        $respuesta->headers->set('Content-Disposition', 'attachment; filename="'.$nombre.'"');
+
+        return $respuesta;
     }
 
     private function autorizarAcceso(InformeFinalAnexo $anexo): void

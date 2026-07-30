@@ -9,8 +9,10 @@ use App\Models\Proyecto\Proyecto;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use App\Services\Proyecto\DocumentoProyectoWorkflowService;
+use App\Services\Constancias\ConstanciaFinalizacionAuthorization;
 
 class InformeFinalProyectoWorkflowService
 {
@@ -34,12 +36,23 @@ class InformeFinalProyectoWorkflowService
 
         $proyecto = $informe->proyecto;
 
-        if ($proyecto->puedeMostrarCierreProyecto($user)) {
+        if ($proyecto->puedeMostrarCierreProyecto($user) || $this->puedeVerCierreFinalizado($informe, $user)) {
             return $proyecto->usuarioPuedeGestionarInformeFinal($user)
                 || $proyecto->usuarioPuedeAuditarInformeFinal($user);
         }
 
         return $proyecto->usuarioPuedeAuditarInformeFinal($user);
+    }
+
+    public function puedeVerCierreFinalizado(InformeFinalProyecto $informe, ?User $user): bool
+    {
+        $proyecto = $informe->proyecto;
+        $documento = $informe->documentoCierre;
+
+        return app(ConstanciaFinalizacionAuthorization::class)->puedeVerProyecto($proyecto, $user)
+            && $proyecto->estado?->tipoestado?->nombre === 'Finalizado'
+            && $documento?->estado?->tipoestado?->nombre === 'Aprobado'
+            && filled($informe->fecha_cierre);
     }
 
     public function puedeIniciarInformeFinal(Proyecto $proyecto, ?User $user): bool
@@ -71,12 +84,20 @@ class InformeFinalProyectoWorkflowService
     {
         $existente = $proyecto->informeFinalInf001()->first();
         if ($existente) {
-            abort_unless($this->puedeContinuarInformeFinal($existente, $user), 403);
+            abort_unless(
+                $this->puedeContinuarInformeFinal($existente, $user),
+                403,
+                'No puede continuar el Informe Final: el proyecto debe estar en curso, con el flujo de cierre habilitado y el informe en edición.'
+            );
 
             return $existente;
         }
 
-        abort_unless($this->puedeIniciarInformeFinal($proyecto, $user), 403);
+        abort_unless(
+            $this->puedeIniciarInformeFinal($proyecto, $user),
+            403,
+            'No puede crear el Informe Final: el proyecto debe estar en curso, con inscripción aprobada y flujo de cierre habilitado.'
+        );
         $informe = $this->initializer->initialize($proyecto, $user->id);
         $this->registrarMovimientoProyecto($proyecto, $user, '[Cierre INF-001] Informe final creado en borrador.');
 
@@ -152,11 +173,15 @@ class InformeFinalProyectoWorkflowService
 
     public function resumenCierre(Proyecto $proyecto, ?User $user): array
     {
-        $informe = $proyecto->informeFinalInf001()->with([
+        $relacionesInforme = [
             'documentoCierre.estadoActual.tipoestado',
             'documentoCierre.estado_documento.tipoestado',
             'documentoCierre.firma_documento.empleado',
-        ])->first();
+        ];
+        if (Schema::hasTable('constancias_finalizacion_proyecto')) {
+            $relacionesInforme[] = 'constanciaFinalizacion';
+        }
+        $informe = $proyecto->informeFinalInf001()->with($relacionesInforme)->first();
 
         if (! $informe) {
             $visible = $proyecto->puedeMostrarCierreProyecto($user);
@@ -170,7 +195,7 @@ class InformeFinalProyectoWorkflowService
             ];
         }
 
-        $visible = $proyecto->puedeMostrarCierreProyecto($user);
+        $visible = $proyecto->puedeMostrarCierreProyecto($user) || $this->puedeVerCierreFinalizado($informe, $user);
         $estado = $informe->estadoFlujo();
         $firmaActual = $informe->firmaCierreActual();
         $documento = $informe->documentoCierre;
@@ -215,6 +240,12 @@ class InformeFinalProyectoWorkflowService
             'motivo_rechazo' => $estado === InformeFinalProyecto::ESTADO_RECHAZADO
                 ? $documento?->estado?->comentario
                 : null,
+            'constancia_finalizacion' => $constancia = Schema::hasTable('constancias_finalizacion_proyecto')
+                ? $informe->constanciaFinalizacion
+                : null,
+            'puede_descargar_constancia' => $constancia
+                && $constancia->puedeDescargarse()
+                && app(ConstanciaFinalizacionAuthorization::class)->puedeDescargar($constancia, $user),
         ];
     }
 
