@@ -6,6 +6,7 @@ use App\Http\Controllers\ENF\EnfAccionController;
 use App\Http\Controllers\ENF\EnfCronogramaController;
 use App\Http\Controllers\ENF\EnfDocumentoController;
 use App\Http\Controllers\ENF\EnfInformeFinalController;
+use App\Http\Controllers\ENF\EnfInformeIntermedioController;
 use App\Http\Controllers\ENF\EnfPresupuestoController;
 use App\Http\Controllers\ENF\EnfSistematizacionController;
 use App\Http\Controllers\PDFController;
@@ -26,10 +27,10 @@ use App\Livewire\Configuracion\Logs\ListLogs;
 use App\Livewire\Constancia\ListConstancias;
 use App\Livewire\DAFT\Catalogos\DaftCatalogos;
 use App\Livewire\DAFT\Dashboard as DaftDashboard;
-use App\Livewire\DAFT\Programas\ListBandejaRevision;
-use App\Livewire\DAFT\Programas\ListProgramas;
-use App\Livewire\DAFT\Programas\ListTiposPrograma;
-use App\Livewire\DAFT\Programas\ProgramaForm;
+use App\Livewire\DAFT\Programas\ListBandejaRevision as DaftListBandejaRevision;
+use App\Livewire\DAFT\Programas\ListProgramas as DaftListProgramas;
+use App\Livewire\DAFT\Programas\ListTiposPrograma as DaftListTiposPrograma;
+use App\Livewire\DAFT\Programas\ProgramaForm as DaftProgramaForm;
 use App\Livewire\DAFT\Programas\ProgramaRevisionDetail;
 use App\Livewire\Demografia\Departamento\CreateDepartamento;
 use App\Livewire\Demografia\Departamento\ListDepartamentos;
@@ -80,8 +81,11 @@ use App\Livewire\UnidadAcademica\Campus\CampusList;
 use App\Livewire\UnidadAcademica\Carrera\CarreraList;
 use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList;
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
+use App\Livewire\ENF\EditInformeFinalForm016;
+use App\Livewire\ENF\EditInformeFinalForm018;
 use App\Livewire\User\Roles;
 use App\Livewire\User\Users;
+use App\Models\ENF\EnfAccion;
 use App\Models\Proyecto\InstrumenFormalizacion;
 use App\Models\Slide\Slide;
 use Illuminate\Support\Facades\Auth;
@@ -155,8 +159,29 @@ Route::middleware(['guest'])->group(function () {
 Route::middleware(['auth'])->prefix('enf')->name('enf.')->group(function () {
     Route::get('tipos', [EnfAccionController::class, 'tipos'])->name('tipos');
     Route::get('acciones/{accion}/pdf', [EnfAccionController::class, 'descargarPdf'])->name('acciones.pdf');
+    Route::get('acciones/{accion}/informe-final', function (EnfAccion $accion) {
+        abort_unless(in_array($accion->codigo_formulario, ['FORM-DVUS-016', 'FORM-DVUS-018'], true), 404);
+
+        return redirect()->route(
+            $accion->codigo_formulario === 'FORM-DVUS-016'
+                ? 'enf.acciones.informe-final.form016'
+                : 'enf.acciones.informe-final.form018',
+            $accion
+        );
+    })->name('acciones.informe-final.edit');
+    Route::get('acciones/{accion}/informe-final/form-016', EditInformeFinalForm016::class)->name('acciones.informe-final.form016');
+    Route::get('acciones/{accion}/informe-final/form-018', EditInformeFinalForm018::class)->name('acciones.informe-final.form018');
+    Route::get('acciones/{accion}/informe-final/vista-previa', [EnfInformeFinalController::class, 'previewByAccion'])->name('acciones.informe-final.preview-pdf');
+    Route::get('acciones/{accion}/informe-final/imprimir', [EnfInformeFinalController::class, 'printByAccion'])->name('acciones.informe-final.print');
+    Route::get('acciones/{accion}/informe-final/pdf', [EnfInformeFinalController::class, 'pdfByAccion'])->name('acciones.informe-final.pdf');
+    Route::post('acciones/{accion}/informe-intermedio', [EnfInformeIntermedioController::class, 'store'])->name('acciones.informe-intermedio.store');
+    Route::post('informes-intermedios/{informe}/enviar', [EnfInformeIntermedioController::class, 'enviar'])->name('informes-intermedios.enviar');
+    Route::get('informes-intermedios/{informe}/ver', [EnfInformeIntermedioController::class, 'ver'])->name('informes-intermedios.ver');
+    Route::post('informes-finales/{informeFinal}/enviar', [EnfInformeFinalController::class, 'enviar'])->name('informes-finales.enviar');
     Route::post('acciones/autoguardar-borrador', [EnfAccionController::class, 'autoguardarBorrador'])->name('acciones.autoguardar-borrador');
     Route::post('acciones/{accion}/autoguardar-borrador', [EnfAccionController::class, 'autoguardarBorrador'])->name('acciones.autoguardar-borrador.update');
+    Route::get('acciones/{accion}/destinatarios-inscripcion', [EnfAccionController::class, 'destinatariosInscripcion'])->name('acciones.destinatarios-inscripcion');
+    Route::post('acciones/{accion}/enviar-revision', [EnfAccionController::class, 'enviarBorradorRevision'])->name('acciones.enviar-revision');
     Route::post('acciones/{accion}/reenviar-revision', [EnfAccionController::class, 'reenviarRevision'])->name('acciones.reenviar-revision');
     Route::post('acciones/{accion}/revisiones/{revision}/aprobar', [EnfAccionController::class, 'aprobarRevision'])->name('acciones.revisiones.aprobar');
     Route::post('acciones/{accion}/revisiones/{revision}/subsanar', [EnfAccionController::class, 'subsanarRevision'])->name('acciones.revisiones.subsanar');
@@ -272,24 +297,29 @@ Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfi
             ->name('configuracion.flujos.proyectos')
             ->middleware('can:configuracion.flujos');
 
+        Route::get('configuracion/integraciones-api', IntegracionesApi::class)
+            ->name('configuracion.integraciones-api')
+            ->middleware('can:configuracion.integraciones-api');
+
         Route::prefix('daft')->middleware('can:daft.acceso')->group(function () {
             Route::get('dashboard', DaftDashboard::class)
                 ->name('daft.dashboard');
             Route::get('catalogos', DaftCatalogos::class)
                 ->name('daft.catalogos');
-            Route::get('tipos-programa', ListTiposPrograma::class)
+            Route::get('tipos-programa', DaftListTiposPrograma::class)
                 ->name('daft.tipos-programa');
-            Route::get('programas', ListProgramas::class)
+            Route::get('programas', DaftListProgramas::class)
                 ->name('daft.programas');
-            Route::get('programas/crear', ProgramaForm::class)
+            Route::get('programas/crear', DaftProgramaForm::class)
                 ->name('daft.programas.create');
-            Route::get('programas/{programa}/editar', ProgramaForm::class)
+            Route::get('programas/{programa}/editar', DaftProgramaForm::class)
                 ->name('daft.programas.edit');
-            Route::get('bandeja-revision', ListBandejaRevision::class)
+            Route::get('bandeja-revision', DaftListBandejaRevision::class)
                 ->name('daft.bandeja-revision');
             Route::get('bandeja-revision/{revision}', ProgramaRevisionDetail::class)
                 ->name('daft.bandeja-revision.show');
         });
+
     });
 
     // rutas agrupadas para el modulo de Personal

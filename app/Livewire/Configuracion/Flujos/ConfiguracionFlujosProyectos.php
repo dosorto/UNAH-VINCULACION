@@ -377,6 +377,8 @@ class ConfiguracionFlujosProyectos extends Component
             'tiposPrograma' => $tiposPrograma,
             'selectedTipoPrograma' => $selectedTipoPrograma,
             'cargoFirmas' => $cargoFirmas,
+            'alcancesAcademicos' => $this->alcancesAcademicos(),
+            'multiplicidadesRevision' => $this->multiplicidadesRevision(),
         ])->layout('layouts.app', ['hideHorizontalNav' => true]);
     }
 
@@ -414,6 +416,7 @@ class ConfiguracionFlujosProyectos extends Component
 
         if (! $this->programSelectedTipoProgramaId) {
             $this->addError('programWorkflow.nombre', 'Seleccione un tipo de programa.');
+
             return;
         }
 

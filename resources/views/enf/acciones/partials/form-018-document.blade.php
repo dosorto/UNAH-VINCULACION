@@ -1729,6 +1729,30 @@
                         @endunless
                     </tr>
                 @endforeach
+                @foreach ($accion->documentos->filter(fn ($item) => ! $matchesAnyText($item->nombre ?? '', ['Oficio de remision', 'Oficio de remisión', 'Documento perfil', 'Otros']))->values() as $documentoExtra)
+                    @php
+                        $tieneArchivo = filled($documentoExtra->ruta) && $documentoExtra->ruta !== 'pendiente';
+                        $documentoUrl = $tieneArchivo ? Storage::url($documentoExtra->ruta) : null;
+                    @endphp
+                    <tr>
+                        <td class="form018-center">{{ 3 + $loop->iteration }}</td>
+                        <td>{{ $documentoExtra->nombre ?: ($documentoExtra->descripcion ?: 'Documento adjunto') }}</td>
+                        <td class="form018-center">X</td>
+                        <td class="form018-center"></td>
+                        @unless ($isPdf)
+                            <td class="form018-center">
+                                @if ($documentoUrl)
+                                    <div class="form018-file-actions">
+                                        <a href="{{ $documentoUrl }}" target="_blank" rel="noopener" class="form018-file-button">Ver</a>
+                                        <a href="{{ $documentoUrl }}" download class="form018-file-button">Descargar</a>
+                                    </div>
+                                @else
+                                    <span class="form018-small">Pendiente</span>
+                                @endif
+                            </td>
+                        @endunless
+                    </tr>
+                @endforeach
             </table>
             <p class="form018-note">Nota: El documento 1 es obligatorio.</p>
         </main>
@@ -1740,7 +1764,7 @@
         (() => {
             const shells = document.querySelectorAll('.form018-shell.screen-document');
             const pageWidth = 8.5 * 96;
-            const maxScale = 1.28;
+            const maxScale = 1.42;
 
             const resize = (shell) => {
                 const availableWidth = shell.clientWidth;

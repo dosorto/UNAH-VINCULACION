@@ -52,7 +52,7 @@
                 @endforeach
 
                 @foreach ($enfRevisiones as $revision)
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <tr wire:key="enf-revision-{{ $revision->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-800">
                         <td class="px-4 py-3 text-gray-900 dark:text-white">{{ $revision->accion?->nombre_accion ?? 'Registro ENF' }}</td>
                         <td class="px-4 py-3">
                             <span class="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
@@ -66,24 +66,20 @@
                             </span>
                         </td>
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">
-                            Educación No Formal
+                            @if(($revision->proceso ?? null) === \App\Models\ENF\EnfAccion::PROCESO_INFORME_INTERMEDIO)
+                                Informe Intermedio
+                            @elseif(($revision->proceso ?? null) === \App\Models\ENF\EnfAccion::PROCESO_INFORME_FINAL)
+                                Informe Final
+                            @else
+                                Educación No Formal
+                            @endif
                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $revision->accion?->codigo_formulario ?? '-' }}</p>
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex flex-wrap gap-2">
-                                @if ($revision->accion)
-                                    <a href="{{ route('enf.acciones.show', $revision->accion) }}"
-                                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
-                                        Ver
-                                    </a>
-                                @endif
-                                <button wire:click="openEnfSubsanar({{ $revision->id }})"
-                                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700">
-                                    Subsanar
-                                </button>
-                                <button x-on:click.prevent="confirmDialog('¿Está seguro de aprobar esta etapa ENF?').then((ok) => ok && $wire.aprobarEnfRevision({{ $revision->id }}))"
-                                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-green-600 text-white hover:bg-green-700">
-                                    Aprobar
+                                <button type="button" wire:click="openEnfView({{ $revision->id }})"
+                                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                                    Ver
                                 </button>
                             </div>
                         </td>
@@ -211,6 +207,8 @@
             </div>
         </div>
     @endif
+
+    @include('livewire.docente.proyectos.partials.enf-revision-modal')
 
     {{-- Modal Subsanar --}}
     @if ($rechazarModal)

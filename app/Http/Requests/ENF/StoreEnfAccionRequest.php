@@ -14,6 +14,14 @@ class StoreEnfAccionRequest extends FormRequest
 
     public function rules(): array
     {
+        if ($this->filled('borrador_autoguardado_id') && $this->has('destinatarios')) {
+            return [
+                'borrador_autoguardado_id' => ['required', 'integer', 'exists:enf_acciones,id'],
+                'destinatarios' => ['nullable', 'array'],
+                'destinatarios.*' => ['nullable', 'integer', 'exists:users,id'],
+            ];
+        }
+
         return [
             'codigo_formulario' => ['nullable', 'string', 'max:80'],
             'tipo_accion_id' => ['nullable', 'exists:vinculacion_tipos_accion,id'],
