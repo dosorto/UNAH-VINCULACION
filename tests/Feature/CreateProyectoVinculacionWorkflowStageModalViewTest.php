@@ -66,8 +66,6 @@ class CreateProyectoVinculacionWorkflowStageModalViewTest extends TestCase
             'codigo' => 'ETAPA_VISIBLE',
             'nombre' => 'Etapa visible',
             'rol_revisor_id' => $role->id,
-            'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_CENTRO,
-            'multiplicidad_revision' => FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD,
         ]);
         $this->usuarioEmpleado('Candidato visible', $role, centro: $centroConCandidato);
 
@@ -80,8 +78,6 @@ class CreateProyectoVinculacionWorkflowStageModalViewTest extends TestCase
             ->assertSet('mostrarFirmantesPorEtapa', true)
             ->assertSee('Etapa visible')
             ->assertSee('ETAPA_VISIBLE')
-            ->assertSee(FlujoAprobacionEtapa::ALCANCE_CENTRO)
-            ->assertSee(FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD)
             ->assertSee('Candidato visible')
             ->assertSee('Centro sin candidato')
             ->assertSee('Bloqueada')
@@ -236,8 +232,6 @@ class CreateProyectoVinculacionWorkflowStageModalViewTest extends TestCase
             'nombre' => 'Etapa vista',
             'cargo_firma_id' => $context['cargo']->id,
             'activo' => true,
-            'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO,
-            'multiplicidad_revision' => FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO,
         ], $attributes));
     }
 

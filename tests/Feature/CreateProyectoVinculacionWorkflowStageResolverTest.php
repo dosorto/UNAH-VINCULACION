@@ -108,11 +108,11 @@ class CreateProyectoVinculacionWorkflowStageResolverTest extends TestCase
         $proyectoRole = $this->role('Rol proyecto');
 
         $etapaSinFiltro = $this->etapa($context, ['orden' => 1, 'nombre' => 'Sin filtro', 'rol_revisor_id' => $sinFiltro->id]);
-        $etapaGlobal = $this->etapa($context, ['orden' => 2, 'nombre' => 'Global', 'rol_revisor_id' => $global->id, 'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_GLOBAL]);
-        $etapaCentro = $this->etapa($context, ['orden' => 3, 'nombre' => 'Centro', 'rol_revisor_id' => $centroRole->id, 'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_CENTRO]);
-        $etapaDepto = $this->etapa($context, ['orden' => 4, 'nombre' => 'Departamento', 'rol_revisor_id' => $deptoRole->id, 'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_DEPARTAMENTO]);
-        $etapaCarrera = $this->etapa($context, ['orden' => 5, 'nombre' => 'Carrera', 'rol_revisor_id' => $carreraRole->id, 'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_CARRERA]);
-        $etapaProyecto = $this->etapa($context, ['orden' => 6, 'nombre' => 'Proyecto', 'rol_revisor_id' => $proyectoRole->id, 'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_PROYECTO]);
+        $etapaGlobal = $this->etapa($context, ['orden' => 2, 'nombre' => 'Global', 'rol_revisor_id' => $global->id]);
+        $etapaCentro = $this->etapa($context, ['orden' => 3, 'nombre' => 'Centro', 'rol_revisor_id' => $centroRole->id]);
+        $etapaDepto = $this->etapa($context, ['orden' => 4, 'nombre' => 'Departamento', 'rol_revisor_id' => $deptoRole->id]);
+        $etapaCarrera = $this->etapa($context, ['orden' => 5, 'nombre' => 'Carrera', 'rol_revisor_id' => $carreraRole->id]);
+        $etapaProyecto = $this->etapa($context, ['orden' => 6, 'nombre' => 'Proyecto', 'rol_revisor_id' => $proyectoRole->id]);
 
         [, $sinFiltroUno] = $this->usuarioEmpleado('Sin Filtro Uno', $sinFiltro);
         [, $sinFiltroDos] = $this->usuarioEmpleado('Sin Filtro Dos', $sinFiltro);
@@ -150,8 +150,6 @@ class CreateProyectoVinculacionWorkflowStageResolverTest extends TestCase
         $proyecto = $this->proyecto($context['flujo'], centros: [$centroUno, $centroDos]);
         $etapa = $this->etapa($context, [
             'rol_revisor_id' => $role->id,
-            'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_CENTRO,
-            'multiplicidad_revision' => FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD,
         ]);
         [, $empleado] = $this->usuarioEmpleado('Centro candidato', $role, centro: $centroUno);
 
@@ -196,7 +194,6 @@ class CreateProyectoVinculacionWorkflowStageResolverTest extends TestCase
         $proyecto = $this->proyecto($context['flujo'], centros: [$centro]);
         $etapa = $this->etapa($context, [
             'rol_revisor_id' => $role->id,
-            'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_CENTRO,
         ]);
         [, $empleadoAjeno] = $this->usuarioEmpleado('Empleado centro ajeno', $role, centro: $centroAjeno);
         [, $activeIncorrecto] = $this->usuarioEmpleado('Empleado active incorrecto', $role, activeRole: $otroRol, centro: $centro);
@@ -210,7 +207,6 @@ class CreateProyectoVinculacionWorkflowStageResolverTest extends TestCase
             'orden' => 2,
             'rol_revisor_id' => $role->id,
             'usuario_responsable_id' => $sinEmpleado->id,
-            'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_CENTRO,
         ]);
 
         $this->assertRuntime(
@@ -275,10 +271,6 @@ class CreateProyectoVinculacionWorkflowStageResolverTest extends TestCase
             'El empleado seleccionado no es elegible para la etapa "Etapa unica".'
         );
 
-        $etapa->update([
-            'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_CENTRO,
-            'multiplicidad_revision' => FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD,
-        ]);
         $proyecto = $proyecto->fresh();
 
         $this->assertRuntime(
@@ -354,8 +346,6 @@ class CreateProyectoVinculacionWorkflowStageResolverTest extends TestCase
             'nombre' => 'Etapa create',
             'cargo_firma_id' => $context['cargo']->id,
             'activo' => true,
-            'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO,
-            'multiplicidad_revision' => FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO,
         ], $attributes));
     }
 

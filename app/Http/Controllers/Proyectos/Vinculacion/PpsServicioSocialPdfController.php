@@ -20,10 +20,6 @@ class PpsServicioSocialPdfController extends Controller
             'formData' => FormDvus014Data::from($registro),
         ])->setPaper('letter', 'portrait')
             ->setOption('isHtml5ParserEnabled', true)
-            // Habilita <script type="text/php"> para numerar las páginas con
-            // page_text(). La plantilla es de confianza y los datos del usuario
-            // siempre se imprimen escapados, por lo que no hay inyección.
-            ->setOption('isPhpEnabled', true)
             ->setOption('defaultFont', 'DejaVu Sans')
             ->setOption('dpi', 96);
 

@@ -59,7 +59,14 @@ class ListPpsServicioSocial extends Component
                     ->orWhere('numero_cuenta', 'like', '%' . $this->search . '%')
                     ->orWhere('nombre_institucion', 'like', '%' . $this->search . '%');
             }))
-            ->when($this->filterEstado, fn ($query) => $query->where('estado', $this->filterEstado))
+            ->when($this->filterEstado, fn ($query) => $query->where(function ($q) {
+                $value = $this->filterEstado;
+                if ($value === 'borrador') {
+                    $q->whereNull('etapa_actual_id');
+                } else {
+                    $q->whereHas('estadoActual.tipoestado', fn ($sq) => $sq->whereRaw('LOWER(nombre) = ?', [$value]));
+                }
+            }))
             ->when($this->filterTipo, fn ($query) => $query->where('tipo_pps_ss', $this->filterTipo))
             ->orderByDesc('created_at');
     }
@@ -101,9 +108,9 @@ class ListPpsServicioSocial extends Component
         $isActiveAdmin = $activeRole->name === 'admin';
 
         return PpsServicioSocial::query()
-            ->whereNotIn('estado', $this->nonReviewableStates())
-            ->whereNotNull('flujo_aprobacion_id')
             ->whereNotNull('etapa_actual_id')
+            ->whereNotNull('flujo_aprobacion_id')
+            ->whereDoesntHave('estadoActual.tipoestado', fn ($sq) => $sq->whereIn('nombre', ['Aprobado', 'Rechazado']))
             ->whereHas('flujoAprobacion', fn (Builder $query) => $query
                 ->where('proceso', PpsServicioSocial::PROCESO_FLUJO))
             ->whereHas('etapaActual', function (Builder $query) use ($user, $activeRoleId, $isActiveAdmin): void {
@@ -173,21 +180,18 @@ class ListPpsServicioSocial extends Component
         return 'mis';
     }
 
-    private function nonReviewableStates(): array
-    {
-        return [
-            PpsServicioSocial::ESTADO_BORRADOR,
-            PpsServicioSocial::ESTADO_APROBADO,
-            PpsServicioSocial::ESTADO_RECHAZADO,
-            'subsanacion',
-        ];
-    }
-
     public function render(): View
     {
         $records = $this->recordsQuery()->paginate(10);
         $visibleRecordsQuery = $this->visibleRecordsQuery();
-        $estados = (clone $visibleRecordsQuery)->distinct()->orderBy('estado')->pluck('estado')->filter();
+        $estados = (clone $visibleRecordsQuery)
+            ->selectRaw('LOWER(COALESCE(te.nombre, \'borrador\')) as estado')
+            ->leftJoin('flujos_aprobacion_etapas as fae', 'pps_servicio_social.etapa_actual_id', '=', 'fae.id')
+            ->leftJoin('tipo_estados as te', 'fae.tipo_estado_id', '=', 'te.id')
+            ->distinct()
+            ->orderBy('estado')
+            ->pluck('estado')
+            ->filter();
         $tipos = (clone $visibleRecordsQuery)->distinct()->orderBy('tipo_pps_ss')->pluck('tipo_pps_ss')->filter();
         $viewMode = $this->normalizedViewMode();
 

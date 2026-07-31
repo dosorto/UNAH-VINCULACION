@@ -31,7 +31,7 @@ class ShowPpsServicioSocial extends Component
     {
         $this->registro->refresh();
 
-        if ($this->registro->estado !== PpsServicioSocial::ESTADO_BORRADOR) {
+        if ($this->registro->estado !== 'borrador') {
             Notification::make()
                 ->title('Envio no disponible')
                 ->body('Solo los registros en estado borrador pueden enviarse a revisión.')
@@ -148,7 +148,7 @@ class ShowPpsServicioSocial extends Component
             return;
         }
 
-        $esAprobacionFinal = $this->registro->estado === PpsServicioSocial::ESTADO_APROBADO;
+        $esAprobacionFinal = $this->registro->estado === 'aprobado';
 
         Notification::make()
             ->title($esAprobacionFinal ? 'Registro aprobado' : 'Etapa aprobada')
@@ -326,10 +326,6 @@ class ShowPpsServicioSocial extends Component
 
         return view('livewire.proyectos.vinculacion.show-pps-servicio-social', [
             'historialRouteName' => $this->historialRouteName(),
-            'historial' => $this->registro
-                ->historialRevisiones()
-                ->with(['realizadoPor', 'etapaOrigen', 'etapaDestino'])
-                ->get(),
             'anexos' => $this->anexosRegistrados(),
             'formData' => FormDvus014Data::from($this->registro),
         ]);

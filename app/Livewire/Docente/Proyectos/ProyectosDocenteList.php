@@ -421,9 +421,9 @@ class ProyectosDocenteList extends Component
         $isActiveAdmin = $activeRole->name === 'admin';
 
         return PpsServicioSocial::query()
-            ->whereNotIn('estado', $this->ppsNonReviewableStates())
-            ->whereNotNull('flujo_aprobacion_id')
             ->whereNotNull('etapa_actual_id')
+            ->whereNotNull('flujo_aprobacion_id')
+            ->whereDoesntHave('estadoActual.tipoestado', fn ($sq) => $sq->whereIn('nombre', ['Aprobado', 'Rechazado']))
             ->whereHas('flujoAprobacion', fn (Builder $query) => $query
                 ->where('proceso', PpsServicioSocial::PROCESO_FLUJO))
             ->whereHas('etapaActual', function (Builder $query) use ($user, $activeRoleId, $isActiveAdmin): void {
@@ -463,16 +463,6 @@ class ProyectosDocenteList extends Component
         return $this->ppsPendingReviewQuery()
             ->whereKey($registro->id)
             ->exists();
-    }
-
-    private function ppsNonReviewableStates(): array
-    {
-        return [
-            PpsServicioSocial::ESTADO_BORRADOR,
-            PpsServicioSocial::ESTADO_APROBADO,
-            PpsServicioSocial::ESTADO_RECHAZADO,
-            'subsanacion',
-        ];
     }
 
     private function enfPendingReviewQuery(): Builder

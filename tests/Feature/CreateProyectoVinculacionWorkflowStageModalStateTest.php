@@ -69,14 +69,12 @@ class CreateProyectoVinculacionWorkflowStageModalStateTest extends TestCase
             'nombre' => 'Segunda',
             'codigo' => 'SEG',
             'rol_revisor_id' => $role->id,
-            'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_CENTRO,
         ]);
         $etapaUno = $this->etapa($context, [
             'orden' => 1,
             'nombre' => 'Primera',
             'codigo' => 'PRI',
             'rol_revisor_id' => $role->id,
-            'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_CENTRO,
         ]);
         [, $empleadoUno] = $this->usuarioEmpleado('Candidato Uno', $role, centro: $centro, departamento: $depto, carrera: $carrera);
         [, $empleadoDos] = $this->usuarioEmpleado('Candidato Dos', $role, centro: $centro, departamento: $depto, carrera: $carrera);
@@ -128,8 +126,6 @@ class CreateProyectoVinculacionWorkflowStageModalStateTest extends TestCase
             'orden' => 4,
             'nombre' => 'Por unidad',
             'rol_revisor_id' => $roleUnidad->id,
-            'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_CENTRO,
-            'multiplicidad_revision' => FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD,
         ]);
         $this->usuarioEmpleado('Multiple Uno', $roleMultiple);
         $this->usuarioEmpleado('Multiple Dos', $roleMultiple);
@@ -275,8 +271,6 @@ class CreateProyectoVinculacionWorkflowStageModalStateTest extends TestCase
 
         $etapa->update([
             'nombre' => 'Por unidad asignacion',
-            'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_CENTRO,
-            'multiplicidad_revision' => FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD,
         ]);
         $component->prepararEstado($proyecto->fresh());
 
@@ -358,8 +352,6 @@ class CreateProyectoVinculacionWorkflowStageModalStateTest extends TestCase
             'nombre' => 'Etapa modal',
             'cargo_firma_id' => $context['cargo']->id,
             'activo' => true,
-            'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO,
-            'multiplicidad_revision' => FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO,
         ], $attributes));
     }
 

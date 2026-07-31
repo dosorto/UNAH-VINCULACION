@@ -160,61 +160,6 @@
         <aside class="space-y-6">
             <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                 <h2 class="mb-4 text-lg font-bold text-gray-900 dark:text-white">
-                    Historial de movimientos
-                </h2>
-
-                <div class="max-h-[calc(100vh-12rem)] overflow-y-auto pr-2">
-                    @if($historial->count() > 0)
-                        <ol class="relative border-s border-yellow-600">
-                            @foreach($historial as $index => $movimiento)
-                                @php
-                                    $estadoMovimiento = $movimiento->estado_destino ?: $movimiento->estado_origen;
-                                    $comentario = $movimiento->motivo_rechazo ?: $movimiento->comentario;
-                                @endphp
-                                <li class="{{ $index < $historial->count() - 1 ? 'mb-8' : '' }} ms-4">
-                                    <div class="absolute -start-1.5 mt-1.5 h-3 w-3 rounded-full border border-white bg-yellow-600"></div>
-                                    <time class="text-sm font-normal leading-none text-yellow-600">
-                                        {{ Carbon::parse($movimiento->created_at)->format('d') }} de
-                                        {{ Carbon::parse($movimiento->created_at)->translatedFormat('F') }} del
-                                        {{ Carbon::parse($movimiento->created_at)->format('Y') }}
-                                    </time>
-                                    <h3 class="mt-2 text-base font-semibold text-gray-900 dark:text-gray-200">
-                                        Estado: {{ ucfirst(str_replace('_', ' ', $estadoMovimiento ?: 'cambio registrado')) }}
-                                    </h3>
-                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                        Acción: {{ ucfirst(str_replace('_', ' ', $movimiento->accion ?: 'movimiento')) }}
-                                    </p>
-                                    @if($movimiento->realizadoPor)
-                                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                            Realizado por: {{ $movimiento->realizadoPor->name ?: $movimiento->realizadoPor->email }}
-                                        </p>
-                                    @endif
-                                    @if($movimiento->etapaOrigen || $movimiento->etapaDestino)
-                                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                            {{ $movimiento->etapaOrigen?->nombre ?: 'Sin etapa origen' }}
-                                            @if($movimiento->etapaDestino)
-                                                → {{ $movimiento->etapaDestino->nombre }}
-                                            @endif
-                                        </p>
-                                    @endif
-                                    @if($comentario)
-                                        <p class="mt-2 whitespace-pre-line rounded-lg bg-gray-50 p-3 text-sm text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                                            {{ $comentario }}
-                                        </p>
-                                    @endif
-                                </li>
-                            @endforeach
-                        </ol>
-                    @else
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
-                            No hay movimientos registrados para este PPS / Servicio Social.
-                        </p>
-                    @endif
-                </div>
-            </section>
-
-            <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                <h2 class="mb-4 text-lg font-bold text-gray-900 dark:text-white">
                     Anexos
                 </h2>
 

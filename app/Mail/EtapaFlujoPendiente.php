@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\PpsServicioSocial;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
@@ -22,30 +23,46 @@ class EtapaFlujoPendiente extends Mailable implements ShouldQueue
     public string $nombreEtapa;
     public string $actionUrl;
     public string $tipoRegistro;
+    public ?string $nombreEstudiante = null;
+    public ?string $tipoPpsSs = null;
 
     public function __construct(
-        public Proyecto $proyecto,
+        public Proyecto|PpsServicioSocial $firmable,
         public User $revisor,
         public FlujoAprobacionEtapa $etapa,
         ?string $tipoRegistro = null,
     ) {
         $this->nombreRevisor = $revisor->empleado?->nombre_completo
             ?? ($revisor->nombre . ' ' . ($revisor->apellido ?? ''));
-        $this->nombreProyecto = $proyecto->nombre_proyecto ?? 'Proyecto sin nombre';
+
+        if ($firmable instanceof PpsServicioSocial) {
+            $this->nombreProyecto = $firmable->codigo_registro ?: '#'.$firmable->id;
+            $this->tipoRegistro = $tipoRegistro ?: 'pps-servicio-social';
+            $this->actionUrl = route('pps-servicio-social.show', ['id' => $firmable->id]);
+            $this->nombreEstudiante = $firmable->nombre_estudiante;
+            $this->tipoPpsSs = $firmable->tipo_pps_ss;
+        } else {
+            $this->nombreProyecto = $firmable->nombre_proyecto ?? 'Proyecto sin nombre';
+            $this->tipoRegistro = $tipoRegistro ?: 'proyecto';
+            $this->actionUrl = $revisor->can('proyectos.informes')
+                ? route('listarInformesSolicitado')
+                : ($revisor->can('docente.proyectos')
+                    ? route('SolicitudProyectosDocente')
+                    : url('/'));
+        }
+
         $this->nombreEtapa = $etapa->nombre;
-        $this->tipoRegistro = $tipoRegistro ?: 'proyecto';
-        $this->actionUrl = $revisor->can('proyectos.informes')
-            ? route('listarInformesSolicitado')
-            : ($revisor->can('docente.proyectos')
-                ? route('SolicitudProyectosDocente')
-                : url('/'));
     }
 
     public function envelope(): Envelope
     {
+        $subject = $this->tipoRegistro === 'pps-servicio-social'
+            ? 'Registro PPS/Servicio Social pendiente de revision - '.$this->nombreProyecto
+            : 'Revisión pendiente de '.$this->tipoRegistro.' — '.$this->nombreProyecto;
+
         return new Envelope(
             from: new Address(env('MAIL_FROM_ADDRESS', 'nexo@unah.edu.hn'), env('APP_NAME', 'NEXO')),
-            subject: 'Revisión pendiente de '.$this->tipoRegistro.' — '.$this->nombreProyecto,
+            subject: $subject,
         );
     }
 
@@ -60,6 +77,8 @@ class EtapaFlujoPendiente extends Mailable implements ShouldQueue
                 'tipoRegistro' => $this->tipoRegistro,
                 'actionUrl' => $this->actionUrl,
                 'appName' => env('APP_NAME', 'NEXO'),
+                'nombreEstudiante' => $this->nombreEstudiante,
+                'tipoPpsSs' => $this->tipoPpsSs,
             ],
         );
     }

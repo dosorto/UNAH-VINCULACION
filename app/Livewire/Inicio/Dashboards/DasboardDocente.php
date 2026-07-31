@@ -611,7 +611,7 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
         }
         $ppsSubsanar = PpsServicioSocial::query()
             ->where('created_by', $authUserId)
-            ->whereIn('estado', [PpsServicioSocial::ESTADO_RECHAZADO, 'subsanacion'])
+            ->whereHas('estadoActual.tipoestado', fn ($q) => $q->whereIn('nombre', ['Rechazado', 'Subsanacion']))
             ->get();
         $totalSubsanar = $proyectosSubsanar->count() + $ppsSubsanar->count();
         $subsanacionUser = $proyectosSubsanar->concat($ppsSubsanar);

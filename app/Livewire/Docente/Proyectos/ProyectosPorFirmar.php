@@ -459,8 +459,8 @@ class ProyectosPorFirmar extends Component
         }
 
         Notification::make()
-            ->title($registro->estado === PpsServicioSocial::ESTADO_APROBADO ? 'Registro aprobado' : 'Etapa aprobada')
-            ->body($registro->estado === PpsServicioSocial::ESTADO_APROBADO
+            ->title($registro->estado === 'aprobado' ? 'Registro aprobado' : 'Etapa aprobada')
+            ->body($registro->estado === 'aprobado'
                 ? 'El FORM-DVUS-014 fue aprobado correctamente.'
                 : 'El registro PPS/SS avanzó a la siguiente etapa.')
             ->success()

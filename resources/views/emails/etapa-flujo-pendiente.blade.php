@@ -209,6 +209,20 @@
 
             <div class="project-info">
                 <div class="project-title">{{ $nombreProyecto }}</div>
+                @if($tipoRegistro === 'pps-servicio-social')
+                    @if($nombreEstudiante)
+                        <div class="detail-item">
+                            <span class="detail-label">Estudiante</span>
+                            <span class="detail-value">{{ $nombreEstudiante }}</span>
+                        </div>
+                    @endif
+                    @if($tipoPpsSs)
+                        <div class="detail-item">
+                            <span class="detail-label">Tipo</span>
+                            <span class="detail-value">{{ ucfirst(str_replace('_', ' ', $tipoPpsSs)) }}</span>
+                        </div>
+                    @endif
+                @endif
                 <div class="detail-item">
                     <span class="detail-label">Etapa a revisar</span>
                     <span class="detail-value">{{ $nombreEtapa }}</span>
