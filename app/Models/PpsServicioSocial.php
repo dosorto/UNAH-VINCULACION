@@ -25,17 +25,12 @@ class PpsServicioSocial extends Model
     use SoftDeletes;
     use TieneFlujoPorEtapas;
 
-    public const ESTADO_BORRADOR = 'borrador';
-    public const ESTADO_ENVIADO = 'enviado';
-    public const ESTADO_APROBADO = 'aprobado';
-    public const ESTADO_RECHAZADO = 'rechazado';
     public const PROCESO_FLUJO = 'PPS_SERVICIO_SOCIAL';
 
     protected $table = 'pps_servicio_social';
 
     protected $fillable = [
         'codigo_registro',
-        'estado',
         'flujo_aprobacion_id',
         'etapa_actual_id',
         'fecha_envio',
@@ -129,12 +124,6 @@ class PpsServicioSocial extends Model
         return $this->belongsTo(FlujoAprobacionEtapa::class, 'etapa_actual_id');
     }
 
-    public function historialRevisiones(): HasMany
-    {
-        return $this->hasMany(PpsServicioSocialRevisionHistorial::class, 'pps_servicio_social_id')
-            ->latest();
-    }
-
     /**
      * Registros PPS/SS pendientes de revisión para el usuario y rol activo
      * indicados. Única fuente de verdad usada por la bandeja de tareas
@@ -151,12 +140,11 @@ class PpsServicioSocial extends Model
         $isActiveAdmin = $activeRole->name === 'admin';
 
         return self::query()
-            ->whereNotIn('estado', [
-                self::ESTADO_BORRADOR,
-                self::ESTADO_APROBADO,
-                self::ESTADO_RECHAZADO,
-                'subsanacion',
-            ])
+            ->where(function ($q) {
+                $q->whereDoesntHave('estadoActual.tipoestado')
+                  ->orWhereHas('estadoActual.tipoestado', fn ($q) => $q
+                      ->whereNotIn('nombre', ['Borrador', 'Aprobado', 'Rechazado', 'Subsanacion']));
+            })
             ->whereNotNull('flujo_aprobacion_id')
             ->whereNotNull('etapa_actual_id')
             ->whereHas('flujoAprobacion', fn ($query) => $query->where('proceso', self::PROCESO_FLUJO))
@@ -209,6 +197,23 @@ class PpsServicioSocial extends Model
             ->where('es_actual', true);
     }
 
+    public function getEstadoAttribute(): ?string
+    {
+        $estadoActual = $this->estadoActual;
+
+        if (!$estadoActual) {
+            return 'borrador';
+        }
+
+        return match ($estadoActual->tipoestado?->nombre) {
+            'Borrador' => 'borrador',
+            'Aprobado' => 'aprobado',
+            'Rechazado' => 'rechazado',
+            'Subsanacion' => 'subsanacion',
+            default => 'enviado',
+        };
+    }
+
     public function resolveFlujoAprobacion(): ?FlujoAprobacion
     {
         if ($this->flujoAprobacion) {
@@ -216,30 +221,6 @@ class PpsServicioSocial extends Model
         }
 
         return $this->resolveFlujoAprobacionPorProceso(self::PROCESO_FLUJO, 'FORM-DVUS-014');
-    }
-
-    /**
-     * Refleja el estado actual (tabla estado_proyecto, fuente de verdad) en la
-     * columna corta `estado` para no romper el resto de la app (List/Edit/Show),
-     * que sigue leyendo `estado` como antes.
-     */
-    public function sincronizarEstadoCorto(): void
-    {
-        $nombre = $this->estadoActual()->with('tipoestado')->first()?->tipoestado?->nombre;
-
-        if (! $nombre) {
-            return;
-        }
-
-        $estadoCorto = match ($nombre) {
-            'Borrador' => self::ESTADO_BORRADOR,
-            'Aprobado' => self::ESTADO_APROBADO,
-            'Rechazado' => self::ESTADO_RECHAZADO,
-            'Subsanacion' => 'subsanacion',
-            default => self::ESTADO_ENVIADO,
-        };
-
-        $this->forceFill(['estado' => $estadoCorto])->saveQuietly();
     }
 
     public function perteneceAlUsuario(?int $userId): bool
@@ -251,7 +232,7 @@ class PpsServicioSocial extends Model
 
     public function puedeEnviarse(?int $userId): bool
     {
-        return $this->estado === self::ESTADO_BORRADOR
+        return $this->estado === 'borrador'
             && $this->perteneceAlUsuario($userId);
     }
 
@@ -288,7 +269,7 @@ class PpsServicioSocial extends Model
 
     public function puedeSubsanarse(?int $userId): bool
     {
-        if ($this->estado !== self::ESTADO_RECHAZADO || !$this->perteneceAlUsuario($userId)) {
+        if ($this->estado !== 'rechazado' || !$this->perteneceAlUsuario($userId)) {
             return false;
         }
 

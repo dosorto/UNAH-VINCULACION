@@ -166,6 +166,22 @@
                         @include('components.fichas.ficha-proyecto-vinculacion', ['proyecto' => $viewProyecto])
                     @endif
                 </div>
+                @if ($viewDocumento?->tipo_documento === 'Informe Final')
+                    <div class="border-t border-gray-200 px-6 py-4 dark:border-gray-700">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Documento de revisión (PDF opcional)</label>
+                        <input type="file" wire:model="documentoRevision" accept=".pdf,application/pdf" class="mt-2 block w-full text-sm">
+                        <p class="mt-1 text-xs text-gray-500">Puede adjuntar una rúbrica, dictamen, observaciones u otro documento de soporte de esta revisión. Máximo 10 MB.</p>
+                        @if ($documentoRevision)<button type="button" wire:click="$set('documentoRevision', null)" class="mt-2 text-xs text-red-600">Quitar archivo</button>@endif
+                        @error('documentoRevision')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        @if ($this->documentosRevisionView->isNotEmpty())
+                            <ul class="mt-3 space-y-1 text-sm">
+                                @foreach ($this->documentosRevisionView as $documentoRevision)
+                                    <li><a class="text-blue-700 underline" href="{{ route('informes-finales.documentos-revision.descargar', $documentoRevision) }}">{{ $documentoRevision->nombre_original }}</a><span class="text-gray-500"> · {{ $documentoRevision->firma?->etapa_nombre ?: 'Etapa de revisión' }}</span></li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                @endif
                 <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
                     @if ($this->puedeSubsanar($viewFirma->id))
                         <button wire:click="openRechazar({{ $viewFirma->id }})"

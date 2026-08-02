@@ -355,8 +355,6 @@ class CreateProyectoVinculacionWorkflowStageSubmitIntegrationTest extends TestCa
                 'rol_revisor_id' => $role->id,
                 'activo' => true,
                 'aplica_proyecto_inscripcion' => true,
-                'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO,
-                'multiplicidad_revision' => FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO,
             ]);
             $empleados[] = $empleado;
             $roles[] = $role;

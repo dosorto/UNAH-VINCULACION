@@ -2474,7 +2474,9 @@ class CreateProyectoVinculacion extends Component
         $data = $this->validate([
             'nuevoIntegranteInternacional.nombre_completo' => 'required|string|max:255',
             'nuevoIntegranteInternacional.documento_identidad' => 'required|string|max:255',
-            'nuevoIntegranteInternacional.rtn' => 'nullable|string|size:14|regex:/^\d{14}$/',
+            'nuevoIntegranteInternacional.rtn' => $this->reglasRtn(
+                $this->nuevoIntegranteInternacional['pais'] ?? null
+            ),
             'nuevoIntegranteInternacional.sexo' => 'nullable|in:masculino,femenino,otro',
             'nuevoIntegranteInternacional.email' => 'required|email|max:255',
             'nuevoIntegranteInternacional.pais' => ['required', 'string', 'max:255', Rule::exists('pais', 'nombre')->whereNull('deleted_at')],
@@ -2600,7 +2602,10 @@ class CreateProyectoVinculacion extends Component
         $this->normalizarInstrumentosContraparteModal();
 
         $this->validate([
-            'nuevaContraparte.rtn' => 'nullable|string|size:14|regex:/^\d{14}$/',
+            'nuevaContraparte.rtn' => $this->reglasRtn(
+                null,
+                $this->nuevaContraparte['tipo_entidad'] ?? null
+            ),
             'nuevaContraparte.nombre' => 'required|string|max:255',
             'nuevaContraparte.tipo_entidad' => 'required|string',
             'nuevaContraparte.nombre_contacto' => 'nullable|string|max:255',
@@ -2705,6 +2710,17 @@ class CreateProyectoVinculacion extends Component
     {
         $this->nuevaContraparte = ['rtn' => '', 'nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '', 'cargo_contacto' => '', 'telefono' => '', 'correo' => '', 'descripcion_acuerdos' => '', 'instrumento_formalizacion' => []];
         $this->contraparteSeleccionadoId = null;
+    }
+
+    private function reglasRtn(?string $pais = null, ?string $tipoEntidad = null): array
+    {
+        $esHonduras = filled($pais)
+            ? Str::of($pais)->ascii()->lower()->trim()->value() === 'honduras'
+            : $tipoEntidad !== 'internacional';
+
+        return $esHonduras
+            ? ['nullable', 'string', 'size:14', 'regex:/^\d{14}$/']
+            : ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9 -]+$/'];
     }
 
     public function addInstrumentoToModal(): void

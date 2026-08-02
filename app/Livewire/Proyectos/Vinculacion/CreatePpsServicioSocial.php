@@ -306,7 +306,7 @@ class CreatePpsServicioSocial extends Component
         if ($this->shouldLockStepNavigation()) {
             $this->validateCurrentStep();
 
-            if ($this->errors()->isNotEmpty()) {
+            if ($this->getErrorBag()->isNotEmpty()) {
                 return;
             }
         }
@@ -521,7 +521,6 @@ class CreatePpsServicioSocial extends Component
 
         $registro = PpsServicioSocial::create(array_merge($this->payloadParcial(), [
             'codigo_registro' => $this->generarCodigoRegistro(),
-            'estado' => 'borrador',
             'created_by' => auth()->id(),
             'updated_by' => auth()->id(),
         ]));

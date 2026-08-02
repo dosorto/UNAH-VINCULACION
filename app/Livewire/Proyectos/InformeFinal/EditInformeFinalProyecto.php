@@ -18,6 +18,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -29,6 +30,12 @@ class EditInformeFinalProyecto extends Component
     use WithFileUploads;
 
     private const TIPO_ACCION_FORM_DVUS_001 = 'DESARROLLO_LOCAL_REGIONAL';
+    private const CAMPOS_REFLEXION_HEREDADOS = [
+        'problema_inicial' => 'definicion_problema',
+        'transformacion_lograda' => 'impacto_deseado',
+        'respuesta_reforma_universitaria' => 'alineamiento_reforma',
+        'bibliografia' => 'bibliografia',
+    ];
 
     public Proyecto $proyecto;
     public InformeFinalProyecto $informe;
@@ -56,9 +63,13 @@ class EditInformeFinalProyecto extends Component
     public bool $resultadoModalSoloLectura = false;
     public array $resultadoModal = [];
     public bool $showActividadModal = false;
+    public bool $showActividadParticipanteEstadoModal = false;
     public ?int $actividadModalIndex = null;
+    public ?int $actividadParticipanteEstadoIndex = null;
     public bool $actividadModalSoloLectura = false;
     public array $actividadModal = [];
+    public string $actividadParticipanteEstado = 'activo';
+    public string $actividadParticipanteObservacion = '';
     public string $participanteSeleccionActividadModal = 'externo:nuevo';
     public bool $showEstudianteModal = false;
     public bool $showVoluntarioModal = false;
@@ -118,7 +129,11 @@ class EditInformeFinalProyecto extends Component
         $this->currentStep = min(8, $this->currentStep + 1);
     }
 
-    public function anterior(): void { $this->currentStep = max(1, $this->currentStep - 1); }
+    public function anterior(): void
+    {
+        $this->limpiarFilasCooperacionVacias();
+        $this->currentStep = max(1, $this->currentStep - 1);
+    }
 
     public function openEstudianteModal(?int $index = null, ?int $grupoId = null): void
     {
@@ -469,7 +484,7 @@ class EditInformeFinalProyecto extends Component
     {
         $this->authorizeSensitive();
         $this->validate([
-            'estadoNoParticipacion' => ['required', Rule::in(['no_participo','retirado'])],
+            'estadoNoParticipacion' => ['required', Rule::in(['no_participo', 'no_finalizo', 'retirado'])],
             'observacionNoParticipacion' => ['required','string','min:10','max:500'],
         ]);
         $property = $this->configParticipantes()[$this->tipoParticipanteNoParticipacion] ?? null;
@@ -565,11 +580,9 @@ class EditInformeFinalProyecto extends Component
         $this->estadoGuardado = 'guardado';
     }
 
-    public function anexoUrl(?string $ruta): ?string
+    public function anexoDocumentoUrl(?int $id): ?string
     {
-        if (blank($ruta)) return null;
-
-        return filter_var($ruta, FILTER_VALIDATE_URL) ? $ruta : Storage::disk('public')->url($ruta);
+        return $id ? route('informes-finales.anexos.mostrar', ['anexo' => $id], false) : null;
     }
 
     private function configParticipantes(): array
@@ -586,6 +599,11 @@ class EditInformeFinalProyecto extends Component
         $this->autoGuardarCampo($propertyName);
     }
 
+    public function esCampoReflexionHeredado(string $campo): bool
+    {
+        return array_key_exists($campo, self::CAMPOS_REFLEXION_HEREDADOS);
+    }
+
     public function agregarFila(string $grupo): void
     {
         $this->authorizeSensitive();
@@ -593,18 +611,20 @@ class EditInformeFinalProyecto extends Component
             'cooperacion' => ['nombre'=>'','pasaporte'=>'','correo'=>'','pais'=>'','universidad'=>'','horas_dedicadas'=>0,'estado_participacion'=>'activo'],
             'estudiantes' => ['estudiante_id'=>null,'nombre'=>'','sexo'=>'','numero_cuenta'=>'','carrera'=>'','tipo_participacion'=>'practica_asignatura','horas_dedicadas'=>0,'estado_participacion'=>'activo'],
             'voluntarios' => ['nombre'=>'','sexo'=>'','identidad'=>'','departamento'=>'','tipo'=>'egresado','horas_dedicadas'=>0,'estado_participacion'=>'activo'],
-            'contrapartes' => ['existe_apoyo'=>true,'nombre'=>'','tipo'=>'sociedad_civil','contacto'=>'','correo'=>'','cargo'=>'','telefono'=>'','tipo_instrumento'=>null,'compromisos_asumidos'=>'','compromisos_cumplidos'=>'','territorio'=>'','aporte_monetario'=>0,'aporte_especie'=>0,'documento_respaldo'=>''],
+            'contrapartes' => ['existe_apoyo'=>true,'nombre'=>'','tipo'=>'sociedad_civil','contacto'=>'','correo'=>'','cargo'=>'','telefono'=>'','tipo_instrumento'=>null,'compromisos_asumidos'=>'','compromisos_cumplidos'=>'','territorio'=>'','aporte_monetario'=>0,'aporte_especie'=>0,'documento_respaldo'=>'','origen'=>'EJECUCION'],
             'resultados' => ['objetivo_especifico'=>'','resultado_planificado'=>'','indicador_propuesto'=>'','meta_numerica'=>null,'unidad_medida'=>'','valor_alcanzado'=>null,'porcentaje_cumplimiento'=>0,'estado'=>'no_alcanzado','producto_logrado'=>'','observaciones'=>''],
             'actividades' => ['actividad_planificada'=>'','actividad_realizada'=>'','responsable'=>'','fecha_inicial'=>null,'fecha_final'=>null,'horas_dedicadas'=>0,'medio_verificacion'=>'','estado'=>'no_ejecutada','origen'=>'emergente','participantes'=>[]],
             'accionesNoEjecutadas' => ['resultado_previsto'=>'','actividad_planificada'=>'','explicacion'=>'','afectacion_proyecto'=>'','responsable'=>'','impacto'=>'medio'],
             'accionesEmergentes' => ['producto_logrado'=>'','actividad_realizada'=>'','justificacion'=>'','responsables'=>'','fecha'=>null,'horas'=>0,'informe_final_resultado_id'=>null],
-            'ods' => ['ods_id'=>'','meta_contribuye_id'=>null,'meta_ods'=>'','descripcion_aporte'=>'','evidencia'=>'','nivel_contribucion'=>'directa'],
+            'ods' => ['ods_id'=>'','meta_contribuye_id'=>null,'meta_ods'=>'','descripcion_aporte'=>'','evidencia'=>'','nivel_contribucion'=>'directa','origen'=>'EJECUCION'],
             'presupuesto' => ['fuente'=>'UNAH','concepto'=>'otros','unidad'=>'','cantidad'=>0,'costo_unitario'=>0,'origen_fondos'=>'','informe_final_contraparte_id'=>null],
             'anexos' => ['tipo'=>'otros','categoria'=>'documento_general','descripcion'=>'','archivo'=>null,'enlace'=>'','fecha'=>null,'informe_final_resultado_id'=>null,'informe_final_actividad_id'=>null,'informe_final_contraparte_id'=>null,'instrumento_formalizacion_id'=>null,'nombre_archivo'=>null,'tamano_bytes'=>null,'origen'=>'INFORME','orden'=>count($this->anexos)+1],
         ];
         abort_unless(array_key_exists($grupo, $defaults), 404);
         $this->{$grupo}[] = $defaults[$grupo];
-        $this->guardarFilaAutoguardado($grupo, array_key_last($this->{$grupo}));
+        if ($grupo !== 'cooperacion') {
+            $this->guardarFilaAutoguardado($grupo, array_key_last($this->{$grupo}));
+        }
     }
 
     public function openResultadoModal(?int $index = null, bool $soloLectura = false): void
@@ -631,7 +651,6 @@ class EditInformeFinalProyecto extends Component
         $this->authorizeSensitive();
         abort_if($this->resultadoModalSoloLectura, 403);
         $this->validate([
-            'resultadoModal.resultado_planificado' => ['required','string'],
             'resultadoModal.meta_numerica' => ['nullable','numeric','min:0'],
             'resultadoModal.valor_alcanzado' => ['nullable','numeric','min:0'],
             'resultadoModal.porcentaje_cumplimiento' => ['numeric','between:0,100'],
@@ -643,7 +662,12 @@ class EditInformeFinalProyecto extends Component
         }
         $index = $this->resultadoModalIndex;
         if ($index === null) { $this->resultados[] = $this->resultadoModal; $index = array_key_last($this->resultados); }
-        else $this->resultados[$index] = $this->resultadoModal;
+        else {
+            foreach (['resultado_esperado_id', 'objetivo_especifico', 'resultado_planificado', 'indicador_propuesto', 'unidad_medida'] as $campoPlanificado) {
+                $this->resultadoModal[$campoPlanificado] = $this->resultados[$index][$campoPlanificado] ?? null;
+            }
+            $this->resultados[$index] = $this->resultadoModal;
+        }
         $this->guardarFilaAutoguardado('resultados', $index);
         $this->closeResultadoModal();
         $this->mensaje = 'Resultado guardado correctamente.';
@@ -712,6 +736,12 @@ class EditInformeFinalProyecto extends Component
     {
         $this->authorizeSensitive();
         abort_if($this->actividadModalSoloLectura, 403);
+        $participante = $this->actividadModal['participantes'][$index] ?? null;
+        abort_unless($participante, 404);
+        if (($participante['origen'] ?? 'PLANIFICADO') !== 'EJECUCION') {
+            $this->abrirCambioEstadoParticipanteActividad($index);
+            return;
+        }
         $eraResponsable = ! empty($this->actividadModal['participantes'][$index]['es_responsable']);
         unset($this->actividadModal['participantes'][$index]);
         $this->actividadModal['participantes'] = array_values($this->actividadModal['participantes'] ?? []);
@@ -733,6 +763,39 @@ class EditInformeFinalProyecto extends Component
             }
         }
         unset($participante);
+    }
+
+    public function abrirCambioEstadoParticipanteActividad(int $index): void
+    {
+        $this->authorizeSensitive();
+        abort_if($this->actividadModalSoloLectura, 403);
+        $participante = $this->actividadModal['participantes'][$index] ?? null;
+        abort_unless($participante && ($participante['origen'] ?? 'PLANIFICADO') !== 'EJECUCION', 404);
+        $this->actividadParticipanteEstadoIndex = $index;
+        $this->actividadParticipanteEstado = $participante['estado_participacion'] ?? 'activo';
+        $this->actividadParticipanteObservacion = $participante['observacion_no_participacion'] ?? '';
+        $this->resetErrorBag();
+        $this->showActividadParticipanteEstadoModal = true;
+    }
+
+    public function guardarEstadoParticipanteActividad(): void
+    {
+        $this->authorizeSensitive();
+        abort_if($this->actividadModalSoloLectura, 403);
+        $index = $this->actividadParticipanteEstadoIndex;
+        $participante = $index === null ? null : ($this->actividadModal['participantes'][$index] ?? null);
+        abort_unless($participante && ($participante['origen'] ?? 'PLANIFICADO') !== 'EJECUCION', 404);
+        $this->validate([
+            'actividadParticipanteEstado' => ['required', Rule::in(['activo', 'no_finalizo'])],
+            'actividadParticipanteObservacion' => [Rule::requiredIf($this->actividadParticipanteEstado === 'no_finalizo'), 'nullable', 'string', 'min:10', 'max:500'],
+        ]);
+        $this->actividadModal['participantes'][$index]['estado_participacion'] = $this->actividadParticipanteEstado;
+        $this->actividadModal['participantes'][$index]['observacion_no_participacion'] = $this->actividadParticipanteObservacion;
+        $this->actividadModal['participantes'][$index]['removido_en'] = now();
+        $this->actividadModal['participantes'][$index]['removido_por'] = auth()->id();
+        $this->actividades[$this->actividadModalIndex]['participantes'] = $this->actividadModal['participantes'];
+        $this->guardarFilaAutoguardado('actividades', $this->actividadModalIndex);
+        $this->showActividadParticipanteEstadoModal = false;
     }
 
     private function resultadoInicial(): array
@@ -777,7 +840,25 @@ class EditInformeFinalProyecto extends Component
     {
         $this->authorizeSensitive();
         abort_unless(property_exists($this, $grupo), 404);
-        abort_if(in_array($grupo, ['equipo','cooperacion','estudiantes','voluntarios'], true), 422, 'Los participantes deben marcarse como no participantes para conservar la trazabilidad.');
+        abort_if(in_array($grupo, ['equipo', 'cooperacion', 'estudiantes', 'voluntarios'], true), 422, 'Los integrantes del informe final conservan su trazabilidad; cambie su estado de participación.');
+        abort_if($grupo === 'resultados', 422, 'Los resultados del proyecto se conservan; registre o edite únicamente su ejecución.');
+        $fila = $this->{$grupo}[$indice] ?? null;
+        abort_unless($fila !== null, 404);
+        if ($grupo === 'actividades' && (filled($fila['actividad_id'] ?? null) || ($fila['origen'] ?? null) === 'planificada')) {
+            throw ValidationException::withMessages(['actividades' => 'Las actividades planificadas no se eliminan; registre su ejecución o estado en el informe final.']);
+        }
+        if ($grupo === 'presupuesto' && (filled($fila['id'] ?? null) || ($fila['origen_fondos'] ?? null) === 'contrapartes_proyecto')) {
+            throw ValidationException::withMessages(['presupuesto' => 'Los conceptos presupuestarios precargados no se eliminan del informe final.']);
+        }
+        if ($grupo === 'ods' && (($fila['origen'] ?? 'PLANIFICADO') !== 'EJECUCION')) {
+            throw ValidationException::withMessages(['ods' => 'Los ODS planificados no se eliminan del Informe Final.']);
+        }
+        if ($grupo === 'contrapartes' && (($fila['origen'] ?? 'PLANIFICADO') !== 'EJECUCION')) {
+            throw ValidationException::withMessages(['contrapartes' => 'Las contrapartes planificadas no se eliminan del Informe Final.']);
+        }
+        if ($grupo === 'anexos' && in_array(($fila['origen'] ?? 'INFORME'), ['PLANIFICADO', 'PROYECTO'], true)) {
+            throw ValidationException::withMessages(['anexos' => 'Los anexos planificados no se eliminan del Informe Final.']);
+        }
         $this->eliminarFilaPersistida($grupo, $this->{$grupo}[$indice] ?? []);
         unset($this->{$grupo}[$indice]);
         $this->{$grupo} = array_values($this->{$grupo});
@@ -827,6 +908,7 @@ class EditInformeFinalProyecto extends Component
         $this->authorizeSensitive();
         $participante = $this->actividades[$actividadIndex]['participantes'][$participanteIndex] ?? null;
         if (! $participante) return;
+        abort_if(($participante['origen'] ?? 'PLANIFICADO') !== 'EJECUCION', 422, 'Los participantes planificados no se eliminan; cambie su estado de participación.');
         unset($this->actividades[$actividadIndex]['participantes'][$participanteIndex]);
         $this->actividades[$actividadIndex]['participantes'] = array_values($this->actividades[$actividadIndex]['participantes']);
         if ($participante['es_responsable'] ?? false) {
@@ -910,8 +992,8 @@ class EditInformeFinalProyecto extends Component
                 ->filter(fn ($row) => (int) ($row['informe_final_grupo_estudiante_id'] ?? 0) === (int) $grupo['id'])
                 ->values();
             $activos = $estudiantes->filter(fn ($row) => ($row['estado_participacion'] ?? 'activo') === 'activo');
-            $hombres = $activos->where('sexo', 'Masculino')->count();
-            $mujeres = $activos->where('sexo', 'Femenino')->count();
+            $hombres = $activos->filter(fn ($row) => mb_strtolower(trim((string) ($row['sexo'] ?? ''))) === 'masculino')->count();
+            $mujeres = $activos->filter(fn ($row) => mb_strtolower(trim((string) ($row['sexo'] ?? ''))) === 'femenino')->count();
             $asignatura = $grupo['asignatura'] ?? null;
 
             return $grupo + [
@@ -984,6 +1066,7 @@ class EditInformeFinalProyecto extends Component
     {
         return match ($estado ?: 'activo') {
             'no_participo' => 'No participó',
+            'no_finalizo' => 'No finalizó',
             'retirado' => 'Retirado',
             default => 'Participó',
         };
@@ -1126,6 +1209,32 @@ class EditInformeFinalProyecto extends Component
         ]);
     }
 
+    /** Mantiene una sola fila calculada para los aportes declarados por las contrapartes. */
+    private function sincronizarFilaAporteContraparte(): void
+    {
+        $total = round(collect($this->contrapartes)
+            ->filter(fn (array $contraparte) => ($contraparte['existe_apoyo'] ?? true) !== false)
+            ->sum(fn (array $contraparte) => (float) ($contraparte['aporte_monetario'] ?? 0) + (float) ($contraparte['aporte_especie'] ?? 0)), 2);
+
+        $indice = collect($this->presupuesto)->search(fn (array $fila) => ($fila['origen_fondos'] ?? null) === 'contrapartes_proyecto');
+        $fila = [
+            'fuente' => 'CONTRAPARTE',
+            'concepto' => 'Aporte contraparte',
+            'unidad' => 'aporte',
+            'cantidad' => 1,
+            'costo_unitario' => $total,
+            'origen_fondos' => 'contrapartes_proyecto',
+            'informe_final_contraparte_id' => null,
+        ];
+
+        if ($indice === false) {
+            $this->presupuesto[] = $fila;
+            return;
+        }
+
+        $this->presupuesto[$indice] = array_replace($this->presupuesto[$indice], $fila);
+    }
+
     private function cargarFormulario(): void
     {
         $this->informe->load(['beneficiarios','equipoDocente','cooperacion','gruposEstudiantes.asignatura','estudiantes','voluntarios','contrapartes','resultados','actividades.participantes','accionesNoEjecutadas','accionesEmergentes','ods','presupuestoDetalles','anexos']);
@@ -1137,11 +1246,23 @@ class EditInformeFinalProyecto extends Component
         $this->general['fecha_inicio'] = $date($this->informe->fecha_inicio);
         $this->general['fecha_finalizacion'] = $date($this->informe->fecha_finalizacion);
         $this->general['fecha_cierre'] = $date($this->informe->fecha_cierre);
+        $this->sincronizarCamposReflexionHeredados();
         $this->beneficiarios = Arr::except($this->informe->beneficiarios?->toArray() ?? [], ['id','informe_final_proyecto_id','created_at','updated_at']);
         $this->gruposEstudiantes = $this->informe->gruposEstudiantes->toArray();
-        foreach (['equipo'=>'equipoDocente','cooperacion'=>'cooperacion','estudiantes'=>'estudiantes','voluntarios'=>'voluntarios','contrapartes'=>'contrapartes','resultados'=>'resultados','actividades'=>'actividades','accionesNoEjecutadas'=>'accionesNoEjecutadas','accionesEmergentes'=>'accionesEmergentes','ods'=>'ods','presupuesto'=>'presupuestoDetalles','anexos'=>'anexos'] as $property => $relation) {
+        foreach (['equipo'=>'equipoDocente','cooperacion'=>'cooperacion','estudiantes'=>'estudiantes','voluntarios'=>'voluntarios','contrapartes'=>'contrapartes','resultados'=>'resultados','accionesNoEjecutadas'=>'accionesNoEjecutadas','accionesEmergentes'=>'accionesEmergentes','ods'=>'ods','presupuesto'=>'presupuestoDetalles','anexos'=>'anexos'] as $property => $relation) {
             $this->{$property} = $this->informe->{$relation}->toArray();
         }
+        $this->actividades = $this->informe->actividades
+            ->map(fn ($actividad) => array_replace(
+                $actividad->toArray(),
+                ['participantes' => $actividad->participantes->values()->toArray()]
+            ))
+            ->values()
+            ->all();
+        foreach ($this->ods as &$ods) {
+            $ods['origen'] = ($ods['origen'] ?? null) === 'EJECUCION' ? 'EJECUCION' : 'PLANIFICADO';
+        }
+        unset($ods);
         foreach ([['actividades',['fecha_inicial','fecha_final']], ['accionesEmergentes',['fecha']], ['anexos',['fecha']]] as [$property,$fields]) {
             foreach ($this->{$property} as &$row) {
                 foreach ($fields as $field) {
@@ -1156,8 +1277,11 @@ class EditInformeFinalProyecto extends Component
     {
         $this->estadoGuardado = 'guardando';
         DB::transaction(function () {
+            $this->limpiarFilasCooperacionVacias();
+            $this->sincronizarCamposReflexionHeredados();
             $mainFields = array_keys(Arr::except($this->general, ['estado','fecha_registro']));
-            $this->informe->update(Arr::only($this->general, $mainFields) + ['updated_by' => auth()->id()]);
+            $payloadGeneral = $this->normalizarCamposNumericosInforme(Arr::only($this->general, $mainFields));
+            $this->informe->update($payloadGeneral + ['updated_by' => auth()->id()]);
             $this->informe->beneficiarios()->updateOrCreate([], Arr::except($this->beneficiarios, ['id','informe_final_proyecto_id','created_at','updated_at']));
             $participacion = ['estado_participacion','observacion_no_participacion','removido_en','removido_por'];
             foreach ($this->estudiantes as $index => &$estudiante) {
@@ -1169,7 +1293,13 @@ class EditInformeFinalProyecto extends Component
             $this->syncRows('cooperacion', $this->cooperacion, array_merge(['nombre','pasaporte','correo','pais','universidad','horas_dedicadas'],$participacion));
             $this->syncRows('estudiantes', $this->estudiantes, array_merge(['informe_final_grupo_estudiante_id','estudiante_id','nombre','sexo','numero_cuenta','carrera','correo','tipo_participacion','horas_dedicadas','cantidad','origen'],$participacion));
             $this->syncRows('voluntarios', $this->voluntarios, array_merge(['empleado_id','nombre','sexo','identidad','departamento','tipo','horas_dedicadas'],$participacion));
-            $this->syncRows('contrapartes', $this->contrapartes, ['entidad_contraparte_id','existe_apoyo','nombre','tipo','contacto','correo','cargo','telefono','tipo_instrumento','compromisos_asumidos','compromisos_cumplidos','territorio','aporte_monetario','aporte_especie','documento_respaldo']);
+            $this->protegerContrapartesPlanificadas();
+            $camposContraparte = ['entidad_contraparte_id','existe_apoyo','nombre','tipo','contacto','correo','cargo','telefono','tipo_instrumento','compromisos_asumidos','compromisos_cumplidos','territorio','aporte_monetario','aporte_especie','documento_respaldo'];
+            if ($this->contrapartesSoportanOrigen()) {
+                $camposContraparte[] = 'origen';
+            }
+            $this->syncRows('contrapartes', $this->contrapartes, $camposContraparte);
+            $this->sincronizarFilaAporteContraparte();
             foreach ($this->resultados as &$resultado) {
                 if (is_numeric($resultado['meta_numerica'] ?? null) && (float) $resultado['meta_numerica'] > 0 && is_numeric($resultado['valor_alcanzado'] ?? null)) {
                     $resultado['porcentaje_cumplimiento'] = min(100, round((float) $resultado['valor_alcanzado'] / (float) $resultado['meta_numerica'] * 100, 2));
@@ -1187,7 +1317,8 @@ class EditInformeFinalProyecto extends Component
             unset($actividad);
             $this->syncRows('accionesNoEjecutadas', $this->accionesNoEjecutadas, ['resultado_previsto','actividad_planificada','explicacion','afectacion_proyecto','responsable','impacto']);
             $this->syncRows('accionesEmergentes', $this->accionesEmergentes, ['informe_final_resultado_id','producto_logrado','actividad_realizada','justificacion','responsables','fecha','horas']);
-            $this->syncRows('ods', $this->ods, ['ods_id','meta_contribuye_id','meta_ods','descripcion_aporte','evidencia','nivel_contribucion']);
+            $this->protegerOdsPlanificados();
+            $this->syncRows('ods', $this->ods, ['ods_id','meta_contribuye_id','meta_ods','descripcion_aporte','evidencia','nivel_contribucion','origen']);
             $this->syncRows('presupuestoDetalles', $this->presupuesto, ['informe_final_contraparte_id','fuente','concepto','unidad','cantidad','costo_unitario','origen_fondos']);
             foreach ($this->anexoArchivos as $index => $file) {
                 if ($file) {
@@ -1197,11 +1328,89 @@ class EditInformeFinalProyecto extends Component
                     $this->anexos[$index]['origen'] = 'INFORME';
                 }
             }
+            $this->protegerAnexosPlanificados();
             $this->syncRows('anexos', $this->anexos, ['informe_final_resultado_id','informe_final_actividad_id','informe_final_contraparte_id','instrumento_formalizacion_id','tipo','categoria','descripcion','archivo','nombre_archivo','tamano_bytes','origen','enlace','fecha','orden']);
         }, 3);
         $this->informe->refresh();
         $this->cargarFormulario();
         $this->estadoGuardado = 'guardado';
+    }
+
+    private function protegerAnexosPlanificados(): void
+    {
+        $protegidos = $this->informe->anexos()
+            ->whereIn('origen', ['PLANIFICADO', 'PROYECTO'])
+            ->get()
+            ->keyBy('id');
+
+        foreach ($this->anexos as $index => $anexo) {
+            $original = $protegidos->get($anexo['id'] ?? null);
+            if (! $original) {
+                continue;
+            }
+
+            $this->anexos[$index] = array_replace($anexo, $original->toArray());
+        }
+    }
+
+    private function sincronizarCamposReflexionHeredados(): void
+    {
+        $proyecto = Proyecto::query()->findOrFail($this->proyecto->getKey());
+
+        foreach (self::CAMPOS_REFLEXION_HEREDADOS as $campoInforme => $campoProyecto) {
+            $this->general[$campoInforme] = $proyecto->{$campoProyecto};
+        }
+    }
+
+    private function protegerOdsPlanificados(): void
+    {
+        $persistidos = $this->informe->ods()->get()->keyBy('id');
+        $originales = $persistidos->filter(fn ($ods) => ($ods->origen ?? 'PLANIFICADO') !== 'EJECUCION');
+        foreach ($this->ods as &$ods) {
+            $persistido = ! empty($ods['id']) ? $persistidos->get($ods['id']) : null;
+            $original = $persistido && ($persistido->origen ?? 'PLANIFICADO') !== 'EJECUCION'
+                ? $persistido
+                : null;
+            if ($original) {
+                $ods = $original->toArray();
+                $ods['origen'] = 'PLANIFICADO';
+            } else {
+                $ods['origen'] = 'EJECUCION';
+            }
+        }
+        unset($ods);
+        foreach ($originales as $id => $original) {
+            if (! collect($this->ods)->contains(fn ($ods) => (int) ($ods['id'] ?? 0) === (int) $id)) {
+                $ods = $original->toArray();
+                $ods['origen'] = 'PLANIFICADO';
+                $this->ods[] = $ods;
+            }
+        }
+    }
+
+    private function protegerContrapartesPlanificadas(): void
+    {
+        $consulta = $this->informe->contrapartes();
+        if ($this->contrapartesSoportanOrigen()) {
+            $consulta->where(fn ($query) => $query->whereNull('origen')->orWhere('origen', 'PLANIFICADO'));
+        }
+        $originales = $consulta->get()->keyBy('id');
+        foreach ($this->contrapartes as &$contraparte) {
+            $original = ! empty($contraparte['id']) ? $originales->get($contraparte['id']) : null;
+            if ($original) {
+                $contraparte = $original->toArray();
+                $contraparte['origen'] = 'PLANIFICADO';
+            }
+        }
+        unset($contraparte);
+        foreach ($originales as $id => $original) {
+            if (! collect($this->contrapartes)->contains(fn ($row) => (int) ($row['id'] ?? 0) === (int) $id)) $this->contrapartes[] = $original->toArray();
+        }
+    }
+
+    private function contrapartesSoportanOrigen(): bool
+    {
+        return Schema::hasColumn('informe_final_contrapartes', 'origen');
     }
 
     private function validateCurrentStep(): void
@@ -1293,7 +1502,7 @@ class EditInformeFinalProyecto extends Component
     {
         $ids = [];
         foreach ($rows as $index => $row) {
-            $data = Arr::only($row, $fields);
+            $data = $this->normalizarCamposDecimalesRelacion($relation, Arr::only($row, $fields));
             $id = isset($row['id']) ? (int) $row['id'] : null;
             $record = $id ? $this->informe->{$relation}()->whereKey($id)->first() : null;
             $record ? $record->update($data) : $record = $this->informe->{$relation}()->create($data);
@@ -1302,6 +1511,35 @@ class EditInformeFinalProyecto extends Component
         }
         $query = $this->informe->{$relation}();
         $ids ? $query->whereNotIn('id', $ids)->delete() : $query->delete();
+    }
+
+    private function normalizarCamposNumericosInforme(array $payload): array
+    {
+        // Estas columnas son decimal NOT NULL con default 0 en INF-001.
+        foreach (['presupuesto_planificado', 'aporte_beneficiarios', 'otros_aportes'] as $campo) {
+            if (array_key_exists($campo, $payload) && is_string($payload[$campo]) && trim($payload[$campo]) === '') {
+                $payload[$campo] = 0;
+            }
+        }
+
+        return $payload;
+    }
+
+    private function normalizarCamposDecimalesRelacion(string $relation, array $payload): array
+    {
+        $modelo = $this->informe->{$relation}()->getRelated();
+
+        foreach ($modelo->getCasts() as $campo => $cast) {
+            if (! array_key_exists($campo, $payload) || ! str_starts_with((string) $cast, 'decimal:')) {
+                continue;
+            }
+
+            if (is_string($payload[$campo]) && trim($payload[$campo]) === '') {
+                $payload[$campo] = null;
+            }
+        }
+
+        return $payload;
     }
 
     private function draftRules(): array
@@ -1360,6 +1598,7 @@ class EditInformeFinalProyecto extends Component
         $this->estadoGuardado = 'guardando';
 
         try {
+            $this->limpiarFilasCooperacionVacias();
             $rules = $this->draftRules();
             if ($this->reglaAplica($propertyName, $rules)) {
                 $this->validateOnly($propertyName, $rules);
@@ -1405,15 +1644,42 @@ class EditInformeFinalProyecto extends Component
         }
     }
 
+    /** Elimina solo los renglones de cooperación sin ningún dato aportado. */
+    private function limpiarFilasCooperacionVacias(): void
+    {
+        $campos = ['nombre', 'pasaporte', 'correo', 'pais', 'universidad'];
+
+        foreach ($this->cooperacion as $indice => $fila) {
+            $tieneTexto = collect($campos)->contains(fn (string $campo): bool => filled(trim((string) ($fila[$campo] ?? ''))));
+            $tieneHoras = (float) ($fila['horas_dedicadas'] ?? 0) !== 0.0;
+
+            if ($tieneTexto || $tieneHoras) {
+                continue;
+            }
+
+            if (! empty($fila['id'])) {
+                $this->informe->cooperacion()->whereKey($fila['id'])->delete();
+            }
+
+            unset($this->cooperacion[$indice]);
+        }
+
+        $this->cooperacion = array_values($this->cooperacion);
+    }
+
     private function guardarFilaAutogardadaSinTransaccion(string $grupo, int $index): void
     {
         $config = $this->configColecciones()[$grupo] ?? null;
+        if ($grupo === 'ods') {
+            $this->protegerOdsPlanificados();
+        }
         $row = $this->{$grupo}[$index] ?? null;
         if ($grupo === 'estudiantes' && is_array($row)) {
             $row = $this->normalizarAsociacionEstudiante($row, $index);
             $this->estudiantes[$index] = $row;
         }
         if (! $config || ! is_array($row)) return;
+        if ($grupo === 'ods' && ($row['origen'] ?? 'PLANIFICADO') !== 'EJECUCION') return;
         [$relation, $fields] = $config;
         $id = isset($row['id']) ? (int) $row['id'] : null;
         $record = $id ? $this->informe->{$relation}()->whereKey($id)->first() : null;
@@ -1449,7 +1715,12 @@ class EditInformeFinalProyecto extends Component
     {
         $config = $this->configColecciones()[$grupo] ?? null;
         if ($config && ! empty($row['id'])) {
-            $this->informe->{$config[0]}()->whereKey($row['id'])->delete();
+            $record = $this->informe->{$config[0]}()->whereKey($row['id'])->first();
+            if (! $record) return;
+            if ($grupo === 'ods' && ($record->origen ?? 'PLANIFICADO') !== 'EJECUCION') {
+                throw ValidationException::withMessages(['ods' => 'Los ODS planificados no se eliminan del Informe Final.']);
+            }
+            $record->delete();
         }
     }
 
@@ -1461,12 +1732,12 @@ class EditInformeFinalProyecto extends Component
             'cooperacion'=>['cooperacion',['nombre','pasaporte','correo','pais','universidad','horas_dedicadas','estado_participacion','observacion_no_participacion','removido_en','removido_por']],
             'estudiantes'=>['estudiantes',['informe_final_grupo_estudiante_id','estudiante_id','nombre','sexo','numero_cuenta','carrera','correo','tipo_participacion','horas_dedicadas','cantidad','origen','estado_participacion','observacion_no_participacion','removido_en','removido_por']],
             'voluntarios'=>['voluntarios',['empleado_id','nombre','sexo','identidad','departamento','tipo','horas_dedicadas','estado_participacion','observacion_no_participacion','removido_en','removido_por']],
-            'contrapartes'=>['contrapartes',['entidad_contraparte_id','existe_apoyo','nombre','tipo','contacto','correo','cargo','telefono','tipo_instrumento','compromisos_asumidos','compromisos_cumplidos','territorio','aporte_monetario','aporte_especie','documento_respaldo']],
+            'contrapartes'=>['contrapartes',['entidad_contraparte_id','existe_apoyo','nombre','tipo','contacto','correo','cargo','telefono','tipo_instrumento','compromisos_asumidos','compromisos_cumplidos','territorio','aporte_monetario','aporte_especie','documento_respaldo','origen']],
             'resultados'=>['resultados',['resultado_esperado_id','objetivo_especifico','resultado_planificado','indicador_propuesto','meta_numerica','unidad_medida','valor_alcanzado','porcentaje_cumplimiento','estado','producto_logrado','observaciones']],
             'actividades'=>['actividades',['actividad_id','actividad_planificada','actividad_realizada','responsable','fecha_inicial','fecha_final','horas_dedicadas','medio_verificacion','estado','origen']],
             'accionesNoEjecutadas'=>['accionesNoEjecutadas',['resultado_previsto','actividad_planificada','explicacion','afectacion_proyecto','responsable','impacto']],
             'accionesEmergentes'=>['accionesEmergentes',['informe_final_resultado_id','producto_logrado','actividad_realizada','justificacion','responsables','fecha','horas']],
-            'ods'=>['ods',['ods_id','meta_contribuye_id','meta_ods','descripcion_aporte','evidencia','nivel_contribucion']],
+            'ods'=>['ods',['ods_id','meta_contribuye_id','meta_ods','descripcion_aporte','evidencia','nivel_contribucion','origen']],
             'presupuesto'=>['presupuestoDetalles',['informe_final_contraparte_id','fuente','concepto','unidad','cantidad','costo_unitario','origen_fondos']],
             'anexos'=>['anexos',['informe_final_resultado_id','informe_final_actividad_id','informe_final_contraparte_id','instrumento_formalizacion_id','tipo','categoria','descripcion','archivo','nombre_archivo','tamano_bytes','origen','enlace','fecha','orden']],
         ];
@@ -1500,7 +1771,7 @@ class EditInformeFinalProyecto extends Component
             $seen[] = $key;
             $this->validarOrigenParticipante($row, $actividadIndex, $index);
             $participant = ! empty($row['id']) ? $record->participantes()->whereKey($row['id'])->first() : null;
-            $data = Arr::only($row, ['tipo','empleado_id','informe_final_estudiante_id','informe_final_voluntario_id','nombre','rol','horas_dedicadas','es_responsable','orden']);
+            $data = Arr::only($row, ['tipo','empleado_id','informe_final_estudiante_id','informe_final_voluntario_id','nombre','rol','horas_dedicadas','es_responsable','orden','origen','estado_participacion','observacion_no_participacion','removido_en','removido_por']);
             $participant ? $participant->update($data) : $participant = $record->participantes()->create($data);
             $row['id'] = $participant->id;
             $ids[] = $participant->id;
@@ -1512,7 +1783,7 @@ class EditInformeFinalProyecto extends Component
 
     private function resolverParticipante(string $tipo, ?string $id): array
     {
-        $base = ['id'=>null,'tipo'=>$tipo,'empleado_id'=>null,'informe_final_estudiante_id'=>null,'informe_final_voluntario_id'=>null,'nombre'=>'','rol'=>'Participante','horas_dedicadas'=>0,'es_responsable'=>false];
+        $base = ['id'=>null,'tipo'=>$tipo,'empleado_id'=>null,'informe_final_estudiante_id'=>null,'informe_final_voluntario_id'=>null,'nombre'=>'','rol'=>'Participante','horas_dedicadas'=>0,'es_responsable'=>false,'origen'=>'EJECUCION','estado_participacion'=>'activo'];
         if ($tipo === 'docente') {
             $row = collect($this->equipo)->first(fn ($item) => (string) ($item['empleado_id'] ?? '') === (string) $id);
             abort_unless($row, 422);

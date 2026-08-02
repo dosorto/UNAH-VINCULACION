@@ -8,6 +8,7 @@ use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
 use App\Models\Proyecto\Proyecto;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Url;
 use Tests\TestCase;
@@ -442,9 +443,38 @@ class ProyectoVinculacionFormularioTest extends TestCase
         );
     }
 
+    public function test_identificadores_internacionales_superiores_a_catorce_caracteres_son_validos(): void
+    {
+        $identificador = 'US-INTL TAX-2026 00001';
+
+        $this->assertTrue(Validator::make(['rtn' => $identificador], [
+            'rtn' => $this->reglasRtn('Estados Unidos'),
+        ])->passes());
+        $this->assertTrue(Validator::make(['rtn' => $identificador], [
+            'rtn' => $this->reglasRtn(null, 'internacional'),
+        ])->passes());
+    }
+
+    public function test_rtn_hondureno_conserva_catorce_digitos_numericos(): void
+    {
+        $rules = ['rtn' => $this->reglasRtn('Honduras')];
+
+        $this->assertTrue(Validator::make(['rtn' => '08011985123456'], $rules)->passes());
+        $this->assertTrue(Validator::make(['rtn' => '0801-1985-123456'], $rules)->fails());
+        $this->assertTrue(Validator::make(['rtn' => '080119851234567'], $rules)->fails());
+    }
+
     private function formComponent(): CreateProyectoVinculacion
     {
         return new CreateProyectoVinculacion();
+    }
+
+    private function reglasRtn(?string $pais = null, ?string $tipoEntidad = null): array
+    {
+        $method = new \ReflectionMethod(CreateProyectoVinculacion::class, 'reglasRtn');
+        $method->setAccessible(true);
+
+        return $method->invoke($this->formComponent(), $pais, $tipoEntidad);
     }
 
     private function nombreArchivoPerfil(Proyecto $proyecto): string

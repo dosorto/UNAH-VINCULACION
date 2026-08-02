@@ -186,8 +186,6 @@ class ProyectoVinculacionSubsanacionTest extends TestCase
             'cargo_firma_id' => $cargo->id,
             'activo' => true,
             'aplica_proyecto_inscripcion' => true,
-            'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO,
-            'multiplicidad_revision' => FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO,
         ]);
         $proyecto = Proyecto::create([
             'nombre_proyecto' => 'Proyecto en subsanación '.uniqid(),

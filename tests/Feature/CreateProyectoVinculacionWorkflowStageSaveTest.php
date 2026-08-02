@@ -48,9 +48,7 @@ class CreateProyectoVinculacionWorkflowStageSaveTest extends TestCase
 
     public function test_falla_con_por_cada_unidad_faltante_o_empleado_no_elegible(): void
     {
-        $contextPorUnidad = $this->contexto(1, attributesEtapa: [
-            'multiplicidad_revision' => FlujoAprobacionEtapa::MULTIPLICIDAD_POR_CADA_UNIDAD,
-        ]);
+        $contextPorUnidad = $this->contexto(1);
         $component = $this->componente();
         $component->preparar($contextPorUnidad['proyecto']);
 
@@ -317,8 +315,6 @@ class CreateProyectoVinculacionWorkflowStageSaveTest extends TestCase
                 'rol_revisor_id' => $role->id,
                 'activo' => true,
                 'aplica_proyecto_inscripcion' => true,
-                'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO,
-                'multiplicidad_revision' => FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO,
             ], $attributesEtapa));
 
             $etapas[] = $etapa;
@@ -337,8 +333,6 @@ class CreateProyectoVinculacionWorkflowStageSaveTest extends TestCase
                 'rol_revisor_id' => $roles[0]->id,
                 'activo' => false,
                 'aplica_proyecto_inscripcion' => true,
-                'alcance_academico' => FlujoAprobacionEtapa::ALCANCE_SIN_FILTRO,
-                'multiplicidad_revision' => FlujoAprobacionEtapa::MULTIPLICIDAD_UNICO,
             ]);
         }
 

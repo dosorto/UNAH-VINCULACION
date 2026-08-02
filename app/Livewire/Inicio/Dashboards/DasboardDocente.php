@@ -773,7 +773,7 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
         }
         $ppsSubsanar = PpsServicioSocial::query()
             ->where('created_by', $authUserId)
-            ->whereIn('estado', [PpsServicioSocial::ESTADO_RECHAZADO, 'subsanacion'])
+            ->whereHas('estadoActual.tipoestado', fn ($q) => $q->whereIn('nombre', ['Rechazado', 'Subsanacion']))
             ->get();
         $enfSubsanarUser = $enfAccionesUser->filter(fn (EnfAccion $accion): bool => in_array(strtoupper((string) $accion->estado_flujo), ['SUBSANACION', 'SUBSANACIÓN'], true));
         $totalSubsanar = $proyectosSubsanar->count() + $ppsSubsanar->count() + $enfSubsanarUser->count();

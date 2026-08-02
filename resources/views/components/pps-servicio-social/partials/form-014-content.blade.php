@@ -1,8 +1,5 @@
-{{-- Cuerpo del FORM-DVUS-014 (título + secciones I–IX). Recibe del padre:
+{{-- Cuerpo del FORM-DVUS-014 (secciones I–IX). Recibe del padre:
      $registro (objeto de fields), $checked, y los helpers $dato, $cb, $fechaParte. --}}
-<div class="doc-title">
-    Formulario de registro de práctica profesional supervisada o servicio social
-</div>
 
 {{-- ===================== I. INFORMACIÓN GENERAL ===================== --}}
 <div class="section">
@@ -90,6 +87,16 @@
             <td class="data center">{{ $fechaParte($registro->fecha_finalizacion, 'mes') }}</td>
             <td class="data center">{{ $fechaParte($registro->fecha_finalizacion, 'anio') }}</td>
         </tr>
+    </table>
+</div>
+
+<div class="section section--page-break">
+    <table class="grid">
+        <colgroup>
+            <col style="width:34px;">
+            <col style="width:32%;">
+            <col><col><col><col><col><col>
+        </colgroup>
         <tr>
             <td class="num">11</td>
             <td class="lbl">Tipo de instrumento que formaliza la PPS / SS</td>
@@ -163,7 +170,7 @@
 </div>
 
 {{-- ============ V. ALCANCES ============ --}}
-<div class="section">
+<div class="section section--page-break">
     <div class="section-bar">V. Alcances de la PPS / servicio social</div>
     <table class="grid">
         <colgroup>
@@ -214,6 +221,16 @@
         <tr><td class="num">22</td><td class="lbl">Breve descripción de los compromisos asumidos por la institución / organización.</td><td class="data">{!! $dato($registro->compromisos_institucion) !!}</td></tr>
         <tr><td class="num">23</td><td class="lbl">Dirección exacta de la sede principal</td><td class="data">{!! $dato($registro->direccion_institucion) !!}</td></tr>
         <tr><td class="num">24</td><td class="lbl">Nombre completo del representante legal:</td><td class="data">{!! $dato($registro->representante_legal) !!}</td></tr>
+    </table>
+</div>
+
+<div class="section section--page-break">
+    <table class="grid">
+        <colgroup>
+            <col style="width:34px;">
+            <col style="width:36%;">
+            <col>
+        </colgroup>
         <tr><td class="num">25</td><td class="lbl">Número de teléfono:</td><td class="data">{!! $dato($registro->telefono_representante) !!}</td></tr>
         <tr><td class="num">26</td><td class="lbl">Correo electrónico del departamento de recursos humanos</td><td class="data">{!! $dato($registro->correo_rrhh) !!}</td></tr>
         <tr>
@@ -262,6 +279,16 @@
         </colgroup>
         <tr><td class="num">30</td><td class="lbl">Nombre Completo del Supervisor/a de la PPS</td><td class="data">{!! $dato($registro->nombre_docente_supervisor) !!}</td></tr>
         <tr><td class="num">31</td><td class="lbl">No. de empleado/a del Supervisor/a de la PPS</td><td class="data">{!! $dato($registro->numero_empleado_docente) !!}</td></tr>
+    </table>
+</div>
+
+<div class="section section--page-break">
+    <table class="grid">
+        <colgroup>
+            <col style="width:34px;">
+            <col style="width:42%;">
+            <col>
+        </colgroup>
         <tr><td class="num">32</td><td class="lbl">Número de celular del Supervisor/a de la PPS</td><td class="data">{!! $dato($registro->celular_docente) !!}</td></tr>
         <tr><td class="num">33</td><td class="lbl">Correo Electrónico del Supervisor/a de la PPS</td><td class="data">{!! $dato($registro->correo_docente) !!}</td></tr>
         <tr><td class="num">34</td><td class="lbl">Categoría del Supervisor/a de la PPS</td><td class="data">{!! $dato($registro->categoria_docente) !!}</td></tr>

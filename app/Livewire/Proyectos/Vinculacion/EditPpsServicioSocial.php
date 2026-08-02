@@ -159,7 +159,7 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
 
     private function estadoPermiteEdicion(PpsServicioSocial $registro): bool
     {
-        return in_array($registro->estado, [PpsServicioSocial::ESTADO_BORRADOR, 'subsanacion'], true);
+        return in_array($registro->estado, ['borrador', 'subsanacion'], true);
     }
 
     protected function fillFromRegistro(PpsServicioSocial $registro): void

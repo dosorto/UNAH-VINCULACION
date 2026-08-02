@@ -836,6 +836,16 @@ class Proyecto extends Model
         return $this->procesoTieneEtapasConfiguradas(self::FLUJO_CIERRE_PROYECTO);
     }
 
+    public function constanciaFinalizacionProyecto()
+    {
+        return $this->hasOne(\App\Models\Constancias\ConstanciaFinalizacionProyecto::class, 'proyecto_id');
+    }
+
+    public function constanciaRegistroProyecto()
+    {
+        return $this->hasOne(\App\Models\Constancias\ConstanciaRegistroProyecto::class, 'proyecto_id');
+    }
+
     public function usuarioPuedeGestionarInformeFinal(?User $user = null): bool
     {
         $user ??= auth()->user();

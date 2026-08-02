@@ -2,10 +2,9 @@
 
 namespace App\Services\PpsServicioSocial;
 
-use App\Mail\PpsServicioSocialRevisionPendiente;
+use App\Mail\EtapaFlujoPendiente;
 use App\Models\Estado\TipoEstado;
 use App\Models\PpsServicioSocial;
-use App\Models\PpsServicioSocialRevisionHistorial;
 use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
@@ -21,9 +20,8 @@ use RuntimeException;
  * Motor de aprobación de PPS/Servicio Social sobre las mismas tablas
  * polimórficas que usa Proyecto (firma_proyecto/estado_proyecto), vía el
  * trait App\Concerns\TieneFlujoPorEtapas que adopta PpsServicioSocial.
- * La columna `estado` de pps_servicio_social se mantiene como espejo
- * (ver PpsServicioSocial::sincronizarEstadoCorto()) para no romper el resto
- * de la app, que sigue leyéndola tal cual.
+ * El atributo `estado` se obtiene mediante un accessor que lee desde
+ * TipoEstado a través de la relación polimórfica EstadoProyecto.
  */
 class PpsServicioSocialWorkflowService
 {
@@ -44,9 +42,9 @@ class PpsServicioSocialWorkflowService
     public function enviarARevision(PpsServicioSocial $registro, ?int $userId): PpsServicioSocial
     {
         return DB::transaction(function () use ($registro, $userId): PpsServicioSocial {
-            $registro->refresh();
+            $registro = PpsServicioSocial::query()->lockForUpdate()->findOrFail($registro->id);
 
-            if ($registro->estado !== PpsServicioSocial::ESTADO_BORRADOR) {
+            if ($registro->estado !== 'borrador') {
                 throw new RuntimeException('Solo los registros en estado borrador pueden enviarse a revision.');
             }
 
@@ -67,9 +65,11 @@ class PpsServicioSocialWorkflowService
 
             $empleadosPorEtapa = $this->resolverEmpleadosPorEtapa($registro, $etapas);
 
-            $registro->sincronizarFirmasDeEtapasDelFlujo($empleadosPorEtapa, $flujo, 1);
+            $ciclo = $this->obtenerCicloParaEnvio($registro);
 
-            $primeraFirma = $registro->firmaActualDeEtapasDelFlujo((int) $flujo->id, 1);
+            $registro->sincronizarFirmasDeEtapasDelFlujo($empleadosPorEtapa, $flujo, $ciclo);
+
+            $primeraFirma = $registro->firmaActualDeEtapasDelFlujo((int) $flujo->id, $ciclo);
 
             if (!$primeraFirma) {
                 throw new RuntimeException('No se pudo iniciar el flujo de revision de PPS/SS.');
@@ -87,9 +87,6 @@ class PpsServicioSocialWorkflowService
                 throw new RuntimeException('No se pudo determinar el estado inicial del flujo PPS/SS.');
             }
 
-            $estadoOrigen = $registro->estado;
-            $etapaOrigenId = $registro->etapa_actual_id;
-
             $registro->agregarEstado($empleadoActor, (int) $tipoEstadoId, 'Registro enviado a revision mediante flujo configurable PPS/SS.');
             $registro->forceFill([
                 'etapa_actual_id' => $primeraFirma->flujo_aprobacion_etapa_id,
@@ -97,17 +94,6 @@ class PpsServicioSocialWorkflowService
                 'enviado_por' => $userId,
                 'updated_by' => $userId,
             ])->saveQuietly();
-            $registro->sincronizarEstadoCorto();
-
-            $this->registrarHistorial($registro, 'enviar_revision', [
-                'flujo_aprobacion_id' => $flujo->id,
-                'etapa_origen_id' => $etapaOrigenId,
-                'etapa_destino_id' => $primeraFirma->flujo_aprobacion_etapa_id,
-                'estado_origen' => $estadoOrigen,
-                'estado_destino' => $registro->estado,
-                'comentario' => 'Registro enviado a revision mediante flujo configurable PPS/SS.',
-                'realizado_por' => $userId,
-            ]);
 
             $this->notificarRevisionPendiente($registro, $primeraFirma->flujoEtapa, 'envio_revision');
 
@@ -118,11 +104,10 @@ class PpsServicioSocialWorkflowService
     public function aprobarEtapa(PpsServicioSocial $registro, ?int $userId, ?object $user = null): PpsServicioSocial
     {
         return DB::transaction(function () use ($registro, $userId, $user): PpsServicioSocial {
-            $registro->refresh();
+            $registro = PpsServicioSocial::query()->lockForUpdate()->findOrFail($registro->id);
             $this->validarUsuarioRevisor($registro, $userId, $user);
 
             $firmaActual = $this->firmaActualODie($registro);
-            $estadoOrigen = $registro->estado;
 
             $empleadoActor = $userId ? User::find($userId)?->empleado : null;
 
@@ -156,17 +141,6 @@ class PpsServicioSocialWorkflowService
                     'etapa_actual_id' => $siguienteFirma->flujo_aprobacion_etapa_id,
                     'updated_by' => $userId,
                 ])->saveQuietly();
-                $registro->sincronizarEstadoCorto();
-
-                $this->registrarHistorial($registro, 'aprobar_etapa', [
-                    'flujo_aprobacion_id' => $registro->flujo_aprobacion_id,
-                    'etapa_origen_id' => $firmaAprobada->flujo_aprobacion_etapa_id,
-                    'etapa_destino_id' => $siguienteFirma->flujo_aprobacion_etapa_id,
-                    'estado_origen' => $estadoOrigen,
-                    'estado_destino' => $registro->estado,
-                    'comentario' => 'Registro avanzado a la siguiente etapa mediante flujo configurable PPS/SS.',
-                    'realizado_por' => $userId,
-                ]);
 
                 $this->notificarRevisionPendiente($registro, $siguienteFirma->flujoEtapa, 'avance_etapa');
 
@@ -190,17 +164,6 @@ class PpsServicioSocialWorkflowService
                 'motivo_rechazo' => null,
                 'updated_by' => $userId,
             ])->saveQuietly();
-            $registro->sincronizarEstadoCorto();
-
-            $this->registrarHistorial($registro, 'aprobar_final', [
-                'flujo_aprobacion_id' => $registro->flujo_aprobacion_id,
-                'etapa_origen_id' => $firmaAprobada->flujo_aprobacion_etapa_id,
-                'etapa_destino_id' => $firmaAprobada->flujo_aprobacion_etapa_id,
-                'estado_origen' => $estadoOrigen,
-                'estado_destino' => $registro->estado,
-                'comentario' => 'Registro aprobado en etapa final mediante flujo configurable PPS/SS.',
-                'realizado_por' => $userId,
-            ]);
 
             return $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
         });
@@ -209,7 +172,7 @@ class PpsServicioSocialWorkflowService
     public function rechazar(PpsServicioSocial $registro, string $motivo, ?int $userId, ?object $user = null): PpsServicioSocial
     {
         return DB::transaction(function () use ($registro, $motivo, $userId, $user): PpsServicioSocial {
-            $registro->refresh();
+            $registro = PpsServicioSocial::query()->lockForUpdate()->findOrFail($registro->id);
             $this->validarUsuarioRevisor($registro, $userId, $user);
 
             $motivo = trim($motivo);
@@ -219,7 +182,6 @@ class PpsServicioSocialWorkflowService
             }
 
             $firmaActual = $this->firmaActualODie($registro);
-            $estadoOrigen = $registro->estado;
 
             $estadoRechazadoId = TipoEstado::where('nombre', 'Rechazado')->value('id');
 
@@ -251,18 +213,6 @@ class PpsServicioSocialWorkflowService
                 'motivo_rechazo' => $motivo,
                 'updated_by' => $userId,
             ])->saveQuietly();
-            $registro->sincronizarEstadoCorto();
-
-            $this->registrarHistorial($registro, 'rechazar', [
-                'flujo_aprobacion_id' => $registro->flujo_aprobacion_id,
-                'etapa_origen_id' => $firmaActual->flujo_aprobacion_etapa_id,
-                'etapa_destino_id' => $firmaActual->flujo_aprobacion_etapa_id,
-                'estado_origen' => $estadoOrigen,
-                'estado_destino' => $registro->estado,
-                'motivo_rechazo' => $motivo,
-                'comentario' => 'Registro rechazado mediante flujo configurable PPS/SS.',
-                'realizado_por' => $userId,
-            ]);
 
             return $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
         });
@@ -271,7 +221,7 @@ class PpsServicioSocialWorkflowService
     public function iniciarSubsanacion(PpsServicioSocial $registro, ?int $userId): PpsServicioSocial
     {
         return DB::transaction(function () use ($registro, $userId): PpsServicioSocial {
-            $registro->refresh();
+            $registro = PpsServicioSocial::query()->lockForUpdate()->findOrFail($registro->id);
             $this->validarPuedeSubsanar($registro, $userId);
 
             $empleadoActor = $userId ? User::find($userId)?->empleado : null;
@@ -286,23 +236,8 @@ class PpsServicioSocialWorkflowService
                 throw new RuntimeException('No existe un estado "Borrador" configurado.');
             }
 
-            $estadoOrigen = $registro->estado;
-            $etapaOrigenId = $registro->etapa_actual_id;
-
             $registro->agregarEstado($empleadoActor, (int) $estadoBorradorId, 'Registro devuelto a borrador para subsanacion.');
             $registro->forceFill(['updated_by' => $userId])->saveQuietly();
-            $registro->sincronizarEstadoCorto();
-
-            $this->registrarHistorial($registro, 'iniciar_subsanacion', [
-                'flujo_aprobacion_id' => $registro->flujo_aprobacion_id,
-                'etapa_origen_id' => $etapaOrigenId,
-                'etapa_destino_id' => $etapaOrigenId,
-                'estado_origen' => $estadoOrigen,
-                'estado_destino' => $registro->estado,
-                'comentario' => 'Registro devuelto a borrador para subsanacion.',
-                'motivo_rechazo' => $registro->motivo_rechazo,
-                'realizado_por' => $userId,
-            ]);
 
             return $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
         });
@@ -310,7 +245,7 @@ class PpsServicioSocialWorkflowService
 
     public function validarPuedeSubsanar(PpsServicioSocial $registro, ?int $userId): void
     {
-        if ($registro->estado !== PpsServicioSocial::ESTADO_RECHAZADO) {
+        if ($registro->estado !== 'rechazado') {
             throw new RuntimeException('Solo los registros rechazados pueden pasar a subsanacion.');
         }
 
@@ -349,23 +284,7 @@ class PpsServicioSocialWorkflowService
 
     public function esEstadoFinalAprobado(PpsServicioSocial $registro): bool
     {
-        return $registro->estado === PpsServicioSocial::ESTADO_APROBADO;
-    }
-
-    public function registrarHistorial(PpsServicioSocial $registro, string $accion, array $datos = []): PpsServicioSocialRevisionHistorial
-    {
-        return PpsServicioSocialRevisionHistorial::create([
-            'pps_servicio_social_id' => $registro->id,
-            'flujo_aprobacion_id' => array_key_exists('flujo_aprobacion_id', $datos) ? $datos['flujo_aprobacion_id'] : $registro->flujo_aprobacion_id,
-            'etapa_origen_id' => array_key_exists('etapa_origen_id', $datos) ? $datos['etapa_origen_id'] : $registro->etapa_actual_id,
-            'etapa_destino_id' => array_key_exists('etapa_destino_id', $datos) ? $datos['etapa_destino_id'] : null,
-            'accion' => $accion,
-            'estado_origen' => array_key_exists('estado_origen', $datos) ? $datos['estado_origen'] : $registro->estado,
-            'estado_destino' => array_key_exists('estado_destino', $datos) ? $datos['estado_destino'] : null,
-            'comentario' => array_key_exists('comentario', $datos) ? $datos['comentario'] : null,
-            'motivo_rechazo' => array_key_exists('motivo_rechazo', $datos) ? $datos['motivo_rechazo'] : null,
-            'realizado_por' => array_key_exists('realizado_por', $datos) ? $datos['realizado_por'] : auth()->id(),
-        ]);
+        return $registro->estado === 'aprobado';
     }
 
     private function firmaActualODie(PpsServicioSocial $registro): FirmaProyecto
@@ -374,13 +293,47 @@ class PpsServicioSocialWorkflowService
             throw new RuntimeException('El registro no tiene un flujo asignado.');
         }
 
-        $firma = $registro->firmaActualDeEtapasDelFlujo((int) $registro->flujo_aprobacion_id, 1);
+        $firma = $registro->firmaActualDeEtapasDelFlujo(
+            (int) $registro->flujo_aprobacion_id,
+            $this->obtenerCicloVigente($registro)
+        );
 
         if (!$firma) {
             throw new RuntimeException('El registro no esta en una etapa revisable del flujo PPS/SS.');
         }
 
         return $firma;
+    }
+
+    public function obtenerUltimoCiclo(PpsServicioSocial $registro): int
+    {
+        return max(0, (int) $registro->firmasDeEtapa()
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->max('revision_ciclo'));
+    }
+
+    public function obtenerCicloVigente(PpsServicioSocial $registro): int
+    {
+        return max(1, $this->obtenerUltimoCiclo($registro));
+    }
+
+    public function esReenvioDespuesDeRechazo(PpsServicioSocial $registro): bool
+    {
+        $ciclo = $this->obtenerUltimoCiclo($registro);
+
+        return $ciclo > 0 && $registro->firmasDeEtapa()
+            ->where('revision_ciclo', $ciclo)
+            ->where('estado_revision', 'Rechazado')
+            ->exists();
+    }
+
+    public function obtenerCicloParaEnvio(PpsServicioSocial $registro): int
+    {
+        $ultimoCiclo = $this->obtenerUltimoCiclo($registro);
+
+        return $this->esReenvioDespuesDeRechazo($registro)
+            ? $ultimoCiclo + 1
+            : max(1, $ultimoCiclo ?: 1);
     }
 
     private function flujoPpsQuery(): Builder
@@ -420,37 +373,88 @@ class PpsServicioSocialWorkflowService
         foreach ($etapas as $etapa) {
             $etapaId = (int) $etapa->id;
 
-            if ($etapa->emisor_define_destinatario && isset($destinatariosEmisor[$etapaId])) {
-                $empleado = User::find((int) $destinatariosEmisor[$etapaId])?->empleado;
-
-                if (!$empleado) {
-                    throw new RuntimeException(sprintf('El usuario seleccionado para la etapa "%s" no tiene empleado vinculado.', $etapa->nombre));
-                }
-
-                $empleadosPorEtapa[$etapaId] = $empleado->id;
-                continue;
+            if (!$etapa->cargo_firma_id) {
+                throw new RuntimeException(sprintf('La etapa "%s" no tiene cargo de firma configurado.', $etapa->nombre));
             }
 
-            if ($etapa->usuario_responsable_id) {
-                $empleado = User::find((int) $etapa->usuario_responsable_id)?->empleado;
+            $usuario = $this->resolverUsuarioEtapa($etapa, $destinatariosEmisor);
 
-                if (!$empleado) {
-                    throw new RuntimeException(sprintf('El usuario responsable configurado para la etapa "%s" no tiene empleado vinculado.', $etapa->nombre));
-                }
-
-                $empleadosPorEtapa[$etapaId] = $empleado->id;
-                continue;
+            if (!$usuario) {
+                throw new RuntimeException(sprintf(
+                    'No existe un responsable válido para la etapa "%s".',
+                    $etapa->nombre
+                ));
             }
 
-            throw new RuntimeException(sprintf('La etapa "%s" no tiene destinatario configurado. Active "El emisor define el destinatario" o establezca un usuario responsable.', $etapa->nombre));
+            $empleado = $usuario->empleado;
+
+            if (!$empleado || $empleado->trashed()) {
+                throw new RuntimeException(sprintf(
+                    'El responsable de la etapa "%s" no tiene un empleado activo vinculado.',
+                    $etapa->nombre
+                ));
+            }
+
+            $empleadosPorEtapa[$etapaId] = $empleado->id;
         }
 
         return $empleadosPorEtapa;
     }
 
+    private function resolverUsuarioEtapa(FlujoAprobacionEtapa $etapa, array $usuariosElegidosPorEtapa): ?User
+    {
+        $etapa->loadMissing(['usuarioResponsable.empleado', 'rolRevisor']);
+
+        if ($etapa->emisor_define_destinatario) {
+            $usuarioId = $usuariosElegidosPorEtapa[$etapa->id] ?? null;
+
+            if (!$usuarioId) {
+                throw new RuntimeException(sprintf(
+                    'Debe seleccionar un destinatario para la etapa "%s".',
+                    $etapa->nombre
+                ));
+            }
+
+            $usuario = User::with('empleado')->find((int) $usuarioId);
+            $rol = $etapa->rolRevisor?->name;
+
+            if (!$usuario || !$rol || !$usuario->hasRole($rol)) {
+                throw new RuntimeException(sprintf(
+                    'El destinatario seleccionado para la etapa "%s" no pertenece al rol requerido.',
+                    $etapa->nombre
+                ));
+            }
+
+            return $usuario;
+        }
+
+        if ($etapa->usuarioResponsable) {
+            return $etapa->usuarioResponsable;
+        }
+
+        if ($etapa->requiere_asignacion) {
+            throw new RuntimeException(sprintf(
+                'La etapa "%s" requiere un responsable fijo válido antes de enviar.',
+                $etapa->nombre
+            ));
+        }
+
+        $rol = $etapa->rolRevisor?->name;
+
+        return $rol
+            ? User::role($rol)->whereHas('empleado')->with('empleado')->orderBy('name')->first()
+            : null;
+    }
+
     private function validarUsuarioRevisor(PpsServicioSocial $registro, ?int $userId, ?object $user = null): void
     {
-        if (!$registro->usuarioPuedeRevisar($user ?? auth()->user())) {
+        $user ??= auth()->user();
+
+        if (!$user && $userId) {
+            $user = User::find($userId);
+        }
+
+        if (!$registro->usuarioPuedeRevisar($user)) {
             throw new RuntimeException('El usuario no tiene permisos para revisar registros PPS/SS.');
         }
     }
@@ -462,7 +466,7 @@ class PpsServicioSocialWorkflowService
 
         foreach ($destinatarios as $destinatario) {
             Mail::to($destinatario->email)->queue(
-                new PpsServicioSocialRevisionPendiente($registroParaCorreo, $etapa, $destinatario)
+                new EtapaFlujoPendiente($registroParaCorreo, $destinatario, $etapa, 'pps-servicio-social')
             );
         }
 

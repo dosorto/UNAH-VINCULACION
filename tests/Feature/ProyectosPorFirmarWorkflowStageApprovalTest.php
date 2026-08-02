@@ -103,6 +103,21 @@ class ProyectosPorFirmarWorkflowStageApprovalTest extends TestCase
         $this->assertSame(1, $aprobada->revision_ciclo);
     }
 
+    public function test_callback_opcional_de_aprobacion_se_ejecuta_sin_variable_indefinida(): void
+    {
+        $context = $this->crearContexto();
+        [$user, $empleado, $role] = $this->crearUsuarioEmpleadoConRol('Rol callback');
+        $firma = $this->crearFirmaDeEtapa($context['proyecto'], $context['etapas'][0], $empleado, ['rol_requerido' => $role->name]);
+        $ejecutado = false;
+
+        $this->componenteAprobacion()->aprobarPorEtapaConCallback($firma, $user, function () use (&$ejecutado): void {
+            $ejecutado = true;
+        });
+
+        $this->assertTrue($ejecutado);
+        $this->assertSame('Aprobado', $firma->refresh()->estado_revision);
+    }
+
     public function test_aprobar_no_colapsa_etapas_con_mismo_cargo_y_anula_solo_duplicado_de_misma_etapa(): void
     {
         $context = $this->crearContexto(2, mismoCargo: true);
@@ -546,5 +561,10 @@ class ProyectosPorFirmarWorkflowStageApprovalComponent extends ProyectosPorFirma
     public function aprobarPorEtapa(FirmaProyecto $firma, User $user): FirmaProyecto
     {
         return $this->aprobarFirmaPorEtapa($firma, $user);
+    }
+
+    public function aprobarPorEtapaConCallback(FirmaProyecto $firma, User $user, \Closure $callback): FirmaProyecto
+    {
+        return $this->aprobarFirmaPorEtapa($firma, $user, $callback);
     }
 }
