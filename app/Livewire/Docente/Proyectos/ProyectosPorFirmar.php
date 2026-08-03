@@ -6,6 +6,8 @@ use App\Concerns\ResolvesFirmasPendientes;
 use App\Concerns\ResuelveFirmaPorEtapa;
 use App\Mail\EnfRevisionAsignada;
 use App\Models\ENF\EnfAccion;
+use App\Models\ENF\EnfInformeFinal;
+use App\Models\ENF\EnfInformeFinalDocumentoRevision;
 use App\Models\ENF\EnfRevision;
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
@@ -24,6 +26,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -46,6 +49,7 @@ class ProyectosPorFirmar extends Component
     public string $enfSubsanarComentario = '';
     public bool $viewEnfModal = false;
     public ?int $viewEnfRevisionId = null;
+    public string $enfAprobacionComentario = '';
     public bool $ppsSubsanarModal = false;
     public ?int $ppsSubsanarRegistroId = null;
     public string $ppsSubsanarComentario = '';
@@ -101,6 +105,26 @@ class ProyectosPorFirmar extends Component
     {
         $this->viewEnfModal = false;
         $this->viewEnfRevisionId = null;
+        $this->documentoRevision = null;
+        $this->enfAprobacionComentario = '';
+    }
+
+    public function getEnfDocumentosRevisionViewProperty()
+    {
+        $revision = $this->viewEnfRevisionId ? EnfRevision::with('accion.informeFinal')->find($this->viewEnfRevisionId) : null;
+        $informe = $revision?->proceso === EnfAccion::PROCESO_INFORME_FINAL
+            ? $revision->accion?->informeFinal
+            : null;
+
+        if (! $informe) {
+            return collect();
+        }
+
+        return EnfInformeFinalDocumentoRevision::query()
+            ->where('enf_informe_final_id', $informe->id)
+            ->with(['revision', 'usuario'])
+            ->latest()
+            ->get();
     }
 
     public function puedeReasignar(?FirmaProyecto $firma): bool
@@ -414,10 +438,60 @@ class ProyectosPorFirmar extends Component
     public function aprobarEnfRevision(int $revisionId): void
     {
         $revision = $this->authorizeEnfRevisionAction($revisionId);
-        app(EnfWorkflowService::class)->aprobarRevision($revision, Auth::user());
+        $informe = $revision->proceso === EnfAccion::PROCESO_INFORME_FINAL
+            ? EnfInformeFinal::query()->where('enf_accion_id', $revision->enf_accion_id)->first()
+            : null;
+
+        $this->validate([
+            'enfAprobacionComentario' => ['nullable', 'string', 'max:5000'],
+            'documentoRevision' => ['nullable', 'file', 'mimes:pdf', 'mimetypes:application/pdf', 'max:10240'],
+        ], [], [
+            'enfAprobacionComentario' => 'observacion de aprobacion',
+            'documentoRevision' => 'documento de revision',
+        ]);
+
+        abort_if($this->documentoRevision && ! $informe, 422, 'El adjunto de revision solo esta disponible para informe final ENF.');
+
+        $rutaDocumentoRevision = null;
+        $nombreOriginal = $this->documentoRevision?->getClientOriginalName();
+        $mimeType = $this->documentoRevision?->getMimeType();
+        $tamanoBytes = $this->documentoRevision?->getSize();
+
+        if ($this->documentoRevision) {
+            $rutaDocumentoRevision = $this->documentoRevision->store('enf/informes-finales/'.$informe->id.'/revisiones', 'local');
+        }
+
+        try {
+            app(EnfWorkflowService::class)->aprobarRevision(
+                $revision,
+                Auth::user(),
+                filled($this->enfAprobacionComentario) ? $this->enfAprobacionComentario : null
+            );
+
+            if ($rutaDocumentoRevision && $informe) {
+                $informe->documentosRevision()->create([
+                    'enf_revision_id' => $revision->id,
+                    'enf_accion_id' => $revision->enf_accion_id,
+                    'flujo_aprobacion_etapa_id' => $revision->flujo_aprobacion_etapa_id,
+                    'subido_por' => Auth::id(),
+                    'revision_ciclo' => $revision->revision_ciclo,
+                    'ruta' => $rutaDocumentoRevision,
+                    'nombre_original' => $nombreOriginal,
+                    'mime_type' => $mimeType ?: 'application/pdf',
+                    'tamano_bytes' => $tamanoBytes ?: 0,
+                ]);
+            }
+        } catch (\Throwable $exception) {
+            if ($rutaDocumentoRevision) {
+                Storage::disk('local')->delete($rutaDocumentoRevision);
+            }
+            throw $exception;
+        }
 
         $this->viewEnfModal = false;
         $this->viewEnfRevisionId = null;
+        $this->documentoRevision = null;
+        $this->enfAprobacionComentario = '';
 
         Notification::make()->title('¡Realizado!')->body('Etapa ENF aprobada correctamente.')->success()->send();
     }
@@ -662,6 +736,7 @@ class ProyectosPorFirmar extends Component
             'certificado.carreras.carrera',
             'certificado.carreras.centroFacultad',
             'espaciosAprendizaje',
+            'informeFinal.documentosRevision',
             'informeIntermedio',
             'documentos',
             'firmas',

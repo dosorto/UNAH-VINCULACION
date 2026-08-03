@@ -55,6 +55,16 @@ class EnfInformeFinal extends Model
         return $this->hasMany(EnfAccionNoEjecutada::class, 'enf_informe_final_id');
     }
 
+    public function documentosRevision()
+    {
+        return $this->hasMany(EnfInformeFinalDocumentoRevision::class, 'enf_informe_final_id');
+    }
+
+    public function constanciaFinalizacion()
+    {
+        return $this->hasOne(EnfConstanciaFinalizacion::class, 'enf_informe_final_id');
+    }
+
     public function esEditable(): bool
     {
         return in_array($this->estado, [self::ESTADO_BORRADOR, self::ESTADO_COMPLETO, self::ESTADO_SUBSANACION], true);

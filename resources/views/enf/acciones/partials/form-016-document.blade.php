@@ -744,6 +744,10 @@
             <td colspan="2">{{ $value($contraparte?->nombre) }}</td>
         </tr>
         <tr>
+            <td class="form016-gray">RTN / identificacion internacional</td>
+            <td colspan="2">{{ $value($contraparte?->rtn) }}</td>
+        </tr>
+        <tr>
             <td class="form016-gray">Contacto / cargo</td>
             <td colspan="2">{{ collect([$contraparte?->representante, $contraparte?->cargo_contacto])->filter()->implode(' / ') }}</td>
         </tr>

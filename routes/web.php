@@ -3,12 +3,17 @@
 use App\Http\Controllers\Auth\MicrosoftAuthController;
 use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Http\Controllers\ENF\EnfAccionController;
+use App\Http\Controllers\ENF\EnfConstanciaFinalizacionController;
+use App\Http\Controllers\ENF\EnfConstanciaRegistroController;
 use App\Http\Controllers\ENF\EnfCronogramaController;
 use App\Http\Controllers\ENF\EnfDocumentoController;
+use App\Http\Controllers\ENF\EnfInformeFinalDocumentoRevisionController;
 use App\Http\Controllers\ENF\EnfInformeFinalController;
 use App\Http\Controllers\ENF\EnfInformeIntermedioController;
 use App\Http\Controllers\ENF\EnfPresupuestoController;
 use App\Http\Controllers\ENF\EnfSistematizacionController;
+use App\Http\Controllers\ENF\VerificarConstanciaFinalizacionEnfController;
+use App\Http\Controllers\ENF\VerificarConstanciaRegistroEnfController;
 use App\Http\Controllers\PDFController;
 use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalProyectoController;
 use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalDocumentoRevisionController;
@@ -128,6 +133,14 @@ Route::get('/constancias/registro/verificar/{token}/pdf', [VerificarConstanciaRe
     ->middleware('throttle:30,1')
     ->name('constancias.registro.verificar.pdf');
 
+Route::get('/constancias/enf/registro/verificar/{token}', VerificarConstanciaRegistroEnfController::class)
+    ->middleware('throttle:30,1')
+    ->name('enf.constancias.registro.verificar');
+
+Route::get('/constancias/enf/finalizacion/verificar/{token}', VerificarConstanciaFinalizacionEnfController::class)
+    ->middleware('throttle:30,1')
+    ->name('enf.constancias.finalizacion.verificar');
+
 Route::get('/logout', function () {
     if (Auth::check()) {
         Auth::logout();
@@ -162,6 +175,12 @@ Route::middleware(['auth'])->get('completar-perfil', EditPerfil::class)
 Route::middleware(['auth'])->prefix('enf')->name('enf.')->group(function () {
     Route::get('tipos', [EnfAccionController::class, 'tipos'])->name('tipos');
     Route::get('acciones/{accion}/pdf', [EnfAccionController::class, 'descargarPdf'])->name('acciones.pdf');
+    Route::get('constancias-registro/{constancia}/descargar', [EnfConstanciaRegistroController::class, 'descargar'])
+        ->name('constancias.registro.descargar');
+    Route::get('constancias-finalizacion/{constancia}/descargar', [EnfConstanciaFinalizacionController::class, 'descargar'])
+        ->name('constancias.finalizacion.descargar');
+    Route::get('informes-finales/documentos-revision/{documento}/descargar', [EnfInformeFinalDocumentoRevisionController::class, 'descargar'])
+        ->name('informes-finales.documentos-revision.descargar');
     Route::get('acciones/{accion}/informe-final', function (EnfAccion $accion) {
         abort_unless(in_array($accion->codigo_formulario, ['FORM-DVUS-016', 'FORM-DVUS-018'], true), 404);
 

@@ -10,6 +10,8 @@ use App\Models\ENF\EnfRevision;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\User;
+use App\Services\ENF\Constancias\EmitirConstanciaFinalizacionEnf;
+use App\Services\ENF\Constancias\EmitirConstanciaRegistroEnf;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
@@ -204,11 +206,12 @@ class EnfWorkflowService
         });
     }
 
-    public function aprobarRevision(EnfRevision $revision, User $user): void
+    public function aprobarRevision(EnfRevision $revision, User $user, ?string $observacion = null): void
     {
-        DB::transaction(function () use ($revision, $user): void {
+        DB::transaction(function () use ($revision, $user, $observacion): void {
             $revision->update([
                 'estado' => 'APROBADO',
+                'observaciones' => filled($observacion) ? $observacion : $revision->observaciones,
                 'decidido_por_usuario_id' => $user->id,
                 'firmado_en' => now(),
             ]);
@@ -225,7 +228,7 @@ class EnfWorkflowService
                 return;
             }
 
-            $this->marcarProcesoAprobado($accion, $revision->proceso);
+            $this->marcarProcesoAprobado($accion, $revision->proceso, $user);
         });
     }
 
@@ -376,22 +379,61 @@ class EnfWorkflowService
         return $nextCycle;
     }
 
-    private function marcarProcesoAprobado(EnfAccion $accion, string $proceso): void
+    private function marcarProcesoAprobado(EnfAccion $accion, string $proceso, ?User $user = null): void
     {
         match ($proceso) {
             EnfAccion::PROCESO_INFORME_INTERMEDIO => $accion->informeIntermedio?->update([
                 'estado' => EnfInformeIntermedio::ESTADO_APROBADO,
                 'fecha_aprobacion' => now(),
             ]),
-            EnfAccion::PROCESO_INFORME_FINAL => tap($accion->informeFinal?->update([
-                'estado' => EnfInformeFinal::ESTADO_APROBADO,
-                'fecha_aprobacion' => now()->toDateString(),
-            ]), fn () => $accion->update(['estado_flujo' => 'FINALIZADO'])),
-            default => $accion->update([
-                'estado_flujo' => 'APROBADO',
-                'fecha_aprobacion' => now()->toDateString(),
-            ]),
+            EnfAccion::PROCESO_INFORME_FINAL => $this->marcarInformeFinalAprobado($accion, $user),
+            default => $this->marcarInscripcionAprobada($accion, $user),
         };
+    }
+
+    private function marcarInscripcionAprobada(EnfAccion $accion, ?User $user = null): void
+    {
+        $accion->update([
+            'estado_flujo' => 'APROBADO',
+            'fecha_aprobacion' => now()->toDateString(),
+        ]);
+
+        $accionId = $accion->id;
+        $usuarioId = $user?->id;
+        DB::afterCommit(function () use ($accionId, $usuarioId): void {
+            try {
+                $accion = EnfAccion::query()->find($accionId);
+                if ($accion) {
+                    app(EmitirConstanciaRegistroEnf::class)->emitir($accion, $usuarioId);
+                }
+            } catch (\Throwable $exception) {
+                Log::error('No se pudo emitir la constancia de registro ENF.', ['enf_accion_id' => $accionId, 'error' => $exception->getMessage()]);
+            }
+        });
+    }
+
+    private function marcarInformeFinalAprobado(EnfAccion $accion, ?User $user = null): void
+    {
+        $accion->informeFinal?->update([
+            'estado' => EnfInformeFinal::ESTADO_APROBADO,
+            'fecha_aprobacion' => now()->toDateString(),
+        ]);
+        $accion->update(['estado_flujo' => 'FINALIZADO']);
+
+        $accionId = $accion->id;
+        $informeId = $accion->informeFinal?->id;
+        $usuarioId = $user?->id;
+        DB::afterCommit(function () use ($accionId, $informeId, $usuarioId): void {
+            try {
+                $accion = EnfAccion::query()->find($accionId);
+                $informe = $informeId ? EnfInformeFinal::query()->find($informeId) : null;
+                if ($accion && $informe) {
+                    app(EmitirConstanciaFinalizacionEnf::class)->emitir($accion, $informe, $usuarioId);
+                }
+            } catch (\Throwable $exception) {
+                Log::error('No se pudo emitir la constancia de finalizacion ENF.', ['enf_accion_id' => $accionId, 'informe_id' => $informeId, 'error' => $exception->getMessage()]);
+            }
+        });
     }
 
     private function resolverFlujo(EnfAccion $accion): ?FlujoAprobacion

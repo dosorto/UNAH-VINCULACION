@@ -4,6 +4,8 @@
     $viewEnfForm018 = $viewEnfAccion && ($viewEnfAccion->codigo_formulario ?? null) === 'FORM-DVUS-018';
     $viewEnfEsIntermedio = $hasEnfRevision
         && ($viewEnfRevision->proceso ?? null) === \App\Models\ENF\EnfAccion::PROCESO_INFORME_INTERMEDIO;
+    $viewEnfEsFinal = $hasEnfRevision
+        && ($viewEnfRevision->proceso ?? null) === \App\Models\ENF\EnfAccion::PROCESO_INFORME_FINAL;
     $viewEnfInformeIntermedio = $viewEnfAccion ? $viewEnfAccion->informeIntermedio : null;
 @endphp
 
@@ -90,6 +92,44 @@
                             @endif
                         </div>
                     </section>
+                @endif
+            </div>
+
+            <div class="px-6 pb-5">
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">Observación de aprobación</label>
+                <textarea wire:model.defer="enfAprobacionComentario" rows="3"
+                    class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"></textarea>
+                @error('enfAprobacionComentario')
+                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                @enderror
+
+                @if($viewEnfEsFinal)
+                    <div class="mt-5 border-t border-gray-200 pt-5 dark:border-gray-700">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">Documento de revisión (PDF opcional)</label>
+                        <input type="file" wire:model="documentoRevision" accept=".pdf,application/pdf"
+                            class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100 dark:text-gray-200">
+                        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Puede adjuntar rúbrica, dictamen u otro documento de revisión del informe final.</p>
+                        @if ($documentoRevision)
+                            <button type="button" wire:click="$set('documentoRevision', null)" class="mt-2 text-xs font-semibold text-red-600 hover:text-red-700">Quitar archivo</button>
+                        @endif
+                        @error('documentoRevision')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+
+                        @if ($this->enfDocumentosRevisionView->isNotEmpty())
+                            <div class="mt-4 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm dark:border-gray-700 dark:bg-gray-800">
+                                <p class="mb-2 font-semibold text-gray-800 dark:text-gray-100">Documentos de revisión cargados</p>
+                                <ul class="space-y-1">
+                                    @foreach($this->enfDocumentosRevisionView as $documentoRevisionEnf)
+                                        <li>
+                                            <a class="text-blue-700 underline" href="{{ route('enf.informes-finales.documentos-revision.descargar', $documentoRevisionEnf) }}">{{ $documentoRevisionEnf->nombre_original }}</a>
+                                            <span class="text-gray-500"> · {{ $documentoRevisionEnf->revision?->etapa_nombre ?: 'Etapa de revisión' }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+                    </div>
                 @endif
             </div>
 
