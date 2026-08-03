@@ -107,6 +107,7 @@ class MicrosoftAuthController extends Controller
         $user = $onboarding->prepareEmployeeProfile(
             $user,
             $this->profileEmployeeNumber($profile),
+            $this->profileName($profile, $email),
         );
 
         Auth::login($user);
@@ -190,7 +191,7 @@ class MicrosoftAuthController extends Controller
 
         $updates = [
             'microsoft_id' => $microsoftId,
-            'name' => $this->profileName($profile, $email),
+            'name' => $this->toUsername($this->profileName($profile, $email)),
             'given_name' => $profile['givenName'] ?? null,
             'surname' => $profile['surname'] ?? null,
             'email_verified_at' => $user->email_verified_at ?: now(),
@@ -239,6 +240,11 @@ class MicrosoftAuthController extends Controller
         ])));
 
         return $name !== '' ? $name : $email;
+    }
+
+    private function toUsername(string $name): string
+    {
+        return str_replace(' ', '.', trim(preg_replace('/\s+/', ' ', $name)));
     }
 
     private function profileEmployeeNumber(array $profile): ?string

@@ -90,7 +90,7 @@ class User extends Authenticatable
      */
     public function getInitials(): string
     {
-        $words = array_values(array_filter(explode(' ', trim($this->name))));
+        $words = array_values(array_filter(preg_split('/[\s.]+/', trim($this->name))));
         $inicial_nombre = isset($words[0]) ? mb_substr($words[0], 0, 1) : '';
         $inicial_segundo = isset($words[1]) ? mb_substr($words[1], 0, 1) : '';
         return $inicial_nombre . $inicial_segundo;
