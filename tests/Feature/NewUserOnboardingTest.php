@@ -76,6 +76,9 @@ class NewUserOnboardingTest extends TestCase
 
         Livewire::test(Login::class)
             ->assertSee('Continuar con tu correo institucional')
+            ->assertDontSee('Acceso de desarrollo')
+            ->assertDontSee('Contraseña')
+            ->assertDontSee('Iniciar sesión')
             ->assertDontSee('o usa tu contraseña local')
             ->assertDontSee('Crear usuario nuevo de prueba');
     }
