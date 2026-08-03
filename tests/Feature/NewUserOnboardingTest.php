@@ -38,6 +38,7 @@ class NewUserOnboardingTest extends TestCase
         config()->set('services.microsoft.redirect', route('login.microsoft.callback'));
 
         $email = 'nuevo.microsoft.'.uniqid().'@unah.edu.hn';
+        $employeeNumber = (string) random_int(10000000, 99999999);
         $state = 'estado-oauth-de-prueba';
 
         Http::fake([
@@ -51,6 +52,7 @@ class NewUserOnboardingTest extends TestCase
                 'surname' => 'Microsoft Nuevo',
                 'mail' => $email,
                 'userPrincipalName' => $email,
+                'employeeId' => $employeeNumber,
             ]),
         ]);
 
@@ -62,6 +64,7 @@ class NewUserOnboardingTest extends TestCase
 
         $this->assertAuthenticatedAs($user);
         $this->assertNotNull($user->empleado);
+        $this->assertSame($employeeNumber, $user->empleado->numero_empleado);
         $this->assertSame('docente', $user->empleado->tipo_empleado);
         $this->assertTrue($user->hasRole('docente'));
         $this->assertTrue($user->hasDirectPermission('perfil.editar'));

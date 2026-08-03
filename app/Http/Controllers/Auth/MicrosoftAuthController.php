@@ -104,9 +104,10 @@ class MicrosoftAuthController extends Controller
 
         $requiresOnboarding = $onboarding->requiresEmployeeProfile($user);
 
-        if ($requiresOnboarding) {
-            $user = $onboarding->prepareEmployeeProfile($user);
-        }
+        $user = $onboarding->prepareEmployeeProfile(
+            $user,
+            $this->profileEmployeeNumber($profile),
+        );
 
         Auth::login($user);
         $request->session()->regenerate();
@@ -141,7 +142,7 @@ class MicrosoftAuthController extends Controller
         $profile = Http::withToken($accessToken)
             ->acceptJson()
             ->get('https://graph.microsoft.com/v1.0/me', [
-                '$select' => 'id,displayName,givenName,surname,mail,userPrincipalName',
+                '$select' => 'id,displayName,givenName,surname,mail,userPrincipalName,employeeId',
             ])
             ->throw()
             ->json();
@@ -238,6 +239,29 @@ class MicrosoftAuthController extends Controller
         ])));
 
         return $name !== '' ? $name : $email;
+    }
+
+    private function profileEmployeeNumber(array $profile): ?string
+    {
+        $employeeNumber = trim((string) ($profile['employeeId'] ?? ''));
+
+        if ($employeeNumber === '') {
+            Log::warning('Microsoft profile has no employeeId', [
+                'microsoft_id' => $profile['id'] ?? null,
+            ]);
+
+            return null;
+        }
+
+        if (! preg_match('/^\d+$/', $employeeNumber)) {
+            Log::warning('Microsoft profile employeeId is not numeric', [
+                'microsoft_id' => $profile['id'] ?? null,
+            ]);
+
+            return null;
+        }
+
+        return $employeeNumber;
     }
 
     private function domainIsAllowed(string $email): bool

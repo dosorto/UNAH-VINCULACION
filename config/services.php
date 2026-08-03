@@ -43,9 +43,9 @@ return [
         'tenant' => env('MICROSOFT_TENANT_ID', 'organizations'),
         'allowed_domains' => array_values(array_filter(array_map(
             fn ($domain) => strtolower(trim(ltrim($domain, '@'))),
-            explode(',', env('MICROSOFT_ALLOWED_DOMAINS', ''))
+            explode(',', env('MICROSOFT_ALLOWED_DOMAINS', 'unah.edu.hn'))
         ))),
-        'auto_create_users' => filter_var(env('MICROSOFT_AUTO_CREATE_USERS', false), FILTER_VALIDATE_BOOLEAN),
+        'auto_create_users' => filter_var(env('MICROSOFT_AUTO_CREATE_USERS', true), FILTER_VALIDATE_BOOLEAN),
         'scopes' => array_values(array_filter(preg_split(
             '/\s+/',
             trim(env('MICROSOFT_SCOPES', 'openid profile email User.Read'))
