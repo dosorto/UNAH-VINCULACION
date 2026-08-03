@@ -441,6 +441,7 @@
                         </select>
                     </div>
                     <div><label class="{{ $label }}">Nombre de la contraparte</label><input name="contraparte[nombre]" class="{{ $input }}" data-contraparte-field></div>
+                    <div><label class="{{ $label }}">RTN / identificación internacional</label><input name="contraparte[rtn]" maxlength="50" class="{{ $input }}" data-contraparte-field></div>
                     <div><label class="{{ $label }}">Contacto directo</label><input name="contraparte[representante]" class="{{ $input }}" data-contraparte-field></div>
                     <div><label class="{{ $label }}">Cargo del contacto</label><input name="contraparte[cargo_contacto]" class="{{ $input }}" data-contraparte-field></div>
                     <div><label class="{{ $label }}">Correo</label><input type="email" name="contraparte[correo]" class="{{ $input }}" data-contraparte-field></div>

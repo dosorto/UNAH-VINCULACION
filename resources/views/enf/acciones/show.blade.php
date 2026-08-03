@@ -75,13 +75,25 @@
                                 Actualizar Equipo o Fechas
                             </a>
                         @endif
+
+                        @if ($accion->constanciaRegistro?->puedeDescargarse())
+                            <a href="{{ route('enf.constancias.registro.descargar', $accion->constanciaRegistro) }}" class="inline-flex items-center rounded-lg bg-blue-700 px-3 py-2 text-sm font-medium text-white hover:bg-blue-800">
+                                Constancia de registro
+                            </a>
+                        @endif
+
+                        @if ($accion->constanciaFinalizacion?->puedeDescargarse())
+                            <a href="{{ route('enf.constancias.finalizacion.descargar', $accion->constanciaFinalizacion) }}" class="inline-flex items-center rounded-lg bg-emerald-700 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-800">
+                                Constancia de finalizaci&oacute;n
+                            </a>
+                        @endif
                     @endif
 
                     @if ($puedeReenviar ?? false)
                         <form method="POST" action="{{ route('enf.acciones.reenviar-revision', $accion) }}">
                             @csrf
                             <button class="inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                                Reenviar a revisiÃ³n
+                                Reenviar a revisi&oacute;n
                             </button>
                         </form>
                     @endif
@@ -103,7 +115,7 @@
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                 Estado: {{ str_replace('_', ' ', $informeIntermedio?->estado ?? 'Pendiente de carga') }}
                                 @if($revisionActualIntermedio ?? null)
-                                    Â· Etapa actual: {{ $revisionActualIntermedio->etapa_nombre }}
+                                    &middot; Etapa actual: {{ $revisionActualIntermedio->etapa_nombre }}
                                 @endif
                             </p>
                             @if($informeIntermedio?->observaciones_revision)
@@ -147,11 +159,11 @@
                                         @endforeach
                                     </div>
                                 @endif
-                                <button class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">Enviar a revisiÃ³n</button>
+                                <button class="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">Enviar a revisi&oacute;n</button>
                             </form>
                         @endif
                     @else
-                        <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">Disponible cuando la inscripciÃ³n estÃ© aprobada y el flujo tenga etapas de informe intermedio.</p>
+                        <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">Disponible cuando la inscripci&oacute;n est&eacute; aprobada y el flujo tenga etapas de informe intermedio.</p>
                     @endif
                     @error('informe_intermedio')<p class="mt-3 text-sm text-red-600">{{ $message }}</p>@enderror
                 </section>
@@ -187,10 +199,10 @@
                                 <dl class="mt-3 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
                                     <div><dt class="text-gray-500">Estado</dt><dd class="font-semibold text-gray-900 dark:text-gray-100">{{ $cierreInformeFinal['etiqueta'] }}</dd></div>
                                     @if(!empty($cierreInformeFinal['fecha_creacion']))
-                                        <div><dt class="text-gray-500">Fecha de creaciÃ³n</dt><dd class="text-gray-900 dark:text-gray-100">{{ $cierreInformeFinal['fecha_creacion']->format('d/m/Y H:i') }}</dd></div>
+                                        <div><dt class="text-gray-500">Fecha de creaci&oacute;n</dt><dd class="text-gray-900 dark:text-gray-100">{{ $cierreInformeFinal['fecha_creacion']->format('d/m/Y H:i') }}</dd></div>
                                     @endif
                                     @if(!empty($cierreInformeFinal['fecha_envio']))
-                                        <div><dt class="text-gray-500">Fecha de envÃ­o</dt><dd class="text-gray-900 dark:text-gray-100">{{ $cierreInformeFinal['fecha_envio']->format('d/m/Y H:i') }}</dd></div>
+                                        <div><dt class="text-gray-500">Fecha de env&iacute;o</dt><dd class="text-gray-900 dark:text-gray-100">{{ $cierreInformeFinal['fecha_envio']->format('d/m/Y H:i') }}</dd></div>
                                     @endif
                                     @if(!empty($cierreInformeFinal['etapa_actual']))
                                         <div><dt class="text-gray-500">Etapa actual</dt><dd class="text-gray-900 dark:text-gray-100">{{ $cierreInformeFinal['etapa_actual'] }}</dd></div>
@@ -202,7 +214,7 @@
 
                                 @if(!empty($cierreInformeFinal['motivo_rechazo']))
                                     <p class="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">
-                                        <strong>Motivo de subsanaciÃ³n:</strong> {{ $cierreInformeFinal['motivo_rechazo'] }}
+                                        <strong>Motivo de subsanaci&oacute;n:</strong> {{ $cierreInformeFinal['motivo_rechazo'] }}
                                     </p>
                                 @endif
 
@@ -230,7 +242,7 @@
                                 @elseif(($cierreInformeFinal['accion'] ?? null) === 'continuar')
                                     <a href="{{ route('enf.acciones.informe-final.edit', $accion) }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">{{ $cierreInformeFinal['texto_accion'] }}</a>
                                 @elseif(($cierreInformeFinal['accion'] ?? null) === 'subsanar')
-                                    <a href="{{ route('enf.acciones.informe-final.edit', $accion) }}" class="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">Editar subsanaciÃ³n</a>
+                                    <a href="{{ route('enf.acciones.informe-final.edit', $accion) }}" class="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">Editar subsanaci&oacute;n</a>
                                     @if($cierreInformeFinal['puede_enviar'])
                                         <form method="POST" action="{{ route('enf.informes-finales.enviar', $cierreInformeFinal['informe']) }}">
                                             @csrf
@@ -247,7 +259,7 @@
                                         </form>
                                     @endif
                                 @elseif(($cierreInformeFinal['accion'] ?? null) === 'ver')
-                                    <a href="{{ route('enf.acciones.informe-final.preview-pdf', $accion) }}" target="_blank" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 dark:border-gray-600 dark:text-gray-200">Informe final en revisiÃ³n</a>
+                                    <a href="{{ route('enf.acciones.informe-final.preview-pdf', $accion) }}" target="_blank" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 dark:border-gray-600 dark:text-gray-200">Informe final en revisi&oacute;n</a>
                                 @elseif(($cierreInformeFinal['accion'] ?? null) === 'aprobado')
                                     <a href="{{ route('enf.acciones.informe-final.preview-pdf', $accion) }}" target="_blank" class="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">Ver informe final aprobado</a>
                                     <a href="{{ route('enf.acciones.informe-final.pdf', $accion) }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Descargar PDF final</a>
@@ -270,12 +282,12 @@
             <div class="no-print rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                        <h2 class="mb-2 text-sm font-bold uppercase text-slate-500">Flujo de revisiÃ³n</h2>
+                        <h2 class="mb-2 text-sm font-bold uppercase text-slate-500">Flujo de revisi&oacute;n</h2>
                         @if ($revisionActual ?? null)
                             <p class="text-sm text-slate-700 dark:text-slate-300">
                                 Etapa actual: <span class="font-semibold">{{ $revisionActual->etapa_nombre }}</span>
                                 @if ($revisionActual->rol_requerido)
-                                    Â· Rol: {{ $revisionActual->rol_requerido }}
+                                    &middot; Rol: {{ $revisionActual->rol_requerido }}
                                 @endif
                             </p>
                         @else
@@ -287,7 +299,7 @@
                         <form method="POST" action="{{ route('enf.acciones.reenviar-revision', $accion) }}">
                             @csrf
                             <button class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">
-                                Reenviar a revisiÃ³n
+                                Reenviar a revisi&oacute;n
                             </button>
                         </form>
                     @endif
@@ -297,7 +309,7 @@
                     <div class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
                         <form method="POST" action="{{ route('enf.acciones.revisiones.aprobar', [$accion, $revisionActual]) }}" class="space-y-3">
                             @csrf
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">ObservaciÃ³n de aprobaciÃ³n</label>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Observaci&oacute;n de aprobaci&oacute;n</label>
                             <textarea name="observaciones" rows="3" class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
                             <button class="rounded-md bg-green-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-800">
                                 Aprobar etapa
@@ -306,10 +318,10 @@
 
                         <form method="POST" action="{{ route('enf.acciones.revisiones.subsanar', [$accion, $revisionActual]) }}" class="space-y-3">
                             @csrf
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">ObservaciÃ³n de subsanaciÃ³n</label>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Observaci&oacute;n de subsanaci&oacute;n</label>
                             <textarea name="observaciones" rows="3" required class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
                             <button class="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-800">
-                                Enviar a subsanaciÃ³n
+                                Enviar a subsanaci&oacute;n
                             </button>
                         </form>
                     </div>
@@ -347,12 +359,12 @@
                                             {{ $revision->firmado_en?->format('d/m/Y H:i') ?? $revision->created_at?->format('d/m/Y H:i') }}
                                         </time>
                                         <h3 class="mt-2 text-base font-semibold text-gray-900 dark:text-gray-200">
-                                            {{ $revision->etapa_nombre ?: 'Movimiento de revisiÃ³n' }}
+                                            {{ $revision->etapa_nombre ?: 'Movimiento de revisi&oacute;n' }}
                                         </h3>
                                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                             Estado: {{ $revision->estado }}
                                             @if ($revision->rol_requerido)
-                                                Â· Rol: {{ $revision->rol_requerido }}
+                                                &middot; Rol: {{ $revision->rol_requerido }}
                                             @endif
                                             {{ $revision->observaciones ? ' - '.$revision->observaciones : '' }}
                                         </p>
@@ -361,7 +373,7 @@
                             </ol>
                         @else
                             <p class="text-sm text-gray-500 dark:text-gray-400">
-                                No hay movimientos registrados para esta acciÃ³n.
+                                No hay movimientos registrados para esta acci&oacute;n.
                             </p>
                         @endif
                     </div>
@@ -372,7 +384,7 @@
             <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h2 class="mb-3 text-sm font-bold uppercase text-slate-500">Datos generales</h2>
                 <dl class="space-y-2 text-sm">
-                    <div><dt class="font-semibold text-slate-700 dark:text-slate-200">Tipo</dt><dd>{{ $accion->tipoAccion?->nombre ?? 'EducaciÃ³n No Formal' }}</dd></div>
+                    <div><dt class="font-semibold text-slate-700 dark:text-slate-200">Tipo</dt><dd>{{ $accion->tipoAccion?->nombre ?? 'Educaci&oacute;n No Formal' }}</dd></div>
                     <div><dt class="font-semibold text-slate-700 dark:text-slate-200">Modalidad</dt><dd>{{ $accion->modalidad?->nombre ?? 'Sin definir' }}</dd></div>
                     <div><dt class="font-semibold text-slate-700 dark:text-slate-200">Centro/Facultad</dt><dd>{{ $accion->centroFacultad?->nombre ?? 'Sin definir' }}</dd></div>
                     <div><dt class="font-semibold text-slate-700 dark:text-slate-200">Carrera</dt><dd>{{ $accion->carrera?->nombre ?? 'Sin definir' }}</dd></div>
@@ -385,9 +397,9 @@
                 <h2 class="mb-3 text-sm font-bold uppercase text-slate-500">Fechas y horas</h2>
                 <dl class="space-y-2 text-sm">
                     <div><dt class="font-semibold text-slate-700 dark:text-slate-200">Inicio</dt><dd>{{ $accion->fecha_inicio?->format('d/m/Y') ?? 'Sin definir' }}</dd></div>
-                    <div><dt class="font-semibold text-slate-700 dark:text-slate-200">FinalizaciÃ³n</dt><dd>{{ $accion->fecha_finalizacion?->format('d/m/Y') ?? 'Sin definir' }}</dd></div>
+                    <div><dt class="font-semibold text-slate-700 dark:text-slate-200">Finalizaci&oacute;n</dt><dd>{{ $accion->fecha_finalizacion?->format('d/m/Y') ?? 'Sin definir' }}</dd></div>
                     <div><dt class="font-semibold text-slate-700 dark:text-slate-200">Horas</dt><dd>{{ $accion->total_horas ?: ($accion->horas_teoricas + $accion->horas_practicas) }}</dd></div>
-                    <div><dt class="font-semibold text-slate-700 dark:text-slate-200">CrÃ©ditos</dt><dd>{{ $accion->carga_horaria_creditos ?: 'Sin definir' }}</dd></div>
+                    <div><dt class="font-semibold text-slate-700 dark:text-slate-200">Cr&eacute;ditos</dt><dd>{{ $accion->carga_horaria_creditos ?: 'Sin definir' }}</dd></div>
                 </dl>
             </div>
         </div>
@@ -396,13 +408,13 @@
             <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <h2 class="mb-3 text-sm font-bold uppercase text-slate-500">Certificado universitario</h2>
                 <div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-3">
-                    <div><span class="font-semibold text-slate-700 dark:text-slate-200">CÃ³digo DAFT</span><p>{{ $accion->certificado->codigo_certificado ?: 'Pendiente' }}</p></div>
+                    <div><span class="font-semibold text-slate-700 dark:text-slate-200">C&oacute;digo DAFT</span><p>{{ $accion->certificado->codigo_certificado ?: 'Pendiente' }}</p></div>
                     <div><span class="font-semibold text-slate-700 dark:text-slate-200">Tipo</span><p>{{ $accion->certificado->tipoCertificado?->nombre ?? 'Sin definir' }}</p></div>
                     <div><span class="font-semibold text-slate-700 dark:text-slate-200">Vigencia</span><p>{{ $accion->certificado->vigencia_certificado ?: 'Sin definir' }}</p></div>
-                    <div><span class="font-semibold text-slate-700 dark:text-slate-200">Fecha mÃ¡xima de emisiÃ³n</span><p>{{ $accion->certificado->fecha_emision_maxima?->format('d/m/Y') ?? 'Sin definir' }}</p></div>
+                    <div><span class="font-semibold text-slate-700 dark:text-slate-200">Fecha m&aacute;xima de emisi&oacute;n</span><p>{{ $accion->certificado->fecha_emision_maxima?->format('d/m/Y') ?? 'Sin definir' }}</p></div>
                     <div><span class="font-semibold text-slate-700 dark:text-slate-200">PAC</span><p>{{ $accion->certificado->pac_certificado ?: 'Sin definir' }}</p></div>
                     <div><span class="font-semibold text-slate-700 dark:text-slate-200">Horario</span><p>{{ collect([$accion->certificado->hora_inicio, $accion->certificado->hora_finalizacion])->filter()->implode(' - ') ?: 'Sin definir' }}</p></div>
-                    <div class="md:col-span-3"><span class="font-semibold text-slate-700 dark:text-slate-200">DÃ­as</span><p>{{ collect($accion->certificado->dias_imparticion ?? [])->implode(', ') ?: 'Sin definir' }}</p></div>
+                    <div class="md:col-span-3"><span class="font-semibold text-slate-700 dark:text-slate-200">D&iacute;as</span><p>{{ collect($accion->certificado->dias_imparticion ?? [])->implode(', ') ?: 'Sin definir' }}</p></div>
                 </div>
             </div>
 
@@ -430,7 +442,7 @@
                     <h2 class="mb-3 text-sm font-bold uppercase text-slate-500">Espacios de aprendizaje</h2>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
-                            <thead><tr class="text-left text-xs uppercase text-slate-500"><th class="px-3 py-2">Nombre</th><th class="px-3 py-2">CÃ³digo</th><th class="px-3 py-2">CrÃ©ditos</th><th class="px-3 py-2">Horas</th></tr></thead>
+                            <thead><tr class="text-left text-xs uppercase text-slate-500"><th class="px-3 py-2">Nombre</th><th class="px-3 py-2">C&oacute;digo</th><th class="px-3 py-2">Cr&eacute;ditos</th><th class="px-3 py-2">Horas</th></tr></thead>
                             <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                                 @forelse ($accion->espaciosAprendizaje as $espacio)
                                     <tr>
@@ -477,7 +489,7 @@
                                 <td class="px-3 py-2">{{ $integrante->nombre_completo ?? $integrante->empleado?->nombre_completo ?? 'Sin nombre' }}</td>
                                 <td class="px-3 py-2">{{ $integrante->correo ?? 'Sin correo' }}</td>
                                 <td class="px-3 py-2 text-slate-600 dark:text-slate-300">
-                                    {{ collect([$integrante->numero_empleado, $integrante->categoria, $integrante->departamento, $integrante->profesion, $integrante->nacionalidad])->filter()->implode(' Â· ') ?: 'Sin detalle' }}
+                                    {{ collect([$integrante->numero_empleado, $integrante->categoria, $integrante->departamento, $integrante->profesion, $integrante->nacionalidad])->filter()->implode(' &middot; ') ?: 'Sin detalle' }}
                                     @if ($integrante->espacio_aprendizaje)
                                         <span class="block text-xs text-slate-500">Espacio: {{ $integrante->espacio_aprendizaje }}</span>
                                     @endif
@@ -493,7 +505,7 @@
 
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <h2 class="mb-3 text-sm font-bold uppercase text-slate-500">ParticipaciÃ³n universitaria</h2>
+                <h2 class="mb-3 text-sm font-bold uppercase text-slate-500">Participaci&oacute;n universitaria</h2>
                 <dl class="space-y-2 text-sm">
                     @forelse ($accion->participacionUniversitaria as $participacion)
                         <div>
@@ -501,21 +513,21 @@
                             <dd>{{ $participacion->cantidad }} {{ $participacion->descripcion ? '? '.$participacion->descripcion : '' }}</dd>
                         </div>
                     @empty
-                        <div class="text-slate-500">Sin participaciÃ³n registrada.</div>
+                        <div class="text-slate-500">Sin participaci&oacute;n registrada.</div>
                     @endforelse
                 </dl>
             </div>
 
             <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <h2 class="mb-3 text-sm font-bold uppercase text-slate-500">PrÃ¡ctica de asignatura</h2>
+                <h2 class="mb-3 text-sm font-bold uppercase text-slate-500">Pr&aacute;ctica de asignatura</h2>
                 <dl class="space-y-2 text-sm">
                     @forelse ($accion->practicasAsignatura as $practica)
                         <div>
                             <dt class="font-semibold text-slate-700 dark:text-slate-200">{{ $practica->asignatura?->nombre ?? $practica->nombre_asignatura ?? 'Asignatura sin nombre' }}</dt>
-                            <dd>{{ $practica->codigo_asignatura }} Â· {{ $practica->periodoAcademico?->nombre ?? $practica->periodo_academico_texto }} Â· MatrÃ­cula: {{ $practica->cantidad_estudiantes }}</dd>
+                            <dd>{{ $practica->codigo_asignatura }} &middot; {{ $practica->periodoAcademico?->nombre ?? $practica->periodo_academico_texto }} &middot; Matr&iacute;cula: {{ $practica->cantidad_estudiantes }}</dd>
                         </div>
                     @empty
-                        <div class="text-slate-500">Sin prÃ¡cticas registradas.</div>
+                        <div class="text-slate-500">Sin pr&aacute;cticas registradas.</div>
                     @endforelse
                 </dl>
             </div>
@@ -549,7 +561,7 @@
                     @forelse ($accion->firmas as $firma)
                         <div>
                             <dt class="font-semibold text-slate-700 dark:text-slate-200">{{ $firma->rol_firma ?: 'Firma' }}</dt>
-                            <dd>{{ $firma->nombre_firmante ?: $firma->empleado?->nombre_completo ?: 'Sin nombre' }} Â· {{ $firma->estado_revision }}</dd>
+                            <dd>{{ $firma->nombre_firmante ?: $firma->empleado?->nombre_completo ?: 'Sin nombre' }} &middot; {{ $firma->estado_revision }}</dd>
                         </div>
                     @empty
                         <div class="text-slate-500">Sin firmas registradas.</div>
@@ -559,7 +571,7 @@
         </div>
 
         <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <h2 class="mb-3 text-sm font-bold uppercase text-slate-500">Historial de revisiÃ³n</h2>
+            <h2 class="mb-3 text-sm font-bold uppercase text-slate-500">Historial de revisi&oacute;n</h2>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
                     <thead>
@@ -568,7 +580,7 @@
                             <th class="px-3 py-2">Etapa</th>
                             <th class="px-3 py-2">Rol</th>
                             <th class="px-3 py-2">Estado</th>
-                            <th class="px-3 py-2">ObservaciÃ³n</th>
+                            <th class="px-3 py-2">Observaci&oacute;n</th>
                             <th class="px-3 py-2">Fecha</th>
                         </tr>
                     </thead>

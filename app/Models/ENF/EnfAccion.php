@@ -177,6 +177,16 @@ class EnfAccion extends Model
         return $this->hasOne(EnfInformeIntermedio::class, 'enf_accion_id');
     }
 
+    public function constanciaRegistro()
+    {
+        return $this->hasOne(EnfConstanciaRegistro::class, 'enf_accion_id');
+    }
+
+    public function constanciaFinalizacion()
+    {
+        return $this->hasOne(EnfConstanciaFinalizacion::class, 'enf_accion_id');
+    }
+
     public function sistematizacion()
     {
         return $this->hasOne(EnfSistematizacion::class, 'enf_accion_id');

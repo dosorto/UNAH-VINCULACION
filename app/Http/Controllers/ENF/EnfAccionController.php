@@ -462,6 +462,7 @@ class EnfAccionController extends Controller
             'sistematizador[departamento]' => $sistematizador?->departamento,
             'contraparte[tiene_contraparte]' => $contraparte ? 'Si' : 'No',
             'contraparte[nombre]' => $contraparte?->nombre,
+            'contraparte[rtn]' => $contraparte?->rtn,
             'contraparte[representante]' => $contraparte?->representante,
             'contraparte[cargo_contacto]' => $contraparte?->cargo_contacto,
             'contraparte[correo]' => $contraparte?->correo,
@@ -1526,8 +1527,11 @@ class EnfAccionController extends Controller
             'certificado.carreras.carrera',
             'certificado.carreras.centroFacultad',
             'espaciosAprendizaje',
-            'informeFinal',
+            'informeFinal.documentosRevision',
+            'informeFinal.constanciaFinalizacion',
             'informeIntermedio',
+            'constanciaRegistro',
+            'constanciaFinalizacion',
             'sistematizacion',
             'documentos',
             'firmas',
@@ -1547,39 +1551,11 @@ class EnfAccionController extends Controller
         abort_unless($revisionActual && (int) $revisionActual->id === $revision, 403);
         abort_unless($this->usuarioPuedeRevisar($request->user(), $revisionActual), 403);
 
-        DB::transaction(function () use ($record, $revisionActual, $request): void {
-            $revisionActual->update([
-                'estado' => 'APROBADO',
-                'observaciones' => $request->input('observaciones'),
-                'decidido_por_usuario_id' => $request->user()?->id,
-                'firmado_en' => now(),
-            ]);
-
-            $siguiente = $record->revisiones()
-                ->where('revision_ciclo', $record->revision_ciclo)
-                ->where('orden', '>', $revisionActual->orden)
-                ->whereIn('estado', $this->estadosRevisionPendiente())
-                ->orderBy('orden')
-                ->first();
-
-            if ($siguiente) {
-                $siguiente->update([
-                    'estado' => $siguiente->asignado_usuario_id || $siguiente->responsable_usuario_id
-                        ? 'ASIGNADO'
-                        : 'PENDIENTE',
-                ]);
-
-                $record->update(['estado_flujo' => 'EN_REVISION']);
-                $this->notificarRevision($record->fresh(), $siguiente->fresh('flujoEtapa.rolRevisor'));
-
-                return;
-            }
-
-            $record->update([
-                'estado_flujo' => 'APROBADO',
-                'fecha_aprobacion' => now()->toDateString(),
-            ]);
-        });
+        app(EnfWorkflowService::class)->aprobarRevision(
+            $revisionActual->fresh(['accion.revisiones', 'flujoEtapa.rolRevisor']),
+            $request->user(),
+            $request->input('observaciones')
+        );
 
         return redirect()
             ->route('enf.acciones.show', $record)
