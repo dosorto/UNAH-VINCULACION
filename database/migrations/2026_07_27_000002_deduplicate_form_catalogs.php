@@ -5,6 +5,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 return new class extends Migration
 {
@@ -14,7 +15,12 @@ return new class extends Migration
     public function up(): void
     {
         DB::transaction(function (): void {
-            $normalizar = static fn (mixed $valor): string => mb_strtolower(trim((string) $valor), 'UTF-8');
+            // Las restricciones usan una colación accent/case insensitive.
+            // La clave de deduplicación debe aplicar la misma equivalencia para
+            // consolidar, por ejemplo, "CORTÉS" y "CORTES" antes del UNIQUE.
+            $normalizar = static fn (mixed $valor): string => Str::lower(
+                Str::ascii(trim((string) $valor))
+            );
 
             $tablasRelacion = [
                 'carrera_departamento_academico',
