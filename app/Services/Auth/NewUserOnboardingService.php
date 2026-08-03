@@ -16,9 +16,9 @@ class NewUserOnboardingService
         return ! $user->empleado()->exists() && ! $user->estudiante()->exists();
     }
 
-    public function prepareEmployeeProfile(User $user, ?string $employeeNumber = null): User
+    public function prepareEmployeeProfile(User $user, ?string $employeeNumber = null, ?string $displayName = null): User
     {
-        return DB::transaction(function () use ($user, $employeeNumber): User {
+        return DB::transaction(function () use ($user, $employeeNumber, $displayName): User {
             $user = User::query()->lockForUpdate()->findOrFail($user->id);
 
             if (! $this->requiresEmployeeProfile($user)) {
@@ -39,7 +39,7 @@ class NewUserOnboardingService
 
             Empleado::create([
                 'user_id' => $user->id,
-                'nombre_completo' => $user->name,
+                'nombre_completo' => $displayName ?: $user->name,
                 'numero_empleado' => $this->availableEmployeeNumber($user, $employeeNumber),
                 'tipo_empleado' => 'docente',
             ]);

@@ -219,10 +219,6 @@ class EditPerfilDocente extends Component
         }
 
         $this->validate([
-            'name' => 'required|string|max:255',
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->record->id)],
-            'nombre_completo' => 'required|string|max:255',
-            'numero_empleado' => ['required', 'regex:/^\d+$/', Rule::unique('empleado', 'numero_empleado')->ignore($empleado->id)],
             'celular' => 'required|numeric',
             'sexo' => ['required', Rule::in(['Masculino', 'Femenino'])],
             'categoria_id' => ['required', 'exists:categoria,id'],
@@ -243,13 +239,6 @@ class EditPerfilDocente extends Component
                 Rule::in(['si', 'no']),
             ],
         ], [
-            'name.required' => 'Ingrese el nombre de usuario.',
-            'email.required' => 'Ingrese el correo electrónico.',
-            'email.email' => 'Ingrese un correo electrónico válido.',
-            'nombre_completo.required' => 'Ingrese el nombre completo.',
-            'numero_empleado.required' => 'Ingrese el número de empleado.',
-            'numero_empleado.regex' => 'El número de empleado solo debe contener dígitos.',
-            'numero_empleado.unique' => 'El número de empleado ya está registrado.',
             'celular.required' => 'Ingrese el número de celular.',
             'celular.numeric' => 'El celular solo debe contener números.',
             'sexo.required' => 'Seleccione el sexo.',
@@ -286,12 +275,6 @@ class EditPerfilDocente extends Component
             ]);
         }
 
-        if (! $empleado->sello()->exists()) {
-            throw ValidationException::withMessages([
-                'selloUpload' => 'Debe subir su sello antes de finalizar el registro.',
-            ]);
-        }
-
         if ($empleado->tipo_empleado === 'docente') {
             $tieneCodigos = $empleado->codigosInvestigacion()->exists();
 
@@ -309,17 +292,7 @@ class EditPerfilDocente extends Component
         }
 
         DB::transaction(function () use ($empleado): void {
-            $userData = ['name' => $this->name];
-
-            if (! $this->record->microsoft_id) {
-                $userData['email'] = $this->email;
-            }
-
-            $this->record->update($userData);
-
             $empleado->update([
-                'nombre_completo' => $this->nombre_completo,
-                'numero_empleado' => $this->numero_empleado,
                 'celular' => $this->celular,
                 'sexo' => $this->sexo,
                 'categoria_id' => $this->categoria_id,
