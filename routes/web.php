@@ -156,6 +156,9 @@ Route::middleware(['guest'])->group(function () {
         ->name('password.reset');
 });
 
+Route::middleware(['auth'])->get('completar-perfil', EditPerfil::class)
+    ->name('completar_perfil');
+
 Route::middleware(['auth'])->prefix('enf')->name('enf.')->group(function () {
     Route::get('tipos', [EnfAccionController::class, 'tipos'])->name('tipos');
     Route::get('acciones/{accion}/pdf', [EnfAccionController::class, 'descargarPdf'])->name('acciones.pdf');
@@ -200,7 +203,7 @@ Route::middleware(['auth'])->prefix('enf')->name('enf.')->group(function () {
 });
 
 // Rutas para redireccionar a los usuario  no autenticados
-Route::middleware(['auth', \App\Http\Middleware\VerificarPermisoDeCompletarPerfil::class])->group(function () {
+Route::middleware(['auth'])->group(function () {
 
     Route::get('campus', CampusList::class)
         ->name('campus')

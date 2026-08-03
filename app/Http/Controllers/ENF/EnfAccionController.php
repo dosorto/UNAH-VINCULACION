@@ -3,29 +3,29 @@
 namespace App\Http\Controllers\ENF;
 
 use App\Http\Controllers\Controller;
-use App\Mail\EnfRevisionAsignada;
 use App\Http\Requests\ENF\StoreEnfAccionRequest;
 use App\Http\Requests\ENF\UpdateEnfAccionRequest;
+use App\Mail\EnfRevisionAsignada;
 use App\Models\Asignatura;
+use App\Models\DAFT\ProgramaCertificacion;
+use App\Models\Demografia\Departamento;
+use App\Models\Demografia\Municipio;
 use App\Models\ENF\EnfAccion;
 use App\Models\ENF\EnfCatalogo;
 use App\Models\ENF\EnfRevision;
 use App\Models\PeriodoAcademico;
+use App\Models\Personal\Empleado;
+use App\Models\Proyecto\EjesPrioritariosUnah;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
-use App\Models\Proyecto\Modalidad;
-use App\Models\Proyecto\EjesPrioritariosUnah;
 use App\Models\Proyecto\MetaContribuye;
+use App\Models\Proyecto\Modalidad;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\VinculacionTipoAccion;
-use App\Models\DAFT\ProgramaCertificacion;
 use App\Models\UnidadAcademica\Campus;
 use App\Models\UnidadAcademica\Carrera;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\FacultadCentro;
-use App\Models\Demografia\Departamento;
-use App\Models\Demografia\Municipio;
-use App\Models\Personal\Empleado;
 use App\Models\User;
 use App\Services\ENF\EnfWorkflowService;
 use Illuminate\Http\JsonResponse;
@@ -41,17 +41,18 @@ use PDF;
 class EnfAccionController extends Controller
 {
     private const FORM_CERTIFICADO_UNIVERSITARIO = 'FORM-DVUS-016';
+
     private const FORM_PROYECTO_ENF = 'FORM-DVUS-018';
+
     private const FORM_CERTIFICADO_UNIVERSITARIO_ENABLED = true;
+
     private const TIPO_ACCION_CERTIFICADO = 'Certificado universitario';
+
     private const TIPO_ACCION_ENF_VISIBLE = 'Proyecto de educacion continua';
+
     private const TIPOS_ACCION_FORM_018 = [
-        'Certificado universitario',
         'Proyecto de educacion continua',
-        'Programa de educacion continua',
         'Diplomado',
-        'Curso',
-        'Taller',
         'Congreso',
         'Seminario',
     ];
@@ -375,7 +376,7 @@ class EnfAccionController extends Controller
             'contrapartes.tipoContraparte',
             'contrapartes.instrumentoAlianza',
             'objetivosEspecificos',
-            'resultados',
+            'resultados.objetivoEspecifico',
             'presupuestos.detalles',
             'cronograma',
             'certificado.tipoCertificado',
@@ -534,9 +535,17 @@ class EnfAccionController extends Controller
             $draft["practicas_asignatura[{$index}][mujeres]"] = $practica->matricula_mujeres;
         }
 
-        foreach ($accion->resultados->sortBy('orden')->values() as $index => $resultado) {
+        $resultadoSlots = ['corto' => 0, 'mediano' => 6, 'largo' => 11];
+
+        foreach ($accion->resultados->sortBy('orden')->values() as $resultado) {
             [$tipo, $descripcion] = str($resultado->resultado)->explode(': ', 2)->pad(2, null)->all();
+            $tipoNormalizado = $this->normalizarNombreCatalogo($tipo ?: '');
+            $grupo = str_contains($tipoNormalizado, 'mediano')
+                ? 'mediano'
+                : (str_contains($tipoNormalizado, 'largo') || str_contains($tipoNormalizado, 'impacto') ? 'largo' : 'corto');
+            $index = $resultadoSlots[$grupo]++;
             $draft["resultados[{$index}][tipo]"] = $tipo ?: 'Resultado';
+            $draft["resultados[{$index}][objetivo_orden]"] = $resultado->objetivoEspecifico?->orden;
             $draft["resultados[{$index}][descripcion]"] = $descripcion ?: $resultado->resultado;
             $draft["resultados[{$index}][indicador]"] = $resultado->indicador;
         }
@@ -863,6 +872,7 @@ class EnfAccionController extends Controller
         ] as $field) {
             if (! array_key_exists($field, $data) || blank($data[$field])) {
                 $data[$field] = null;
+
                 continue;
             }
 
@@ -1229,7 +1239,7 @@ class EnfAccionController extends Controller
             }
 
             $accion->resultados()->create([
-                'enf_objetivo_especifico_id' => $objetivoIds[0] ?? null,
+                'enf_objetivo_especifico_id' => $objetivoIds[max(0, (int) ($resultado['objetivo_orden'] ?? 1) - 1)] ?? ($objetivoIds[0] ?? null),
                 'orden' => $index + 1,
                 'resultado' => trim(($resultado['tipo'] ?? 'Resultado').': '.$resultado['descripcion']),
                 'indicador' => $resultado['indicador'] ?? null,
@@ -1358,7 +1368,7 @@ class EnfAccionController extends Controller
         $supervisorDocumentMap = [
             'Oficio de remisión del Decano/Director Centro Regional' => 'oficio_remision_decano',
             'Documento perfil del programa de formación' => 'documento_perfil_programa',
-            'Otros documentos de respaldo' => 'otros_documentos_respaldo',
+            'Otros (detallar)' => 'otros_documentos_respaldo',
         ];
 
         foreach ($supervisorDocumentMap as $documento => $slug) {

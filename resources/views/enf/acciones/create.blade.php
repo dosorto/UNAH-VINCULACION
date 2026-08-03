@@ -34,7 +34,6 @@
                 'label' => $carrera->nombre,
             ],
         ]);
-    $ejesUnahOptions = $ejesUnah->pluck('nombre', 'id');
     $odsOptions = $odsList->pluck('nombre', 'id');
     $metasContribuyeOptions = $metasContribuye
         ->mapWithKeys(fn ($meta) => [
@@ -46,6 +45,36 @@
     $periodoAcademicoLabel = fn ($periodo) => collect([$periodo->nombre, $periodo->anio ?? null])
         ->filter()
         ->implode(' ');
+    $form018CatalogLabel = function (string $nombre): string {
+        $key = \Illuminate\Support\Str::of(\Illuminate\Support\Str::ascii($nombre))->lower()->toString();
+
+        return [
+            'proyecto de educacion continua' => 'Proyecto de educación continua',
+            'diplomado' => 'Diplomado (80 a 250 horas máximo)',
+            'congreso' => 'Congreso (2 a 5 días consecutivos, mínimo 6 horas por día)',
+            'seminario' => 'Seminario (5 a 29 horas máximo)',
+            'egresados unah' => 'Egresados(as) UNAH',
+            'funcionarios publicos' => 'Funcionarios públicos',
+            'lideres comunitarios' => 'Líderes comunitarios',
+            'profesionales universitarios otros ies' => 'Profesionales universitarios otros CES',
+            'academicos' => 'Académicos',
+            '14-18' => 'Entre 14 – 18 años',
+            '19-25' => 'Entre 19 – 25 años',
+            '26-40' => 'Entre 26 – 40 años',
+            '41-55' => 'Entre 41 – 55 años',
+            '56-70' => 'Entre 56 – 70 años',
+            'mayores de 70' => 'Mayores de 70 años',
+            'grupos etnicos' => 'Grupos étnicos',
+            'poblacion vulnerable' => 'Población vulnerable',
+            'personas con discapacidad' => 'Personas con discapacidades',
+            'campus virtual unah' => 'Campus virtual UNAH',
+            'iniciativa de la unidad academica' => 'Iniciativa de la unidad académica',
+            'solicitud de secretaria de estado' => 'Solicitud de Secretaría de Estado',
+            'secretaria de estado' => 'Secretaría de Estado',
+            'sector academico' => 'Sector académico',
+            'carta formal de solicitud' => 'Carta formal de solicitud a la unidad académica',
+        ][$key] ?? $nombre;
+    };
     $empleadosModalData = $empleados->map(fn ($empleado) => [
         'id' => $empleado->id,
         'nombre_completo' => $empleado->nombre_completo,
@@ -56,7 +85,6 @@
         'departamento' => $empleado->departamento_academico?->nombre,
         'jornada_laboral' => $empleado->jornada_laboral,
     ])->values();
-    $programasAprobadosData = $programasAprobados->values();
     $stepLabels = [
         1 => 'Información',
         2 => 'Lugar',
@@ -79,7 +107,7 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">FORM-DVUS-018 · Educación No Formal</h1>
-                <p class="text-sm text-slate-600 dark:text-slate-300">Registro de acciones tipo programa/proyecto: diplomados, cursos, talleres, seminarios, congresos y educación continua.</p>
+                <p class="text-sm text-slate-600 dark:text-slate-300">Registro de proyectos de educación continua, diplomados, congresos y seminarios.</p>
             </div>
             <a href="{{ route('selectorTipoAccion') }}" class="text-sm font-semibold text-blue-700 hover:text-blue-900">Volver al selector</a>
         </div>
@@ -145,33 +173,7 @@
 
             <div class="{{ $card }}" data-step-panel="1">
                 <h2 class="{{ $sectionTitle }}">1. Información general de la acción</h2>
-                <div class="mb-4 rounded-md border border-blue-100 bg-blue-50 p-4 dark:border-blue-900/50 dark:bg-blue-950/30">
-                    <label class="{{ $label }}">Programa aprobado de educación continua</label>
-                    <select data-approved-program-select class="{{ $input }}">
-                        <option value="">Crear acción desde cero</option>
-                        @foreach ($programasAprobados as $programaAprobado)
-                            <option value="{{ $programaAprobado['id'] }}">
-                                {{ $programaAprobado['label'] }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <p class="mt-2 text-xs text-blue-800 dark:text-blue-200">
-                        Los datos del programa seleccionado se copiarán como información de solo lectura. Los datos de la nueva edición permanecen editables.
-                    </p>
-                    <div data-approved-program-summary class="mt-4 hidden rounded-md border border-blue-200 bg-white/80 p-4 dark:border-blue-800 dark:bg-slate-900/60"></div>
-                </div>
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div class="md:col-span-3 flex items-center gap-2 border-b border-slate-200 pb-2 dark:border-slate-700">
-                        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">🔒</span>
-                        <div>
-                            <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Datos del programa aprobado</h3>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Al seleccionar un programa, los datos disponibles en esta sección no se pueden modificar.</p>
-                        </div>
-                    </div>
-                    <div class="order-1 md:col-span-3 mt-2 border-b border-slate-200 pb-2 dark:border-slate-700">
-                        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Datos de la nueva edición</h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Completa la solicitud, número de edición y fechas correspondientes a esta acción.</p>
-                    </div>
                     <div class="order-1">
                         <label class="{{ $label }}">Fecha de solicitud</label>
                         <input type="date" name="fecha_solicitud" value="{{ old('fecha_solicitud', now()->format('Y-m-d')) }}" class="{{ $input }}">
@@ -186,13 +188,9 @@
                         <select name="catalogos[tipo_accion_enf][]" class="{{ $input }}">
                             <option value="">Seleccione...</option>
                             @foreach ($tiposAccionForm018 as $item)
-                                <option value="{{ $item->id }}" @selected(old('catalogos.tipo_accion_enf.0', $selectedTipoAccionEnfId) == $item->id)>{{ $item->nombre }}</option>
+                                <option value="{{ $item->id }}" @selected(old('catalogos.tipo_accion_enf.0', $selectedTipoAccionEnfId) == $item->id)>{{ $form018CatalogLabel($item->nombre) }}</option>
                             @endforeach
                         </select>
-                    </div>
-                    <div>
-                        <label class="{{ $label }}">Resolución VRA</label>
-                        <input name="resolucion_vra" value="{{ old('resolucion_vra') }}" class="{{ $input }}">
                     </div>
                     <div>
                         <label class="{{ $label }}">No. resolución programa original</label>
@@ -497,24 +495,6 @@
                         <label class="{{ $label }}">Edificio</label>
                         <input name="edificio" class="{{ $input }}">
                     </div>
-                    <div>
-                        <label class="{{ $label }}">Departamento</label>
-                        <select name="departamento_id" class="{{ $input }}">
-                            <option value="">Seleccione...</option>
-                            @foreach ($departamentos as $departamento)
-                                <option value="{{ $departamento->id }}">{{ $departamento->nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="{{ $label }}">Municipio</label>
-                        <select name="municipio_id" class="{{ $input }}">
-                            <option value="">Seleccione...</option>
-                            @foreach ($municipios as $municipio)
-                                <option value="{{ $municipio->id }}">{{ $municipio->nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
                     <div class="md:col-span-3">
                         <label class="{{ $label }}">Descripción de las plataformas virtuales y de teledocencia</label>
                         <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -524,7 +504,7 @@
                                     @foreach ($catalog('plataforma')->filter(fn ($item) => in_array($item->nombre, ['Teams', 'Zoom', 'Meet', 'Webex', 'Otro'], true)) as $item)
                                         <label class="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
                                             <input type="checkbox" name="catalogos[plataforma_teledocencia][]" value="{{ $item->id }}" @checked(in_array((string) $item->id, array_map('strval', (array) old('catalogos.plataforma_teledocencia', [])), true)) class="rounded border-gray-300 text-blue-600">
-                                            <span>{{ $item->nombre }}</span>
+                                            <span>{{ $form018CatalogLabel($item->nombre) }}</span>
                                         </label>
                                     @endforeach
                                 </div>
@@ -536,7 +516,7 @@
                                     @foreach ($catalog('plataforma')->filter(fn ($item) => in_array($item->nombre, ['Campus Virtual UNAH', 'Moodle', 'Classroom Google', 'Teams', 'Otro'], true)) as $item)
                                         <label class="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
                                             <input type="checkbox" name="catalogos[plataforma_campus_virtual][]" value="{{ $item->id }}" @checked(in_array((string) $item->id, array_map('strval', (array) old('catalogos.plataforma_campus_virtual', [])), true)) class="rounded border-gray-300 text-blue-600">
-                                            <span>{{ $item->nombre }}</span>
+                                            <span>{{ $form018CatalogLabel($item->nombre) }}</span>
                                         </label>
                                     @endforeach
                                 </div>
@@ -549,7 +529,7 @@
                             @foreach ($catalog('antecedente') as $item)
                                 <label class="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
                                     <input type="checkbox" name="catalogos[antecedente][]" value="{{ $item->id }}" @checked(in_array((string) $item->id, array_map('strval', (array) old('catalogos.antecedente', [])), true)) class="rounded border-gray-300 text-blue-600">
-                                    <span>{{ $item->nombre }}</span>
+                                    <span>{{ $form018CatalogLabel($item->nombre) }}</span>
                                 </label>
                             @endforeach
                         </div>
@@ -564,7 +544,7 @@
                         <label class="{{ $label }}">Perfil de participantes</label>
                         <div class="space-y-2">
                             @foreach ($catalog('perfil_participante') as $item)
-                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="catalogos[perfil_participante][]" value="{{ $item->id }}" class="rounded border-gray-300 text-blue-600"> {{ $item->nombre }}</label>
+                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="catalogos[perfil_participante][]" value="{{ $item->id }}" class="rounded border-gray-300 text-blue-600"> {{ $form018CatalogLabel($item->nombre) }}</label>
                             @endforeach
                         </div>
                     </div>
@@ -572,7 +552,7 @@
                         <label class="{{ $label }}">Rango de edad</label>
                         <div class="space-y-2">
                             @foreach ($catalog('rango_edad') as $item)
-                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="catalogos[rango_edad][]" value="{{ $item->id }}" class="rounded border-gray-300 text-blue-600"> {{ $item->nombre }}</label>
+                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="catalogos[rango_edad][]" value="{{ $item->id }}" class="rounded border-gray-300 text-blue-600"> {{ $form018CatalogLabel($item->nombre) }}</label>
                             @endforeach
                         </div>
                     </div>
@@ -580,16 +560,13 @@
                         <label class="{{ $label }}">Condición social</label>
                         <div class="space-y-2">
                             @foreach ($catalog('condicion_social') as $item)
-                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="catalogos[condicion_social][]" value="{{ $item->id }}" class="rounded border-gray-300 text-blue-600"> {{ $item->nombre }}</label>
+                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="catalogos[condicion_social][]" value="{{ $item->id }}" class="rounded border-gray-300 text-blue-600"> {{ $form018CatalogLabel($item->nombre) }}</label>
                             @endforeach
                         </div>
                     </div>
                 </div>
-                <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-4">
-                    <div><label class="{{ $label }}">Hombres</label><input type="number" min="0" name="beneficiarios[hombres]" value="0" class="{{ $input }}"></div>
-                    <div><label class="{{ $label }}">Mujeres</label><input type="number" min="0" name="beneficiarios[mujeres]" value="0" class="{{ $input }}"></div>
-                    <div><label class="{{ $label }}">Total cupos programados</label><input type="number" min="0" name="beneficiarios[total]" value="0" class="{{ $input }} bg-slate-50 dark:bg-slate-800/70" readonly></div>
-                    <div class="md:col-span-4"><label class="{{ $label }}">Descripción de participantes</label><textarea name="descripcion_participantes" rows="3" class="{{ $input }}"></textarea></div>
+                <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div><label class="{{ $label }}">Total cupos programados</label><input type="number" min="0" name="beneficiarios[total]" value="0" class="{{ $input }}"></div>
                 </div>
             </div>
 
@@ -755,11 +732,12 @@
                             'Servicio Social o PPS',
                             'Voluntariado',
                             'Personal docente',
-                            'Profesores por hora',
+                            'Profesores x hora',
                             'Profesores horarios',
                             'Profesores permanentes',
                             'Personal administrativo',
-                            'Administrativo servicios',
+                            'Administrativo',
+                            'Servicios',
                             'Asistentes técnicos laboratorios / instructores',
                         ] as $i => $tipoParticipacion)
                             <div data-participacion-row="{{ $i }}">
@@ -874,7 +852,7 @@
                         <select name="contraparte[tipo_contraparte_id]" class="{{ $input }}" data-contraparte-field>
                             <option value="">Seleccione...</option>
                             @foreach ($catalog('tipo_contraparte') as $item)
-                                <option value="{{ $item->id }}">{{ $item->nombre }}</option>
+                                <option value="{{ $item->id }}">{{ $form018CatalogLabel($item->nombre) }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -883,7 +861,7 @@
                         <select name="contraparte[instrumento_alianza_id]" class="{{ $input }}" data-contraparte-field>
                             <option value="">Seleccione...</option>
                             @foreach ($catalog('instrumento_alianza') as $item)
-                                <option value="{{ $item->id }}">{{ $item->nombre }}</option>
+                                <option value="{{ $item->id }}">{{ $form018CatalogLabel($item->nombre) }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -914,36 +892,52 @@
                         </template>
                     </div>
                     <div><label class="{{ $label }}">Alineamiento con la reforma UNAH</label><textarea name="alineamiento_reforma" rows="3" class="{{ $input }}"></textarea></div>
-                    <div><label class="{{ $label }}">Metodología</label><textarea name="metodologia" rows="3" class="{{ $input }}"></textarea></div>
                     <div><label class="{{ $label }}">Resumen de logística</label><textarea name="logistica" rows="3" class="{{ $input }}"></textarea></div>
-                    <div><label class="{{ $label }}">Bibliografía</label><textarea name="bibliografia" rows="2" class="{{ $input }}"></textarea></div>
                 </div>
             </div>
 
             <div class="{{ $card }} hidden" data-step-panel="7">
-                <h2 class="{{ $sectionTitle }}">7. Resultados, ODS y ejes UNAH</h2>
+                <h2 class="{{ $sectionTitle }}">7. Resultados esperados y ODS</h2>
                 <div class="space-y-4">
-                    @foreach (['Corto plazo', 'Mediano plazo', 'Largo plazo / impacto'] as $index => $tipo)
-                        <div class="rounded-md border border-slate-200 p-4 dark:border-slate-700">
-                            <input type="hidden" name="resultados[{{ $index }}][tipo]" value="{{ $tipo }}">
-                            <label class="{{ $label }}">{{ $tipo }} · descripción del resultado</label>
-                            <textarea name="resultados[{{ $index }}][descripcion]" rows="2" class="{{ $input }}"></textarea>
-                            <label class="{{ $label }} mt-3">Medio de verificación / indicador</label>
-                            <textarea name="resultados[{{ $index }}][indicador]" rows="2" class="{{ $input }}"></textarea>
-                        </div>
+                    @php $resultadoIndex = 0; @endphp
+                    @foreach ([
+                        ['tipo' => 'Corto plazo', 'cantidad' => 6, 'titulo' => 'Resultados de corto plazo del proyecto'],
+                        ['tipo' => 'Mediano plazo', 'cantidad' => 5, 'titulo' => 'Indicadores de mediano plazo'],
+                        ['tipo' => 'Largo plazo / impacto', 'cantidad' => 5, 'titulo' => 'Impacto que se desea generar en el proyecto'],
+                    ] as $grupoResultado)
+                        <section class="rounded-md border border-slate-200 p-4 dark:border-slate-700">
+                            <h3 class="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $grupoResultado['titulo'] }}</h3>
+                            <div class="space-y-3">
+                                @for ($filaResultado = 0; $filaResultado < $grupoResultado['cantidad']; $filaResultado++, $resultadoIndex++)
+                                    <div class="grid grid-cols-1 gap-3 rounded-md border border-slate-100 p-3 dark:border-slate-800 md:grid-cols-6">
+                                        <input type="hidden" name="resultados[{{ $resultadoIndex }}][tipo]" value="{{ $grupoResultado['tipo'] }}">
+                                        @if ($grupoResultado['tipo'] === 'Corto plazo')
+                                            <div>
+                                                <label class="{{ $label }}">OE</label>
+                                                <input type="number" min="1" name="resultados[{{ $resultadoIndex }}][objetivo_orden]" class="{{ $input }}" placeholder="No.">
+                                            </div>
+                                        @endif
+                                        <div class="{{ $grupoResultado['tipo'] === 'Corto plazo' ? 'md:col-span-2' : 'md:col-span-3' }}">
+                                            <label class="{{ $label }}">Descripción del resultado</label>
+                                            <textarea name="resultados[{{ $resultadoIndex }}][descripcion]" rows="2" class="{{ $input }}"></textarea>
+                                        </div>
+                                        <div class="md:col-span-3">
+                                            <label class="{{ $label }}">Medio de verificación (indicador)</label>
+                                            <textarea name="resultados[{{ $resultadoIndex }}][indicador]" rows="2" class="{{ $input }}"></textarea>
+                                        </div>
+                                    </div>
+                                @endfor
+                            </div>
+                        </section>
                     @endforeach
                     <div
                         x-data="{
-                            openEjes: false,
                             openOds: false,
                             openMetas: false,
-                            searchEjes: '',
                             searchOds: '',
                             searchMetas: '',
-                            ejesOptions: @js($ejesUnahOptions),
                             odsOptions: @js($odsOptions),
                             metasOptions: @js($metasContribuyeOptions),
-                            selectedEjes: @js(array_map('strval', (array) old('eje_unah_ids', []))),
                             selectedOds: @js(array_map('strval', (array) old('ods_ids', []))),
                             selectedMetas: @js(array_map('strval', (array) old('meta_contribuye_ids', []))),
                             init() {
@@ -953,7 +947,6 @@
                                         const initial = window.__enfInitialDrafts?.[key] || {};
                                         const stored = JSON.parse(window.localStorage.getItem(key) || '{}');
                                         const data = { ...initial, ...stored };
-                                        this.selectedEjes = this.normalized(data['eje_unah_ids[]'] ?? this.selectedEjes);
                                         this.selectedOds = this.normalized(data['ods_ids[]'] ?? this.selectedOds);
                                         this.selectedMetas = this.normalized(data['meta_contribuye_ids[]'] ?? this.selectedMetas);
                                     } catch (error) {}
@@ -1018,42 +1011,6 @@
                         }"
                         class="space-y-8 rounded-md border border-slate-200 p-4 dark:border-slate-700"
                     >
-                        <div>
-                            <label class="{{ $label }}">Ejes prioritarios UNAH</label>
-                            <div @click.outside="openEjes = false" class="relative">
-                                <div @click="openEjes = true; $nextTick(() => $refs.searchEjes?.focus())"
-                                    class="min-h-[42px] w-full cursor-text rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 dark:border-gray-600 dark:bg-gray-800">
-                                    <div class="flex flex-wrap items-center gap-1.5">
-                                        <template x-for="id in selectedEjes" :key="`eje-${id}`">
-                                            <span class="inline-flex max-w-full items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                                <span class="truncate" x-text="label(ejesOptions, id)"></span>
-                                                <button type="button" @click.stop="remove('selectedEjes', id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
-                                            </span>
-                                        </template>
-                                        <input x-ref="searchEjes" x-model="searchEjes" @focus="openEjes = true" @keydown.escape="openEjes = false"
-                                            :placeholder="selectedEjes.length ? '' : 'Buscar o seleccionar ejes prioritarios...'"
-                                            class="min-w-[180px] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 dark:text-white"
-                                            type="text">
-                                        <span class="ml-auto text-xs text-gray-400" x-text="openEjes ? '▴' : '▾'"></span>
-                                    </div>
-                                    <template x-for="id in selectedEjes" :key="`eje-input-${id}`">
-                                        <input type="checkbox" name="eje_unah_ids[]" :value="id" checked class="hidden">
-                                    </template>
-                                </div>
-                                <div x-show="openEjes" x-cloak class="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
-                                    <template x-if="optionEntries(ejesOptions, searchEjes).length === 0">
-                                        <div class="px-3 py-2 text-sm text-gray-500">Sin resultados.</div>
-                                    </template>
-                                    <template x-for="[id, name] in optionEntries(ejesOptions, searchEjes)" :key="id">
-                                        <div @click="toggle('selectedEjes', id)" class="flex cursor-pointer items-center justify-between px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-gray-700"
-                                            :class="isSelected('selectedEjes', id) ? 'bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/20 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'">
-                                            <span x-text="name"></span>
-                                            <span x-show="isSelected('selectedEjes', id)" class="text-xs">✓</span>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
                         <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
                             <div>
                                 <label class="{{ $label }}">ODS</label>
@@ -1141,13 +1098,17 @@
                     Obtendrá ingresos por el desarrollo de la actividad
                 </label>
                 <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                    @foreach (['presupuesto_ingresos' => ['Ingresos', ['Cuotas de inscripción', 'Mensualidades / módulos', 'Gestión de becas', 'Otros']], 'presupuesto_egresos' => ['Egresos', ['Pago de personal docente', 'Materiales y suministros', 'Movilización', 'Manutención y hospedaje', 'Costos administrativos', 'Otros gastos']]] as $name => [$title, $rubros])
+                    @foreach ([
+                        'presupuesto_ingresos' => ['Ingresos', ['Cuotas de inscripción', 'Mensualidades / módulos', 'Gestión de becas (donaciones)', 'Otros']],
+                        'presupuesto_egresos' => ['Egresos', ['Pago de personal docente', 'Gastos de materiales y suministros', 'Gastos de movilización (transporte, pasajes)', 'Gastos de manutención y hospedaje', 'Costos administrativos / Financieros', 'Otros gastos']],
+                        'aporte_unah' => ['Aportación de la UNAH', ['Horas de participación del personal docente del equipo ejecutor de la acción', 'Horas de participación estudiantes', 'Costos indirectos depreciación de equipo (3% de la suma de los incisos a) y b) anteriores)', 'Costos indirectos servicios públicos ((3% de la suma de los incisos a) y b) anteriores))']],
+                    ] as $name => [$title, $rubros])
                         <div class="rounded-md border border-slate-200 p-4 dark:border-slate-700" data-presupuesto-card="{{ $name }}">
                             <div class="mb-3 flex items-center justify-between gap-3">
                                 <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $title }}</h3>
                                 <button type="button" data-open-presupuesto-modal="{{ $name }}"
                                     class="rounded-md bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">
-                                    Agregar {{ $name === 'presupuesto_ingresos' ? 'ingreso' : 'egreso' }}
+                                    Agregar {{ match ($name) { 'presupuesto_ingresos' => 'ingreso', 'presupuesto_egresos' => 'egreso', default => 'aporte' } }}
                                 </button>
                             </div>
                             <div class="overflow-x-auto rounded-md border border-slate-100 dark:border-slate-800">
@@ -1231,7 +1192,7 @@
                             'slug' => 'documento_perfil_programa',
                         ],
                         [
-                            'label' => 'Otros documentos de respaldo',
+                            'label' => 'Otros (detallar)',
                             'slug' => 'otros_documentos_respaldo',
                         ],
                     ] as $documentoSupervisor)
@@ -1497,15 +1458,15 @@
             const storageKey = form.dataset.storageKey || 'enf-accion-form-draft';
             const clearDraftOnLoad = form.dataset.clearDraftOnLoad === '1';
             const shouldLockStepNavigation = form.dataset.lockStepNavigation === '1';
-            const approvedPrograms = @js($programasAprobadosData);
+            const approvedPrograms = [];
             const empleados = @js($empleadosModalData);
             const initialDraft = @js($initialDraft ?? []);
             const autosaveUrl = form.dataset.autosaveUrl;
             const autosaveUpdateUrlTemplate = form.dataset.autosaveUpdateUrlTemplate || '';
             const draftIdField = form.querySelector('[name="borrador_autoguardado_id"]');
             const oldObjetivosEspecificos = @js(array_values((array) old('objetivos_especificos', [])));
-            const approvedProgramSelect = form.querySelector('[data-approved-program-select]');
-            const approvedProgramSummary = form.querySelector('[data-approved-program-summary]');
+            const approvedProgramSelect = null;
+            const approvedProgramSummary = null;
             const panels = Array.from(form.querySelectorAll('[data-step-panel]'));
             const previousButton = form.querySelector('[data-previous-step]');
             const nextButton = form.querySelector('[data-next-step]');
@@ -1520,9 +1481,6 @@
             const totalHorasField = form.querySelector('[name="total_horas"]');
             const modalidadEjecucionField = form.querySelector('[data-modalidad-ejecucion]');
             const teledocenciaFields = form.querySelector('[data-teledocencia-fields]');
-            const beneficiariosHombresField = form.querySelector('[name="beneficiarios[hombres]"]');
-            const beneficiariosMujeresField = form.querySelector('[name="beneficiarios[mujeres]"]');
-            const beneficiariosTotalField = form.querySelector('[name="beneficiarios[total]"]');
             const employeeModal = document.querySelector('[data-employee-modal]');
             const employeeSearch = document.querySelector('[data-employee-search]');
             const employeeResults = document.querySelector('[data-employee-results]');
@@ -2006,14 +1964,6 @@
                 }
 
                 totalHorasField.value = String(numericHoursValue(horasTeoricasField) + numericHoursValue(horasPracticasField));
-            };
-
-            const syncTotalCupos = () => {
-                if (!beneficiariosTotalField) {
-                    return;
-                }
-
-                beneficiariosTotalField.value = String(numericHoursValue(beneficiariosHombresField) + numericHoursValue(beneficiariosMujeresField));
             };
 
             const fieldSelector = (name) => `[name="${String(name).replace(/"/g, '\\"')}"]`;
@@ -2754,6 +2704,7 @@
                 renderPracticas();
                 updateIngresosState();
                 renderPresupuesto('presupuesto_egresos');
+                renderPresupuesto('aporte_unah');
                 renderCronograma();
             };
 
@@ -3385,7 +3336,6 @@
 
             restore();
             syncTotalHoras();
-            syncTotalCupos();
             updateRegisteredEmployeesDetails();
             updateSupervisorDocumentUploadState();
             updateContraparteState();
@@ -3411,7 +3361,6 @@
             form.addEventListener('input', () => {
                 shouldPersistDraft = true;
                 syncTotalHoras();
-                syncTotalCupos();
                 updateRegisteredEmployeesDetails();
                 updateSupervisorDocumentUploadState();
                 updateContraparteState();
@@ -3426,7 +3375,6 @@
             form.addEventListener('change', () => {
                 shouldPersistDraft = true;
                 syncTotalHoras();
-                syncTotalCupos();
                 updateRegisteredEmployeesDetails();
                 updateSupervisorDocumentUploadState();
                 updateContraparteState();

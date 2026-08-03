@@ -1,7 +1,7 @@
 <div>
-    @php $canEdit = auth()->user()->can('perfil.editar'); @endphp
+    @php $canEdit = \App\Support\ProfileCompletion::isRequired(auth()->user()); @endphp
 
-    <form wire:submit.prevent="save" class="space-y-6">
+    <form wire:submit="save" class="space-y-6">
         {{-- Datos de Usuario/Empleado --}}
         <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 {{ !$canEdit ? 'opacity-60' : '' }}">
             <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Perfil de Empleado</p>
@@ -10,37 +10,61 @@
             @endif
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de Usuario</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de Usuario <span class="text-red-500">*</span></label>
                     <input type="text" wire:model="name" {{ !$canEdit ? 'disabled' : '' }}
                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50" />
                     @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Correo Electrónico</label>
-                    <input type="email" wire:model="email" {{ !$canEdit ? 'disabled' : '' }}
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Correo Electrónico <span class="text-red-500">*</span></label>
+                    <input type="email" wire:model="email" {{ (!$canEdit || auth()->user()->microsoft_id) ? 'disabled' : '' }}
                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50" />
+                    @if (auth()->user()->microsoft_id)
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Correo verificado por Microsoft.</p>
+                    @endif
                     @error('email') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre Completo</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre Completo <span class="text-red-500">*</span></label>
                     <input type="text" wire:model="nombre_completo" {{ !$canEdit ? 'disabled' : '' }}
                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50" />
                     @error('nombre_completo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">N° de Empleado</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">N° de Empleado <span class="text-red-500">*</span></label>
                     <input type="text" wire:model="numero_empleado" {{ !$canEdit ? 'disabled' : '' }}
                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50" />
                     @error('numero_empleado') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Celular</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Celular <span class="text-red-500">*</span></label>
                     <input type="text" wire:model="celular" {{ !$canEdit ? 'disabled' : '' }}
                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50" />
                     @error('celular') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Facultad o Centro</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sexo <span class="text-red-500">*</span></label>
+                    <select wire:model="sexo" {{ !$canEdit ? 'disabled' : '' }}
+                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50">
+                        <option value="">Seleccione...</option>
+                        <option value="Masculino">Masculino</option>
+                        <option value="Femenino">Femenino</option>
+                    </select>
+                    @error('sexo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría <span class="text-red-500">*</span></label>
+                    <select wire:model="categoria_id" {{ !$canEdit ? 'disabled' : '' }}
+                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50">
+                        <option value="">Seleccione...</option>
+                        @foreach ($categorias as $id => $nombre)
+                            <option value="{{ $id }}">{{ $nombre }}</option>
+                        @endforeach
+                    </select>
+                    @error('categoria_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Facultad o Centro <span class="text-red-500">*</span></label>
                     <select wire:model.live="centro_facultad_id" {{ !$canEdit ? 'disabled' : '' }}
                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50">
                         <option value="">Seleccione...</option>
@@ -50,28 +74,40 @@
                     </select>
                     @error('centro_facultad_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
-                @if ($departamentos->count())
+                @if ($centro_facultad_id)
                     <div class="sm:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departamento Académico</label>
-                        <select wire:model="departamento_academico_id" {{ !$canEdit ? 'disabled' : '' }}
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departamento Académico <span class="text-red-500">*</span></label>
+                        <select wire:model.live="departamento_academico_id" {{ (!$canEdit || $departamentos->isEmpty()) ? 'disabled' : '' }}
                             class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50">
-                            <option value="">Sin departamento</option>
+                            <option value="">Seleccione...</option>
                             @foreach ($departamentos as $id => $nombre)
                                 <option value="{{ $id }}">{{ $nombre }}</option>
                             @endforeach
                         </select>
+                        @if ($departamentos->isEmpty())
+                            <p class="mt-1 text-xs text-amber-600">La facultad o centro seleccionado no tiene departamentos académicos configurados.</p>
+                        @endif
+                        @error('departamento_academico_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+                @endif
+                @if ($departamento_academico_id)
+                    <div class="sm:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carrera <span class="text-red-500">*</span></label>
+                        <select wire:model.live="carrera_id" {{ (!$canEdit || $carreras->isEmpty()) ? 'disabled' : '' }}
+                            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50">
+                            <option value="">Seleccione...</option>
+                            @foreach ($carreras as $id => $nombre)
+                                <option value="{{ $id }}">{{ $nombre }}</option>
+                            @endforeach
+                        </select>
+                        @if ($carreras->isEmpty())
+                            <p class="mt-1 text-xs text-amber-600">El departamento seleccionado no tiene carreras configuradas.</p>
+                        @endif
+                        @error('carrera_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
                 @endif
             </div>
         </div>
-
-        @if ($canEdit)
-            <button type="submit"
-                class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
-                Actualizar Perfil
-            </button>
-        @endif
-    </form>
 
     {{-- Firma --}}
     <div class="mt-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
@@ -82,46 +118,66 @@
                 <img src="{{ Storage::url($firma->ruta_storage) }}" alt="Firma" class="max-h-24 border border-gray-200 rounded" />
             </div>
         @endif
-        <div class="flex items-center gap-3">
-            <input type="file" wire:model="firmaUpload" accept="image/*" class="text-sm text-gray-600 dark:text-gray-400" />
-            <button wire:click="subirFirma" type="button"
-                class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
-                Crear Nueva Firma
-            </button>
-        </div>
+        @if ($canEdit)
+            <div class="flex items-center gap-3">
+                <input type="file" wire:model="firmaUpload" accept="image/*" class="text-sm text-gray-600 dark:text-gray-400" />
+                <button wire:click="subirFirma" type="button"
+                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                    Subir Firma
+                </button>
+            </div>
+        @endif
         @error('firmaUpload') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
     </div>
 
     {{-- Sello --}}
     <div class="mt-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-        <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Sello (Opcional)</p>
+        <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Sello (Requerido)</p>
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Visualizar o agregar un nuevo Sello.</p>
         @if ($sello)
             <div class="mb-3">
                 <img src="{{ Storage::url($sello->ruta_storage) }}" alt="Sello" class="max-h-24 border border-gray-200 rounded" />
             </div>
         @endif
-        <div class="flex items-center gap-3">
-            <input type="file" wire:model="selloUpload" accept="image/*" class="text-sm text-gray-600 dark:text-gray-400" />
-            <button wire:click="subirSello" type="button"
-                class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
-                Crear Nuevo Sello
-            </button>
-        </div>
+        @if ($canEdit)
+            <div class="flex items-center gap-3">
+                <input type="file" wire:model="selloUpload" accept="image/*" class="text-sm text-gray-600 dark:text-gray-400" />
+                <button wire:click="subirSello" type="button"
+                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                    Subir Sello
+                </button>
+            </div>
+        @endif
         @error('selloUpload') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
     </div>
 
     {{-- Códigos de Investigación (solo docentes) --}}
     @if (auth()->user()->empleado?->tipo_empleado === 'docente')
         <div class="mt-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    ¿Participó en proyectos de vinculación previos a este sistema? <span class="text-red-500">*</span>
+                </label>
+                <select wire:model.live="tiene_proyectos_previos" {{ !$canEdit ? 'disabled' : '' }}
+                    class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50">
+                    <option value="">Seleccione...</option>
+                    <option value="si">Sí</option>
+                    <option value="no">No</option>
+                </select>
+                @error('tiene_proyectos_previos') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+            </div>
+
+            @if ($tiene_proyectos_previos === 'si')
             <div class="flex items-center justify-between mb-4">
                 <div>
                     <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">Registro de proyectos de vinculación previos al sistema</p>
                 </div>
-                <button wire:click="openAddCodigo" type="button"
-                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
-                    Agregar Proyecto
-                </button>
+                @if ($canEdit)
+                    <button wire:click="openAddCodigo" type="button"
+                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                        Agregar Proyecto
+                    </button>
+                @endif
             </div>
             @forelse ($codigos as $codigo)
                 @php
@@ -175,8 +231,33 @@
             @empty
                 <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No hay códigos registrados. Usa el botón "Agregar Proyecto" para registrar tus proyectos previos.</p>
             @endforelse
+            @endif
         </div>
     @endif
+
+        @if ($errors->any())
+            <div class="mt-6 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800" role="alert">
+                <p class="font-semibold">No se pudo finalizar el registro.</p>
+                <p class="mt-1">Revisa los siguientes datos:</p>
+                <ul class="mt-2 list-disc space-y-1 pl-5">
+                    @foreach (collect($errors->all())->unique() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        @if ($canEdit)
+            <button type="submit" wire:loading.attr="disabled" wire:target="save,firmaUpload,selloUpload"
+                class="mt-6 inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+                <span wire:loading.remove wire:target="save">Finalizar registro</span>
+                <span wire:loading wire:target="save">Guardando...</span>
+            </button>
+            <p wire:loading wire:target="firmaUpload,selloUpload" class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                Preparando los archivos seleccionados...
+            </p>
+        @endif
+    </form>
 
     {{-- Modal Agregar Código --}}
     @if ($addCodigoModal)

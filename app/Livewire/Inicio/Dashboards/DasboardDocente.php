@@ -40,7 +40,7 @@ class DasboardDocente extends Component
         // si el usuario autenticado tiene el permiso perfil.editar
         // redirigirlo a la pagina de configuracion de su perfil
         if (auth()->user()->can('perfil.editar')) {
-            return redirect()->route('mi_perfil');
+            return redirect()->route('completar_perfil');
         };
     }
 

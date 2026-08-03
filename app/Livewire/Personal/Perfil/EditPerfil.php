@@ -2,21 +2,24 @@
 
 namespace App\Livewire\Personal\Perfil;
 
+use App\Support\ProfileCompletion;
 use Livewire\Component;
 
 class EditPerfil extends Component
 {
-
     public function render()
     {
-        // verificar si el modelo empleado no es nulo 
-        if (auth()->user()->empleado != null)
+        $typeUser = null;
+
+        if (auth()->user()->empleado != null) {
             $typeUser = 'Empleado';
-        else if (auth()->user()->estudiante != null)
+        } elseif (auth()->user()->estudiante != null) {
             $typeUser = 'Estudiante';
+        }
 
         return view('livewire.personal.perfil.edit-perfil', [
             'typeUser' => $typeUser,
+            'profileCompletionRequired' => ProfileCompletion::isRequired(auth()->user()),
         ]);
     }
 }

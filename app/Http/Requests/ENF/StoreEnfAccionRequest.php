@@ -207,6 +207,7 @@ class StoreEnfAccionRequest extends FormRequest
             'objetivos_especificos.*' => ['nullable', 'string'],
             'resultados' => ['nullable', 'array'],
             'resultados.*.tipo' => ['nullable', 'string', 'max:80'],
+            'resultados.*.objetivo_orden' => ['nullable', 'integer', 'min:1'],
             'resultados.*.descripcion' => ['nullable', 'string'],
             'resultados.*.indicador' => ['nullable', 'string'],
             'ods_ids' => ['nullable', 'array'],

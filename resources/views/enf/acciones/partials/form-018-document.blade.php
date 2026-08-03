@@ -145,9 +145,20 @@
         ['label' => '100% virtual', 'needle' => 'virtual'],
         ['label' => 'Virtual sincrónico (teledocencia)', 'needle' => 'teledocencia'],
     ];
-    $perfilOpciones = ['Egresados UNAH', 'Funcionarios publicos', 'Estudiantes universitarios', 'Empresa privada de servicios', 'Sociedad civil', 'Lideres comunitarios', 'ONG', 'Profesionales universitarios otros IES', 'Sector productivo', 'Academicos'];
+    $perfilOpciones = [
+        ['label' => 'Egresados(as) UNAH', 'needles' => 'Egresados UNAH'],
+        ['label' => 'Funcionarios públicos', 'needles' => 'Funcionarios publicos'],
+        ['label' => 'Estudiantes universitarios', 'needles' => 'Estudiantes universitarios'],
+        ['label' => 'Empresa privada de servicios', 'needles' => 'Empresa privada de servicios'],
+        ['label' => 'Sociedad civil', 'needles' => 'Sociedad civil'],
+        ['label' => 'Líderes comunitarios', 'needles' => 'Lideres comunitarios'],
+        ['label' => 'ONG', 'needles' => 'ONG'],
+        ['label' => 'Profesionales universitarios otros CES', 'needles' => ['Profesionales universitarios otros CES', 'Profesionales universitarios otros IES']],
+        ['label' => 'Sector productivo', 'needles' => 'Sector productivo'],
+        ['label' => 'Académicos', 'needles' => 'Academicos'],
+    ];
     $edadOpciones = ['14-18', '19-25', '26-40', '41-55', '56-70', 'Mayores de 70'];
-    $condicionOpciones = ['Mestizos', 'Grupos etnicos', 'Poblacion vulnerable', 'Personas con discapacidad', 'Desplazados por violencia', 'Otro'];
+    $condicionOpciones = ['Mestizos', 'Grupos étnicos', 'Población vulnerable', 'Personas con discapacidades', 'Desplazados por violencia', 'Otro'];
     $plataformasTeledocencia = ['Teams', 'Zoom', 'Meet', 'Webex', 'Otro'];
     $plataformasCampus = ['Campus Virtual UNAH', 'Moodle', 'Classroom Google', 'Teams', 'Otro'];
     $antecedentesOpciones = ['Iniciativa de la unidad academica', 'Solicitud externa privada', 'Solicitud de Secretaria de Estado', 'Solicitud de gobierno local', 'Alianza con otras universidades', 'Solicitud de ONG', 'Solicitud de patronatos', 'Solicitud de sector financiero', 'Solicitud de sector productivo', 'Otros'];
@@ -178,7 +189,7 @@
         ->values()
         ->map(fn ($objetivo, $index) => ($index + 1).'. '.trim((string) $objetivo->descripcion))
         ->implode("\n");
-    $alineamientoTexto = trim((string) $accion->alineamiento_reforma.' '.($accion->ejesUnah->isNotEmpty() ? '| Ejes: '.$accion->ejesUnah->pluck('nombre')->implode(', ') : ''));
+    $alineamientoTexto = trim((string) $accion->alineamiento_reforma);
     $scrollField = function ($value, string $heightClass) use ($isPdf): HtmlString {
         $classes = 'form018-scroll-field '.$heightClass;
         $text = e((string) $value);
@@ -1003,22 +1014,22 @@
                 </tr>
                 <tr style="height: 15.2px;">
                     @foreach (array_slice($perfilOpciones, 0, 5) as $option)
-                        <td class="form018-blue form018-center form018-small">{{ $option }}</td>
+                        <td class="form018-blue form018-center form018-small">{{ $option['label'] }}</td>
                     @endforeach
                 </tr>
                 <tr style="height: 15.2px;">
                     @foreach (array_slice($perfilOpciones, 0, 5) as $option)
-                        <td class="form018-mark">{{ $markCatalog('perfil_participante', $option) }}</td>
+                        <td class="form018-mark">{{ $markCatalog('perfil_participante', $option['needles']) }}</td>
                     @endforeach
                 </tr>
                 <tr style="height: 15.2px;">
                     @foreach (array_slice($perfilOpciones, 5, 5) as $option)
-                        <td class="form018-blue form018-center form018-small">{{ $option }}</td>
+                        <td class="form018-blue form018-center form018-small">{{ $option['label'] }}</td>
                     @endforeach
                 </tr>
                 <tr style="height: 15.2px;">
                     @foreach (array_slice($perfilOpciones, 5, 5) as $option)
-                        <td class="form018-mark">{{ $markCatalog('perfil_participante', $option) }}</td>
+                        <td class="form018-mark">{{ $markCatalog('perfil_participante', $option['needles']) }}</td>
                     @endforeach
                 </tr>
                 <tr style="height: 15.2px;">
@@ -1031,9 +1042,9 @@
                 </tr>
                 <tr style="height: 15.2px;">
                     <td class="form018-blue form018-small form018-numbered" rowspan="4" colspan="2"><span class="num">15.</span>Edad de los participantes deseados (Marcar con una “x” todos los que correspondan)</td>
-                    <td class="form018-blue form018-center form018-small">Entre 14 - 18 años</td>
-                    <td class="form018-blue form018-center form018-small">Entre 19 - 25 años</td>
-                    <td class="form018-blue form018-center form018-small">Entre 26 - 40 años</td>
+                    <td class="form018-blue form018-center form018-small">Entre 14 – 18 años</td>
+                    <td class="form018-blue form018-center form018-small">Entre 19 – 25 años</td>
+                    <td class="form018-blue form018-center form018-small">Entre 26 – 40 años</td>
                 </tr>
                 <tr style="height: 15.2px;">
                     <td class="form018-mark">{{ $markCatalog('rango_edad', '14-18') }}</td>
@@ -1041,8 +1052,8 @@
                     <td class="form018-mark">{{ $markCatalog('rango_edad', '26-40') }}</td>
                 </tr>
                 <tr style="height: 15.2px;">
-                    <td class="form018-blue form018-center form018-small">Entre 41 - 55 años</td>
-                    <td class="form018-blue form018-center form018-small">Entre 56 - 70 años</td>
+                    <td class="form018-blue form018-center form018-small">Entre 41 – 55 años</td>
+                    <td class="form018-blue form018-center form018-small">Entre 56 – 70 años</td>
                     <td class="form018-blue form018-center form018-small">Mayores de 70 años</td>
                 </tr>
                 <tr style="height: 15.2px;">
@@ -1259,8 +1270,8 @@
                 @for ($i = 0; $i < 3; $i++)
                     <tr style="height: 16.9px;">
                         <td colspan="2" class="form018-center">{{ $i === 0 ? $participacion('Personal docente', 'mujeres') : '' }}</td>
-                        <td class="form018-center">{{ $i === 0 ? $participacion('Profesores por hora', 'hombres') : '' }}</td>
-                        <td class="form018-center">{{ $i === 0 ? $participacion('Profesores por hora', 'mujeres') : '' }}</td>
+                        <td class="form018-center">{{ $i === 0 ? $participacion('Profesores x hora', 'hombres') : '' }}</td>
+                        <td class="form018-center">{{ $i === 0 ? $participacion('Profesores x hora', 'mujeres') : '' }}</td>
                         <td class="form018-center" colspan="2">{{ $i === 0 ? $participacion('Profesores horarios', 'hombres') : '' }}</td>
                         <td class="form018-center" colspan="2">{{ $i === 0 ? $participacion('Profesores horarios', 'mujeres') : '' }}</td>
                         <td class="form018-center" colspan="2">{{ $i === 0 ? $participacion('Profesores permanentes', 'hombres') : '' }}</td>
@@ -1290,10 +1301,10 @@
                 </tr>
                 <tr style="height: 16.9px;">
                     <td colspan="2" class="form018-center">{{ $participacion('Personal administrativo', 'mujeres') }}</td>
-                    <td class="form018-center">{{ $participacion('Administrativo servicios', 'hombres') }}</td>
-                    <td class="form018-center">{{ $participacion('Administrativo servicios', 'mujeres') }}</td>
-                    <td class="form018-center" colspan="2">{{ $participacion('Administrativo servicios', 'hombres') }}</td>
-                    <td class="form018-center" colspan="2">{{ $participacion('Administrativo servicios', 'mujeres') }}</td>
+                    <td class="form018-center">{{ $participacion('Administrativo', 'hombres') }}</td>
+                    <td class="form018-center">{{ $participacion('Administrativo', 'mujeres') }}</td>
+                    <td class="form018-center" colspan="2">{{ $participacion('Servicios', 'hombres') }}</td>
+                    <td class="form018-center" colspan="2">{{ $participacion('Servicios', 'mujeres') }}</td>
                     <td class="form018-center" colspan="2">{{ $participacion('Asistentes técnicos laboratorios / instructores', 'hombres') }}</td>
                     <td class="form018-center">{{ $participacion('Asistentes técnicos laboratorios / instructores', 'mujeres') }}</td>
                 </tr>
@@ -1323,6 +1334,7 @@
                 <span>V.</span>
                 <span>INFORMACIÓN DE LA ENTIDAD CONTRAPARTE</span>
             </div>
+            <p class="form018-note">(Sí existe más de una contraparte añadir una tabla de información por cada una de ellas)</p>
             <table class="form018-table form018-docx-table5">
                 <colgroup>
                     @foreach ([1931, 669, 1238, 1015, 890, 1356, 410, 139, 1876] as $width)
@@ -1454,7 +1466,7 @@
                 <tr><td class="form018-gray" colspan="6">Impacto que se desea generar en el proyecto. Debe de expresar los indicadores de impacto de la acción. Presentar como mínimo 1 resultado</td></tr>
                 <tr>
                     <td class="form018-gray form018-center" colspan="3">Descripción del resultado de largo plazo</td>
-                    <td class="form018-gray form018-center" colspan="3">Medio de verificación (indicador con el que se evaluará)</td>
+                    <td class="form018-gray form018-center" colspan="3">Medio de verificación (indicador con el que se evaluará su cumplimiento)</td>
                 </tr>
                 @foreach ($rows($resultadosPorPlazo->get('largo', collect()), 5) as $resultado)
                     @php $resultadoPartes = $resultadoParts($resultado); @endphp
@@ -1754,7 +1766,7 @@
                     </tr>
                 @endforeach
             </table>
-            <p class="form018-note">Nota: El documento 1 es obligatorio.</p>
+            <p class="form018-note">Nota: El documento 1 obligatorio.</p>
         </main>
     </section>
 </div>
