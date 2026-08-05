@@ -86,7 +86,11 @@
                         </div>
                         <div class="enf-review-document-wrap">
                             @if($viewEnfForm018)
-                                @include('enf.acciones.partials.form-018-document', ['accion' => $viewEnfAccion])
+                                <iframe
+                                    src="{{ route('enf.acciones.pdf.ver', $viewEnfAccion) }}"
+                                    title="Vista previa PDF de FORM-DVUS-018"
+                                    class="block min-h-[72vh] w-full border-0 bg-white"
+                                ></iframe>
                             @else
                                 @include('enf.acciones.partials.form-016-document', ['accion' => $viewEnfAccion])
                             @endif

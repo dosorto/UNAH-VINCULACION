@@ -28,6 +28,7 @@ use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\User;
 use App\Services\ENF\EnfWorkflowService;
+use App\Services\FormDvus018DocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -1483,21 +1484,28 @@ class EnfAccionController extends Controller
         ]);
     }
 
-    public function descargarPdf(int $accion)
+    public function verPdf(EnfAccion $accion, FormDvus018DocumentService $documents)
     {
-        $record = EnfAccion::with($this->form018Relations())->findOrFail($accion);
+        return $this->form018PdfResponse($accion, $documents, 'inline');
+    }
+
+    public function descargarPdf(EnfAccion $accion, FormDvus018DocumentService $documents)
+    {
+        $record = $accion->loadMissing($this->form018Relations());
 
         $formCode = $record->codigo_formulario ?? null;
 
         abort_unless(in_array($formCode, [self::FORM_PROYECTO_ENF, self::FORM_CERTIFICADO_UNIVERSITARIO], true), 404);
 
+        if ($formCode === self::FORM_PROYECTO_ENF) {
+            return $this->documentResponse($documents, $record, 'attachment');
+        }
+
         @set_time_limit(180);
         @ini_set('max_execution_time', '180');
         @ini_set('memory_limit', '512M');
 
-        $view = $formCode === self::FORM_CERTIFICADO_UNIVERSITARIO
-            ? 'enf.acciones.partials.form-016-document'
-            : 'enf.acciones.partials.form-018-document';
+        $view = 'enf.acciones.partials.form-016-document';
         $orientation = 'portrait';
 
         $pdf = PDF::loadView($view, [
@@ -1510,6 +1518,28 @@ class EnfAccionController extends Controller
             ->setOption('dpi', 96);
 
         return $pdf->download("{$formCode}-{$record->id}.pdf");
+    }
+
+    private function form018PdfResponse(EnfAccion $accion, FormDvus018DocumentService $documents, string $disposition)
+    {
+        $record = $accion->loadMissing($this->form018Relations());
+        abort_unless($record->codigo_formulario === self::FORM_PROYECTO_ENF, 404);
+
+        return $this->documentResponse($documents, $record, $disposition);
+    }
+
+    private function documentResponse(FormDvus018DocumentService $documents, EnfAccion $record, string $disposition)
+    {
+        $pdfPath = $documents->generatePdf($record);
+        $filename = "FORM-DVUS-018-{$record->id}.pdf";
+        $response = response()->file($pdfPath, [
+            'Content-Type' => 'application/pdf',
+            'X-Content-SHA256' => $documents->hash($pdfPath),
+            'Cache-Control' => 'private, no-transform',
+        ]);
+        $response->headers->set('Content-Disposition', $disposition.'; filename="'.$filename.'"');
+
+        return $response;
     }
 
     private function form018Relations(): array

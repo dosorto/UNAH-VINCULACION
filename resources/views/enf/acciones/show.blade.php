@@ -65,6 +65,12 @@
 
                 <div class="flex flex-wrap gap-2">
                     @if ($esDocumentoEnf)
+                        @if ($esForm018)
+                            <a href="{{ route('enf.acciones.pdf.ver', $accion) }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg border border-sky-300 bg-white px-3 py-2 text-sm font-medium text-sky-700 hover:bg-sky-50">
+                                @svg('heroicon-o-eye', ['class' => 'h-4 w-4'])
+                                Ver PDF
+                            </a>
+                        @endif
                         <a href="{{ route('enf.acciones.pdf', $accion) }}" class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700">
                             @svg('heroicon-o-arrow-down-tray', ['class' => 'h-4 w-4'])
                             Descargar PDF
@@ -337,7 +343,11 @@
                     </div>
                     <div class="enf-document-canvas overflow-x-auto px-3 py-5 sm:px-5">
                         @if ($esForm018)
-                            @include('enf.acciones.partials.form-018-document', ['accion' => $accion])
+                            <iframe
+                                src="{{ route('enf.acciones.pdf.ver', $accion) }}"
+                                title="Vista previa PDF de FORM-DVUS-018"
+                                class="mx-auto block min-h-[75vh] w-full border-0 bg-white"
+                            ></iframe>
                         @else
                             @include('enf.acciones.partials.form-016-document', ['accion' => $accion])
                         @endif

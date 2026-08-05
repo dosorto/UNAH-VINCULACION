@@ -165,8 +165,17 @@
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $row['fecha'] ? \Carbon\Carbon::parse($row['fecha'])->format('d/m/Y') : '-' }}</td>
                         <td class="px-4 py-3">
                             <div class="flex gap-2">
-                                <a href="{{ $isEnf ? route('enf.acciones.show', $record) : route('historialproyecto', $record) }}"
-                                   class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Ver</a>
+                                @if($isEnf && ($record->codigo_formulario ?? null) === 'FORM-DVUS-018')
+                                    <a href="{{ route('enf.acciones.pdf.ver', $record) }}" target="_blank" rel="noopener"
+                                       class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Ver</a>
+                                    <a href="{{ route('enf.acciones.pdf', $record) }}"
+                                       class="px-3 py-1.5 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-lg">Descargar</a>
+                                    <a href="{{ route('enf.acciones.show', $record) }}"
+                                       class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Detalle</a>
+                                @else
+                                    <a href="{{ $isEnf ? route('enf.acciones.show', $record) : route('historialproyecto', $record) }}"
+                                       class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Ver</a>
+                                @endif
 
                                 @if($isEnf)
                                     @php

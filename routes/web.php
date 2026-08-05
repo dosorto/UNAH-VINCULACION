@@ -174,6 +174,7 @@ Route::middleware(['auth'])->get('completar-perfil', EditPerfil::class)
 
 Route::middleware(['auth'])->prefix('enf')->name('enf.')->group(function () {
     Route::get('tipos', [EnfAccionController::class, 'tipos'])->name('tipos');
+    Route::get('acciones/{accion}/pdf/ver', [EnfAccionController::class, 'verPdf'])->name('acciones.pdf.ver');
     Route::get('acciones/{accion}/pdf', [EnfAccionController::class, 'descargarPdf'])->name('acciones.pdf');
     Route::get('constancias-registro/{constancia}/descargar', [EnfConstanciaRegistroController::class, 'descargar'])
         ->name('constancias.registro.descargar');
