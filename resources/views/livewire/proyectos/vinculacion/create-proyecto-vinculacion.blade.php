@@ -1229,6 +1229,11 @@
                             <textarea wire:model="nuevaActividad.descripcion" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500"></textarea>
                             @error('nuevaActividad.descripcion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Productos a cargo</label>
+                            <textarea wire:model="nuevaActividad.resultados" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500"></textarea>
+                            @error('nuevaActividad.resultados') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha Inicio <span class="text-red-500">*</span></label>
@@ -1306,9 +1311,19 @@
                 @error('resumen') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de Participantes <span class="text-red-500">*</span></label>
-                <textarea wire:model.live.debounce.1000ms="descripcion_participantes" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
-                @error('descripcion_participantes') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de la participación de la UNAH <span class="text-red-500">*</span></label>
+                <textarea wire:model.live.debounce.1000ms="participacion_unah" rows="4" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('participacion_unah') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de la participación de la entidad contraparte <span class="text-red-500">*</span></label>
+                <textarea wire:model.live.debounce.1000ms="participacion_contraparte" rows="4" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('participacion_contraparte') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de la participación de la comunidad beneficiada <span class="text-red-500">*</span></label>
+                <textarea wire:model.live.debounce.1000ms="participacion_comunidad" rows="4" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
+                @error('participacion_comunidad') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Definición del Problema <span class="text-red-500">*</span></label>
@@ -1342,11 +1357,6 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alineamiento a la Reforma <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="alineamiento_reforma" rows="5" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 @error('alineamiento_reforma') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Impacto Deseado <span class="text-red-500">*</span></label>
-                <textarea wire:model.live.debounce.1000ms="impacto_deseado" rows="5" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
-                @error('impacto_deseado') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metodología <span class="text-red-500">*</span></label>
@@ -1640,9 +1650,9 @@
                 @error('objetivo_general') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
 
-            {{-- Two-column layout: Objetivos Específicos (left) + Resultados (right) --}}
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {{-- Left: Objetivos Específicos list --}}
+            {{-- Three-column layout: Objetivos Específicos | Descripción | Resultados Esperados --}}
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {{-- Columna 1: Objetivos Específicos list --}}
                 <div>
                     <div class="flex items-center justify-between mb-3">
                         <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Objetivos Específicos <span class="text-red-500">*</span></h4>
@@ -1677,76 +1687,73 @@
                     </div>
                 </div>
 
-                {{-- Right: Selected Objetivo Detail + Resultados --}}
                 @php $objActivo = $objetivosEspecificos[$selectedObjetivoIndex] ?? null; @endphp
                 @if($objActivo !== null)
                 @php $objetivoActivoKey = $objActivo['wire_key'] ?? $objActivo['id'] ?? 'nuevo-'.$selectedObjetivoIndex; @endphp
-                <div wire:key="objetivo-detalle-{{ $objetivoActivoKey }}" class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
-                    <div class="flex items-center justify-between mb-1">
-                        <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                            Objetivo Específico {{ $selectedObjetivoIndex + 1 }}
-                        </h5>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción <span class="text-red-500">*</span></label>
-                        <textarea wire:key="objetivo-descripcion-{{ $objetivoActivoKey }}" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.descripcion" rows="3"
-                            class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
-                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.descripcion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                    </div>
 
-                    {{-- Resultados del objetivo activo --}}
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <p class="text-xs font-semibold text-gray-600 dark:text-gray-400">Resultados Esperados <span class="text-red-500">*</span></p>
-                            <button wire:click="addResultado({{ $selectedObjetivoIndex }})" type="button"
-                                class="text-xs text-blue-600 hover:text-blue-800">+ Agregar resultado</button>
-                        </div>
-                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados") <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
-                        <div class="space-y-2 max-h-72 overflow-y-auto pr-1">
-                            @foreach($objActivo['resultados'] ?? [] as $ri => $resultado)
-                            <div wire:key="resultado-{{ $objetivoActivoKey }}-{{ $resultado['wire_key'] ?? $resultado['id'] ?? 'nuevo-'.$ri }}" class="p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="text-xs font-semibold text-gray-500">R{{ $ri + 1 }}</span>
-                                    <button wire:click="removeResultado({{ $selectedObjetivoIndex }}, {{ $ri }})" type="button"
-                                        class="text-xs text-red-500 hover:text-red-700">✕</button>
+                {{-- Columna 2: Descripción del objetivo activo --}}
+                <div wire:key="objetivo-detalle-{{ $objetivoActivoKey }}" class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Objetivo Específico {{ $selectedObjetivoIndex + 1 }}
+                    </h5>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción <span class="text-red-500">*</span></label>
+                    <textarea wire:key="objetivo-descripcion-{{ $objetivoActivoKey }}" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.descripcion" rows="10"
+                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
+                    @error("objetivosEspecificos.{$selectedObjetivoIndex}.descripcion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                {{-- Columna 3: Resultados Esperados del objetivo activo --}}
+                <div wire:key="objetivo-resultados-{{ $objetivoActivoKey }}" class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">Resultados Esperados <span class="text-red-500">*</span></p>
+                        <button wire:click="addResultado({{ $selectedObjetivoIndex }})" type="button"
+                            class="text-xs text-blue-600 hover:text-blue-800">+ Agregar</button>
+                    </div>
+                    @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados") <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
+                    <div class="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                        @foreach($objActivo['resultados'] ?? [] as $ri => $resultado)
+                        <div wire:key="resultado-{{ $objetivoActivoKey }}-{{ $resultado['wire_key'] ?? $resultado['id'] ?? 'nuevo-'.$ri }}" class="p-2.5 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-xs font-semibold text-gray-500">R{{ $ri + 1 }}</span>
+                                <button wire:click="removeResultado({{ $selectedObjetivoIndex }}, {{ $ri }})" type="button"
+                                    class="text-xs text-red-500 hover:text-red-700">✕</button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <div class="col-span-2">
+                                    <label class="block text-xs text-gray-500 mb-0.5">Resultado <span class="text-red-500">*</span></label>
+                                    <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_resultado"
+                                        class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                    @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_resultado") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
-                                <div class="grid grid-cols-1 gap-2">
-                                    <div>
-                                        <label class="block text-xs text-gray-500 mb-0.5">Resultado <span class="text-red-500">*</span></label>
-                                        <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_resultado"
-                                            class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
-                                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_resultado") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs text-gray-500 mb-0.5">Indicador <span class="text-red-500">*</span></label>
-                                        <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_indicador"
-                                            class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
-                                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_indicador") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs text-gray-500 mb-0.5">Medio de Verificación <span class="text-red-500">*</span></label>
-                                        <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_medio_verificacion"
-                                            class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
-                                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_medio_verificacion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs text-gray-500 mb-0.5">Plazo <span class="text-red-500">*</span></label>
-                                        <select wire:model.live="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.plazo"
-                                            class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500">
-                                            <option value="">Seleccione...</option>
-                                            <option value="corto_plazo">Corto plazo</option>
-                                            <option value="mediano_plazo">Mediano plazo</option>
-                                            <option value="largo_plazo">Largo plazo</option>
-                                        </select>
-                                        @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.plazo") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                                    </div>
+                                <div class="col-span-2">
+                                    <label class="block text-xs text-gray-500 mb-0.5">Indicador <span class="text-red-500">*</span></label>
+                                    <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_indicador"
+                                        class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                    @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_indicador") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="block text-xs text-gray-500 mb-0.5">Medio de Verificación <span class="text-red-500">*</span></label>
+                                    <input type="text" wire:model.live.debounce.1000ms="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.nombre_medio_verificacion"
+                                        class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                    @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_medio_verificacion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="block text-xs text-gray-500 mb-0.5">Plazo <span class="text-red-500">*</span></label>
+                                    <select wire:model.live="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.plazo"
+                                        class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500">
+                                        <option value="">Seleccione...</option>
+                                        <option value="corto_plazo">Corto plazo</option>
+                                        <option value="mediano_plazo">Mediano plazo</option>
+                                        <option value="largo_plazo">Largo plazo</option>
+                                    </select>
+                                    @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.plazo") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
                             </div>
-                            @endforeach
-                            @if(empty($objActivo['resultados']))
-                            <p class="text-xs text-gray-500 text-center py-2">Sin resultados. Haz clic en "+ Agregar resultado".</p>
-                            @endif
                         </div>
+                        @endforeach
+                        @if(empty($objActivo['resultados']))
+                        <p class="text-xs text-gray-500 text-center py-2">Sin resultados. Haz clic en "+ Agregar".</p>
+                        @endif
                     </div>
                 </div>
                 @endif
