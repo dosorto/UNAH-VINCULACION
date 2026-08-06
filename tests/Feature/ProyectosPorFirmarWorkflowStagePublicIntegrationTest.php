@@ -173,6 +173,7 @@ class ProyectosPorFirmarWorkflowStagePublicIntegrationTest extends TestCase
     public function test_aprobar_publico_conserva_legacy(): void
     {
         $context = $this->contexto();
+        $this->tipoEstado('En curso');
         [$user, $empleado] = $this->usuarioEmpleadoConRol('Rol aprobar legacy');
         $legacy = $this->firmaLegacy($context['proyecto'], $context['cargos'][0], $empleado);
         $user->forceFill(['active_role_id' => null])->save();

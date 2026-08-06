@@ -166,6 +166,16 @@
                         @include('components.fichas.ficha-proyecto-vinculacion', ['proyecto' => $viewProyecto])
                     @endif
                 </div>
+                @if ($this->puedeSubsanar($viewFirma->id))
+                    <div class="border-t border-gray-200 px-6 py-4 dark:border-gray-700">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">Observación de aprobación</label>
+                        <textarea wire:model.defer="aprobacionComentario" rows="3"
+                            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"></textarea>
+                        @error('aprobacionComentario')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                @endif
                 @if ($viewDocumento?->tipo_documento === 'Informe Final')
                     <div class="border-t border-gray-200 px-6 py-4 dark:border-gray-700">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Documento de revisión (PDF opcional)</label>

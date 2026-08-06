@@ -1104,7 +1104,7 @@ class ConfiguracionFlujosProyectos extends Component
             ->exists();
     }
 
-    protected function fallbackCargoFirmaId(string $tipoEtapa = 'REVISION', mixed $currentCargoId = null): int
+    protected function fallbackCargoFirmaId(string $tipoEtapa = 'REVISION', mixed $currentCargoId = null): ?int
     {
         if ($currentCargoId && CargoFirma::whereKey($currentCargoId)->exists()) {
             return (int) $currentCargoId;
@@ -1121,7 +1121,8 @@ class ConfiguracionFlujosProyectos extends Component
             ->where('cargo_firma.descripcion', 'Proyecto')
             ->where('tipo_cargo_firma.nombre', $cargoName)
             ->value('cargo_firma.id')
-            ?? CargoFirma::where('descripcion', 'Proyecto')->orderBy('id')->value('id'));
+            ?? CargoFirma::where('descripcion', 'Proyecto')->orderBy('id')->value('id')
+            ?? 0) ?: null;
     }
 
     protected function generateUniqueFlowCode(string $base, ?int $ignoreId = null): string

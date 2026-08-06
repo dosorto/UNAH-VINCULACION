@@ -179,7 +179,7 @@ class InformeIntermedioWorkflowTest extends TestCase
 
     }
 
-    public function test_no_permite_aprobar_informe_intermedio_sin_firma_activa(): void
+    public function test_permite_aprobar_informe_intermedio_sin_firma_activa_dejando_firma_null(): void
     {
         $contexto = $this->contexto(true, false);
         $workflow = app(InformeIntermedioProyectoWorkflowService::class);
@@ -187,19 +187,12 @@ class InformeIntermedioWorkflowTest extends TestCase
         $documento = $workflow->enviar($informe, $contexto['usuario']);
         $firma = $documento->firma_documento()->orderBy('orden_revision')->firstOrFail();
 
-        try {
-            $this->harness()->aprobarEtapa($firma, $contexto['usuario']);
-            $this->fail('La aprobación sin firma debió rechazarse.');
-        } catch (\RuntimeException $exception) {
-            $this->assertSame(
-                'No puede aprobar esta etapa porque no tiene una firma registrada. Registre su firma antes de continuar.',
-                $exception->getMessage()
-            );
-        }
+        $this->harness()->aprobarEtapa($firma, $contexto['usuario']);
 
-        $this->assertSame('Pendiente', $firma->fresh()->estado_revision);
+        $this->assertSame('Aprobado', $firma->fresh()->estado_revision);
         $this->assertNull($firma->fresh()->firma_id);
-        $this->assertSame(1, $documento->estado_documento()->count());
+        $this->assertNull($firma->fresh()->sello_id);
+        $this->assertSame(2, $documento->estado_documento()->count());
     }
 
     public function test_pdf_requiere_autenticacion_y_autorizacion(): void
@@ -314,6 +307,8 @@ class InformeIntermedioWorkflowTest extends TestCase
 
         $proyecto->update(['flujo_aprobacion_id' => $flujo->id]);
         $enCurso = TipoEstado::firstOrCreate(['nombre' => 'En curso']);
+        TipoEstado::firstOrCreate(['nombre' => 'Subsanacion']);
+        TipoEstado::firstOrCreate(['nombre' => 'Aprobado']);
         $proyecto->estado_proyecto()->create([
             'empleado_id' => $empleado->id,
             'tipo_estado_id' => $enCurso->id,

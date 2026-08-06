@@ -92,6 +92,7 @@ class HistorialProyectoWorkflowStageResubmissionIntegrationTest extends TestCase
     public function test_subsanar_conserva_el_camino_legacy_si_no_hay_firma_rechazada_por_etapa(): void
     {
         $context = $this->crearContexto();
+        $this->crearTipoEstado('Subsanacion');
         [$user, $empleado] = $this->crearUsuarioEmpleado();
         $this->actingAs($user);
         $this->crearEstado($context['proyecto'], 'Revision legacy', $empleado);
@@ -115,6 +116,7 @@ class HistorialProyectoWorkflowStageResubmissionIntegrationTest extends TestCase
     public function test_firma_rechazada_legacy_o_cargo_no_activan_el_camino_nuevo(): void
     {
         $context = $this->crearContexto();
+        $this->crearTipoEstado('Subsanacion');
         [$user, $empleado] = $this->crearUsuarioEmpleado();
         $this->actingAs($user);
         $this->crearEstado($context['proyecto'], 'Revision legacy con rechazo', $empleado);

@@ -37,6 +37,7 @@ return [
 
     'microsoft' => [
         'enabled' => filter_var(env('MICROSOFT_LOGIN_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+        'password_login_enabled' => filter_var(env('MICROSOFT_PASSWORD_LOGIN_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
         'client_id' => env('MICROSOFT_CLIENT_ID'),
         'client_secret' => env('MICROSOFT_CLIENT_SECRET'),
         'redirect' => env('MICROSOFT_REDIRECT_URI'),

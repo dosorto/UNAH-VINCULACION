@@ -29,9 +29,9 @@ use Illuminate\Support\Facades\Schema;
  */
 trait ResuelveFirmaPorEtapa
 {
-    protected function aprobarFirmaPorEtapa(FirmaProyecto $firma, User $user, ?\Closure $despuesDeAprobar = null): FirmaProyecto
+    protected function aprobarFirmaPorEtapa(FirmaProyecto $firma, User $user, ?\Closure $despuesDeAprobar = null, ?string $comentario = null): FirmaProyecto
     {
-        return DB::transaction(function () use ($firma, $user, $despuesDeAprobar): FirmaProyecto {
+        return DB::transaction(function () use ($firma, $user, $despuesDeAprobar, $comentario): FirmaProyecto {
             $firmaBloqueada = FirmaProyecto::query()
                 ->whereKey($firma->id)
                 ->lockForUpdate()
@@ -80,9 +80,9 @@ trait ResuelveFirmaPorEtapa
             $siguienteFirma = $proyecto->siguienteFirmaDeEtapa($firmaAprobada);
 
             if ($siguienteFirma) {
-                $this->registrarEstadoSiguienteDeFirmaPorEtapa($firmaAprobada, $siguienteFirma, $user);
+                $this->registrarEstadoSiguienteDeFirmaPorEtapa($firmaAprobada, $siguienteFirma, $user, $comentario);
             } else {
-                $this->finalizarFlujoDeFirmaPorEtapa($firmaAprobada, $user);
+                $this->finalizarFlujoDeFirmaPorEtapa($firmaAprobada, $user, $comentario);
             }
 
             if ($despuesDeAprobar) {
@@ -96,7 +96,8 @@ trait ResuelveFirmaPorEtapa
     protected function registrarEstadoSiguienteDeFirmaPorEtapa(
         FirmaProyecto $firmaAprobada,
         FirmaProyecto $siguienteFirma,
-        User $user
+        User $user,
+        ?string $comentario = null
     ): void {
         $proyecto = $this->proyectoDeFirmaPorEtapa($firmaAprobada);
         $documento = $this->documentoDeFirmaPorEtapa($firmaAprobada);
@@ -128,6 +129,10 @@ trait ResuelveFirmaPorEtapa
                 : 'Firma aprobada y proyecto avanzado a la siguiente etapa del flujo.',
         ];
 
+        if (filled($comentario)) {
+            $payload['comentario'] .= ' '.$comentario;
+        }
+
         if ($documento) {
             $documento->estado_documento()->create($payload);
 
@@ -158,7 +163,7 @@ trait ResuelveFirmaPorEtapa
         );
     }
 
-    protected function finalizarFlujoDeFirmaPorEtapa(FirmaProyecto $firmaAprobada, User $user): void
+    protected function finalizarFlujoDeFirmaPorEtapa(FirmaProyecto $firmaAprobada, User $user, ?string $comentario = null): void
     {
         $proyecto = $this->proyectoDeFirmaPorEtapa($firmaAprobada);
         $documento = $this->documentoDeFirmaPorEtapa($firmaAprobada);
@@ -182,7 +187,7 @@ trait ResuelveFirmaPorEtapa
                 throw new \RuntimeException('No se puede determinar el proceso del documento.');
             }
 
-            $informeIntermedioFueAprobado = $this->marcarDocumentoAprobado($documento, $user);
+            $informeIntermedioFueAprobado = $this->marcarDocumentoAprobado($documento, $user, $comentario);
 
             if ($documento->tipo_documento === 'Informe Intermedio' && $informeIntermedioFueAprobado) {
                 $this->notificarCoordinadorProyecto(
@@ -223,7 +228,9 @@ trait ResuelveFirmaPorEtapa
             'empleado_id' => $empleadoId,
             'tipo_estado_id' => $estadoFinalId,
             'fecha' => now(),
-            'comentario' => 'Todas las etapas del flujo de inscripción fueron aprobadas.',
+            'comentario' => filled($comentario)
+                ? $comentario
+                : 'Todas las etapas del flujo de inscripción fueron aprobadas.',
         ]);
 
         DB::afterCommit(function () use ($proyecto, $user): void {
@@ -396,7 +403,7 @@ trait ResuelveFirmaPorEtapa
         $proyecto->estado_proyecto()->create($payload);
     }
 
-    protected function marcarDocumentoAprobado(DocumentoProyecto $documento, User $user): bool
+    protected function marcarDocumentoAprobado(DocumentoProyecto $documento, User $user, ?string $comentario = null): bool
     {
         $empleadoId = $user->empleado?->id;
         $aprobadoId = TipoEstado::where('nombre', 'Aprobado')->value('id');
@@ -416,7 +423,9 @@ trait ResuelveFirmaPorEtapa
                 'empleado_id' => $empleadoId,
                 'tipo_estado_id' => $finalizadoId,
                 'fecha' => now(),
-                'comentario' => '[Cierre INF-001] Informe final aprobado; proyecto finalizado.',
+                'comentario' => filled($comentario)
+                    ? '[Cierre INF-001] Informe final aprobado; proyecto finalizado. '.$comentario
+                    : '[Cierre INF-001] Informe final aprobado; proyecto finalizado.',
             ]);
             InformeFinalProyecto::query()
                 ->where('proyecto_id', $proyecto->id)
@@ -446,8 +455,8 @@ trait ResuelveFirmaPorEtapa
             'tipo_estado_id' => $aprobadoId,
             'fecha' => now(),
             'comentario' => $documento->tipo_documento === 'Informe Final'
-                ? '[Cierre INF-001] Todas las etapas de cierre fueron aprobadas.'
-                : 'El informe ha sido aprobado correctamente',
+                ? (filled($comentario) ? '[Cierre INF-001] Todas las etapas de cierre fueron aprobadas. '.$comentario : '[Cierre INF-001] Todas las etapas de cierre fueron aprobadas.')
+                : (filled($comentario) ? 'El informe ha sido aprobado correctamente. '.$comentario : 'El informe ha sido aprobado correctamente'),
         ]);
 
         if ($documento->tipo_documento === 'Informe Final') {

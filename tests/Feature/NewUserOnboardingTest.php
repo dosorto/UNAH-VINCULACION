@@ -73,9 +73,10 @@ class NewUserOnboardingTest extends TestCase
     public function test_login_solo_muestra_el_acceso_con_correo_institucional(): void
     {
         config()->set('services.microsoft.enabled', true);
+        config()->set('services.microsoft.password_login_enabled', false);
 
         Livewire::test(Login::class)
-            ->assertSee('Continuar con tu correo institucional')
+            ->assertSee('Continuar con Microsoft')
             ->assertDontSee('Acceso de desarrollo')
             ->assertDontSee('Contraseña')
             ->assertDontSee('Iniciar sesión')
@@ -114,21 +115,18 @@ class NewUserOnboardingTest extends TestCase
             ->assertRedirect(route('completar_perfil'));
     }
 
-    public function test_formulario_empleado_exige_datos_firma_sello_y_proyectos_cuando_aplica(): void
+    public function test_formulario_empleado_exige_datos_firma_y_proyectos_cuando_aplica(): void
     {
         Storage::fake('public');
 
         $user = User::factory()->create([
             'email' => 'perfil.nuevo.'.uniqid().'@unah.edu.hn',
         ]);
-        $user = app(NewUserOnboardingService::class)->prepareEmployeeProfile($user);
-        [$centro, $categoria, $departamento, $carrera] = $this->catalogosAcademicos();
         $numeroEmpleado = (string) random_int(10000000, 99999999);
+        $user = app(NewUserOnboardingService::class)->prepareEmployeeProfile($user, $numeroEmpleado, 'Perfil Nuevo Completo');
+        [$centro, $categoria, $departamento, $carrera] = $this->catalogosAcademicos();
 
         $component = Livewire::actingAs($user)->test(EditPerfilDocente::class)
-            ->set('name', 'Perfil Nuevo')
-            ->set('nombre_completo', 'Perfil Nuevo Completo')
-            ->set('numero_empleado', $numeroEmpleado)
             ->set('celular', '99999999')
             ->set('centro_facultad_id', $centro->id)
             ->call('save')
@@ -151,16 +149,12 @@ class NewUserOnboardingTest extends TestCase
 
         $component
             ->set('firmaUpload', UploadedFile::fake()->image('firma.png', 320, 120))
-            ->call('save')
-            ->assertHasErrors(['selloUpload']);
-
-        $component
-            ->set('selloUpload', UploadedFile::fake()->image('sello.png', 320, 120))
             ->set('tiene_proyectos_previos', 'si')
             ->call('save')
             ->assertHasErrors(['tiene_proyectos_previos']);
 
         $component
+            ->set('selloUpload', UploadedFile::fake()->image('sello.png', 320, 120))
             ->set('tiene_proyectos_previos', 'no')
             ->call('save')
             ->assertRedirect(route('inicio'));
