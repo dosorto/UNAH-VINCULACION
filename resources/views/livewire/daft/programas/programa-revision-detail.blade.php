@@ -59,7 +59,7 @@
                         ['Versión en revisión', 'V'.$programa->version_actual],
                         ['Versión vigente', $programa->versiones->firstWhere('vigente', true)?->numero_version ? 'V'.$programa->versiones->firstWhere('vigente', true)->numero_version : 'Sin versión aprobada'],
                         ['Creado por', $programa->creadoPor?->name ?? 'Usuario institucional'],
-                        ['Rango de horas del tipo', ($programa->tipoPrograma?->horas_minimas ?? 0).' a '.($programa->tipoPrograma?->horas_maximas ?? 'N/D').' horas'],
+                        ['Duración requerida por el tipo', $programa->tipoPrograma?->descripcionDuracion() ?? 'No definida'],
                         ['Total de horas del programa', $programa->horas_maximas_programa.' horas'],
                     ] as [$label, $value])
                         <div class="bg-white p-4 dark:bg-slate-900"><p class="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{{ $label }}</p><p class="mt-2 text-sm font-bold text-slate-900 dark:text-white">{{ $value }}</p></div>

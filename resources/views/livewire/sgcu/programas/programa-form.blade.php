@@ -73,7 +73,7 @@
                 <div>
                     <p class="text-[11px] font-black uppercase tracking-[0.28em] text-white/70">Tipo seleccionado</p>
                     <h2 class="mt-1 text-lg font-extrabold">{{ $currentTipoPrograma->nombre }}</h2>
-                    <p class="mt-1 text-sm text-white/80">Rango permitido: {{ $currentTipoPrograma->horas_minimas ?? 0 }} a {{ $currentTipoPrograma->horas_maximas ?? 'N/D' }} horas.</p>
+                    <p class="mt-1 text-sm text-white/80">Duración requerida: {{ $currentTipoPrograma->descripcionDuracion() }}.</p>
                 </div>
             </div>
         </section>

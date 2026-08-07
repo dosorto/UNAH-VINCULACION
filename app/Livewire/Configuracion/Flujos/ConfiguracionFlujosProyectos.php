@@ -20,6 +20,8 @@ use Spatie\Permission\Models\Role;
 
 class ConfiguracionFlujosProyectos extends Component
 {
+    private const DAFT_ROLE_PREFIX = 'DAFT ';
+
     private const PPS_ACTION_CODE = 'PPS_VOLUNTARIADO_GESTION_RIESGO';
     private const PPS_DEFAULT_CODE = 'PPS_SERVICIO_SOCIAL_DEFAULT';
     private const ACTION_DESARROLLO_ID = -101;
@@ -280,7 +282,14 @@ class ConfiguracionFlujosProyectos extends Component
             'stages.*.aplica_cierre_proyecto' => ['boolean'],
             'stages.*.nombre' => ['required', 'string', 'max:180'],
             'stages.*.tipo_etapa' => ['required', 'in:FORMULACION,REVISION,APROBACION'],
-            'stages.*.rol_revisor_id' => ['nullable', 'exists:roles,id'],
+            'stages.*.rol_revisor_id' => [
+                'nullable',
+                Rule::exists('roles', 'id')->where(
+                    fn ($query) => $query
+                        ->where('guard_name', 'web')
+                        ->where('name', 'not like', self::DAFT_ROLE_PREFIX.'%')
+                ),
+            ],
             'stages.*.usuario_responsable_id' => ['nullable', 'exists:users,id'],
             'stages.*.cargo_firma_id' => ['nullable', 'required_if:stages.*.tipo_etapa,APROBACION', 'exists:cargo_firma,id'],
             'stages.*.requiere_asignacion' => ['boolean'],
@@ -350,8 +359,8 @@ class ConfiguracionFlujosProyectos extends Component
         $actions = $this->projectFlowActions();
         $tiposPrograma = TipoPrograma::with('flujoAprobacion')->orderBy('nombre')->get();
         $selectedTipoPrograma = $tiposPrograma->firstWhere('id', $this->programSelectedTipoProgramaId);
-        $roles = Role::query()->orderBy('name')->get();
-        $usuarios = User::query()->orderBy('name')->get(['id', 'name']);
+        $projectRoles = $this->projectRoles();
+        $programRoles = $this->programRoles();
         // Todo formulario tiene siempre las mismas 4 firmas fijas (lo que varía
         // por flujo es el ROL con acceso a cada etapa, no el cargo de firma).
         // 'descripcion' = Proyecto son los cargos vinculados al estado del propio
@@ -369,9 +378,10 @@ class ConfiguracionFlujosProyectos extends Component
             ->values();
 
         return view('livewire.configuracion.flujos.configuracion-flujos-proyectos', [
-            'roles' => $roles,
-            'usuarios' => $usuarios,
-            'usuariosPorRol' => $this->usersGroupedByRole($roles),
+            'projectRoles' => $projectRoles,
+            'programRoles' => $programRoles,
+            'projectUsersByRole' => $this->usersGroupedByRole($projectRoles),
+            'programUsersByRole' => $this->usersGroupedByRole($programRoles),
             'actions' => $actions,
             'subactions' => $this->subactionsForAction($this->selectedActionId),
             'tiposPrograma' => $tiposPrograma,
@@ -398,7 +408,14 @@ class ConfiguracionFlujosProyectos extends Component
             'programStages.*.aplica_cierre_proyecto' => ['boolean'],
             'programStages.*.nombre' => ['required', 'string', 'max:180'],
             'programStages.*.tipo_etapa' => ['required', 'in:REVISION,APROBACION'],
-            'programStages.*.rol_revisor_id' => ['nullable', 'exists:roles,id'],
+            'programStages.*.rol_revisor_id' => [
+                'nullable',
+                Rule::exists('roles', 'id')->where(
+                    fn ($query) => $query
+                        ->where('guard_name', 'web')
+                        ->where('name', 'like', self::DAFT_ROLE_PREFIX.'%')
+                ),
+            ],
             'programStages.*.usuario_responsable_id' => ['nullable', 'exists:users,id'],
             'programStages.*.cargo_firma_id' => ['nullable', 'required_if:programStages.*.tipo_etapa,APROBACION', 'exists:cargo_firma,id'],
             'programStages.*.requiere_asignacion' => ['boolean'],
@@ -715,6 +732,7 @@ class ConfiguracionFlujosProyectos extends Component
         $this->stages = $flow->etapas
             ->sortBy('orden')
             ->map(fn ($stage) => [
+                'ui_key' => 'project-stage-'.$stage->id,
                 'id' => $stage->id,
                 'codigo' => $stage->codigo,
                 'aplica_inscripcion' => (bool) ($stage->aplica_inscripcion ?? true),
@@ -756,6 +774,7 @@ class ConfiguracionFlujosProyectos extends Component
     protected function blankStage(int $order, ?string $codigo = null): array
     {
         return [
+            'ui_key' => 'project-stage-'.(string) Str::uuid(),
             'id' => null,
             'codigo' => $codigo ?: 'ETAPA_'.$order,
             'aplica_inscripcion' => true,
@@ -837,6 +856,7 @@ class ConfiguracionFlujosProyectos extends Component
         $this->programStages = $flow->etapas
             ->sortBy('orden')
             ->map(fn ($stage) => [
+                'ui_key' => 'program-stage-'.$stage->id,
                 'id' => $stage->id,
                 'codigo' => $stage->codigo,
                 'aplica_inscripcion' => (bool) ($stage->aplica_inscripcion ?? true),
@@ -862,6 +882,7 @@ class ConfiguracionFlujosProyectos extends Component
     protected function blankProgramStage(int $order): array
     {
         return array_replace($this->blankStage($order), [
+            'ui_key' => 'program-stage-'.(string) Str::uuid(),
             'requiere_asignacion' => false,
             'usuario_responsable_id' => '',
         ]);
@@ -1062,6 +1083,24 @@ class ConfiguracionFlujosProyectos extends Component
                     ->all(),
             ])
             ->all();
+    }
+
+    protected function projectRoles()
+    {
+        return Role::query()
+            ->where('guard_name', 'web')
+            ->where('name', 'not like', self::DAFT_ROLE_PREFIX.'%')
+            ->orderBy('name')
+            ->get();
+    }
+
+    protected function programRoles()
+    {
+        return Role::query()
+            ->where('guard_name', 'web')
+            ->where('name', 'like', self::DAFT_ROLE_PREFIX.'%')
+            ->orderBy('name')
+            ->get();
     }
 
     protected function clearInvalidResponsible(array &$stages, int $index): void

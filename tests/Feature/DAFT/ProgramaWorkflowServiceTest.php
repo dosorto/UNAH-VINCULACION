@@ -10,6 +10,7 @@ use App\Livewire\DAFT\Programas\ListTiposPrograma;
 use App\Livewire\DAFT\Programas\ProgramaForm;
 use App\Livewire\DAFT\Programas\ProgramaRevisionDetail;
 use App\Livewire\Inicio\InicioAdmin;
+use App\Mail\ProgramaRevisionAsignada;
 use App\Models\Asignatura;
 use App\Models\DAFT\ProgramaCertificacion;
 use App\Models\DAFT\TipoPrograma;
@@ -23,6 +24,7 @@ use App\Models\User;
 use App\Services\DAFT\ProgramaWorkflowService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
@@ -34,6 +36,12 @@ use Tests\TestCase;
 class ProgramaWorkflowServiceTest extends TestCase
 {
     use DatabaseTransactions;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Mail::fake();
+    }
 
     public function test_programa_recorre_el_mismo_ciclo_de_envio_aprobacion_y_cierre(): void
     {
@@ -79,6 +87,28 @@ class ProgramaWorkflowServiceTest extends TestCase
         $this->assertSame(2, $programa->revision_ciclo);
         $this->assertCount(1, $programa->revisionesActuales());
         $this->assertSame('ETAPA_2', $programa->etapaActual()?->etapa_codigo);
+    }
+
+    public function test_subsanacion_regresa_exactamente_al_usuario_que_la_solicito(): void
+    {
+        [$programa, $revisor] = $this->escenarioConDosEtapas();
+        $adminRole = Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create(['active_role_id' => $adminRole->id]);
+        $admin->assignRole([$adminRole, $revisor->activeRole]);
+        $service = app(ProgramaWorkflowService::class);
+
+        $service->enviarARevision($programa, $revisor);
+        $service->rechazar($programa->fresh()->etapaActual(), $admin, 'Solicito subsanación.');
+
+        Mail::fake();
+        $service->enviarARevision($programa->fresh(), $revisor);
+        $revision = $programa->fresh()->etapaActual();
+
+        $this->assertSame($admin->id, $revision?->asignado_usuario_id);
+        Mail::assertQueued(
+            ProgramaRevisionAsignada::class,
+            fn (ProgramaRevisionAsignada $mail): bool => $mail->revision->asignado_usuario_id === $admin->id
+        );
     }
 
     public function test_revision_asignada_solo_es_visible_para_el_usuario_asignado(): void
@@ -340,6 +370,71 @@ class ProgramaWorkflowServiceTest extends TestCase
         ]);
     }
 
+    public function test_configuracion_separa_los_roles_de_proyectos_y_daft(): void
+    {
+        $projectRole = Role::findOrCreate('Revisor Proyecto Catalogo '.uniqid(), 'web');
+        $daftRole = Role::findOrCreate('DAFT Revisor Catalogo '.uniqid(), 'web');
+
+        Livewire::test(ConfiguracionFlujosProyectos::class)
+            ->assertViewHas('projectRoles', fn ($roles): bool => $roles->contains('id', $projectRole->id)
+                && ! $roles->contains('id', $daftRole->id))
+            ->assertViewHas('programRoles', fn ($roles): bool => $roles->contains('id', $daftRole->id)
+                && ! $roles->contains('id', $projectRole->id));
+    }
+
+    public function test_cambiar_cargo_conserva_el_rol_y_cambiar_rol_solo_limpia_el_responsable(): void
+    {
+        $roleInicial = Role::findOrCreate('Revisor Proyecto Inicial '.uniqid(), 'web');
+        $roleNuevo = Role::findOrCreate('Revisor Proyecto Nuevo '.uniqid(), 'web');
+        $responsable = User::factory()->create(['active_role_id' => $roleInicial->id]);
+        $responsable->assignRole($roleInicial);
+
+        $estado = TipoEstado::firstOrCreate(['nombre' => 'Estado proyecto configuracion']);
+        $tipoCargo = TipoCargoFirma::firstOrCreate(['nombre' => 'Director centro']);
+        $cargo = CargoFirma::firstOrCreate(
+            [
+                'descripcion' => 'Proyecto',
+                'tipo_cargo_firma_id' => $tipoCargo->id,
+            ],
+            [
+                'tipo_estado_id' => $estado->id,
+                'estado_siguiente_id' => $estado->id,
+            ]
+        );
+
+        Livewire::test(ConfiguracionFlujosProyectos::class)
+            ->set('stages.0.tipo_etapa', 'APROBACION')
+            ->set('stages.0.rol_revisor_id', (string) $roleInicial->id)
+            ->set('stages.0.usuario_responsable_id', (string) $responsable->id)
+            ->set('stages.0.cargo_firma_id', (string) $cargo->id)
+            ->assertSet('stages.0.cargo_firma_id', (string) $cargo->id)
+            ->assertSet('stages.0.rol_revisor_id', (string) $roleInicial->id)
+            ->assertSet('stages.0.usuario_responsable_id', (string) $responsable->id)
+            ->set('stages.0.rol_revisor_id', (string) $roleNuevo->id)
+            ->assertSet('stages.0.cargo_firma_id', (string) $cargo->id)
+            ->assertSet('stages.0.rol_revisor_id', (string) $roleNuevo->id)
+            ->assertSet('stages.0.usuario_responsable_id', '');
+    }
+
+    public function test_configuracion_rechaza_roles_de_otro_subsistema(): void
+    {
+        [$programa] = $this->escenarioConDosEtapas();
+        $projectRole = Role::findOrCreate('Revisor Proyecto Validacion '.uniqid(), 'web');
+        $daftRole = Role::findOrCreate('DAFT Revisor Validacion '.uniqid(), 'web');
+
+        Livewire::test(ConfiguracionFlujosProyectos::class)
+            ->set('stages.0.rol_revisor_id', (string) $daftRole->id)
+            ->call('save')
+            ->assertHasErrors('stages.0.rol_revisor_id');
+
+        Livewire::test(ConfiguracionFlujosProyectos::class)
+            ->call('showProgramFlows')
+            ->call('selectProgramTipoPrograma', $programa->tipo_programa_id)
+            ->set('programStages.0.rol_revisor_id', (string) $projectRole->id)
+            ->call('save')
+            ->assertHasErrors('programStages.0.rol_revisor_id');
+    }
+
     public function test_revisor_abre_el_expediente_del_programa_antes_de_aprobar(): void
     {
         Storage::fake('public');
@@ -418,9 +513,43 @@ class ProgramaWorkflowServiceTest extends TestCase
 
         $this->assertDatabaseHas('tipos_programa', [
             'nombre' => $nombre,
+            'modalidad_duracion' => 'HORAS',
             'horas_minimas' => 10,
             'horas_maximas' => 120,
             'activo' => true,
+        ]);
+    }
+
+    public function test_tipo_de_programa_por_dias_guarda_sus_reglas_de_duracion(): void
+    {
+        Storage::fake('public');
+        $nombre = 'Congreso '.uniqid();
+
+        Livewire::test(ListTiposPrograma::class)
+            ->set('tipoPrograma.nombre', $nombre)
+            ->set('tipoPrograma.modalidad_duracion', 'DIAS')
+            ->set('tipoPrograma.dias_minimos', 2)
+            ->set('tipoPrograma.dias_maximos', 5)
+            ->set('tipoPrograma.horas_minimas_por_dia', 6)
+            ->set('tipoPrograma.dias_consecutivos', true)
+            ->set('plantillaDocumento', UploadedFile::fake()->create(
+                'congreso.docx',
+                20,
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ))
+            ->call('saveTipoPrograma')
+            ->assertHasNoErrors()
+            ->assertSee('2–5 días · mín. 6 h/día · consecutivos');
+
+        $this->assertDatabaseHas('tipos_programa', [
+            'nombre' => $nombre,
+            'modalidad_duracion' => 'DIAS',
+            'horas_minimas' => null,
+            'horas_maximas' => null,
+            'dias_minimos' => 2,
+            'dias_maximos' => 5,
+            'horas_minimas_por_dia' => 6,
+            'dias_consecutivos' => true,
         ]);
     }
 
@@ -549,7 +678,7 @@ class ProgramaWorkflowServiceTest extends TestCase
         $this->assertSame($revisor->id, $revisionSubsanada?->asignado_usuario_id);
     }
 
-    public function test_subsanacion_vuelve_a_pendiente_si_responsable_anterior_ya_no_es_elegible(): void
+    public function test_subsanacion_bloquea_si_responsable_anterior_ya_no_es_elegible_y_acepta_reemplazo(): void
     {
         [$programa, $revisor, $flujo] = $this->escenarioConDosEtapas();
         $etapa = $flujo->etapas()->firstOrFail();
@@ -560,12 +689,24 @@ class ProgramaWorkflowServiceTest extends TestCase
         $service->asignarAUsuario($revision, $revisor, $revisor);
         $service->rechazar($revision->fresh(), $revisor, 'Debe corregir la documentación');
         $revisor->removeRole($etapa->rolRevisor);
+        $reemplazo = User::factory()->create(['active_role_id' => $etapa->rol_revisor_id]);
+        $reemplazo->assignRole($etapa->rolRevisor);
 
-        $service->enviarARevision($programa->fresh(), $revisor);
+        try {
+            $service->enviarARevision($programa->fresh(), $revisor);
+            $this->fail('El reenvío debía bloquearse hasta seleccionar un reemplazo elegible.');
+        } catch (\DomainException $exception) {
+            $this->assertStringContainsString('seleccione un reemplazo válido', $exception->getMessage());
+        }
+
+        $this->assertSame('SUBSANACION', $programa->fresh()->estado_flujo);
+        $this->assertCount(0, $programa->revisiones()->where('revision_ciclo', 2)->get());
+
+        $service->enviarARevision($programa->fresh(), $revisor, [$etapa->id => $reemplazo->id]);
         $revisionSubsanada = $programa->fresh()->etapaActual();
 
-        $this->assertSame('PENDIENTE_ASIGNACION', $revisionSubsanada?->estado);
-        $this->assertNull($revisionSubsanada?->asignado_usuario_id);
+        $this->assertSame('ASIGNADO', $revisionSubsanada?->estado);
+        $this->assertSame($reemplazo->id, $revisionSubsanada?->asignado_usuario_id);
     }
 
     public function test_edita_una_asignatura_del_programa_y_reemplaza_su_documento(): void

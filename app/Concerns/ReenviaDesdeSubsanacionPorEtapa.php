@@ -2,13 +2,18 @@
 
 namespace App\Concerns;
 
+use App\Mail\EtapaFlujoPendiente;
 use App\Models\Estado\EstadoProyecto;
 use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FirmaProyecto;
+use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
+use App\Services\Workflow\WorkflowResumptionPolicy;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * Reenvía un proyecto (o documento) devuelto a "Subsanacion" al mismo firmante
@@ -53,7 +58,7 @@ trait ReenviaDesdeSubsanacionPorEtapa
         return $firmasRechazadas->first();
     }
 
-    protected function empleadosPorEtapaParaReenvio(FirmaProyecto $firmaRechazada): array
+    protected function empleadosPorEtapaParaReenvio(FirmaProyecto $firmaRechazada, array $usuariosReemplazo = []): array
     {
         $firmas = FirmaProyecto::query()
             ->with('empleado')
@@ -68,6 +73,7 @@ trait ReenviaDesdeSubsanacionPorEtapa
             ->orderBy('id')
             ->get()
             ->reject(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Anulado')
+            ->filter(fn (FirmaProyecto $firma): bool => (int) $firma->orden_revision >= (int) $firmaRechazada->orden_revision)
             ->values();
 
         $empleadosPorEtapa = [];
@@ -83,17 +89,68 @@ trait ReenviaDesdeSubsanacionPorEtapa
                 ));
             }
 
-            if (! $firma->empleado_id || ! $firma->empleado || $firma->empleado->trashed()) {
+            $empleado = $firma->empleado;
+            $usuario = $empleado?->user;
+            $usuarioElegible = app(WorkflowResumptionPolicy::class)->eligibleRecipient(
+                $usuario,
+                $firma->rol_requerido,
+                true
+            );
+
+            if (! $usuarioElegible) {
+                $reemplazoId = $usuariosReemplazo[$etapaId] ?? null;
+                $reemplazo = $reemplazoId ? User::with('empleado')->find((int) $reemplazoId) : null;
+                $usuarioElegible = app(WorkflowResumptionPolicy::class)->eligibleRecipient(
+                    $reemplazo,
+                    $firma->rol_requerido,
+                    true
+                );
+                $empleado = $usuarioElegible?->empleado;
+            }
+
+            if (! $empleado || $empleado->trashed() || ! $usuarioElegible) {
                 throw new \RuntimeException(sprintf(
-                    'No existe un empleado válido para reenviar la etapa "%s".',
+                    'El revisor anterior de la etapa "%s" ya no es elegible; seleccione un reemplazo válido.',
                     $nombreEtapa
                 ));
             }
 
-            $empleadosPorEtapa[$etapaId] = (int) $firma->empleado_id;
+            $empleadosPorEtapa[$etapaId] = (int) $empleado->id;
         }
 
         return $empleadosPorEtapa;
+    }
+
+    protected function etapasQueRequierenReemplazoParaReenvio(FirmaProyecto $firmaRechazada): Collection
+    {
+        $firmas = FirmaProyecto::query()
+            ->with('empleado.user')
+            ->where('firmable_type', $firmaRechazada->firmable_type)
+            ->where('firmable_id', $firmaRechazada->firmable_id)
+            ->where('flujo_aprobacion_id', $firmaRechazada->flujo_aprobacion_id)
+            ->where('revision_ciclo', $firmaRechazada->revision_ciclo)
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->whereNull('deleted_at')
+            ->orderBy('orden_revision')
+            ->get()
+            ->reject(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Anulado')
+            ->filter(fn (FirmaProyecto $firma): bool => (int) $firma->orden_revision >= (int) $firmaRechazada->orden_revision)
+            ->values();
+
+        return $firmas
+            ->filter(fn (FirmaProyecto $firma): bool => ! app(WorkflowResumptionPolicy::class)->eligibleRecipient(
+                $firma->empleado?->user,
+                $firma->rol_requerido,
+                true
+            ))
+            ->map(fn (FirmaProyecto $firma): array => [
+                'id' => (int) $firma->flujo_aprobacion_etapa_id,
+                'nombre' => $firma->etapa_nombre ?: $firma->etapa_codigo,
+                'codigo' => $firma->etapa_codigo,
+                'orden' => (int) $firma->orden_revision,
+                'rol_nombre' => $firma->rol_requerido,
+            ])
+            ->values();
     }
 
     protected function reenviarDesdeSubsanacionPorEtapa(
@@ -150,9 +207,46 @@ trait ReenviaDesdeSubsanacionPorEtapa
 
             $this->registrarEstadoDeReenvioPorEtapa($proyecto, $documento, (int) $tipoEstadoId, (int) $empleadoId, $primeraFirma);
             $this->validarReenvioPorEtapaCompletado($proyecto, $documento, $firmaBloqueada, $primeraFirma);
+            $this->notificarPrimeraEtapaReanudada($proyecto, $documento, $primeraFirma);
+
+            Log::info('Registro de proyecto reenviado desde subsanación', [
+                'proceso' => $documento
+                    ? Proyecto::procesoFlujoParaDocumento($documento->tipo_documento)
+                    : Proyecto::FLUJO_INSCRIPCION,
+                'registro_id' => $documento?->id ?: $proyecto->id,
+                'flujo_id' => $firmaBloqueada->flujo_aprobacion_id,
+                'ciclo_anterior' => $firmaBloqueada->revision_ciclo,
+                'ciclo_nuevo' => $primeraFirma->revision_ciclo,
+                'etapa_retorno_id' => $primeraFirma->flujo_aprobacion_etapa_id,
+                'revisor_usuario_id' => $primeraFirma->responsable_usuario_id ?: $primeraFirma->empleado?->user_id,
+            ]);
 
             return $firmasNuevoCiclo->map(fn (FirmaProyecto $firma): FirmaProyecto => $firma->fresh())->values();
         });
+    }
+
+    private function notificarPrimeraEtapaReanudada(
+        Proyecto $proyecto,
+        ?DocumentoProyecto $documento,
+        FirmaProyecto $primeraFirma
+    ): void {
+        $primeraFirma->loadMissing('empleado.user');
+        $usuario = $primeraFirma->responsable_usuario_id
+            ? User::find($primeraFirma->responsable_usuario_id)
+            : $primeraFirma->empleado?->user;
+        $etapa = FlujoAprobacionEtapa::find($primeraFirma->flujo_aprobacion_etapa_id);
+
+        if (! $usuario || blank($usuario->email) || ! filter_var($usuario->email, FILTER_VALIDATE_EMAIL)) {
+            throw new \RuntimeException('La etapa retomada no tiene un revisor asignado con correo válido.');
+        }
+
+        if (! $etapa) {
+            throw new \RuntimeException('La etapa histórica retomada ya no existe y no puede notificarse.');
+        }
+
+        Mail::to($usuario->email)->queue(
+            (new EtapaFlujoPendiente($proyecto, $usuario, $etapa, $documento?->tipo_documento))->afterCommit()
+        );
     }
 
     protected function resolverFirmableParaReenvioPorEtapa(FirmaProyecto $firma): array
@@ -238,8 +332,7 @@ trait ReenviaDesdeSubsanacionPorEtapa
         Proyecto $proyecto,
         ?DocumentoProyecto $documento = null,
         ?User $actor = null
-    ): void
-    {
+    ): void {
         $estado = $documento
             ? $documento->estado
             : $proyecto->estado;

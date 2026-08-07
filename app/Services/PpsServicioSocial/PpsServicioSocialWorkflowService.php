@@ -9,6 +9,7 @@ use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\User;
+use App\Services\Workflow\WorkflowResumptionPolicy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -39,51 +40,55 @@ class PpsServicioSocialWorkflowService
         return $this->flujoPpsQuery()->where('activo', true)->exists();
     }
 
-    public function enviarARevision(PpsServicioSocial $registro, ?int $userId): PpsServicioSocial
+    public function enviarARevision(PpsServicioSocial $registro, ?int $userId, array $reemplazosHistoricos = []): PpsServicioSocial
     {
-        return DB::transaction(function () use ($registro, $userId): PpsServicioSocial {
+        return DB::transaction(function () use ($registro, $userId, $reemplazosHistoricos): PpsServicioSocial {
             $registro = PpsServicioSocial::query()->lockForUpdate()->findOrFail($registro->id);
 
             if ($registro->estado !== 'borrador') {
                 throw new RuntimeException('Solo los registros en estado borrador pueden enviarse a revision.');
             }
 
-            if (!$registro->perteneceAlUsuario($userId)) {
+            if (! $registro->perteneceAlUsuario($userId)) {
                 throw new RuntimeException('Solo el usuario creador puede enviar este registro a revision.');
             }
 
-            $flujo = $this->resolverFlujoActivoParaEnvio($registro);
-            $etapas = $registro->etapasActivasDelFlujo($flujo);
+            $esReenvio = $this->esReenvioDespuesDeRechazo($registro);
 
-            if ($etapas->isEmpty()) {
-                throw new RuntimeException('El flujo PPS/SS activo no tiene etapas activas configuradas.');
+            if ($esReenvio) {
+                [$flujo, $ciclo, $firmasCreadas] = $this->crearCicloDeReanudacion($registro, $reemplazosHistoricos);
+            } else {
+                $flujo = $this->resolverFlujoActivoParaEnvio($registro);
+                $etapas = $registro->etapasActivasDelFlujo($flujo);
+
+                if ($etapas->isEmpty()) {
+                    throw new RuntimeException('El flujo PPS/SS activo no tiene etapas activas configuradas.');
+                }
+
+                if (! $registro->flujo_aprobacion_id) {
+                    $registro->forceFill(['flujo_aprobacion_id' => $flujo->id])->saveQuietly();
+                }
+
+                $empleadosPorEtapa = $this->resolverEmpleadosPorEtapa($registro, $etapas);
+                $ciclo = $this->obtenerCicloParaEnvio($registro);
+                $firmasCreadas = $registro->sincronizarFirmasDeEtapasDelFlujo($empleadosPorEtapa, $flujo, $ciclo);
             }
-
-            if (!$registro->flujo_aprobacion_id) {
-                $registro->forceFill(['flujo_aprobacion_id' => $flujo->id])->saveQuietly();
-            }
-
-            $empleadosPorEtapa = $this->resolverEmpleadosPorEtapa($registro, $etapas);
-
-            $ciclo = $this->obtenerCicloParaEnvio($registro);
-
-            $registro->sincronizarFirmasDeEtapasDelFlujo($empleadosPorEtapa, $flujo, $ciclo);
 
             $primeraFirma = $registro->firmaActualDeEtapasDelFlujo((int) $flujo->id, $ciclo);
 
-            if (!$primeraFirma) {
+            if (! $primeraFirma) {
                 throw new RuntimeException('No se pudo iniciar el flujo de revision de PPS/SS.');
             }
 
             $empleadoActor = $userId ? User::find($userId)?->empleado : null;
 
-            if (!$empleadoActor) {
+            if (! $empleadoActor) {
                 throw new RuntimeException('El usuario no tiene un empleado activo asociado.');
             }
 
             $tipoEstadoId = $primeraFirma->cargo_firma()->value('tipo_estado_id');
 
-            if (!$tipoEstadoId) {
+            if (! $tipoEstadoId) {
                 throw new RuntimeException('No se pudo determinar el estado inicial del flujo PPS/SS.');
             }
 
@@ -95,7 +100,19 @@ class PpsServicioSocialWorkflowService
                 'updated_by' => $userId,
             ])->saveQuietly();
 
-            $this->notificarRevisionPendiente($registro, $primeraFirma->flujoEtapa, 'envio_revision');
+            $this->validarDestinatarioDeFirma($primeraFirma);
+            $this->notificarRevisionPendiente($registro, $primeraFirma, $esReenvio ? 'reenvio_subsanacion' : 'envio_revision');
+
+            Log::info('Ciclo PPS/SS preparado', [
+                'proceso' => PpsServicioSocial::PROCESO_FLUJO,
+                'registro_id' => $registro->id,
+                'flujo_id' => $flujo->id,
+                'ciclo_anterior' => $esReenvio ? $ciclo - 1 : null,
+                'ciclo_nuevo' => $ciclo,
+                'etapa_retorno_id' => $primeraFirma->flujo_aprobacion_etapa_id,
+                'revisor_usuario_id' => $primeraFirma->empleado?->user_id,
+                'etapas_creadas' => $firmasCreadas->pluck('flujo_aprobacion_etapa_id')->all(),
+            ]);
 
             return $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
         });
@@ -111,7 +128,7 @@ class PpsServicioSocialWorkflowService
 
             $empleadoActor = $userId ? User::find($userId)?->empleado : null;
 
-            if (!$empleadoActor) {
+            if (! $empleadoActor) {
                 throw new RuntimeException('El usuario no tiene un empleado activo asociado.');
             }
 
@@ -132,7 +149,7 @@ class PpsServicioSocialWorkflowService
             if ($siguienteFirma) {
                 $tipoEstadoId = $siguienteFirma->cargo_firma()->value('tipo_estado_id');
 
-                if (!$tipoEstadoId) {
+                if (! $tipoEstadoId) {
                     throw new RuntimeException('No se pudo determinar la siguiente etapa del flujo PPS/SS.');
                 }
 
@@ -142,18 +159,19 @@ class PpsServicioSocialWorkflowService
                     'updated_by' => $userId,
                 ])->saveQuietly();
 
-                $this->notificarRevisionPendiente($registro, $siguienteFirma->flujoEtapa, 'avance_etapa');
+                $this->validarDestinatarioDeFirma($siguienteFirma);
+                $this->notificarRevisionPendiente($registro, $siguienteFirma, 'avance_etapa');
 
                 return $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
             }
 
-            if (!$registro->firmasDeEtapasCompletadas((int) $firmaAprobada->flujo_aprobacion_id, (int) $firmaAprobada->revision_ciclo)) {
+            if (! $registro->firmasDeEtapasCompletadas((int) $firmaAprobada->flujo_aprobacion_id, (int) $firmaAprobada->revision_ciclo)) {
                 throw new RuntimeException('El recorrido de firmas no esta completo o contiene una etapa bloqueada.');
             }
 
             $estadoAprobadoId = TipoEstado::where('nombre', 'Aprobado')->value('id');
 
-            if (!$estadoAprobadoId) {
+            if (! $estadoAprobadoId) {
                 throw new RuntimeException('No existe un estado "Aprobado" configurado.');
             }
 
@@ -185,13 +203,13 @@ class PpsServicioSocialWorkflowService
 
             $estadoRechazadoId = TipoEstado::where('nombre', 'Rechazado')->value('id');
 
-            if (!$estadoRechazadoId) {
+            if (! $estadoRechazadoId) {
                 throw new RuntimeException('No existe un estado "Rechazado" configurado.');
             }
 
             $empleadoActor = $userId ? User::find($userId)?->empleado : null;
 
-            if (!$empleadoActor) {
+            if (! $empleadoActor) {
                 throw new RuntimeException('El usuario no tiene un empleado activo asociado.');
             }
 
@@ -226,13 +244,13 @@ class PpsServicioSocialWorkflowService
 
             $empleadoActor = $userId ? User::find($userId)?->empleado : null;
 
-            if (!$empleadoActor) {
+            if (! $empleadoActor) {
                 throw new RuntimeException('El usuario no tiene un empleado activo asociado.');
             }
 
             $estadoBorradorId = TipoEstado::where('nombre', 'Borrador')->value('id');
 
-            if (!$estadoBorradorId) {
+            if (! $estadoBorradorId) {
                 throw new RuntimeException('No existe un estado "Borrador" configurado.');
             }
 
@@ -249,7 +267,7 @@ class PpsServicioSocialWorkflowService
             throw new RuntimeException('Solo los registros rechazados pueden pasar a subsanacion.');
         }
 
-        if (!$registro->perteneceAlUsuario($userId)) {
+        if (! $registro->perteneceAlUsuario($userId)) {
             throw new RuntimeException('Solo el usuario creador puede iniciar la subsanacion del registro.');
         }
     }
@@ -289,7 +307,7 @@ class PpsServicioSocialWorkflowService
 
     private function firmaActualODie(PpsServicioSocial $registro): FirmaProyecto
     {
-        if (!$registro->flujo_aprobacion_id) {
+        if (! $registro->flujo_aprobacion_id) {
             throw new RuntimeException('El registro no tiene un flujo asignado.');
         }
 
@@ -298,7 +316,7 @@ class PpsServicioSocialWorkflowService
             $this->obtenerCicloVigente($registro)
         );
 
-        if (!$firma) {
+        if (! $firma) {
             throw new RuntimeException('El registro no esta en una etapa revisable del flujo PPS/SS.');
         }
 
@@ -336,6 +354,47 @@ class PpsServicioSocialWorkflowService
             : max(1, $ultimoCiclo ?: 1);
     }
 
+    public function etapasQueRequierenDestinatario(PpsServicioSocial $registro): Collection
+    {
+        if (! $this->esReenvioDespuesDeRechazo($registro)) {
+            $flujo = $this->resolverFlujoActivoParaEnvio($registro);
+
+            return $registro->etapasActivasDelFlujo($flujo)
+                ->filter(fn (FlujoAprobacionEtapa $etapa): bool => (bool) $etapa->emisor_define_destinatario)
+                ->map(fn (FlujoAprobacionEtapa $etapa): array => [
+                    'id' => (int) $etapa->id,
+                    'orden' => (int) $etapa->orden,
+                    'nombre' => $etapa->nombre,
+                    'rol_requerido' => $etapa->rolRevisor?->name,
+                ])
+                ->values();
+        }
+
+        $plan = $this->planDeUltimoCiclo($registro);
+        /** @var FirmaProyecto $firmaRechazada */
+        $firmaRechazada = $plan->rejectedStage['source'];
+
+        return $plan->stages
+            ->filter(function (array $snapshot) use ($registro, $firmaRechazada): bool {
+                /** @var FirmaProyecto $firma */
+                $firma = $snapshot['source'];
+
+                return ! $this->usuarioHistoricoElegible($registro, $firma, $firmaRechazada);
+            })
+            ->map(function (array $snapshot): array {
+                /** @var FirmaProyecto $firma */
+                $firma = $snapshot['source'];
+
+                return [
+                    'id' => (int) $firma->flujo_aprobacion_etapa_id,
+                    'orden' => (int) $firma->orden_revision,
+                    'nombre' => $firma->etapa_nombre ?: $firma->etapa_codigo,
+                    'rol_requerido' => $firma->rol_requerido,
+                ];
+            })
+            ->values();
+    }
+
     private function flujoPpsQuery(): Builder
     {
         return FlujoAprobacion::query()->where('proceso', PpsServicioSocial::PROCESO_FLUJO);
@@ -345,11 +404,11 @@ class PpsServicioSocialWorkflowService
     {
         $flujoActivo = $this->obtenerFlujoActivo();
 
-        if (!$flujoActivo) {
+        if (! $flujoActivo) {
             throw new RuntimeException('No existe un flujo activo configurado para PPS/Servicio Social.');
         }
 
-        if (!$registro->flujo_aprobacion_id) {
+        if (! $registro->flujo_aprobacion_id) {
             return $flujoActivo;
         }
 
@@ -358,7 +417,7 @@ class PpsServicioSocialWorkflowService
             ->where('activo', true)
             ->first();
 
-        if (!$flujoAsignado) {
+        if (! $flujoAsignado) {
             throw new RuntimeException('El flujo asignado al registro no esta activo o no pertenece al proceso PPS/Servicio Social.');
         }
 
@@ -373,13 +432,13 @@ class PpsServicioSocialWorkflowService
         foreach ($etapas as $etapa) {
             $etapaId = (int) $etapa->id;
 
-            if (!$etapa->cargo_firma_id) {
+            if (! $etapa->cargo_firma_id) {
                 throw new RuntimeException(sprintf('La etapa "%s" no tiene cargo de firma configurado.', $etapa->nombre));
             }
 
             $usuario = $this->resolverUsuarioEtapa($etapa, $destinatariosEmisor);
 
-            if (!$usuario) {
+            if (! $usuario) {
                 throw new RuntimeException(sprintf(
                     'No existe un responsable válido para la etapa "%s".',
                     $etapa->nombre
@@ -388,7 +447,7 @@ class PpsServicioSocialWorkflowService
 
             $empleado = $usuario->empleado;
 
-            if (!$empleado || $empleado->trashed()) {
+            if (! $empleado || $empleado->trashed()) {
                 throw new RuntimeException(sprintf(
                     'El responsable de la etapa "%s" no tiene un empleado activo vinculado.',
                     $etapa->nombre
@@ -401,6 +460,119 @@ class PpsServicioSocialWorkflowService
         return $empleadosPorEtapa;
     }
 
+    /**
+     * @return array{0: FlujoAprobacion, 1: int, 2: Collection<int, FirmaProyecto>}
+     */
+    private function crearCicloDeReanudacion(PpsServicioSocial $registro, array $reemplazosHistoricos): array
+    {
+        $ultimoCiclo = $this->obtenerUltimoCiclo($registro);
+        $plan = $this->planDeUltimoCiclo($registro);
+
+        /** @var FirmaProyecto $firmaRechazada */
+        $firmaRechazada = $plan->rejectedStage['source'];
+        $empleadosPorEtapa = $this->resolverEmpleadosHistoricosParaReanudacion(
+            $registro,
+            $plan->stages,
+            $firmaRechazada,
+            $reemplazosHistoricos
+        );
+        $flujo = FlujoAprobacion::query()->find($firmaRechazada->flujo_aprobacion_id);
+
+        if (! $flujo || $flujo->proceso !== PpsServicioSocial::PROCESO_FLUJO) {
+            throw new RuntimeException('El historial no contiene un flujo PPS/SS válido para reanudar.');
+        }
+
+        $firmasCreadas = $registro->crearNuevoCicloDesdeFirmaRechazada($firmaRechazada, $empleadosPorEtapa);
+
+        return [$flujo, $ultimoCiclo + 1, $firmasCreadas];
+    }
+
+    private function planDeUltimoCiclo(PpsServicioSocial $registro): \App\Services\Workflow\WorkflowResumptionPlan
+    {
+        $ultimoCiclo = $this->obtenerUltimoCiclo($registro);
+        $firmasCiclo = $registro->firmasDeEtapa()
+            ->where('flujo_aprobacion_id', $registro->flujo_aprobacion_id)
+            ->where('revision_ciclo', $ultimoCiclo)
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->whereNull('deleted_at')
+            ->orderBy('orden_revision')
+            ->orderBy('id')
+            ->get();
+
+        return app(WorkflowResumptionPolicy::class)->plan(
+            $firmasCiclo
+                ->reject(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Anulado')
+                ->map(fn (FirmaProyecto $firma): array => [
+                    'stage_id' => (int) $firma->flujo_aprobacion_etapa_id,
+                    'order' => (int) $firma->orden_revision,
+                    'status' => match ($firma->estado_revision) {
+                        'Aprobado' => 'APPROVED',
+                        'Rechazado' => 'REJECTED',
+                        'Pendiente' => 'PENDING',
+                        default => 'INVALID',
+                    },
+                    'source' => $firma,
+                ])
+                ->values()
+        );
+    }
+
+    private function resolverEmpleadosHistoricosParaReanudacion(
+        PpsServicioSocial $registro,
+        Collection $etapasHistoricas,
+        FirmaProyecto $firmaRechazada,
+        array $reemplazosHistoricos
+    ): array {
+        $empleadosPorEtapa = [];
+
+        foreach ($etapasHistoricas as $snapshot) {
+            /** @var FirmaProyecto $firma */
+            $firma = $snapshot['source'];
+            $usuario = $this->usuarioHistoricoElegible($registro, $firma, $firmaRechazada);
+
+            if (! $usuario) {
+                $reemplazoId = $reemplazosHistoricos[(int) $firma->flujo_aprobacion_etapa_id] ?? null;
+                $reemplazo = $reemplazoId
+                    ? User::with('empleado')->find((int) $reemplazoId)
+                    : null;
+                $usuario = app(WorkflowResumptionPolicy::class)->eligibleRecipient(
+                    $reemplazo,
+                    $firma->rol_requerido,
+                    true
+                );
+            }
+
+            if (! $usuario) {
+                throw new RuntimeException(sprintf(
+                    'El revisor anterior de la etapa "%s" ya no es elegible; seleccione un reemplazo válido.',
+                    $firma->etapa_nombre ?: $firma->etapa_codigo
+                ));
+            }
+
+            $empleadosPorEtapa[(int) $firma->flujo_aprobacion_etapa_id] = (int) $usuario->empleado->id;
+        }
+
+        return $empleadosPorEtapa;
+    }
+
+    private function usuarioHistoricoElegible(
+        PpsServicioSocial $registro,
+        FirmaProyecto $firma,
+        FirmaProyecto $firmaRechazada
+    ): ?User {
+        $firma->loadMissing('empleado.user');
+        $esEtapaRechazada = (int) $firma->id === (int) $firmaRechazada->id;
+        $usuarioAnterior = $esEtapaRechazada
+            ? User::withTrashed()->with('empleado')->find($registro->revisado_por)
+            : $firma->empleado?->user;
+
+        return app(WorkflowResumptionPolicy::class)->eligibleRecipient(
+            $usuarioAnterior,
+            $firma->rol_requerido,
+            true
+        );
+    }
+
     private function resolverUsuarioEtapa(FlujoAprobacionEtapa $etapa, array $usuariosElegidosPorEtapa): ?User
     {
         $etapa->loadMissing(['usuarioResponsable.empleado', 'rolRevisor']);
@@ -408,7 +580,7 @@ class PpsServicioSocialWorkflowService
         if ($etapa->emisor_define_destinatario) {
             $usuarioId = $usuariosElegidosPorEtapa[$etapa->id] ?? null;
 
-            if (!$usuarioId) {
+            if (! $usuarioId) {
                 throw new RuntimeException(sprintf(
                     'Debe seleccionar un destinatario para la etapa "%s".',
                     $etapa->nombre
@@ -418,7 +590,7 @@ class PpsServicioSocialWorkflowService
             $usuario = User::with('empleado')->find((int) $usuarioId);
             $rol = $etapa->rolRevisor?->name;
 
-            if (!$usuario || !$rol || !$usuario->hasRole($rol)) {
+            if (! $usuario || ! $rol || ! $usuario->hasRole($rol)) {
                 throw new RuntimeException(sprintf(
                     'El destinatario seleccionado para la etapa "%s" no pertenece al rol requerido.',
                     $etapa->nombre
@@ -450,25 +622,43 @@ class PpsServicioSocialWorkflowService
     {
         $user ??= auth()->user();
 
-        if (!$user && $userId) {
+        if (! $user && $userId) {
             $user = User::find($userId);
         }
 
-        if (!$registro->usuarioPuedeRevisar($user)) {
+        if (! $registro->usuarioPuedeRevisar($user)) {
             throw new RuntimeException('El usuario no tiene permisos para revisar registros PPS/SS.');
         }
     }
 
-    private function notificarRevisionPendiente(PpsServicioSocial $registro, FlujoAprobacionEtapa $etapa, string $evento): void
+    private function validarDestinatarioDeFirma(FirmaProyecto $firma): User
     {
-        $destinatarios = $this->usuariosResponsablesDeEtapa($etapa, $registro);
-        $registroParaCorreo = $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
+        $firma->loadMissing(['empleado.user', 'flujoEtapa']);
+        $destinatario = $firma->empleado?->user;
 
-        foreach ($destinatarios as $destinatario) {
-            Mail::to($destinatario->email)->queue(
-                new EtapaFlujoPendiente($registroParaCorreo, $destinatario, $etapa, 'pps-servicio-social')
-            );
+        if (! $destinatario || blank($destinatario->email) || ! filter_var($destinatario->email, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException(sprintf(
+                'La etapa "%s" no tiene un revisor asignado con correo válido.',
+                $firma->etapa_nombre ?: $firma->etapa_codigo
+            ));
         }
+
+        return $destinatario;
+    }
+
+    private function notificarRevisionPendiente(PpsServicioSocial $registro, FirmaProyecto $firma, string $evento): void
+    {
+        $destinatario = $this->validarDestinatarioDeFirma($firma);
+        $etapa = $firma->flujoEtapa;
+
+        if (! $etapa) {
+            throw new RuntimeException('La etapa histórica ya no existe y no puede notificarse.');
+        }
+
+        $registroParaCorreo = $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
+        Mail::to($destinatario->email)->queue(
+            (new EtapaFlujoPendiente($registroParaCorreo, $destinatario, $etapa, 'pps-servicio-social'))->afterCommit()
+        );
 
         Log::info('Notificacion PPS/SS de revision pendiente enviada', [
             'registro_id' => $registro->id,
@@ -479,53 +669,7 @@ class PpsServicioSocialWorkflowService
             'rol_revisor_id' => $etapa->rol_revisor_id,
             'requiere_asignacion' => (bool) $etapa->requiere_asignacion,
             'usuario_responsable_id' => $etapa->usuario_responsable_id,
-            'destinatarios' => $destinatarios
-                ->map(fn (User $user): array => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email])
-                ->values()
-                ->all(),
+            'destinatarios' => [['id' => $destinatario->id, 'name' => $destinatario->name, 'email' => $destinatario->email]],
         ]);
-    }
-
-    private function usuariosResponsablesDeEtapa(FlujoAprobacionEtapa $etapa, ?PpsServicioSocial $registro = null): Collection
-    {
-        $query = User::query()->select(['id', 'name', 'email']);
-
-        $destinatariosEmisores = $registro?->destinatarios_emisor ?? [];
-        $usuarioEmisorId = $destinatariosEmisores[$etapa->id] ?? null;
-
-        if ((bool) ($etapa->emisor_define_destinatario ?? false) && $usuarioEmisorId) {
-            $query->whereKey((int) $usuarioEmisorId);
-        } elseif ((bool) $etapa->requiere_asignacion) {
-            if (!$etapa->usuario_responsable_id) {
-                throw new RuntimeException("La etapa {$etapa->nombre} requiere asignacion pero no tiene usuario responsable configurado.");
-            }
-
-            $query->whereKey($etapa->usuario_responsable_id);
-        } else {
-            if (!$etapa->rol_revisor_id) {
-                throw new RuntimeException("La etapa {$etapa->nombre} no tiene rol revisor configurado.");
-            }
-
-            $query->whereHas('roles', fn (Builder $roleQuery) => $roleQuery->where('roles.id', $etapa->rol_revisor_id));
-        }
-
-        $usuarios = $query
-            ->get()
-            ->filter(fn (User $user): bool => filled($user->email) && filter_var($user->email, FILTER_VALIDATE_EMAIL))
-            ->values();
-
-        if ($usuarios->isEmpty()) {
-            Log::warning('Etapa PPS/SS sin destinatarios validos para notificar', [
-                'etapa_id' => $etapa->id,
-                'etapa_nombre' => $etapa->nombre,
-                'rol_revisor_id' => $etapa->rol_revisor_id,
-                'requiere_asignacion' => (bool) $etapa->requiere_asignacion,
-                'usuario_responsable_id' => $etapa->usuario_responsable_id,
-            ]);
-
-            throw new RuntimeException("La etapa {$etapa->nombre} no tiene usuarios responsables con correo valido para notificar.");
-        }
-
-        return $usuarios;
     }
 }

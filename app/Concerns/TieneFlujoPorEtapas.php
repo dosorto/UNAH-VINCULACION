@@ -8,6 +8,7 @@ use App\Models\Personal\Empleado;
 use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
+use App\Services\Workflow\WorkflowResumptionPolicy;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -183,21 +184,19 @@ trait TieneFlujoPorEtapas
             return collect();
         }
 
-        $cicloVigente = max(1, $this->ultimoCicloDeFirmasPorEtapa((int) $flujo->id));
-
-        $firmasDelCiclo = $this->firmasDeEtapa()
+        $firmasPorEtapa = $this->firmasDeEtapa()
             ->where('flujo_aprobacion_id', $flujo->id)
-            ->where('revision_ciclo', $cicloVigente)
             ->whereIn('flujo_aprobacion_etapa_id', $etapasFirmantes->pluck('id'))
             ->whereNull('deleted_at')
-            ->orderByRaw("estado_revision = 'Aprobado' desc")
+            ->where('estado_revision', '!=', 'Anulado')
+            ->orderByDesc('revision_ciclo')
             ->orderByDesc('id')
             ->get()
             ->groupBy('flujo_aprobacion_etapa_id');
 
         return $etapasFirmantes->map(fn (FlujoAprobacionEtapa $etapa) => [
             'etapa' => $etapa,
-            'firma' => $firmasDelCiclo->get($etapa->id)?->first(),
+            'firma' => $firmasPorEtapa->get($etapa->id)?->first(),
         ]);
     }
 
@@ -310,7 +309,28 @@ trait TieneFlujoPorEtapas
                 throw new \RuntimeException('Ya existe el siguiente ciclo de revisión para este registro.');
             }
 
-            $firmasBase = $firmasCiclo->filter(fn (FirmaProyecto $firma) => $firma->estado_revision !== 'Anulado')->values();
+            $plan = app(WorkflowResumptionPolicy::class)->plan(
+                $firmasCiclo
+                    ->reject(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Anulado')
+                    ->map(fn (FirmaProyecto $firma): array => [
+                        'stage_id' => (int) $firma->flujo_aprobacion_etapa_id,
+                        'order' => (int) $firma->orden_revision,
+                        'status' => match ($firma->estado_revision) {
+                            'Aprobado' => 'APPROVED',
+                            'Rechazado' => 'REJECTED',
+                            'Pendiente' => 'PENDING',
+                            default => 'INVALID',
+                        },
+                        'source' => $firma,
+                    ])
+                    ->values()
+            );
+
+            if ((int) $plan->rejectedStage['source']->id !== (int) $firmaBloqueada->id) {
+                throw new \RuntimeException('No se pudo preparar de forma segura el nuevo ciclo de revisión.');
+            }
+
+            $firmasBase = $plan->stages->pluck('source')->values();
             $empleados = $this->validarAsignacionesParaNuevoCiclo($firmasBase, $empleadosPorEtapa);
 
             return $firmasBase
@@ -323,7 +343,7 @@ trait TieneFlujoPorEtapas
                     'etapa_codigo' => $firmaBase->etapa_codigo,
                     'etapa_nombre' => $firmaBase->etapa_nombre,
                     'rol_requerido' => $firmaBase->rol_requerido,
-                    'responsable_usuario_id' => $firmaBase->responsable_usuario_id,
+                    'responsable_usuario_id' => $empleados->get((int) $firmaBase->flujo_aprobacion_etapa_id)->user_id,
                     'revision_ciclo' => $nuevoCiclo,
                     'estado_revision' => 'Pendiente',
                     'firma_id' => null,
@@ -459,12 +479,34 @@ trait TieneFlujoPorEtapas
         $empleadosNormalizados = collect($empleadosPorEtapa)
             ->mapWithKeys(fn ($empleadoId, $etapaId) => [(int) $etapaId => (int) $empleadoId]);
 
+        $empleados = Empleado::withTrashed()
+            ->with('user')
+            ->whereIn('id', $empleadosNormalizados->values()->all())
+            ->get()
+            ->keyBy('id');
+
         foreach ($firmasBase as $firmaBase) {
-            if (! $empleadosNormalizados->has((int) $firmaBase->flujo_aprobacion_etapa_id)) {
+            $etapaId = (int) $firmaBase->flujo_aprobacion_etapa_id;
+            $etapaNombre = $firmaBase->etapa_nombre ?: $firmaBase->etapa_codigo ?: $etapaId;
+
+            if (! $empleadosNormalizados->has($etapaId)) {
                 throw new \RuntimeException(sprintf('No se indicó un empleado para la etapa "%s".', $firmaBase->etapa_nombre));
             }
+
+            $empleado = $empleados->get($empleadosNormalizados->get($etapaId));
+            $usuarioElegible = $empleado && ! $empleado->trashed()
+                ? app(WorkflowResumptionPolicy::class)->eligibleRecipient($empleado->user, $firmaBase->rol_requerido, true)
+                : null;
+
+            if (! $usuarioElegible || (int) $usuarioElegible->empleado?->id !== (int) $empleado?->id) {
+                throw new \RuntimeException(sprintf(
+                    'El revisor anterior de la etapa "%s" ya no es elegible; seleccione un reemplazo válido.',
+                    $etapaNombre
+                ));
+            }
+
         }
 
-        return Empleado::whereIn('id', $empleadosNormalizados->values()->all())->get()->keyBy('id');
+        return $empleados;
     }
 }

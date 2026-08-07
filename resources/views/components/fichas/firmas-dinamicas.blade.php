@@ -74,7 +74,7 @@
                     <td class="full-width" colspan="1">
                         <input disabled type="text" class="input-field"
                             placeholder="Ingrese el nombre"
-                            value="{{ optional($fila['firma'])->empleado?->nombre_completo }}"
+                            value="{{ ($fila['adoptada_antes'] ?? false) ? 'Completada antes de la adopción al flujo' : optional($fila['firma'])->empleado?->nombre_completo }}"
                             disabled>
                     </td>
                 @endforeach
@@ -97,6 +97,10 @@
                             <p class="signature-digital-caption">
                                 Firmado digitalmente<br>
                                 {{ $formatearFechaFirma(optional($fila['firma'])->fecha_firma) }}
+                            </p>
+                        @elseif($fila['adoptada_antes'] ?? false)
+                            <p class="signature-digital-caption">
+                                Antecedente legacy conservado sin crear una firma digital ficticia.
                             </p>
                         @endif
                     </td>

@@ -7,6 +7,9 @@ use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
+use App\Services\Workflow\WorkflowResumptionPolicy;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class DocumentoProyectoWorkflowService
@@ -40,7 +43,23 @@ class DocumentoProyectoWorkflowService
         Proyecto $proyecto,
         DocumentoProyecto $documento,
         string $path,
-        User $emisor
+        User $emisor,
+        array $usuariosReemplazo = []
+    ): DocumentoProyecto {
+        return DB::transaction(function () use ($proyecto, $documento, $path, $emisor, $usuariosReemplazo): DocumentoProyecto {
+            Proyecto::query()->whereKey($proyecto->id)->lockForUpdate()->firstOrFail();
+            $documento = DocumentoProyecto::query()->whereKey($documento->id)->lockForUpdate()->firstOrFail();
+
+            return $this->procesarReenvioDesdeSubsanacion($proyecto->fresh(), $documento, $path, $emisor, $usuariosReemplazo);
+        });
+    }
+
+    private function procesarReenvioDesdeSubsanacion(
+        Proyecto $proyecto,
+        DocumentoProyecto $documento,
+        string $path,
+        User $emisor,
+        array $usuariosReemplazo
     ): DocumentoProyecto {
         $empleado = $emisor->empleado;
 
@@ -68,9 +87,34 @@ class DocumentoProyectoWorkflowService
         $empleadosPorEtapa = $firmas
             ->filter(fn (FirmaProyecto $firma): bool => $firma->estado_revision !== 'Anulado'
                 && (int) $firma->orden_revision >= (int) $firmaRechazada->orden_revision)
-            ->mapWithKeys(fn (FirmaProyecto $firma): array => [
-                (int) $firma->flujo_aprobacion_etapa_id => (int) $firma->empleado_id,
-            ])
+            ->mapWithKeys(function (FirmaProyecto $firma) use ($usuariosReemplazo): array {
+                $etapaId = (int) $firma->flujo_aprobacion_etapa_id;
+                $firma->loadMissing('empleado.user');
+                $usuario = app(WorkflowResumptionPolicy::class)->eligibleRecipient(
+                    $firma->empleado?->user,
+                    $firma->rol_requerido,
+                    true
+                );
+
+                if (! $usuario) {
+                    $reemplazoId = $usuariosReemplazo[$etapaId] ?? null;
+                    $reemplazo = $reemplazoId ? User::with('empleado')->find((int) $reemplazoId) : null;
+                    $usuario = app(WorkflowResumptionPolicy::class)->eligibleRecipient(
+                        $reemplazo,
+                        $firma->rol_requerido,
+                        true
+                    );
+                }
+
+                if (! $usuario) {
+                    throw new \RuntimeException(sprintf(
+                        'El revisor anterior de la etapa "%s" ya no es elegible; seleccione un reemplazo válido.',
+                        $firma->etapa_nombre ?: $firma->etapa_codigo
+                    ));
+                }
+
+                return [$etapaId => (int) $usuario->empleado->id];
+            })
             ->all();
         $firmasNuevas = $proyecto->crearNuevoCicloDesdeFirmaRechazada($firmaRechazada, $empleadosPorEtapa);
         $primera = $firmasNuevas->first();
@@ -94,6 +138,16 @@ class DocumentoProyectoWorkflowService
 
         $this->notificarFirmaActual($proyecto, $documento);
 
+        Log::info('Documento de proyecto reenviado desde subsanación', [
+            'proceso' => Proyecto::procesoFlujoParaDocumento($documento->tipo_documento),
+            'registro_id' => $documento->id,
+            'flujo_id' => $firmaRechazada->flujo_aprobacion_id,
+            'ciclo_anterior' => $firmaRechazada->revision_ciclo,
+            'ciclo_nuevo' => $primera->revision_ciclo,
+            'etapa_retorno_id' => $primera->flujo_aprobacion_etapa_id,
+            'revisor_usuario_id' => $primera->responsable_usuario_id ?: $primera->empleado?->user_id,
+        ]);
+
         return $documento->fresh();
     }
 
@@ -109,10 +163,16 @@ class DocumentoProyectoWorkflowService
         $usuario = $firma?->responsableUsuario ?: $firma?->empleado?->user;
         $etapa = $firma?->flujoEtapa;
 
-        if ($usuario?->email && $etapa) {
-            Mail::to($usuario->email)->send(
-                new EtapaFlujoPendiente($proyecto, $usuario, $etapa, $documento->tipo_documento)
-            );
+        if (! $usuario || blank($usuario->email) || ! filter_var($usuario->email, FILTER_VALIDATE_EMAIL)) {
+            throw new \RuntimeException('La etapa actual no tiene un revisor asignado con correo válido.');
         }
+
+        if (! $etapa) {
+            throw new \RuntimeException('La etapa histórica actual ya no existe y no puede notificarse.');
+        }
+
+        Mail::to($usuario->email)->queue(
+            (new EtapaFlujoPendiente($proyecto, $usuario, $etapa, $documento->tipo_documento))->afterCommit()
+        );
     }
 }

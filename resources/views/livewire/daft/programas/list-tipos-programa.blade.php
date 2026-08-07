@@ -28,19 +28,55 @@
                     @error('tipoPrograma.nombre') <p class="text-xs font-medium text-rose-600 dark:text-rose-300">{{ $message }}</p> @enderror
                 </label>
 
-                <div class="grid gap-4 md:grid-cols-2">
-                    <label class="space-y-2">
-                        <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Horas minimas <span class="text-red-500">*</span></span>
-                        <input wire:model="tipoPrograma.horas_minimas" type="number" min="0" required placeholder="Ej. 8" class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
-                        @error('tipoPrograma.horas_minimas') <p class="text-xs font-medium text-rose-600 dark:text-rose-300">{{ $message }}</p> @enderror
-                    </label>
+                <label class="space-y-2">
+                    <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Duración definida por <span class="text-red-500">*</span></span>
+                    <select wire:model.live="tipoPrograma.modalidad_duracion" required class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                        <option value="HORAS">Total de horas</option>
+                        <option value="DIAS">Días y horas por día</option>
+                    </select>
+                    @error('tipoPrograma.modalidad_duracion') <p class="text-xs font-medium text-rose-600 dark:text-rose-300">{{ $message }}</p> @enderror
+                </label>
+
+                @if (($tipoPrograma['modalidad_duracion'] ?? 'HORAS') === 'DIAS')
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <label class="space-y-2">
+                            <span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Días mínimos <span class="text-red-500">*</span></span>
+                            <input wire:model="tipoPrograma.dias_minimos" type="number" min="1" required placeholder="Ej. 2" class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                            @error('tipoPrograma.dias_minimos') <p class="text-xs font-medium text-rose-600 dark:text-rose-300">{{ $message }}</p> @enderror
+                        </label>
+
+                        <label class="space-y-2">
+                            <span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Días máximos <span class="text-red-500">*</span></span>
+                            <input wire:model="tipoPrograma.dias_maximos" type="number" min="1" required placeholder="Ej. 5" class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                            @error('tipoPrograma.dias_maximos') <p class="text-xs font-medium text-rose-600 dark:text-rose-300">{{ $message }}</p> @enderror
+                        </label>
+                    </div>
 
                     <label class="space-y-2">
-                        <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Horas maximas <span class="text-red-500">*</span></span>
-                        <input wire:model="tipoPrograma.horas_maximas" type="number" min="0" required placeholder="Ej. 120" class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
-                        @error('tipoPrograma.horas_maximas') <p class="text-xs font-medium text-rose-600 dark:text-rose-300">{{ $message }}</p> @enderror
+                        <span class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Horas mínimas por día <span class="text-red-500">*</span></span>
+                        <input wire:model="tipoPrograma.horas_minimas_por_dia" type="number" min="1" required placeholder="Ej. 6" class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                        @error('tipoPrograma.horas_minimas_por_dia') <p class="text-xs font-medium text-rose-600 dark:text-rose-300">{{ $message }}</p> @enderror
                     </label>
-                </div>
+
+                    <label class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/60">
+                        <input wire:model="tipoPrograma.dias_consecutivos" type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary dark:border-slate-600 dark:bg-slate-800" />
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-200">Los días deben ser consecutivos</span>
+                    </label>
+                @else
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <label class="space-y-2">
+                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Horas mínimas <span class="text-red-500">*</span></span>
+                            <input wire:model="tipoPrograma.horas_minimas" type="number" min="0" required placeholder="Ej. 8" class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                            @error('tipoPrograma.horas_minimas') <p class="text-xs font-medium text-rose-600 dark:text-rose-300">{{ $message }}</p> @enderror
+                        </label>
+
+                        <label class="space-y-2">
+                            <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Horas máximas <span class="text-red-500">*</span></span>
+                            <input wire:model="tipoPrograma.horas_maximas" type="number" min="0" required placeholder="Ej. 120" class="w-full rounded-2xl border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                            @error('tipoPrograma.horas_maximas') <p class="text-xs font-medium text-rose-600 dark:text-rose-300">{{ $message }}</p> @enderror
+                        </label>
+                    </div>
+                @endif
 
                 <label class="space-y-2">
                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
@@ -78,7 +114,7 @@
                     <thead class="bg-slate-50 dark:bg-slate-800/70">
                         <tr>
                             <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Tipo</th>
-                            <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Horas</th>
+                            <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Duración</th>
                             <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Plantilla</th>
                             <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Estado</th>
                             <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Acciones</th>
@@ -88,7 +124,7 @@
                         @forelse ($tiposPrograma as $tipo)
                             <tr wire:key="tipo-programa-{{ $tipo->id }}">
                                 <td class="px-4 py-4 text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $tipo->nombre }}</td>
-                                <td class="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">{{ $tipo->horas_minimas ?? 0 }} - {{ $tipo->horas_maximas ?? 0 }} h</td>
+                                <td class="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">{{ $tipo->descripcionDuracion() }}</td>
                                 <td class="px-4 py-4 text-sm text-slate-600 dark:text-slate-300">
                                     @if ($tipo->plantilla_docx_path)
                                         <a href="{{ Storage::url($tipo->plantilla_docx_path) }}" class="font-medium text-primary hover:underline">Descargar plantilla</a>

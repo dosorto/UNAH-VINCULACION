@@ -179,6 +179,7 @@ class CreateProyectoVinculacion extends Component
     public int $modalStep = 0;
     public array $modalEtapasConDestinatario = [];
     public array $modalDestinatarios = [];
+    public bool $modalEsReenvioSubsanacion = false;
 
     // ── FORM-DVUS-015 (Voluntariado Académico) ──────────────────────────────
     // Campos propios que sólo aplican cuando el tipo de acción es Voluntariado.
@@ -3162,6 +3163,8 @@ class CreateProyectoVinculacion extends Component
             return;
         }
 
+        $this->modalEsReenvioSubsanacion = false;
+
         if ($this->reenviarAutomaticamenteTrasSubsanacion($proyecto)) {
             return;
         }
@@ -3185,8 +3188,10 @@ class CreateProyectoVinculacion extends Component
             ->map(function (FlujoAprobacionEtapa $etapa): array {
                 $candidatos = \App\Models\User::with('roles')
                     ->when($etapa->rol_revisor_id, fn ($q) => $q->whereHas('roles', fn ($r) => $r->where('roles.id', $etapa->rol_revisor_id)))
+                    ->whereHas('empleado')
                     ->orderBy('name')
                     ->get()
+                    ->filter(fn (\App\Models\User $user): bool => filled($user->email) && filter_var($user->email, FILTER_VALIDATE_EMAIL))
                     ->map(fn (\App\Models\User $user): array => [
                         'user_id' => $user->id,
                         'nombre' => $user->name,
@@ -3232,6 +3237,38 @@ class CreateProyectoVinculacion extends Component
         }
 
         $this->validarFormularioAntesDeEnviar();
+
+        $etapasConReemplazo = $this->etapasQueRequierenReemplazoParaReenvio($firmaRechazada);
+
+        if ($etapasConReemplazo->isNotEmpty()) {
+            $this->modalEtapasConDestinatario = $etapasConReemplazo
+                ->map(function (array $etapa): array {
+                    $etapa['candidatos'] = \App\Models\User::query()
+                        ->when($etapa['rol_nombre'], fn ($query) => $query->whereHas(
+                            'roles',
+                            fn ($roles) => $roles->where('roles.name', $etapa['rol_nombre'])
+                        ))
+                        ->whereHas('empleado')
+                        ->orderBy('name')
+                        ->get()
+                        ->filter(fn (\App\Models\User $user): bool => filled($user->email) && filter_var($user->email, FILTER_VALIDATE_EMAIL))
+                        ->map(fn (\App\Models\User $user): array => [
+                            'user_id' => $user->id,
+                            'nombre' => $user->name,
+                        ])
+                        ->values()
+                        ->all();
+
+                    return $etapa;
+                })
+                ->all();
+            $this->modalDestinatarios = [];
+            $this->modalStep = 0;
+            $this->modalEsReenvioSubsanacion = true;
+            $this->showEnviarModal = true;
+
+            return true;
+        }
 
         try {
             $this->reenviarDesdeSubsanacionPorEtapa(
@@ -3281,13 +3318,29 @@ class CreateProyectoVinculacion extends Component
         $proyecto = Proyecto::findOrFail($this->recordId);
 
         try {
-            $this->enviarPorFlujoDeEtapas($proyecto);
+            if ($this->modalEsReenvioSubsanacion) {
+                $firmaRechazada = $this->firmaRechazadaActualPorEtapa($proyecto);
+
+                if (! $firmaRechazada || ! auth()->user()) {
+                    throw new \RuntimeException('No se pudo identificar la etapa que debe reanudarse.');
+                }
+
+                $this->reenviarDesdeSubsanacionPorEtapa(
+                    $firmaRechazada,
+                    auth()->user(),
+                    $this->empleadosPorEtapaParaReenvio($firmaRechazada, $this->modalDestinatarios)
+                );
+            } else {
+                $this->enviarPorFlujoDeEtapas($proyecto);
+            }
         } catch (\Exception $e) {
             Notification::make()->title('Error al enviar')->body($e->getMessage())->danger()->send();
             return;
         }
 
         $this->showEnviarModal = false;
+        $esReenvio = $this->modalEsReenvioSubsanacion;
+        $this->modalEsReenvioSubsanacion = false;
 
         try {
             Mail::to(auth()->user()->email)->send(new ProyectoCreado($proyecto, auth()->user()));
@@ -3295,7 +3348,7 @@ class CreateProyectoVinculacion extends Component
             \Log::warning($e->getMessage());
         }
 
-        Notification::make()->title('Proyecto enviado a firmar')->success()->send();
+        Notification::make()->title($esReenvio ? 'Proyecto reenviado a revisión' : 'Proyecto enviado a firmar')->success()->send();
         redirect()->route('proyectosDocente');
     }
 

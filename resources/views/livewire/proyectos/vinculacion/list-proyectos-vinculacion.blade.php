@@ -190,10 +190,20 @@
                                            class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Editar</a>
                                     @endif
                                 @elseif(auth()->user()->hasRole(['admin', 'Director/Enlace']))
-                                    <button wire:click="openFirmas({{ $record->id }})"
-                                            class="px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg">Firmas</button>
+                                    @if(!($row['flujo_adoptado'] ?? false) && !($row['flujo_iniciado'] ?? false))
+                                        <button wire:click="openFirmas({{ $record->id }})"
+                                                class="px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg">Firmas</button>
+                                    @endif
                                     <button wire:click="openFlowModal({{ $record->id }})"
-                                            class="px-3 py-1.5 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg">Flujo</button>
+                                            class="px-3 py-1.5 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg">
+                                        @if($row['flujo_adoptado'] ?? false)
+                                            Ver adopción
+                                        @elseif($row['flujo_iniciado'] ?? false)
+                                            Flujo activo
+                                        @else
+                                            Adaptar flujo
+                                        @endif
+                                    </button>
                                 @endif
                             </div>
                         </td>
@@ -278,15 +288,45 @@
     {{-- Modal Configurar Flujo --}}
     @if ($flowModal)
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-xl">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[92vh] flex flex-col">
             <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold dark:text-white">Asignar flujo al proyecto</h3>
+                <div>
+                    <h3 class="text-lg font-semibold dark:text-white">
+                        {{ $flowIsLegacyAdoption ? 'Adaptar proyecto legacy al flujo' : 'Flujo del proyecto' }}
+                    </h3>
+                    @if($flowIsLegacyAdoption)
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            Puente único de adopción: conserva el historial y continúa desde el punto real.
+                        </p>
+                    @endif
+                </div>
                 <button wire:click="$set('flowModal', false)" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
             </div>
-            <div class="p-4 space-y-4">
+            <div class="p-5 space-y-5 overflow-y-auto">
+                @if(!empty($flowExistingAdoption))
+                    <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
+                        <p class="font-semibold">Este proyecto ya fue adoptado.</p>
+                        <dl class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                            <div><dt class="text-xs opacity-70">Situación capturada</dt><dd>{{ str_replace('_', ' ', $flowExistingAdoption['modo']) }}</dd></div>
+                            <div><dt class="text-xs opacity-70">Estado de origen</dt><dd>{{ $flowExistingAdoption['estado_origen'] ?: 'Sin estado' }}</dd></div>
+                            <div><dt class="text-xs opacity-70">Fecha de adopción</dt><dd>{{ $flowExistingAdoption['adoptado_en'] }}</dd></div>
+                        </dl>
+                        @if($flowExistingAdoption['orden_inicio'])
+                            <p class="mt-2">El ciclo configurable comenzó en la etapa de orden {{ $flowExistingAdoption['orden_inicio'] }}.</p>
+                        @else
+                            <p class="mt-2">No se creó un ciclo artificial; el flujo quedó fijado para la continuidad normal.</p>
+                        @endif
+                    </div>
+                @elseif($flowHasStarted)
+                    <div class="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-200">
+                        El proyecto ya tiene un ciclo configurable. Su flujo está bloqueado para proteger las revisiones y firmas existentes.
+                    </div>
+                @endif
+
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Flujo de aprobacion</label>
-                    <select wire:model="flowSelectedId"
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Flujo de aprobación</label>
+                    <select wire:model.live="flowSelectedId"
+                            @disabled(!empty($flowExistingAdoption) || $flowHasStarted)
                             class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm">
                         <option value="">Seleccione...</option>
                         @foreach ($flujos as $flujo)
@@ -295,9 +335,201 @@
                     </select>
                     @error('flowSelectedId') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
+
+                @if($flowIsLegacyAdoption && !empty($flowDiagnosis))
+                    <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/20">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">Diagnóstico legacy</p>
+                                <p class="mt-1 font-semibold text-gray-900 dark:text-white">Estado actual: {{ $flowDiagnosis['estado'] ?? 'Sin estado' }}</p>
+                            </div>
+                            <div class="flex gap-2 text-xs">
+                                <span class="rounded-full bg-white px-2.5 py-1 text-gray-600 shadow-sm dark:bg-gray-800 dark:text-gray-300">
+                                    {{ $flowDiagnosis['legacy_pendientes'] ?? 0 }} firmas pendientes legacy
+                                </span>
+                                <span class="rounded-full bg-white px-2.5 py-1 text-gray-600 shadow-sm dark:bg-gray-800 dark:text-gray-300">
+                                    {{ $flowDiagnosis['legacy_rechazadas'] ?? 0 }} rechazadas legacy
+                                </span>
+                            </div>
+                        </div>
+                        <p class="mt-2 text-sm text-amber-800 dark:text-amber-200">{{ $flowDiagnosis['razon_etapa'] ?? '' }}</p>
+                    </div>
+
+                    @php
+                        $etapaDetectada = collect($flowDiagnosis['etapas'] ?? [])->first(
+                            fn($etapa) => (int) ($etapa['id'] ?? 0) === (int) $flowStartStageId
+                        );
+                    @endphp
+
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Situación detectada</label>
+                            <div class="flex min-h-[42px] items-center justify-between gap-3 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                                <span>{{ $flowModes[$flowAdoptionMode] ?? 'No determinada' }}</span>
+                                <span class="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                                    <span class="material-symbols-outlined text-[17px]">verified</span>
+                                    Automática
+                                </span>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Se obtiene del estado actual del expediente y no puede modificarse.</p>
+                        </div>
+
+                        @if(in_array($flowAdoptionMode, [
+                            \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_EN_REVISION,
+                            \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_SUBSANACION,
+                        ], true))
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Etapa actual / etapa de retorno detectada</label>
+                                <div class="flex min-h-[42px] items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm shadow-sm {{ $etapaDetectada ? 'border-gray-300 bg-gray-50 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white' : 'border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200' }}">
+                                    <span>
+                                        @if($etapaDetectada)
+                                            {{ $etapaDetectada['orden'].'. '.$etapaDetectada['nombre'] }}
+                                        @elseif(!empty($flowDiagnosis['cargo_estado_actual']))
+                                            {{ $flowDiagnosis['cargo_estado_actual'] }} — falta configurarla en el flujo
+                                        @else
+                                            No fue posible determinar una etapa única
+                                        @endif
+                                    </span>
+                                    <span class="material-symbols-outlined shrink-0 text-[18px]">{{ $etapaDetectada ? 'lock' : 'error' }}</span>
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Se calcula con el estado, las firmas y el historial legacy; no admite selección manual.</p>
+                            </div>
+                        @endif
+                    </div>
+
+                    @if($flowAdoptionMode === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_SUBSANACION)
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Motivo histórico de la subsanación</label>
+                            <textarea wire:model="flowSubsanacionReason" rows="3"
+                                      placeholder="Copie el motivo registrado en el trámite legacy."
+                                      class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm"></textarea>
+                            @error('flowSubsanacionReason') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    @endif
+
+                    @php
+                        $etapasAnteriores = collect($flowDiagnosis['etapas'] ?? [])->filter(fn($etapa) => $etapa['es_anterior'] ?? false);
+                        if ($flowAdoptionMode === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_COMPLETADO) {
+                            $etapasAnteriores = collect($flowDiagnosis['etapas'] ?? []);
+                        }
+                        $etapasRecorrido = collect($flowDiagnosis['etapas'] ?? [])->filter(fn($etapa) => $etapa['en_nuevo_recorrido'] ?? false);
+                    @endphp
+
+                    @if($etapasAnteriores->isNotEmpty())
+                        <div class="rounded-lg border border-sky-200 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-950/20">
+                            <p class="text-sm font-semibold text-sky-900 dark:text-sky-200">Completadas antes de la adopción</p>
+                            <p class="mt-1 text-xs text-sky-700 dark:text-sky-300">Se mostrarán como antecedente, sin crear aprobaciones ni firmas ficticias.</p>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                @foreach($etapasAnteriores as $etapa)
+                                    <span class="rounded-full border border-sky-200 bg-white px-3 py-1 text-xs text-sky-800 dark:border-sky-700 dark:bg-gray-800 dark:text-sky-200">
+                                        {{ $etapa['orden'] }}. {{ $etapa['nombre'] }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    @if($etapasRecorrido->isNotEmpty())
+                        <div>
+                            <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                    <p class="text-sm font-semibold text-gray-900 dark:text-white">Responsables del recorrido que continúa</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">El sistema conserva al revisor legacy cuando sigue siendo elegible; los demás deben confirmarse.</p>
+                                </div>
+                                <button type="button"
+                                        wire:click="refreshFlowReviewerCandidates"
+                                        wire:loading.attr="disabled"
+                                        wire:target="refreshFlowReviewerCandidates"
+                                        class="inline-flex shrink-0 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+                                    <span class="material-symbols-outlined text-[17px]">refresh</span>
+                                    Actualizar usuarios
+                                </button>
+                            </div>
+                            <div class="space-y-3">
+                                @foreach($etapasRecorrido as $etapa)
+                                    <div wire:key="legacy-stage-{{ $etapa['id'] }}" class="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700 md:grid-cols-[minmax(0,1fr)_minmax(260px,1fr)] md:items-center">
+                                        <div>
+                                            <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                                                {{ $etapa['orden'] }}. {{ $etapa['nombre'] }}
+                                                @if($etapa['es_inicio'])
+                                                    <span class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700">Punto actual</span>
+                                                @endif
+                                            </p>
+                                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                Rol: {{ $etapa['rol'] ?: 'sin rol específico' }} · Estado: {{ $etapa['estado'] ?: 'sin estado configurado' }}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <x-forms.searchable-user-select
+                                                :model="'flowReviewers.'.$etapa['id']"
+                                                :options="$etapa['candidatos']"
+                                                :selected="$flowReviewers[$etapa['id']] ?? null"
+                                                placeholder="Buscar y seleccionar revisor..."
+                                                :wire-key="'legacy-reviewer-'.$etapa['id'].'-'.md5(json_encode([$etapa['candidatos'], $flowReviewers[$etapa['id']] ?? null]))"
+                                            />
+                                            @if(!empty($etapa['candidatos']))
+                                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                    {{ count($etapa['candidatos']) }} {{ count($etapa['candidatos']) === 1 ? 'usuario elegible' : 'usuarios elegibles' }}. Puede buscar por nombre o correo.
+                                                </p>
+                                            @else
+                                                <div class="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                                                    <p class="font-semibold">No hay usuarios disponibles para esta etapa.</p>
+                                                    <p class="mt-1">
+                                                        Asigne el rol <span class="font-semibold">{{ $etapa['rol'] ?: 'requerido por la etapa' }}</span>
+                                                        a una cuenta con empleado activo y correo válido; luego presione “Actualizar usuarios”.
+                                                    </p>
+                                                    @can('usuarios.usuarios')
+                                                        <a href="{{ route('Usuarios') }}" target="_blank" rel="noopener"
+                                                           class="mt-2 inline-flex items-center gap-1 font-semibold text-amber-900 underline underline-offset-2 dark:text-amber-100">
+                                                            Administrar usuarios y roles
+                                                            <span class="material-symbols-outlined text-[15px]">open_in_new</span>
+                                                        </a>
+                                                    @endcan
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            @error('flowReviewers') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    @endif
+
+                    @if(!empty($flowDiagnosis['bloqueos']))
+                        <div class="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/20">
+                            <p class="text-sm font-semibold text-red-800 dark:text-red-200">La adopción está bloqueada</p>
+                            <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-red-700 dark:text-red-300">
+                                @foreach($flowDiagnosis['bloqueos'] as $bloqueo)
+                                    <li>{{ $bloqueo }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    <div class="rounded-lg bg-gray-50 p-4 text-sm text-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                        @if($flowAdoptionMode === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_EN_REVISION)
+                            Se creará el ciclo 1 desde la etapa detectada automáticamente. Solo esa etapa aparecerá en la bandeja del revisor actual y recibirá una notificación.
+                        @elseif($flowAdoptionMode === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_SUBSANACION)
+                            La etapa detectada quedará como rechazada. Cuando el coordinador subsane y reenvíe, volverá a ese revisor y luego continuará con las etapas posteriores.
+                        @elseif($flowAdoptionMode === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_COMPLETADO)
+                            No se creará ninguna tarea. Todas las etapas se registrarán únicamente como completadas antes de la adopción.
+                        @else
+                            No se creará ninguna tarea ahora. Al enviar el proyecto, el flujo normal comenzará desde su primera etapa.
+                        @endif
+                    </div>
+                @endif
+
                 <div class="flex justify-end gap-3 pt-2">
                     <button wire:click="$set('flowModal', false)" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
-                    <button wire:click="saveFlow" class="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg">Guardar flujo</button>
+                    @if(empty($flowExistingAdoption) && !$flowHasStarted)
+                        <button wire:click="saveFlow"
+                                wire:loading.attr="disabled"
+                                wire:target="saveFlow"
+                                @disabled($flowIsLegacyAdoption && !empty($flowDiagnosis['bloqueos'] ?? []))
+                                class="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50 rounded-lg">
+                            {{ $flowIsLegacyAdoption ? 'Confirmar adopción' : 'Guardar flujo' }}
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>

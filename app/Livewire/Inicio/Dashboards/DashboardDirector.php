@@ -320,7 +320,10 @@ class DashboardDirector extends Component
         $misProyectosTable = $this->queryMisProyectos()
             ->with([
                 'estadoActual.tipoestado',
-                'firmasDeEtapa' => fn ($q) => $q->orderByDesc('revision_ciclo')->orderBy('orden_revision'),
+                'firmasDeEtapa' => fn ($q) => $q
+                    ->where('estado_revision', '!=', 'Anulado')
+                    ->orderByDesc('revision_ciclo')
+                    ->orderByDesc('id'),
             ])
             ->orderBy('proyecto.created_at', 'desc')
             ->paginate($this->perPage);

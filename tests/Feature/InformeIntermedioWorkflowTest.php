@@ -151,6 +151,28 @@ class InformeIntermedioWorkflowTest extends TestCase
         $this->assertSame(4, $actual->orden_revision);
     }
 
+    public function test_subsanacion_en_segunda_etapa_no_recrea_la_primera(): void
+    {
+        $contexto = $this->contexto();
+        $workflow = app(InformeIntermedioProyectoWorkflowService::class);
+        $informe = $workflow->guardarArchivo($contexto['proyecto'], $this->pdf(), $contexto['usuario']);
+        $documento = $workflow->enviar($informe, $contexto['usuario']);
+        $firmas = $documento->firma_documento()->orderBy('orden_revision')->get();
+        $this->harness()->aprobarEtapa($firmas[0], $contexto['usuario']);
+        $this->harness()->rechazarEtapa($firmas[1]->fresh(), $contexto['usuario'], 'Corrija la etapa final.');
+
+        $corregido = $workflow->guardarArchivo($contexto['proyecto']->fresh(), $this->pdf('corregido-segunda.pdf'), $contexto['usuario']);
+        $workflow->enviar($corregido, $contexto['usuario']);
+        $nuevoCiclo = $documento->fresh()->firma_documento()
+            ->where('revision_ciclo', 2)
+            ->orderBy('orden_revision')
+            ->get();
+
+        $this->assertCount(1, $nuevoCiclo);
+        $this->assertSame($contexto['etapas'][4]->id, $nuevoCiclo->first()->flujo_aprobacion_etapa_id);
+        $this->assertSame($contexto['usuario']->id, $nuevoCiclo->first()->responsable_usuario_id);
+    }
+
     public function test_aprobacion_avanza_notifica_el_informe_final_y_no_finaliza_el_proyecto(): void
     {
         $contexto = $this->contexto();
@@ -351,7 +373,7 @@ class InformeIntermedioWorkflowTest extends TestCase
 
     private function harness(): InformeIntermedioWorkflowHarness
     {
-        return new InformeIntermedioWorkflowHarness();
+        return new InformeIntermedioWorkflowHarness;
     }
 }
 
@@ -366,5 +388,4 @@ class InformeIntermedioWorkflowHarness extends ProyectosPorFirmar
     {
         return $this->rechazarFirmaPorEtapa($firma, $user, $comentario);
     }
-
 }

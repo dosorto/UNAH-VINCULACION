@@ -443,29 +443,30 @@ class ProgramaForm extends Component
         }
 
         $this->reviewRecipientStages = $recipientStages
-            ->map(function ($stage): array {
+            ->map(function (array $stage): array {
+                $roleName = $stage['rol_requerido'] ?? null;
                 $users = User::query()
                     ->select(['id', 'name', 'email', 'active_role_id'])
-                    ->when($stage->rol_revisor_id, fn ($query) => $query->whereHas(
+                    ->when($roleName, fn ($query) => $query->whereHas(
                         'roles',
-                        fn ($roleQuery) => $roleQuery->where('roles.id', $stage->rol_revisor_id)
+                        fn ($roleQuery) => $roleQuery->where('roles.name', $roleName)
                     ))
-                    ->orderByRaw('CASE WHEN active_role_id = ? THEN 0 ELSE 1 END', [$stage->rol_revisor_id ?: 0])
                     ->orderBy('name')
                     ->get()
+                    ->filter(fn (User $user): bool => filled($user->email) && filter_var($user->email, FILTER_VALIDATE_EMAIL))
                     ->map(fn (User $user): array => [
                         'id' => $user->id,
                         'name' => $user->name,
                         'email' => $user->email,
-                        'active_role' => (int) $user->active_role_id === (int) $stage->rol_revisor_id,
+                        'active_role' => ! $roleName || $user->activeRole?->name === $roleName,
                     ])
                     ->all();
 
                 return [
-                    'id' => $stage->id,
-                    'order' => $stage->orden,
-                    'name' => $stage->nombre,
-                    'role' => $stage->rolRevisor?->name ?? 'Sin rol específico',
+                    'id' => $stage['id'],
+                    'order' => $stage['orden'],
+                    'name' => $stage['nombre'],
+                    'role' => $roleName ?? 'Sin rol específico',
                     'users' => $users,
                 ];
             })
@@ -731,6 +732,23 @@ class ProgramaForm extends Component
     protected function hoursStatus(?TipoPrograma $tipoPrograma): array
     {
         $total = (int) collect($this->asignaturas)->sum(fn ($item) => (int) ($item['horas_academicas'] ?? 0));
+
+        if ($tipoPrograma?->usaDuracionPorDias()) {
+            $min = (int) $tipoPrograma->dias_minimos * (int) $tipoPrograma->horas_minimas_por_dia;
+            $inRange = $total >= $min;
+
+            return [
+                'total' => $total,
+                'min' => $min,
+                'max' => null,
+                'in_range' => $inRange,
+                'range_label' => $tipoPrograma->descripcionDuracion(),
+                'message' => $inRange
+                    ? 'El total cubre el mínimo global; la distribución diaria debe respetar esta duración.'
+                    : 'El total no cubre el mínimo de '.$min.' horas derivado de la duración por días.',
+            ];
+        }
+
         $min = (int) ($tipoPrograma?->horas_minimas ?? 0);
         $max = $tipoPrograma?->horas_maximas;
         $inRange = $tipoPrograma
@@ -742,7 +760,7 @@ class ProgramaForm extends Component
             'min' => $min,
             'max' => $max,
             'in_range' => $inRange,
-            'range_label' => $tipoPrograma ? $min.' - '.($max ?? 'N/D').' horas' : 'Sin tipo seleccionado',
+            'range_label' => $tipoPrograma ? $tipoPrograma->descripcionDuracion() : 'Sin tipo seleccionado',
             'message' => $inRange
                 ? 'Las horas acumuladas cumplen el rango permitido.'
                 : 'Las horas acumuladas del programa están fuera del rango permitido para este tipo.',

@@ -259,6 +259,7 @@
                                                 // Deduplicate: one firma per etapa (latest revision_ciclo first)
                                                 $etapasFirmas = $proyecto->firmasDeEtapa
                                                     ->unique('flujo_aprobacion_etapa_id')
+                                                    ->sortBy('orden_revision')
                                                     ->values();
                                                 $hayProgreso = $etapasFirmas->isNotEmpty();
                                                 // First Pendiente = current stage

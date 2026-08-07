@@ -7,17 +7,17 @@ use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Categoria;
 use App\Models\Proyecto\FirmaProyecto;
+use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\Modalidad;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\Proyecto;
-use App\Models\Proyecto\FlujoAprobacion;
+use App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService;
 use App\Support\AdminCsv;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -47,6 +47,14 @@ class ListProyectosVinculacion extends Component
     public bool $flowModal = false;
     public ?int $flowProyectoId = null;
     public ?int $flowSelectedId = null;
+    public bool $flowIsLegacyAdoption = false;
+    public bool $flowHasStarted = false;
+    public array $flowDiagnosis = [];
+    public array $flowExistingAdoption = [];
+    public ?string $flowAdoptionMode = null;
+    public ?int $flowStartStageId = null;
+    public array $flowReviewers = [];
+    public string $flowSubsanacionReason = '';
 
     public function updatingSearch(): void { $this->resetPage(); }
     public function updatingFilterEstado(): void { $this->resetPage(); }
@@ -74,6 +82,7 @@ class ListProyectosVinculacion extends Component
             ->where('firma_proyecto.firmable_id', $id)
             ->where('tipo_cargo_firma.nombre', $cargo)
             ->where('cargo_firma.descripcion', 'Proyecto')
+            ->whereNull('firma_proyecto.flujo_aprobacion_etapa_id')
             ->select('firma_proyecto.*')
             ->first();
 
@@ -99,6 +108,7 @@ class ListProyectosVinculacion extends Component
                 ->where('firma_proyecto.firmable_id', $this->firmasProyectoId)
                 ->where('tipo_cargo_firma.nombre', $cargo)
                 ->where('cargo_firma.descripcion', 'Proyecto')
+                ->whereNull('firma_proyecto.flujo_aprobacion_etapa_id')
                 ->select('firma_proyecto.*')
                 ->first();
             if ($firma) {
@@ -116,28 +126,219 @@ class ListProyectosVinculacion extends Component
 
     public function openFlowModal(int $id): void
     {
+        $this->authorizeWorkflowAdministration();
         $this->flowProyectoId = $id;
-        $proyecto = Proyecto::find($id);
+        $proyecto = Proyecto::with('adopcionFlujoLegacy')->findOrFail($id);
         $this->flowSelectedId = $proyecto?->flujo_aprobacion_id
             ?? FlujoAprobacion::defaultForProyectos($proyecto?->tipo_accion_id, $proyecto?->codigoFormularioFlujo())?->id
             ?? FlujoAprobacion::defaultForProyectos($proyecto?->tipo_accion_id)?->id
             ?? FlujoAprobacion::defaultForProyectos()?->id;
+        $this->flowHasStarted = $proyecto->firma_proyecto()
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->exists();
+        $this->flowExistingAdoption = $proyecto->adopcionFlujoLegacy
+            ? [
+                'modo' => $proyecto->adopcionFlujoLegacy->modo,
+                'estado_origen' => $proyecto->adopcionFlujoLegacy->estado_origen,
+                'orden_inicio' => $proyecto->adopcionFlujoLegacy->orden_inicio,
+                'adoptado_en' => $proyecto->adopcionFlujoLegacy->adoptado_en?->format('d/m/Y H:i'),
+            ]
+            : [];
+        $this->flowDiagnosis = [];
+        $this->flowAdoptionMode = null;
+        $this->flowStartStageId = null;
+        $this->flowReviewers = [];
+        $this->flowSubsanacionReason = '';
+        $this->flowIsLegacyAdoption = app(ProyectoLegacyWorkflowAdoptionService::class)
+            ->requiereAdopcion($proyecto);
+
+        if ($this->flowIsLegacyAdoption && $this->flowSelectedId) {
+            $this->refreshFlowDiagnosis(true);
+        }
+
         $this->flowModal = true;
+    }
+
+    public function updatedFlowSelectedId(): void
+    {
+        if (! $this->flowModal || ! $this->flowIsLegacyAdoption) {
+            return;
+        }
+
+        $this->flowAdoptionMode = null;
+        $this->flowStartStageId = null;
+        $this->flowReviewers = [];
+        $this->refreshFlowDiagnosis(true);
+    }
+
+    public function updatedFlowAdoptionMode(): void
+    {
+        if (! $this->flowIsLegacyAdoption) {
+            return;
+        }
+
+        $this->flowStartStageId = null;
+        $this->flowReviewers = [];
+        $this->refreshFlowDiagnosis(true);
+
+        if ($this->flowAdoptionMode === ProyectoLegacyWorkflowAdoptionService::MODO_SUBSANACION
+            && $this->flowSubsanacionReason === ''
+        ) {
+            $this->flowSubsanacionReason = (string) ($this->flowDiagnosis['estado_comentario'] ?? '');
+        }
+    }
+
+    public function updatedFlowStartStageId(): void
+    {
+        if ($this->flowIsLegacyAdoption) {
+            $this->flowReviewers = [];
+            $this->refreshFlowDiagnosis(true);
+        }
+    }
+
+    public function refreshFlowReviewerCandidates(): void
+    {
+        $this->authorizeWorkflowAdministration();
+
+        if (! $this->flowModal || ! $this->flowIsLegacyAdoption) {
+            return;
+        }
+
+        $this->resetErrorBag('flowReviewers');
+        $this->refreshFlowDiagnosis();
     }
 
     public function saveFlow(): void
     {
+        $this->authorizeWorkflowAdministration();
         $this->validate([
             'flowSelectedId' => ['required', 'exists:flujos_aprobacion,id'],
         ]);
 
         $proyecto = Proyecto::findOrFail($this->flowProyectoId);
-        $proyecto->update([
-            'flujo_aprobacion_id' => $this->flowSelectedId,
-        ]);
+        $flujo = FlujoAprobacion::findOrFail($this->flowSelectedId);
+        $service = app(ProyectoLegacyWorkflowAdoptionService::class);
+
+        try {
+            if ($service->requiereAdopcion($proyecto)) {
+                $this->validate([
+                    'flowAdoptionMode' => ['required', Rule::in(array_keys($service->modos()))],
+                    'flowStartStageId' => [
+                        Rule::requiredIf(in_array($this->flowAdoptionMode, [
+                            ProyectoLegacyWorkflowAdoptionService::MODO_EN_REVISION,
+                            ProyectoLegacyWorkflowAdoptionService::MODO_SUBSANACION,
+                        ], true)),
+                        'nullable',
+                        'integer',
+                    ],
+                    'flowReviewers' => ['array'],
+                    'flowSubsanacionReason' => [
+                        Rule::requiredIf($this->flowAdoptionMode === ProyectoLegacyWorkflowAdoptionService::MODO_SUBSANACION),
+                        'nullable',
+                        'string',
+                        'max:2000',
+                    ],
+                ]);
+
+                $service->adoptar(
+                    $proyecto,
+                    $flujo,
+                    (string) $this->flowAdoptionMode,
+                    $this->flowStartStageId,
+                    $this->flowReviewers,
+                    auth()->user(),
+                    $this->flowSubsanacionReason
+                );
+
+                $mensaje = match ($this->flowAdoptionMode) {
+                    ProyectoLegacyWorkflowAdoptionService::MODO_EN_REVISION => 'El proyecto continúa desde la etapa seleccionada y el revisor fue notificado.',
+                    ProyectoLegacyWorkflowAdoptionService::MODO_SUBSANACION => 'El proyecto quedó listo para volver al mismo punto cuando sea reenviado.',
+                    ProyectoLegacyWorkflowAdoptionService::MODO_COMPLETADO => 'El flujo quedó fijado sin crear aprobaciones ficticias.',
+                    default => 'El flujo quedó fijado y comenzará desde la primera etapa cuando se envíe.',
+                };
+
+                Notification::make()->title('Proyecto legacy adaptado')->body($mensaje)->success()->send();
+            } else {
+                $service->asignarFlujoSinAdopcion($proyecto, $flujo, auth()->user());
+                Notification::make()->title('Flujo actualizado')->body('El flujo del proyecto se actualizó correctamente.')->success()->send();
+            }
+        } catch (\RuntimeException $exception) {
+            Notification::make()
+                ->title('No se pudo adaptar el flujo')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        }
 
         $this->flowModal = false;
-        Notification::make()->title('Flujo actualizado')->body('El flujo del proyecto se actualizo correctamente.')->success()->send();
+        $this->resetFlowModalState();
+    }
+
+    private function refreshFlowDiagnosis(bool $resetReviewers = false): void
+    {
+        if (! $this->flowProyectoId || ! $this->flowSelectedId) {
+            $this->flowDiagnosis = [];
+
+            return;
+        }
+
+        try {
+            $diagnostico = app(ProyectoLegacyWorkflowAdoptionService::class)->diagnosticar(
+                Proyecto::findOrFail($this->flowProyectoId),
+                FlujoAprobacion::findOrFail($this->flowSelectedId)
+            );
+            $this->flowDiagnosis = $diagnostico;
+            $this->flowAdoptionMode = $diagnostico['modo'];
+            $this->flowStartStageId = $diagnostico['etapa_inicio_id'];
+
+            $anteriores = $resetReviewers ? [] : $this->flowReviewers;
+            $this->flowReviewers = [];
+
+            foreach ($diagnostico['etapas'] as $etapa) {
+                if (! $etapa['en_nuevo_recorrido']) {
+                    continue;
+                }
+
+                $candidatos = collect($etapa['candidatos'])->pluck('id')->map(fn ($id): int => (int) $id);
+                $anterior = isset($anteriores[$etapa['id']]) ? (int) $anteriores[$etapa['id']] : null;
+                $propuesto = $etapa['propuesto_usuario_id'] ? (int) $etapa['propuesto_usuario_id'] : null;
+
+                if ($anterior && $candidatos->contains($anterior)) {
+                    $this->flowReviewers[$etapa['id']] = $anterior;
+                } elseif ($propuesto && $candidatos->contains($propuesto)) {
+                    $this->flowReviewers[$etapa['id']] = $propuesto;
+                }
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->flowDiagnosis = [
+                'bloqueos' => ['No se pudo diagnosticar el proyecto con el flujo seleccionado.'],
+                'etapas' => [],
+            ];
+        }
+    }
+
+    private function authorizeWorkflowAdministration(): void
+    {
+        $user = auth()->user();
+
+        abort_unless($user && $user->hasRole(['admin', 'Director/Enlace']) && $user->can('proyectos.historial'), 403);
+    }
+
+    private function resetFlowModalState(): void
+    {
+        $this->flowProyectoId = null;
+        $this->flowSelectedId = null;
+        $this->flowIsLegacyAdoption = false;
+        $this->flowHasStarted = false;
+        $this->flowDiagnosis = [];
+        $this->flowExistingAdoption = [];
+        $this->flowAdoptionMode = null;
+        $this->flowStartStageId = null;
+        $this->flowReviewers = [];
+        $this->flowSubsanacionReason = '';
     }
 
     public function exportExcel()
@@ -242,7 +443,7 @@ class ListProyectosVinculacion extends Component
     private function proyectoRows(): Collection
     {
         return $this->recordsQuery()
-            ->with(['estado_proyecto.tipoestado', 'tipoAccion'])
+            ->with(['estado_proyecto.tipoestado', 'tipoAccion', 'adopcionFlujoLegacy'])
             ->get()
             ->map(function (Proyecto $proyecto): array {
                 $estadoActual = $proyecto->estado_proyecto->firstWhere('es_actual', true);
@@ -257,6 +458,10 @@ class ListProyectosVinculacion extends Component
                     'estado' => $estadoActual?->tipoestado?->nombre ?? '',
                     'fecha' => $proyecto->fecha_inicio,
                     'sort_date' => $proyecto->created_at,
+                    'flujo_adoptado' => $proyecto->adopcionFlujoLegacy !== null,
+                    'flujo_iniciado' => $proyecto->firma_proyecto()
+                        ->whereNotNull('flujo_aprobacion_etapa_id')
+                        ->exists(),
                 ];
             });
     }
@@ -323,10 +528,11 @@ class ListProyectosVinculacion extends Component
             ->where('activo', true)
             ->orderBy('nombre')
             ->get();
+        $flowModes       = app(ProyectoLegacyWorkflowAdoptionService::class)->modos();
 
         return view('livewire.proyectos.vinculacion.list-proyectos-vinculacion', compact(
             'records', 'viewProyecto', 'estadosTipo', 'centros', 'departamentos',
-            'empleados', 'categorias', 'modalidades', 'odsList', 'flujos'
+            'empleados', 'categorias', 'modalidades', 'odsList', 'flujos', 'flowModes'
         ));
     }
 }

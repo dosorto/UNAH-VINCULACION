@@ -138,7 +138,7 @@
             })();
         </script>
 
-        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}" data-record-id="{{ $editingAccion?->id }}" data-autosave-url="{{ route('enf.acciones.autoguardar-borrador') }}" data-autosave-update-url-template="{{ route('enf.acciones.autoguardar-borrador.update', ['accion' => '__ID__']) }}" data-destinatarios-url-template="{{ route('enf.acciones.destinatarios-inscripcion', ['accion' => '__ID__']) }}" data-send-review-url-template="{{ route('enf.acciones.enviar-revision', ['accion' => '__ID__']) }}">
+        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}" data-record-id="{{ $editingAccion?->id }}" data-autosave-url="{{ route('enf.acciones.autoguardar-borrador') }}" data-autosave-update-url-template="{{ route('enf.acciones.autoguardar-borrador.update', ['accion' => '__ID__']) }}" data-destinatarios-url-template="{{ route('enf.acciones.destinatarios-inscripcion', ['accion' => '__ID__']) }}">
             @csrf
             @if ($editingAccion)
                 @method('PUT')
@@ -1276,7 +1276,13 @@
                             'slug' => 'otros_documentos_respaldo',
                         ],
                     ] as $documentoSupervisor)
-                    <section class="rounded-md border border-slate-200 p-4 shadow-sm dark:border-slate-700" data-doc-upload-card>
+                    @php
+                        $documentoExistente = $editingAccion?->documentos
+                            ?->where('tipo_documento', $documentoSupervisor['slug'])
+                            ->sortByDesc('id')
+                            ->first();
+                    @endphp
+                    <section class="rounded-md border border-slate-200 p-4 shadow-sm dark:border-slate-700" data-doc-upload-card data-doc-has-existing="{{ $documentoExistente ? '1' : '0' }}">
                         <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $documentoSupervisor['label'] }}</h3>
 
                         <div class="mt-4 space-y-4">
@@ -1298,7 +1304,18 @@
                             <div>
                                 <label class="{{ $label }}">Archivo adjunto</label>
                                 <input type="file" name="supervisor_documentos_archivos[{{ $documentoSupervisor['slug'] }}]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-300" data-doc-upload-file disabled>
-                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Disponible solo cuando seleccione “Sí”.</p>
+                                @if ($documentoExistente)
+                                    <div class="mt-2 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                                        <p class="font-semibold">Archivo actual guardado.</p>
+                                        <div class="mt-1 flex gap-3">
+                                            <a href="{{ route('enf.documentos.ver', $documentoExistente) }}" target="_blank" rel="noopener" class="font-semibold hover:underline">Ver anexo</a>
+                                            <a href="{{ route('enf.documentos.descargar', $documentoExistente) }}" class="font-semibold hover:underline">Descargar</a>
+                                        </div>
+                                        <p class="mt-1">Selecciona otro archivo únicamente si deseas reemplazarlo.</p>
+                                    </div>
+                                @else
+                                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Disponible solo cuando seleccione “Sí”.</p>
+                                @endif
                                 @error("supervisor_documentos_archivos.{$documentoSupervisor['slug']}")<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                             </div>
                         </div>
@@ -1678,7 +1695,6 @@
             const sendReviewNext = document.querySelector('[data-enf-send-next]');
             const sendReviewConfirm = document.querySelector('[data-enf-send-confirm]');
             const destinatariosUrlTemplate = form.dataset.destinatariosUrlTemplate || '';
-            const sendReviewUrlTemplate = form.dataset.sendReviewUrlTemplate || '';
 
             const hideSendReviewModal = () => {
                 sendReviewModal?.classList.add('hidden');
@@ -1773,34 +1789,7 @@
             };
 
             const finalSubmit = () => {
-                const sendUrl = draftRecordId && sendReviewUrlTemplate
-                    ? sendReviewUrlTemplate.replace('__ID__', encodeURIComponent(draftRecordId))
-                    : '';
-
-                if (sendUrl) {
-                    const flowForm = document.createElement('form');
-                    flowForm.method = 'POST';
-                    flowForm.action = sendUrl;
-
-                    const token = form.querySelector('[name="_token"]')?.value || '';
-                    const tokenInput = document.createElement('input');
-                    tokenInput.type = 'hidden';
-                    tokenInput.name = '_token';
-                    tokenInput.value = token;
-                    flowForm.appendChild(tokenInput);
-
-                    appendDestinatariosToForm();
-                    form.querySelectorAll('[data-enf-destinatario-hidden]').forEach((field) => {
-                        flowForm.appendChild(field.cloneNode());
-                    });
-
-                    document.body.appendChild(flowForm);
-                    window.localStorage.removeItem(storageKey);
-                    window.localStorage.removeItem(`${storageKey}:step`);
-                    flowForm.submit();
-                    return;
-                }
-
+                appendDestinatariosToForm();
                 window.localStorage.removeItem(storageKey);
                 window.localStorage.removeItem(`${storageKey}:step`);
                 sendReviewConfirmed = true;
@@ -3551,10 +3540,11 @@
                     const file = card.querySelector('[data-doc-upload-file]');
                     const selectedRadio = radios.find((radio) => radio.checked);
                     const uploadEnabled = selectedRadio?.value === 'Si';
+                    const hasExistingFile = card.dataset.docHasExisting === '1';
 
                     if (file) {
                         file.disabled = !uploadEnabled;
-                        file.required = uploadEnabled;
+                        file.required = uploadEnabled && !hasExistingFile;
 
                         if (!uploadEnabled) {
                             file.value = '';

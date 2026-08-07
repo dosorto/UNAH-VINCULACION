@@ -87,7 +87,7 @@
                         <div class="enf-review-document-wrap">
                             @if($viewEnfForm018)
                                 <iframe
-                                    src="{{ route('enf.acciones.pdf.ver', $viewEnfAccion) }}"
+                                    src="{{ route('enf.acciones.pdf.contenido', $viewEnfAccion) }}"
                                     title="Vista previa PDF de FORM-DVUS-018"
                                     class="block min-h-[72vh] w-full border-0 bg-white"
                                 ></iframe>

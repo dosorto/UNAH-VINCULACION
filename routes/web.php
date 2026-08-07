@@ -1,27 +1,27 @@
 <?php
 
 use App\Http\Controllers\Auth\MicrosoftAuthController;
+use App\Http\Controllers\Constancias\VerificarConstanciaFinalizacionController;
+use App\Http\Controllers\Constancias\VerificarConstanciaRegistroController;
 use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Http\Controllers\ENF\EnfAccionController;
 use App\Http\Controllers\ENF\EnfConstanciaFinalizacionController;
 use App\Http\Controllers\ENF\EnfConstanciaRegistroController;
 use App\Http\Controllers\ENF\EnfCronogramaController;
 use App\Http\Controllers\ENF\EnfDocumentoController;
-use App\Http\Controllers\ENF\EnfInformeFinalDocumentoRevisionController;
 use App\Http\Controllers\ENF\EnfInformeFinalController;
+use App\Http\Controllers\ENF\EnfInformeFinalDocumentoRevisionController;
 use App\Http\Controllers\ENF\EnfInformeIntermedioController;
 use App\Http\Controllers\ENF\EnfPresupuestoController;
 use App\Http\Controllers\ENF\EnfSistematizacionController;
 use App\Http\Controllers\ENF\VerificarConstanciaFinalizacionEnfController;
 use App\Http\Controllers\ENF\VerificarConstanciaRegistroEnfController;
 use App\Http\Controllers\PDFController;
-use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalProyectoController;
-use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalDocumentoRevisionController;
-use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalAnexoController;
 use App\Http\Controllers\Proyectos\ConstanciaFinalizacionProyectoController;
-use App\Http\Controllers\Constancias\VerificarConstanciaFinalizacionController;
-use App\Http\Controllers\Constancias\VerificarConstanciaRegistroController;
 use App\Http\Controllers\Proyectos\ConstanciaRegistroProyectoController;
+use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalAnexoController;
+use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalDocumentoRevisionController;
+use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalProyectoController;
 use App\Http\Controllers\Proyectos\InformeIntermedio\InformeIntermedioProyectoController;
 use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialAnexoController;
 use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialPdfController;
@@ -53,6 +53,8 @@ use App\Livewire\Docente\Proyectos\ProyectosAprobados;
 use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
 use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
 use App\Livewire\Docente\Proyectos\ProyectosRechazados;
+use App\Livewire\ENF\EditInformeFinalForm016;
+use App\Livewire\ENF\EditInformeFinalForm018;
 use App\Livewire\Estudiante\CreateEstudiante;
 use App\Livewire\Estudiante\ListarEstudiante;
 use App\Livewire\Inicio\InicioAdmin;
@@ -86,8 +88,6 @@ use App\Livewire\UnidadAcademica\Campus\CampusList;
 use App\Livewire\UnidadAcademica\Carrera\CarreraList;
 use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList;
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
-use App\Livewire\ENF\EditInformeFinalForm016;
-use App\Livewire\ENF\EditInformeFinalForm018;
 use App\Livewire\User\Roles;
 use App\Livewire\User\Users;
 use App\Models\ENF\EnfAccion;
@@ -175,6 +175,7 @@ Route::middleware(['auth'])->get('completar-perfil', EditPerfil::class)
 Route::middleware(['auth'])->prefix('enf')->name('enf.')->group(function () {
     Route::get('tipos', [EnfAccionController::class, 'tipos'])->name('tipos');
     Route::get('acciones/{accion}/pdf/ver', [EnfAccionController::class, 'verPdf'])->name('acciones.pdf.ver');
+    Route::get('acciones/{accion}/pdf/contenido', [EnfAccionController::class, 'contenidoPdf'])->name('acciones.pdf.contenido');
     Route::get('acciones/{accion}/pdf', [EnfAccionController::class, 'descargarPdf'])->name('acciones.pdf');
     Route::get('constancias-registro/{constancia}/descargar', [EnfConstanciaRegistroController::class, 'descargar'])
         ->name('constancias.registro.descargar');
@@ -208,6 +209,8 @@ Route::middleware(['auth'])->prefix('enf')->name('enf.')->group(function () {
     Route::post('acciones/{accion}/reenviar-revision', [EnfAccionController::class, 'reenviarRevision'])->name('acciones.reenviar-revision');
     Route::post('acciones/{accion}/revisiones/{revision}/aprobar', [EnfAccionController::class, 'aprobarRevision'])->name('acciones.revisiones.aprobar');
     Route::post('acciones/{accion}/revisiones/{revision}/subsanar', [EnfAccionController::class, 'subsanarRevision'])->name('acciones.revisiones.subsanar');
+    Route::get('documentos/{documento}/ver', [EnfDocumentoController::class, 'verArchivo'])->name('documentos.ver');
+    Route::get('documentos/{documento}/descargar', [EnfDocumentoController::class, 'descargarArchivo'])->name('documentos.descargar');
     Route::resource('acciones', EnfAccionController::class)
         ->parameters(['acciones' => 'accion']);
     Route::resource('presupuestos', EnfPresupuestoController::class)

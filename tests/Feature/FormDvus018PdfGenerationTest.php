@@ -33,6 +33,7 @@ class FormDvus018PdfGenerationTest extends TestCase
     public function test_pdf_endpoints_require_an_authenticated_user(): void
     {
         $this->get(route('enf.acciones.pdf.ver', 18))->assertRedirect(route('login'));
+        $this->get(route('enf.acciones.pdf.contenido', 18))->assertRedirect(route('login'));
         $this->get(route('enf.acciones.pdf', 18))->assertRedirect(route('login'));
     }
 
