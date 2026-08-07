@@ -198,7 +198,7 @@ class HistorialProyectoWorkflowStageResubmissionIntegrationTest extends TestCase
         $this->assertSame('Pendiente', $firmaPosterior->refresh()->estado_revision);
         $this->assertSame(0, $context['proyecto']->firmasDeEtapasDelFlujo($context['flujo']->id, 2)->count());
         $this->assertStringContainsString(
-            'No existe un empleado válido para reenviar la etapa',
+            'ya no es elegible; seleccione un reemplazo válido',
             session('flash_notifications')[1]['body']
         );
     }
