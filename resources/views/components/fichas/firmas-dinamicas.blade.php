@@ -52,7 +52,7 @@
     };
 @endphp
 
-<div class="section-title">IX. FIRMAS</div>
+<div class="section-title">VIII. FIRMAS</div>
 
 @if ($filasFirmas->isEmpty())
     <table class="table_datos4">
