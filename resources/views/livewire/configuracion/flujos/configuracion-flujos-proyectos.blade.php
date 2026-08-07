@@ -175,7 +175,8 @@
                     @endif
 
                     @foreach ($stages as $index => $stage)
-                        <div class="relative overflow-hidden rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                        @php($stageUiKey = $stage['ui_key'] ?? (($stage['id'] ?? null) ? 'project-stage-'.$stage['id'] : 'project-stage-'.$index))
+                        <div wire:key="project-stage-card-{{ $stageUiKey }}" class="relative overflow-hidden rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
                             <div class="absolute inset-y-0 left-0 w-1.5 {{ $loop->first ? 'bg-emerald-500' : ($loop->last ? 'bg-rose-500' : 'bg-cyan-500') }}"></div>
                             <div class="flex items-center justify-between gap-3">
                                 <div class="flex items-center gap-3 pl-2">
@@ -224,7 +225,7 @@
                                 @if (($stage['tipo_etapa'] ?? null) === 'APROBACION')
                                     <label class="block space-y-2">
                                         <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Cargo de firma *</span>
-                                        <select wire:model="stages.{{ $index }}.cargo_firma_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                        <select wire:key="project-stage-cargo-{{ $stageUiKey }}" wire:model.live="stages.{{ $index }}.cargo_firma_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
                                             <option value="">Seleccione</option>
                                             @foreach ($cargoFirmas as $cargo)
                                                 <option value="{{ $cargo->id }}">{{ $cargo->label }}</option>
@@ -236,9 +237,9 @@
                                 @endif
                                 <label class="block space-y-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Rol con acceso</span>
-                                    <select wire:model.live="stages.{{ $index }}.rol_revisor_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                    <select wire:key="project-stage-role-{{ $stageUiKey }}" wire:model.live="stages.{{ $index }}.rol_revisor_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
                                         <option value="">Seleccione</option>
-                                        @foreach ($roles as $role)
+                                        @foreach ($projectRoles as $role)
                                             <option value="{{ $role->id }}">{{ $role->name }}</option>
                                         @endforeach
                                     </select>
@@ -246,8 +247,8 @@
                                 </label>
                                 <label class="block space-y-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Usuario responsable de asignacion</span>
-                                    @php($usuariosEtapa = $usuariosPorRol[(string) ($stage['rol_revisor_id'] ?? '')] ?? [])
-                                    <select wire:model="stages.{{ $index }}.usuario_responsable_id" @disabled(!($stage['rol_revisor_id'] ?? null) || !($stage['requiere_asignacion'] ?? false) || ($stage['emisor_define_destinatario'] ?? false)) class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-800/60 dark:disabled:text-slate-500">
+                                    @php($usuariosEtapa = $projectUsersByRole[(string) ($stage['rol_revisor_id'] ?? '')] ?? [])
+                                    <select wire:key="project-stage-responsible-{{ $stageUiKey }}-{{ $stage['rol_revisor_id'] ?: 'none' }}" wire:model="stages.{{ $index }}.usuario_responsable_id" @disabled(!($stage['rol_revisor_id'] ?? null) || !($stage['requiere_asignacion'] ?? false) || ($stage['emisor_define_destinatario'] ?? false)) class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-800/60 dark:disabled:text-slate-500">
                                         <option value="">{{ ($stage['rol_revisor_id'] ?? null) ? 'Sin responsable fijo' : 'Seleccione un rol primero' }}</option>
                                         @foreach ($usuariosEtapa as $usuario)
                                             <option value="{{ $usuario['id'] }}">{{ $usuario['name'] }}</option>
@@ -427,7 +428,8 @@
                 
                         <div class="mt-5 space-y-4">
                             @foreach ($programStages as $index => $stage)
-                                <div class="relative overflow-hidden rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                                @php($stageUiKey = $stage['ui_key'] ?? (($stage['id'] ?? null) ? 'program-stage-'.$stage['id'] : 'program-stage-'.$index))
+                                <div wire:key="program-stage-card-{{ $stageUiKey }}" class="relative overflow-hidden rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
                                     <div class="absolute inset-y-0 left-0 w-1.5 {{ $loop->first ? 'bg-emerald-500' : ($loop->last ? 'bg-rose-500' : 'bg-cyan-500') }}"></div>
                                     <div class="flex items-center justify-between gap-3">
                                         <div class="flex items-center gap-3 pl-2">
@@ -477,7 +479,7 @@
                                         @if (($stage['tipo_etapa'] ?? null) === 'APROBACION')
                                             <label class="block space-y-2">
                                                 <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Cargo de firma *</span>
-                                                <select wire:model="programStages.{{ $index }}.cargo_firma_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                                <select wire:key="program-stage-cargo-{{ $stageUiKey }}" wire:model.live="programStages.{{ $index }}.cargo_firma_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
                                                     <option value="">Seleccione</option>
                                                     @foreach ($cargoFirmas as $cargo)
                                                         <option value="{{ $cargo->id }}">{{ $cargo->label }}</option>
@@ -489,9 +491,9 @@
                                         @endif
                                         <label class="block space-y-2">
                                             <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Rol revisor</span>
-                                            <select wire:model.live="programStages.{{ $index }}.rol_revisor_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                            <select wire:key="program-stage-role-{{ $stageUiKey }}" wire:model.live="programStages.{{ $index }}.rol_revisor_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
                                                 <option value="">Sin rol especifico</option>
-                                                @foreach ($roles as $role)
+                                                @foreach ($programRoles as $role)
                                                     <option value="{{ $role->id }}">{{ $role->name }}</option>
                                                 @endforeach
                                             </select>
@@ -499,8 +501,8 @@
                                         </label>
                                         <label class="block space-y-2">
                                             <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Responsable</span>
-                                            @php($usuariosEtapa = $usuariosPorRol[(string) ($stage['rol_revisor_id'] ?? '')] ?? [])
-                                            <select wire:model="programStages.{{ $index }}.usuario_responsable_id" @disabled(!($stage['rol_revisor_id'] ?? null) || !($stage['requiere_asignacion'] ?? false) || ($stage['emisor_define_destinatario'] ?? false)) class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-800/60 dark:disabled:text-slate-500">
+                                            @php($usuariosEtapa = $programUsersByRole[(string) ($stage['rol_revisor_id'] ?? '')] ?? [])
+                                            <select wire:key="program-stage-responsible-{{ $stageUiKey }}-{{ $stage['rol_revisor_id'] ?: 'none' }}" wire:model="programStages.{{ $index }}.usuario_responsable_id" @disabled(!($stage['rol_revisor_id'] ?? null) || !($stage['requiere_asignacion'] ?? false) || ($stage['emisor_define_destinatario'] ?? false)) class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-800/60 dark:disabled:text-slate-500">
                                                 <option value="">{{ ($stage['rol_revisor_id'] ?? null) ? 'Sin responsable fijo' : 'Seleccione un rol primero' }}</option>
                                                 @foreach ($usuariosEtapa as $usuario)
                                                     <option value="{{ $usuario['id'] }}">{{ $usuario['name'] }}</option>

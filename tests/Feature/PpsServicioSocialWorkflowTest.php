@@ -4,10 +4,9 @@ namespace Tests\Feature;
 
 use App\Mail\EtapaFlujoPendiente;
 use App\Models\Estado\TipoEstado;
-use App\Models\PpsServicioSocial;
 use App\Models\Personal\Empleado;
+use App\Models\PpsServicioSocial;
 use App\Models\Proyecto\CargoFirma;
-use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\TipoCargoFirma;
@@ -128,6 +127,75 @@ class PpsServicioSocialWorkflowTest extends TestCase
         $this->assertSame([1, 2], $firmas->pluck('orden_revision')->all());
     }
 
+    public function test_reenvio_desde_segunda_etapa_no_recrea_la_primera_y_regresa_al_revisor(): void
+    {
+        $ctx = $this->contexto();
+        $service = app(PpsServicioSocialWorkflowService::class);
+        $registro = $service->enviarARevision($ctx['registro'], $ctx['usuario']->id);
+        $registro = $service->aprobarEtapa($registro, $ctx['usuario']->id);
+        $registro = $service->rechazar($registro, 'Corrija la segunda etapa.', $ctx['usuario']->id);
+        $registro = $service->iniciarSubsanacion($registro, $ctx['usuario']->id);
+
+        Mail::fake();
+        $reenviado = $service->enviarARevision($registro, $ctx['usuario']->id);
+
+        $firmas = $reenviado->firmasDeEtapa()
+            ->where('revision_ciclo', 2)
+            ->orderBy('orden_revision')
+            ->get();
+
+        $this->assertCount(1, $firmas);
+        $this->assertSame($ctx['etapas'][1]->id, $firmas->first()->flujo_aprobacion_etapa_id);
+        $this->assertSame($ctx['usuario']->id, $firmas->first()->responsable_usuario_id);
+        $this->assertSame($ctx['etapas'][1]->id, $reenviado->etapa_actual_id);
+        Mail::assertQueued(EtapaFlujoPendiente::class, 1);
+    }
+
+    public function test_reenvio_bloquea_revisor_invalido_y_acepta_reemplazo(): void
+    {
+        $ctx = $this->contexto();
+        $adminRole = Role::findOrCreate('admin', 'web');
+        $revisor = User::factory()->create(['active_role_id' => $adminRole->id]);
+        $revisor->assignRole($adminRole);
+        Empleado::create([
+            'nombre_completo' => 'Revisor '.uniqid(),
+            'numero_empleado' => (string) random_int(100000, 999999),
+            'celular' => '99999999',
+            'sexo' => 'Masculino',
+            'user_id' => $revisor->id,
+            'tipo_empleado' => 'docente',
+        ]);
+        $ctx['etapas']->each->update(['usuario_responsable_id' => $revisor->id]);
+        $service = app(PpsServicioSocialWorkflowService::class);
+        $registro = $service->enviarARevision($ctx['registro'], $ctx['usuario']->id);
+        $registro = $service->rechazar($registro, 'Corrija.', $revisor->id, $revisor);
+        $registro = $service->iniciarSubsanacion($registro, $ctx['usuario']->id);
+        $revisor->delete();
+
+        try {
+            $service->enviarARevision($registro, $ctx['usuario']->id);
+            $this->fail('El reenvío debía bloquearse sin un reemplazo elegible.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('seleccione un reemplazo válido', $exception->getMessage());
+        }
+
+        $reemplazo = User::factory()->create(['active_role_id' => $adminRole->id]);
+        $reemplazo->assignRole($adminRole);
+        $empleado = Empleado::create([
+            'nombre_completo' => 'Reemplazo '.uniqid(),
+            'numero_empleado' => (string) random_int(100000, 999999),
+            'celular' => '99999999',
+            'sexo' => 'Masculino',
+            'user_id' => $reemplazo->id,
+            'tipo_empleado' => 'docente',
+        ]);
+        $etapaId = $ctx['etapas'][0]->id;
+
+        $reenviado = $service->enviarARevision($registro, $ctx['usuario']->id, [$etapaId => $reemplazo->id]);
+
+        $this->assertSame($empleado->id, $reenviado->firmasDeEtapa()->where('revision_ciclo', 2)->value('empleado_id'));
+    }
+
     public function test_no_permite_enviar_si_no_es_borrador(): void
     {
         $ctx = $this->contexto();
@@ -214,7 +282,7 @@ class PpsServicioSocialWorkflowTest extends TestCase
         $usuario->update(['active_role_id' => $adminRole->id]);
 
         $empleado = Empleado::create([
-            'nombre_completo' => 'Docente ' . uniqid(),
+            'nombre_completo' => 'Docente '.uniqid(),
             'numero_empleado' => (string) random_int(100000, 999999),
             'celular' => '99999999',
             'sexo' => 'Masculino',
@@ -223,7 +291,7 @@ class PpsServicioSocialWorkflowTest extends TestCase
         ]);
 
         $flujo = FlujoAprobacion::create([
-            'codigo' => 'PPS_FLUJO_' . uniqid(),
+            'codigo' => 'PPS_FLUJO_'.uniqid(),
             'nombre' => 'Flujo PPS/SS Test',
             'proceso' => PpsServicioSocial::PROCESO_FLUJO,
             'codigo_formulario' => 'FORM-DVUS-014',
@@ -236,8 +304,8 @@ class PpsServicioSocialWorkflowTest extends TestCase
 
         $etapas = collect();
         foreach (range(1, 2) as $orden) {
-            $estado = TipoEstado::firstOrCreate(['nombre' => 'Estado etapa ' . $orden . '_' . uniqid()]);
-            $tipoCargo = TipoCargoFirma::create(['nombre' => 'Cargo ' . $orden . '_' . uniqid()]);
+            $estado = TipoEstado::firstOrCreate(['nombre' => 'Estado etapa '.$orden.'_'.uniqid()]);
+            $tipoCargo = TipoCargoFirma::create(['nombre' => 'Cargo '.$orden.'_'.uniqid()]);
             $cargo = CargoFirma::create([
                 'descripcion' => 'Proyecto',
                 'tipo_cargo_firma_id' => $tipoCargo->id,
@@ -246,8 +314,8 @@ class PpsServicioSocialWorkflowTest extends TestCase
             $etapas->push(FlujoAprobacionEtapa::create([
                 'flujo_aprobacion_id' => $flujo->id,
                 'orden' => $orden,
-                'codigo' => 'PPS_ETAPA_' . $orden . '_' . uniqid(),
-                'nombre' => 'Etapa ' . $orden,
+                'codigo' => 'PPS_ETAPA_'.$orden.'_'.uniqid(),
+                'nombre' => 'Etapa '.$orden,
                 'tipo_etapa' => 'REVISION',
                 'cargo_firma_id' => $cargo->id,
                 'usuario_responsable_id' => $usuario->id,
@@ -256,10 +324,10 @@ class PpsServicioSocialWorkflowTest extends TestCase
         }
 
         $registro = PpsServicioSocial::create([
-            'codigo_registro' => 'PPS-TEST-' . uniqid(),
+            'codigo_registro' => 'PPS-TEST-'.uniqid(),
             'facultad_centro' => 'Facultad de Test',
             'carrera' => 'Test Carrera',
-            'numero_cuenta' => '2024' . random_int(10000000, 99999999),
+            'numero_cuenta' => '2024'.random_int(10000000, 99999999),
             'nombre_estudiante' => 'Estudiante Test',
             'celular_estudiante' => '99999999',
             'correo_institucional' => 'test@unah.edu.hn',

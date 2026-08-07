@@ -28,7 +28,13 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libzip-dev \
     libgd-dev \
-    libicu-dev 
+    libicu-dev \
+    libreoffice-writer \
+    poppler-utils \
+    fonts-liberation \
+    fonts-dejavu-core \
+    fonts-crosextra-carlito \
+    fonts-crosextra-caladea
 
 # Limpiar la cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*

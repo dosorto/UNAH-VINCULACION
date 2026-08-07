@@ -164,7 +164,8 @@ class InformeIntermedioProyectoWorkflowService
                     $proyecto,
                     $documento,
                     $bloqueado->archivo_pdf,
-                    $user
+                    $user,
+                    $usuariosElegidosPorEtapa
                 );
             }
 

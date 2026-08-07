@@ -8,18 +8,20 @@
             @php
                 $colorClase = match ($paso['estado']) {
                     'aprobado' => 'bg-emerald-500 text-white',
+                    'adoptado' => 'bg-sky-500 text-white',
                     'rechazado' => 'bg-red-500 text-white',
                     'actual' => 'bg-amber-400 text-white ring-2 ring-amber-300 ring-offset-1',
                     default => 'bg-slate-200 text-slate-400 dark:bg-slate-700',
                 };
                 $icono = match ($paso['estado']) {
                     'aprobado' => '✓',
+                    'adoptado' => '↑',
                     'rechazado' => '✕',
                     'actual' => '●',
                     default => '○',
                 };
             @endphp
-            <div class="flex flex-col items-center gap-0.5" title="{{ $paso['nombre'] }}">
+            <div class="flex flex-col items-center gap-0.5" title="{{ $paso['detalle'] ?? $paso['nombre'] }}">
                 <span class="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold {{ $colorClase }}">
                     {{ $icono }}
                 </span>

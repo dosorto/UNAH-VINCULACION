@@ -6,13 +6,13 @@ use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Mail\EtapaFlujoPendiente;
 use App\Mail\ProyectoEstadoCambiado;
 use App\Models\Estado\TipoEstado;
+use App\Models\InformeFinal\InformeFinalProyecto;
+use App\Models\InformeIntermedio\InformeIntermedioProyecto;
 use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
-use App\Models\InformeFinal\InformeFinalProyecto;
-use App\Models\InformeIntermedio\InformeIntermedioProyecto;
 use App\Services\Constancias\EmitirConstanciaFinalizacionProyecto;
 use App\Services\Constancias\EmitirConstanciaRegistroProyecto;
 use Illuminate\Support\Facades\DB;
@@ -236,6 +236,7 @@ trait ResuelveFirmaPorEtapa
         DB::afterCommit(function () use ($proyecto, $user): void {
             if (! Schema::hasTable('constancias_registro_proyecto')) {
                 Log::warning('La constancia de registro no se emitió porque la migración aún no está disponible.', ['proyecto_id' => $proyecto->id]);
+
                 return;
             }
             try {
@@ -291,6 +292,8 @@ trait ResuelveFirmaPorEtapa
 
             $firmaBloqueada->update([
                 'estado_revision' => 'Rechazado',
+                'empleado_id' => $empleadoId,
+                'responsable_usuario_id' => $user->id,
                 'firma_id' => null,
                 'sello_id' => null,
                 'fecha_firma' => now(),
@@ -397,6 +400,7 @@ trait ResuelveFirmaPorEtapa
                         'observaciones' => $comentario,
                     ]);
             }
+
             return;
         }
 
@@ -515,11 +519,11 @@ trait ResuelveFirmaPorEtapa
             $tipoRegistro = $siguienteFirma->firmable_type === DocumentoProyecto::class
                 ? DocumentoProyecto::find($siguienteFirma->firmable_id)?->tipo_documento
                 : null;
-            Mail::to($revisorUser->email)->send(
-                new EtapaFlujoPendiente($proyecto, $revisorUser, $etapa, $tipoRegistro)
+            Mail::to($revisorUser->email)->queue(
+                (new EtapaFlujoPendiente($proyecto, $revisorUser, $etapa, $tipoRegistro))->afterCommit()
             );
         } catch (\Throwable $exception) {
-            Log::warning('No se pudo notificar al siguiente revisor de etapa: ' . $exception->getMessage(), [
+            Log::warning('No se pudo notificar al siguiente revisor de etapa: '.$exception->getMessage(), [
                 'firma_id' => $siguienteFirma->id,
                 'proyecto_id' => $proyecto->id,
             ]);
@@ -543,11 +547,11 @@ trait ResuelveFirmaPorEtapa
         }
 
         try {
-            Mail::to($coordinador->email)->send(
-                new ProyectoEstadoCambiado($proyecto, $coordinador, $nuevoEstado, $comentario, $accion, $actionUrl)
+            Mail::to($coordinador->email)->queue(
+                (new ProyectoEstadoCambiado($proyecto, $coordinador, $nuevoEstado, $comentario, $accion, $actionUrl))->afterCommit()
             );
         } catch (\Throwable $exception) {
-            Log::warning('No se pudo notificar al coordinador del proyecto: ' . $exception->getMessage(), [
+            Log::warning('No se pudo notificar al coordinador del proyecto: '.$exception->getMessage(), [
                 'proyecto_id' => $proyecto->id,
             ]);
         }

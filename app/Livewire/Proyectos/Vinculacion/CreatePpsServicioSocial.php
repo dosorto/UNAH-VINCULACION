@@ -6,7 +6,6 @@ use App\Models\Demografia\Departamento;
 use App\Models\Demografia\Municipio;
 use App\Models\Personal\Empleado;
 use App\Models\PpsServicioSocial;
-use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\UnidadAcademica\Carrera;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\User;
@@ -403,7 +402,7 @@ class CreatePpsServicioSocial extends Component
             $registro->update($payload);
 
             $registro = app(PpsServicioSocialWorkflowService::class)
-                ->enviarARevision($registro, auth()->id());
+                ->enviarARevision($registro, auth()->id(), $this->modalDestinatarios);
         } catch (\RuntimeException $e) {
             Notification::make()->title('Flujo PPS/SS incompleto')->body($e->getMessage())->warning()->send();
             $this->showEnviarModal = false;
@@ -733,34 +732,34 @@ class CreatePpsServicioSocial extends Component
 
     protected function cargarEtapasModal(): void
     {
-        $flujo = app(PpsServicioSocialWorkflowService::class)->obtenerFlujoActivo();
+        $registro = $this->registroId ? PpsServicioSocial::find($this->registroId) : null;
 
-        if (! $flujo) {
+        if (! $registro) {
             $this->modalEtapas = [];
             return;
         }
 
-        $this->modalEtapas = $flujo->etapas
-            ->where('activo', true)
-            ->where('emisor_define_destinatario', true)
-            ->sortBy('orden')
-            ->map(function (FlujoAprobacionEtapa $etapa): array {
+        $this->modalEtapas = app(PpsServicioSocialWorkflowService::class)
+            ->etapasQueRequierenDestinatario($registro)
+            ->map(function (array $etapa): array {
                 $usuarios = [];
 
-                if ($etapa->rol_revisor_id) {
+                if ($etapa['rol_requerido']) {
                     $usuarios = User::query()
                         ->select(['id', 'name', 'email'])
-                        ->whereHas('roles', fn ($q) => $q->where('roles.id', $etapa->rol_revisor_id))
+                        ->whereHas('roles', fn ($q) => $q->where('roles.name', $etapa['rol_requerido']))
+                        ->whereHas('empleado')
                         ->orderBy('name')
                         ->get()
+                        ->filter(fn (User $u): bool => filled($u->email) && filter_var($u->email, FILTER_VALIDATE_EMAIL))
                         ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email])
                         ->all();
                 }
 
                 return [
-                    'id' => $etapa->id,
-                    'nombre' => $etapa->nombre,
-                    'rol_nombre' => $etapa->rolRevisor?->name ?? 'Sin rol',
+                    'id' => $etapa['id'],
+                    'nombre' => $etapa['nombre'],
+                    'rol_nombre' => $etapa['rol_requerido'] ?? 'Sin rol',
                     'usuarios' => $usuarios,
                 ];
             })

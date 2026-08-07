@@ -259,7 +259,9 @@ class DasboardDocente extends Component
             $firma = $fila['firma'];
             $estado = 'pendiente';
 
-            if ($firma?->estado_revision === 'Aprobado') {
+            if ($fila['adoptada_antes'] ?? false) {
+                $estado = 'adoptado';
+            } elseif ($firma?->estado_revision === 'Aprobado') {
                 $estado = 'aprobado';
             } elseif ($firma?->estado_revision === 'Rechazado') {
                 $estado = 'rechazado';
@@ -268,20 +270,36 @@ class DasboardDocente extends Component
                 $actualMarcado = true;
             }
 
-            return ['nombre' => $fila['etapa']->nombre, 'estado' => $estado];
+            return [
+                'nombre' => $fila['etapa']->nombre,
+                'estado' => $estado,
+                'detalle' => $estado === 'adoptado'
+                    ? $fila['etapa']->nombre.' — completada antes de la adopción al flujo'
+                    : $fila['etapa']->nombre,
+            ];
         })->all();
     }
 
     private function enfStepper(EnfAccion $accion): array
     {
-        $ultimoCiclo = (int) EnfRevision::where('enf_accion_id', $accion->id)->max('revision_ciclo') ?: 1;
+        $proceso = EnfRevision::where('enf_accion_id', $accion->id)
+            ->orderByDesc('id')
+            ->value('proceso');
+
+        if (! $proceso) {
+            return [];
+        }
 
         $actualMarcado = false;
 
         return EnfRevision::where('enf_accion_id', $accion->id)
-            ->where('revision_ciclo', $ultimoCiclo)
-            ->orderBy('orden')
+            ->where('proceso', $proceso)
+            ->orderByDesc('revision_ciclo')
+            ->orderByDesc('id')
             ->get()
+            ->unique('flujo_aprobacion_etapa_id')
+            ->sortBy('orden')
+            ->values()
             ->map(function (EnfRevision $revision) use (&$actualMarcado): array {
                 $estado = 'pendiente';
 

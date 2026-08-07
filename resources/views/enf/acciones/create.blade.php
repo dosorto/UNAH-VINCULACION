@@ -85,6 +85,7 @@
         'departamento' => $empleado->departamento_academico?->nombre,
         'jornada_laboral' => $empleado->jornada_laboral,
     ])->values();
+    $programasAprobadosData = $programasAprobados->values();
     $stepLabels = [
         1 => 'Información',
         2 => 'Lugar',
@@ -137,7 +138,7 @@
             })();
         </script>
 
-        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}" data-record-id="{{ $editingAccion?->id }}" data-autosave-url="{{ route('enf.acciones.autoguardar-borrador') }}" data-autosave-update-url-template="{{ route('enf.acciones.autoguardar-borrador.update', ['accion' => '__ID__']) }}" data-destinatarios-url-template="{{ route('enf.acciones.destinatarios-inscripcion', ['accion' => '__ID__']) }}" data-send-review-url-template="{{ route('enf.acciones.enviar-revision', ['accion' => '__ID__']) }}">
+        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}" data-record-id="{{ $editingAccion?->id }}" data-autosave-url="{{ route('enf.acciones.autoguardar-borrador') }}" data-autosave-update-url-template="{{ route('enf.acciones.autoguardar-borrador.update', ['accion' => '__ID__']) }}" data-destinatarios-url-template="{{ route('enf.acciones.destinatarios-inscripcion', ['accion' => '__ID__']) }}">
             @csrf
             @if ($editingAccion)
                 @method('PUT')
@@ -173,6 +174,23 @@
 
             <div class="{{ $card }}" data-step-panel="1">
                 <h2 class="{{ $sectionTitle }}">1. Información general de la acción</h2>
+                <div class="mb-4 rounded-md border border-blue-100 bg-blue-50 p-4 dark:border-blue-900/50 dark:bg-blue-950/30">
+                    <label class="{{ $label }}">Programa aprobado de DAFT</label>
+                    <select data-approved-program-select class="{{ $input }}">
+                        <option value="">Crear acción desde cero</option>
+                        @forelse ($programasAprobados as $programaAprobado)
+                            <option value="{{ $programaAprobado['id'] }}">
+                                {{ $programaAprobado['label'] }} · {{ $programaAprobado['source'] }}
+                            </option>
+                        @empty
+                            <option value="" disabled>No hay programas aprobados disponibles</option>
+                        @endforelse
+                    </select>
+                    <p class="mt-2 text-xs text-blue-800 dark:text-blue-200">
+                        Al seleccionar un programa aprobado se cargarán automáticamente los datos disponibles desde DAFT. Esos datos quedarán en modo de solo lectura; los datos propios de la nueva edición permanecerán editables.
+                    </p>
+                    <div data-approved-program-summary class="mt-4 hidden rounded-md border border-blue-200 bg-white/80 p-4 dark:border-blue-800 dark:bg-slate-900/60"></div>
+                </div>
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div class="order-1">
                         <label class="{{ $label }}">Fecha de solicitud</label>
@@ -725,6 +743,29 @@
                             Gestionar participación
                         </button>
                     </div>
+                    <div class="mt-4 overflow-x-auto rounded-md border border-slate-200 dark:border-slate-700">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
+                            <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-800">
+                                <tr>
+                                    <th class="px-3 py-2">Tipo de participación</th>
+                                    <th class="px-3 py-2 text-right">Hombres</th>
+                                    <th class="px-3 py-2 text-right">Mujeres</th>
+                                    <th class="px-3 py-2 text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody data-participacion-summary class="divide-y divide-slate-100 bg-white dark:divide-slate-800 dark:bg-slate-900">
+                                <tr><td colspan="4" class="px-3 py-4 text-center text-slate-500">Sin participación registrada.</td></tr>
+                            </tbody>
+                            <tfoot data-participacion-summary-totals class="hidden bg-slate-50 font-semibold text-slate-800 dark:bg-slate-800 dark:text-slate-100">
+                                <tr>
+                                    <td class="px-3 py-2">Total general</td>
+                                    <td class="px-3 py-2 text-right" data-participacion-total-hombres>0</td>
+                                    <td class="px-3 py-2 text-right" data-participacion-total-mujeres>0</td>
+                                    <td class="px-3 py-2 text-right" data-participacion-total-general>0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                     <div class="hidden" data-participacion-fields>
                         @foreach ([
                             'Estudiantes de grado / posgrado',
@@ -900,37 +941,75 @@
             <div class="{{ $card }} hidden" data-step-panel="7">
                 <h2 class="{{ $sectionTitle }}">7. Resultados esperados y ODS</h2>
                 <div class="space-y-4">
-                    @php $resultadoIndex = 0; @endphp
-                    @foreach ([
-                        ['tipo' => 'Corto plazo', 'cantidad' => 6, 'titulo' => 'Resultados de corto plazo del proyecto'],
-                        ['tipo' => 'Mediano plazo', 'cantidad' => 5, 'titulo' => 'Indicadores de mediano plazo'],
-                        ['tipo' => 'Largo plazo / impacto', 'cantidad' => 5, 'titulo' => 'Impacto que se desea generar en el proyecto'],
-                    ] as $grupoResultado)
-                        <section class="rounded-md border border-slate-200 p-4 dark:border-slate-700">
-                            <h3 class="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $grupoResultado['titulo'] }}</h3>
-                            <div class="space-y-3">
+                    <section class="rounded-md border border-slate-200 p-4 dark:border-slate-700">
+                        @php
+                            $gruposResultados = [
+                                ['tipo' => 'Corto plazo', 'cantidad' => 6, 'clave' => 'corto', 'titulo' => 'Resultados de corto plazo'],
+                                ['tipo' => 'Mediano plazo', 'cantidad' => 5, 'clave' => 'mediano', 'titulo' => 'Resultados de mediano plazo'],
+                                ['tipo' => 'Largo plazo / impacto', 'cantidad' => 5, 'clave' => 'largo', 'titulo' => 'Resultados de largo plazo / impacto'],
+                            ];
+                        @endphp
+
+                        <div class="mb-4">
+                            <h3 class="text-base font-semibold text-slate-800 dark:text-slate-100">Resultados esperados</h3>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Agrega cada resultado en la tabla del plazo correspondiente.</p>
+                        </div>
+
+                        <p data-resultados-feedback class="mb-3 hidden rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"></p>
+
+                        <div class="space-y-5">
+                            @foreach ($gruposResultados as $grupoResultado)
+                                <div>
+                                    <div class="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <h4 class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $grupoResultado['titulo'] }}</h4>
+                                        <button type="button" data-open-resultado-modal="{{ $grupoResultado['tipo'] }}" class="self-start rounded-md bg-blue-700 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800 sm:self-auto">Agregar resultado</button>
+                                    </div>
+                                    <div class="overflow-hidden rounded-md border border-slate-200 dark:border-slate-700">
+                                        <table class="w-full table-fixed divide-y divide-slate-200 text-sm dark:divide-slate-700">
+                                            <colgroup>
+                                                @if ($grupoResultado['tipo'] === 'Corto plazo')
+                                                    <col class="w-[8%]">
+                                                    <col class="w-[40%]">
+                                                    <col class="w-[34%]">
+                                                @else
+                                                    <col class="w-[44%]">
+                                                    <col class="w-[38%]">
+                                                @endif
+                                                <col class="w-[18%]">
+                                            </colgroup>
+                                            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                                <tr>
+                                                    @if ($grupoResultado['tipo'] === 'Corto plazo')
+                                                        <th class="px-3 py-2">OE</th>
+                                                    @endif
+                                                    <th class="px-3 py-2">Descripción del resultado</th>
+                                                    <th class="px-3 py-2">Medio de verificación</th>
+                                                    <th class="px-3 py-2 text-right">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody data-resultados-list="{{ $grupoResultado['clave'] }}" data-show-objetivo="{{ $grupoResultado['tipo'] === 'Corto plazo' ? '1' : '0' }}" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <div data-resultados-fields class="hidden">
+                            @php $resultadoIndex = 0; @endphp
+                            @foreach ($gruposResultados as $grupoResultado)
                                 @for ($filaResultado = 0; $filaResultado < $grupoResultado['cantidad']; $filaResultado++, $resultadoIndex++)
-                                    <div class="grid grid-cols-1 gap-3 rounded-md border border-slate-100 p-3 dark:border-slate-800 md:grid-cols-6">
+                                    <div data-resultado-row="{{ $resultadoIndex }}" data-tipo="{{ $grupoResultado['tipo'] }}" data-grupo="{{ $grupoResultado['clave'] }}">
                                         <input type="hidden" name="resultados[{{ $resultadoIndex }}][tipo]" value="{{ $grupoResultado['tipo'] }}">
                                         @if ($grupoResultado['tipo'] === 'Corto plazo')
-                                            <div>
-                                                <label class="{{ $label }}">OE</label>
-                                                <input type="number" min="1" name="resultados[{{ $resultadoIndex }}][objetivo_orden]" class="{{ $input }}" placeholder="No.">
-                                            </div>
+                                            <input type="number" min="1" name="resultados[{{ $resultadoIndex }}][objetivo_orden]">
                                         @endif
-                                        <div class="{{ $grupoResultado['tipo'] === 'Corto plazo' ? 'md:col-span-2' : 'md:col-span-3' }}">
-                                            <label class="{{ $label }}">Descripción del resultado</label>
-                                            <textarea name="resultados[{{ $resultadoIndex }}][descripcion]" rows="2" class="{{ $input }}"></textarea>
-                                        </div>
-                                        <div class="md:col-span-3">
-                                            <label class="{{ $label }}">Medio de verificación (indicador)</label>
-                                            <textarea name="resultados[{{ $resultadoIndex }}][indicador]" rows="2" class="{{ $input }}"></textarea>
-                                        </div>
+                                        <textarea name="resultados[{{ $resultadoIndex }}][descripcion]"></textarea>
+                                        <textarea name="resultados[{{ $resultadoIndex }}][indicador]"></textarea>
                                     </div>
                                 @endfor
-                            </div>
-                        </section>
-                    @endforeach
+                            @endforeach
+                        </div>
+                    </section>
                     <div
                         x-data="{
                             openOds: false,
@@ -1197,7 +1276,13 @@
                             'slug' => 'otros_documentos_respaldo',
                         ],
                     ] as $documentoSupervisor)
-                    <section class="rounded-md border border-slate-200 p-4 shadow-sm dark:border-slate-700" data-doc-upload-card>
+                    @php
+                        $documentoExistente = $editingAccion?->documentos
+                            ?->where('tipo_documento', $documentoSupervisor['slug'])
+                            ->sortByDesc('id')
+                            ->first();
+                    @endphp
+                    <section class="rounded-md border border-slate-200 p-4 shadow-sm dark:border-slate-700" data-doc-upload-card data-doc-has-existing="{{ $documentoExistente ? '1' : '0' }}">
                         <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $documentoSupervisor['label'] }}</h3>
 
                         <div class="mt-4 space-y-4">
@@ -1219,7 +1304,18 @@
                             <div>
                                 <label class="{{ $label }}">Archivo adjunto</label>
                                 <input type="file" name="supervisor_documentos_archivos[{{ $documentoSupervisor['slug'] }}]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-300" data-doc-upload-file disabled>
-                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Disponible solo cuando seleccione “Sí”.</p>
+                                @if ($documentoExistente)
+                                    <div class="mt-2 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                                        <p class="font-semibold">Archivo actual guardado.</p>
+                                        <div class="mt-1 flex gap-3">
+                                            <a href="{{ route('enf.documentos.ver', $documentoExistente) }}" target="_blank" rel="noopener" class="font-semibold hover:underline">Ver anexo</a>
+                                            <a href="{{ route('enf.documentos.descargar', $documentoExistente) }}" class="font-semibold hover:underline">Descargar</a>
+                                        </div>
+                                        <p class="mt-1">Selecciona otro archivo únicamente si deseas reemplazarlo.</p>
+                                    </div>
+                                @else
+                                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Disponible solo cuando seleccione “Sí”.</p>
+                                @endif
                                 @error("supervisor_documentos_archivos.{$documentoSupervisor['slug']}")<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                             </div>
                         </div>
@@ -1248,6 +1344,37 @@
         </form>
 
         @include('enf.acciones.partials.send-review-modal')
+
+        <div data-resultado-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+            <div class="w-full max-w-2xl rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900">
+                <div class="mb-4 flex items-center justify-between gap-3">
+                    <h2 data-resultado-modal-title class="text-base font-semibold text-slate-900 dark:text-slate-100">Agregar resultado</h2>
+                    <button type="button" data-close-resultado-modal class="rounded-md px-3 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Cerrar</button>
+                </div>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div class="sm:col-span-2">
+                        <label class="{{ $label }}">Plazo</label>
+                        <input data-resultado-tipo class="{{ $input }} bg-slate-50 dark:bg-slate-800/70" readonly>
+                    </div>
+                    <div data-resultado-objetivo-wrap>
+                        <label class="{{ $label }}">Objetivo específico (OE)</label>
+                        <input type="number" min="1" data-resultado-objetivo class="{{ $input }}" placeholder="No.">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="{{ $label }}">Descripción del resultado</label>
+                        <textarea data-resultado-descripcion rows="3" class="{{ $input }}"></textarea>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="{{ $label }}">Medio de verificación (indicador)</label>
+                        <textarea data-resultado-indicador rows="3" class="{{ $input }}"></textarea>
+                    </div>
+                </div>
+                <div class="mt-5 flex justify-end gap-3">
+                    <button type="button" data-close-resultado-modal class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Cancelar</button>
+                    <button type="button" data-save-resultado class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Guardar</button>
+                </div>
+            </div>
+        </div>
 
         <div data-employee-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
             <div class="w-full max-w-3xl rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900">
@@ -1459,15 +1586,15 @@
             const storageKey = form.dataset.storageKey || 'enf-accion-form-draft';
             const clearDraftOnLoad = form.dataset.clearDraftOnLoad === '1';
             const shouldLockStepNavigation = form.dataset.lockStepNavigation === '1';
-            const approvedPrograms = [];
+            const approvedPrograms = @js($programasAprobadosData);
             const empleados = @js($empleadosModalData);
             const initialDraft = @js($initialDraft ?? []);
             const autosaveUrl = form.dataset.autosaveUrl;
             const autosaveUpdateUrlTemplate = form.dataset.autosaveUpdateUrlTemplate || '';
             const draftIdField = form.querySelector('[name="borrador_autoguardado_id"]');
             const oldObjetivosEspecificos = @js(array_values((array) old('objetivos_especificos', [])));
-            const approvedProgramSelect = null;
-            const approvedProgramSummary = null;
+            const approvedProgramSelect = form.querySelector('[data-approved-program-select]');
+            const approvedProgramSummary = form.querySelector('[data-approved-program-summary]');
             const panels = Array.from(form.querySelectorAll('[data-step-panel]'));
             const previousButton = form.querySelector('[data-previous-step]');
             const nextButton = form.querySelector('[data-next-step]');
@@ -1531,6 +1658,16 @@
                 responsable: document.querySelector('[data-cronograma-responsable]'),
                 horas_requeridas: document.querySelector('[data-cronograma-horas]'),
             };
+            const resultadoModal = document.querySelector('[data-resultado-modal]');
+            const resultadoModalTitle = document.querySelector('[data-resultado-modal-title]');
+            const resultadoObjetivoWrap = document.querySelector('[data-resultado-objetivo-wrap]');
+            const resultadoFeedback = form.querySelector('[data-resultados-feedback]');
+            const resultadoInputs = {
+                tipo: document.querySelector('[data-resultado-tipo]'),
+                objetivo_orden: document.querySelector('[data-resultado-objetivo]'),
+                descripcion: document.querySelector('[data-resultado-descripcion]'),
+                indicador: document.querySelector('[data-resultado-indicador]'),
+            };
             let selectedEmployeeId = null;
             let currentConsultorGroup = null;
             let currentConsultorExtraField = null;
@@ -1539,6 +1676,7 @@
             let currentPresupuestoGroup = null;
             let currentPresupuestoIndex = null;
             let currentCronogramaIndex = null;
+            let currentResultadoIndex = null;
             let draftRecordId = form.dataset.recordId || draftIdField?.value || '';
             let localAutosaveTimer = null;
             let serverAutosaveTimer = null;
@@ -1557,7 +1695,6 @@
             const sendReviewNext = document.querySelector('[data-enf-send-next]');
             const sendReviewConfirm = document.querySelector('[data-enf-send-confirm]');
             const destinatariosUrlTemplate = form.dataset.destinatariosUrlTemplate || '';
-            const sendReviewUrlTemplate = form.dataset.sendReviewUrlTemplate || '';
 
             const hideSendReviewModal = () => {
                 sendReviewModal?.classList.add('hidden');
@@ -1652,34 +1789,7 @@
             };
 
             const finalSubmit = () => {
-                const sendUrl = draftRecordId && sendReviewUrlTemplate
-                    ? sendReviewUrlTemplate.replace('__ID__', encodeURIComponent(draftRecordId))
-                    : '';
-
-                if (sendUrl) {
-                    const flowForm = document.createElement('form');
-                    flowForm.method = 'POST';
-                    flowForm.action = sendUrl;
-
-                    const token = form.querySelector('[name="_token"]')?.value || '';
-                    const tokenInput = document.createElement('input');
-                    tokenInput.type = 'hidden';
-                    tokenInput.name = '_token';
-                    tokenInput.value = token;
-                    flowForm.appendChild(tokenInput);
-
-                    appendDestinatariosToForm();
-                    form.querySelectorAll('[data-enf-destinatario-hidden]').forEach((field) => {
-                        flowForm.appendChild(field.cloneNode());
-                    });
-
-                    document.body.appendChild(flowForm);
-                    window.localStorage.removeItem(storageKey);
-                    window.localStorage.removeItem(`${storageKey}:step`);
-                    flowForm.submit();
-                    return;
-                }
-
+                appendDestinatariosToForm();
                 window.localStorage.removeItem(storageKey);
                 window.localStorage.removeItem(`${storageKey}:step`);
                 sendReviewConfirmed = true;
@@ -2535,24 +2645,64 @@
 
             const renderParticipacion = () => {
                 const target = form.querySelector('[data-participacion-list]');
+                const summary = form.querySelector('[data-participacion-summary]');
+                const summaryTotals = form.querySelector('[data-participacion-summary-totals]');
                 const rows = Array.from(form.querySelectorAll('[data-participacion-row]'))
                     .map((row, index) => ({ row, index }));
 
-                if (!target) {
+                if (target) {
+                    target.innerHTML = rows.map(({ row, index }) => `
+                        <tr>
+                            <td class="px-3 py-2 font-medium text-slate-700 dark:text-slate-200">${escapeHtml(rowValue(row, 'tipo_participacion'))}</td>
+                            <td class="px-3 py-2">${escapeHtml(rowValue(row, 'hombres') || '0')}</td>
+                            <td class="px-3 py-2">${escapeHtml(rowValue(row, 'mujeres') || '0')}</td>
+                            <td class="px-3 py-2">${escapeHtml(rowValue(row, 'cantidad') || '0')}</td>
+                            <td class="px-3 py-2 text-right">
+                                <button type="button" data-edit-participacion="${index}" class="text-sm font-semibold text-blue-700 hover:text-blue-900">Editar</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+
+                if (!summary) {
                     return;
                 }
 
-                target.innerHTML = rows.map(({ row, index }) => `
+                const registeredRows = rows.filter(({ row }) =>
+                    Number(rowValue(row, 'hombres') || 0) > 0
+                    || Number(rowValue(row, 'mujeres') || 0) > 0
+                    || Number(rowValue(row, 'cantidad') || 0) > 0
+                );
+
+                if (registeredRows.length === 0) {
+                    summary.innerHTML = '<tr><td colspan="4" class="px-3 py-4 text-center text-slate-500">Sin participación registrada.</td></tr>';
+                    summaryTotals?.classList.add('hidden');
+                    return;
+                }
+
+                summary.innerHTML = registeredRows.map(({ row }) => `
                     <tr>
                         <td class="px-3 py-2 font-medium text-slate-700 dark:text-slate-200">${escapeHtml(rowValue(row, 'tipo_participacion'))}</td>
-                        <td class="px-3 py-2">${escapeHtml(rowValue(row, 'hombres') || '0')}</td>
-                        <td class="px-3 py-2">${escapeHtml(rowValue(row, 'mujeres') || '0')}</td>
-                        <td class="px-3 py-2">${escapeHtml(rowValue(row, 'cantidad') || '0')}</td>
-                        <td class="px-3 py-2 text-right">
-                            <button type="button" data-edit-participacion="${index}" class="text-sm font-semibold text-blue-700 hover:text-blue-900">Editar</button>
-                        </td>
+                        <td class="px-3 py-2 text-right">${escapeHtml(rowValue(row, 'hombres') || '0')}</td>
+                        <td class="px-3 py-2 text-right">${escapeHtml(rowValue(row, 'mujeres') || '0')}</td>
+                        <td class="px-3 py-2 text-right font-semibold">${escapeHtml(rowValue(row, 'cantidad') || '0')}</td>
                     </tr>
                 `).join('');
+
+                const totals = registeredRows.reduce((result, { row }) => ({
+                    hombres: result.hombres + Number(rowValue(row, 'hombres') || 0),
+                    mujeres: result.mujeres + Number(rowValue(row, 'mujeres') || 0),
+                    general: result.general + Number(rowValue(row, 'cantidad') || 0),
+                }), { hombres: 0, mujeres: 0, general: 0 });
+
+                const totalHombres = form.querySelector('[data-participacion-total-hombres]');
+                const totalMujeres = form.querySelector('[data-participacion-total-mujeres]');
+                const totalGeneral = form.querySelector('[data-participacion-total-general]');
+
+                if (totalHombres) totalHombres.textContent = String(totals.hombres);
+                if (totalMujeres) totalMujeres.textContent = String(totals.mujeres);
+                if (totalGeneral) totalGeneral.textContent = String(totals.general);
+                summaryTotals?.classList.remove('hidden');
             };
 
             const practicaHasValue = (row) => [
@@ -2697,6 +2847,40 @@
                 `).join('');
             };
 
+            const resultadoHasValue = (row) => [
+                'objetivo_orden',
+                'descripcion',
+                'indicador',
+            ].some((fieldName) => rowValue(row, fieldName));
+
+            const renderResultados = () => {
+                form.querySelectorAll('[data-resultados-list]').forEach((target) => {
+                    const showObjetivo = target.dataset.showObjetivo === '1';
+                    const rows = Array.from(form.querySelectorAll(`[data-resultado-row][data-grupo="${target.dataset.resultadosList}"]`))
+                        .map((row) => ({ row, index: row.dataset.resultadoRow }))
+                        .filter(({ row }) => resultadoHasValue(row));
+
+                    if (rows.length === 0) {
+                        target.innerHTML = `<tr><td colspan="${showObjetivo ? 4 : 3}" class="px-3 py-4 text-center text-slate-500">Sin resultados agregados en este plazo.</td></tr>`;
+                        return;
+                    }
+
+                    target.innerHTML = rows.map(({ row, index }) => `
+                        <tr class="align-top">
+                            ${showObjetivo ? `<td class="px-3 py-3">${escapeHtml(rowValue(row, 'objetivo_orden') || '—')}</td>` : ''}
+                            <td class="whitespace-pre-wrap break-words px-3 py-3 [overflow-wrap:anywhere]">${escapeHtml(rowValue(row, 'descripcion') || 'Sin descripción')}</td>
+                            <td class="whitespace-pre-wrap break-words px-3 py-3 [overflow-wrap:anywhere]">${escapeHtml(rowValue(row, 'indicador') || 'Sin dato')}</td>
+                            <td class="px-3 py-3 text-right">
+                                <div class="flex flex-col items-end gap-1">
+                                    <button type="button" data-edit-resultado="${index}" class="text-sm font-semibold text-blue-700 hover:text-blue-900">Editar</button>
+                                    <button type="button" data-remove-resultado="${index}" class="text-sm font-semibold text-red-600 hover:text-red-800">Quitar</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+                });
+            };
+
             const renderDynamicLists = () => {
                 renderEquipoDocente();
                 renderConsultores('consultores_nacionales');
@@ -2707,6 +2891,7 @@
                 renderPresupuesto('presupuesto_egresos');
                 renderPresupuesto('aporte_unah');
                 renderCronograma();
+                renderResultados();
             };
 
             const renderEmployeeResults = () => {
@@ -3102,6 +3287,94 @@
                 render();
             };
 
+            const nextEmptyResultadoRow = (tipo) => Array.from(form.querySelectorAll('[data-resultado-row]'))
+                .find((row) => row.dataset.tipo === tipo && !resultadoHasValue(row));
+
+            const hideResultadoFeedback = () => {
+                if (!resultadoFeedback) {
+                    return;
+                }
+
+                resultadoFeedback.textContent = '';
+                resultadoFeedback.classList.add('hidden');
+            };
+
+            const showResultadoFeedback = (message) => {
+                if (!resultadoFeedback) {
+                    return;
+                }
+
+                resultadoFeedback.textContent = message;
+                resultadoFeedback.classList.remove('hidden');
+            };
+
+            const closeResultadoModal = () => {
+                hideModal(resultadoModal);
+                currentResultadoIndex = null;
+            };
+
+            const openResultadoModal = (tipo, index = null) => {
+                const row = index === null
+                    ? nextEmptyResultadoRow(tipo)
+                    : form.querySelector(`[data-resultado-row="${index}"]`);
+
+                hideResultadoFeedback();
+
+                if (!row) {
+                    showResultadoFeedback(`Se alcanzó el máximo de resultados para ${tipo.toLowerCase()}.`);
+                    return;
+                }
+
+                currentResultadoIndex = row.dataset.resultadoRow;
+                const editing = resultadoHasValue(row);
+                const rowTipo = row.dataset.tipo || tipo;
+
+                if (resultadoModalTitle) {
+                    resultadoModalTitle.textContent = `${editing ? 'Editar' : 'Agregar'} resultado`;
+                }
+
+                if (resultadoInputs.tipo) resultadoInputs.tipo.value = rowTipo;
+                if (resultadoInputs.objetivo_orden) resultadoInputs.objetivo_orden.value = rowValue(row, 'objetivo_orden');
+                if (resultadoInputs.descripcion) resultadoInputs.descripcion.value = rowValue(row, 'descripcion');
+                if (resultadoInputs.indicador) resultadoInputs.indicador.value = rowValue(row, 'indicador');
+
+                const isCortoPlazo = rowTipo === 'Corto plazo';
+                resultadoObjetivoWrap?.classList.toggle('hidden', !isCortoPlazo);
+                if (resultadoInputs.objetivo_orden) {
+                    resultadoInputs.objetivo_orden.required = isCortoPlazo;
+                }
+
+                showModal(resultadoModal);
+                (isCortoPlazo ? resultadoInputs.objetivo_orden : resultadoInputs.descripcion)?.focus();
+            };
+
+            const saveResultado = () => {
+                const row = currentResultadoIndex !== null
+                    ? form.querySelector(`[data-resultado-row="${currentResultadoIndex}"]`)
+                    : null;
+
+                if (!row || !resultadoInputs.descripcion?.value.trim()) {
+                    resultadoInputs.descripcion?.focus();
+                    return;
+                }
+
+                if (row.dataset.tipo === 'Corto plazo' && !resultadoInputs.objetivo_orden?.value) {
+                    resultadoInputs.objetivo_orden?.focus();
+                    return;
+                }
+
+                setRowValues(row, {
+                    objetivo_orden: resultadoInputs.objetivo_orden?.value || '',
+                    descripcion: resultadoInputs.descripcion.value,
+                    indicador: resultadoInputs.indicador?.value || '',
+                });
+
+                closeResultadoModal();
+                renderDynamicLists();
+                save();
+                render();
+            };
+
             const restore = () => {
                 const stored = window.localStorage.getItem(storageKey);
                 let data = initialDraft || {};
@@ -3267,10 +3540,11 @@
                     const file = card.querySelector('[data-doc-upload-file]');
                     const selectedRadio = radios.find((radio) => radio.checked);
                     const uploadEnabled = selectedRadio?.value === 'Si';
+                    const hasExistingFile = card.dataset.docHasExisting === '1';
 
                     if (file) {
                         file.disabled = !uploadEnabled;
-                        file.required = uploadEnabled;
+                        file.required = uploadEnabled && !hasExistingFile;
 
                         if (!uploadEnabled) {
                             file.value = '';
@@ -3399,6 +3673,8 @@
                 const removePresupuesto = event.target.closest('[data-remove-presupuesto]');
                 const editCronograma = event.target.closest('[data-edit-cronograma]');
                 const removeCronograma = event.target.closest('[data-remove-cronograma]');
+                const editResultado = event.target.closest('[data-edit-resultado]');
+                const removeResultado = event.target.closest('[data-remove-resultado]');
 
                 if (removeObjetivoEspecifico && !removeObjetivoEspecifico.disabled) {
                     removeObjetivoEspecifico.closest('[data-objetivo-especifico-row]')?.remove();
@@ -3462,6 +3738,26 @@
 
                 if (removeCronograma) {
                     clearRow(form.querySelector(`[data-cronograma-row="${removeCronograma.dataset.removeCronograma}"]`));
+                    renderDynamicLists();
+                    save();
+                    render();
+                    return;
+                }
+
+                if (editResultado) {
+                    const row = form.querySelector(`[data-resultado-row="${editResultado.dataset.editResultado}"]`);
+                    openResultadoModal(row?.dataset.tipo || '', editResultado.dataset.editResultado);
+                    return;
+                }
+
+                if (removeResultado) {
+                    const row = form.querySelector(`[data-resultado-row="${removeResultado.dataset.removeResultado}"]`);
+                    setRowValues(row, {
+                        objetivo_orden: '',
+                        descripcion: '',
+                        indicador: '',
+                    });
+                    hideResultadoFeedback();
                     renderDynamicLists();
                     save();
                     render();
@@ -3539,6 +3835,13 @@
                 button.addEventListener('click', () => hideModal(cronogramaModal));
             });
             document.querySelector('[data-save-cronograma]')?.addEventListener('click', saveCronograma);
+            document.querySelectorAll('[data-open-resultado-modal]').forEach((button) => {
+                button.addEventListener('click', () => openResultadoModal(button.dataset.openResultadoModal));
+            });
+            document.querySelectorAll('[data-close-resultado-modal]').forEach((button) => {
+                button.addEventListener('click', closeResultadoModal);
+            });
+            document.querySelector('[data-save-resultado]')?.addEventListener('click', saveResultado);
             form.addEventListener('submit', (event) => {
                 if (submittingAfterAutosave) {
                     return;

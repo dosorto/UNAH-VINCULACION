@@ -2,56 +2,79 @@
 
 namespace App\Services\DAFT;
 
+use App\Mail\ProgramaRevisionAsignada;
 use App\Models\DAFT\ProgramaCertificacion;
 use App\Models\DAFT\ProgramaRevision;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\User;
+use App\Services\Workflow\WorkflowResumptionPolicy;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class ProgramaWorkflowService
 {
     public function enviarARevision(ProgramaCertificacion $programa, User $actor, array $destinatariosEmisor = []): void
     {
-        if (! $programa->estaEditable()) {
-            throw new \DomainException('Solo los programas en elaboración o subsanación pueden enviarse a revisión.');
-        }
+        DB::transaction(function () use ($programa, $actor, $destinatariosEmisor): void {
+            $programa = ProgramaCertificacion::query()->lockForUpdate()->findOrFail($programa->id);
 
-        $flujo = $this->resolverFlujo($programa);
+            if (! $programa->estaEditable()) {
+                throw new \DomainException('Solo los programas en elaboración o subsanación pueden enviarse a revisión.');
+            }
 
-        if (! $flujo || $flujo->etapas->isEmpty()) {
-            throw new \DomainException('No hay un flujo activo configurado para este tipo de programa.');
-        }
+            $flujo = $this->resolverFlujo($programa);
 
-        DB::transaction(function () use ($programa, $flujo, $actor, $destinatariosEmisor): void {
-            $nextCycle = ((int) $programa->revision_ciclo) + 1;
+            if (! $flujo || (! $programa->tieneSubsanacionPendiente() && $flujo->etapas->isEmpty())) {
+                throw new \DomainException('No hay un flujo activo configurado para este tipo de programa.');
+            }
+
+            $ultimoCicloHistorico = (int) $programa->revisiones()->max('revision_ciclo');
+
+            if ($programa->tieneSubsanacionPendiente()
+                && $ultimoCicloHistorico !== (int) $programa->revision_ciclo) {
+                throw new \DomainException('El ciclo vigente del programa no coincide con su último ciclo histórico.');
+            }
+
+            $cicloAnterior = max((int) $programa->revision_ciclo, $ultimoCicloHistorico);
+            $nextCycle = $cicloAnterior + 1;
             $stages = $this->etapasParaNuevoCiclo($programa, $flujo);
 
             foreach ($stages as $stage) {
                 $flowStage = $stage instanceof ProgramaRevision ? $stage->flujoEtapa : $stage;
+                $flowStageId = $stage instanceof ProgramaRevision
+                    ? $stage->flujo_aprobacion_etapa_id
+                    : $flowStage?->id;
                 $emisorDefineDestinatario = (bool) ($flowStage?->emisor_define_destinatario ?? false);
-                $reviewerSelectedBySender = $emisorDefineDestinatario
-                    ? $this->resolverDestinatarioDelEmisor($flowStage, $stage, $destinatariosEmisor)
-                    : null;
-                $defaultReviewer = $reviewerSelectedBySender
-                    ?? ($stage instanceof ProgramaRevision
-                        ? $stage->asignadoUsuario
-                        : ($flowStage instanceof FlujoAprobacionEtapa ? $this->resolverRevisorPredeterminado($flowStage) : null));
-                $requiresAssignment = ! $emisorDefineDestinatario && (bool) ($flowStage?->requiere_asignacion ?? false);
-                $assignedReviewer = $requiresAssignment
-                    ? $this->responsableAnteriorElegible($stage)
-                    : $defaultReviewer;
+                $requiresAssignment = ! ($stage instanceof ProgramaRevision)
+                    && ! $emisorDefineDestinatario
+                    && (bool) ($flowStage?->requiere_asignacion ?? false);
+
+                if ($stage instanceof ProgramaRevision) {
+                    $assignedReviewer = $this->responsableAnteriorElegible($stage)
+                        ?? $this->resolverReemplazoHistorico($stage, $destinatariosEmisor);
+                } else {
+                    $reviewerSelectedBySender = $emisorDefineDestinatario
+                        ? $this->resolverDestinatarioDelEmisor($flowStage, $stage, $destinatariosEmisor)
+                        : null;
+                    $defaultReviewer = $reviewerSelectedBySender
+                        ?? ($flowStage instanceof FlujoAprobacionEtapa ? $this->resolverRevisorPredeterminado($flowStage) : null);
+                    $assignedReviewer = $requiresAssignment ? null : $defaultReviewer;
+                }
 
                 ProgramaRevision::create([
                     'programa_certificacion_id' => $programa->id,
-                    'flujo_aprobacion_etapa_id' => $flowStage?->id,
+                    'flujo_aprobacion_etapa_id' => $flowStageId,
                     'revision_ciclo' => $nextCycle,
                     'orden' => $stage->orden,
                     'etapa_codigo' => $stage instanceof ProgramaRevision ? $stage->etapa_codigo : $stage->codigo,
                     'etapa_nombre' => $stage instanceof ProgramaRevision ? $stage->etapa_nombre : $stage->nombre,
                     'rol_requerido' => $stage instanceof ProgramaRevision ? $stage->rol_requerido : $flowStage?->rolRevisor?->name,
-                    'responsable_usuario_id' => $stage instanceof ProgramaRevision ? $stage->responsable_usuario_id : $flowStage?->usuario_responsable_id,
+                    'responsable_usuario_id' => $stage instanceof ProgramaRevision
+                        ? $assignedReviewer?->id
+                        : $flowStage?->usuario_responsable_id,
                     'asignado_usuario_id' => $assignedReviewer?->id,
                     'estado' => $assignedReviewer ? 'ASIGNADO' : ($requiresAssignment ? 'PENDIENTE_ASIGNACION' : 'PENDIENTE'),
                 ]);
@@ -71,6 +94,33 @@ class ProgramaWorkflowService
             ]);
 
             $this->sincronizarVersion($programa, 'EN_REVISION', $actor);
+
+            $primeraRevision = ProgramaRevision::query()
+                ->with(['programa', 'asignadoUsuario'])
+                ->where('programa_certificacion_id', $programa->id)
+                ->where('revision_ciclo', $nextCycle)
+                ->orderBy('orden')
+                ->first();
+
+            if ($primeraRevision) {
+                $this->notificarRevisionAsignada($primeraRevision);
+            }
+
+            Log::info('Ciclo DAFT preparado', [
+                'proceso' => 'PROGRAMA',
+                'registro_id' => $programa->id,
+                'flujo_id' => $flujo->id,
+                'ciclo_anterior' => $cicloAnterior ?: null,
+                'ciclo_nuevo' => $nextCycle,
+                'etapa_retorno_id' => $stages->first() instanceof ProgramaRevision
+                    ? $stages->first()->flujo_aprobacion_etapa_id
+                    : $stages->first()?->id,
+                'revisor_usuario_id' => ProgramaRevision::query()
+                    ->where('programa_certificacion_id', $programa->id)
+                    ->where('revision_ciclo', $nextCycle)
+                    ->orderBy('orden')
+                    ->value('asignado_usuario_id'),
+            ]);
         });
     }
 
@@ -100,6 +150,7 @@ class ProgramaWorkflowService
             }
 
             $revisionActual->update(['asignado_usuario_id' => $destinatario->id, 'estado' => 'ASIGNADO']);
+            $this->notificarRevisionAsignada($revisionActual->fresh(['programa', 'asignadoUsuario']));
         });
     }
 
@@ -154,6 +205,8 @@ class ProgramaWorkflowService
                     'asignado_usuario_id' => $requiresAssignment ? null : $defaultReviewer?->id,
                 ]);
             }
+
+            $this->notificarRevisionAsignada($next->fresh(['programa', 'asignadoUsuario']));
         });
     }
 
@@ -224,7 +277,7 @@ class ProgramaWorkflowService
             ->first();
     }
 
-    public function etapasConDestinatarioDefinidoPorEmisor(ProgramaCertificacion $programa)
+    public function etapasConDestinatarioDefinidoPorEmisor(ProgramaCertificacion $programa): Collection
     {
         $flujo = $this->resolverFlujo($programa);
 
@@ -233,8 +286,30 @@ class ProgramaWorkflowService
         }
 
         return $this->etapasParaNuevoCiclo($programa, $flujo)
-            ->map(fn ($stage) => $stage instanceof ProgramaRevision ? $stage->flujoEtapa : $stage)
-            ->filter(fn (?FlujoAprobacionEtapa $stage) => $stage?->activo && $stage->emisor_define_destinatario)
+            ->filter(function ($stage): bool {
+                if ($stage instanceof ProgramaRevision) {
+                    return ! $this->responsableAnteriorElegible($stage);
+                }
+
+                return (bool) ($stage->activo && $stage->emisor_define_destinatario);
+            })
+            ->map(function (FlujoAprobacionEtapa|ProgramaRevision $stage): array {
+                if ($stage instanceof ProgramaRevision) {
+                    return [
+                        'id' => (int) $stage->flujo_aprobacion_etapa_id,
+                        'orden' => (int) $stage->orden,
+                        'nombre' => $stage->etapa_nombre,
+                        'rol_requerido' => $stage->rol_requerido,
+                    ];
+                }
+
+                return [
+                    'id' => (int) $stage->id,
+                    'orden' => (int) $stage->orden,
+                    'nombre' => $stage->nombre,
+                    'rol_requerido' => $stage->rolRevisor?->name,
+                ];
+            })
             ->unique('id')
             ->values();
     }
@@ -332,15 +407,16 @@ class ProgramaWorkflowService
 
     protected function responsableAnteriorElegible(FlujoAprobacionEtapa|ProgramaRevision $stage): ?User
     {
-        if (! $stage instanceof ProgramaRevision || ! $stage->flujoEtapa) {
+        if (! ($stage instanceof ProgramaRevision)) {
             return null;
         }
 
-        $responsable = $stage->asignadoUsuario;
+        $responsableId = $stage->estado === 'RECHAZADO'
+            ? $stage->decidido_por_usuario_id
+            : $stage->asignado_usuario_id;
+        $responsable = $responsableId ? User::withTrashed()->find($responsableId) : null;
 
-        return $responsable && $this->usuarioEsElegibleParaRevision($stage, $responsable)
-            ? $responsable
-            : null;
+        return app(WorkflowResumptionPolicy::class)->eligibleRecipient($responsable, $stage->rol_requerido);
     }
 
     protected function usuarioEsElegibleParaRevision(ProgramaRevision $revision, User $user): bool
@@ -365,17 +441,48 @@ class ProgramaWorkflowService
             return $flujo->etapas;
         }
 
-        $rejectedStage = $programa->revisiones()->where('revision_ciclo', $programa->revision_ciclo)->find($programa->subsanacion_revision_id);
-        if (! $rejectedStage) {
-            return $flujo->etapas;
-        }
-
-        return $programa->revisiones()
-            ->with(['flujoEtapa.rolRevisor', 'flujoEtapa.usuarioResponsable', 'asignadoUsuario'])
-            ->where('revision_ciclo', $programa->revision_ciclo)
-            ->where('orden', '>=', $rejectedStage->orden)
+        $ultimoCiclo = (int) $programa->revisiones()->max('revision_ciclo');
+        $revisiones = $programa->revisiones()
+            ->with(['flujoEtapa.rolRevisor', 'flujoEtapa.usuarioResponsable', 'asignadoUsuario', 'decididoPorUsuario'])
+            ->where('revision_ciclo', $ultimoCiclo)
             ->orderBy('orden')
             ->get();
+
+        $plan = app(WorkflowResumptionPolicy::class)->plan(
+            $revisiones->map(fn (ProgramaRevision $revision): array => [
+                'stage_id' => (int) $revision->flujo_aprobacion_etapa_id,
+                'order' => (int) $revision->orden,
+                'status' => match ($revision->estado) {
+                    'APROBADO' => 'APPROVED',
+                    'RECHAZADO' => 'REJECTED',
+                    'PENDIENTE', 'PENDIENTE_ASIGNACION', 'ASIGNADO', 'EN_PROCESO' => 'PENDING',
+                    default => 'INVALID',
+                },
+                'source' => $revision,
+            ])->values()
+        );
+
+        if ((int) $plan->rejectedStage['source']->id !== (int) $programa->subsanacion_revision_id) {
+            throw new \DomainException('El historial de subsanación no coincide con la etapa rechazada del último ciclo.');
+        }
+
+        return $plan->stages->pluck('source')->values();
+    }
+
+    protected function resolverReemplazoHistorico(ProgramaRevision $stage, array $destinatariosEmisor): User
+    {
+        $selectedUserId = $destinatariosEmisor[(int) $stage->flujo_aprobacion_etapa_id] ?? null;
+        $user = $selectedUserId ? User::find((int) $selectedUserId) : null;
+        $elegible = app(WorkflowResumptionPolicy::class)->eligibleRecipient($user, $stage->rol_requerido);
+
+        if (! $elegible) {
+            throw new \DomainException(sprintf(
+                'El revisor anterior de la etapa "%s" ya no es elegible; seleccione un reemplazo válido.',
+                $stage->etapa_nombre
+            ));
+        }
+
+        return $elegible;
     }
 
     protected function resolverDestinatarioDelEmisor(
@@ -419,5 +526,26 @@ class ProgramaWorkflowService
             'centros_facultad' => $snapshot['centros_facultad'],
             'asignaturas' => $snapshot['asignaturas'],
         ]);
+    }
+
+    private function notificarRevisionAsignada(ProgramaRevision $revision): void
+    {
+        if (! $revision->asignado_usuario_id) {
+            return;
+        }
+
+        $revision->loadMissing(['programa', 'asignadoUsuario']);
+        $destinatario = $revision->asignadoUsuario;
+
+        if (! $destinatario || blank($destinatario->email) || ! filter_var($destinatario->email, FILTER_VALIDATE_EMAIL)) {
+            throw new \DomainException(sprintf(
+                'La etapa "%s" no tiene un revisor asignado con correo válido.',
+                $revision->etapa_nombre
+            ));
+        }
+
+        Mail::to($destinatario->email)->queue(
+            (new ProgramaRevisionAsignada($revision))->afterCommit()
+        );
     }
 }

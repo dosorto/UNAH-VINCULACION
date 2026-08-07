@@ -11,35 +11,28 @@ use Livewire\Component;
 class Login extends Component
 {
     public string $email = '';
+
     public string $password = '';
 
     protected array $rules = [
-        'email'    => 'required|email',
-        'password' => 'required',
+        'email' => ['required', 'email'],
+        'password' => ['required'],
     ];
 
     protected array $messages = [
-        'email.required'    => 'El correo es obligatorio.',
-        'email.email'       => 'Ingresa un correo válido.',
+        'email.required' => 'El correo es obligatorio.',
+        'email.email' => 'Ingresa un correo válido.',
         'password.required' => 'La contraseña es obligatoria.',
     ];
 
     public function create(): void
     {
-        if (! config('services.microsoft.password_login_enabled', true)) {
-            Notification::make()
-                ->title('Login con contraseña deshabilitado.')
-                ->body('Usa el boton de Microsoft para iniciar sesion.')
-                ->danger()
-                ->send();
+        $credentials = $this->validate();
 
-            return;
-        }
-
-        $this->validate();
-
-        if (Auth::attempt(['email' => $this->email, 'password' => $this->password])) {
+        if (Auth::attempt($credentials)) {
+            request()->session()->regenerate();
             $this->redirect(route('inicio'));
+
             return;
         }
 

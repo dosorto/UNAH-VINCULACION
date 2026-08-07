@@ -23,7 +23,7 @@ class ProyectoWorkflowStageNewCycleTest extends TestCase
     public function test_crea_nuevo_ciclo_desde_firma_rechazada_reanudando_desde_la_misma_etapa(): void
     {
         $context = $this->crearContexto(3);
-        [$responsableUser, $responsableEmpleado] = $this->crearUsuarioEmpleado();
+        [$responsableUser, $responsableEmpleado, $responsableRole] = $this->crearUsuarioEmpleado();
         $nuevoEmpleadoPosterior = $this->crearEmpleado();
         $empleadoAnterior = $this->crearEmpleado();
         $firmaUno = $this->crearFirmaDeEtapa($context['proyecto'], $context['etapas'][0], $empleadoAnterior, [
@@ -34,7 +34,7 @@ class ProyectoWorkflowStageNewCycleTest extends TestCase
         ]);
         $firmaDos = $this->crearFirmaDeEtapa($context['proyecto'], $context['etapas'][1], $responsableEmpleado, [
             'estado_revision' => 'Rechazado',
-            'rol_requerido' => 'Rol snapshot',
+            'rol_requerido' => $responsableRole->name,
             'responsable_usuario_id' => $responsableUser->id,
             'fecha_firma' => now(),
             'hash' => 'hash-rechazada',
@@ -49,6 +49,7 @@ class ProyectoWorkflowStageNewCycleTest extends TestCase
         $firmasAntes = FirmaProyecto::count();
         $snapshotRechazada = $firmaDos->only($this->camposSnapshot());
         $snapshotPosterior = $firmaTres->only($this->camposSnapshot());
+        $snapshotPosterior['responsable_usuario_id'] = $nuevoEmpleadoPosterior->user_id;
 
         $context['etapas'][1]->update([
             'orden' => 99,
@@ -98,10 +99,11 @@ class ProyectoWorkflowStageNewCycleTest extends TestCase
     public function test_validacion_de_asignaciones_y_responsable_fijo(): void
     {
         $context = $this->crearContexto(2);
-        [$responsableUser, $responsableEmpleado] = $this->crearUsuarioEmpleado();
+        [$responsableUser, $responsableEmpleado, $responsableRole] = $this->crearUsuarioEmpleado();
         $otroEmpleado = $this->crearEmpleado();
         $firmaRechazada = $this->crearFirmaDeEtapa($context['proyecto'], $context['etapas'][0], $responsableEmpleado, [
             'estado_revision' => 'Rechazado',
+            'rol_requerido' => $responsableRole->name,
             'responsable_usuario_id' => $responsableUser->id,
         ]);
         $this->crearFirmaDeEtapa($context['proyecto'], $context['etapas'][1], $otroEmpleado);
@@ -138,7 +140,7 @@ class ProyectoWorkflowStageNewCycleTest extends TestCase
             $context['proyecto'],
             $firmaRechazada,
             [$context['etapas'][0]->id => $otroEmpleado->id, $context['etapas'][1]->id => $otroEmpleado->id],
-            'El empleado indicado no corresponde al responsable fijo'
+            'ya no es elegible; seleccione un reemplazo válido'
         );
 
         $creadas = $context['proyecto']->crearNuevoCicloDesdeFirmaRechazada($firmaRechazada, [
@@ -199,7 +201,7 @@ class ProyectoWorkflowStageNewCycleTest extends TestCase
                 [$context['etapas'][0]->id => $firmaRechazada->empleado_id, $context['etapas'][1]->id => $posterior->empleado_id],
                 $estadoPosterior === 'Rechazado'
                     ? 'El ciclo de revisión contiene más de una etapa rechazada.'
-                    : 'El ciclo rechazado contiene estados inconsistentes en las etapas posteriores.'
+                    : 'estados inconsistentes después de la etapa en subsanación.'
             );
         }
 
@@ -211,7 +213,7 @@ class ProyectoWorkflowStageNewCycleTest extends TestCase
             $context['proyecto'],
             $firmaRechazada,
             [$context['etapas'][0]->id => $firmaRechazada->empleado_id, $context['etapas'][1]->id => $posterior->empleado_id],
-            'El ciclo contiene más de una firma activa para la misma etapa.'
+            'más de una revisión activa para la misma etapa.'
         );
     }
 
@@ -301,12 +303,13 @@ class ProyectoWorkflowStageNewCycleTest extends TestCase
     public function test_rollback_no_deja_ciclo_parcial_ni_modifica_ciclo_anterior(): void
     {
         $context = $this->crearContexto(2);
-        [$responsableUser] = $this->crearUsuarioEmpleado();
+        [$responsableUser, , $responsableRole] = $this->crearUsuarioEmpleado();
         $firmaUno = $this->crearFirmaDeEtapa($context['proyecto'], $context['etapas'][0], $this->crearEmpleado(), [
             'estado_revision' => 'Rechazado',
         ]);
         $firmaDos = $this->crearFirmaDeEtapa($context['proyecto'], $context['etapas'][1], $this->crearEmpleado(), [
             'responsable_usuario_id' => $responsableUser->id,
+            'rol_requerido' => $responsableRole->name,
         ]);
         $firmasAntes = FirmaProyecto::count();
         $snapshotUno = $firmaUno->fresh()->toArray();
@@ -316,7 +319,7 @@ class ProyectoWorkflowStageNewCycleTest extends TestCase
             $context['proyecto'],
             $firmaUno,
             [$context['etapas'][0]->id => $firmaUno->empleado_id, $context['etapas'][1]->id => $firmaDos->empleado_id],
-            'El empleado indicado no corresponde al responsable fijo'
+            'ya no es elegible; seleccione un reemplazo válido'
         );
 
         $this->assertSame($firmasAntes, FirmaProyecto::count());

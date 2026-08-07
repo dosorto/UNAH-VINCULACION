@@ -70,18 +70,32 @@ class NewUserOnboardingTest extends TestCase
         $this->assertTrue($user->hasDirectPermission('perfil.editar'));
     }
 
-    public function test_login_solo_muestra_el_acceso_con_correo_institucional(): void
+    public function test_login_muestra_microsoft_y_acceso_con_correo_y_contrasena(): void
     {
         config()->set('services.microsoft.enabled', true);
         config()->set('services.microsoft.password_login_enabled', false);
 
         Livewire::test(Login::class)
-            ->assertSee('Continuar con Microsoft')
-            ->assertDontSee('Acceso de desarrollo')
-            ->assertDontSee('Contraseña')
-            ->assertDontSee('Iniciar sesión')
-            ->assertDontSee('o usa tu contraseña local')
+            ->assertSee('Continuar con tu correo institucional')
+            ->assertSee('Correo electrónico')
+            ->assertSee('Contraseña')
+            ->assertSee('Iniciar sesión')
+            ->assertSee('¿Olvidaste tu contraseña?')
             ->assertDontSee('Crear usuario nuevo de prueba');
+    }
+
+    public function test_usuario_puede_iniciar_sesion_con_correo_y_contrasena(): void
+    {
+        $user = User::factory()->create();
+
+        Livewire::test(Login::class)
+            ->set('email', $user->email)
+            ->set('password', 'password')
+            ->call('create')
+            ->assertHasNoErrors()
+            ->assertRedirect(route('inicio'));
+
+        $this->assertAuthenticatedAs($user);
     }
 
     public function test_usuario_pendiente_no_puede_navegar_y_admite_el_permiso_historico(): void

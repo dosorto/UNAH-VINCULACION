@@ -6,9 +6,30 @@ use App\Http\Controllers\Controller;
 use App\Models\ENF\EnfDocumento;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class EnfDocumentoController extends Controller
 {
+    public function verArchivo(EnfDocumento $documento)
+    {
+        $disk = $this->discoConArchivo($documento);
+
+        return $disk->response(
+            $documento->ruta,
+            $this->nombreDescarga($documento),
+            ['Content-Type' => $documento->mime_type ?: $disk->mimeType($documento->ruta)],
+            'inline'
+        );
+    }
+
+    public function descargarArchivo(EnfDocumento $documento)
+    {
+        $disk = $this->discoConArchivo($documento);
+
+        return $disk->download($documento->ruta, $this->nombreDescarga($documento));
+    }
+
     public function index(): JsonResponse
     {
         return response()->json(EnfDocumento::with(['accion', 'subidoPor'])->latest()->paginate());
@@ -66,5 +87,22 @@ class EnfDocumentoController extends Controller
         EnfDocumento::findOrFail($documento)->delete();
 
         return response()->json(status: 204);
+    }
+
+    private function discoConArchivo(EnfDocumento $documento)
+    {
+        $disk = Storage::disk('public');
+
+        abort_if(blank($documento->ruta) || $documento->ruta === 'pendiente' || ! $disk->exists($documento->ruta), 404);
+
+        return $disk;
+    }
+
+    private function nombreDescarga(EnfDocumento $documento): string
+    {
+        $extension = pathinfo($documento->ruta, PATHINFO_EXTENSION);
+        $nombre = Str::slug($documento->nombre) ?: 'documento-enf';
+
+        return $extension ? $nombre.'.'.$extension : $nombre;
     }
 }
