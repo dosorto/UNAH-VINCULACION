@@ -1616,6 +1616,10 @@
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Caserío</label>
                         <input type="text" wire:model.live.debounce.1000ms="caserio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Región</label>
+                        <input type="text" wire:model.live.debounce.1000ms="region" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                    </div>
                 </div>
             </div>
 

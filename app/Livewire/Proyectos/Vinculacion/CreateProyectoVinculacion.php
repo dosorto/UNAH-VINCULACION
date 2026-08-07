@@ -153,7 +153,7 @@ class CreateProyectoVinculacion extends Component
     public int $mujeres = 0;
     public int $poblacion_participante = 0;
     public array $pais = ['Honduras'];
-    public array $region = [];
+    public string $region = '';
     public array $departamento_geo = [];
     public array $municipio_geo = [];
     public string $caserio = '';
@@ -440,7 +440,7 @@ class CreateProyectoVinculacion extends Component
         $this->mujeres = (int)($record->mujeres ?? 0);
         $this->poblacion_participante = (int)($record->poblacion_participante ?? 0);
         $this->pais = $record->pais ?? ['Honduras'];
-        $this->region = $record->region ?? [];
+        $this->region = is_array($record->region ?? null) ? ($record->region[0] ?? '') : (string) ($record->region ?? '');
         $this->departamento_geo = $record->departamento?->pluck('id')->toArray() ?? [];
         $this->municipio_geo = $record->municipio?->pluck('id')->toArray() ?? [];
         $this->filtrarMunicipiosImpactoSeleccionados();
@@ -1104,7 +1104,7 @@ class CreateProyectoVinculacion extends Component
             'mujeres' => (int) $this->mujeres,
             'poblacion_participante' => (int) $this->poblacion_participante,
             'pais' => $this->pais,
-            'region' => $this->region,
+            'region' => $this->region !== '' ? [$this->region] : [],
             'caserio' => $this->caserio,
             'aldea' => $this->aldea,
             'alineamiento_reforma' => $this->alineamiento_reforma,
@@ -2153,7 +2153,7 @@ class CreateProyectoVinculacion extends Component
             'mujeres' => $this->mujeres,
             'poblacion_participante' => $this->poblacion_participante,
             'pais' => $this->pais,
-            'region' => $this->region,
+            'region' => $this->region !== '' ? [$this->region] : [],
             'caserio' => $this->caserio,
             'aldea' => $this->aldea,
         ]);

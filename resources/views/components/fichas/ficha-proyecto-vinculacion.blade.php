@@ -535,39 +535,27 @@
                         @endphp
                         <tr>
                             <th class="full-width1" rowspan="1">6. Fecha de ejecución</th>
-                            <td class="full-width date-cell" colspan="5">
-                                <table class="execution-dates-table">
+                            <td class="full-width date-cell" colspan="5" style="padding:0 !important;">
+                                <table style="width:100%; border-collapse:collapse;">
                                     <tr>
-                                        <td class="execution-date-label">Fecha de inicio:</td>
-                                        <td class="execution-date-value">
-                                            <table class="date-inner-table">
-                                                <tr>
-                                                    <th>Día</th>
-                                                    <th>Mes</th>
-                                                    <th>Año</th>
-                                                </tr>
-                                                <tr>
-                                                    <td>{{ $fechaInicio ? $fechaInicio->format('d') : '' }}</td>
-                                                    <td>{{ $fechaInicio ? $fechaInicio->format('m') : '' }}</td>
-                                                    <td>{{ $fechaInicio ? $fechaInicio->format('Y') : '' }}</td>
-                                                </tr>
-                                            </table>
-                                        </td>
-                                        <td class="execution-date-label">Fecha de finalización:</td>
-                                        <td class="execution-date-value">
-                                            <table class="date-inner-table">
-                                                <tr>
-                                                    <th>Día</th>
-                                                    <th>Mes</th>
-                                                    <th>Año</th>
-                                                </tr>
-                                                <tr>
-                                                    <td>{{ $fechaFinalizacion ? $fechaFinalizacion->format('d') : '' }}</td>
-                                                    <td>{{ $fechaFinalizacion ? $fechaFinalizacion->format('m') : '' }}</td>
-                                                    <td>{{ $fechaFinalizacion ? $fechaFinalizacion->format('Y') : '' }}</td>
-                                                </tr>
-                                            </table>
-                                        </td>
+                                        <th colspan="3" style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Fecha de inicio</th>
+                                        <th colspan="3" style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Fecha de finalización</th>
+                                    </tr>
+                                    <tr>
+                                        <th style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Día</th>
+                                        <th style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Mes</th>
+                                        <th style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Año</th>
+                                        <th style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Día</th>
+                                        <th style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Mes</th>
+                                        <th style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Año</th>
+                                    </tr>
+                                    <tr>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $fechaInicio ? $fechaInicio->format('d') : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $fechaInicio ? $fechaInicio->format('m') : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $fechaInicio ? $fechaInicio->format('Y') : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $fechaFinalizacion ? $fechaFinalizacion->format('d') : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $fechaFinalizacion ? $fechaFinalizacion->format('m') : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $fechaFinalizacion ? $fechaFinalizacion->format('Y') : '' }}</td>
                                     </tr>
                                 </table>
                             </td>
@@ -608,12 +596,12 @@
                                         <th style="background-color:#ebeeef; border:1px solid #000; padding:3px 5px; text-align:center;">Mujeres</th>
                                     </tr>
                                     <tr>
-                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $proyecto->indigenas_hombres ?? 0 }}</td>
-                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $proyecto->indigenas_mujeres ?? 0 }}</td>
-                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $proyecto->afroamericanos_hombres ?? 0 }}</td>
-                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $proyecto->afroamericanos_mujeres ?? 0 }}</td>
-                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $proyecto->mestizos_hombres ?? 0 }}</td>
-                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $proyecto->mestizos_mujeres ?? 0 }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->indigenas_hombres ?? 0) > 0 ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->indigenas_mujeres ?? 0) > 0 ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->afroamericanos_hombres ?? 0) > 0 ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->afroamericanos_mujeres ?? 0) > 0 ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->mestizos_hombres ?? 0) > 0 ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->mestizos_mujeres ?? 0) > 0 ? 'X' : '' }}</td>
                                     </tr>
                                 </table>
                             </td>
@@ -624,7 +612,7 @@
                     <!-- Sitio de ejecución del proyecto -->
                     <table class="table_datos1 pdf-table pdf-section-avoid-break section-site-execution">
                     <tr>
-                        <th class="full-width1" colspan="6">8. Sitio de ejecución del proyecto</th>
+                        <th class="full-width1" colspan="6" style="text-align:left !important;">8. Sitio de ejecución del proyecto</th>
                     </tr>
                     <tr>
                         <td class="sub-header" colspan="1">Departamento</td>
