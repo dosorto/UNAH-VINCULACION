@@ -189,6 +189,26 @@ class NewUserOnboardingTest extends TestCase
         $this->actingAs($user)
             ->get(route('home'))
             ->assertOk();
+
+        $firmaAnteriorId = $user->empleado->firma->id;
+
+        $celularOriginal = $user->empleado->celular;
+
+        Livewire::actingAs($user->fresh())
+            ->test(EditPerfilDocente::class)
+            ->assertSet('completandoPerfil', false)
+            ->assertSet('tiene_proyectos_previos', 'no')
+            ->assertSee('Guardar cambios')
+            ->set('firmaUpload', UploadedFile::fake()->image('firma-actualizada.png', 320, 120))
+            ->call('subirFirma')
+            ->assertHasNoErrors()
+            ->set('celular', '11111111')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertNotSame($firmaAnteriorId, $user->empleado->fresh()->firma->id);
+        $this->assertSame($celularOriginal, $user->empleado->fresh()->celular);
+        Storage::disk('public')->assertExists($user->empleado->fresh()->firma->ruta_storage);
     }
 
     public function test_formulario_estudiante_exige_sexo_centro_y_carrera(): void

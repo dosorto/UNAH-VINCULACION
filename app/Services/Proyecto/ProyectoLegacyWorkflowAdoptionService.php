@@ -152,7 +152,13 @@ final class ProyectoLegacyWorkflowAdoptionService
                 'es_inicio' => (int) $etapaInicio?->id === (int) $etapa->id,
                 'es_anterior' => $etapaInicio && (int) $etapa->orden < (int) $etapaInicio->orden,
                 'en_nuevo_recorrido' => $estaEnNuevoRecorrido,
+                'responsable_fijo' => ! $etapa->emisor_define_destinatario && filled($etapa->usuario_responsable_id),
                 'propuesto_usuario_id' => $propuesto?->id,
+                'propuesto' => $propuesto ? [
+                    'id' => (int) $propuesto->id,
+                    'nombre' => $propuesto->empleado?->nombre_completo ?: $propuesto->name,
+                    'email' => $propuesto->email,
+                ] : null,
                 'candidatos' => $candidatos->map(fn (User $user): array => [
                     'id' => (int) $user->id,
                     'nombre' => $user->empleado?->nombre_completo ?: $user->name,
@@ -463,6 +469,26 @@ final class ProyectoLegacyWorkflowAdoptionService
         $usuarios = collect();
 
         foreach ($etapas as $etapa) {
+            $rol = $etapa->rolRevisor?->name;
+
+            if (! $etapa->emisor_define_destinatario && $etapa->usuario_responsable_id) {
+                $usuarioConfigurado = User::withTrashed()
+                    ->with('empleado')
+                    ->find((int) $etapa->usuario_responsable_id);
+                $elegible = $this->resumptionPolicy->eligibleRecipient($usuarioConfigurado, $rol, true);
+
+                if (! $elegible) {
+                    throw new \RuntimeException(sprintf(
+                        'El responsable fijo configurado para "%s" no tiene cuenta, empleado, rol o correo válido.',
+                        $etapa->nombre
+                    ));
+                }
+
+                $usuarios->put((int) $etapa->id, $elegible);
+
+                continue;
+            }
+
             $usuarioId = $asignaciones->get((int) $etapa->id);
 
             if (! $usuarioId) {
@@ -470,7 +496,6 @@ final class ProyectoLegacyWorkflowAdoptionService
             }
 
             $usuario = User::withTrashed()->with('empleado')->find($usuarioId);
-            $rol = $etapa->rolRevisor?->name;
             $elegible = $this->resumptionPolicy->eligibleRecipient($usuario, $rol, true);
 
             if (! $elegible) {
@@ -678,6 +703,16 @@ final class ProyectoLegacyWorkflowAdoptionService
         string $modo,
         bool $esEtapaInicio
     ): ?User {
+        $rol = $etapa->rolRevisor?->name;
+
+        if (! $etapa->emisor_define_destinatario && $etapa->usuario_responsable_id) {
+            return $this->resumptionPolicy->eligibleRecipient(
+                $etapa->usuarioResponsable,
+                $rol,
+                true
+            );
+        }
+
         $estadoPreferido = $modo === self::MODO_SUBSANACION && $esEtapaInicio ? 'Rechazado' : 'Pendiente';
         $firmaHistorica = $legacy
             ->where('estado_revision', $estadoPreferido)
@@ -685,8 +720,6 @@ final class ProyectoLegacyWorkflowAdoptionService
             ->sortByDesc('id')
             ->first();
         $usuarioHistorico = $firmaHistorica?->empleado?->user;
-        $rol = $etapa->rolRevisor?->name;
-
         if ($this->resumptionPolicy->eligibleRecipient($usuarioHistorico, $rol, true)) {
             return $usuarioHistorico;
         }
@@ -701,6 +734,17 @@ final class ProyectoLegacyWorkflowAdoptionService
     private function candidatosParaEtapa(FlujoAprobacionEtapa $etapa): Collection
     {
         $rol = $etapa->rolRevisor?->name;
+
+        if (! $etapa->emisor_define_destinatario && $etapa->usuario_responsable_id) {
+            $responsable = $this->resumptionPolicy->eligibleRecipient(
+                $etapa->usuarioResponsable,
+                $rol,
+                true
+            );
+
+            return $responsable ? collect([$responsable]) : collect();
+        }
+
         $query = User::query()->whereHas('empleado')->with('empleado')->orderBy('name');
 
         if ($rol) {

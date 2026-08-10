@@ -434,7 +434,7 @@
                             <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                 <div>
                                     <p class="text-sm font-semibold text-gray-900 dark:text-white">Responsables del recorrido que continúa</p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">El sistema conserva al revisor legacy cuando sigue siendo elegible; los demás deben confirmarse.</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Los responsables fijos se toman del flujo; solo deben confirmarse las etapas que admiten selección.</p>
                                 </div>
                                 <button type="button"
                                         wire:click="refreshFlowReviewerCandidates"
@@ -460,18 +460,38 @@
                                             </p>
                                         </div>
                                         <div>
-                                            <x-forms.searchable-user-select
-                                                :model="'flowReviewers.'.$etapa['id']"
-                                                :options="$etapa['candidatos']"
-                                                :selected="$flowReviewers[$etapa['id']] ?? null"
-                                                placeholder="Buscar y seleccionar revisor..."
-                                                :wire-key="'legacy-reviewer-'.$etapa['id'].'-'.md5(json_encode([$etapa['candidatos'], $flowReviewers[$etapa['id']] ?? null]))"
-                                            />
-                                            @if(!empty($etapa['candidatos']))
+                                            @if($etapa['responsable_fijo'] ?? false)
+                                                @if(!empty($etapa['propuesto']))
+                                                    <div class="flex min-h-[42px] items-center justify-between gap-3 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                                                        <span>
+                                                            {{ $etapa['propuesto']['nombre'] }}
+                                                            @if(!empty($etapa['propuesto']['email']))
+                                                                — {{ $etapa['propuesto']['email'] }}
+                                                            @endif
+                                                        </span>
+                                                        <span class="material-symbols-outlined shrink-0 text-[18px] text-gray-500" title="Definido en el flujo">lock</span>
+                                                    </div>
+                                                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Asignado automáticamente según la configuración del flujo.</p>
+                                                @else
+                                                    <div class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                                                        <p class="font-semibold">El responsable fijo configurado no está disponible.</p>
+                                                        <p class="mt-1">Actualice el responsable de esta etapa en la configuración del flujo.</p>
+                                                    </div>
+                                                @endif
+                                            @else
+                                                <x-forms.searchable-user-select
+                                                    :model="'flowReviewers.'.$etapa['id']"
+                                                    :options="$etapa['candidatos']"
+                                                    :selected="$flowReviewers[$etapa['id']] ?? null"
+                                                    placeholder="Buscar y seleccionar revisor..."
+                                                    :wire-key="'legacy-reviewer-'.$etapa['id'].'-'.md5(json_encode([$etapa['candidatos'], $flowReviewers[$etapa['id']] ?? null]))"
+                                                />
+                                            @endif
+                                            @if(!($etapa['responsable_fijo'] ?? false) && !empty($etapa['candidatos']))
                                                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                                     {{ count($etapa['candidatos']) }} {{ count($etapa['candidatos']) === 1 ? 'usuario elegible' : 'usuarios elegibles' }}. Puede buscar por nombre o correo.
                                                 </p>
-                                            @else
+                                            @elseif(!($etapa['responsable_fijo'] ?? false))
                                                 <div class="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
                                                     <p class="font-semibold">No hay usuarios disponibles para esta etapa.</p>
                                                     <p class="mt-1">

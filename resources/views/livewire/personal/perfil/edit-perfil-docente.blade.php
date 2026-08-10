@@ -1,12 +1,15 @@
 <div>
-    @php $canEdit = \App\Support\ProfileCompletion::isRequired(auth()->user()); @endphp
+    @php
+        $canEdit = auth()->check() && (int) auth()->id() === (int) $record->id;
+        $canEditEmployeeData = $canEdit && $completandoPerfil;
+    @endphp
 
     <form wire:submit="save" class="space-y-6">
         {{-- Datos de Usuario/Empleado --}}
-        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 {{ !$canEdit ? 'opacity-60' : '' }}">
+        <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
             <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Perfil de Empleado</p>
-            @if (!$canEdit)
-                <p class="text-xs text-yellow-600 dark:text-yellow-400 mb-3">No tiene permiso para editar estos datos actualmente.</p>
+            @if (!$canEditEmployeeData)
+                <p class="mb-4 text-xs text-gray-500 dark:text-gray-400">Estos datos son informativos. Si necesita corregirlos, contacte al administrador del sistema.</p>
             @endif
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -34,13 +37,13 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Celular <span class="text-red-500">*</span></label>
-                    <input type="text" wire:model="celular" {{ !$canEdit ? 'disabled' : '' }}
+                    <input type="text" wire:model="celular" {{ !$canEditEmployeeData ? 'disabled' : '' }}
                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50" />
                     @error('celular') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sexo <span class="text-red-500">*</span></label>
-                    <select wire:model="sexo" {{ !$canEdit ? 'disabled' : '' }}
+                    <select wire:model="sexo" {{ !$canEditEmployeeData ? 'disabled' : '' }}
                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50">
                         <option value="">Seleccione...</option>
                         <option value="Masculino">Masculino</option>
@@ -50,7 +53,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría <span class="text-red-500">*</span></label>
-                    <select wire:model="categoria_id" {{ !$canEdit ? 'disabled' : '' }}
+                    <select wire:model="categoria_id" {{ !$canEditEmployeeData ? 'disabled' : '' }}
                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50">
                         <option value="">Seleccione...</option>
                         @foreach ($categorias as $id => $nombre)
@@ -61,7 +64,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Facultad o Centro <span class="text-red-500">*</span></label>
-                    <select wire:model.live="centro_facultad_id" {{ !$canEdit ? 'disabled' : '' }}
+                    <select wire:model.live="centro_facultad_id" {{ !$canEditEmployeeData ? 'disabled' : '' }}
                         class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50">
                         <option value="">Seleccione...</option>
                         @foreach ($centros as $id => $nombre)
@@ -73,7 +76,7 @@
                 @if ($centro_facultad_id)
                     <div class="sm:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departamento Académico <span class="text-red-500">*</span></label>
-                        <select wire:model.live="departamento_academico_id" {{ (!$canEdit || $departamentos->isEmpty()) ? 'disabled' : '' }}
+                        <select wire:model.live="departamento_academico_id" {{ (!$canEditEmployeeData || $departamentos->isEmpty()) ? 'disabled' : '' }}
                             class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50">
                             <option value="">Seleccione...</option>
                             @foreach ($departamentos as $id => $nombre)
@@ -89,7 +92,7 @@
                 @if ($departamento_academico_id)
                     <div class="sm:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carrera <span class="text-red-500">*</span></label>
-                        <select wire:model.live="carrera_id" {{ (!$canEdit || $carreras->isEmpty()) ? 'disabled' : '' }}
+                        <select wire:model.live="carrera_id" {{ (!$canEditEmployeeData || $carreras->isEmpty()) ? 'disabled' : '' }}
                             class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50">
                             <option value="">Seleccione...</option>
                             @foreach ($carreras as $id => $nombre)
@@ -245,7 +248,7 @@
 
         @if ($errors->any())
             <div class="mt-6 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800" role="alert">
-                <p class="font-semibold">No se pudo finalizar el registro.</p>
+                <p class="font-semibold">{{ $completandoPerfil ? 'No se pudo finalizar el registro.' : 'No se pudo actualizar el perfil.' }}</p>
                 <p class="mt-1">Revisa los siguientes datos:</p>
                 <ul class="mt-2 list-disc space-y-1 pl-5">
                     @foreach (collect($errors->all())->unique() as $error)
@@ -258,7 +261,7 @@
         @if ($canEdit)
             <button type="submit" wire:loading.attr="disabled" wire:target="save,firmaUpload,selloUpload"
                 class="mt-6 inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
-                <span wire:loading.remove wire:target="save">Finalizar registro</span>
+                <span wire:loading.remove wire:target="save">{{ $completandoPerfil ? 'Finalizar registro' : 'Guardar cambios' }}</span>
                 <span wire:loading wire:target="save">Guardando...</span>
             </button>
             <p wire:loading wire:target="firmaUpload,selloUpload" class="mt-2 text-sm text-blue-700 dark:text-blue-300">

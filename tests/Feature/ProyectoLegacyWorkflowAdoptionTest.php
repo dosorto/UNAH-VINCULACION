@@ -270,6 +270,38 @@ class ProyectoLegacyWorkflowAdoptionTest extends TestCase
             ->assertSee('Puede buscar por nombre o correo.');
     }
 
+    public function test_la_bandeja_no_pide_seleccionar_un_responsable_fijo_definido_en_el_flujo(): void
+    {
+        Mail::fake();
+        $contexto = $this->crearContexto(1, 1, 'En revision');
+        $rolAdmin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $permiso = Permission::firstOrCreate(['name' => 'proyectos.historial', 'guard_name' => 'web']);
+        $rolAdmin->givePermissionTo($permiso);
+        $contexto['actor']->assignRole($rolAdmin);
+        $contexto['etapas'][0]->update([
+            'requiere_asignacion' => true,
+            'usuario_responsable_id' => $contexto['usuarios'][0]->id,
+        ]);
+        $this->actingAs($contexto['actor']);
+
+        Livewire::test(ListProyectosVinculacion::class)
+            ->call('openFlowModal', $contexto['proyecto']->id)
+            ->set('flowSelectedId', $contexto['flujo']->id)
+            ->assertSee('Asignado automáticamente según la configuración del flujo.')
+            ->assertSee($contexto['usuarios'][0]->email)
+            ->assertDontSee('Buscar y seleccionar revisor...')
+            ->set('flowReviewers.'.$contexto['etapas'][0]->id, $contexto['actor']->id)
+            ->call('saveFlow')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('firma_proyecto', [
+            'firmable_type' => Proyecto::class,
+            'firmable_id' => $contexto['proyecto']->id,
+            'flujo_aprobacion_etapa_id' => $contexto['etapas'][0]->id,
+            'responsable_usuario_id' => $contexto['usuarios'][0]->id,
+        ]);
+    }
+
     private function crearContexto(
         int $cantidadEtapas,
         ?int $etapaActual,

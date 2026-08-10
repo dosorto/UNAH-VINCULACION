@@ -71,9 +71,12 @@ class EditPerfilDocente extends Component
 
     public string $tiene_proyectos_previos = '';
 
+    public bool $completandoPerfil = false;
+
     public function mount(): void
     {
         $this->record = Auth::user();
+        $this->completandoPerfil = ProfileCompletion::isRequired($this->record);
         $this->name = $this->record->name;
         $this->email = $this->record->email;
 
@@ -87,7 +90,9 @@ class EditPerfilDocente extends Component
             $this->centro_facultad_id = $empleado->centro_facultad_id;
             $this->departamento_academico_id = $empleado->departamento_academico_id;
             $this->carrera_id = $empleado->carrera_id;
-            $this->tiene_proyectos_previos = $empleado->codigosInvestigacion()->exists() ? 'si' : '';
+            $this->tiene_proyectos_previos = $empleado->codigosInvestigacion()->exists()
+                ? 'si'
+                : ($this->completandoPerfil ? '' : 'no');
         }
 
         $this->add_año = (int) date('Y');
@@ -106,7 +111,7 @@ class EditPerfilDocente extends Component
 
     public function subirFirma(): void
     {
-        $this->ensureProfileCanBeCompleted();
+        $this->ensureProfileCanBeEdited();
 
         $empleado = $this->record->empleado;
 
@@ -125,7 +130,7 @@ class EditPerfilDocente extends Component
 
     public function subirSello(): void
     {
-        $this->ensureProfileCanBeCompleted();
+        $this->ensureProfileCanBeEdited();
 
         $empleado = $this->record->empleado;
 
@@ -144,7 +149,7 @@ class EditPerfilDocente extends Component
 
     public function openAddCodigo(): void
     {
-        $this->ensureProfileCanBeCompleted();
+        $this->ensureProfileCanBeEdited();
 
         $this->reset(['add_codigo', 'add_nombre', 'add_rol', 'add_descripcion']);
         $this->add_año = (int) date('Y');
@@ -153,7 +158,7 @@ class EditPerfilDocente extends Component
 
     public function agregarCodigo(): void
     {
-        $this->ensureProfileCanBeCompleted();
+        $this->ensureProfileCanBeEdited();
 
         $this->validate([
             'add_codigo' => 'required|string|max:50',
@@ -197,7 +202,7 @@ class EditPerfilDocente extends Component
 
     public function eliminarCodigo(int $id): void
     {
-        $this->ensureProfileCanBeCompleted();
+        $this->ensureProfileCanBeEdited();
 
         EmpleadoCodigoInvestigacion::where('id', $id)
             ->where('empleado_id', $this->record->empleado->id)
@@ -208,9 +213,10 @@ class EditPerfilDocente extends Component
 
     public function save(): void
     {
-        $this->ensureProfileCanBeCompleted();
+        $this->ensureProfileCanBeEdited();
 
         $empleado = $this->record->empleado;
+        $completandoPerfil = ProfileCompletion::isRequired($this->record->fresh());
 
         if (! $empleado) {
             throw ValidationException::withMessages([
@@ -218,27 +224,34 @@ class EditPerfilDocente extends Component
             ]);
         }
 
-        $this->validate([
-            'celular' => 'required|numeric',
-            'sexo' => ['required', Rule::in(['Masculino', 'Femenino'])],
-            'categoria_id' => ['required', 'exists:categoria,id'],
-            'centro_facultad_id' => 'required|exists:centro_facultad,id',
-            'departamento_academico_id' => [
-                'required',
-                Rule::exists('departamento_academico', 'id')->where(
-                    fn ($query) => $query->where('centro_facultad_id', $this->centro_facultad_id)
-                ),
-            ],
-            'carrera_id' => [
-                'required',
-                'integer',
-                'exists:carrera,id',
-            ],
+        $rules = [
             'tiene_proyectos_previos' => [
                 Rule::requiredIf($empleado->tipo_empleado === 'docente'),
                 Rule::in(['si', 'no']),
             ],
-        ], [
+        ];
+
+        if ($completandoPerfil) {
+            $rules = array_merge($rules, [
+                'celular' => 'required|numeric',
+                'sexo' => ['required', Rule::in(['Masculino', 'Femenino'])],
+                'categoria_id' => ['required', 'exists:categoria,id'],
+                'centro_facultad_id' => 'required|exists:centro_facultad,id',
+                'departamento_academico_id' => [
+                    'required',
+                    Rule::exists('departamento_academico', 'id')->where(
+                        fn ($query) => $query->where('centro_facultad_id', $this->centro_facultad_id)
+                    ),
+                ],
+                'carrera_id' => [
+                    'required',
+                    'integer',
+                    'exists:carrera,id',
+                ],
+            ]);
+        }
+
+        $this->validate($rules, [
             'celular.required' => 'Ingrese el número de celular.',
             'celular.numeric' => 'El celular solo debe contener números.',
             'sexo.required' => 'Seleccione el sexo.',
@@ -251,7 +264,7 @@ class EditPerfilDocente extends Component
             'tiene_proyectos_previos.required' => 'Indique si participó en proyectos previos.',
         ]);
 
-        if (! $this->carreraPerteneceAlDepartamento()) {
+        if ($completandoPerfil && ! $this->carreraPerteneceAlDepartamento()) {
             throw ValidationException::withMessages([
                 'carrera_id' => 'La carrera seleccionada no pertenece al departamento académico.',
             ]);
@@ -291,22 +304,27 @@ class EditPerfilDocente extends Component
             }
         }
 
-        DB::transaction(function () use ($empleado): void {
-            $empleado->update([
-                'celular' => $this->celular,
-                'sexo' => $this->sexo,
-                'categoria_id' => $this->categoria_id,
-                'centro_facultad_id' => $this->centro_facultad_id,
-                'departamento_academico_id' => $this->departamento_academico_id,
-                'carrera_id' => $this->carrera_id,
-            ]);
+        DB::transaction(function () use ($empleado, $completandoPerfil): void {
+            if ($completandoPerfil) {
+                $empleado->update([
+                    'celular' => $this->celular,
+                    'sexo' => $this->sexo,
+                    'categoria_id' => $this->categoria_id,
+                    'centro_facultad_id' => $this->centro_facultad_id,
+                    'departamento_academico_id' => $this->departamento_academico_id,
+                    'carrera_id' => $this->carrera_id,
+                ]);
+            }
 
-            if ($empleado->tipo_empleado === 'docente') {
+            if ($completandoPerfil && $empleado->tipo_empleado === 'docente') {
                 $this->record->assignRole('docente');
                 $this->record->active_role_id = Role::where('name', 'docente')->first()?->id;
             }
 
-            ProfileCompletion::clear($this->record);
+            if ($completandoPerfil) {
+                ProfileCompletion::clear($this->record);
+            }
+
             $this->record->save();
         });
 
@@ -334,9 +352,9 @@ class EditPerfilDocente extends Component
         return view('livewire.personal.perfil.edit-perfil-docente', compact('centros', 'categorias', 'departamentos', 'carreras', 'firma', 'sello', 'codigos', 'anios'));
     }
 
-    private function ensureProfileCanBeCompleted(): void
+    private function ensureProfileCanBeEdited(): void
     {
-        abort_unless(ProfileCompletion::isRequired(Auth::user()), 403);
+        abort_unless(Auth::check() && (int) Auth::id() === (int) $this->record->id, 403);
     }
 
     private function storeFirmaSello(Empleado $empleado, string $tipo, mixed $upload): void

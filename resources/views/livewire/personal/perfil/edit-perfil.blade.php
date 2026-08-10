@@ -5,7 +5,7 @@
                 Completa tu perfil
             </p>
             <p class="text-zinc-500 dark:text-gray-400 font-medium text-sm mt-0">
-                Asegúrate de completar tu perfil con información actualizada ya que luego NO podrás modificarla.
+                Asegúrate de completar la información requerida. Después podrás mantener actualizados los datos editables de tu perfil.
             </p>
         </div>
     @endif
