@@ -266,6 +266,8 @@ class DashboardDirector extends Component
     {
         $empleadoId = auth()->user()->empleado?->id;
 
+        // Solo proyectos propios (donde el usuario participa), no los que solo
+        // tiene pendientes de revisar/aprobar por su rol.
         $propiosIds = $empleadoId
             ? DB::table('empleado_proyecto')
                 ->where('empleado_id', $empleadoId)
@@ -273,16 +275,15 @@ class DashboardDirector extends Component
                 ->toArray()
             : [];
 
-        $pendientesIds = $this->proyectoIdsConFirmaPendienteParaRolActivo()->toArray();
-
-        $allIds = array_unique(array_merge($propiosIds, $pendientesIds));
-
-        if (empty($allIds)) {
+        if (empty($propiosIds)) {
             return collect();
         }
 
-        return EstadoProyecto::whereIn('estadoable_id', $allIds)
+        // Se excluye "Borrador": solo debe verse la actividad una vez enviado a
+        // revisión o subsanación.
+        return EstadoProyecto::whereIn('estadoable_id', $propiosIds)
             ->where('estadoable_type', Proyecto::class)
+            ->whereHas('tipoestado', fn ($q) => $q->where('nombre', '!=', 'Borrador'))
             ->with(['tipoestado', 'estadoable'])
             ->orderByDesc('created_at')
             ->limit($limit)
@@ -334,21 +335,40 @@ class DashboardDirector extends Component
         $panelEnCurso     = $this->misProyectosPorEstadoPaginado('En curso');
         $panelFinalizados = $this->misProyectosPorEstadoPaginado('Finalizado');
 
-        // Pendientes según rol activo
-        $totalPendientesProyectos = $this->proyectosPendientesQuery()->count();
-        $pendientesTable = $this->proyectosPendientesQuery()
+        // Pendientes según rol activo: proyectos y PPS/SS unificados en una sola lista
+        $pendientesProyectos = $this->proyectosPendientesQuery()
             ->with(['estadoActual.tipoestado'])
             ->orderBy('proyecto.created_at', 'desc')
-            ->paginate($this->perPagePendientes);
+            ->get()
+            ->map(fn (Proyecto $p) => (object) [
+                'tipo'         => 'Proyecto',
+                'codigo'       => $p->codigo_proyecto,
+                'nombre'       => $p->nombre_proyecto,
+                'etapa'        => $p->estadoActual?->tipoestado?->nombre,
+                'fecha_inicio' => $p->fecha_inicio,
+                'sort_date'    => $p->created_at,
+            ]);
 
-        // Pendientes PPS/SS según rol activo (mismo criterio que la bandeja de tareas)
-        $totalPendientesPps = $this->pendientesPpsQuery()->count();
-        $pendientesPpsTable = $this->pendientesPpsQuery()
+        $pendientesPps = $this->pendientesPpsQuery()
             ->with('etapaActual')
             ->orderByDesc('created_at')
-            ->paginate($this->perPagePendientes, ['*'], 'pageuPps');
+            ->get()
+            ->map(fn (PpsServicioSocial $r) => (object) [
+                'tipo'         => 'PPS/SS',
+                'codigo'       => $r->codigo_registro,
+                'nombre'       => $r->nombre_estudiante,
+                'etapa'        => $r->etapaActual?->nombre,
+                'fecha_inicio' => $r->fecha_inicio,
+                'sort_date'    => $r->created_at,
+            ]);
 
-        $totalPendientes = $totalPendientesProyectos + $totalPendientesPps;
+        $pendientesUnificados = $pendientesProyectos->concat($pendientesPps)
+            ->sortByDesc('sort_date')
+            ->values();
+
+        $totalPendientes = $pendientesUnificados->count();
+        $pendientesTable = $pendientesUnificados->take($this->perPagePendientes);
+        $hayMasPendientes = $totalPendientes > $this->perPagePendientes;
 
         $activitiesUser     = $this->getLatestActivitiesUser();
         $empleadosWithCount = $this->getProjectsCountByEmployee();
@@ -372,7 +392,7 @@ class DashboardDirector extends Component
             // Pendientes
             'totalPendientes'        => $totalPendientes,
             'pendientesTable'        => $pendientesTable,
-            'pendientesPpsTable'     => $pendientesPpsTable,
+            'hayMasPendientes'       => $hayMasPendientes,
             // Actividades y cantidad
             'activitiesUser'         => $activitiesUser,
             'empleadosWithCount'     => $empleadosWithCount,
