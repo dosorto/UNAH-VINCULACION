@@ -75,7 +75,7 @@ class LegacyDatabaseDumpSeeder extends Seeder
             count($manifest['tables']),
             $manifest['inserts'],
         ));
-        $this->command?->warn('Ahora ejecute: php artisan migrate --force');
+        $this->command?->info('El dump quedó listo para aplicar las migraciones del repositorio.');
     }
 
     private function ensureImportIsEnabled(): void
@@ -176,5 +176,5 @@ class LegacyDatabaseDumpSeeder extends Seeder
         }
     }
 }
-#Correo: prueba.migracion@unah.edu.hn
-#Contraseña: DevMigration2026!
+// Correo: prueba.migracion@unah.edu.hn
+// Contraseña: DevMigration2026!

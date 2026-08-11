@@ -2,15 +2,24 @@
 
 ## Resultado del análisis
 
-El dump `dump-db_vinculacion-202608030913.sql` corresponde a MySQL 8 y contiene:
+El dump `dump-db_vinculacion-11-08-2026.sql`, generado el 11 de agosto de 2026
+a las 08:21, corresponde a MySQL 8 y contiene:
 
 - 109 tablas;
 - 64 bloques `INSERT`;
-- 9,114 filas en total, incluidas 1,912 entradas de `activity_log`;
+- 11,738 filas en total, incluidas 4,581 entradas de `activity_log`;
 - 358 usuarios, 354 empleados, 63 proyectos y sus relaciones;
 - migraciones aplicadas hasta `2026_04_16_074500_increase_poblacion_participante_precision_on_proyecto_table`.
-- 82 migraciones del repositorio pendientes de aplicar;
+- 85 migraciones del repositorio pendientes de aplicar;
 - 3 migraciones SGCU registradas en el dump que ya no están en el repositorio; sus tablas permanecen en el dump y no bloquean las migraciones nuevas.
+
+La importación de prueba terminó con 182 tablas, 158 migraciones registradas y
+ninguna relación huérfana en las 343 claves foráneas verificadas. Los conteos de
+las tablas de negocio se conservaron. Las migraciones sí consolidan registros
+duplicados en catálogos geográficos y académicos, pero antes reasignan todas sus
+referencias. En particular, las 50 filas heredadas de contrapartes se conservan
+en `entidad_contraparte_proyecto` y quedan vinculadas a 41 entidades únicas en
+el catálogo `entidad_contraparte`.
 
 El dump es anterior a los módulos y cambios de esquema agregados entre mayo y agosto de 2026. Por eso no debe restaurarse encima de una base que ya tenga las migraciones actuales. La secuencia compatible es:
 
@@ -34,25 +43,29 @@ Configure temporalmente:
 ```dotenv
 LEGACY_DB_IMPORT_ENABLED=true
 LEGACY_DB_DUMP_PATH=/ruta/absoluta/db_vinculacion.sql
-LEGACY_DB_DUMP_SHA256=ade4c0cc85c00e0896c6865595722536898643a6de9da9f7f249bed388cb9ea6
+LEGACY_DB_DUMP_SHA256=4495213e9934f750d9d3fa676fa3bb5b48fb4d138d8db186787526403a1a10df
 ```
 
-Después de apuntar `DB_DATABASE` a una base completamente vacía:
+Después de apuntar `DB_DATABASE` a una base completamente vacía, el seeder
+orquestador importa todas las tablas y datos del dump, ejecuta las migraciones,
+sincroniza únicamente los catálogos compatibles y valida conteos, claves
+primarias y relaciones:
 
 ```bash
 php artisan config:clear
-php artisan db:seed --class='Database\Seeders\LegacyDatabaseDumpSeeder' --force
-php artisan migrate --force
-php artisan db:seed --class='Database\Seeders\Personal\PermisosSeeder' --force
-php artisan db:seed --class='Database\Seeders\Proyecto\VinculacionTiposAccionSeeder' --force
-php artisan db:seed --class='Database\Seeders\ENF\EnfCatalogoSeeder' --force
-php artisan permission:cache-reset
+php artisan db:seed --class='Database\Seeders\LegacyDatabaseMigrationSeeder' --force
 php artisan optimize:clear
 ```
 
-El seeder se detiene antes de modificar datos si encuentra cualquier tabla en la base destino. También omite todas las instrucciones `DROP TABLE` del dump.
+El seeder se detiene antes de modificar datos si encuentra cualquier tabla en
+la base destino. También omite todas las instrucciones `DROP TABLE` del dump.
+Si una importación o migración falla, recree la base vacía antes de reintentar;
+no ejecute el seeder una segunda vez sobre la base parcialmente migrada.
 
-No ejecute `DatabaseSeeder` completo sobre los datos importados: algunos seeders históricos crean registros repetidos o reconstruyen relaciones existentes. Los seeders indicados arriba sincronizan los permisos requeridos por la aplicación y completan los catálogos nuevos que no existen en el dump.
+No ejecute `DatabaseSeeder` completo sobre los datos importados: algunos
+seeders históricos crean registros repetidos o reconstruyen relaciones
+existentes. El orquestador ejecuta internamente solo los tres seeders seguros
+que sincronizan permisos y completan los catálogos que no existen en el dump.
 
 ## Validaciones posteriores
 
@@ -64,8 +77,13 @@ SELECT COUNT(*) FROM empleado;              -- esperado: 354
 SELECT COUNT(*) FROM proyecto;              -- esperado: 63
 SELECT COUNT(*) FROM actividades;           -- esperado: 126
 SELECT COUNT(*) FROM actividad_empleado;    -- esperado: 267
-SELECT COUNT(*) FROM model_has_roles;        -- esperado: 374
+SELECT COUNT(*) FROM activity_log;           -- esperado: 4581
+SELECT COUNT(*) FROM estudiante_proyecto;    -- esperado: 35
+SELECT COUNT(*) FROM firma_proyecto;         -- esperado: 81
+SELECT COUNT(*) FROM model_has_roles;        -- esperado: 375
 SELECT COUNT(*) FROM model_has_permissions;  -- esperado: 490
+SELECT COUNT(*) FROM entidad_contraparte_proyecto; -- esperado: 50
+SELECT COUNT(*) FROM entidad_contraparte;    -- esperado: 41 entidades únicas
 ```
 
 Revise además:
