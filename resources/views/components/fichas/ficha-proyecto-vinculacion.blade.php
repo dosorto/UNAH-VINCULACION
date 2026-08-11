@@ -445,9 +445,11 @@
                             <th class="full-width1">2. Nombre del Proyecto:</th>
                             <td class="full-width" colspan="5">
 
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el nombre del proyecto"
-                                    value="{{ $proyecto->nombre_proyecto }}" disabled>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->nombre_proyecto) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $proyecto->nombre_proyecto }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
@@ -514,17 +516,21 @@
                         <tr>
                             <td class="sub-header" colspan="1">Programa/estrategia al que pertenece</td>
                             <td class="full-width" colspan="4">
-                                 <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el programa al que pertenece"
-                                    value="{{ $proyecto->programa_pertenece }}" disabled>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->programa_pertenece) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $proyecto->programa_pertenece }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-header" colspan="1">Líneas de investigación de la unidad académica</td>
                             <td class="full-width" colspan="4">
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el programa al que pertenece"
-                                    value="{{ $proyecto->lineas_investigacion_academica }}" disabled>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->lineas_investigacion_academica) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $proyecto->lineas_investigacion_academica }}</div>
+                                @endif
                             </td>
                         </tr>
 
@@ -536,18 +542,18 @@
                         <tr>
                             <th class="full-width1" rowspan="1">6. Fecha de ejecución</th>
                             <td class="full-width date-cell" colspan="5" style="padding:0 !important;">
-                                <table style="width:100%; border-collapse:collapse;">
+                                <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
                                     <tr>
-                                        <th colspan="3" style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Fecha de inicio</th>
-                                        <th colspan="3" style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Fecha de finalización</th>
+                                        <th colspan="3" style="width:50%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Fecha de inicio</th>
+                                        <th colspan="3" style="width:50%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Fecha de finalización</th>
                                     </tr>
                                     <tr>
-                                        <th style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Día</th>
-                                        <th style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Mes</th>
-                                        <th style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Año</th>
-                                        <th style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Día</th>
-                                        <th style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Mes</th>
-                                        <th style="background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Año</th>
+                                        <th style="width:16.6667%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Día</th>
+                                        <th style="width:16.6667%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Mes</th>
+                                        <th style="width:16.6667%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Año</th>
+                                        <th style="width:16.6667%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Día</th>
+                                        <th style="width:16.6667%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Mes</th>
+                                        <th style="width:16.6667%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Año</th>
                                     </tr>
                                     <tr>
                                         <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $fechaInicio ? $fechaInicio->format('d') : '' }}</td>
@@ -614,77 +620,67 @@
                     <tr>
                         <th class="full-width1" colspan="6" style="text-align:left !important;">8. Sitio de ejecución del proyecto</th>
                     </tr>
+                    @php
+                        $departamentosTexto = $proyecto->departamento->pluck('nombre')->implode(', ');
+                        $municipiosTexto    = $proyecto->municipio->pluck('nombre')->implode(', ');
+                        $caserioArr         = is_array($proyecto->caserio) ? $proyecto->caserio : (array) ($proyecto->caserio ?? []);
+                        $caserioTexto       = implode(', ', array_filter($caserioArr, fn ($v) => filled($v)));
+                        $regionArr          = is_array($proyecto->region) ? $proyecto->region : (array) $proyecto->region;
+                        $regionTexto        = implode(', ', array_filter($regionArr, fn ($v) => filled($v)));
+                        $paisArr            = is_array($proyecto->pais) ? $proyecto->pais : (array) $proyecto->pais;
+                        $paisTexto          = implode(', ', array_filter($paisArr, fn ($v) => filled($v)));
+                    @endphp
                     <tr>
                         <td class="sub-header" colspan="1">Departamento</td>
                         <td class="full-width" colspan="1">
-                            @forelse ($proyecto->departamento as $departamento)
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad"
-                                        value="{{ $departamento->nombre }}" disabled>
-                                @empty
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad" value="No hay departamentos"
-                                        disabled>
-                                @endforelse
+                            @if (!empty($isPdf))
+                                <div class="pdf-text-block">{!! $renderPdfText($departamentosTexto, 'No hay departamentos') !!}</div>
+                            @else
+                                <div class="input-field-multiline-static">{{ $departamentosTexto !== '' ? $departamentosTexto : 'No hay departamentos' }}</div>
+                            @endif
                         </td>
                         <td class="sub-header" colspan="1">Aldea (incluye ciudad)</td>
                         <td class="full-width" colspan="3">
-                            <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el nombre de la entidad" value="{{ $proyecto->aldea }}"
-                                    disabled>
+                            @if (!empty($isPdf))
+                                <div class="pdf-text-block">{!! $renderPdfText($proyecto->aldea) !!}</div>
+                            @else
+                                <div class="input-field-multiline-static">{{ $proyecto->aldea }}</div>
+                            @endif
                         </td>
                     </tr>
                     <tr>
                         <td class="sub-header" colspan="1">Municipio</td>
                         <td class="full-width" colspan="1">
-                            @forelse ($proyecto->municipio as $municipio)
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad"
-                                        value="{{ $municipio->nombre }}" disabled>
-                                @empty
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad" value="No hay municipios"
-                                        disabled>
-                                @endforelse
+                            @if (!empty($isPdf))
+                                <div class="pdf-text-block">{!! $renderPdfText($municipiosTexto, 'No hay municipios') !!}</div>
+                            @else
+                                <div class="input-field-multiline-static">{{ $municipiosTexto !== '' ? $municipiosTexto : 'No hay municipios' }}</div>
+                            @endif
                         </td>
                         <td class="sub-header" colspan="1">Caserío</td>
                         <td class="full-width" colspan="3">
-                            @if(is_array($proyecto->caserio) && count($proyecto->caserio) > 0)
-                                @foreach($proyecto->caserio as $caserio)
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el caserío" value="{{ $caserio }}" disabled>
-                                @endforeach
+                            @if (!empty($isPdf))
+                                <div class="pdf-text-block">{!! $renderPdfText($caserioTexto) !!}</div>
                             @else
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el caserío" value="{{ $proyecto->caserio ?? '' }}" disabled>
+                                <div class="input-field-multiline-static">{{ $caserioTexto }}</div>
                             @endif
                         </td>
                     </tr>
                     <tr>
                         <td class="sub-header" colspan="1">Región</td>
                         <td class="full-width" colspan="1">
-                            @php $regionArr = is_array($proyecto->region) ? $proyecto->region : (array) $proyecto->region; @endphp
-                            @if(count($regionArr) > 0)
-                                @foreach($regionArr as $region)
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese la región" value="{{ $region }}" disabled>
-                                @endforeach
+                            @if (!empty($isPdf))
+                                <div class="pdf-text-block">{!! $renderPdfText($regionTexto) !!}</div>
                             @else
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese la región" value="" disabled>
+                                <div class="input-field-multiline-static">{{ $regionTexto }}</div>
                             @endif
                         </td>
                         <td class="sub-header" colspan="1">País</td>
                         <td class="full-width" colspan="3">
-                            @php $paisArr = is_array($proyecto->pais) ? $proyecto->pais : (array) $proyecto->pais; @endphp
-                            @if(count($paisArr) > 0)
-                                @foreach($paisArr as $pais)
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el país" value="{{ $pais }}" disabled>
-                                @endforeach
+                            @if (!empty($isPdf))
+                                <div class="pdf-text-block">{!! $renderPdfText($paisTexto) !!}</div>
                             @else
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el país" value="" disabled>
+                                <div class="input-field-multiline-static">{{ $paisTexto }}</div>
                             @endif
                         </td>
                     </tr>
@@ -708,15 +704,16 @@
                                 @if (!empty($isPdf))
                                     <div class="pdf-text-block">{!! $renderPdfText($coordinador?->nombre_completo, 'No especificado') !!}</div>
                                 @else
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el nombre completo">{{ $coordinador?->nombre_completo ?? 'No especificado' }}</textarea>
+                                    <div class="input-field-multiline-static">{{ $coordinador?->nombre_completo ?? 'No especificado' }}</div>
                                 @endif
                             </td>
                             <td class="sub-header">No. de empleado:</td>
                             <td class="full-width" colspan="2">
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el número de empleado"
-                                    value="{{ $coordinador?->numero_empleado ?? 'No especificado' }}" disabled>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($coordinador?->numero_empleado ?? 'No especificado') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $coordinador?->numero_empleado ?? 'No especificado' }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
@@ -725,15 +722,16 @@
                                 @if (!empty($isPdf))
                                     <div class="pdf-text-block">{!! $renderPdfText($coordinador?->user?->email, 'No especificado') !!}</div>
                                 @else
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el correo electrónico">{{ $coordinador?->user?->email ?? 'No especificado' }}</textarea>
+                                    <div class="input-field-multiline-static">{{ $coordinador?->user?->email ?? 'No especificado' }}</div>
                                 @endif
                             </td>
                             <td class="sub-header">Celular:</td>
                             <td class="full-width" colspan="2">
-                                <input disabled type="email" class="input-field"
-                                    placeholder="Ingrese el número de celular"
-                                    value="{{ $coordinador?->celular ?? 'No especificado' }}" disabled>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($coordinador?->celular ?? 'No especificado') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $coordinador?->celular ?? 'No especificado' }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
@@ -742,8 +740,7 @@
                                 @if (!empty($isPdf))
                                     <div class="pdf-text-block">{!! $renderPdfText($coordinador?->categoria?->nombre, 'No especificado') !!}</div>
                                 @else
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el número de celular">{{ $coordinador?->categoria?->nombre ?? 'No especificado' }}</textarea>
+                                    <div class="input-field-multiline-static">{{ $coordinador?->categoria?->nombre ?? 'No especificado' }}</div>
                                 @endif
                             </td>
                             <td class="sub-header">Departamento:</td>
@@ -751,8 +748,7 @@
                                 @if (!empty($isPdf))
                                     <div class="pdf-text-block">{!! $renderPdfText($coordinador?->departamento_academico?->nombre, 'No especificado') !!}</div>
                                 @else
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el número de celular">{{ $coordinador?->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
+                                    <div class="input-field-multiline-static">{{ $coordinador?->departamento_academico?->nombre ?? 'No especificado' }}</div>
                                 @endif
                             </td>
                         </tr>
@@ -793,37 +789,35 @@
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($integrante->nombre_completo) !!}</div>
                                     @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese el nombre completo">{{ $integrante->nombre_completo }}</textarea>
+                                        <div class="input-field-multiline-static">{{ $integrante->nombre_completo }}</div>
                                     @endif
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el número de empleado"
-                                        value="{{ $integrante->numero_empleado }}" disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->numero_empleado) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $integrante->numero_empleado }}</div>
+                                    @endif
                                 </td>
                                 <td class="full-width" colspan="1">
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($integrante->user?->email, 'No especificado') !!}</div>
                                     @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese el correo electrónico">{{ $integrante->user?->email ?? 'No especificado' }}</textarea>
+                                        <div class="input-field-multiline-static">{{ $integrante->user?->email ?? 'No especificado' }}</div>
                                     @endif
                                 </td>
                                 <td class="full-width" colspan="1">
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($integrante->categoria?->nombre, 'Sin categoría') !!}</div>
                                     @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese la categoría">{{ $integrante->categoria?->nombre ?? 'Sin categoría' }}</textarea>
+                                        <div class="input-field-multiline-static">{{ $integrante->categoria?->nombre ?? 'Sin categoría' }}</div>
                                     @endif
                                 </td>
                                 <td class="full-width" colspan="1">
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($integrante->departamento_academico?->nombre, 'Sin departamento') !!}</div>
                                     @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'Sin departamento' }}</textarea>
+                                        <div class="input-field-multiline-static">{{ $integrante->departamento_academico?->nombre ?? 'Sin departamento' }}</div>
                                     @endif
                                 </td>
                                 <td class="full-width" colspan="1" style="text-align:center;">
@@ -836,8 +830,7 @@
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($productosIntegrante, 'No especificado') !!}</div>
                                     @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Productos a cargo">{{ $productosIntegrante ?: 'No especificado' }}</textarea>
+                                        <div class="input-field-multiline-static">{{ $productosIntegrante ?: 'No especificado' }}</div>
                                     @endif
                                 </td>
                             </tr>
@@ -845,8 +838,11 @@
                             <tr>
                                 <td class="full-width
                                 " colspan="8">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento" value="No hay docentes" disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText('No hay docentes') !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">No hay docentes</div>
+                                    @endif
                                 </td>
                             </tr>
                         @endforelse
@@ -870,37 +866,35 @@
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($integrante->nombre_completo) !!}</div>
                                     @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese el nombre completo">{{ $integrante->nombre_completo }}</textarea>
+                                        <div class="input-field-multiline-static">{{ $integrante->nombre_completo }}</div>
                                     @endif
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el número de empleado"
-                                        value="{{ $integrante->documento_identidad }}" disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->documento_identidad) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $integrante->documento_identidad }}</div>
+                                    @endif
                                 </td>
                                 <td class="full-width" colspan="2">
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($integrante->email) !!}</div>
                                     @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese el correo electrónico">{{ $integrante->email }}</textarea>
+                                        <div class="input-field-multiline-static">{{ $integrante->email }}</div>
                                     @endif
                                 </td>
                                 <td class="full-width" colspan="1">
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($integrante->pais) !!}</div>
                                     @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese la categoría">{{ $integrante->pais }}</textarea>
+                                        <div class="input-field-multiline-static">{{ $integrante->pais }}</div>
                                     @endif
                                 </td>
                                 <td class="full-width" colspan="1">
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($integrante->institucion) !!}</div>
                                     @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese el departamento">{{ $integrante->institucion }}</textarea>
+                                        <div class="input-field-multiline-static">{{ $integrante->institucion }}</div>
                                     @endif
                                 </td>
                             </tr>
@@ -908,8 +902,11 @@
                             <tr>
                                 <td class="full-width
                                 " colspan="8">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Aqui van los integrantes internacionales" value="No hay integrantes" disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText('No hay integrantes') !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">No hay integrantes</div>
+                                    @endif
                                 </td>
                             </tr>
                         @endforelse
@@ -1142,16 +1139,21 @@
                             <tr>
                                 <td style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">16. Nombre de la contraparte:</td>
                                 <td class="full-width" colspan="6">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad" value="{{ $entidad->nombre }}"
-                                        disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($entidad->nombre) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $entidad->nombre }}</div>
+                                    @endif
                                 </td>
                             </tr>
                             <tr>
                                 <td class="sub-header" rowspan="1">RTN:</td>
                                 <td class="full-width" colspan="6">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="RTN" value="{{ $entidad->rtn ?? '' }}" disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($entidad->rtn ?? '') !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $entidad->rtn ?? '' }}</div>
+                                    @endif
                                 </td>
                             </tr>
                             <tr>
@@ -1178,29 +1180,37 @@
                             <tr>
                                 <td rowspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">18. Nombre del contacto directo</td>
                                 <td class="full-width" colspan="3">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre del contacto"
-                                        value="{{ $entidad->nombre_contacto }}" disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($entidad->nombre_contacto) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $entidad->nombre_contacto }}</div>
+                                    @endif
                                 </td>
                                 <td class="sub-header" colspan="1">Correo Electrónico</td>
                                 <td class="full-width" colspan="2">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el correo electrónico" value="{{ $entidad->correo }}"
-                                        disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($entidad->correo) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $entidad->correo }}</div>
+                                    @endif
                                 </td>
                             </tr>
                             <tr>
                                 <td colspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">19. Cargo del contacto del proyecto</td>
                                 <td class="full-width" colspan="3">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el cargo del contacto" value="{{ $entidad->cargo_contacto ?? '' }}"
-                                        disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($entidad->cargo_contacto ?? '') !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $entidad->cargo_contacto ?? '' }}</div>
+                                    @endif
                                 </td>
                                 <td class="sub-header" colspan="1">Teléfono</td>
                                 <td class="full-width" colspan="2">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el teléfono"
-                                        value="{{ $entidad->telefono }}" disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($entidad->telefono) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $entidad->telefono }}</div>
+                                    @endif
                                 </td>
                             </tr>
                             <tr>
@@ -1234,9 +1244,11 @@
                             <tr>
                                 <td class="full-width
                                     " colspan="4">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Tipo de documento" value="{{ $instrumento->tipo_documento_display }}"
-                                        disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($instrumento->tipo_documento_display) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $instrumento->tipo_documento_display }}</div>
+                                    @endif
                                 </td>
                                 <td class="full-width
                                     " colspan="3">
@@ -1289,9 +1301,11 @@
                         @empty
                             <td class="full-width
                                     " colspan="7">
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el departamento" value="No hay instrumentos de formalización"
-                                    disabled>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText('No hay instrumentos de formalización') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">No hay instrumentos de formalización</div>
+                                @endif
                             </td>
                         @endforelse
                         </tr>
@@ -1299,9 +1313,11 @@
                         <tr>
                             <td class="full-width
                                 " colspan="7">
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el departamento" value="No hay entidades contraparte"
-                                    disabled>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText('No hay entidades contraparte') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">No hay entidades contraparte</div>
+                                @endif
                             </td>
                         </tr>
                         @endforelse
@@ -1578,8 +1594,11 @@
                         @forelse ($proyecto->ods as $ods)
                             <tr>
                                 <td class="full-width" colspan="9">
-                                    <input disabled type="text" class="input-field"
-                                        value="{{ $ods->nombre }}" placeholder="ODS">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($ods->nombre) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $ods->nombre }}</div>
+                                    @endif
                                 </td>
                                 <td class="full-width" colspan="10">
                                     @php
@@ -1695,9 +1714,11 @@
                                             @if (!empty($isPdf))
                                                 <div class="pdf-text-block">{!! $renderPdfText($responsable->nombre_completo) !!}</div>
                                             @else
-                                                <input disabled type="text" class="input-field"
-                                                    placeholder="Ingrese el nombre de la entidad"
-                                                    value="{{ $responsable->nombre_completo }}" disabled>
+                                                @if (!empty($isPdf))
+                                                    <div class="pdf-text-block">{!! $renderPdfText($responsable->nombre_completo) !!}</div>
+                                                @else
+                                                    <div class="input-field-multiline-static">{{ $responsable->nombre_completo }}</div>
+                                                @endif
                                             @endif
                                         @empty
                                         @endforelse
@@ -1707,8 +1728,11 @@
                             @empty
                                 <tr>
                                     <td class="full-width" colspan="19">
-                                        <input disabled type="text" class="input-field"
-                                            value="No hay actividades registradas" disabled>
+                                        @if (!empty($isPdf))
+                                            <div class="pdf-text-block">{!! $renderPdfText('No hay actividades registradas') !!}</div>
+                                        @else
+                                            <div class="input-field-multiline-static">No hay actividades registradas</div>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforelse
@@ -1754,16 +1778,25 @@
                             <td class="sub-header" colspan="7">a) Horas de trabajo docentes</td>
                             <td class="sub-header" colspan="3">Hra/profesores</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('horas_trabajo_docentes')?->cantidad ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('horas_trabajo_docentes')?->cantidad ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('horas_trabajo_docentes')?->cantidad ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('horas_trabajo_docentes')?->costo_unitario ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('horas_trabajo_docentes')?->costo_unitario ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('horas_trabajo_docentes')?->costo_unitario ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('horas_trabajo_docentes')?->costo_total ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('horas_trabajo_docentes')?->costo_total ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('horas_trabajo_docentes')?->costo_total ?? '' }}</div>
+                                @endif
                             </td>
                         </tr>
                         
@@ -1772,16 +1805,25 @@
                             <td class="sub-header" colspan="7">b) Horas de trabajo estudiantes</td>
                             <td class="sub-header" colspan="3">Hra/estudiantes</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('horas_trabajo_estudiantes')?->cantidad ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('horas_trabajo_estudiantes')?->cantidad ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('horas_trabajo_estudiantes')?->cantidad ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('horas_trabajo_estudiantes')?->costo_unitario ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('horas_trabajo_estudiantes')?->costo_unitario ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('horas_trabajo_estudiantes')?->costo_unitario ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('horas_trabajo_estudiantes')?->costo_total ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('horas_trabajo_estudiantes')?->costo_total ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('horas_trabajo_estudiantes')?->costo_total ?? '' }}</div>
+                                @endif
                             </td>
                         </tr>
                         
@@ -1790,16 +1832,25 @@
                             <td class="sub-header" colspan="7">c) Gastos de movilización</td>
                             <td class="sub-header" colspan="3">Global</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('gastos_movilizacion')?->cantidad ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('gastos_movilizacion')?->cantidad ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('gastos_movilizacion')?->cantidad ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('gastos_movilizacion')?->costo_unitario ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('gastos_movilizacion')?->costo_unitario ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('gastos_movilizacion')?->costo_unitario ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('gastos_movilizacion')?->costo_total ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('gastos_movilizacion')?->costo_total ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('gastos_movilizacion')?->costo_total ?? '' }}</div>
+                                @endif
                             </td>
                         </tr>
                         
@@ -1808,16 +1859,25 @@
                             <td class="sub-header" colspan="7">d) Útiles y materiales de oficina</td>
                             <td class="sub-header" colspan="3">Global</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('utiles_materiales_oficina')?->cantidad ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('utiles_materiales_oficina')?->cantidad ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('utiles_materiales_oficina')?->cantidad ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('utiles_materiales_oficina')?->costo_unitario ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('utiles_materiales_oficina')?->costo_unitario ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('utiles_materiales_oficina')?->costo_unitario ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('utiles_materiales_oficina')?->costo_total ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('utiles_materiales_oficina')?->costo_total ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('utiles_materiales_oficina')?->costo_total ?? '' }}</div>
+                                @endif
                             </td>
                         </tr>
                         
@@ -1826,16 +1886,25 @@
                             <td class="sub-header" colspan="7">e) Gastos de impresión</td>
                             <td class="sub-header" colspan="3">Global</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('gastos_impresion')?->cantidad ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('gastos_impresion')?->cantidad ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('gastos_impresion')?->cantidad ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('gastos_impresion')?->costo_unitario ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('gastos_impresion')?->costo_unitario ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('gastos_impresion')?->costo_unitario ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('gastos_impresion')?->costo_total ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('gastos_impresion')?->costo_total ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('gastos_impresion')?->costo_total ?? '' }}</div>
+                                @endif
                             </td>
                         </tr>
                         
@@ -1844,16 +1913,25 @@
                             <td class="sub-header" colspan="7">f) Costos indirectos por infraestructura universidad (depreciación de equipo, calculado sobre la sumatoria de los conceptos a – e)</td>
                             <td class="sub-header" colspan="3">%</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($infraestructura?->cantidad ?? $cantidadIndirecta, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($infraestructura?->cantidad ?? $cantidadIndirecta, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($infraestructura?->cantidad ?? $cantidadIndirecta, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($infraestructura?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($infraestructura?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($infraestructura?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($infraestructura?->costo_total ?? $costoTotalIndirecto, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($infraestructura?->costo_total ?? $costoTotalIndirecto, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($infraestructura?->costo_total ?? $costoTotalIndirecto, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         
@@ -1862,16 +1940,25 @@
                             <td class="sub-header" colspan="7">g) Costos indirectos por servicios públicos (internet, electricidad, otros, calculado sobre la sumatoria de los conceptos a – e)</td>
                             <td class="sub-header" colspan="3">%</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($servicios?->cantidad ?? $cantidadIndirecta, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($servicios?->cantidad ?? $cantidadIndirecta, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($servicios?->cantidad ?? $cantidadIndirecta, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($servicios?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($servicios?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($servicios?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($servicios?->costo_total ?? $costoTotalIndirecto, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($servicios?->costo_total ?? $costoTotalIndirecto, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($servicios?->costo_total ?? $costoTotalIndirecto, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         
@@ -1879,8 +1966,11 @@
                         <tr>
                             <td class="sub-headeri" colspan="16">Total aporte institucional</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->total_aporte_institucional ?? 0, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($proyecto->total_aporte_institucional ?? 0, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($proyecto->total_aporte_institucional ?? 0, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
@@ -1889,36 +1979,51 @@
                         <tr>
                             <td class="sub-headert" colspan="16">Aporte de la contraparte</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_contraparte ?? 0, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($proyecto->presupuesto?->aporte_contraparte ?? 0, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($proyecto->presupuesto?->aporte_contraparte ?? 0, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-headert" colspan="16">Aporte fondos internacionales</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_internacionales ?? 0, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($proyecto->presupuesto?->aporte_internacionales ?? 0, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($proyecto->presupuesto?->aporte_internacionales ?? 0, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-headert" colspan="16">Aporte de otras universidades</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_otras_universidades ?? 0, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($proyecto->presupuesto?->aporte_otras_universidades ?? 0, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($proyecto->presupuesto?->aporte_otras_universidades ?? 0, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-headert" colspan="16">Aporte de los beneficiarios (comunidad)</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_comunidad ?? 0, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($proyecto->presupuesto?->aporte_comunidad ?? 0, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($proyecto->presupuesto?->aporte_comunidad ?? 0, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-headert" colspan="16">Otros aportes</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ number_format($proyecto->presupuesto?->otros_aportes ?? 0, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($proyecto->presupuesto?->otros_aportes ?? 0, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($proyecto->presupuesto?->otros_aportes ?? 0, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         @php
@@ -1931,15 +2036,21 @@
                         <tr>
                             <td class="sub-headeri" colspan="16">Total otras aportaciones</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field"
-                                    value="{{ number_format($totalOtrasAportaciones, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($totalOtrasAportaciones, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($totalOtrasAportaciones, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-headeri" colspan="16">TOTAL PROYECTO (Aporte institucional + otras aportaciones)</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field"
-                                     value="{{ number_format(($proyecto->total_aporte_institucional ?? 0) + $totalOtrasAportaciones, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format(($proyecto->total_aporte_institucional ?? 0) + $totalOtrasAportaciones, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format(($proyecto->total_aporte_institucional ?? 0) + $totalOtrasAportaciones, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                     </table>
@@ -2018,8 +2129,11 @@
                             <tr>
                             <td class="full-width
                                 " colspan="8">
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el departamento" value="ANEXO DEL PROYECTO" disabled>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText('ANEXO DEL PROYECTO') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">ANEXO DEL PROYECTO</div>
+                                @endif
                            </td>
                             <td class="full-width" colspan="11">
                                 @if (empty($isPdf))
@@ -2068,8 +2182,11 @@
                         @empty
                             <tr>
                                 <td class="full-width" colspan="19">
-                                    <input disabled type="text" class="input-field"
-                                        value="No hay anexos registrados en este momento" disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText('No hay anexos registrados en este momento') !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">No hay anexos registrados en este momento</div>
+                                    @endif
                                 </td>
                             </tr>
                         @endforelse

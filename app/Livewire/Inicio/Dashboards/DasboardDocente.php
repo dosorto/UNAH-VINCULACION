@@ -88,11 +88,18 @@ class DasboardDocente extends Component
     public function updateChartDataUser()
     {
         $userId = auth()->user()->empleado->id;
+        $authUserId = auth()->id();
 
         // Obtén los proyectos del usuario con sus datos completos
-        $userProjects = Proyecto::query()->get();
+        $userProjects = Proyecto::query()
+            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+            ->where('empleado_proyecto.empleado_id', $userId)
+            ->select('proyecto.*')
+            ->distinct()
+            ->get();
 
         $enfProjects = EnfAccion::query()
+            ->where('creado_por_usuario_id', $authUserId)
             ->where(fn (Builder $query): Builder => $this->enfFormsQuery($query))
             ->get()
             ->map(function (EnfAccion $accion): object {
@@ -213,6 +220,7 @@ class DasboardDocente extends Component
                 });
 
             EnfAccion::query()
+                ->where('creado_por_usuario_id', $userId)
                 ->where(fn (Builder $query): Builder => $this->enfFormsQuery($query))
                 ->get()
                 ->each(function (EnfAccion $accion) use ($rows): void {
@@ -342,16 +350,23 @@ public function getLatestActivitiesUser($limit = 3)
     $user = auth()->user();
     $empleadoId = $user?->empleado?->id;
 
-    // En el panel se muestran los formularios existentes, no solo los creados por el usuario.
-    $proyectosIds = Proyecto::query()->pluck('id')->toArray();
-        
-    
+    // Solo se muestran los formularios del usuario autenticado (proyectos donde participa).
+    $proyectosIds = $empleadoId
+        ? Proyecto::query()
+            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+            ->where('empleado_proyecto.empleado_id', $empleadoId)
+            ->pluck('proyecto.id')
+            ->toArray()
+        : [];
+
+
     // Obtener IDs de los documentos asociados a estos proyectos
     $documentosIds = DocumentoProyecto::whereIn('proyecto_id', $proyectosIds)
         ->pluck('id')
         ->toArray();
     
     // Obtener todos los estados asociados a los proyectos y sus documentos
+    // (se excluye "Borrador": solo debe verse la actividad una vez enviado a revisión o subsanación)
     $actividadesProyecto = EstadoProyecto::where(function ($query) use ($proyectosIds, $documentosIds) {
             // Estados de los proyectos
             if (! empty($proyectosIds)) {
@@ -362,7 +377,7 @@ public function getLatestActivitiesUser($limit = 3)
             } else {
                 $query->whereRaw('1 = 0');
             }
-            
+
             // Estados de los documentos (si existen)
             if (!empty($documentosIds)) {
                 $query->orWhere(function ($q) use ($documentosIds) {
@@ -371,6 +386,7 @@ public function getLatestActivitiesUser($limit = 3)
                 });
             }
         })
+        ->whereHas('tipoestado', fn ($q) => $q->where('nombre', '!=', 'Borrador'))
         ->with(['tipoestado', 'estadoable']) // Cargar relaciones para evitar múltiples consultas
         ->orderByDesc('created_at')
         ->limit($limit)
@@ -405,41 +421,34 @@ public function getLatestActivitiesUser($limit = 3)
             return collect();
         }
 
-        $pendientesIds = $this->enfRevisionesDisponiblesQuery()
-            ->limit(20)
-            ->pluck('id');
-
+        // Solo actividad de formularios propios que ya salieron de Borrador (enviados a
+        // revisión/subsanación). Quien solo revisa o aprueba no debe verlos aquí.
         return EnfRevision::query()
             ->with('accion')
-            ->whereHas('accion', fn (Builder $query): Builder => $this->enfFormsQuery($query))
+            ->whereHas('accion', fn (Builder $query): Builder => $this->enfFormsQuery($query)
+                ->where('creado_por_usuario_id', $user->id)
+                ->where('estado_flujo', '!=', 'BORRADOR'))
             ->latest()
             ->limit($limit * 2)
             ->get()
-            ->map(function (EnfRevision $revision) use ($pendientesIds): object {
-                $esPendienteDelUsuario = $pendientesIds->contains($revision->id);
+            ->map(function (EnfRevision $revision): object {
                 $estado = new \stdClass();
-                $estado->nombre = $esPendienteDelUsuario
-                    ? ($revision->etapa_nombre ?: 'Pendiente de revision')
-                    : $this->enfEstadoLabel($revision->accion?->estado_flujo ?: $revision->estado);
+                $estado->nombre = $this->enfEstadoLabel($revision->accion?->estado_flujo ?: $revision->estado);
 
                 return (object) [
-                    'es_actual' => $esPendienteDelUsuario || in_array($revision->estado, ['ASIGNADO', 'EN_PROCESO', 'PENDIENTE'], true),
+                    'es_actual' => in_array($revision->estado, ['ASIGNADO', 'EN_PROCESO', 'PENDIENTE'], true),
                     'tipo_elemento' => 'Proyecto',
                     'nombre_elemento' => $revision->accion?->nombre_accion ?: 'Educacion no formal',
                     'tipoestado' => $estado,
-                    'comentario' => $this->enfActividadComentario($revision, $esPendienteDelUsuario),
+                    'comentario' => $this->enfActividadComentario($revision),
                     'fecha_cambio' => $revision->updated_at?->format('d/m/Y H:i') ?: $revision->created_at?->format('d/m/Y H:i'),
                     'sort_timestamp' => $revision->updated_at ?: $revision->created_at,
                 ];
             });
     }
 
-    private function enfActividadComentario(EnfRevision $revision, bool $esPendienteDelUsuario): string
+    private function enfActividadComentario(EnfRevision $revision): string
     {
-        if ($esPendienteDelUsuario) {
-            return 'Formulario de educacion no formal pendiente de revision en esta etapa.';
-        }
-
         if (strtoupper((string) $revision->accion?->estado_flujo) === 'APROBADO') {
             return 'Todas las etapas del flujo de inscripcion ENF fueron aprobadas.';
         }
@@ -455,13 +464,6 @@ public function getLatestActivitiesUser($limit = 3)
     {
         return EnfAccion::query()
             ->where('creado_por_usuario_id', $userId)
-            ->where(fn (Builder $query): Builder => $this->enfFormsQuery($query))
-            ->get();
-    }
-
-    private function enfAccionesPanel(): Collection
-    {
-        return EnfAccion::query()
             ->where(fn (Builder $query): Builder => $this->enfFormsQuery($query))
             ->get();
     }
@@ -758,7 +760,7 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
         $authUserId = auth()->id();
         $userId = auth()->user()->empleado->id;
         $enfPendientesRevisionUser = $this->enfRevisionesDisponiblesQuery()->get();
-        $enfAccionesUser = $this->enfAccionesPanel();
+        $enfAccionesUser = $this->enfAccionesUser($authUserId);
 
         // Obtén el id del estado "Finalizado"
         $finalizadosUser = collect(); // Default empty collection
@@ -827,7 +829,12 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
                 ->get();
         }
 
-        $proyectosUser = Proyecto::query()->get();
+        $proyectosUser = Proyecto::query()
+            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+            ->where('empleado_proyecto.empleado_id', $userId)
+            ->select('proyecto.*')
+            ->distinct()
+            ->get();
 
         // Mis formularios: unifica Proyecto (Desarrollo Local/Voluntariado), PPS/SS
         // y ENF en una sola lista, cada fila con su stepper de progreso calculado
@@ -900,14 +907,14 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
         // Obtener proyectos en Borrador
         $enBorradorUser = $this->getProjectsByStateUser('Borrador');
 
-        $totalProyectosUser = $proyectos->count() + $enfAccionesUser->count();
-        $totalFinalizadosUser = $finalizados->count()
+        $totalProyectosUser = $proyectosUser->count() + $enfAccionesUser->count();
+        $totalFinalizadosUser = $finalizadosUser->count()
             + $enfAccionesUser->filter(fn (EnfAccion $accion): bool => strtoupper((string) $accion->estado_flujo) === 'FINALIZADO')->count();
-        $totalEjecucionUser = $ejecucion->count()
+        $totalEjecucionUser = $ejecucionUser->count()
             + $enfAccionesUser->filter(fn (EnfAccion $accion): bool => strtoupper((string) $accion->estado_flujo) === 'APROBADO')->count();
-        $totalBorradorUser = $borrador->count()
+        $totalBorradorUser = $borradorUser->count()
             + $enfAccionesUser->filter(fn (EnfAccion $accion): bool => strtoupper((string) $accion->estado_flujo) === 'BORRADOR')->count();
-        $totalRevisionUser = $enRevision->total()
+        $totalRevisionUser = $enRevisionUser->total()
             + $enfAccionesUser->filter(fn (EnfAccion $accion): bool => strtoupper((string) $accion->estado_flujo) === 'EN_REVISION')->count();
         $totalPendientesRevisionUser = $enfPendientesRevisionUser->count();
 

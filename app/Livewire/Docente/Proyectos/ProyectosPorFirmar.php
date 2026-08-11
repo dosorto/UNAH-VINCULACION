@@ -135,7 +135,8 @@ class ProyectosPorFirmar extends Component
             && $firma->usaFlujoPorEtapa()
             && $firma->estado_revision === 'Pendiente'
             && $firma->responsable_usuario_id
-            && (int) $firma->responsable_usuario_id === (int) Auth::id();
+            && (int) $firma->responsable_usuario_id === (int) Auth::id()
+            && (bool) $firma->flujoEtapa?->requiere_asignacion;
     }
 
     public function puedeReasignarEnf(?EnfRevision $revision): bool
@@ -149,7 +150,8 @@ class ProyectosPorFirmar extends Component
             return false;
         }
 
-        return filled($revision->rol_requerido);
+        return filled($revision->rol_requerido)
+            && (bool) $revision->flujoEtapa?->requiere_asignacion;
     }
 
     public function firmaPendienteDePps(PpsServicioSocial $registro): ?FirmaProyecto

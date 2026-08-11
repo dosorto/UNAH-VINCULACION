@@ -17,6 +17,25 @@
         $isActive    = in_array(request()->route()->getName(), $routes);
         $hasChildren = !empty($children);
         $componentId = 'sidebar-' . str_replace('.', '-', $route);
+
+        // Precalcula, una sola vez, los pendientes de cada hijo (para el badge del
+        // accordion y del flyout) y el total (para el punto indicador cuando el
+        // sidebar está colapsado y solo se ve el ícono del padre).
+        $childrenPendientes      = [];
+        $totalPendientesChildren = 0;
+        if ($hasChildren) {
+            foreach ($children as $index => $child) {
+                $resultado = 0;
+                if (isset($child['funcion']) && isset($DataNavBar)
+                    && auth()->user()->activeRole
+                    && auth()->user()->activeRole->hasPermissionTo($child['permiso'])
+                    && auth()->user()->hasPermissionTo($child['permiso'])) {
+                    $resultado = App\Clases\DataNavBar::{$child['funcion']}();
+                }
+                $childrenPendientes[$index] = $resultado;
+                $totalPendientesChildren   += $resultado;
+            }
+        }
     @endphp
 
     {{--
@@ -95,11 +114,16 @@
                 :title="desktopSidebarOpen ? null : '{{ addslashes($titulo) }}'">
 
                 <div class="flex items-center min-w-0">
-                    <div class="shrink-0">
+                    <div class="shrink-0 relative">
                         @if ($isActive)
                             @svg($icono, ['class' => 'fi-sidebar-item-icon h-6 w-6 text-primary-600 dark:text-primary-400'])
                         @else
                             @svg($icono, ['class' => 'fi-sidebar-item-icon h-6 w-6 text-gray-400 dark:text-gray-400'])
+                        @endif
+                        @if ($totalPendientesChildren > 0)
+                            <span
+                                aria-hidden="true"
+                                class="hidden sm:group-data-[sb=closed]/sb:block absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white dark:ring-gray-900"></span>
                         @endif
                     </div>
                     <span class="ml-4 truncate sm:group-data-[sb=closed]/sb:hidden">{{ $titulo }}</span>
@@ -123,14 +147,11 @@
                 x-transition:leave-start="opacity-100 translate-y-0"
                 x-transition:leave-end="opacity-0 -translate-y-2"
                 class="pl-10 mt-1 space-y-1">
-                @foreach ($children as $child)
+                @foreach ($children as $index => $child)
                     @if (auth()->user()->activeRole && auth()->user()->activeRole->hasPermissionTo($child['permiso']))
                         @php
                             $childIsActive     = request()->route()->getName() === $child['route'];
-                            $resultado_funcion = 0;
-                            if (isset($child['funcion']) && auth()->user()->hasPermissionTo($child['permiso'])) {
-                                $resultado_funcion = App\Clases\DataNavBar::{$child['funcion']}();
-                            }
+                            $resultado_funcion = $childrenPendientes[$index] ?? 0;
                         @endphp
                         <a href="{{ route($child['route'], $child['parametro'] ?? '') }}" wire:navigate.hover
                             class="flex items-center py-2 px-4 rounded-md transition-colors duration-150 ease-in-out dark:text-gray-200
@@ -139,7 +160,7 @@
 
                             @if (isset($child['funcion']) && isset($DataNavBar) && $resultado_funcion > 0)
                                 <span
-                                    class="ml-auto bg-gradient-to-r from-indigo-500 to-pink-500 text-white px-4 py-1 rounded-full text-xs font-semibold transition-transform transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-pink-500 focus:ring-opacity-60">
+                                    class="ml-auto bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300 px-2.5 py-0.5 rounded-full text-xs font-semibold">
                                     {{ $resultado_funcion }}
                                 </span>
                             @endif
@@ -181,9 +202,12 @@
 
                 {{-- Subopciones --}}
                 <div class="py-1 max-h-72 overflow-y-auto">
-                    @foreach ($children as $child)
+                    @foreach ($children as $index => $child)
                         @if (auth()->user()->activeRole && auth()->user()->activeRole->hasPermissionTo($child['permiso']))
-                            @php $childIsActive = request()->route()->getName() === $child['route']; @endphp
+                            @php
+                                $childIsActive     = request()->route()->getName() === $child['route'];
+                                $resultado_funcion = $childrenPendientes[$index] ?? 0;
+                            @endphp
                             <a href="{{ route($child['route'], $child['parametro'] ?? '') }}" wire:navigate.hover
                                 class="flex items-center gap-2 px-4 py-2 text-sm transition-colors duration-150
                                        {{ $childIsActive
@@ -194,6 +218,13 @@
                                     <circle cx="4" cy="4" r="3"/>
                                 </svg>
                                 <span class="truncate">{{ $child['texto'] }}</span>
+
+                                @if ($resultado_funcion > 0)
+                                    <span
+                                        class="ml-auto bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300 px-2 py-0.5 rounded-full text-xs font-semibold">
+                                        {{ $resultado_funcion }}
+                                    </span>
+                                @endif
                             </a>
                         @endif
                     @endforeach

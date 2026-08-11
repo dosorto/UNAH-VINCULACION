@@ -357,44 +357,50 @@
                                     <svg class="mx-auto mb-3 w-10 h-10 text-gray-300 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                     </svg>
-                                    <p class="text-sm">No hay proyectos pendientes de revisión para su rol activo.</p>
+                                    <p class="text-sm">No hay elementos pendientes de revisión para su rol activo.</p>
                                 </div>
                             @else
                                 <div class="overflow-x-auto">
                                     <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                                         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                                             <tr>
+                                                <th scope="col" class="px-6 py-3">Tipo</th>
                                                 <th scope="col" class="px-6 py-3">Código</th>
-                                                <th scope="col" class="px-6 py-3">Nombre del Proyecto</th>
-                                                <th scope="col" class="px-6 py-3">Estado actual</th>
+                                                <th scope="col" class="px-6 py-3">Nombre</th>
+                                                <th scope="col" class="px-6 py-3">Etapa actual</th>
                                                 <th scope="col" class="px-6 py-3">Fecha inicio</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach($pendientesTable as $proyecto)
+                                            @foreach($pendientesTable as $pendiente)
                                                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                                    <td class="px-6 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                                                        {{ $proyecto->codigo_proyecto ?? '—' }}
-                                                    </td>
-                                                    <td class="px-6 py-3">{{ $proyecto->nombre_proyecto }}</td>
                                                     <td class="px-6 py-3">
-                                                        @if($proyecto->estadoActual?->tipoestado)
+                                                        <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                                                            {{ $pendiente->tipo }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="px-6 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                                                        {{ $pendiente->codigo ?? '—' }}
+                                                    </td>
+                                                    <td class="px-6 py-3">{{ $pendiente->nombre }}</td>
+                                                    <td class="px-6 py-3">
+                                                        @if($pendiente->etapa)
                                                             <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                                                                {{ $proyecto->estadoActual->tipoestado->nombre }}
+                                                                {{ $pendiente->etapa }}
                                                             </span>
                                                         @else
                                                             <span class="text-gray-400">—</span>
                                                         @endif
                                                     </td>
                                                     <td class="px-6 py-3">
-                                                        {{ $proyecto->fecha_inicio ? \Carbon\Carbon::parse($proyecto->fecha_inicio)->format('d/m/Y') : '—' }}
+                                                        {{ $pendiente->fecha_inicio ? \Carbon\Carbon::parse($pendiente->fecha_inicio)->format('d/m/Y') : '—' }}
                                                     </td>
                                                 </tr>
                                             @endforeach
                                         </tbody>
                                     </table>
                                 </div>
-                                @if($pendientesTable->hasMorePages())
+                                @if($hayMasPendientes)
                                     <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700">
                                         <button wire:click="loadMorePendientes"
                                             class="w-full text-sm text-orange-600 dark:text-orange-400 hover:underline">
@@ -405,71 +411,6 @@
                             @endif
                         </div>
                         <!-- /Tabla pendientes -->
-
-                        <!-- ── TABLA: PENDIENTES DE REVISIÓN PPS/SS ── -->
-                        <div class="mt-6 rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 overflow-hidden">
-                            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
-                                <h2 class="text-base font-semibold text-gray-900 dark:text-white">Pendientes de revisión — PPS/SS</h2>
-                                @if($estadoPendienteNombre)
-                                    <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">
-                                        {{ $estadoPendienteNombre }}
-                                    </span>
-                                @endif
-                            </div>
-
-                            @if($pendientesPpsTable->isEmpty())
-                                <div class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
-                                    <svg class="mx-auto mb-3 w-10 h-10 text-gray-300 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                    </svg>
-                                    <p class="text-sm">No hay registros PPS/SS pendientes de revisión para su rol activo.</p>
-                                </div>
-                            @else
-                                <div class="overflow-x-auto">
-                                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                                            <tr>
-                                                <th scope="col" class="px-6 py-3">Código</th>
-                                                <th scope="col" class="px-6 py-3">Estudiante</th>
-                                                <th scope="col" class="px-6 py-3">Etapa actual</th>
-                                                <th scope="col" class="px-6 py-3">Fecha inicio</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach($pendientesPpsTable as $registro)
-                                                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                                    <td class="px-6 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                                                        {{ $registro->codigo_registro ?? '—' }}
-                                                    </td>
-                                                    <td class="px-6 py-3">{{ $registro->nombre_estudiante }}</td>
-                                                    <td class="px-6 py-3">
-                                                        @if($registro->etapaActual)
-                                                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                                                                {{ $registro->etapaActual->nombre }}
-                                                            </span>
-                                                        @else
-                                                            <span class="text-gray-400">—</span>
-                                                        @endif
-                                                    </td>
-                                                    <td class="px-6 py-3">
-                                                        {{ $registro->fecha_inicio ? \Carbon\Carbon::parse($registro->fecha_inicio)->format('d/m/Y') : '—' }}
-                                                    </td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                                @if($pendientesPpsTable->hasMorePages())
-                                    <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700">
-                                        <button wire:click="loadMorePendientes"
-                                            class="w-full text-sm text-orange-600 dark:text-orange-400 hover:underline">
-                                            Ver más pendientes
-                                        </button>
-                                    </div>
-                                @endif
-                            @endif
-                        </div>
-                        <!-- /Tabla pendientes PPS/SS -->
 
                         <!-- ── PANEL DE ESTADOS (kanban) ── -->
                         <div class="mt-6">
