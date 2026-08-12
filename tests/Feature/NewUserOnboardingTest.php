@@ -138,7 +138,7 @@ class NewUserOnboardingTest extends TestCase
         ]);
         $numeroEmpleado = (string) random_int(10000000, 99999999);
         $user = app(NewUserOnboardingService::class)->prepareEmployeeProfile($user, $numeroEmpleado, 'Perfil Nuevo Completo');
-        [$centro, $categoria, $departamento, $carrera] = $this->catalogosAcademicos();
+        [$centro, $categoria, $departamento] = $this->catalogosAcademicos();
 
         $component = Livewire::actingAs($user)->test(EditPerfilDocente::class)
             ->set('celular', '99999999')
@@ -148,15 +148,14 @@ class NewUserOnboardingTest extends TestCase
                 'sexo',
                 'categoria_id',
                 'departamento_academico_id',
-                'carrera_id',
                 'tiene_proyectos_previos',
-            ]);
+            ])
+            ->assertHasNoErrors(['carrera_id']);
 
         $component
             ->set('sexo', 'Masculino')
             ->set('categoria_id', $categoria->id)
             ->set('departamento_academico_id', $departamento->id)
-            ->set('carrera_id', $carrera->id)
             ->set('tiene_proyectos_previos', 'no')
             ->call('save')
             ->assertHasErrors(['firmaUpload']);
@@ -179,7 +178,7 @@ class NewUserOnboardingTest extends TestCase
         $this->assertSame('Masculino', $user->empleado->sexo);
         $this->assertSame($categoria->id, $user->empleado->categoria_id);
         $this->assertSame($departamento->id, $user->empleado->departamento_academico_id);
-        $this->assertSame($carrera->id, $user->empleado->carrera_id);
+        $this->assertNull($user->empleado->carrera_id);
         $this->assertNotNull($user->empleado->firma);
         $this->assertNotNull($user->empleado->sello);
         $this->assertFalse(ProfileCompletion::isRequired($user));

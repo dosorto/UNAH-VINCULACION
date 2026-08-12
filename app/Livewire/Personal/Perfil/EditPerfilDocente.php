@@ -244,7 +244,7 @@ class EditPerfilDocente extends Component
                     ),
                 ],
                 'carrera_id' => [
-                    'required',
+                    'nullable',
                     'integer',
                     'exists:carrera,id',
                 ],
@@ -257,14 +257,13 @@ class EditPerfilDocente extends Component
             'sexo.required' => 'Seleccione el sexo.',
             'categoria_id.required' => 'Seleccione una categoría.',
             'centro_facultad_id.required' => 'Seleccione una facultad o centro.',
-            'departamento_academico_id.required' => 'Seleccione un departamento académico.',
+            'departamento_academico_id.required' => 'Seleccione una unidad académica.',
             'departamento_academico_id.exists' => 'El departamento seleccionado no pertenece a la facultad o centro.',
-            'carrera_id.required' => 'Seleccione una carrera.',
             'carrera_id.exists' => 'La carrera seleccionada no es válida.',
             'tiene_proyectos_previos.required' => 'Indique si participó en proyectos previos.',
         ]);
 
-        if ($completandoPerfil && ! $this->carreraPerteneceAlDepartamento()) {
+        if ($completandoPerfil && $this->carrera_id !== null && ! $this->carreraPerteneceAlDepartamento()) {
             throw ValidationException::withMessages([
                 'carrera_id' => 'La carrera seleccionada no pertenece al departamento académico.',
             ]);
