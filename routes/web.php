@@ -28,6 +28,7 @@ use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialPdfController;
 use App\Http\Controllers\SetRoleController;
 use App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
 use App\Livewire\Configuracion\IntegracionesApi;
+use App\Livewire\Configuracion\JornadaLaboral\JornadaLaboralList;
 use App\Livewire\Configuracion\Logs\ListLogs;
 use App\Livewire\Constancia\ListConstancias;
 use App\Livewire\DAFT\Catalogos\DaftCatalogos;
@@ -322,6 +323,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('configuracion/flujos-proyectos', ConfiguracionFlujosProyectos::class)
             ->name('configuracion.flujos.proyectos')
             ->middleware('can:configuracion.flujos');
+
+        Route::get('configuracion/jornada-laboral', JornadaLaboralList::class)
+            ->name('configuracion.jornada-laboral')
+            ->middleware('can:configuracion.jornada-laboral');
 
         Route::get('configuracion/integraciones-api', IntegracionesApi::class)
             ->name('configuracion.integraciones-api')

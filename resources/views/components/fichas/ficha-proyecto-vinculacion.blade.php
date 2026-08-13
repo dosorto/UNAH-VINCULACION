@@ -602,12 +602,12 @@
                                         <th style="background-color:#ebeeef; border:1px solid #000; padding:3px 5px; text-align:center;">Mujeres</th>
                                     </tr>
                                     <tr>
-                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->indigenas_hombres ?? 0) > 0 ? 'X' : '' }}</td>
-                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->indigenas_mujeres ?? 0) > 0 ? 'X' : '' }}</td>
-                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->afroamericanos_hombres ?? 0) > 0 ? 'X' : '' }}</td>
-                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->afroamericanos_mujeres ?? 0) > 0 ? 'X' : '' }}</td>
-                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->mestizos_hombres ?? 0) > 0 ? 'X' : '' }}</td>
-                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->mestizos_mujeres ?? 0) > 0 ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->indigenas_hombres_marcado || ($proyecto->indigenas_hombres ?? 0) > 0) ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->indigenas_mujeres_marcado || ($proyecto->indigenas_mujeres ?? 0) > 0) ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->afroamericanos_hombres_marcado || ($proyecto->afroamericanos_hombres ?? 0) > 0) ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->afroamericanos_mujeres_marcado || ($proyecto->afroamericanos_mujeres ?? 0) > 0) ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->mestizos_hombres_marcado || ($proyecto->mestizos_hombres ?? 0) > 0) ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->mestizos_mujeres_marcado || ($proyecto->mestizos_mujeres ?? 0) > 0) ? 'X' : '' }}</td>
                                     </tr>
                                 </table>
                             </td>
@@ -1501,7 +1501,7 @@
                             <td class="sub-header" colspan="10" style="font-style:normal; font-weight:bold; text-align:center;">Medio de verificación (indicador)</td>
                         </tr>
                         @php
-                            $resultadosMedianoPlazo = $proyecto->objetivosEspecificos->flatMap(fn($objetivoEsp) => $objetivoEsp->resultados->where('plazo', 'mediano_plazo'));
+                            $resultadosMedianoPlazo = $proyecto->resultadosProyecto->where('plazo', 'mediano_plazo');
                         @endphp
                         @forelse ($resultadosMedianoPlazo as $resultadoMediano)
                             <tr>
@@ -1543,7 +1543,7 @@
                             <td class="sub-header" colspan="10" style="font-style:normal; font-weight:bold; text-align:center;">Medio de verificación (indicador con el que se evaluará su cumplimiento)</td>
                         </tr>
                         @php
-                            $resultadosLargoPlazo = $proyecto->objetivosEspecificos->flatMap(fn($objetivoEsp) => $objetivoEsp->resultados->where('plazo', 'largo_plazo'));
+                            $resultadosLargoPlazo = $proyecto->resultadosProyecto->where('plazo', 'largo_plazo');
                         @endphp
                         @forelse ($resultadosLargoPlazo as $resultadoLargo)
                             <tr>

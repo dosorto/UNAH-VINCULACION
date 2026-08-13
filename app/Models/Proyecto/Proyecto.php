@@ -100,6 +100,12 @@ class Proyecto extends Model
         'afroamericanos_mujeres',
         'mestizos_hombres',
         'mestizos_mujeres',
+        'indigenas_hombres_marcado',
+        'indigenas_mujeres_marcado',
+        'afroamericanos_hombres_marcado',
+        'afroamericanos_mujeres_marcado',
+        'mestizos_hombres_marcado',
+        'mestizos_mujeres_marcado',
         'modalidad_ejecucion',
         'pais',
         'region',
@@ -201,6 +207,12 @@ class Proyecto extends Model
         'afroamericanos_mujeres',
         'mestizos_hombres',
         'mestizos_mujeres',
+        'indigenas_hombres_marcado',
+        'indigenas_mujeres_marcado',
+        'afroamericanos_hombres_marcado',
+        'afroamericanos_mujeres_marcado',
+        'mestizos_hombres_marcado',
+        'mestizos_mujeres_marcado',
         'modalidad_ejecucion',
         'pais',
         'region',
@@ -1083,6 +1095,13 @@ class Proyecto extends Model
     public function objetivosEspecificos()
     {
         return $this->hasMany(ObjetivoEspecifico::class)->orderBy('orden');
+    }
+
+    // Resultados de mediano/largo plazo (efectos e impacto): pertenecen al proyecto
+    // en general, no a un objetivo específico.
+    public function resultadosProyecto()
+    {
+        return $this->hasMany(ResultadoEsperado::class, 'proyecto_id')->orderBy('orden');
     }
 
     // Relación con Aporte Institucional

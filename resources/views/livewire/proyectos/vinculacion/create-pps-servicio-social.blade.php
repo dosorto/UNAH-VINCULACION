@@ -553,9 +553,85 @@
                         @error('jefe_directo_cargo') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
 
-                    <div>
+                    <div
+                        x-data="{
+                            open: false,
+                            search: '',
+                            selected: @entangle('jefe_directo_grado'),
+                            options: ['Secundaria completa', 'Licenciatura', 'Maestría', 'Doctorado', 'Postdoctorado'],
+                            normalize(value) {
+                                return String(value ?? '')
+                                    .normalize('NFD')
+                                    .replace(/[̀-ͯ]/g, '')
+                                    .toLowerCase();
+                            },
+                            get filteredOptions() {
+                                const term = this.normalize(this.search.trim());
+
+                                if (! term) {
+                                    return this.options;
+                                }
+
+                                return this.options.filter(option => this.normalize(option).includes(term));
+                            },
+                            choose(option) {
+                                this.selected = option;
+                                this.open = false;
+                                this.search = '';
+                            },
+                        }"
+                        @click.outside="open = false"
+                        @keydown.escape.window="open = false"
+                        class="relative"
+                    >
                         <label class="{{ $labelClass }}">Grado académico</label>
-                        <input type="text" wire:model="jefe_directo_grado" class="{{ $inputClass }}">
+                        <button
+                            type="button"
+                            @click="open = !open; if (open) { $nextTick(() => $refs.gradoSearchInput?.focus()) }"
+                            :aria-expanded="open"
+                            aria-haspopup="listbox"
+                            class="{{ $inputClass }} flex items-center justify-between gap-2 text-left"
+                        >
+                            <span class="min-w-0 truncate" x-text="selected || 'Selecciona un grado académico'"></span>
+                            <span class="material-symbols-outlined shrink-0 text-[20px] text-gray-400" x-text="open ? 'expand_less' : 'expand_more'"></span>
+                        </button>
+
+                        <div
+                            x-cloak
+                            x-show="open"
+                            x-transition.origin.top
+                            class="absolute z-[70] mt-2 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800"
+                        >
+                            <div class="border-b border-gray-200 p-2 dark:border-gray-700">
+                                <input
+                                    x-ref="gradoSearchInput"
+                                    x-model="search"
+                                    type="search"
+                                    placeholder="Buscar grado académico..."
+                                    class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                                />
+                            </div>
+
+                            <div role="listbox" class="max-h-64 overflow-y-auto p-1">
+                                <template x-for="option in filteredOptions" :key="option">
+                                    <button
+                                        type="button"
+                                        role="option"
+                                        @click="choose(option)"
+                                        :aria-selected="option === selected"
+                                        :class="option === selected ? 'bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200' : 'text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-700'"
+                                        class="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm"
+                                    >
+                                        <span x-text="option"></span>
+                                        <span x-show="option === selected" class="material-symbols-outlined shrink-0 text-[19px] text-blue-600">check</span>
+                                    </button>
+                                </template>
+
+                                <p x-show="filteredOptions.length === 0" class="px-3 py-5 text-center text-sm text-gray-500 dark:text-gray-400">
+                                    No se encontraron coincidencias.
+                                </p>
+                            </div>
+                        </div>
                         @error('jefe_directo_grado') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
                 </div>
@@ -617,7 +693,12 @@
 
                     <div>
                         <label class="{{ $labelClass }}">Jornada laboral</label>
-                        <input type="text" wire:model="docente_jornada" class="{{ $inputClass }}">
+                        <select wire:model="docente_jornada" class="{{ $inputClass }}">
+                            <option value="">Seleccione...</option>
+                            @foreach($jornadasLaborales as $valor => $etiqueta)
+                                <option value="{{ $valor }}">{{ $etiqueta }}</option>
+                            @endforeach
+                        </select>
                         @error('docente_jornada') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
 

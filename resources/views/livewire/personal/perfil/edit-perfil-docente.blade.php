@@ -75,7 +75,7 @@
                 </div>
                 @if ($centro_facultad_id)
                     <div class="sm:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departamento Académico <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Escuela / Departamento Académico / Técnicos Universitarios / Instituto de Investigación / Observatorio / Consultorio <span class="text-red-500">*</span></label>
                         <select wire:model.live="departamento_academico_id" {{ (!$canEditEmployeeData || $departamentos->isEmpty()) ? 'disabled' : '' }}
                             class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50">
                             <option value="">Seleccione...</option>
@@ -84,14 +84,14 @@
                             @endforeach
                         </select>
                         @if ($departamentos->isEmpty())
-                            <p class="mt-1 text-xs text-amber-600">La facultad o centro seleccionado no tiene departamentos académicos configurados.</p>
+                            <p class="mt-1 text-xs text-amber-600">La facultad o centro seleccionado no tiene unidades académicas configuradas.</p>
                         @endif
                         @error('departamento_academico_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
                 @endif
                 @if ($departamento_academico_id)
                     <div class="sm:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carrera <span class="text-red-500">*</span></label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carrera <span class="font-normal text-gray-500 dark:text-gray-400">(Opcional)</span></label>
                         <select wire:model.live="carrera_id" {{ (!$canEditEmployeeData || $carreras->isEmpty()) ? 'disabled' : '' }}
                             class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50">
                             <option value="">Seleccione...</option>
