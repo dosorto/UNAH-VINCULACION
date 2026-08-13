@@ -136,6 +136,27 @@ class InformeFinalINF001Test extends TestCase
         $this->assertSame('Aplicación informática disponible',$report->resultados->first()->resultado_planificado);
     }
 
+    public function test_se_precargan_resultados_de_mediano_y_largo_plazo_del_proyecto(): void
+    {
+        [$user,$project]=$this->scenario();
+        $mediano=ResultadoEsperado::create(['proyecto_id'=>$project->id,'nombre_resultado'=>'Organizaciones fortalecidas','nombre_indicador'=>'Tres organizaciones fortalecidas','nombre_medio_verificacion'=>'Informe de seguimiento','plazo'=>'mediano_plazo','orden'=>1]);
+        $largo=ResultadoEsperado::create(['proyecto_id'=>$project->id,'nombre_resultado'=>'Comunidad autogestionada','nombre_indicador'=>'Autogestión comunitaria sostenida','nombre_medio_verificacion'=>'Informe de impacto','plazo'=>'largo_plazo','orden'=>2]);
+
+        $report=$this->initialize($project,$user);
+
+        $resultadoMediano=$report->resultados->firstWhere('resultado_esperado_id',$mediano->id);
+        $resultadoLargo=$report->resultados->firstWhere('resultado_esperado_id',$largo->id);
+
+        $this->assertNotNull($resultadoMediano);
+        $this->assertSame('Resultado de mediano plazo del proyecto',$resultadoMediano->objetivo_especifico);
+        $this->assertSame('Organizaciones fortalecidas',$resultadoMediano->resultado_planificado);
+        $this->assertSame('Tres organizaciones fortalecidas',$resultadoMediano->indicador_propuesto);
+
+        $this->assertNotNull($resultadoLargo);
+        $this->assertSame('Resultado de largo plazo del proyecto',$resultadoLargo->objetivo_especifico);
+        $this->assertSame('Comunidad autogestionada',$resultadoLargo->resultado_planificado);
+    }
+
     public function test_se_precargan_actividades(): void
     {
         [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);

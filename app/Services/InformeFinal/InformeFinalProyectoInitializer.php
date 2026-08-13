@@ -24,7 +24,7 @@ class InformeFinalProyectoInitializer
                 'gruposEstudiantesPlanificados.estudiante.carrera', 'gruposEstudiantesPlanificados.estudiante.user',
                 'gruposEstudiantesPlanificados.carrera', 'gruposEstudiantesPlanificados.asignatura',
                 'integrante_internacional_proyecto.integranteInternacional', 'entidad_contraparte_proyecto.entidadContraparte', 'entidad_contraparte_proyecto.instrumentoFormalizacion',
-                'objetivosEspecificos.resultados', 'actividades.empleados', 'aportesInstitucionales',
+                'objetivosEspecificos.resultados', 'resultadosProyecto', 'actividades.empleados', 'aportesInstitucionales',
                 'presupuesto', 'ods', 'metasContribuye',
             ]);
 
@@ -170,6 +170,20 @@ class InformeFinalProyectoInitializer
                         'unidad_medida' => $resultado->nombre_medio_verificacion,
                     ]);
                 }
+            }
+
+            // Resultados de mediano/largo plazo: cuelgan directamente del proyecto
+            // (sin objetivo específico) desde que se movieron en la migración
+            // 2026_08_20_000004_move_mediano_largo_plazo_resultados_to_proyecto.
+            foreach ($proyecto->resultadosProyecto as $resultado) {
+                $etiqueta = 'Resultado de '.lcfirst($resultado->plazo_formateado).' del proyecto';
+                $informe->resultados()->create([
+                    'resultado_esperado_id' => $resultado->id,
+                    'objetivo_especifico' => $etiqueta,
+                    'resultado_planificado' => $resultado->nombre_resultado ?: $etiqueta,
+                    'indicador_propuesto' => $resultado->nombre_indicador,
+                    'unidad_medida' => $resultado->nombre_medio_verificacion,
+                ]);
             }
 
             foreach ($proyecto->actividades as $actividad) {
