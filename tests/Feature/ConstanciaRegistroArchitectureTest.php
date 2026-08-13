@@ -355,6 +355,24 @@ class ConstanciaRegistroArchitectureTest extends TestCase
             ->assertSee('Descargar constancia de registro');
     }
 
+    public function test_historial_muestra_el_pdf_del_informe_intermedio_legacy_sin_metadatos(): void
+    {
+        Storage::fake('public');
+        [$user,$proyecto]=$this->scenario(false);
+        $proyecto->documentos()->create([
+            'tipo_documento'=>'Informe Intermedio',
+            'documento_url'=>'documentos/legacy-intermedio.pdf',
+        ]);
+        Storage::disk('public')->put('documentos/legacy-intermedio.pdf','contenido');
+        $coordinadorUser=$proyecto->coordinador_proyecto()->first()->empleado->user;
+
+        Livewire::actingAs($coordinadorUser)
+            ->test(HistorialProyecto::class,['proyecto'=>$proyecto->fresh()])
+            ->assertSee('Este informe fue enviado antes de habilitarse el registro documental con metadatos.')
+            ->assertSee('Ver PDF cargado')
+            ->assertSeeHtml('href="/storage/documentos/legacy-intermedio.pdf"');
+    }
+
     /**
      * Replica un flujo como "FORM-DVUS-001 - Desarrollo local y regional": dos etapas
      * "Revisor Vinculacion" (sin "Director Vinculacion"), con el nombre de etapa guardado

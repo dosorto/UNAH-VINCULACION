@@ -167,6 +167,8 @@
                     @if($informeIntermedio['informe'])
                         <a href="{{ route('informes-intermedios.ver', $informeIntermedio['informe']) }}" target="_blank" class="rounded-lg border border-sky-300 px-3 py-2 text-sm font-medium text-sky-700 dark:border-sky-700 dark:text-sky-300">Ver PDF</a>
                         <a href="{{ route('informes-intermedios.descargar', $informeIntermedio['informe']) }}" class="rounded-lg border border-sky-300 px-3 py-2 text-sm font-medium text-sky-700 dark:border-sky-700 dark:text-sky-300">Descargar</a>
+                    @elseif($informeIntermedio['legacy']?->documento_url && \Illuminate\Support\Facades\Storage::disk('public')->exists($informeIntermedio['legacy']->documento_url))
+                        <a href="/storage/{{ $informeIntermedio['legacy']->documento_url }}" target="_blank" class="rounded-lg border border-sky-300 px-3 py-2 text-sm font-medium text-sky-700 dark:border-sky-700 dark:text-sky-300">Ver PDF cargado</a>
                     @endif
                     @if($informeIntermedio['puede_editar'])
                         <button wire:click="openSubirIntermedio" class="rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700">
@@ -261,7 +263,6 @@
                         <a href="{{ route('informes-finales.inf-001.preview', $cierreInformeFinal['informe']) }}" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 dark:border-gray-600 dark:text-gray-200">Informe final en revisión</a>
                     @elseif($cierreInformeFinal['accion'] === 'aprobado')
                         <a href="{{ route('informes-finales.inf-001.preview', $cierreInformeFinal['informe']) }}" class="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">Ver informe final aprobado</a>
-                        <a href="{{ route('informes-finales.inf-001.pdf', $cierreInformeFinal['informe']) }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Descargar PDF final</a>
                     @endif
                     <?php $constanciaFinalizacion = $cierreInformeFinal['constancia_finalizacion'] ?? null; ?>
                     @if($cierreInformeFinal['accion'] === 'aprobado' && $constanciaFinalizacion?->estado === \App\Models\Constancias\ConstanciaFinalizacionProyecto::ESTADO_EMITIDA && ($cierreInformeFinal['puede_descargar_constancia'] ?? false))

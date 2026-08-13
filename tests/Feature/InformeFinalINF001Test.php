@@ -1445,14 +1445,14 @@ class InformeFinalINF001Test extends TestCase
 
         $html = Livewire::actingAs($user)->test(HistorialProyecto::class, ['proyecto' => $project])
             ->assertSee('Ver informe final aprobado')
-            ->assertSee('Descargar PDF final')
+            ->assertDontSee('Descargar PDF final')
             ->assertSee('Descargar constancia de finalización')
             ->html();
 
-        $this->assertStringContainsString(route('informes-finales.inf-001.pdf', $report, false), $html);
+        $this->assertStringContainsString(route('informes-finales.inf-001.preview', $report, false), $html);
         $this->assertStringContainsString(route('constancias.finalizacion.descargar', $constancia, false), $html);
         $this->assertNotSame(
-            route('informes-finales.inf-001.pdf', $report, false),
+            route('informes-finales.inf-001.preview', $report, false),
             route('constancias.finalizacion.descargar', $constancia, false)
         );
     }
@@ -1465,7 +1465,7 @@ class InformeFinalINF001Test extends TestCase
         ] as $estado => $mensaje) {
             [$user, $project] = $this->cierreFinalizadoConConstancia($estado);
             Livewire::actingAs($user)->test(HistorialProyecto::class, ['proyecto' => $project])
-                ->assertSee('Descargar PDF final')
+                ->assertSee('Ver informe final aprobado')
                 ->assertSee($mensaje)
                 ->assertDontSee('Descargar constancia de finalización');
         }
