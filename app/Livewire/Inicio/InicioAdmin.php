@@ -17,7 +17,7 @@ class InicioAdmin extends Component
         }
 
         if (auth()->user()->can('perfil.editar')) {
-            return redirect()->route('mi_perfil');
+            return redirect()->route('completar_perfil');
         }
     }
 

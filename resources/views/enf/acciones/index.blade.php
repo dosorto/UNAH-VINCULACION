@@ -40,7 +40,13 @@
                             <td class="px-4 py-3 text-slate-700 dark:text-slate-300">{{ $accion->centroFacultad?->nombre ?? 'Sin definir' }}</td>
                             <td class="px-4 py-3 text-slate-700 dark:text-slate-300">{{ $accion->estado_flujo }}</td>
                             <td class="px-4 py-3 text-right">
-                                <a href="{{ route('enf.acciones.show', $accion) }}" class="font-semibold text-blue-700 hover:text-blue-900">Ver</a>
+                                @if (($accion->codigo_formulario ?? null) === 'FORM-DVUS-018')
+                                    <a href="{{ route('enf.acciones.pdf.ver', $accion) }}" target="_blank" class="font-semibold text-blue-700 hover:text-blue-900">Ver</a>
+                                    <a href="{{ route('enf.acciones.pdf', $accion) }}" class="ml-3 font-semibold text-blue-700 hover:text-blue-900">Descargar</a>
+                                    <a href="{{ route('enf.acciones.show', $accion) }}" class="ml-3 font-semibold text-slate-600 hover:text-slate-900">Detalle</a>
+                                @else
+                                    <a href="{{ route('enf.acciones.show', $accion) }}" class="font-semibold text-blue-700 hover:text-blue-900">Ver</a>
+                                @endif
                                 @if (auth()->id() && (int) $accion->creado_por_usuario_id === (int) auth()->id() && in_array($accion->estado_flujo, ['BORRADOR', 'SUBSANACION', 'SUBSANACIÓN'], true))
                                     <a href="{{ route('enf.acciones.edit', $accion) }}" class="ml-3 font-semibold text-blue-700 hover:text-blue-900">Editar</a>
                                 @endif

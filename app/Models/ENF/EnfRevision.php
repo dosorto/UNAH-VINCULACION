@@ -36,4 +36,9 @@ class EnfRevision extends Model
     {
         return $this->belongsTo(\App\Models\User::class, 'asignado_usuario_id');
     }
+
+    public function decididoPorUsuario(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'decidido_por_usuario_id');
+    }
 }

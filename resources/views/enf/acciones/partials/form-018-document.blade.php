@@ -145,9 +145,20 @@
         ['label' => '100% virtual', 'needle' => 'virtual'],
         ['label' => 'Virtual sincrónico (teledocencia)', 'needle' => 'teledocencia'],
     ];
-    $perfilOpciones = ['Egresados UNAH', 'Funcionarios publicos', 'Estudiantes universitarios', 'Empresa privada de servicios', 'Sociedad civil', 'Lideres comunitarios', 'ONG', 'Profesionales universitarios otros IES', 'Sector productivo', 'Academicos'];
+    $perfilOpciones = [
+        ['label' => 'Egresados(as) UNAH', 'needles' => 'Egresados UNAH'],
+        ['label' => 'Funcionarios públicos', 'needles' => 'Funcionarios publicos'],
+        ['label' => 'Estudiantes universitarios', 'needles' => 'Estudiantes universitarios'],
+        ['label' => 'Empresa privada de servicios', 'needles' => 'Empresa privada de servicios'],
+        ['label' => 'Sociedad civil', 'needles' => 'Sociedad civil'],
+        ['label' => 'Líderes comunitarios', 'needles' => 'Lideres comunitarios'],
+        ['label' => 'ONG', 'needles' => 'ONG'],
+        ['label' => 'Profesionales universitarios otros CES', 'needles' => ['Profesionales universitarios otros CES', 'Profesionales universitarios otros IES']],
+        ['label' => 'Sector productivo', 'needles' => 'Sector productivo'],
+        ['label' => 'Académicos', 'needles' => 'Academicos'],
+    ];
     $edadOpciones = ['14-18', '19-25', '26-40', '41-55', '56-70', 'Mayores de 70'];
-    $condicionOpciones = ['Mestizos', 'Grupos etnicos', 'Poblacion vulnerable', 'Personas con discapacidad', 'Desplazados por violencia', 'Otro'];
+    $condicionOpciones = ['Mestizos', 'Grupos étnicos', 'Población vulnerable', 'Personas con discapacidades', 'Desplazados por violencia', 'Otro'];
     $plataformasTeledocencia = ['Teams', 'Zoom', 'Meet', 'Webex', 'Otro'];
     $plataformasCampus = ['Campus Virtual UNAH', 'Moodle', 'Classroom Google', 'Teams', 'Otro'];
     $antecedentesOpciones = ['Iniciativa de la unidad academica', 'Solicitud externa privada', 'Solicitud de Secretaria de Estado', 'Solicitud de gobierno local', 'Alianza con otras universidades', 'Solicitud de ONG', 'Solicitud de patronatos', 'Solicitud de sector financiero', 'Solicitud de sector productivo', 'Otros'];
@@ -178,7 +189,7 @@
         ->values()
         ->map(fn ($objetivo, $index) => ($index + 1).'. '.trim((string) $objetivo->descripcion))
         ->implode("\n");
-    $alineamientoTexto = trim((string) $accion->alineamiento_reforma.' '.($accion->ejesUnah->isNotEmpty() ? '| Ejes: '.$accion->ejesUnah->pluck('nombre')->implode(', ') : ''));
+    $alineamientoTexto = trim((string) $accion->alineamiento_reforma);
     $scrollField = function ($value, string $heightClass) use ($isPdf): HtmlString {
         $classes = 'form018-scroll-field '.$heightClass;
         $text = e((string) $value);
@@ -299,13 +310,26 @@
     }
 
     .form018-shell.is-pdf .form018-page {
-        overflow: visible;
+        min-height: 10.98in;
+        overflow: hidden;
         page-break-inside: auto;
     }
 
     .form018-shell.screen-document .form018-page {
+        min-height: 0;
         box-shadow: 0 10px 30px rgba(15, 23, 42, .14);
+        overflow: visible;
+        padding-bottom: 0;
         zoom: var(--form018-screen-scale);
+    }
+
+    /* En pantalla los bloques se muestran como un documento continuo: el pie
+       sigue a su contenido y no deja una hoja casi vacía entre apartados. */
+    .form018-shell.screen-document .form018-footer {
+        position: static;
+        display: block;
+        margin: .32in auto .24in;
+        width: 5.2in;
     }
 
     .form018-shell.screen-document .form018-auto-row {
@@ -366,7 +390,7 @@
 
     .form018-footer {
         position: absolute;
-        z-index: 2;
+        z-index: 4;
         left: .85in;
         bottom: .27in;
         width: 5.2in;
@@ -374,7 +398,7 @@
     }
 
     .form018-shell.is-pdf .form018-footer {
-        display: none !important;
+        display: block;
     }
 
     .form018-main {
@@ -597,8 +621,8 @@
     }
 
     .form018-pdf-field {
-        overflow: visible;
-        page-break-inside: auto;
+        overflow: hidden;
+        page-break-inside: avoid;
         resize: none;
         white-space: pre-wrap;
     }
@@ -612,15 +636,12 @@
     }
 
     .form018-shell.is-pdf .form018-auto-row {
-        height: auto !important;
-        page-break-inside: auto;
+        page-break-inside: avoid;
     }
 
     .form018-shell.is-pdf .form018-scroll-field {
-        height: auto !important;
-        max-height: none !important;
         min-height: .16in;
-        overflow: visible;
+        overflow: hidden;
         font-size: 10px;
         line-height: 1.18;
         padding: 3px 5px;
@@ -660,6 +681,18 @@
         height: 18px;
         min-height: 16px;
         max-height: 180px;
+    }
+
+    .form018-scroll-alineamiento {
+        height: 68px;
+        min-height: 42px;
+        max-height: 220px;
+    }
+
+    .form018-scroll-logistica {
+        height: 82px;
+        min-height: 48px;
+        max-height: 260px;
     }
 
     .form018-docx-table4 .form018-mark,
@@ -866,19 +899,7 @@
                     <td class="form018-center">{{ $accion->fecha_finalizacion?->format('Y') }}</td>
                 </tr>
             </table>
-        </main>
-    </section>
 
-    <section class="form018-page">
-        <header class="form018-header">
-            <img src="{{ $headerUrl }}" alt="UNAH VRA Dirección de Vinculación Universidad Sociedad">
-            <div class="form018-contact">vinculacion.sociedad@unah.edu.hn<br>Tel. 2216-7070&nbsp; Ext. 110576</div>
-            <div class="form018-yellow-strip"></div>
-        </header>
-        <img class="form018-watermark" src="{{ $watermarkUrl }}" alt="">
-        <img class="form018-footer" src="{{ $footerUrl }}" alt="">
-
-        <main class="form018-main page-start">
             <table class="form018-table form018-docx-wide">
                 <colgroup>
                     @foreach ([1809, 133, 155, 935, 312, 349, 319, 319, 200, 36, 1143, 7, 65, 149, 52, 573, 359, 286, 554, 192, 290, 264, 1421] as $width)
@@ -898,6 +919,26 @@
                     <td class="form018-mark" colspan="7">{{ $markModalidad('virtual') }}</td>
                     <td class="form018-mark" colspan="4">{{ $markModalidad('teledocencia') }}</td>
                 </tr>
+            </table>
+        </main>
+    </section>
+
+    <section class="form018-page">
+        <header class="form018-header">
+            <img src="{{ $headerUrl }}" alt="UNAH VRA Dirección de Vinculación Universidad Sociedad">
+            <div class="form018-contact">vinculacion.sociedad@unah.edu.hn<br>Tel. 2216-7070&nbsp; Ext. 110576</div>
+            <div class="form018-yellow-strip"></div>
+        </header>
+        <img class="form018-watermark" src="{{ $watermarkUrl }}" alt="">
+        <img class="form018-footer" src="{{ $footerUrl }}" alt="">
+
+        <main class="form018-main page-start">
+            <table class="form018-table form018-docx-wide">
+                <colgroup>
+                    @foreach ([1809, 133, 155, 935, 312, 349, 319, 319, 200, 36, 1143, 7, 65, 149, 52, 573, 359, 286, 554, 192, 290, 264, 1421] as $width)
+                        <col style="width: {{ $width / 9922 * 100 }}%;">
+                    @endforeach
+                </colgroup>
                 <tr style="height: 26.2px;">
                     <td class="form018-blue form018-numbered" rowspan="2" colspan="2"><span class="num">9.</span>Duración</td>
                     <td class="form018-gray form018-center" colspan="7">Horas Teóricas</td>
@@ -1003,22 +1044,22 @@
                 </tr>
                 <tr style="height: 15.2px;">
                     @foreach (array_slice($perfilOpciones, 0, 5) as $option)
-                        <td class="form018-blue form018-center form018-small">{{ $option }}</td>
+                        <td class="form018-blue form018-center form018-small">{{ $option['label'] }}</td>
                     @endforeach
                 </tr>
                 <tr style="height: 15.2px;">
                     @foreach (array_slice($perfilOpciones, 0, 5) as $option)
-                        <td class="form018-mark">{{ $markCatalog('perfil_participante', $option) }}</td>
+                        <td class="form018-mark">{{ $markCatalog('perfil_participante', $option['needles']) }}</td>
                     @endforeach
                 </tr>
                 <tr style="height: 15.2px;">
                     @foreach (array_slice($perfilOpciones, 5, 5) as $option)
-                        <td class="form018-blue form018-center form018-small">{{ $option }}</td>
+                        <td class="form018-blue form018-center form018-small">{{ $option['label'] }}</td>
                     @endforeach
                 </tr>
                 <tr style="height: 15.2px;">
                     @foreach (array_slice($perfilOpciones, 5, 5) as $option)
-                        <td class="form018-mark">{{ $markCatalog('perfil_participante', $option) }}</td>
+                        <td class="form018-mark">{{ $markCatalog('perfil_participante', $option['needles']) }}</td>
                     @endforeach
                 </tr>
                 <tr style="height: 15.2px;">
@@ -1029,11 +1070,31 @@
                     <td class="form018-blue" colspan="2"></td>
                     <td class="form018-center" colspan="3">{{ $beneficiarios?->total ?? '' }}</td>
                 </tr>
+            </table>
+        </main>
+    </section>
+
+    <section class="form018-page">
+        <header class="form018-header">
+            <img src="{{ $headerUrl }}" alt="UNAH VRA Dirección de Vinculación Universidad Sociedad">
+            <div class="form018-contact">vinculacion.sociedad@unah.edu.hn<br>Tel. 2216-7070&nbsp; Ext. 110576</div>
+            <div class="form018-yellow-strip"></div>
+        </header>
+        <img class="form018-watermark" src="{{ $watermarkUrl }}" alt="">
+        <img class="form018-footer" src="{{ $footerUrl }}" alt="">
+
+        <main class="form018-main page-start">
+            <table class="form018-table form018-docx-beneficiarios">
+                <colgroup>
+                    @foreach ([1805, 1918, 1922, 1949, 1939] as $width)
+                        <col style="width: {{ $width / 9533 * 100 }}%;">
+                    @endforeach
+                </colgroup>
                 <tr style="height: 15.2px;">
                     <td class="form018-blue form018-small form018-numbered" rowspan="4" colspan="2"><span class="num">15.</span>Edad de los participantes deseados (Marcar con una “x” todos los que correspondan)</td>
-                    <td class="form018-blue form018-center form018-small">Entre 14 - 18 años</td>
-                    <td class="form018-blue form018-center form018-small">Entre 19 - 25 años</td>
-                    <td class="form018-blue form018-center form018-small">Entre 26 - 40 años</td>
+                    <td class="form018-blue form018-center form018-small">Entre 14 – 18 años</td>
+                    <td class="form018-blue form018-center form018-small">Entre 19 – 25 años</td>
+                    <td class="form018-blue form018-center form018-small">Entre 26 – 40 años</td>
                 </tr>
                 <tr style="height: 15.2px;">
                     <td class="form018-mark">{{ $markCatalog('rango_edad', '14-18') }}</td>
@@ -1041,8 +1102,8 @@
                     <td class="form018-mark">{{ $markCatalog('rango_edad', '26-40') }}</td>
                 </tr>
                 <tr style="height: 15.2px;">
-                    <td class="form018-blue form018-center form018-small">Entre 41 - 55 años</td>
-                    <td class="form018-blue form018-center form018-small">Entre 56 - 70 años</td>
+                    <td class="form018-blue form018-center form018-small">Entre 41 – 55 años</td>
+                    <td class="form018-blue form018-center form018-small">Entre 56 – 70 años</td>
                     <td class="form018-blue form018-center form018-small">Mayores de 70 años</td>
                 </tr>
                 <tr style="height: 15.2px;">
@@ -1072,19 +1133,6 @@
                     <td class="form018-mark">{{ $markCatalog('condicion_social', 'Otro') }}</td>
                 </tr>
             </table>
-        </main>
-    </section>
-
-    <section class="form018-page">
-        <header class="form018-header">
-            <img src="{{ $headerUrl }}" alt="UNAH VRA Dirección de Vinculación Universidad Sociedad">
-            <div class="form018-contact">vinculacion.sociedad@unah.edu.hn<br>Tel. 2216-7070&nbsp; Ext. 110576</div>
-            <div class="form018-yellow-strip"></div>
-        </header>
-        <img class="form018-watermark" src="{{ $watermarkUrl }}" alt="">
-        <img class="form018-footer" src="{{ $footerUrl }}" alt="">
-
-        <main class="form018-main page-start">
             <div class="form018-section tight">
                 <span>III.</span>
                 <span>EQUIPO EJECUTOR DEL PROYECTO</span>
@@ -1130,7 +1178,7 @@
                     <th class="form018-blue" colspan="2">Departamento al que pertenece</th>
                     <th class="form018-blue">Jornada laboral</th>
                 </tr>
-                @foreach ($docentes as $index => $docente)
+                @foreach ($rows($docentes, 4) as $index => $docente)
                     <tr>
                         <td class="form018-blue form018-center">{{ $index + 1 }}</td>
                         <td colspan="3">{{ $memberName($docente) }}</td>
@@ -1143,6 +1191,19 @@
                 @endforeach
             </table>
 
+        </main>
+    </section>
+
+    <section class="form018-page">
+        <header class="form018-header">
+            <img src="{{ $headerUrl }}" alt="UNAH VRA Dirección de Vinculación Universidad Sociedad">
+            <div class="form018-contact">vinculacion.sociedad@unah.edu.hn<br>Tel. 2216-7070&nbsp; Ext. 110576</div>
+            <div class="form018-yellow-strip"></div>
+        </header>
+        <img class="form018-watermark" src="{{ $watermarkUrl }}" alt="">
+        <img class="form018-footer" src="{{ $footerUrl }}" alt="">
+
+        <main class="form018-main page-start">
             <table class="form018-table">
                 <tr><td class="form018-blue form018-center" colspan="12">CONSULTORES NACIONALES (agregar más líneas en caso de ser necesario)</td></tr>
                 <tr>
@@ -1152,7 +1213,7 @@
                     <th class="form018-blue" colspan="3">Correo electrónico</th>
                     <th class="form018-blue">Horas contratadas</th>
                 </tr>
-                @foreach ($consultoresNacionales as $index => $consultor)
+                @foreach ($rows($consultoresNacionales, 5) as $index => $consultor)
                     <tr>
                         <td class="form018-blue form018-center">{{ $index + 1 }}</td>
                         <td colspan="4">{{ $memberName($consultor) }}</td>
@@ -1172,7 +1233,7 @@
                     <th class="form018-blue" colspan="3">Correo electrónico</th>
                     <th class="form018-blue">Horas contratadas</th>
                 </tr>
-                @foreach ($consultoresInternacionales as $index => $consultor)
+                @foreach ($rows($consultoresInternacionales, 5) as $index => $consultor)
                     <tr>
                         <td class="form018-blue form018-center">{{ $index + 1 }}</td>
                         <td colspan="4">{{ $memberName($consultor) }}</td>
@@ -1182,19 +1243,6 @@
                     </tr>
                 @endforeach
             </table>
-        </main>
-    </section>
-
-    <section class="form018-page">
-        <header class="form018-header">
-            <img src="{{ $headerUrl }}" alt="UNAH VRA Dirección de Vinculación Universidad Sociedad">
-            <div class="form018-contact">vinculacion.sociedad@unah.edu.hn<br>Tel. 2216-7070&nbsp; Ext. 110576</div>
-            <div class="form018-yellow-strip"></div>
-        </header>
-        <img class="form018-watermark" src="{{ $watermarkUrl }}" alt="">
-        <img class="form018-footer" src="{{ $footerUrl }}" alt="">
-
-        <main class="form018-main page-start">
             <div class="form018-section tight">
                 <span>IV.</span>
                 <span>PARTICIPACIÓN DE LA COMUNIDAD UNIVERSITARIA EN LA EJECUCIÓN DE LA ACCIÓN</span>
@@ -1259,14 +1307,34 @@
                 @for ($i = 0; $i < 3; $i++)
                     <tr style="height: 16.9px;">
                         <td colspan="2" class="form018-center">{{ $i === 0 ? $participacion('Personal docente', 'mujeres') : '' }}</td>
-                        <td class="form018-center">{{ $i === 0 ? $participacion('Profesores por hora', 'hombres') : '' }}</td>
-                        <td class="form018-center">{{ $i === 0 ? $participacion('Profesores por hora', 'mujeres') : '' }}</td>
+                        <td class="form018-center">{{ $i === 0 ? $participacion('Profesores x hora', 'hombres') : '' }}</td>
+                        <td class="form018-center">{{ $i === 0 ? $participacion('Profesores x hora', 'mujeres') : '' }}</td>
                         <td class="form018-center" colspan="2">{{ $i === 0 ? $participacion('Profesores horarios', 'hombres') : '' }}</td>
                         <td class="form018-center" colspan="2">{{ $i === 0 ? $participacion('Profesores horarios', 'mujeres') : '' }}</td>
                         <td class="form018-center" colspan="2">{{ $i === 0 ? $participacion('Profesores permanentes', 'hombres') : '' }}</td>
                         <td class="form018-center">{{ $i === 0 ? $participacion('Profesores permanentes', 'mujeres') : '' }}</td>
                     </tr>
                 @endfor
+            </table>
+        </main>
+    </section>
+
+    <section class="form018-page">
+        <header class="form018-header">
+            <img src="{{ $headerUrl }}" alt="UNAH VRA Dirección de Vinculación Universidad Sociedad">
+            <div class="form018-contact">vinculacion.sociedad@unah.edu.hn<br>Tel. 2216-7070&nbsp; Ext. 110576</div>
+            <div class="form018-yellow-strip"></div>
+        </header>
+        <img class="form018-watermark" src="{{ $watermarkUrl }}" alt="">
+        <img class="form018-footer" src="{{ $footerUrl }}" alt="">
+
+        <main class="form018-main page-start">
+            <table class="form018-table form018-docx-table4">
+                <colgroup>
+                    @foreach ([1869, 1055, 223, 1107, 1069, 796, 328, 871, 208, 857, 309, 834] as $width)
+                        <col style="width: {{ $width / 9526 * 100 }}%;">
+                    @endforeach
+                </colgroup>
                 <tr style="height: 24.9px;">
                     <td class="form018-blue form018-numbered" rowspan="5"><span class="num">21.</span>Personal administrativo</td>
                     <td class="form018-blue form018-center" colspan="2">TOTAL</td>
@@ -1290,10 +1358,10 @@
                 </tr>
                 <tr style="height: 16.9px;">
                     <td colspan="2" class="form018-center">{{ $participacion('Personal administrativo', 'mujeres') }}</td>
-                    <td class="form018-center">{{ $participacion('Administrativo servicios', 'hombres') }}</td>
-                    <td class="form018-center">{{ $participacion('Administrativo servicios', 'mujeres') }}</td>
-                    <td class="form018-center" colspan="2">{{ $participacion('Administrativo servicios', 'hombres') }}</td>
-                    <td class="form018-center" colspan="2">{{ $participacion('Administrativo servicios', 'mujeres') }}</td>
+                    <td class="form018-center">{{ $participacion('Administrativo', 'hombres') }}</td>
+                    <td class="form018-center">{{ $participacion('Administrativo', 'mujeres') }}</td>
+                    <td class="form018-center" colspan="2">{{ $participacion('Servicios', 'hombres') }}</td>
+                    <td class="form018-center" colspan="2">{{ $participacion('Servicios', 'mujeres') }}</td>
                     <td class="form018-center" colspan="2">{{ $participacion('Asistentes técnicos laboratorios / instructores', 'hombres') }}</td>
                     <td class="form018-center">{{ $participacion('Asistentes técnicos laboratorios / instructores', 'mujeres') }}</td>
                 </tr>
@@ -1323,6 +1391,7 @@
                 <span>V.</span>
                 <span>INFORMACIÓN DE LA ENTIDAD CONTRAPARTE</span>
             </div>
+            <p class="form018-note">(Sí existe más de una contraparte añadir una tabla de información por cada una de ellas)</p>
             <table class="form018-table form018-docx-table5">
                 <colgroup>
                     @foreach ([1931, 669, 1238, 1015, 890, 1356, 410, 139, 1876] as $width)
@@ -1377,18 +1446,6 @@
                 </tr>
                 <tr style="height: 37.3px;"><td colspan="5">{{ $contraparte?->correo }}</td><td colspan="2">{{ $contraparte?->telefono }}</td></tr>
                 <tr style="height: 37.3px;"><td class="form018-blue form018-numbered" colspan="2"><span class="num">29.</span>Dirección exacta de la sede principal</td><td colspan="7">{{ $contraparte?->direccion }}</td></tr>
-                <tr style="height: 37.3px;">
-                    <td class="form018-blue form018-numbered" rowspan="2" colspan="2"><span class="num">30.</span>Tipo de instrumento que da lugar a la alianza</td>
-                    <td class="form018-light form018-center" colspan="2">Carta formal de solicitud a la unidad académica</td>
-                    <td class="form018-light form018-center" colspan="2">Carta de intenciones con la UNAH</td>
-                    <td class="form018-light form018-center" colspan="3">Convenio marco con la UNAH</td>
-                </tr>
-                <tr style="height: 37.3px;">
-                    <td class="form018-mark" colspan="2">{{ $hasText($contraparte?->instrumentoAlianza?->nombre, 'Carta formal') ? 'X' : '' }}</td>
-                    <td class="form018-mark" colspan="2">{{ $hasText($contraparte?->instrumentoAlianza?->nombre, 'Carta de intenciones') ? 'X' : '' }}</td>
-                    <td class="form018-mark" colspan="3">{{ $hasText($contraparte?->instrumentoAlianza?->nombre, 'Convenio marco') ? 'X' : '' }}</td>
-                </tr>
-                <tr class="form018-auto-row" style="height: 37.3px;"><td class="form018-blue form018-numbered" colspan="2"><span class="num">31.</span>Breve descripción de los compromisos asumidos por la contraparte</td><td class="form018-scroll-cell" colspan="7">{{ $scrollField($contraparte?->compromisos, 'form018-scroll-contraparte') }}</td></tr>
             </table>
         </main>
     </section>
@@ -1403,6 +1460,25 @@
         <img class="form018-footer" src="{{ $footerUrl }}" alt="">
 
         <main class="form018-main page-start">
+            <table class="form018-table form018-docx-table5">
+                <colgroup>
+                    @foreach ([1931, 669, 1238, 1015, 890, 1356, 410, 139, 1876] as $width)
+                        <col style="width: {{ $width / 9524 * 100 }}%;">
+                    @endforeach
+                </colgroup>
+                <tr style="height: 37.3px;">
+                    <td class="form018-blue form018-numbered" rowspan="2" colspan="2"><span class="num">30.</span>Tipo de instrumento que da lugar a la alianza</td>
+                    <td class="form018-light form018-center" colspan="2">Carta formal de solicitud a la unidad académica</td>
+                    <td class="form018-light form018-center" colspan="2">Carta de intenciones con la UNAH</td>
+                    <td class="form018-light form018-center" colspan="3">Convenio marco con la UNAH</td>
+                </tr>
+                <tr style="height: 37.3px;">
+                    <td class="form018-mark" colspan="2">{{ $hasText($contraparte?->instrumentoAlianza?->nombre, 'Carta formal') ? 'X' : '' }}</td>
+                    <td class="form018-mark" colspan="2">{{ $hasText($contraparte?->instrumentoAlianza?->nombre, 'Carta de intenciones') ? 'X' : '' }}</td>
+                    <td class="form018-mark" colspan="3">{{ $hasText($contraparte?->instrumentoAlianza?->nombre, 'Convenio marco') ? 'X' : '' }}</td>
+                </tr>
+                <tr class="form018-auto-row" style="height: 37.3px;"><td class="form018-blue form018-numbered" colspan="2"><span class="num">31.</span>Breve descripción de los compromisos asumidos por la contraparte</td><td class="form018-scroll-cell" colspan="7">{{ $scrollField($contraparte?->compromisos, 'form018-scroll-contraparte') }}</td></tr>
+            </table>
             <div class="form018-section tight">
                 <span>VI.</span>
                 <span>INFORMACIÓN DE LA ACCIÓN</span>
@@ -1422,6 +1498,26 @@
                 <tr><td class="form018-blue form018-numbered" colspan="6"><span class="num">35.</span>Objetivos específicos</td></tr>
                 <tr class="form018-auto-row"><td class="form018-scroll-cell" colspan="6">{{ $scrollField($objetivosEspecificosTexto ?: ' ', 'form018-scroll-md') }}</td></tr>
                 <tr><td class="form018-blue form018-numbered" colspan="6"><span class="num">36.</span>RESULTADOS ESPERADOS El indicador de resultado es una medida específica y observable que permite evaluar el grado de cumplimiento de los resultados que se han planteado. Sirven para evaluar en qué medida y calidad se lograron los objetivos del proyecto. Hay tres tipos de resultados: 1) corto plazo, que son los productos que se obtendrán con el programa de formación, 2) los de mediano plazo: que son los efectos que alcanzará el programa de formación y 3) los de largo plazo: resultados de impacto. Se recomienda 2 resultados por objetivo específico, como máximo</td></tr>
+            </table>
+        </main>
+    </section>
+
+    <section class="form018-page">
+        <header class="form018-header">
+            <img src="{{ $headerUrl }}" alt="UNAH VRA Dirección de Vinculación Universidad Sociedad">
+            <div class="form018-contact">vinculacion.sociedad@unah.edu.hn<br>Tel. 2216-7070&nbsp; Ext. 110576</div>
+            <div class="form018-yellow-strip"></div>
+        </header>
+        <img class="form018-watermark" src="{{ $watermarkUrl }}" alt="">
+        <img class="form018-footer" src="{{ $footerUrl }}" alt="">
+
+        <main class="form018-main page-start">
+            <table class="form018-table form018-docx-table6">
+                <colgroup>
+                    @foreach ([949, 272, 3541, 406, 1063, 3293] as $width)
+                        <col style="width: {{ $width / 9524 * 100 }}%;">
+                    @endforeach
+                </colgroup>
                 <tr><td class="form018-gray" colspan="6">Resultados de corto plazo del proyecto. Debe de plantearse resultados para cada objetivo específico. Son los productos que se lograrán a corto plazo</td></tr>
                 <tr>
                     <td class="form018-gray form018-center">OE</td>
@@ -1454,7 +1550,7 @@
                 <tr><td class="form018-gray" colspan="6">Impacto que se desea generar en el proyecto. Debe de expresar los indicadores de impacto de la acción. Presentar como mínimo 1 resultado</td></tr>
                 <tr>
                     <td class="form018-gray form018-center" colspan="3">Descripción del resultado de largo plazo</td>
-                    <td class="form018-gray form018-center" colspan="3">Medio de verificación (indicador con el que se evaluará)</td>
+                    <td class="form018-gray form018-center" colspan="3">Medio de verificación (indicador con el que se evaluará su cumplimiento)</td>
                 </tr>
                 @foreach ($rows($resultadosPorPlazo->get('largo', collect()), 5) as $resultado)
                     @php $resultadoPartes = $resultadoParts($resultado); @endphp
@@ -1484,9 +1580,6 @@
                     </tr>
                 @endforeach
                 <tr style="height: 18.3px;"><td class="form018-blue form018-numbered" colspan="6"><span class="num">38.</span>Alineamiento con lo esencial de la reforma de la UNAH (detalle brevemente cómo se alinean los ejes de lo esencial de la reforma en la ejecución de la acción)</td></tr>
-                <tr class="form018-auto-row" style="height: 18.3px;"><td class="form018-scroll-cell" colspan="6">{{ $scrollField($alineamientoTexto, 'form018-scroll-xs') }}</td></tr>
-                <tr style="height: 18.3px;"><td class="form018-blue form018-numbered" colspan="6"><span class="num">39.</span>Resumen de la logística que empleará para el desarrollo de la actividad</td></tr>
-                <tr class="form018-auto-row" style="height: 18.3px;"><td class="form018-scroll-cell" colspan="6">{{ $scrollField($accion->logistica, 'form018-scroll-xs') }}</td></tr>
             </table>
         </main>
     </section>
@@ -1501,6 +1594,16 @@
         <img class="form018-footer" src="{{ $footerUrl }}" alt="">
 
         <main class="form018-main page-start">
+            <table class="form018-table form018-docx-table6">
+                <colgroup>
+                    @foreach ([949, 272, 3541, 406, 1063, 3293] as $width)
+                        <col style="width: {{ $width / 9524 * 100 }}%;">
+                    @endforeach
+                </colgroup>
+                <tr class="form018-auto-row"><td class="form018-scroll-cell" colspan="6">{{ $scrollField($alineamientoTexto, 'form018-scroll-alineamiento') }}</td></tr>
+                <tr style="height: 18.3px;"><td class="form018-blue form018-numbered" colspan="6"><span class="num">39.</span>Resumen de la logística que empleará para el desarrollo de la actividad</td></tr>
+                <tr class="form018-auto-row"><td class="form018-scroll-cell" colspan="6">{{ $scrollField($accion->logistica, 'form018-scroll-logistica') }}</td></tr>
+            </table>
             <div class="form018-section tight">
                 <span>VII.</span>
                 <span>DETALLE DEL PRESUPUESTO</span>
@@ -1555,6 +1658,26 @@
                 @endforeach
                 <tr><td class="form018-blue form018-right" colspan="8">Total egresos</td><td colspan="2">{{ $money($egresosTotal) }}</td></tr>
                 <tr><td class="form018-blue form018-right" colspan="8">Excedente de la actividad (ingresos menos los egresos)</td><td colspan="2">{{ $money($ingresosTotal - $egresosTotal) }}</td></tr>
+            </table>
+        </main>
+    </section>
+
+    <section class="form018-page">
+        <header class="form018-header">
+            <img src="{{ $headerUrl }}" alt="UNAH VRA Dirección de Vinculación Universidad Sociedad">
+            <div class="form018-contact">vinculacion.sociedad@unah.edu.hn<br>Tel. 2216-7070&nbsp; Ext. 110576</div>
+            <div class="form018-yellow-strip"></div>
+        </header>
+        <img class="form018-watermark" src="{{ $watermarkUrl }}" alt="">
+        <img class="form018-footer" src="{{ $footerUrl }}" alt="">
+
+        <main class="form018-main page-start">
+            <table class="form018-table form018-docx-table7">
+                <colgroup>
+                    @foreach ([2580, 1737, 781, 63, 893, 175, 1137, 215, 210, 1733] as $width)
+                        <col style="width: {{ $width / 9524 * 100 }}%;">
+                    @endforeach
+                </colgroup>
                 <tr><td class="form018-blue form018-numbered"><span class="num">42.</span>Breve descripción en qué se destinará el excedente de la actividad</td><td colspan="9">{{ $accion->descripcion_excedente }}</td></tr>
                 <tr>
                     <td class="form018-blue form018-numbered"><span class="num">43.</span>Mecanismo de administración de la acción</td>
@@ -1589,6 +1712,30 @@
                 @endforeach
                 <tr><td class="form018-blue form018-right" colspan="3">Total aporte UNAH</td><td>{{ $money($aporteTotal) }}</td></tr>
             </table>
+
+            <div class="form018-section tight">
+                <span>VIII.</span>
+                <span>CRONOGRAMA DE LAS ACTIVIDADES DE LA ACCIÓN</span>
+            </div>
+            <table class="form018-table form018-docx-table9">
+                <colgroup>
+                    @foreach ([3597, 2091, 1846, 2273, 1424] as $width)
+                        <col style="width: {{ $width / 11231 * 100 }}%;">
+                    @endforeach
+                </colgroup>
+                <tr style="height: 48.9px;"><td class="form018-blue form018-numbered" colspan="5"><span class="num">45.</span>DESCRIPCIÓN DE ACTIVIDADES DEL PROYECTO</td></tr>
+                <tr style="height: 24.9px;"><td class="form018-gray form018-center" colspan="5">Cronograma de actividades</td></tr>
+                <tr style="height: 24.5px;">
+                    <td class="form018-light form018-center">Actividad</td>
+                    <td class="form018-light form018-center">Producto</td>
+                    <td class="form018-light form018-center">Fecha de ejecución</td>
+                    <td class="form018-light form018-center">Responsable</td>
+                    <td class="form018-light form018-center">Horas requeridas</td>
+                </tr>
+                @for ($lineaCronograma = 0; $lineaCronograma < 3; $lineaCronograma++)
+                    <tr style="height: 22px;"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+                @endfor
+            </table>
         </main>
     </section>
 
@@ -1621,13 +1768,13 @@
                     <td class="form018-light form018-center">Responsable</td>
                     <td class="form018-light form018-center">Horas requeridas</td>
                 </tr>
-                @foreach ($accion->cronograma as $item)
+                @foreach ($rows($accion->cronograma, 6) as $item)
                     <tr style="height: 37.3px;">
-                        <td>{{ $item?->actividad }}</td>
-                        <td>{{ $item?->producto }}</td>
-                        <td>{{ $item?->fecha_inicio?->format('d/m/Y') }}</td>
-                        <td>{{ $item?->responsable_texto }}</td>
-                        <td class="form018-center">{{ $item?->horas_requeridas }}</td>
+                        <td>{{ $item?->actividad }}{!! $item ? '' : '&nbsp;' !!}</td>
+                        <td>{{ $item?->producto }}{!! $item ? '' : '&nbsp;' !!}</td>
+                        <td>{{ $item?->fecha_inicio?->format('d/m/Y') }}{!! $item ? '' : '&nbsp;' !!}</td>
+                        <td>{{ $item?->responsable_texto }}{!! $item ? '' : '&nbsp;' !!}</td>
+                        <td class="form018-center">{{ $item?->horas_requeridas }}{!! $item ? '' : '&nbsp;' !!}</td>
                     </tr>
                 @endforeach
             </table>
@@ -1656,6 +1803,19 @@
                     <td class="form018-gray form018-center">Firma del Jefe/a de la Unidad Académica que lidera la acción</td>
                 </tr>
             </table>
+        </main>
+    </section>
+
+    <section class="form018-page">
+        <header class="form018-header">
+            <img src="{{ $headerUrl }}" alt="UNAH VRA Dirección de Vinculación Universidad Sociedad">
+            <div class="form018-contact">vinculacion.sociedad@unah.edu.hn<br>Tel. 2216-7070&nbsp; Ext. 110576</div>
+            <div class="form018-yellow-strip"></div>
+        </header>
+        <img class="form018-watermark" src="{{ $watermarkUrl }}" alt="">
+        <img class="form018-footer" src="{{ $footerUrl }}" alt="">
+
+        <main class="form018-main page-start">
 
             <table class="form018-table form018-docx-signatures">
                 <colgroup><col style="width: 48.39%;"><col style="width: 51.61%;"></colgroup>
@@ -1754,7 +1914,7 @@
                     </tr>
                 @endforeach
             </table>
-            <p class="form018-note">Nota: El documento 1 es obligatorio.</p>
+            <p class="form018-note">Nota: El documento 1 obligatorio.</p>
         </main>
     </section>
 </div>

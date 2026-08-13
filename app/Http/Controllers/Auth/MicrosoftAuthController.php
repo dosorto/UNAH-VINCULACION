@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Auth\NewUserOnboardingService;
 use App\Support\Notification;
+use App\Support\ProfileCompletion;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,7 +34,7 @@ class MicrosoftAuthController extends Controller
         return redirect()->away($this->authorizeUrl($state));
     }
 
-    public function callback(Request $request): RedirectResponse
+    public function callback(Request $request, NewUserOnboardingService $onboarding): RedirectResponse
     {
         if (! $this->isEnabled()) {
             return $this->fail('Login Microsoft no disponible.', 'La autenticacion con Microsoft no esta habilitada.');
@@ -100,8 +102,20 @@ class MicrosoftAuthController extends Controller
             );
         }
 
+        $requiresOnboarding = $onboarding->requiresEmployeeProfile($user);
+
+        $user = $onboarding->prepareEmployeeProfile(
+            $user,
+            $this->profileEmployeeNumber($profile),
+            $this->profileName($profile, $email),
+        );
+
         Auth::login($user);
         $request->session()->regenerate();
+
+        if ($requiresOnboarding || ProfileCompletion::isRequired($user)) {
+            return redirect()->route('completar_perfil');
+        }
 
         return redirect()->intended(route('inicio'));
     }
@@ -129,7 +143,7 @@ class MicrosoftAuthController extends Controller
         $profile = Http::withToken($accessToken)
             ->acceptJson()
             ->get('https://graph.microsoft.com/v1.0/me', [
-                '$select' => 'id,displayName,givenName,surname,mail,userPrincipalName',
+                '$select' => 'id,displayName,givenName,surname,mail,userPrincipalName,employeeId',
             ])
             ->throw()
             ->json();
@@ -159,7 +173,7 @@ class MicrosoftAuthController extends Controller
                 return null;
             }
 
-            $user = new User();
+            $user = new User;
             $user->forceFill([
                 'email' => $email,
                 'email_verified_at' => now(),
@@ -177,7 +191,7 @@ class MicrosoftAuthController extends Controller
 
         $updates = [
             'microsoft_id' => $microsoftId,
-            'name' => $this->profileName($profile, $email),
+            'name' => $this->toUsername($this->profileName($profile, $email)),
             'given_name' => $profile['givenName'] ?? null,
             'surname' => $profile['surname'] ?? null,
             'email_verified_at' => $user->email_verified_at ?: now(),
@@ -194,7 +208,7 @@ class MicrosoftAuthController extends Controller
 
     private function authorizeUrl(string $state): string
     {
-        return $this->authorizationEndpoint() . '?' . http_build_query([
+        return $this->authorizationEndpoint().'?'.http_build_query([
             'client_id' => config('services.microsoft.client_id'),
             'response_type' => 'code',
             'redirect_uri' => $this->redirectUri(),
@@ -226,6 +240,34 @@ class MicrosoftAuthController extends Controller
         ])));
 
         return $name !== '' ? $name : $email;
+    }
+
+    private function toUsername(string $name): string
+    {
+        return str_replace(' ', '.', trim(preg_replace('/\s+/', ' ', $name)));
+    }
+
+    private function profileEmployeeNumber(array $profile): ?string
+    {
+        $employeeNumber = trim((string) ($profile['employeeId'] ?? ''));
+
+        if ($employeeNumber === '') {
+            Log::warning('Microsoft profile has no employeeId', [
+                'microsoft_id' => $profile['id'] ?? null,
+            ]);
+
+            return null;
+        }
+
+        if (! preg_match('/^\d+$/', $employeeNumber)) {
+            Log::warning('Microsoft profile employeeId is not numeric', [
+                'microsoft_id' => $profile['id'] ?? null,
+            ]);
+
+            return null;
+        }
+
+        return $employeeNumber;
     }
 
     private function domainIsAllowed(string $email): bool

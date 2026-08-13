@@ -126,7 +126,7 @@ class CreateProyectoVinculacion extends Component
     public bool $showActividadModal = false;
     public ?int $editActividadIndex = null;
     public array $nuevaActividad = [
-        'descripcion' => '', 'empleados' => [],
+        'descripcion' => '', 'resultados' => '', 'empleados' => [],
         'fecha_inicio' => '', 'fecha_finalizacion' => '', 'horas' => '',
     ];
     public array $actividades = [];
@@ -134,9 +134,11 @@ class CreateProyectoVinculacion extends Component
     // Step 5 – description
     public string $resumen = '';
     public string $descripcion_participantes = '';
+    public string $participacion_unah = '';
+    public string $participacion_contraparte = '';
+    public string $participacion_comunidad = '';
     public string $definicion_problema = '';
     public string $alineamiento_reforma = '';
-    public string $impacto_deseado = '';
     public string $metodologia = '';
     public string $bibliografia = '';
 
@@ -151,7 +153,7 @@ class CreateProyectoVinculacion extends Component
     public int $mujeres = 0;
     public int $poblacion_participante = 0;
     public array $pais = ['Honduras'];
-    public array $region = [];
+    public string $region = '';
     public array $departamento_geo = [];
     public array $municipio_geo = [];
     public string $caserio = '';
@@ -179,6 +181,7 @@ class CreateProyectoVinculacion extends Component
     public int $modalStep = 0;
     public array $modalEtapasConDestinatario = [];
     public array $modalDestinatarios = [];
+    public bool $modalEsReenvioSubsanacion = false;
 
     // ── FORM-DVUS-015 (Voluntariado Académico) ──────────────────────────────
     // Campos propios que sólo aplican cuando el tipo de acción es Voluntariado.
@@ -243,10 +246,11 @@ class CreateProyectoVinculacion extends Component
 
     private const CAMPOS_DESCRIPCION_REQUERIDOS = [
         'resumen',
-        'descripcion_participantes',
+        'participacion_unah',
+        'participacion_contraparte',
+        'participacion_comunidad',
         'definicion_problema',
         'alineamiento_reforma',
-        'impacto_deseado',
         'metodologia',
         'bibliografia',
     ];
@@ -414,6 +418,7 @@ class CreateProyectoVinculacion extends Component
         $this->actividades = $record->actividades->map(fn($a) => [
             'id' => $a->id,
             'descripcion' => $a->descripcion,
+            'resultados' => $a->resultados ?? '',
             'empleados' => $a->empleados->pluck('id')->toArray(),
             'fecha_inicio' => $this->dateForInput($a->fecha_inicio),
             'fecha_finalizacion' => $this->dateForInput($a->fecha_finalizacion),
@@ -422,6 +427,9 @@ class CreateProyectoVinculacion extends Component
 
         $this->resumen = $record->resumen ?? '';
         $this->descripcion_participantes = $record->descripcion_participantes ?? '';
+        $this->participacion_unah = $record->participacion_unah ?? '';
+        $this->participacion_contraparte = $record->participacion_contraparte ?? '';
+        $this->participacion_comunidad = $record->participacion_comunidad ?? '';
         $this->definicion_problema = $record->definicion_problema ?? '';
         $this->indigenas_hombres = (int)($record->indigenas_hombres ?? 0);
         $this->indigenas_mujeres = (int)($record->indigenas_mujeres ?? 0);
@@ -433,14 +441,13 @@ class CreateProyectoVinculacion extends Component
         $this->mujeres = (int)($record->mujeres ?? 0);
         $this->poblacion_participante = (int)($record->poblacion_participante ?? 0);
         $this->pais = $record->pais ?? ['Honduras'];
-        $this->region = $record->region ?? [];
+        $this->region = is_array($record->region ?? null) ? ($record->region[0] ?? '') : (string) ($record->region ?? '');
         $this->departamento_geo = $record->departamento?->pluck('id')->toArray() ?? [];
         $this->municipio_geo = $record->municipio?->pluck('id')->toArray() ?? [];
         $this->filtrarMunicipiosImpactoSeleccionados();
         $this->caserio = $record->caserio ?? '';
         $this->aldea = $record->aldea ?? '';
         $this->alineamiento_reforma = $record->alineamiento_reforma ?? '';
-        $this->impacto_deseado = $record->impacto_deseado ?? '';
         $this->metodologia = $record->metodologia ?? '';
         $this->bibliografia = $record->bibliografia ?? '';
 
@@ -1084,6 +1091,9 @@ class CreateProyectoVinculacion extends Component
             'lineas_investigacion_academica' => $this->lineas_investigacion_academica,
             'resumen' => $this->resumen,
             'descripcion_participantes' => $this->descripcion_participantes,
+            'participacion_unah' => $this->participacion_unah,
+            'participacion_contraparte' => $this->participacion_contraparte,
+            'participacion_comunidad' => $this->participacion_comunidad,
             'definicion_problema' => $this->definicion_problema,
             'indigenas_hombres' => (int) $this->indigenas_hombres,
             'indigenas_mujeres' => (int) $this->indigenas_mujeres,
@@ -1095,11 +1105,10 @@ class CreateProyectoVinculacion extends Component
             'mujeres' => (int) $this->mujeres,
             'poblacion_participante' => (int) $this->poblacion_participante,
             'pais' => $this->pais,
-            'region' => $this->region,
+            'region' => $this->region !== '' ? [$this->region] : [],
             'caserio' => $this->caserio,
             'aldea' => $this->aldea,
             'alineamiento_reforma' => $this->alineamiento_reforma,
-            'impacto_deseado' => $this->impacto_deseado,
             'metodologia' => $this->metodologia,
             'bibliografia' => $this->bibliografia,
             'tematica_principal' => $this->stringOrNull($this->tematica_principal),
@@ -1391,6 +1400,7 @@ class CreateProyectoVinculacion extends Component
 
             $data = [
                 'descripcion' => trim((string) ($item['descripcion'] ?? '')) !== '' ? $item['descripcion'] : 'Actividad sin descripción',
+                'resultados' => trim((string) ($item['resultados'] ?? '')),
                 'fecha_inicio' => $this->dateOrNull($item['fecha_inicio'] ?? null),
                 'fecha_finalizacion' => $this->dateOrNull($item['fecha_finalizacion'] ?? null),
                 'horas' => (int) ($item['horas'] ?? 0),
@@ -1417,6 +1427,7 @@ class CreateProyectoVinculacion extends Component
             $this->actividades[$i]['fecha_inicio'] = $this->dateForInput($actividad->fecha_inicio);
             $this->actividades[$i]['fecha_finalizacion'] = $this->dateForInput($actividad->fecha_finalizacion);
             $this->actividades[$i]['horas'] = $actividad->horas ?? '';
+            $this->actividades[$i]['resultados'] = $actividad->resultados ?? '';
             $actividadIdsEnEstado[] = $actividad->id;
         }
 
@@ -2117,9 +2128,11 @@ class CreateProyectoVinculacion extends Component
         $record->update([
             'resumen' => $this->resumen,
             'descripcion_participantes' => $this->descripcion_participantes,
+            'participacion_unah' => $this->participacion_unah,
+            'participacion_contraparte' => $this->participacion_contraparte,
+            'participacion_comunidad' => $this->participacion_comunidad,
             'definicion_problema' => $this->definicion_problema,
             'alineamiento_reforma' => $this->alineamiento_reforma,
-            'impacto_deseado' => $this->impacto_deseado,
             'metodologia' => $this->metodologia,
             'bibliografia' => $this->bibliografia,
         ]);
@@ -2141,7 +2154,7 @@ class CreateProyectoVinculacion extends Component
             'mujeres' => $this->mujeres,
             'poblacion_participante' => $this->poblacion_participante,
             'pais' => $this->pais,
-            'region' => $this->region,
+            'region' => $this->region !== '' ? [$this->region] : [],
             'caserio' => $this->caserio,
             'aldea' => $this->aldea,
         ]);
@@ -2847,7 +2860,7 @@ class CreateProyectoVinculacion extends Component
             $this->nuevaActividad = $this->actividades[$index];
             $this->editActividadIndex = $index;
         } else {
-            $this->nuevaActividad = ['id' => null, 'descripcion' => '', 'empleados' => [], 'fecha_inicio' => '', 'fecha_finalizacion' => '', 'horas' => ''];
+            $this->nuevaActividad = ['id' => null, 'descripcion' => '', 'resultados' => '', 'empleados' => [], 'fecha_inicio' => '', 'fecha_finalizacion' => '', 'horas' => ''];
             $this->editActividadIndex = null;
         }
         $this->showActividadModal = true;
@@ -2857,21 +2870,24 @@ class CreateProyectoVinculacion extends Component
     {
         $this->showActividadModal = false;
         $this->editActividadIndex = null;
-        $this->nuevaActividad = ['id' => null, 'descripcion' => '', 'empleados' => [], 'fecha_inicio' => '', 'fecha_finalizacion' => '', 'horas' => ''];
+        $this->nuevaActividad = ['id' => null, 'descripcion' => '', 'resultados' => '', 'empleados' => [], 'fecha_inicio' => '', 'fecha_finalizacion' => '', 'horas' => ''];
     }
 
     public function saveActividad(): void
     {
         $this->nuevaActividad['descripcion'] = trim((string) ($this->nuevaActividad['descripcion'] ?? ''));
+        $this->nuevaActividad['resultados'] = trim((string) ($this->nuevaActividad['resultados'] ?? ''));
         $this->nuevaActividad['horas'] = max(0, (int) ($this->nuevaActividad['horas'] ?? 0));
 
         $this->validate([
             'nuevaActividad.descripcion' => 'required|string',
+            'nuevaActividad.resultados' => 'nullable|string',
             'nuevaActividad.fecha_inicio' => 'required|date',
             'nuevaActividad.fecha_finalizacion' => 'required|date|after_or_equal:nuevaActividad.fecha_inicio',
             'nuevaActividad.horas' => 'nullable|integer|min:0',
         ], [], [
             'nuevaActividad.descripcion' => 'descripción de la actividad',
+            'nuevaActividad.resultados' => 'productos a cargo',
             'nuevaActividad.fecha_inicio' => 'fecha de inicio de la actividad',
             'nuevaActividad.fecha_finalizacion' => 'fecha de finalización de la actividad',
             'nuevaActividad.horas' => 'horas de la actividad',
@@ -2901,6 +2917,7 @@ class CreateProyectoVinculacion extends Component
 
             $data = [
                 'descripcion' => trim((string) $this->nuevaActividad['descripcion']),
+                'resultados' => trim((string) ($this->nuevaActividad['resultados'] ?? '')),
                 'fecha_inicio' => $this->dateOrNull($this->nuevaActividad['fecha_inicio'] ?? null),
                 'fecha_finalizacion' => $this->dateOrNull($this->nuevaActividad['fecha_finalizacion'] ?? null),
                 'horas' => (int) ($this->nuevaActividad['horas'] ?? 0),
@@ -2919,6 +2936,7 @@ class CreateProyectoVinculacion extends Component
             $this->nuevaActividad['fecha_inicio'] = $this->dateForInput($actividad->fecha_inicio);
             $this->nuevaActividad['fecha_finalizacion'] = $this->dateForInput($actividad->fecha_finalizacion);
             $this->nuevaActividad['horas'] = $actividad->horas ?? '';
+            $this->nuevaActividad['resultados'] = $actividad->resultados ?? '';
         });
 
         if ($this->editActividadIndex !== null) {
@@ -2928,7 +2946,7 @@ class CreateProyectoVinculacion extends Component
         }
         $this->showActividadModal = false;
         $this->editActividadIndex = null;
-        $this->nuevaActividad = ['id' => null, 'descripcion' => '', 'empleados' => [], 'fecha_inicio' => '', 'fecha_finalizacion' => '', 'horas' => ''];
+        $this->nuevaActividad = ['id' => null, 'descripcion' => '', 'resultados' => '', 'empleados' => [], 'fecha_inicio' => '', 'fecha_finalizacion' => '', 'horas' => ''];
     }
 
     public function removeActividad(int $i): void
@@ -3162,6 +3180,8 @@ class CreateProyectoVinculacion extends Component
             return;
         }
 
+        $this->modalEsReenvioSubsanacion = false;
+
         if ($this->reenviarAutomaticamenteTrasSubsanacion($proyecto)) {
             return;
         }
@@ -3185,8 +3205,10 @@ class CreateProyectoVinculacion extends Component
             ->map(function (FlujoAprobacionEtapa $etapa): array {
                 $candidatos = \App\Models\User::with('roles')
                     ->when($etapa->rol_revisor_id, fn ($q) => $q->whereHas('roles', fn ($r) => $r->where('roles.id', $etapa->rol_revisor_id)))
+                    ->whereHas('empleado')
                     ->orderBy('name')
                     ->get()
+                    ->filter(fn (\App\Models\User $user): bool => filled($user->email) && filter_var($user->email, FILTER_VALIDATE_EMAIL))
                     ->map(fn (\App\Models\User $user): array => [
                         'user_id' => $user->id,
                         'nombre' => $user->name,
@@ -3232,6 +3254,38 @@ class CreateProyectoVinculacion extends Component
         }
 
         $this->validarFormularioAntesDeEnviar();
+
+        $etapasConReemplazo = $this->etapasQueRequierenReemplazoParaReenvio($firmaRechazada);
+
+        if ($etapasConReemplazo->isNotEmpty()) {
+            $this->modalEtapasConDestinatario = $etapasConReemplazo
+                ->map(function (array $etapa): array {
+                    $etapa['candidatos'] = \App\Models\User::query()
+                        ->when($etapa['rol_nombre'], fn ($query) => $query->whereHas(
+                            'roles',
+                            fn ($roles) => $roles->where('roles.name', $etapa['rol_nombre'])
+                        ))
+                        ->whereHas('empleado')
+                        ->orderBy('name')
+                        ->get()
+                        ->filter(fn (\App\Models\User $user): bool => filled($user->email) && filter_var($user->email, FILTER_VALIDATE_EMAIL))
+                        ->map(fn (\App\Models\User $user): array => [
+                            'user_id' => $user->id,
+                            'nombre' => $user->name,
+                        ])
+                        ->values()
+                        ->all();
+
+                    return $etapa;
+                })
+                ->all();
+            $this->modalDestinatarios = [];
+            $this->modalStep = 0;
+            $this->modalEsReenvioSubsanacion = true;
+            $this->showEnviarModal = true;
+
+            return true;
+        }
 
         try {
             $this->reenviarDesdeSubsanacionPorEtapa(
@@ -3281,13 +3335,29 @@ class CreateProyectoVinculacion extends Component
         $proyecto = Proyecto::findOrFail($this->recordId);
 
         try {
-            $this->enviarPorFlujoDeEtapas($proyecto);
+            if ($this->modalEsReenvioSubsanacion) {
+                $firmaRechazada = $this->firmaRechazadaActualPorEtapa($proyecto);
+
+                if (! $firmaRechazada || ! auth()->user()) {
+                    throw new \RuntimeException('No se pudo identificar la etapa que debe reanudarse.');
+                }
+
+                $this->reenviarDesdeSubsanacionPorEtapa(
+                    $firmaRechazada,
+                    auth()->user(),
+                    $this->empleadosPorEtapaParaReenvio($firmaRechazada, $this->modalDestinatarios)
+                );
+            } else {
+                $this->enviarPorFlujoDeEtapas($proyecto);
+            }
         } catch (\Exception $e) {
             Notification::make()->title('Error al enviar')->body($e->getMessage())->danger()->send();
             return;
         }
 
         $this->showEnviarModal = false;
+        $esReenvio = $this->modalEsReenvioSubsanacion;
+        $this->modalEsReenvioSubsanacion = false;
 
         try {
             Mail::to(auth()->user()->email)->send(new ProyectoCreado($proyecto, auth()->user()));
@@ -3295,7 +3365,7 @@ class CreateProyectoVinculacion extends Component
             \Log::warning($e->getMessage());
         }
 
-        Notification::make()->title('Proyecto enviado a firmar')->success()->send();
+        Notification::make()->title($esReenvio ? 'Proyecto reenviado a revisión' : 'Proyecto enviado a firmar')->success()->send();
         redirect()->route('proyectosDocente');
     }
 

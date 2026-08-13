@@ -44,6 +44,7 @@ class ProyectosPorFirmar extends Component
     public bool $rechazarModal = false;
     public ?int $rechazarId = null;
     public string $rechazarComentario = '';
+    public string $aprobacionComentario = '';
     public bool $enfSubsanarModal = false;
     public ?int $enfSubsanarRevisionId = null;
     public string $enfSubsanarComentario = '';
@@ -76,6 +77,7 @@ class ProyectosPorFirmar extends Component
         $this->viewModal = false;
         $this->viewId = null;
         $this->documentoRevision = null;
+        $this->aprobacionComentario = '';
     }
 
     public function getDocumentosRevisionViewProperty()
@@ -133,7 +135,8 @@ class ProyectosPorFirmar extends Component
             && $firma->usaFlujoPorEtapa()
             && $firma->estado_revision === 'Pendiente'
             && $firma->responsable_usuario_id
-            && (int) $firma->responsable_usuario_id === (int) Auth::id();
+            && (int) $firma->responsable_usuario_id === (int) Auth::id()
+            && (bool) $firma->flujoEtapa?->requiere_asignacion;
     }
 
     public function puedeReasignarEnf(?EnfRevision $revision): bool
@@ -147,7 +150,8 @@ class ProyectosPorFirmar extends Component
             return false;
         }
 
-        return filled($revision->rol_requerido);
+        return filled($revision->rol_requerido)
+            && (bool) $revision->flujoEtapa?->requiere_asignacion;
     }
 
     public function firmaPendienteDePps(PpsServicioSocial $registro): ?FirmaProyecto
@@ -323,6 +327,8 @@ class ProyectosPorFirmar extends Component
             ? \App\Models\InformeFinal\InformeFinalProyecto::where('proyecto_id', $firma->documento_proyecto->proyecto_id)->first()
             : null;
 
+        $this->validate(['aprobacionComentario' => ['nullable', 'string', 'max:5000']]);
+
         if ($this->documentoRevision) {
             abort_unless($informe, 422, 'El adjunto de revisión solo está disponible para INF-001.');
             $this->validate(['documentoRevision' => ['nullable', 'file', 'mimes:pdf', 'mimetypes:application/pdf', 'max:10240']]);
@@ -358,11 +364,12 @@ class ProyectosPorFirmar extends Component
                     'mime_type' => $mimeType,
                     'tamano_bytes' => $tamanoBytes,
                 ]);
-            });
+            }, filled($this->aprobacionComentario) ? $this->aprobacionComentario : null);
 
             $this->viewModal = false;
             $this->viewId = null;
             $this->documentoRevision = null;
+            $this->aprobacionComentario = '';
 
             Notification::make()->title('¡Realizado!')->body('Proyecto Aprobado correctamente')->info()->send();
 
@@ -388,7 +395,7 @@ class ProyectosPorFirmar extends Component
                 'empleado_id'    => auth()->user()->empleado->id,
                 'tipo_estado_id' => $nextEstadoId,
                 'fecha'          => now(),
-                'comentario'     => 'Firmado y aprobado en este estado',
+                'comentario'     => filled($this->aprobacionComentario) ? $this->aprobacionComentario : 'Firmado y aprobado en este estado',
             ]);
         } else {
             $firma->update([
@@ -416,7 +423,7 @@ class ProyectosPorFirmar extends Component
                     'empleado_id'    => $this->docente->id,
                     'tipo_estado_id' => $nextEstadoId,
                     'fecha'          => now(),
-                    'comentario'     => 'Firmado y aprobado en este estado',
+                    'comentario'     => filled($this->aprobacionComentario) ? $this->aprobacionComentario : 'Firmado y aprobado en este estado',
                 ]);
             } elseif ($documento) {
                 $this->marcarDocumentoAprobado($documento);
@@ -425,6 +432,7 @@ class ProyectosPorFirmar extends Component
 
         $this->viewModal = false;
         $this->viewId = null;
+        $this->aprobacionComentario = '';
 
         Notification::make()->title('¡Realizado!')->body('Proyecto Aprobado correctamente')->info()->send();
         } catch (\Throwable $exception) {

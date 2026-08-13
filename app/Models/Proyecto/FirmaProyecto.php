@@ -128,6 +128,10 @@ class FirmaProyecto extends Model
             throw new \RuntimeException('Esta etapa no tiene un rol de revisor configurado para reasignar.');
         }
 
+        if (! (bool) $this->flujoEtapa?->requiere_asignacion) {
+            throw new \RuntimeException('Esta etapa no tiene activada la opción "Requiere asignación del responsable", por lo que no se puede reasignar.');
+        }
+
         $tieneRol = $nuevoUsuario->roles()->where('roles.name', $this->rol_requerido)->exists();
 
         if (! $tieneRol) {

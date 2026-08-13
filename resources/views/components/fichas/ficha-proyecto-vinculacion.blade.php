@@ -212,7 +212,7 @@
         }
 
         .date-inner-table th {
-            background-color: #020b70;
+            background-color: #001b44;
             color: #fff;
             font-weight: bold;
             border-bottom: 1px solid #000 !important;
@@ -317,6 +317,31 @@
     </style>
     @if (!empty($isPdf))
         @include('components.fichas.partials.form-dvus-001-pdf-styles')
+        <style>
+            .table_datos1 td, .table_datos1 th,
+            .table_datos2 td, .table_datos2 th,
+            .table_datos3 td, .table_datos3 th,
+            .table_datos4 td, .table_datos4 th,
+            .table_datos5 td, .table_datos5 th,
+            .table_datos6 td, .table_datos6 th,
+            .table_datos7 td, .table_datos7 th,
+            .pdf-table td, .pdf-table th,
+            .beneficiary-summary td, .beneficiary-summary th,
+            .beneficiary-ethnicity td, .beneficiary-ethnicity th {
+                box-sizing: border-box !important;
+            }
+            .section-title {
+                background: #001b44 !important;
+                border-left: 2.4mm solid #ffc400 !important;
+                color: #fff !important;
+            }
+            .section3 .sub-header {
+                background: #d6dde3 !important;
+            }
+            .section3 .full-width1 {
+                font-style: italic !important;
+            }
+        </style>
     @endif
 </head>
 
@@ -400,7 +425,7 @@
                             $fechaRegistro = $proyecto->fecha_registro;
                         @endphp
                         <tr>
-                            <th class="full-width1">Fecha de solicitud de registro:</th>
+                            <th class="full-width1">1. Fecha de solicitud de registro:</th>
                             <td class="full-width date-cell" colspan="5">
                                 <table class="date-inner-table">
                                     <tr>
@@ -417,16 +442,18 @@
                             </td>
                         </tr>
                         <tr>
-                            <th class="full-width1">1. Nombre del Proyecto:</th>
+                            <th class="full-width1">2. Nombre del Proyecto:</th>
                             <td class="full-width" colspan="5">
 
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el nombre del proyecto"
-                                    value="{{ $proyecto->nombre_proyecto }}" disabled>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->nombre_proyecto) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $proyecto->nombre_proyecto }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
-                            <th class="full-width1" rowspan="5">2. Unidad Académica:</th>
+                            <th class="full-width1" rowspan="3">3. Unidad Académica:</th>
                             <td class="sub-header" colspan="1">Facultad /Centro Universitario Regional/Instituto Tecnológico</td>
                             <td class="full-width" colspan="4">
                                 <ul>
@@ -457,23 +484,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="1">Programa al que pertenece </td>
-                            <td class="full-width" colspan="4">
-                                 <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el programa al que pertenece"
-                                    value="{{ $proyecto->programa_pertenece }}" disabled>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="1">Líneas de investigación de la unidad académica</td>
-                            <td class="full-width" colspan="4">
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el programa al que pertenece"
-                                    value="{{ $proyecto->lineas_investigacion_academica }}" disabled>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th class="full-width1" rowspan="1">3. Modalidad</th>
+                            <th class="full-width1" rowspan="1">4. Modalidad</th>
                             <td class="sub-header1 pdf-choice" colspan="1">Unidisciplinar <br>
                                 @if (!empty($isPdf)){!! $pdfCheck($proyecto->modalidad?->nombre == 'Unidisciplinar') !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>@endif
                             </td>
@@ -488,7 +499,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <th class="full-width1" rowspan="1">4. Alineamiento con ejes prioritarios de la UNAH</th>
+                            <th class="full-width1" rowspan="3">5. Alineamiento institucional</th>
                             <td class="sub-header1 pdf-choice" colspan="1">Desarrollo económico y social <br>
                                 @if (!empty($isPdf)){!! $pdfCheck((bool) $proyecto->ejes_prioritarios_unah?->contains('nombre', 'Desarrollo económico y social')) !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Desarrollo económico y social')) checked @endif>@endif
                             </td>
@@ -502,86 +513,55 @@
                                 @if (!empty($isPdf)){!! $pdfCheck((bool) $proyecto->ejes_prioritarios_unah?->contains('nombre', 'Ambiente, biodiversidad y desarrollo')) !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Ambiente, biodiversidad y desarrollo')) checked @endif>@endif
                             </td>
                         </tr>
-
-
-                        
-                         <tr>
-                            <th class="full-width1" rowspan="1">5. Categoría del proyecto:</th>
-                            <td class="sub-header1 pdf-choice" colspan="2">Desarrollo Local <br>
-                                @if (!empty($isPdf)){!! $pdfCheck($proyecto->categoria->contains('nombre', 'Desarrollo Local')) !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->categoria->contains('nombre', 'Desarrollo Local')) checked @endif>@endif
+                        <tr>
+                            <td class="sub-header" colspan="1">Programa/estrategia al que pertenece</td>
+                            <td class="full-width" colspan="4">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->programa_pertenece) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $proyecto->programa_pertenece }}</div>
+                                @endif
                             </td>
-                            <td class="sub-header1 pdf-choice" colspan="3">Desarrollo Regional<br>
-                                @if (!empty($isPdf)){!! $pdfCheck($proyecto->categoria->contains('nombre', 'Desarrollo Regional')) !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->categoria->contains('nombre', 'Desarrollo Regional')) checked @endif>@endif
-                            </td>
-                           <!-- <td class="sub-header1" colspan="1">Volunt. Académico<br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->categoria->contains('nombre', 'Volunt. Académico')) checked @endif>
-                            </td>
-                            <td class="sub-header1" colspan="1">Seguim. a egresados<br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->categoria->contains('nombre', 'Seguim. a egresados')) checked @endif>
-                            </td> -->
                         </tr>
-                      <!--   <tr>
-                          <td class="sub-header1" colspan="1">I + D + i <br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->categoria->contains('nombre', 'I + D + i')) checked @endif>
+                        <tr>
+                            <td class="sub-header" colspan="1">Líneas de investigación de la unidad académica</td>
+                            <td class="full-width" colspan="4">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->lineas_investigacion_academica) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $proyecto->lineas_investigacion_academica }}</div>
+                                @endif
                             </td>
-                            <td class="sub-header1" colspan="1">Cultural<br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->categoria->contains('nombre', 'Cultural')) checked @endif>
-                            </td>
-                            <td class="sub-header1" colspan="1">Comunicac<br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->categoria->contains('nombre', 'Comunicac')) checked @endif>
-                            </td>
-                            <td class="sub-header1" colspan="1">APS<br>
-                                <input disabled type="checkbox" class="No"
-                                    @if ($proyecto->categoria->contains('nombre', 'APS')) checked @endif>
-                            </td> 
-                        </tr> -->
-                        
-                        
+                        </tr>
+
                         <!-- FECHAS DE EJECUCION  -->
                         @php
                             $fechaInicio = $proyecto->fecha_inicio;
                             $fechaFinalizacion = $proyecto->fecha_finalizacion;
                         @endphp
                         <tr>
-                            <th class="full-width1" rowspan="1">6. Fechas de ejecución del proyecto:</th>
-                            <td class="full-width date-cell" colspan="5">
-                                <table class="execution-dates-table">
+                            <th class="full-width1" rowspan="1">6. Fecha de ejecución</th>
+                            <td class="full-width date-cell" colspan="5" style="padding:0 !important;">
+                                <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
                                     <tr>
-                                        <td class="execution-date-label">Fecha de inicio:</td>
-                                        <td class="execution-date-value">
-                                            <table class="date-inner-table">
-                                                <tr>
-                                                    <th>Día</th>
-                                                    <th>Mes</th>
-                                                    <th>Año</th>
-                                                </tr>
-                                                <tr>
-                                                    <td>{{ $fechaInicio ? $fechaInicio->format('d') : '' }}</td>
-                                                    <td>{{ $fechaInicio ? $fechaInicio->format('m') : '' }}</td>
-                                                    <td>{{ $fechaInicio ? $fechaInicio->format('Y') : '' }}</td>
-                                                </tr>
-                                            </table>
-                                        </td>
-                                        <td class="execution-date-label">Fecha de finalización:</td>
-                                        <td class="execution-date-value">
-                                            <table class="date-inner-table">
-                                                <tr>
-                                                    <th>Día</th>
-                                                    <th>Mes</th>
-                                                    <th>Año</th>
-                                                </tr>
-                                                <tr>
-                                                    <td>{{ $fechaFinalizacion ? $fechaFinalizacion->format('d') : '' }}</td>
-                                                    <td>{{ $fechaFinalizacion ? $fechaFinalizacion->format('m') : '' }}</td>
-                                                    <td>{{ $fechaFinalizacion ? $fechaFinalizacion->format('Y') : '' }}</td>
-                                                </tr>
-                                            </table>
-                                        </td>
+                                        <th colspan="3" style="width:50%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Fecha de inicio</th>
+                                        <th colspan="3" style="width:50%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Fecha de finalización</th>
+                                    </tr>
+                                    <tr>
+                                        <th style="width:16.6667%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Día</th>
+                                        <th style="width:16.6667%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Mes</th>
+                                        <th style="width:16.6667%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Año</th>
+                                        <th style="width:16.6667%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Día</th>
+                                        <th style="width:16.6667%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Mes</th>
+                                        <th style="width:16.6667%; background-color:#001b44; color:#fff; border:1px solid #000; padding:3px 5px; text-align:center;">Año</th>
+                                    </tr>
+                                    <tr>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $fechaInicio ? $fechaInicio->format('d') : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $fechaInicio ? $fechaInicio->format('m') : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $fechaInicio ? $fechaInicio->format('Y') : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $fechaFinalizacion ? $fechaFinalizacion->format('d') : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $fechaFinalizacion ? $fechaFinalizacion->format('m') : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $fechaFinalizacion ? $fechaFinalizacion->format('Y') : '' }}</td>
                                     </tr>
                                 </table>
                             </td>
@@ -589,26 +569,45 @@
                    
                         <!-- TABLA DE BENEFICIARIOS DIRECTOS -->
                         <tr>
-                            <th class="full-width1" rowspan="3">7. Beneficiarios directos (número aproximado)</th>
-                            <td class="full-width" colspan="5" style="padding:0 !important;">
-                                <table class="beneficiary-summary"><tr>
-                                    <td><strong>Hombres</strong>{{ $proyecto->hombres ?? 0 }}</td>
-                                    <td><strong>Mujeres</strong>{{ $proyecto->mujeres ?? 0 }}</td>
-                                    <td><strong>Población beneficiada</strong>{{ floor($proyecto->poblacion_participante ?? 0) }}</td>
-                                </tr></table>
+                            <th class="full-width1" rowspan="3">7. Descripción de los beneficiarios</th>
+                            <td class="sub-header" colspan="1">Cantidad aproximada</td>
+                            <td class="full-width" colspan="4" style="padding:0 !important;">
+                                <table class="beneficiary-summary" style="width:100%; border-collapse:collapse;">
+                                    <tr>
+                                        <th style="background-color:#ebeeef; border:1px solid #000; padding:3px 5px; text-align:center; width:50%;">Hombres</th>
+                                        <th style="background-color:#ebeeef; border:1px solid #000; padding:3px 5px; text-align:center; width:50%;">Mujeres</th>
+                                    </tr>
+                                    <tr>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $proyecto->hombres ?? 0 }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ $proyecto->mujeres ?? 0 }}</td>
+                                    </tr>
+                                </table>
                             </td>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="5">Población beneficiada por etnia</td>
-                        </tr>
-                        <tr>
-                            <td class="full-width" colspan="5" style="padding:0 !important;">
-                                <table class="beneficiary-ethnicity">
-                                    <tr><th>Indígena</th><th>Afrodescendiente</th><th>Mestizo</th></tr>
+                            <td class="sub-header" colspan="1">Tipo de población a la que está dirigido el proyecto</td>
+                            <td class="full-width" colspan="4" style="padding:0 !important;">
+                                <table class="beneficiary-ethnicity" style="width:100%; border-collapse:collapse;">
                                     <tr>
-                                        <td>Hombres: {{ $proyecto->indigenas_hombres ?? 0 }}<br>Mujeres: {{ $proyecto->indigenas_mujeres ?? 0 }}</td>
-                                        <td>Hombres: {{ $proyecto->afroamericanos_hombres ?? 0 }}<br>Mujeres: {{ $proyecto->afroamericanos_mujeres ?? 0 }}</td>
-                                        <td>Hombres: {{ $proyecto->mestizos_hombres ?? 0 }}<br>Mujeres: {{ $proyecto->mestizos_mujeres ?? 0 }}</td>
+                                        <th colspan="2" style="background-color:#ebeeef; border:1px solid #000; padding:3px 5px; text-align:center;">Indígena</th>
+                                        <th colspan="2" style="background-color:#ebeeef; border:1px solid #000; padding:3px 5px; text-align:center;">Afrodescendiente</th>
+                                        <th colspan="2" style="background-color:#ebeeef; border:1px solid #000; padding:3px 5px; text-align:center;">Mestizo</th>
+                                    </tr>
+                                    <tr>
+                                        <th style="background-color:#ebeeef; border:1px solid #000; padding:3px 5px; text-align:center;">Hombres</th>
+                                        <th style="background-color:#ebeeef; border:1px solid #000; padding:3px 5px; text-align:center;">Mujeres</th>
+                                        <th style="background-color:#ebeeef; border:1px solid #000; padding:3px 5px; text-align:center;">Hombres</th>
+                                        <th style="background-color:#ebeeef; border:1px solid #000; padding:3px 5px; text-align:center;">Mujeres</th>
+                                        <th style="background-color:#ebeeef; border:1px solid #000; padding:3px 5px; text-align:center;">Hombres</th>
+                                        <th style="background-color:#ebeeef; border:1px solid #000; padding:3px 5px; text-align:center;">Mujeres</th>
+                                    </tr>
+                                    <tr>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->indigenas_hombres ?? 0) > 0 ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->indigenas_mujeres ?? 0) > 0 ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->afroamericanos_hombres ?? 0) > 0 ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->afroamericanos_mujeres ?? 0) > 0 ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->mestizos_hombres ?? 0) > 0 ? 'X' : '' }}</td>
+                                        <td style="border:1px solid #000; padding:3px 5px; text-align:center;">{{ ($proyecto->mestizos_mujeres ?? 0) > 0 ? 'X' : '' }}</td>
                                     </tr>
                                 </table>
                             </td>
@@ -619,79 +618,69 @@
                     <!-- Sitio de ejecución del proyecto -->
                     <table class="table_datos1 pdf-table pdf-section-avoid-break section-site-execution">
                     <tr>
-                        <th class="full-width1" colspan="6">8. Sitio de ejecución del proyecto</th>
+                        <th class="full-width1" colspan="6" style="text-align:left !important;">8. Sitio de ejecución del proyecto</th>
                     </tr>
+                    @php
+                        $departamentosTexto = $proyecto->departamento->pluck('nombre')->implode(', ');
+                        $municipiosTexto    = $proyecto->municipio->pluck('nombre')->implode(', ');
+                        $caserioArr         = is_array($proyecto->caserio) ? $proyecto->caserio : (array) ($proyecto->caserio ?? []);
+                        $caserioTexto       = implode(', ', array_filter($caserioArr, fn ($v) => filled($v)));
+                        $regionArr          = is_array($proyecto->region) ? $proyecto->region : (array) $proyecto->region;
+                        $regionTexto        = implode(', ', array_filter($regionArr, fn ($v) => filled($v)));
+                        $paisArr            = is_array($proyecto->pais) ? $proyecto->pais : (array) $proyecto->pais;
+                        $paisTexto          = implode(', ', array_filter($paisArr, fn ($v) => filled($v)));
+                    @endphp
                     <tr>
                         <td class="sub-header" colspan="1">Departamento</td>
                         <td class="full-width" colspan="1">
-                            @forelse ($proyecto->departamento as $departamento)
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad"
-                                        value="{{ $departamento->nombre }}" disabled>
-                                @empty
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad" value="No hay departamentos"
-                                        disabled>
-                                @endforelse
+                            @if (!empty($isPdf))
+                                <div class="pdf-text-block">{!! $renderPdfText($departamentosTexto, 'No hay departamentos') !!}</div>
+                            @else
+                                <div class="input-field-multiline-static">{{ $departamentosTexto !== '' ? $departamentosTexto : 'No hay departamentos' }}</div>
+                            @endif
                         </td>
                         <td class="sub-header" colspan="1">Aldea (incluye ciudad)</td>
                         <td class="full-width" colspan="3">
-                            <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el nombre de la entidad" value="{{ $proyecto->aldea }}"
-                                    disabled>
+                            @if (!empty($isPdf))
+                                <div class="pdf-text-block">{!! $renderPdfText($proyecto->aldea) !!}</div>
+                            @else
+                                <div class="input-field-multiline-static">{{ $proyecto->aldea }}</div>
+                            @endif
                         </td>
                     </tr>
                     <tr>
                         <td class="sub-header" colspan="1">Municipio</td>
                         <td class="full-width" colspan="1">
-                            @forelse ($proyecto->municipio as $municipio)
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad"
-                                        value="{{ $municipio->nombre }}" disabled>
-                                @empty
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad" value="No hay municipios"
-                                        disabled>
-                                @endforelse
+                            @if (!empty($isPdf))
+                                <div class="pdf-text-block">{!! $renderPdfText($municipiosTexto, 'No hay municipios') !!}</div>
+                            @else
+                                <div class="input-field-multiline-static">{{ $municipiosTexto !== '' ? $municipiosTexto : 'No hay municipios' }}</div>
+                            @endif
                         </td>
                         <td class="sub-header" colspan="1">Caserío</td>
                         <td class="full-width" colspan="3">
-                            @if(is_array($proyecto->caserio) && count($proyecto->caserio) > 0)
-                                @foreach($proyecto->caserio as $caserio)
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el caserío" value="{{ $caserio }}" disabled>
-                                @endforeach
+                            @if (!empty($isPdf))
+                                <div class="pdf-text-block">{!! $renderPdfText($caserioTexto) !!}</div>
                             @else
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el caserío" value="{{ $proyecto->caserio ?? '' }}" disabled>
+                                <div class="input-field-multiline-static">{{ $caserioTexto }}</div>
                             @endif
                         </td>
                     </tr>
                     <tr>
                         <td class="sub-header" colspan="1">Región</td>
                         <td class="full-width" colspan="1">
-                            @php $regionArr = is_array($proyecto->region) ? $proyecto->region : (array) $proyecto->region; @endphp
-                            @if(count($regionArr) > 0)
-                                @foreach($regionArr as $region)
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese la región" value="{{ $region }}" disabled>
-                                @endforeach
+                            @if (!empty($isPdf))
+                                <div class="pdf-text-block">{!! $renderPdfText($regionTexto) !!}</div>
                             @else
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese la región" value="" disabled>
+                                <div class="input-field-multiline-static">{{ $regionTexto }}</div>
                             @endif
                         </td>
                         <td class="sub-header" colspan="1">País</td>
                         <td class="full-width" colspan="3">
-                            @php $paisArr = is_array($proyecto->pais) ? $proyecto->pais : (array) $proyecto->pais; @endphp
-                            @if(count($paisArr) > 0)
-                                @foreach($paisArr as $pais)
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el país" value="{{ $pais }}" disabled>
-                                @endforeach
+                            @if (!empty($isPdf))
+                                <div class="pdf-text-block">{!! $renderPdfText($paisTexto) !!}</div>
                             @else
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el país" value="" disabled>
+                                <div class="input-field-multiline-static">{{ $paisTexto }}</div>
                             @endif
                         </td>
                     </tr>
@@ -709,21 +698,22 @@
                     <table class="table_datos1">
                         <!-- TABLA COORDINADOR DEL PROYECTO -->
                         <tr>
-                            <th class="full-width1" rowspan="3">Coordinador/a del Proyecto:</th>
+                            <th class="full-width1" rowspan="3">9. Coordinador/a del Proyecto:</th>
                             <td class="sub-header">Nombre Completo:</td>
                             <td class="full-width" colspan="2">
                                 @if (!empty($isPdf))
                                     <div class="pdf-text-block">{!! $renderPdfText($coordinador?->nombre_completo, 'No especificado') !!}</div>
                                 @else
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el nombre completo">{{ $coordinador?->nombre_completo ?? 'No especificado' }}</textarea>
+                                    <div class="input-field-multiline-static">{{ $coordinador?->nombre_completo ?? 'No especificado' }}</div>
                                 @endif
                             </td>
                             <td class="sub-header">No. de empleado:</td>
                             <td class="full-width" colspan="2">
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el número de empleado"
-                                    value="{{ $coordinador?->numero_empleado ?? 'No especificado' }}" disabled>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($coordinador?->numero_empleado ?? 'No especificado') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $coordinador?->numero_empleado ?? 'No especificado' }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
@@ -732,15 +722,16 @@
                                 @if (!empty($isPdf))
                                     <div class="pdf-text-block">{!! $renderPdfText($coordinador?->user?->email, 'No especificado') !!}</div>
                                 @else
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el correo electrónico">{{ $coordinador?->user?->email ?? 'No especificado' }}</textarea>
+                                    <div class="input-field-multiline-static">{{ $coordinador?->user?->email ?? 'No especificado' }}</div>
                                 @endif
                             </td>
                             <td class="sub-header">Celular:</td>
                             <td class="full-width" colspan="2">
-                                <input disabled type="email" class="input-field"
-                                    placeholder="Ingrese el número de celular"
-                                    value="{{ $coordinador?->celular ?? 'No especificado' }}" disabled>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($coordinador?->celular ?? 'No especificado') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $coordinador?->celular ?? 'No especificado' }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
@@ -749,8 +740,7 @@
                                 @if (!empty($isPdf))
                                     <div class="pdf-text-block">{!! $renderPdfText($coordinador?->categoria?->nombre, 'No especificado') !!}</div>
                                 @else
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el número de celular">{{ $coordinador?->categoria?->nombre ?? 'No especificado' }}</textarea>
+                                    <div class="input-field-multiline-static">{{ $coordinador?->categoria?->nombre ?? 'No especificado' }}</div>
                                 @endif
                             </td>
                             <td class="sub-header">Departamento:</td>
@@ -758,151 +748,89 @@
                                 @if (!empty($isPdf))
                                     <div class="pdf-text-block">{!! $renderPdfText($coordinador?->departamento_academico?->nombre, 'No especificado') !!}</div>
                                 @else
-                                    <textarea disabled rows="2" class="input-field-multiline"
-                                        placeholder="Ingrese el número de celular">{{ $coordinador?->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
+                                    <div class="input-field-multiline-static">{{ $coordinador?->departamento_academico?->nombre ?? 'No especificado' }}</div>
                                 @endif
                             </td>
                         </tr>
+                    </table>
 
                     <!-- TABLA DE INTEGRANTES DEL EQUIPO UNIVERSITARIO -->
+                    <table class="table_datos1">
                         <tr>
-                            <th class="full-width1" colspan="8">Integrantes del equipo docente permanente tiempo completo
+                            <th class="full-width1" colspan="8" style="text-align:left !important; padding-left:8px;">10. Integrantes del equipo docente permanente tiempo completo
                                 (Agregar más líneas de ser necesario)</th>
                         </tr>
                         <tr>
-                            <th class="full-width1" colspan="2">Cantidad de integrantes empleados:</th>
-                            <td class="full-width" colspan="6">
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el número de empleados"
-                                    value="{{ $proyecto->integrantes->count() }}" disabled>
-                               
-                            </td>
+                            <td class="sub-header" style="background-color:#001b44; color:#fff; font-weight:bold; text-align:center; font-style:normal; width:5%; white-space:nowrap; padding-left:2px; padding-right:2px;">N°</td>
+                            <td class="sub-header" style="background-color:#001b44; color:#fff; font-weight:bold; text-align:center; font-style:normal;">Nombre Completo:</td>
+                            <td class="sub-header" style="background-color:#001b44; color:#fff; font-weight:bold; text-align:center; font-style:normal;">No. de empleado/a:</td>
+                            <td class="sub-header" style="background-color:#001b44; color:#fff; font-weight:bold; text-align:center; font-style:normal;">Correo electrónico:</td>
+                            <td class="sub-header" style="background-color:#001b44; color:#fff; font-weight:bold; text-align:center; font-style:normal;">Categoria:</td>
+                            <td class="sub-header" style="background-color:#001b44; color:#fff; font-weight:bold; text-align:center; font-style:normal;">Departamento al que pertenece:</td>
+                            <td class="sub-header" style="background-color:#001b44; color:#fff; font-weight:bold; text-align:center; font-style:normal;">Tiempo de participación en el proyecto (estimado en horas)</td>
+                            <td class="sub-header" style="background-color:#001b44; color:#fff; font-weight:bold; text-align:center; font-style:normal;">Productos que tendrá a su cargo</td>
                         </tr>
-                        <tr>
-                            <td class="sub-header">Nombre Completo:</td>
-                            <td class="sub-header">No. de empleado/a:</td>
-                            <td class="sub-header">Correo electrónico:</td>
-                            <td class="sub-header">Categoria:</td>
-                            <td class="sub-header">Departamento:</td>
-                            <td class="sub-header">Tiempo de participación</td>
-                             <td class="sub-header">Productos a cargo</td>
-                           
-                        </tr>
+                        @php
+                            $tiempoPorIntegrante = [];
+                            $productosPorIntegrante = [];
+                            foreach ($proyecto->actividades as $actividadEquipo) {
+                                foreach ($actividadEquipo->empleados as $responsableActividad) {
+                                    $tiempoPorIntegrante[$responsableActividad->id] = ($tiempoPorIntegrante[$responsableActividad->id] ?? 0) + (int) ($actividadEquipo->horas ?? 0);
+                                    if (filled($actividadEquipo->resultados)) {
+                                        $productosPorIntegrante[$responsableActividad->id][] = $actividadEquipo->resultados;
+                                    }
+                                }
+                            }
+                        @endphp
                         @forelse ($proyecto->integrantes as $integrante)
                             <tr>
+                                <td class="full-width" colspan="1" style="text-align:center; width:3%;">{{ $loop->iteration }}</td>
                                 <td class="full-width" colspan="1">
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($integrante->nombre_completo) !!}</div>
                                     @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese el nombre completo">{{ $integrante->nombre_completo }}</textarea>
+                                        <div class="input-field-multiline-static">{{ $integrante->nombre_completo }}</div>
                                     @endif
                                 </td>
                                 <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el número de empleado"
-                                        value="{{ $integrante->numero_empleado }}" disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->numero_empleado) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $integrante->numero_empleado }}</div>
+                                    @endif
                                 </td>
                                 <td class="full-width" colspan="1">
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($integrante->user?->email, 'No especificado') !!}</div>
                                     @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese el correo electrónico">{{ $integrante->user?->email ?? 'No especificado' }}</textarea>
+                                        <div class="input-field-multiline-static">{{ $integrante->user?->email ?? 'No especificado' }}</div>
                                     @endif
                                 </td>
                                 <td class="full-width" colspan="1">
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($integrante->categoria?->nombre, 'Sin categoría') !!}</div>
                                     @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese la categoría">{{ $integrante->categoria?->nombre ?? 'Sin categoría' }}</textarea>
+                                        <div class="input-field-multiline-static">{{ $integrante->categoria?->nombre ?? 'Sin categoría' }}</div>
                                     @endif
                                 </td>
                                 <td class="full-width" colspan="1">
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($integrante->departamento_academico?->nombre, 'Sin departamento') !!}</div>
                                     @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'Sin departamento' }}</textarea>
+                                        <div class="input-field-multiline-static">{{ $integrante->departamento_academico?->nombre ?? 'Sin departamento' }}</div>
                                     @endif
                                 </td>
+                                <td class="full-width" colspan="1" style="text-align:center;">
+                                    {{ $tiempoPorIntegrante[$integrante->id] ?? 0 }}
+                                </td>
                                 <td class="full-width" colspan="1">
+                                    @php
+                                        $productosIntegrante = implode(', ', $productosPorIntegrante[$integrante->id] ?? []);
+                                    @endphp
                                     @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->departamento_academico?->nombre, 'No especificado') !!}</div>
+                                        <div class="pdf-text-block">{!! $renderPdfText($productosIntegrante, 'No especificado') !!}</div>
                                     @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
-                                    @endif
-                                </td>
-                                <td class="full-width" colspan="1">
-                                    @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->departamento_academico?->nombre, 'No especificado') !!}</div>
-                                    @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese el departamento">{{ $integrante->departamento_academico?->nombre ?? 'No especificado' }}</textarea>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td class="full-width
-                                " colspan="6">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el departamento" value="No hay docentes" disabled>
-                                </td>
-                            </tr>
-                        @endforelse
-                       
-                        <tr>
-                            <th class="full-width1" colspan="8">Integrantes del equipo de cooperación internacional
-                                (Agregar más líneas de ser necesario)</th>
-                        </tr>
-                        <tr>
-                            <td class="sub-header">Nombre Completo:</td>
-                            <td class="sub-header">Pasaporte:</td>
-                            <td class="sub-header">Correo electrónico:</td>
-                            <td class="sub-header">País:</td>
-                            <td class="sub-header">Universidad/Institucion:</td>
-                            
-                        </tr>
-                        @forelse ($proyecto->integrantesInternacionales as $integrante)
-                            <tr>
-                                <td class="full-width" colspan="1">
-                                    @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->nombre_completo) !!}</div>
-                                    @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese el nombre completo">{{ $integrante->nombre_completo }}</textarea>
-                                    @endif
-                                </td>
-                                <td class="full-width" colspan="1">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el número de empleado"
-                                        value="{{ $integrante->documento_identidad }}" disabled>
-                                </td>
-                                <td class="full-width" colspan="1">
-                                    @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->email) !!}</div>
-                                    @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese el correo electrónico">{{ $integrante->email }}</textarea>
-                                    @endif
-                                </td>
-                                <td class="full-width" colspan="1">
-                                    @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->pais) !!}</div>
-                                    @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese la categoría">{{ $integrante->pais }}</textarea>
-                                    @endif
-                                </td>
-                                <td class="full-width" colspan="1">
-                                    @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->institucion) !!}</div>
-                                    @else
-                                        <textarea disabled rows="2" class="input-field-multiline"
-                                            placeholder="Ingrese el departamento">{{ $integrante->institucion }}</textarea>
+                                        <div class="input-field-multiline-static">{{ $productosIntegrante ?: 'No especificado' }}</div>
                                     @endif
                                 </td>
                             </tr>
@@ -910,8 +838,75 @@
                             <tr>
                                 <td class="full-width
                                 " colspan="8">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Aqui van los integrantes internacionales" value="No hay integrantes" disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText('No hay docentes') !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">No hay docentes</div>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforelse
+                       
+                        <tr>
+                            <th class="full-width1" colspan="8" style="text-align:left !important; padding-left:8px;">11. Docentes internacionales participantes en el proyecto
+                                (Agregar más líneas de ser necesario)</th>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; text-align:center; font-style:normal; width:5%; white-space:nowrap; padding-left:2px; padding-right:2px;">N°</td>
+                            <td class="sub-header" colspan="2" style="background-color:#001b44; color:#fff; font-weight:bold; text-align:center; font-style:normal;">Nombre Completo:</td>
+                            <td class="sub-header" colspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; text-align:center; font-style:normal;">Pasaporte:</td>
+                            <td class="sub-header" colspan="2" style="background-color:#001b44; color:#fff; font-weight:bold; text-align:center; font-style:normal;">Correo electrónico:</td>
+                            <td class="sub-header" colspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; text-align:center; font-style:normal;">País:</td>
+                            <td class="sub-header" colspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; text-align:center; font-style:normal;">Universidad/Institucion:</td>
+                        </tr>
+                        @forelse ($proyecto->integrantesInternacionales as $integrante)
+                            <tr>
+                                <td class="full-width" colspan="1" style="text-align:center; width:3%;">{{ $loop->iteration }}</td>
+                                <td class="full-width" colspan="2">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->nombre_completo) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $integrante->nombre_completo }}</div>
+                                    @endif
+                                </td>
+                                <td class="full-width" colspan="1">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->documento_identidad) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $integrante->documento_identidad }}</div>
+                                    @endif
+                                </td>
+                                <td class="full-width" colspan="2">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->email) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $integrante->email }}</div>
+                                    @endif
+                                </td>
+                                <td class="full-width" colspan="1">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->pais) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $integrante->pais }}</div>
+                                    @endif
+                                </td>
+                                <td class="full-width" colspan="1">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($integrante->institucion) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $integrante->institucion }}</div>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td class="full-width
+                                " colspan="8">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText('No hay integrantes') !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">No hay integrantes</div>
+                                    @endif
                                 </td>
                             </tr>
                         @endforelse
@@ -973,9 +968,6 @@
                         || str_contains($categoriaNombre($empleado), 'instructor');
 
                     $esDocenteXHora = fn ($empleado) => $esDocenteBase($empleado) && str_contains($categoriaNombre($empleado), 'x hora');
-                    $esDocenteHorario = fn ($empleado) => $esDocenteBase($empleado) && str_contains($categoriaNombre($empleado), 'horario');
-                    $esDocentePermanente = fn ($empleado) => $esDocenteBase($empleado) && preg_match('/titular\\s*(i|ii|iii|iv|v)|permanente|auxiliar/u', $categoriaNombre($empleado)) === 1;
-                    $esDocente = fn ($empleado) => $esDocenteBase($empleado);
 
                     $esAdministrativo = fn ($empleado) => $esAdministrativoBase($empleado) && str_contains($categoriaNombre($empleado), 'administrativo');
                     $esServicios = fn ($empleado) => $esAdministrativoBase($empleado) && str_contains($categoriaNombre($empleado), 'servicio');
@@ -983,7 +975,6 @@
                         && (str_contains($categoriaNombre($empleado), 'tecnico')
                             || str_contains($categoriaNombre($empleado), 'instructor')
                             || str_contains($categoriaNombre($empleado), 'laboratorio'));
-                    $esPersonalAdministrativo = fn ($empleado) => $esAdministrativoBase($empleado);
 
                     $contarIntegrantes = function (callable $filtro, ?string $sexo = null) use ($integrantesProyecto) {
                         return $integrantesProyecto->filter(function ($empleado) use ($filtro, $sexo) {
@@ -999,216 +990,144 @@
                         })->count();
                     };
 
-                    $docentesHombres = $contarIntegrantes($esDocente, 'masculino');
-                    $docentesMujeres = $contarIntegrantes($esDocente, 'femenino');
                     $docentesXHoraHombres = $contarIntegrantes($esDocenteXHora, 'masculino');
                     $docentesXHoraMujeres = $contarIntegrantes($esDocenteXHora, 'femenino');
-                    $docentesHorarioHombres = $contarIntegrantes($esDocenteHorario, 'masculino');
-                    $docentesHorarioMujeres = $contarIntegrantes($esDocenteHorario, 'femenino');
-                    $docentesPermanentesHombres = $contarIntegrantes($esDocentePermanente, 'masculino');
-                    $docentesPermanentesMujeres = $contarIntegrantes($esDocentePermanente, 'femenino');
 
-                    $adminHombres = $contarIntegrantes($esPersonalAdministrativo, 'masculino');
-                    $adminMujeres = $contarIntegrantes($esPersonalAdministrativo, 'femenino');
                     $administrativosHombres = $contarIntegrantes($esAdministrativo, 'masculino');
                     $administrativosMujeres = $contarIntegrantes($esAdministrativo, 'femenino');
                     $serviciosHombres = $contarIntegrantes($esServicios, 'masculino');
                     $serviciosMujeres = $contarIntegrantes($esServicios, 'femenino');
                     $asistentesTecnicosHombres = $contarIntegrantes($esAsistenteTecnico, 'masculino');
                     $asistentesTecnicosMujeres = $contarIntegrantes($esAsistenteTecnico, 'femenino');
+
+                    $practicasAsignatura = $estudianteParticipaciones
+                        ->filter(fn ($item) => $normalizarTipoParticipacion($item->tipo_participacion_estudiante ?? '') === 'practica' && $item->asignatura_id);
+                    $filasPractica = max($practicasAsignatura->count(), 4);
+                    $practicasIndexadas = $practicasAsignatura->values();
                 @endphp
 
-                {{-- PARTICIPACIÓN DE LA COMUNIDAD UNIVERSITARIA --}}
+                {{-- PARTICIPACIÓN DE ESTUDIANTES Y VOLUNTARIOS --}}
                 <div class="section3">
-                    <div class="section-title">III. PARTICIPACIÓN MIEMBROS COMUNIDAD UNIVERSITARIA </div>
+                    <div class="section-title">III. PARTICIPACIÓN DE ESTUDIANTES Y VOLUNTARIOS</div>
                     <table class="table_datos1">
-                        <!-- PARTICIPACIÓN DE ESTUDIANTES -->
+                        <!-- 12. PARTICIPACIÓN DE ESTUDIANTES UNAH -->
                         <tr>
-                            <th class="full-width1" rowspan="5">Participación de estudiantes</th>
-                            <td class="sub-header" colspan="1">TOTAL</td>
-                            <td class="sub-header" colspan="6">Desglose del tipo de participación de estudiantes:</td>
+                            <th class="full-width1" rowspan="4">12. Participación de estudiantes UNAH</th>
+                            <td colspan="8" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic; text-align:center;">Desglose del tipo de participación de estudiantes (cantidad)</td>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="sub-header" colspan="2" rowspan="2">Práctica de asignatura</td>
-                            <td class="sub-header" colspan="2" rowspan="2">Servicio Social o PPS</td>
-                            <td class="sub-header" colspan="2" rowspan="2">Voluntariado</td>
+                            <td class="sub-header" colspan="2" style="text-align:center;">Práctica de asignatura / posgrado</td>
+                            <td class="sub-header" colspan="2" style="text-align:center;">Servicio social o PPS</td>
+                            <td class="sub-header" colspan="2" style="text-align:center;">Voluntariado</td>
+                            <td class="sub-header" colspan="2" style="text-align:center;"><u>Total</u> estudiantes</td>
                         </tr>
                         <tr>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $totalEstudiantesHombres }}" disabled>
-                            </td>
+                            <td class="sub-header" style="text-align:center;">Hombres</td>
+                            <td class="sub-header" style="text-align:center;">Mujeres</td>
+                            <td class="sub-header" style="text-align:center;">Hombres</td>
+                            <td class="sub-header" style="text-align:center;">Mujeres</td>
+                            <td class="sub-header" style="text-align:center;">Hombres</td>
+                            <td class="sub-header" style="text-align:center;">Mujeres</td>
+                            <td class="sub-header" style="text-align:center;">Hombres</td>
+                            <td class="sub-header" style="text-align:center;">Mujeres</td>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="1">Mujeres</td>
-                            <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="sub-header" colspan="1">Mujeres</td>
-                            <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="sub-header" colspan="1">Mujeres</td>
-                            <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="sub-header" colspan="1">Mujeres</td>
-                        </tr>
-                        <tr>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $totalEstudiantesMujeres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $practicaHombres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $practicaMujeres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $servicioHombres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $servicioMujeres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $voluntariadoHombres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $voluntariadoMujeres }}" disabled>
-                            </td>
+                            <td class="full-width" style="text-align:center;">{{ $practicaHombres }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $practicaMujeres }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $servicioHombres }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $servicioMujeres }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $voluntariadoHombres }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $voluntariadoMujeres }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $totalEstudiantesHombres }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $totalEstudiantesMujeres }}</td>
                         </tr>
 
-                        <!-- PARTICIPACIÓN DE PERSONAL DOCENTE -->
+                        <!-- 13. VOLUNTARIADO PERSONAL DE LA UNAH -->
                         <tr>
-                            <th class="full-width1" rowspan="5">Participación de personal docente</th>
-                            <td class="sub-header" colspan="1">TOTAL</td>
-                            <td class="sub-header" colspan="6">Desglose del tipo de participación de personal docente:</td>
+                            <th class="full-width1" rowspan="4">13. Voluntariado personal de la UNAH</th>
+                            <td colspan="8" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic; text-align:center;">Desglose del tipo de participación de personal de la UNAH (cantidad)</td>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="sub-header" colspan="2" rowspan="2">Profesores x hora</td>
-                            <td class="sub-header" colspan="2" rowspan="2">Profesores horarios</td>
-                            <td class="sub-header" colspan="2" rowspan="2">Profesores permanentes</td>
+                            <td class="sub-header" colspan="2" style="text-align:center;">Profesores horario x hora</td>
+                            <td class="sub-header" colspan="2" style="text-align:center;">Personal administrativo</td>
+                            <td class="sub-header" colspan="2" style="text-align:center;">Personal de servicio</td>
+                            <td class="sub-header" colspan="2" style="text-align:center;">Asistentes técnicos laboratorios / instructores</td>
                         </tr>
                         <tr>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $docentesHombres }}" disabled>
-                            </td>
+                            <td class="sub-header" style="text-align:center;">Hombres</td>
+                            <td class="sub-header" style="text-align:center;">Mujeres</td>
+                            <td class="sub-header" style="text-align:center;">Hombres</td>
+                            <td class="sub-header" style="text-align:center;">Mujeres</td>
+                            <td class="sub-header" style="text-align:center;">Hombres</td>
+                            <td class="sub-header" style="text-align:center;">Mujeres</td>
+                            <td class="sub-header" style="text-align:center;">Hombres</td>
+                            <td class="sub-header" style="text-align:center;">Mujeres</td>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="1">Mujeres</td>
-                            <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="sub-header" colspan="1">Mujeres</td>
-                            <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="sub-header" colspan="1">Mujeres</td>
-                            <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="sub-header" colspan="1">Mujeres</td>
-                        </tr>
-                        <tr>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $docentesMujeres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $docentesXHoraHombres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $docentesXHoraMujeres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $docentesHorarioHombres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $docentesHorarioMujeres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $docentesPermanentesHombres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $docentesPermanentesMujeres }}" disabled>
-                            </td>
+                            <td class="full-width" style="text-align:center;">{{ $docentesXHoraHombres }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $docentesXHoraMujeres }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $administrativosHombres }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $administrativosMujeres }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $serviciosHombres }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $serviciosMujeres }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $asistentesTecnicosHombres }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $asistentesTecnicosMujeres }}</td>
                         </tr>
 
-                        <!-- PARTICIPACIÓN DE PERSONAL ADMINISTRATIVO -->
+                        <!-- 14. VOLUNTARIADO INTERNACIONAL -->
                         <tr>
-                            <th class="full-width1" rowspan="5">Participación de personal administrativo</th>
-                            <td class="sub-header" colspan="1">TOTAL</td>
-                            <td class="sub-header" colspan="6">Desglose del tipo de participación de personal administrativo:</td>
+                            <th class="full-width1" rowspan="4">14. Voluntariado internacional</th>
+                            <td colspan="8" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic; text-align:center;">Desglose del voluntariado internacional (cantidad)</td>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="sub-header" colspan="2" rowspan="2">Administrativo</td>
-                            <td class="sub-header" colspan="2" rowspan="2">Servicios</td>
-                            <td class="sub-header" colspan="2" rowspan="2">Asistentes técnicos laboratorios / Instructores</td>
+                            <td class="sub-header" colspan="2" style="text-align:center;">Estudiantes de grado</td>
+                            <td class="sub-header" colspan="2" style="text-align:center;">Estudiantes de maestría</td>
+                            <td class="sub-header" colspan="4" style="text-align:center;">Doctorados / posdoctorados</td>
                         </tr>
                         <tr>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $adminHombres }}" disabled>
-                            </td>
+                            <td class="sub-header" style="text-align:center;">Hombres</td>
+                            <td class="sub-header" style="text-align:center;">Mujeres</td>
+                            <td class="sub-header" style="text-align:center;">Hombres</td>
+                            <td class="sub-header" style="text-align:center;">Mujeres</td>
+                            <td class="sub-header" colspan="2" style="text-align:center;">Hombres</td>
+                            <td class="sub-header" colspan="2" style="text-align:center;">Mujeres</td>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="1">Mujeres</td>
-                            <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="sub-header" colspan="1">Mujeres</td>
-                            <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="sub-header" colspan="1">Mujeres</td>
-                            <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="sub-header" colspan="1">Mujeres</td>
+                            <td class="full-width"></td>
+                            <td class="full-width"></td>
+                            <td class="full-width"></td>
+                            <td class="full-width"></td>
+                            <td class="full-width" colspan="2"></td>
+                            <td class="full-width" colspan="2"></td>
+                        </tr>
+
+                        <!-- 15. DETALLE DE LA PRÁCTICA DE ASIGNATURA/POSGRADO -->
+                        <tr>
+                            <th class="full-width1" rowspan="{{ 2 + $filasPractica }}">15. Detalle de la Práctica de asignatura/posgrado estudiantes UNAH</th>
+                            <td colspan="1" rowspan="2" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:normal; text-align:center;">Código</td>
+                            <td colspan="3" rowspan="2" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:normal; text-align:center;">Nombre</td>
+                            <td colspan="2" rowspan="2" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:normal; text-align:center;">Periodo académico</td>
+                            <td colspan="2" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:normal; text-align:center;">Matrícula</td>
                         </tr>
                         <tr>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $adminMujeres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $administrativosHombres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $administrativosMujeres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $serviciosHombres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $serviciosMujeres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $asistentesTecnicosHombres }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $asistentesTecnicosMujeres }}" disabled>
-                            </td>
+                            <td style="background-color:#001b44; color:#fff; font-weight:bold; font-style:normal; text-align:center;">Hombres</td>
+                            <td style="background-color:#001b44; color:#fff; font-weight:bold; font-style:normal; text-align:center;">Mujeres</td>
                         </tr>
-                        <tr>
-                            <th class="full-width1" rowspan="5">Detalle de la Práctica de asignatura/posgrado</th>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="5" rowspan="1"></td>
-                            <td class="sub-header" colspan="2" rowspan="1">Matrícula</td>
-                        </tr>
-                        <tr>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="1">Código</td>
-                            <td class="sub-header" colspan="2">Nombre</td>
-                            <td class="sub-header" colspan="2">Periodo académico</td>
-                            <td class="sub-header" colspan="1">Hombres</td>
-                            <td class="sub-header" colspan="1">Mujeres</td>
-                        </tr>
-                        <tr>
-                            <td class="full-width" colspan="1">
-                                {{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->where('asignatura_id', '!=', null)->first()?->asignatura?->codigo ?? '' }}
-                            </td>
-                            <td class="full-width" colspan="2">
-                               {{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->where('asignatura_id', '!=', null)->first()?->asignatura?->nombre ?? '' }}
-                            </td>
-                            <td class="full-width" colspan="2">
-                                {{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->where('asignatura_id', '!=', null)->first()?->periodo_academico_id ?? '' }}
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->sum('cantidad_estudiantes_hombres') }}" disabled>
-                            </td>
-                            <td class="full-width" colspan="1">
-                                <input disabled type="text" class="input-field" value="{{ $proyecto->estudiante_proyecto->where('tipo_participacion_estudiante', 'Practica Asignatura')->sum('cantidad_estudiantes_mujeres') }}" disabled>
-                            </td>
-                        </tr>
+                        @for ($i = 0; $i < $filasPractica; $i++)
+                            @php $practica = $practicasIndexadas->get($i); @endphp
+                            <tr>
+                                <td class="full-width" colspan="1">{{ $practica?->asignatura?->codigo ?? '' }}</td>
+                                <td class="full-width" colspan="3">{{ $practica?->asignatura?->nombre ?? '' }}</td>
+                                <td class="full-width" colspan="2">{{ $practica?->periodo_academico_id ?? '' }}</td>
+                                <td class="full-width" style="text-align:center;">{{ $practica?->cantidad_estudiantes_hombres ?? '' }}</td>
+                                <td class="full-width" style="text-align:center;">{{ $practica?->cantidad_estudiantes_mujeres ?? '' }}</td>
+                            </tr>
+                        @endfor
                     </table>
                 </div>
                 {{-- ENTIDAD CONTRAPARTE --}}
                 <div class="section4">
-                    <div class="section-title">IV. ENTIDAD CONTRAPARTE</div>
+                    <div class="section-title">IV. INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO (OBLIGATORIO)</div>
                     <table class="table_datos2">
                         <tr>
                             <th class="header" colspan="7">En caso de que la contraparte sea nacional (añadir una
@@ -1218,22 +1137,27 @@
                         @forelse ($proyecto->entidad_contraparte_proyecto()->with('entidadContraparte')->with('instrumentoFormalizacion')->get() as $pivot)
                             @php $entidad = $pivot->entidadContraparte; @endphp
                             <tr>
-                                <td class="sub-header">Nombre de la contraparte:</td>
+                                <td style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">16. Nombre de la contraparte:</td>
                                 <td class="full-width" colspan="6">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre de la entidad" value="{{ $entidad->nombre }}"
-                                        disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($entidad->nombre) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $entidad->nombre }}</div>
+                                    @endif
                                 </td>
                             </tr>
                             <tr>
                                 <td class="sub-header" rowspan="1">RTN:</td>
                                 <td class="full-width" colspan="6">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="RTN" value="{{ $entidad->rtn ?? '' }}" disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($entidad->rtn ?? '') !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $entidad->rtn ?? '' }}</div>
+                                    @endif
                                 </td>
                             </tr>
                             <tr>
-                                <td class="sub-header" rowspan="1">Tipo de contraparte:</td>
+                                <td rowspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">17. Tipo de contraparte:</td>
                                 <td class="sub-header1 pdf-choice" colspan="1">Gobierno Nacional <br>
                                     @if (!empty($isPdf)){!! $pdfCheck($entidad->tipo_entidad == 'gobierno_nacional') !!}@else<input disabled type="checkbox" class="No" @if ($entidad->tipo_entidad == 'gobierno_nacional') checked @endif>@endif
                                 </td>
@@ -1254,35 +1178,43 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td class="sub-header" rowspan="1">Nombre del contacto directo</td>
+                                <td rowspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">18. Nombre del contacto directo</td>
                                 <td class="full-width" colspan="3">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el nombre del contacto"
-                                        value="{{ $entidad->nombre_contacto }}" disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($entidad->nombre_contacto) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $entidad->nombre_contacto }}</div>
+                                    @endif
                                 </td>
                                 <td class="sub-header" colspan="1">Correo Electrónico</td>
                                 <td class="full-width" colspan="2">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el correo electrónico" value="{{ $entidad->correo }}"
-                                        disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($entidad->correo) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $entidad->correo }}</div>
+                                    @endif
                                 </td>
                             </tr>
                             <tr>
-                                <td class="sub-header" colspan="1">Cargo del contacto del proyecto</td>
+                                <td colspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">19. Cargo del contacto del proyecto</td>
                                 <td class="full-width" colspan="3">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el cargo del contacto" value="{{ $entidad->cargo_contacto ?? '' }}"
-                                        disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($entidad->cargo_contacto ?? '') !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $entidad->cargo_contacto ?? '' }}</div>
+                                    @endif
                                 </td>
                                 <td class="sub-header" colspan="1">Teléfono</td>
                                 <td class="full-width" colspan="2">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Ingrese el teléfono"
-                                        value="{{ $entidad->telefono }}" disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($entidad->telefono) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $entidad->telefono }}</div>
+                                    @endif
                                 </td>
                             </tr>
                             <tr>
-                                <td class="sub-header" colspan="1">Tipo de instrumento que da lugar a la alianza</td>
+                                <td colspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">20. Tipo de instrumento que da lugar a la alianza</td>
                                 <td class="sub-header1 pdf-choice" colspan="2">Carta formal de solicitud a la unidad académica <br>
                                     @if (!empty($isPdf)){!! $pdfCheck($pivot->instrumentoFormalizacion->contains('tipo_documento', 'carta_formal_solicitud')) !!}@else<input disabled type="checkbox" class="No" @if ($pivot->instrumentoFormalizacion->contains('tipo_documento', 'carta_formal_solicitud')) checked @endif>@endif
                                 </td>
@@ -1294,7 +1226,7 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td class="sub-header" colspan="1">Breve descripción de los compromisos asumidos por la contraparte</td>
+                                <td colspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">21. Breve descripción de los compromisos asumidos por la contraparte</td>
                                 <td class="full-width" colspan="6">
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($pivot->descripcion_acuerdos ?? '') !!}</div>
@@ -1312,9 +1244,11 @@
                             <tr>
                                 <td class="full-width
                                     " colspan="4">
-                                    <input disabled type="text" class="input-field"
-                                        placeholder="Tipo de documento" value="{{ $instrumento->tipo_documento_display }}"
-                                        disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($instrumento->tipo_documento_display) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $instrumento->tipo_documento_display }}</div>
+                                    @endif
                                 </td>
                                 <td class="full-width
                                     " colspan="3">
@@ -1367,9 +1301,11 @@
                         @empty
                             <td class="full-width
                                     " colspan="7">
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el departamento" value="No hay instrumentos de formalización"
-                                    disabled>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText('No hay instrumentos de formalización') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">No hay instrumentos de formalización</div>
+                                @endif
                             </td>
                         @endforelse
                         </tr>
@@ -1377,9 +1313,11 @@
                         <tr>
                             <td class="full-width
                                 " colspan="7">
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el departamento" value="No hay entidades contraparte"
-                                    disabled>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText('No hay entidades contraparte') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">No hay entidades contraparte</div>
+                                @endif
                             </td>
                         </tr>
                         @endforelse
@@ -1388,11 +1326,11 @@
 
 
                 <div class="section2">
-                    <div class="section-title">V. DATOS DEL PROYECTO</div>
+                    <div class="section-title">V. FORMULACIÓN DEL PROYECTO </div>
                     <table class="table_datos3">
                         <tr>
-                            <th class="header" colspan="19">1. Descripción del proyecto: (Explicar brevemente en qué consiste el proyecto, 
-                                los antecedentes que dieron su origen y la importancia que tiene para los objetivos estratégicos de la UNAH) De 150 a 250 palabras</th>
+                            <th class="header" colspan="19" style="text-align:left !important;">22. DESCRIPCIÓN DE LOS ANTECEDENTES DEL PROYECTO: (Explicar brevemente los antecedentes que dieron su origen y 
+                                la importancia que tiene para los objetivos estratégicos de la UNAH)</th>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
@@ -1407,23 +1345,52 @@
 
                         </tr>
                         <tr>
-                            <th class="header" colspan="19">2. Descripción de los participantes del proyecto (Descripción breve de las unidades académicas participantes y su alineamiento con la estrategia de 
-                                vinculación de la unidad. También se realizará una breve descripción de las contrapartes participantes, a qué se dedican y cómo se alinea el proyecto a los planes estratégicos)</th>
+                            <th class="header" colspan="19" style="text-align:left !important;">23. DESCRIPCIÓN DE LOS PARTICIPANTES DEL PROYECTO (En esta sección se hace una breve
+                                descripción de los alcances de la participación de los actores del proyecto. En el caso de la participación de
+                                la UNAH, se describirá de manera sucinta, cómo se articula el proyecto de vinculación con las funciones de
+                                la docencia (participación de asignaturas) y/o la investigación (si participa un grupo de investigación, o se
+                                generan insumos de una investigación en marcha))</th>
                         </tr>
                         <tr>
-                            <td class="full-width" colspan="19">
+                            <td class="sub-header" colspan="5" style="font-style:normal; font-weight:bold;">Descripción de la participación
+                                de la UNAH en el proyecto a través de las funciones de docencia e investigación</td>
+                            <td class="full-width" colspan="14">
                                 @if (!empty($isPdf))
-                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->descripcion_participantes) !!}</div>
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->participacion_unah) !!}</div>
                                 @else
-                                    <textarea disabled cols="30" rows="6" class="input-field"
-                                        placeholder="Descripción de participantes">{{ $proyecto->descripcion_participantes ?? '' }}</textarea>
+                                    <textarea disabled cols="30" rows="4" class="input-field"
+                                        placeholder="Descripción de la participación de la UNAH">{{ $proyecto->participacion_unah ?? '' }}</textarea>
+                                @endif
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="5" style="font-style:normal; font-weight:bold;">Descripción de la participación
+                                de la entidad contraparte</td>
+                            <td class="full-width" colspan="14">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->participacion_contraparte) !!}</div>
+                                @else
+                                    <textarea disabled cols="30" rows="4" class="input-field"
+                                        placeholder="Descripción de la participación de la entidad contraparte">{{ $proyecto->participacion_contraparte ?? '' }}</textarea>
+                                @endif
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="5" style="font-style:normal; font-weight:bold;">Descripción de la partipación
+                                de la comunidad beneficiada</td>
+                            <td class="full-width" colspan="14">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->participacion_comunidad) !!}</div>
+                                @else
+                                    <textarea disabled cols="30" rows="4" class="input-field"
+                                        placeholder="Descripción de la participación de la comunidad beneficiada">{{ $proyecto->participacion_comunidad ?? '' }}</textarea>
                                 @endif
                             </td>
                         </tr>
 
                         <tr>
-                            <th class="header" colspan="19">3. Definición del problema:  Breve descripción del problema que se desea resolver, indicando línea base que se tendrá en 
-                                consideración para la definición de los resultados del proyecto</th>
+                            <th class="header" colspan="19" style="text-align:left !important;">24.	DEFINICIÓN DEL PROBLEMA:  Breve descripción del problema que se desea resolver, indicando línea base que se tendrá en consideración 
+                                para la definición de los resultados del proyecto. La línea base debe representarse con datos y debe de describirse las causas del problema identificado</th>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
@@ -1435,38 +1402,205 @@
                                 @endif
                             </td>
                         </tr>
-                        
+
                         <tr>
-                            <td class="header" colspan="19">8. Impacto que se desea generar en el proyecto</th>
+                            <th class="header" colspan="19" style="text-align:left !important;">25. OBJETIVO GENERAL (El objetivo debe estar basado en la población participante del proyecto)</th>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
                                 @if (!empty($isPdf))
-                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->impacto_deseado) !!}</div>
+                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->objetivo_general, 'Sin objetivo general especificado') !!}</div>
                                 @else
-                                    <textarea disabled cols="30" rows="6" class="input-field"
-                                        placeholder="Impacto deseado">{{ $proyecto->impacto_deseado ?? '' }}</textarea>
+                                    <textarea disabled cols="30" rows="4" class="input-field"
+                                        placeholder="Objetivo general">{{ $proyecto->objetivo_general ?? '' }}</textarea>
                                 @endif
                             </td>
                         </tr>
+
                         <tr>
-                            <td class="header" colspan="19">9. Objetivos de Desarrollo Sostenible (ODS) a los que se contribuye: Indicar el o los 
-                                ODS a los que pretende contribuir el proyecto y las metas correspondientes. Para esta descripción deberá basarse en el documento de ODS 
-                                que puede consultar en el siguiente enlace: <a style="" href="https://www.un.org/sustainabledevelopment/es/objetivos-de-desarrollo-sostenible/">Objetivos y metas de desarrollo sostenible - Desarrollo Sostenible </a></th>
+                            <th class="header" colspan="19" style="text-align:left !important;">26. OBJETIVOS ESPECÍFICOS (Los objetivos específicos deben estar relacionados con los resultados que esperan obtener en el proyecto)</th>
                         </tr>
                         <tr>
-                            <td class="sub-header" colspan="3">Cantidad ODS:</td>
-                             <td class="sub-header" colspan="3">Descripción de ODS (Nombre y número):</td>
-                              <td class="sub-header" colspan="3">Metas a las que contribuye:</td>
+                            <td class="full-width" colspan="19">
+                                @php
+                                    $objetivosEspecificosTexto = $proyecto->objetivosEspecificos
+                                        ->map(fn($objetivoEsp, $idxObjetivoEsp) => ($idxObjetivoEsp + 1) . '. ' . $objetivoEsp->descripcion)
+                                        ->implode("\n");
+                                @endphp
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($objetivosEspecificosTexto, 'Sin objetivos específicos registrados') !!}</div>
+                                @else
+                                    <textarea disabled cols="30" rows="6" class="input-field"
+                                        placeholder="Objetivos específicos">{{ $objetivosEspecificosTexto }}</textarea>
+                                @endif
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th class="header" colspan="19">27. RESULTADOS DEL PROYECTO
+                                El indicador de resultado es una medida específica y observable que permite evaluar el grado de cumplimiento
+                                de los resultados que se han planteado. Sirven para evaluar en qué medida y calidad se lograron los objetivos
+                                del proyecto. Hay tres tipos de resultados: 1) corto plazo, que son los productos que se obtendrán con el
+                                proyecto, 2) los de mediano plazo: que son los efectos que alcanzará el proyecto y 3) los de largo plazo:
+                                resultados de impacto.</th>
+                        </tr>
+
+                        <tr>
+                            <td class="header" colspan="19" style="text-align:left !important;">a) Resultados de corto plazo del proyecto. Debe de plantearse resultados para cada objetivo específico. Son los productos que se lograrán a corto plazo</td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="2" style="font-style:normal; font-weight:bold; text-align:center;">OE<sup>i</sup></td>
+                            <td class="sub-header" colspan="8" style="font-style:normal; font-weight:bold; text-align:center;">Descripción del resultado de corto plazo</td>
+                            <td class="sub-header" colspan="9" style="font-style:normal; font-weight:bold; text-align:center;">Medio de verificación (indicador)</td>
+                        </tr>
+                        @php
+                            $huboResultadoCortoPlazo = false;
+                        @endphp
+                        @foreach ($proyecto->objetivosEspecificos as $idxObjetivoEsp => $objetivoEsp)
+                            @foreach ($objetivoEsp->resultados->where('plazo', 'corto_plazo') as $resultadoCorto)
+                                @php $huboResultadoCortoPlazo = true; @endphp
+                                <tr>
+                                    <td class="full-width" colspan="2" style="text-align:center;">{{ $idxObjetivoEsp + 1 }}</td>
+                                    <td class="full-width" colspan="8">
+                                        @if (!empty($isPdf))
+                                            <div class="pdf-text-block">{!! $renderPdfText($resultadoCorto->nombre_resultado) !!}</div>
+                                        @else
+                                            <textarea disabled cols="30" rows="2" class="input-field">{{ $resultadoCorto->nombre_resultado }}</textarea>
+                                        @endif
+                                    </td>
+                                    <td class="full-width" colspan="9">
+                                        @php
+                                            $verificacionCorto = trim(($resultadoCorto->nombre_indicador ?? '') . (!empty($resultadoCorto->nombre_medio_verificacion) ? ' / ' . $resultadoCorto->nombre_medio_verificacion : ''));
+                                        @endphp
+                                        @if (!empty($isPdf))
+                                            <div class="pdf-text-block">{!! $renderPdfText($verificacionCorto) !!}</div>
+                                        @else
+                                            <textarea disabled cols="30" rows="2" class="input-field">{{ $verificacionCorto }}</textarea>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        @endforeach
+                        @if (!$huboResultadoCortoPlazo)
+                            <tr>
+                                <td class="full-width" colspan="19">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText('Sin resultados de corto plazo registrados') !!}</div>
+                                    @else
+                                        <textarea disabled cols="30" rows="2" class="input-field">Sin resultados de corto plazo registrados</textarea>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endif
+
+                        <tr>
+                            <td class="header" colspan="19" style="text-align:left !important;">b) Resultados de mediano plazo. Son los efectos que se esperan alcanzar del proyecto, es decir, la transformación esperada en la población beneficiada</td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="9" style="font-style:normal; font-weight:bold; text-align:center;">Descripción del resultado</td>
+                            <td class="sub-header" colspan="10" style="font-style:normal; font-weight:bold; text-align:center;">Medio de verificación (indicador)</td>
+                        </tr>
+                        @php
+                            $resultadosMedianoPlazo = $proyecto->objetivosEspecificos->flatMap(fn($objetivoEsp) => $objetivoEsp->resultados->where('plazo', 'mediano_plazo'));
+                        @endphp
+                        @forelse ($resultadosMedianoPlazo as $resultadoMediano)
+                            <tr>
+                                <td class="full-width" colspan="9">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($resultadoMediano->nombre_resultado) !!}</div>
+                                    @else
+                                        <textarea disabled cols="30" rows="2" class="input-field">{{ $resultadoMediano->nombre_resultado }}</textarea>
+                                    @endif
+                                </td>
+                                <td class="full-width" colspan="10">
+                                    @php
+                                        $verificacionMediano = trim(($resultadoMediano->nombre_indicador ?? '') . (!empty($resultadoMediano->nombre_medio_verificacion) ? ' / ' . $resultadoMediano->nombre_medio_verificacion : ''));
+                                    @endphp
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($verificacionMediano) !!}</div>
+                                    @else
+                                        <textarea disabled cols="30" rows="2" class="input-field">{{ $verificacionMediano }}</textarea>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td class="full-width" colspan="19">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText('Sin resultados de mediano plazo registrados') !!}</div>
+                                    @else
+                                        <textarea disabled cols="30" rows="2" class="input-field">Sin resultados de mediano plazo registrados</textarea>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforelse
+
+                        <tr>
+                            <td class="header" colspan="19" style="text-align:left !important;">c) Impacto que se desea generar en el proyecto (Debe de expresar los indicadores de impacto del proyecto)</td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="9" style="font-style:normal; font-weight:bold; text-align:center;">Descripción del resultado de largo plazo</td>
+                            <td class="sub-header" colspan="10" style="font-style:normal; font-weight:bold; text-align:center;">Medio de verificación (indicador con el que se evaluará su cumplimiento)</td>
+                        </tr>
+                        @php
+                            $resultadosLargoPlazo = $proyecto->objetivosEspecificos->flatMap(fn($objetivoEsp) => $objetivoEsp->resultados->where('plazo', 'largo_plazo'));
+                        @endphp
+                        @forelse ($resultadosLargoPlazo as $resultadoLargo)
+                            <tr>
+                                <td class="full-width" colspan="9">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($resultadoLargo->nombre_resultado) !!}</div>
+                                    @else
+                                        <textarea disabled cols="30" rows="2" class="input-field">{{ $resultadoLargo->nombre_resultado }}</textarea>
+                                    @endif
+                                </td>
+                                <td class="full-width" colspan="10">
+                                    @php
+                                        $verificacionLargo = trim(($resultadoLargo->nombre_indicador ?? '') . (!empty($resultadoLargo->nombre_medio_verificacion) ? ' / ' . $resultadoLargo->nombre_medio_verificacion : ''));
+                                    @endphp
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($verificacionLargo) !!}</div>
+                                    @else
+                                        <textarea disabled cols="30" rows="2" class="input-field">{{ $verificacionLargo }}</textarea>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td class="full-width" colspan="19">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText('Sin resultados de largo plazo registrados') !!}</div>
+                                    @else
+                                        <textarea disabled cols="30" rows="2" class="input-field">Sin resultados de largo plazo registrados</textarea>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforelse
+
+                        <tr>
+                            <td class="header" colspan="19" style="text-align:left !important;">28. OBJETIVOS DE DESARROLLO SOSTENIBLE (ODS) A LOS QUE SE CONTRIBUYE: Indicar el o los
+                                ODS a los que pretende contribuir el proyecto y las metas correspondientes. Para esta descripción deberá basarse
+                                en el documento de ODS que puede consultar en el siguiente enlace:</th>
+                        </tr>
+                        <tr>
+                            <td class="header" colspan="19">
+                                <a href="https://www.un.org/sustainabledevelopment/es/objetivos-de-desarrollo-sostenible/">Objetivos y metas de desarrollo sostenible - Desarrollo Sostenible</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="sub-header" colspan="9" style="font-style:normal; font-weight:bold; text-align:center;">ODS</td>
+                            <td class="sub-header" colspan="10" style="font-style:normal; font-weight:bold; text-align:center;">Meta a la que se contribuye</td>
                         </tr>
                         @forelse ($proyecto->ods as $ods)
                             <tr>
-                                <td class="sub-header" colspan="3">ODS {{ $loop->iteration }}:</td>
-                                <td class="full-width" colspan="3">
-                                    <input disabled type="text" class="input-field" 
-                                        value="{{ $ods->nombre }}" placeholder="ODS">
+                                <td class="full-width" colspan="9">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($ods->nombre) !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">{{ $ods->nombre }}</div>
+                                    @endif
                                 </td>
-                                <td class="full-width" colspan="3">
+                                <td class="full-width" colspan="10">
                                     @php
                                         $metasOds = $proyecto->metasContribuye->where('ods_id', $ods->id)->count() > 0
                                             ? $proyecto->metasContribuye->where('ods_id', $ods->id)->map(function($meta) { return 'Meta ' . $meta->numero_meta . ': ' . $meta->descripcion; })->implode("\n")
@@ -1493,7 +1627,7 @@
                         @endforelse
 
                         <tr>
-                            <td class="header" colspan="19">10. Alineamiento con lo esencial de la reforma de la UNAH (detalle brevemente cómo se alinean los ejes de lo esencial de la reforma en la ejecución de este proyecto)</th>
+                            <td class="header" colspan="19">29. ALINEAMIENTO CON LO ESENCIAL DE LA REFORMA DE LA UNAH (detalle brevemente cómo se alinean los ejes de lo esencial de la reforma en la ejecución de este proyecto, en resumen, describa qué competencias relacionadas con los ejes de lo esencial de la reforma adquirirán los estudiantes con la participación en este proyecto.</th>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
@@ -1506,7 +1640,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="header" colspan="19">11. Metodología</th>
+                            <td class="header" colspan="19" style="text-align:left !important;">30. METODOLOGÍA</th>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
@@ -1519,7 +1653,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="header" colspan="19">12. Bibliografía</th>
+                            <td class="header" colspan="19" style="text-align:left !important;">31. BIBLIOGRAFÍA</th>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
@@ -1534,250 +1668,71 @@
                     </table>
                 </div>
 
-                {{-- FORMULACIÓN Y MARCO LÓGICO --}}
-                <div class="section2">
-                    <div class="section-title">VI. RESUMEN DEL MARCO LÓGICO DEL PROYECTO</div>
-                    <table class="table_datos3">
-                        {{-- Fila del Objetivo General --}}
-                        <tr>
-                            <td class="header" colspan="5">Objetivo general:</td>
-                            <td class="full-width" colspan="15">
-                                @if (!empty($isPdf))
-                                    <div class="pdf-text-block">{!! $renderPdfText($proyecto->objetivo_general, 'Sin objetivo general especificado') !!}</div>
-                                @else
-                                    <textarea disabled cols="30" rows="3" class="input-field">{{ $proyecto->objetivo_general ?? 'Sin objetivo general especificado' }}</textarea>
-                                @endif
-                            </td>
-                        </tr>
-                        {{-- Fila de headers --}}
-                        <tr>
-                            <td class="header" colspan="4">Objetivo específico</td>
-                            <td class="header" colspan="5">Resultado</td>
-                            <td class="header" colspan="5">Indicador de resultado</td>
-                            <td class="header" colspan="5">Medio de verificación</td>
-                            <td class="header" colspan="5">Plazo</td>
-                        </tr>
-                        {{-- Filas de datos --}}
-                        @if($proyecto->objetivosEspecificos->count() > 0)
-                            @foreach($proyecto->objetivosEspecificos as $indexObj => $objetivo)
-                                @if($objetivo->resultados->count() > 0)
-                                    @foreach($objetivo->resultados as $indexRes => $resultado)
-                                        <tr>
-                                            {{-- Objetivo específico solo en la primera fila de cada objetivo --}}
-                                            @if($indexRes == 0)
-                                                <td class="full-width" colspan="4" rowspan="{{ $objetivo->resultados->count() }}">
-                                                    @if (!empty($isPdf))
-                                                        <div class="pdf-text-block">{!! $renderPdfText($objetivo->descripcion) !!}</div>
-                                                    @else
-                                                        <textarea disabled cols="30" rows="{{ max(3, $objetivo->resultados->count() * 2) }}" class="input-field">{{ $objetivo->descripcion }}</textarea>
-                                                    @endif
-                                                </td>
-                                            @endif
-                                            
-                                            {{-- Resultado, indicador y medio de verificación en cada fila --}}
-                                            <td class="full-width" colspan="5">
-                                                @if (!empty($isPdf))
-                                                    <div class="pdf-text-block">{!! $renderPdfText($resultado->nombre_resultado, 'Sin resultado especificado') !!}</div>
-                                                @else
-                                                    <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_resultado ?? 'Sin resultado especificado' }}</textarea>
-                                                @endif
-                                            </td>
-                                            <td class="full-width" colspan="5">
-                                                @if (!empty($isPdf))
-                                                    <div class="pdf-text-block">{!! $renderPdfText($resultado->nombre_indicador, 'Sin indicador especificado') !!}</div>
-                                                @else
-                                                    <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_indicador ?? 'Sin indicador especificado' }}</textarea>
-                                                @endif
-                                            </td>
-                                            <td class="full-width" colspan="5">
-                                                @if (!empty($isPdf))
-                                                    <div class="pdf-text-block">{!! $renderPdfText($resultado->nombre_medio_verificacion, 'Sin medio de verificación especificado') !!}</div>
-                                                @else
-                                                    <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->nombre_medio_verificacion ?? 'Sin medio de verificación especificado' }}</textarea>
-                                                @endif
-                                            </td>
-                                            <td class="full-width" colspan="5">
-                                                @if (!empty($isPdf))
-                                                    <div class="pdf-text-block">{!! $renderPdfText($resultado->plazo_formateado) !!}</div>
-                                                @else
-                                                    <textarea disabled cols="30" rows="3" class="input-field">{{ $resultado->plazo_formateado }}</textarea>
-                                                @endif
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                @else
-                                    {{-- Objetivo sin resultados --}}
-                                    <tr>
-                                        <td class="full-width" colspan="4">
-                                            @if (!empty($isPdf))
-                                                <div class="pdf-text-block">{!! $renderPdfText($objetivo->descripcion) !!}</div>
-                                            @else
-                                                <textarea disabled cols="30" rows="3" class="input-field">{{ $objetivo->descripcion }}</textarea>
-                                            @endif
-                                        </td>
-                                        <td class="full-width" colspan="5">
-                                            @if (!empty($isPdf))
-                                                <div class="pdf-text-block">{!! $renderPdfText('Sin resultados registrados') !!}</div>
-                                            @else
-                                                <textarea disabled cols="30" rows="3" class="input-field">Sin resultados registrados</textarea>
-                                            @endif
-                                        </td>
-                                        <td class="full-width" colspan="5">
-                                            @if (!empty($isPdf))
-                                                <div class="pdf-text-block">{!! $renderPdfText('Sin indicadores registrados') !!}</div>
-                                            @else
-                                                <textarea disabled cols="30" rows="3" class="input-field">Sin indicadores registrados</textarea>
-                                            @endif
-                                        </td>
-                                        <td class="full-width" colspan="5">
-                                            @if (!empty($isPdf))
-                                                <div class="pdf-text-block">{!! $renderPdfText('Sin medios de verificación registrados') !!}</div>
-                                            @else
-                                                <textarea disabled cols="30" rows="3" class="input-field">Sin medios de verificación registrados</textarea>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @endif
-                            @endforeach
-                        @else
-                            {{-- Sin objetivos específicos --}}
-                            <tr>
-                                <td class="full-width" colspan="4">
-                                    @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText('Sin objetivos específicos registrados') !!}</div>
-                                    @else
-                                        <textarea disabled cols="30" rows="4" class="input-field">Sin objetivos específicos registrados</textarea>
-                                    @endif
-                                </td>
-                                <td class="full-width" colspan="5">
-                                    @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText('Sin resultados registrados') !!}</div>
-                                    @else
-                                        <textarea disabled cols="30" rows="3" class="input-field">Sin resultados registrados</textarea>
-                                    @endif
-                                </td>
-                                <td class="full-width" colspan="5">
-                                    @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText('Sin indicadores registrados') !!}</div>
-                                    @else
-                                        <textarea disabled cols="30" rows="3" class="input-field">Sin indicadores registrados</textarea>
-                                    @endif
-                                </td>
-                                <td class="full-width" colspan="5">
-                                    @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText('Sin medios de verificación registrados') !!}</div>
-                                    @else
-                                        <textarea disabled cols="30" rows="3" class="input-field">Sin medios de verificación registrados</textarea>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endif
-                    </table>
-                </div>
-
                 {{-- CRONOGRAMA --}}
                 <div class="section2">
-                    <div class="section-title">VII. CRONOGRAMA DE ACTIVIDADES DEL PROYECTO</div>
+                    <div class="section-title">VI. CRONOGRAMA DE LAS ACTIVIDADES DEL PROYECTO</div>
                     <table class="table_datos3">
                         <thead>
                             <tr>
-                                <th class="header" colspan="19">Descripción de las actividades del proyecto (incluye todas las actividades enmarcadas en el proyecto, las cuales pueden ser,
-                                    entre otras, la negociación inicial, la organización de los equipos de trabajo,
-                                    la planificación, el desarrollo de actividades de capacitación y fortalecimiento,
-                                    presentación de informe intermedio o parciales, presentación del informe final, proceso de evaluación, proceso de sistematización,
-                                    publicación de artículo, otras acciones de divulgación)</th>
+                                <th class="header" colspan="19" style="text-align:left !important;">32. DESCRIPCIÓN DE ACTIVIDADES DEL PROYECTO (Descripción de todas las actividades enmarcadas en
+                                    el proyecto, las cuales pueden ser, entre otras, la negociación inicial, la organización de los equipos de
+                                    trabajo, la planificación, el desarrollo de actividades de capacitación y fortalecimiento, presentación de
+                                    informe intermedio o parciales, presentación del informe final, proceso de evaluación, proceso de
+                                    sistematización, publicación de artículo, otras acciones de divulgación)</th>
                             </tr>
                             <tr>
                                 <td class="sub-header3" colspan="19">Cronograma de actividades</td>
                             </tr>
                             <tr>
-                                <td class="sub-header3" colspan="4">Actividades</td>
+                                <td class="sub-header3" colspan="4">Actividad</td>
+                                <td class="sub-header3" colspan="4">Producto</td>
                                 <td class="sub-header3" colspan="4">Fecha de ejecución</td>
-                                <td class="sub-header3" colspan="5">Responsables</td>
-                                <td class="sub-header3" colspan="6">Detalle</td>
+                                <td class="sub-header3" colspan="4">Responsable</td>
+                                <td class="sub-header3" colspan="3">Horas requeridas</td>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse ($proyecto->actividades as $actividad)
                                 <tr>
-                            <td class="s3" colspan="4">
-                                @if (!empty($isPdf))
-                                    <div class="pdf-text-block">{!! $renderPdfText($actividad->descripcion) !!}</div>
-                                @else
-                                    {{ $actividad->descripcion }}
-                                @endif
-                            </td>
-                            <td class="s3" colspan="4">{{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</td>
-                            <td class="" colspan="5">
-                                @forelse ($actividad->empleados as $responsable)
-                                    @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText($responsable->nombre_completo) !!}</div>
-                                    @else
-                                        <input disabled type="text" class="input-field"
-                                            placeholder="Ingrese el nombre de la entidad"
-                                            value="{{ $responsable->nombre_completo }}" disabled>
-                                    @endif
-
-                                @empty
-                                @endforelse
-
-                            </td>
-                                <td class="" colspan="6">
-                                    @if (empty($isPdf))
-                                        <div x-data="{ open: false }">
-                                            <button type="button" @click="open = true"
-                                                class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition">
-                                                Ver Actividad
-                                            </button>
-                                            <div x-show="open" x-cloak class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
-                                                <div class="fixed inset-0 bg-black/60" @click.self="open = false"></div>
-                                                <div class="relative flex min-h-full items-start justify-center p-4">
-                                                    <div class="relative w-full max-w-7xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl my-4">
-                                                        <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-3">
-                                                            <span class="text-sm font-semibold text-gray-900 dark:text-white">Actividad</span>
-                                                            <button type="button" @click="open = false"
-                                                                class="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-                                                                aria-label="Cerrar">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
-                                                                    <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/>
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                        <div class="p-6">
-                                                            <div class="activity-container">
-                                                                <div class="activity-header">Detalles de la Actividad</div>
-                                                                <div class="activity-body">
-                                                                    <div class="row">
-                                                                        <div class="column"><strong>Fecha de Inicio:</strong>
-                                                                            {{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</div>
-                                                                    </div>
-                                                                    <div class="column"><strong>Horas:</strong> {{ $actividad->horas }}</div>
-                                                                    <div class="highlight"><strong>Responsables:</strong>
-                                                                        @forelse ($actividad->empleados as $responsable)
-                                                                            <div>
-                                                                                <div>{{ $responsable->nombre_completo }}</div>
-                                                                            </div>
-                                                                        @empty
-                                                                            No asignado
-                                                                        @endforelse
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <span>Actividad registrada</span>
-                                    @endif
-                                </td>
+                                    <td class="s3" colspan="4">
+                                        @if (!empty($isPdf))
+                                            <div class="pdf-text-block">{!! $renderPdfText($actividad->descripcion) !!}</div>
+                                        @else
+                                            {{ $actividad->descripcion }}
+                                        @endif
+                                    </td>
+                                    <td class="s3" colspan="4">
+                                        @if (!empty($isPdf))
+                                            <div class="pdf-text-block">{!! $renderPdfText($actividad->resultados) !!}</div>
+                                        @else
+                                            {{ $actividad->resultados }}
+                                        @endif
+                                    </td>
+                                    <td class="s3" colspan="4">{{ $actividad->fecha_inicio }} - {{ $actividad->fecha_finalizacion }}</td>
+                                    <td class="s3" colspan="4">
+                                        @forelse ($actividad->empleados as $responsable)
+                                            @if (!empty($isPdf))
+                                                <div class="pdf-text-block">{!! $renderPdfText($responsable->nombre_completo) !!}</div>
+                                            @else
+                                                @if (!empty($isPdf))
+                                                    <div class="pdf-text-block">{!! $renderPdfText($responsable->nombre_completo) !!}</div>
+                                                @else
+                                                    <div class="input-field-multiline-static">{{ $responsable->nombre_completo }}</div>
+                                                @endif
+                                            @endif
+                                        @empty
+                                        @endforelse
+                                    </td>
+                                    <td class="s3" colspan="3" style="text-align:center;">{{ $actividad->horas }}</td>
                                 </tr>
                             @empty
                                 <tr>
                                     <td class="full-width" colspan="19">
-                                        <input disabled type="text" class="input-field"
-                                            value="No hay actividades registradas" disabled>
+                                        @if (!empty($isPdf))
+                                            <div class="pdf-text-block">{!! $renderPdfText('No hay actividades registradas') !!}</div>
+                                        @else
+                                            <div class="input-field-multiline-static">No hay actividades registradas</div>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforelse
@@ -1788,10 +1743,10 @@
 
                 {{-- PRESUPUESTO --}}
                 <div class="section2 section-budget">
-                    <div class="section-title">VIII. PRESUPUESTO DEL PROYECTO</div>
+                    <div class="section-title">VII. DETALLE DEL PRESUPUESTO</div>
                     <table class="table_datos3">
                         <tr>
-                            <td class="header" colspan="19">9. Presupuesto del Proyecto — aporte institucional expresado en lempiras</td>
+                            <td class="header" colspan="19" style="text-align:left !important;">33. APORTE INSTITUCIONAL (manifestado en lempiras)</td>
                         </tr>
                         <tr>
                             <td class="header" colspan="7">Concepto</td>
@@ -1823,16 +1778,25 @@
                             <td class="sub-header" colspan="7">a) Horas de trabajo docentes</td>
                             <td class="sub-header" colspan="3">Hra/profesores</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('horas_trabajo_docentes')?->cantidad ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('horas_trabajo_docentes')?->cantidad ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('horas_trabajo_docentes')?->cantidad ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('horas_trabajo_docentes')?->costo_unitario ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('horas_trabajo_docentes')?->costo_unitario ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('horas_trabajo_docentes')?->costo_unitario ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('horas_trabajo_docentes')?->costo_total ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('horas_trabajo_docentes')?->costo_total ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('horas_trabajo_docentes')?->costo_total ?? '' }}</div>
+                                @endif
                             </td>
                         </tr>
                         
@@ -1841,16 +1805,25 @@
                             <td class="sub-header" colspan="7">b) Horas de trabajo estudiantes</td>
                             <td class="sub-header" colspan="3">Hra/estudiantes</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('horas_trabajo_estudiantes')?->cantidad ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('horas_trabajo_estudiantes')?->cantidad ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('horas_trabajo_estudiantes')?->cantidad ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('horas_trabajo_estudiantes')?->costo_unitario ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('horas_trabajo_estudiantes')?->costo_unitario ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('horas_trabajo_estudiantes')?->costo_unitario ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('horas_trabajo_estudiantes')?->costo_total ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('horas_trabajo_estudiantes')?->costo_total ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('horas_trabajo_estudiantes')?->costo_total ?? '' }}</div>
+                                @endif
                             </td>
                         </tr>
                         
@@ -1859,16 +1832,25 @@
                             <td class="sub-header" colspan="7">c) Gastos de movilización</td>
                             <td class="sub-header" colspan="3">Global</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('gastos_movilizacion')?->cantidad ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('gastos_movilizacion')?->cantidad ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('gastos_movilizacion')?->cantidad ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('gastos_movilizacion')?->costo_unitario ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('gastos_movilizacion')?->costo_unitario ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('gastos_movilizacion')?->costo_unitario ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('gastos_movilizacion')?->costo_total ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('gastos_movilizacion')?->costo_total ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('gastos_movilizacion')?->costo_total ?? '' }}</div>
+                                @endif
                             </td>
                         </tr>
                         
@@ -1877,16 +1859,25 @@
                             <td class="sub-header" colspan="7">d) Útiles y materiales de oficina</td>
                             <td class="sub-header" colspan="3">Global</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('utiles_materiales_oficina')?->cantidad ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('utiles_materiales_oficina')?->cantidad ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('utiles_materiales_oficina')?->cantidad ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('utiles_materiales_oficina')?->costo_unitario ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('utiles_materiales_oficina')?->costo_unitario ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('utiles_materiales_oficina')?->costo_unitario ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('utiles_materiales_oficina')?->costo_total ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('utiles_materiales_oficina')?->costo_total ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('utiles_materiales_oficina')?->costo_total ?? '' }}</div>
+                                @endif
                             </td>
                         </tr>
                         
@@ -1895,16 +1886,25 @@
                             <td class="sub-header" colspan="7">e) Gastos de impresión</td>
                             <td class="sub-header" colspan="3">Global</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('gastos_impresion')?->cantidad ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('gastos_impresion')?->cantidad ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('gastos_impresion')?->cantidad ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('gastos_impresion')?->costo_unitario ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('gastos_impresion')?->costo_unitario ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('gastos_impresion')?->costo_unitario ?? '' }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ $conceptos->get('gastos_impresion')?->costo_total ?? '' }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('gastos_impresion')?->costo_total ?? '') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ $conceptos->get('gastos_impresion')?->costo_total ?? '' }}</div>
+                                @endif
                             </td>
                         </tr>
                         
@@ -1913,16 +1913,25 @@
                             <td class="sub-header" colspan="7">f) Costos indirectos por infraestructura universidad (depreciación de equipo, calculado sobre la sumatoria de los conceptos a – e)</td>
                             <td class="sub-header" colspan="3">%</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($infraestructura?->cantidad ?? $cantidadIndirecta, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($infraestructura?->cantidad ?? $cantidadIndirecta, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($infraestructura?->cantidad ?? $cantidadIndirecta, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($infraestructura?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($infraestructura?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($infraestructura?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($infraestructura?->costo_total ?? $costoTotalIndirecto, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($infraestructura?->costo_total ?? $costoTotalIndirecto, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($infraestructura?->costo_total ?? $costoTotalIndirecto, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         
@@ -1931,16 +1940,25 @@
                             <td class="sub-header" colspan="7">g) Costos indirectos por servicios públicos (internet, electricidad, otros, calculado sobre la sumatoria de los conceptos a – e)</td>
                             <td class="sub-header" colspan="3">%</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($servicios?->cantidad ?? $cantidadIndirecta, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($servicios?->cantidad ?? $cantidadIndirecta, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($servicios?->cantidad ?? $cantidadIndirecta, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($servicios?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($servicios?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($servicios?->costo_unitario ?? $costoUnitarioIndirecto, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($servicios?->costo_total ?? $costoTotalIndirecto, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($servicios?->costo_total ?? $costoTotalIndirecto, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($servicios?->costo_total ?? $costoTotalIndirecto, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         
@@ -1948,57 +1966,91 @@
                         <tr>
                             <td class="sub-headeri" colspan="16">Total aporte institucional</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->total_aporte_institucional ?? 0, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($proyecto->total_aporte_institucional ?? 0, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($proyecto->total_aporte_institucional ?? 0, 2, '.', ',') }}</div>
+                                @endif
                             </td>
+                        </tr>
+                        <tr>
+                            <td class="header" colspan="19" style="text-align:left !important;">34. OTRAS APORTACIONES (Manifestado en lempiras)</td>
                         </tr>
                         <tr>
                             <td class="sub-headert" colspan="16">Aporte de la contraparte</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_contraparte ?? 0, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($proyecto->presupuesto?->aporte_contraparte ?? 0, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($proyecto->presupuesto?->aporte_contraparte ?? 0, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-headert" colspan="16">Aporte fondos internacionales</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_internacionales ?? 0, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($proyecto->presupuesto?->aporte_internacionales ?? 0, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($proyecto->presupuesto?->aporte_internacionales ?? 0, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-headert" colspan="16">Aporte de otras universidades</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_otras_universidades ?? 0, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($proyecto->presupuesto?->aporte_otras_universidades ?? 0, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($proyecto->presupuesto?->aporte_otras_universidades ?? 0, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-headert" colspan="16">Aporte de los beneficiarios (comunidad)</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->presupuesto?->aporte_comunidad ?? 0, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($proyecto->presupuesto?->aporte_comunidad ?? 0, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($proyecto->presupuesto?->aporte_comunidad ?? 0, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
                             <td class="sub-headert" colspan="16">Otros aportes</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                    value="{{ number_format($proyecto->presupuesto?->otros_aportes ?? 0, 2, '.', ',') }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($proyecto->presupuesto?->otros_aportes ?? 0, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($proyecto->presupuesto?->otros_aportes ?? 0, 2, '.', ',') }}</div>
+                                @endif
+                            </td>
+                        </tr>
+                        @php
+                            $totalOtrasAportaciones = ($proyecto->presupuesto?->aporte_contraparte ?? 0) +
+                                ($proyecto->presupuesto?->aporte_internacionales ?? 0) +
+                                ($proyecto->presupuesto?->aporte_otras_universidades ?? 0) +
+                                ($proyecto->presupuesto?->aporte_comunidad ?? 0) +
+                                ($proyecto->presupuesto?->otros_aportes ?? 0);
+                        @endphp
+                        <tr>
+                            <td class="sub-headeri" colspan="16">Total otras aportaciones</td>
+                            <td class="full-width" colspan="3">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format($totalOtrasAportaciones, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format($totalOtrasAportaciones, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                         <tr>
-                            <td class="sub-headeri" colspan="16">Total del presupuesto del proyecto</td>
+                            <td class="sub-headeri" colspan="16">TOTAL PROYECTO (Aporte institucional + otras aportaciones)</td>
                             <td class="full-width" colspan="3">
-                                <input disabled type="text" class="input-field" 
-                                     value="{{ number_format(
-                                        ($proyecto->presupuesto?->aporte_internacionales ?? 0) +
-                                        ($proyecto->total_aporte_institucional ?? 0) +
-                                        ($proyecto->presupuesto?->aporte_otras_universidades ?? 0) +
-                                        ($proyecto->presupuesto?->otros_aportes ?? 0) +
-                                        ($proyecto->presupuesto?->aporte_contraparte ?? 0) +
-                                        ($proyecto->presupuesto?->aporte_comunidad ?? 0), 2, '.', ','
-                                    ) }}">
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText(number_format(($proyecto->total_aporte_institucional ?? 0) + $totalOtrasAportaciones, 2, '.', ',')) !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">{{ number_format(($proyecto->total_aporte_institucional ?? 0) + $totalOtrasAportaciones, 2, '.', ',') }}</div>
+                                @endif
                             </td>
                         </tr>
                     </table>
@@ -2011,7 +2063,7 @@
 
                 {{-- DOCUMENTOS ADJUNTOS --}}
                 <div class="section4 section-documents">
-                    <div class="section-title">X. DOCUMENTOS ADJUNTOS A LA FICHA</div>
+                    <div class="section-title">DOCUMENTOS ADJUNTOS A LA FICHA</div>
                     <table class="table_datos5">
                         <tr>
                             <th class="header" colspan="1">No</th>
@@ -2077,8 +2129,11 @@
                             <tr>
                             <td class="full-width
                                 " colspan="8">
-                                <input disabled type="text" class="input-field"
-                                    placeholder="Ingrese el departamento" value="ANEXO DEL PROYECTO" disabled>
+                                @if (!empty($isPdf))
+                                    <div class="pdf-text-block">{!! $renderPdfText('ANEXO DEL PROYECTO') !!}</div>
+                                @else
+                                    <div class="input-field-multiline-static">ANEXO DEL PROYECTO</div>
+                                @endif
                            </td>
                             <td class="full-width" colspan="11">
                                 @if (empty($isPdf))
@@ -2127,8 +2182,11 @@
                         @empty
                             <tr>
                                 <td class="full-width" colspan="19">
-                                    <input disabled type="text" class="input-field"
-                                        value="No hay anexos registrados en este momento" disabled>
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText('No hay anexos registrados en este momento') !!}</div>
+                                    @else
+                                        <div class="input-field-multiline-static">No hay anexos registrados en este momento</div>
+                                    @endif
                                 </td>
                             </tr>
                         @endforelse

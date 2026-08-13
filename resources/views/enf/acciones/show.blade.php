@@ -1,13 +1,16 @@
 @extends('layouts.panel.base')
 
 @php
-    use Illuminate\Support\Facades\Storage;
     $esForm018 = ($accion->codigo_formulario ?? null) === 'FORM-DVUS-018';
     $esForm016 = ($accion->codigo_formulario ?? null) === 'FORM-DVUS-016';
     $esDocumentoEnf = $esForm018 || $esForm016;
     $estadoFlujoNormalizado = strtoupper((string) $accion->estado_flujo);
     $inscripcionAprobada = $estadoFlujoNormalizado === 'APROBADO';
     $estadoEnfVista = $inscripcionAprobada ? 'En curso' : str_replace('_', ' ', (string) $accion->estado_flujo);
+    $versionDocumento = max(
+        (int) ($accion->updated_at?->timestamp ?? 0),
+        (int) ($accion->documentos->max('updated_at')?->timestamp ?? 0),
+    );
     $puedeActualizarEquipoFechasEnf = $esDocumentoEnf
         && $inscripcionAprobada
         && auth()->id()
@@ -65,6 +68,12 @@
 
                 <div class="flex flex-wrap gap-2">
                     @if ($esDocumentoEnf)
+                        @if ($esForm018)
+                            <a href="{{ route('enf.acciones.pdf.ver', ['accion' => $accion, 'v' => $versionDocumento]) }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg border border-sky-300 bg-white px-3 py-2 text-sm font-medium text-sky-700 hover:bg-sky-50">
+                                @svg('heroicon-o-eye', ['class' => 'h-4 w-4'])
+                                Ver PDF
+                            </a>
+                        @endif
                         <a href="{{ route('enf.acciones.pdf', $accion) }}" class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700">
                             @svg('heroicon-o-arrow-down-tray', ['class' => 'h-4 w-4'])
                             Descargar PDF
@@ -218,7 +227,7 @@
                                     </p>
                                 @endif
 
-                                @if(($opcionesDestinatariosFinal ?? collect())->isNotEmpty() && ($cierreInformeFinal['accion'] ?? null) === 'enviar')
+                                @if(($opcionesDestinatariosFinal ?? collect())->isNotEmpty() && in_array(($cierreInformeFinal['accion'] ?? null), ['enviar', 'subsanar'], true))
                                     <form id="enf-final-send-form-{{ $accion->id }}" method="POST" action="{{ route('enf.informes-finales.enviar', $cierreInformeFinal['informe']) }}" class="mt-4 grid gap-3 md:grid-cols-2">
                                         @csrf
                                         @foreach($opcionesDestinatariosFinal as $etapaId => $opcion)
@@ -244,10 +253,14 @@
                                 @elseif(($cierreInformeFinal['accion'] ?? null) === 'subsanar')
                                     <a href="{{ route('enf.acciones.informe-final.edit', $accion) }}" class="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">Editar subsanaci&oacute;n</a>
                                     @if($cierreInformeFinal['puede_enviar'])
-                                        <form method="POST" action="{{ route('enf.informes-finales.enviar', $cierreInformeFinal['informe']) }}">
-                                            @csrf
-                                            <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Reenviar informe final</button>
-                                        </form>
+                                        @if(($opcionesDestinatariosFinal ?? collect())->isNotEmpty())
+                                            <button form="enf-final-send-form-{{ $accion->id }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Reenviar informe final</button>
+                                        @else
+                                            <form method="POST" action="{{ route('enf.informes-finales.enviar', $cierreInformeFinal['informe']) }}">
+                                                @csrf
+                                                <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Reenviar informe final</button>
+                                            </form>
+                                        @endif
                                     @endif
                                 @elseif(($cierreInformeFinal['accion'] ?? null) === 'enviar' && $cierreInformeFinal['puede_enviar'])
                                     @if(($opcionesDestinatariosFinal ?? collect())->isNotEmpty())
@@ -278,58 +291,82 @@
             </div>
         @endif
 
-        @if (($puedeRevisar ?? false) || ($puedeReenviar ?? false))
+        @if (($puedeRevisar ?? false) && ($revisionActual ?? null))
             <div class="no-print rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
-                        <h2 class="mb-2 text-sm font-bold uppercase text-slate-500">Flujo de revisi&oacute;n</h2>
-                        @if ($revisionActual ?? null)
-                            <p class="text-sm text-slate-700 dark:text-slate-300">
-                                Etapa actual: <span class="font-semibold">{{ $revisionActual->etapa_nombre }}</span>
-                                @if ($revisionActual->rol_requerido)
-                                    &middot; Rol: {{ $revisionActual->rol_requerido }}
-                                @endif
-                            </p>
-                        @else
-                            <p class="text-sm text-slate-700 dark:text-slate-300">No hay etapa pendiente en el ciclo actual.</p>
+                <div>
+                    <h2 class="mb-2 text-sm font-bold uppercase text-slate-500">Revisi&oacute;n actual</h2>
+                    <p class="text-sm text-slate-700 dark:text-slate-300">
+                        Etapa: <span class="font-semibold">{{ $revisionActual->etapa_nombre }}</span>
+                        @if ($revisionActual->rol_requerido)
+                            &middot; Rol: {{ $revisionActual->rol_requerido }}
                         @endif
-                    </div>
-
-                    @if ($puedeReenviar ?? false)
-                        <form method="POST" action="{{ route('enf.acciones.reenviar-revision', $accion) }}">
-                            @csrf
-                            <button class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">
-                                Reenviar a revisi&oacute;n
-                            </button>
-                        </form>
-                    @endif
+                    </p>
                 </div>
 
-                @if (($puedeRevisar ?? false) && ($revisionActual ?? null))
-                    <div class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                        <form method="POST" action="{{ route('enf.acciones.revisiones.aprobar', [$accion, $revisionActual]) }}" class="space-y-3">
-                            @csrf
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Observaci&oacute;n de aprobaci&oacute;n</label>
-                            <textarea name="observaciones" rows="3" class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
-                            <button class="rounded-md bg-green-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-800">
-                                Aprobar etapa
-                            </button>
-                        </form>
+                <div class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <form method="POST" action="{{ route('enf.acciones.revisiones.aprobar', [$accion, $revisionActual]) }}" class="space-y-3">
+                        @csrf
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Observaci&oacute;n de aprobaci&oacute;n</label>
+                        <textarea name="observaciones" rows="3" class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
+                        <button class="rounded-md bg-green-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-800">Aprobar etapa</button>
+                    </form>
 
-                        <form method="POST" action="{{ route('enf.acciones.revisiones.subsanar', [$accion, $revisionActual]) }}" class="space-y-3">
-                            @csrf
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Observaci&oacute;n de subsanaci&oacute;n</label>
-                            <textarea name="observaciones" rows="3" required class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
-                            <button class="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-800">
-                                Enviar a subsanaci&oacute;n
-                            </button>
-                        </form>
-                    </div>
-                @endif
+                    <form method="POST" action="{{ route('enf.acciones.revisiones.subsanar', [$accion, $revisionActual]) }}" class="space-y-3">
+                        @csrf
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Observaci&oacute;n de subsanaci&oacute;n</label>
+                        <textarea name="observaciones" rows="3" required class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
+                        <button class="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-800">Enviar a subsanaci&oacute;n</button>
+                    </form>
+                </div>
             </div>
         @endif
 
         @if ($esDocumentoEnf)
+            <section class="no-print rounded-xl border border-sky-200 bg-white p-5 shadow-sm dark:border-sky-900 dark:bg-gray-900">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 class="mt-1 text-lg font-bold text-gray-900 dark:text-white">Documentos adjuntos</h2>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Archivos de respaldo cargados junto con la ficha.</p>
+                    </div>
+                    <span class="self-start rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-950/50 dark:text-sky-300">
+                        {{ $accion->documentos->count() }} {{ $accion->documentos->count() === 1 ? 'archivo' : 'archivos' }}
+                    </span>
+                </div>
+
+                <div class="mt-4 grid gap-3 lg:grid-cols-3">
+                    @forelse ($accion->documentos as $documento)
+                        <article class="flex flex-col justify-between gap-4 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                            <div class="min-w-0">
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $documento->nombre }}</h3>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    {{ $documento->mime_type ?: 'Tipo no identificado' }}
+                                    @if ($documento->tamano_bytes)
+                                        &middot; {{ number_format($documento->tamano_bytes / 1024, 1) }} KB
+                                    @endif
+                                </p>
+                            </div>
+
+                            @if ($documento->ruta && $documento->ruta !== 'pendiente')
+                                <div class="flex flex-wrap gap-2">
+                                    <a href="{{ route('enf.documentos.ver', $documento) }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-lg border border-sky-300 px-3 py-2 text-xs font-semibold text-sky-700 hover:bg-sky-50 dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-950/40">
+                                        @svg('heroicon-o-eye', ['class' => 'h-4 w-4'])
+                                        Ver anexo
+                                    </a>
+                                    <a href="{{ route('enf.documentos.descargar', $documento) }}" class="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white hover:bg-sky-700">
+                                        @svg('heroicon-o-arrow-down-tray', ['class' => 'h-4 w-4'])
+                                        Descargar
+                                    </a>
+                                </div>
+                            @else
+                                <span class="text-xs font-medium text-gray-500">Archivo pendiente</span>
+                            @endif
+                        </article>
+                    @empty
+                        <p class="text-sm text-gray-500 dark:text-gray-400 lg:col-span-3">No se cargaron documentos en el paso 10.</p>
+                    @endforelse
+                </div>
+            </section>
+
             <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
                 <section class="enf-document-viewer min-w-0 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
                     <div class="border-b border-gray-200 bg-white px-5 py-4 dark:border-gray-700 dark:bg-gray-900">
@@ -337,7 +374,11 @@
                     </div>
                     <div class="enf-document-canvas overflow-x-auto px-3 py-5 sm:px-5">
                         @if ($esForm018)
-                            @include('enf.acciones.partials.form-018-document', ['accion' => $accion])
+                            <iframe
+                                src="{{ route('enf.acciones.pdf.contenido', ['accion' => $accion, 'v' => $versionDocumento]) }}"
+                                title="Vista previa PDF de FORM-DVUS-018"
+                                class="mx-auto block min-h-[75vh] w-full border-0 bg-white"
+                            ></iframe>
                         @else
                             @include('enf.acciones.partials.form-016-document', ['accion' => $accion])
                         @endif
@@ -542,8 +583,8 @@
                             <span>{{ $documento->nombre }}</span>
                             @if ($documento->ruta && $documento->ruta !== 'pendiente')
                                 <span class="flex shrink-0 items-center gap-3">
-                                    <a href="{{ Storage::url($documento->ruta) }}" target="_blank" rel="noopener" class="font-semibold text-blue-700 hover:text-blue-900">Ver</a>
-                                    <a href="{{ Storage::url($documento->ruta) }}" download class="font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white">Descargar</a>
+                                    <a href="{{ route('enf.documentos.ver', $documento) }}" target="_blank" rel="noopener" class="font-semibold text-blue-700 hover:text-blue-900">Ver anexo</a>
+                                    <a href="{{ route('enf.documentos.descargar', $documento) }}" class="font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white">Descargar</a>
                                 </span>
                             @else
                                 <span class="text-slate-500">Pendiente</span>

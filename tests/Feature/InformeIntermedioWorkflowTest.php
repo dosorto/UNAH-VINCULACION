@@ -151,6 +151,28 @@ class InformeIntermedioWorkflowTest extends TestCase
         $this->assertSame(4, $actual->orden_revision);
     }
 
+    public function test_subsanacion_en_segunda_etapa_no_recrea_la_primera(): void
+    {
+        $contexto = $this->contexto();
+        $workflow = app(InformeIntermedioProyectoWorkflowService::class);
+        $informe = $workflow->guardarArchivo($contexto['proyecto'], $this->pdf(), $contexto['usuario']);
+        $documento = $workflow->enviar($informe, $contexto['usuario']);
+        $firmas = $documento->firma_documento()->orderBy('orden_revision')->get();
+        $this->harness()->aprobarEtapa($firmas[0], $contexto['usuario']);
+        $this->harness()->rechazarEtapa($firmas[1]->fresh(), $contexto['usuario'], 'Corrija la etapa final.');
+
+        $corregido = $workflow->guardarArchivo($contexto['proyecto']->fresh(), $this->pdf('corregido-segunda.pdf'), $contexto['usuario']);
+        $workflow->enviar($corregido, $contexto['usuario']);
+        $nuevoCiclo = $documento->fresh()->firma_documento()
+            ->where('revision_ciclo', 2)
+            ->orderBy('orden_revision')
+            ->get();
+
+        $this->assertCount(1, $nuevoCiclo);
+        $this->assertSame($contexto['etapas'][4]->id, $nuevoCiclo->first()->flujo_aprobacion_etapa_id);
+        $this->assertSame($contexto['usuario']->id, $nuevoCiclo->first()->responsable_usuario_id);
+    }
+
     public function test_aprobacion_avanza_notifica_el_informe_final_y_no_finaliza_el_proyecto(): void
     {
         $contexto = $this->contexto();
@@ -179,7 +201,7 @@ class InformeIntermedioWorkflowTest extends TestCase
 
     }
 
-    public function test_no_permite_aprobar_informe_intermedio_sin_firma_activa(): void
+    public function test_permite_aprobar_informe_intermedio_sin_firma_activa_dejando_firma_null(): void
     {
         $contexto = $this->contexto(true, false);
         $workflow = app(InformeIntermedioProyectoWorkflowService::class);
@@ -187,19 +209,12 @@ class InformeIntermedioWorkflowTest extends TestCase
         $documento = $workflow->enviar($informe, $contexto['usuario']);
         $firma = $documento->firma_documento()->orderBy('orden_revision')->firstOrFail();
 
-        try {
-            $this->harness()->aprobarEtapa($firma, $contexto['usuario']);
-            $this->fail('La aprobación sin firma debió rechazarse.');
-        } catch (\RuntimeException $exception) {
-            $this->assertSame(
-                'No puede aprobar esta etapa porque no tiene una firma registrada. Registre su firma antes de continuar.',
-                $exception->getMessage()
-            );
-        }
+        $this->harness()->aprobarEtapa($firma, $contexto['usuario']);
 
-        $this->assertSame('Pendiente', $firma->fresh()->estado_revision);
+        $this->assertSame('Aprobado', $firma->fresh()->estado_revision);
         $this->assertNull($firma->fresh()->firma_id);
-        $this->assertSame(1, $documento->estado_documento()->count());
+        $this->assertNull($firma->fresh()->sello_id);
+        $this->assertSame(2, $documento->estado_documento()->count());
     }
 
     public function test_pdf_requiere_autenticacion_y_autorizacion(): void
@@ -314,6 +329,8 @@ class InformeIntermedioWorkflowTest extends TestCase
 
         $proyecto->update(['flujo_aprobacion_id' => $flujo->id]);
         $enCurso = TipoEstado::firstOrCreate(['nombre' => 'En curso']);
+        TipoEstado::firstOrCreate(['nombre' => 'Subsanacion']);
+        TipoEstado::firstOrCreate(['nombre' => 'Aprobado']);
         $proyecto->estado_proyecto()->create([
             'empleado_id' => $empleado->id,
             'tipo_estado_id' => $enCurso->id,
@@ -351,7 +368,7 @@ class InformeIntermedioWorkflowTest extends TestCase
 
     private function harness(): InformeIntermedioWorkflowHarness
     {
-        return new InformeIntermedioWorkflowHarness();
+        return new InformeIntermedioWorkflowHarness;
     }
 }
 
@@ -366,5 +383,4 @@ class InformeIntermedioWorkflowHarness extends ProyectosPorFirmar
     {
         return $this->rechazarFirmaPorEtapa($firma, $user, $comentario);
     }
-
 }

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Clases\DataNavBar;
 use App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
@@ -21,6 +22,25 @@ use Tests\TestCase;
 class ProyectosPorFirmarWorkflowStagePublicIntegrationTest extends TestCase
 {
     use DatabaseTransactions;
+
+    public function test_contador_de_navegacion_usa_las_mismas_asignaciones_que_la_bandeja(): void
+    {
+        $context = $this->contexto();
+        [$user, $empleado, $role] = $this->usuarioEmpleadoConRol('Rol contador bandeja');
+        [, $otroEmpleado] = $this->usuarioEmpleadoConRol($role->name, $role);
+        $cargo = $this->cargoFirma($context['estados'][0]->id, $role->name);
+        $firmaDeOtroEmpleado = $this->firmaLegacy($context['proyecto'], $cargo, $otroEmpleado);
+
+        $this->actingAs($user);
+
+        $this->assertNotContains($firmaDeOtroEmpleado->id, $this->firmasDisponiblesIds($user));
+        $this->assertSame(0, DataNavBar::obtenerCantidadProyectosPorFirmar());
+
+        $firmaPropia = $this->firmaLegacy($context['proyecto'], $cargo, $empleado);
+
+        $this->assertContains($firmaPropia->id, $this->firmasDisponiblesIds($user));
+        $this->assertSame(1, DataNavBar::obtenerCantidadProyectosPorFirmar());
+    }
 
     public function test_bandeja_muestra_solo_firma_por_etapa_actual_y_autorizada(): void
     {
@@ -173,6 +193,7 @@ class ProyectosPorFirmarWorkflowStagePublicIntegrationTest extends TestCase
     public function test_aprobar_publico_conserva_legacy(): void
     {
         $context = $this->contexto();
+        $this->tipoEstado('En curso');
         [$user, $empleado] = $this->usuarioEmpleadoConRol('Rol aprobar legacy');
         $legacy = $this->firmaLegacy($context['proyecto'], $context['cargos'][0], $empleado);
         $user->forceFill(['active_role_id' => null])->save();

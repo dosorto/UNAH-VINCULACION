@@ -12,6 +12,7 @@ use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\User;
 use App\Services\ENF\Constancias\EmitirConstanciaFinalizacionEnf;
 use App\Services\ENF\Constancias\EmitirConstanciaRegistroEnf;
+use App\Services\Workflow\WorkflowResumptionPolicy;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
@@ -145,6 +146,28 @@ class EnfWorkflowService
         return $informe->fresh();
     }
 
+    public function enviarInscripcion(EnfAccion $accion, User $user, array $usuariosElegidosPorEtapa = []): bool
+    {
+        abort_unless($this->usuarioPuedeGestionar($accion, $user), 403);
+
+        DB::transaction(function () use ($accion, $user, $usuariosElegidosPorEtapa): void {
+            $bloqueada = EnfAccion::query()->whereKey($accion->id)->lockForUpdate()->firstOrFail();
+
+            if (! in_array(strtoupper((string) $bloqueada->estado_flujo), ['BORRADOR', 'SUBSANACION', 'SUBSANACIÓN'], true)) {
+                throw new \RuntimeException('La inscripción ENF ya fue enviada a revisión.');
+            }
+
+            $ciclo = $this->iniciarRevisiones($bloqueada, EnfAccion::PROCESO_INSCRIPCION, $usuariosElegidosPorEtapa);
+            $bloqueada->update([
+                'estado_flujo' => 'EN_REVISION',
+                'revision_ciclo' => $ciclo,
+                'modificado_por_usuario_id' => $user->id,
+            ]);
+        });
+
+        return true;
+    }
+
     public function enviarInformeIntermedio(EnfInformeIntermedio $informe, User $user, array $usuariosElegidosPorEtapa = []): void
     {
         abort_unless($this->puedeGestionarInformeIntermedio($informe->accion, $user), 403);
@@ -184,26 +207,31 @@ class EnfWorkflowService
         $path = sprintf('enf/informes-finales/%d/revision-%s.pdf', $accion->id, Str::uuid());
         Storage::disk('public')->put($path, $contenido);
 
-        DB::transaction(function () use ($informe, $user, $path, $usuariosElegidosPorEtapa): void {
-            $bloqueado = EnfInformeFinal::query()->whereKey($informe->id)->lockForUpdate()->firstOrFail();
-            if (! $bloqueado->esEditable()) {
-                throw new \RuntimeException('El informe final ya fue enviado.');
-            }
+        try {
+            DB::transaction(function () use ($informe, $user, $path, $usuariosElegidosPorEtapa): void {
+                $bloqueado = EnfInformeFinal::query()->whereKey($informe->id)->lockForUpdate()->firstOrFail();
+                if (! $bloqueado->esEditable()) {
+                    throw new \RuntimeException('El informe final ya fue enviado.');
+                }
 
-            $ciclo = $this->iniciarRevisiones($bloqueado->accion, EnfAccion::PROCESO_INFORME_FINAL, $usuariosElegidosPorEtapa);
-            $pathAnterior = $bloqueado->archivo_pdf;
-            $bloqueado->update([
-                'estado' => EnfInformeFinal::ESTADO_EN_REVISION,
-                'revision_ciclo' => $ciclo,
-                'archivo_pdf' => $path,
-                'fecha_envio' => now(),
-                'enviado_por_usuario_id' => $user->id,
-                'observaciones_revision' => null,
-            ]);
-            if ($pathAnterior && $pathAnterior !== $path) {
-                Storage::disk('public')->delete($pathAnterior);
-            }
-        });
+                $ciclo = $this->iniciarRevisiones($bloqueado->accion, EnfAccion::PROCESO_INFORME_FINAL, $usuariosElegidosPorEtapa);
+                $pathAnterior = $bloqueado->archivo_pdf;
+                $bloqueado->update([
+                    'estado' => EnfInformeFinal::ESTADO_EN_REVISION,
+                    'revision_ciclo' => $ciclo,
+                    'archivo_pdf' => $path,
+                    'fecha_envio' => now(),
+                    'enviado_por_usuario_id' => $user->id,
+                    'observaciones_revision' => null,
+                ]);
+                if ($pathAnterior && $pathAnterior !== $path) {
+                    Storage::disk('public')->delete($pathAnterior);
+                }
+            });
+        } catch (\Throwable $exception) {
+            Storage::disk('public')->delete($path);
+            throw $exception;
+        }
     }
 
     public function aprobarRevision(EnfRevision $revision, User $user, ?string $observacion = null): void
@@ -225,6 +253,7 @@ class EnfWorkflowService
             if ($siguiente) {
                 $siguiente->update(['estado' => $siguiente->asignado_usuario_id || $siguiente->responsable_usuario_id ? 'ASIGNADO' : 'PENDIENTE']);
                 $this->notificarRevision($accion, $siguiente->fresh('flujoEtapa.rolRevisor'));
+
                 return;
             }
 
@@ -312,6 +341,48 @@ class EnfWorkflowService
 
     public function destinatariosSeleccionables(EnfAccion $accion, string $proceso): Collection
     {
+        if ($this->procesoEnSubsanacion($accion, $proceso)) {
+            return $this->planHistorico($accion, $proceso)->stages
+                ->filter(function (array $snapshot): bool {
+                    /** @var EnfRevision $revision */
+                    $revision = $snapshot['source'];
+
+                    return ! $this->responsableHistoricoElegible($revision);
+                })
+                ->mapWithKeys(function (array $snapshot): array {
+                    /** @var EnfRevision $revision */
+                    $revision = $snapshot['source'];
+                    $etapa = $revision->flujoEtapa;
+
+                    if (! $etapa) {
+                        $etapa = new FlujoAprobacionEtapa;
+                        $etapa->forceFill([
+                            'id' => $revision->flujo_aprobacion_etapa_id,
+                            'orden' => $revision->orden,
+                            'codigo' => $revision->etapa_codigo,
+                            'nombre' => $revision->etapa_nombre,
+                        ]);
+                    }
+
+                    $usuarios = $revision->rol_requerido
+                        ? User::role($revision->rol_requerido)
+                            ->whereHas('empleado')
+                            ->with('empleado')
+                            ->orderBy('name')
+                            ->get()
+                        : User::query()->whereHas('empleado')->with('empleado')->orderBy('name')->get();
+                    $usuarios = $usuarios
+                        ->filter(fn (User $user): bool => filled($user->email) && filter_var($user->email, FILTER_VALIDATE_EMAIL))
+                        ->values();
+
+                    return [(int) $revision->flujo_aprobacion_etapa_id => [
+                        'etapa' => $etapa,
+                        'usuarios' => $usuarios,
+                        'rol_requerido' => $revision->rol_requerido,
+                    ]];
+                });
+        }
+
         return $this->etapas($accion, $proceso)
             ->filter(fn (FlujoAprobacionEtapa $etapa): bool => (bool) $etapa->emisor_define_destinatario)
             ->mapWithKeys(function (FlujoAprobacionEtapa $etapa): array {
@@ -322,6 +393,9 @@ class EnfWorkflowService
                         ->orderBy('name')
                         ->get()
                     : collect();
+                $usuarios = $usuarios
+                    ->filter(fn (User $user): bool => filled($user->email) && filter_var($user->email, FILTER_VALIDATE_EMAIL))
+                    ->values();
 
                 return [$etapa->id => [
                     'etapa' => $etapa,
@@ -347,28 +421,59 @@ class EnfWorkflowService
 
     private function iniciarRevisiones(EnfAccion $accion, string $proceso, array $usuariosElegidosPorEtapa = []): int
     {
-        $etapas = $this->etapas($accion, $proceso);
+        EnfAccion::query()->whereKey($accion->id)->lockForUpdate()->firstOrFail();
+        $esReenvio = $this->procesoEnSubsanacion($accion, $proceso);
+        $etapas = $esReenvio
+            ? $this->planHistorico($accion, $proceso)->stages->pluck('source')->values()
+            : $this->etapas($accion, $proceso);
+
         if ($etapas->isEmpty()) {
-            throw new \RuntimeException('No hay etapas activas configuradas para este proceso ENF.');
+            throw new \RuntimeException('No hay etapas configuradas para este proceso ENF.');
         }
 
         $nextCycle = ((int) $accion->revisiones()->where('proceso', $proceso)->max('revision_ciclo')) + 1;
         $creadas = collect();
         foreach ($etapas as $stage) {
-            $defaultReviewer = $this->resolverUsuarioEtapa($stage, $usuariosElegidosPorEtapa);
-            $requiresAssignment = (bool) ($stage->requiere_asignacion ?? false) && ! $defaultReviewer;
+            if ($stage instanceof EnfRevision) {
+                $stageId = (int) $stage->flujo_aprobacion_etapa_id;
+                $defaultReviewer = $this->responsableHistoricoElegible($stage)
+                    ?? $this->resolverReemplazoHistorico($stage, $usuariosElegidosPorEtapa);
+                $requiresAssignment = false;
+                $orden = $stage->orden;
+                $codigo = $stage->etapa_codigo;
+                $nombre = $stage->etapa_nombre;
+                $rol = $stage->rol_requerido;
+                $responsableId = $defaultReviewer->id;
+            } else {
+                $stageId = (int) $stage->id;
+                $defaultReviewer = $this->resolverUsuarioEtapa($stage, $usuariosElegidosPorEtapa);
+                $requiresAssignment = (bool) ($stage->requiere_asignacion ?? false) && ! $defaultReviewer;
+                $orden = $stage->orden;
+                $codigo = $stage->codigo;
+                $nombre = $stage->nombre;
+                $rol = $stage->rolRevisor?->name;
+                $responsableId = $stage->emisor_define_destinatario ? null : $stage->usuario_responsable_id;
+            }
+
             $creadas->push($accion->revisiones()->create([
                 'proceso' => $proceso,
-                'flujo_aprobacion_etapa_id' => $stage->id,
+                'flujo_aprobacion_etapa_id' => $stageId,
                 'revision_ciclo' => $nextCycle,
-                'orden' => $stage->orden,
-                'etapa_codigo' => $stage->codigo,
-                'etapa_nombre' => $stage->nombre,
-                'rol_requerido' => $stage->rolRevisor?->name,
-                'responsable_usuario_id' => $stage->emisor_define_destinatario ? null : $stage->usuario_responsable_id,
+                'orden' => $orden,
+                'etapa_codigo' => $codigo,
+                'etapa_nombre' => $nombre,
+                'rol_requerido' => $rol,
+                'responsable_usuario_id' => $responsableId,
                 'asignado_usuario_id' => $requiresAssignment ? null : $defaultReviewer?->id,
                 'estado' => $requiresAssignment ? 'PENDIENTE_ASIGNACION' : ($defaultReviewer ? 'ASIGNADO' : 'PENDIENTE'),
             ]));
+        }
+
+        if (! $esReenvio) {
+            $flujo = $this->resolverFlujo($accion);
+            if ($flujo && ! $accion->flujo_aprobacion_id) {
+                $accion->update(['flujo_aprobacion_id' => $flujo->id]);
+            }
         }
 
         $primera = $creadas->sortBy('orden')->first();
@@ -376,7 +481,77 @@ class EnfWorkflowService
             $this->notificarRevision($accion, $primera->fresh('flujoEtapa.rolRevisor'));
         }
 
+        Log::info('Ciclo ENF preparado', [
+            'proceso' => $proceso,
+            'registro_id' => $accion->id,
+            'flujo_id' => $accion->flujo_aprobacion_id ?: $this->resolverFlujo($accion)?->id,
+            'ciclo_anterior' => $esReenvio ? $nextCycle - 1 : null,
+            'ciclo_nuevo' => $nextCycle,
+            'etapa_retorno_id' => $primera?->flujo_aprobacion_etapa_id,
+            'revisor_usuario_id' => $primera?->asignado_usuario_id ?: $primera?->responsable_usuario_id,
+        ]);
+
         return $nextCycle;
+    }
+
+    private function procesoEnSubsanacion(EnfAccion $accion, string $proceso): bool
+    {
+        return match ($proceso) {
+            EnfAccion::PROCESO_INFORME_INTERMEDIO => $accion->informeIntermedio?->estado === EnfInformeIntermedio::ESTADO_SUBSANACION,
+            EnfAccion::PROCESO_INFORME_FINAL => $accion->informeFinal?->estado === EnfInformeFinal::ESTADO_SUBSANACION,
+            default => in_array(strtoupper((string) $accion->estado_flujo), ['SUBSANACION', 'SUBSANACIÓN'], true),
+        };
+    }
+
+    private function planHistorico(EnfAccion $accion, string $proceso): \App\Services\Workflow\WorkflowResumptionPlan
+    {
+        $ultimoCiclo = (int) $accion->revisiones()->where('proceso', $proceso)->max('revision_ciclo');
+        $revisiones = $accion->revisiones()
+            ->with(['flujoEtapa.rolRevisor', 'asignadoUsuario', 'responsableUsuario', 'decididoPorUsuario'])
+            ->where('proceso', $proceso)
+            ->where('revision_ciclo', $ultimoCiclo)
+            ->orderBy('orden')
+            ->get();
+
+        return app(WorkflowResumptionPolicy::class)->plan(
+            $revisiones->map(fn (EnfRevision $revision): array => [
+                'stage_id' => (int) $revision->flujo_aprobacion_etapa_id,
+                'order' => (int) $revision->orden,
+                'status' => match ($revision->estado) {
+                    'APROBADO' => 'APPROVED',
+                    'SUBSANACION' => 'REJECTED',
+                    'PENDIENTE', 'PENDIENTE_ASIGNACION', 'ASIGNADO', 'EN_PROCESO' => 'PENDING',
+                    default => 'INVALID',
+                },
+                'source' => $revision,
+            ])->values()
+        );
+    }
+
+    private function responsableHistoricoElegible(EnfRevision $revision): ?User
+    {
+        $usuarioId = $revision->estado === 'SUBSANACION'
+            ? $revision->decidido_por_usuario_id
+            : ($revision->asignado_usuario_id ?: $revision->responsable_usuario_id);
+        $usuario = $usuarioId ? User::withTrashed()->find($usuarioId) : null;
+
+        return app(WorkflowResumptionPolicy::class)->eligibleRecipient($usuario, $revision->rol_requerido, true);
+    }
+
+    private function resolverReemplazoHistorico(EnfRevision $revision, array $usuariosElegidosPorEtapa): User
+    {
+        $usuarioId = $usuariosElegidosPorEtapa[(int) $revision->flujo_aprobacion_etapa_id] ?? null;
+        $usuario = $usuarioId ? User::with('empleado')->find((int) $usuarioId) : null;
+        $elegible = app(WorkflowResumptionPolicy::class)->eligibleRecipient($usuario, $revision->rol_requerido, true);
+
+        if (! $elegible) {
+            throw new \RuntimeException(sprintf(
+                'El revisor anterior de la etapa "%s" ya no es elegible; seleccione un reemplazo válido.',
+                $revision->etapa_nombre
+            ));
+        }
+
+        return $elegible;
     }
 
     private function marcarProcesoAprobado(EnfAccion $accion, string $proceso, ?User $user = null): void
@@ -438,6 +613,14 @@ class EnfWorkflowService
 
     private function resolverFlujo(EnfAccion $accion): ?FlujoAprobacion
     {
+        if ($accion->flujo_aprobacion_id) {
+            return FlujoAprobacion::query()
+                ->with(['etapas' => fn ($query) => $query->where('activo', true)->orderBy('orden'), 'etapas.rolRevisor', 'etapas.usuarioResponsable'])
+                ->whereKey($accion->flujo_aprobacion_id)
+                ->where('proceso', 'PROYECTO')
+                ->first();
+        }
+
         return FlujoAprobacion::query()
             ->with(['etapas' => fn ($query) => $query->where('activo', true)->orderBy('orden'), 'etapas.rolRevisor', 'etapas.usuarioResponsable'])
             ->where('proceso', 'PROYECTO')
@@ -535,13 +718,19 @@ class EnfWorkflowService
             $users = User::role($revision->flujoEtapa->rolRevisor->name)->orderBy('name')->get();
         }
 
-        $emails = $users->pluck('email')->filter()->unique()->values();
+        $emails = $users->pluck('email')
+            ->filter(fn (?string $email): bool => filled($email) && filter_var($email, FILTER_VALIDATE_EMAIL))
+            ->unique()
+            ->values();
         if ($emails->isEmpty()) {
-            return;
+            throw new \RuntimeException(sprintf(
+                'La etapa "%s" no tiene un revisor asignado con correo válido.',
+                $revision->etapa_nombre ?: $revision->etapa_codigo
+            ));
         }
 
         try {
-            Mail::to($emails->all())->queue(new EnfRevisionAsignada($accion, $revision));
+            Mail::to($emails->all())->queue((new EnfRevisionAsignada($accion, $revision))->afterCommit());
         } catch (\Throwable $exception) {
             Log::warning('No se pudo notificar la revision ENF.', ['enf_accion_id' => $accion->id, 'revision_id' => $revision->id, 'error' => $exception->getMessage()]);
         }

@@ -7,12 +7,12 @@ use App\Models\InformeFinal\InformeFinalProyecto;
 use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
-use App\Services\Proyecto\DocumentoProyectoWorkflowService;
 use App\Services\Constancias\ConstanciaFinalizacionAuthorization;
+use App\Services\Proyecto\DocumentoProyectoWorkflowService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class InformeFinalProyectoWorkflowService
 {
@@ -117,8 +117,7 @@ class InformeFinalProyectoWorkflowService
         InformeFinalProyecto $informe,
         User $user,
         array $usuariosElegidosPorEtapa = []
-    ): DocumentoProyecto
-    {
+    ): DocumentoProyecto {
         abort_unless($this->puedeEnviarInformeFinal($informe, $user), 403);
         $this->validator->validateForCompletion($informe->fresh());
 
@@ -163,7 +162,13 @@ class InformeFinalProyectoWorkflowService
                     throw new \RuntimeException('El informe final ya inició su flujo de cierre.');
                 }
 
-                return $this->documentos->reenviarDesdeSubsanacion($proyecto, $documento, $path, $user);
+                return $this->documentos->reenviarDesdeSubsanacion(
+                    $proyecto,
+                    $documento,
+                    $path,
+                    $user,
+                    $usuariosElegidosPorEtapa
+                );
             });
         } catch (\Throwable $exception) {
             Storage::disk('public')->delete($path);

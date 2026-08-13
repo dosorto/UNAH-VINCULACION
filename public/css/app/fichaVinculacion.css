@@ -208,6 +208,10 @@ p {
     border-collapse: collapse;
     margin-bottom: 20px;
 }
+
+.table_datos1.section-site-execution {
+    table-layout: fixed;
+}
 .table_datos1 th, .table_datos1 td {
     border: 1px solid #000;
     padding: 8px;
@@ -264,6 +268,27 @@ p {
     overflow-wrap: anywhere;
     word-break: break-word;
     line-height: 1.35;
+}
+
+/* Igual que .input-field-multiline pero para un <div> de solo lectura: crece
+   con el contenido en vez de recortarlo a una altura fija (rows + overflow:hidden).
+   "resize: vertical" + "overflow: auto" dejan que el revisor arrastre la esquina
+   para encoger la celda si prefiere una vista más compacta (el contenido oculto
+   queda accesible con scroll dentro de la celda, nunca se pierde). */
+.table_datos1 .input-field-multiline-static {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 5px;
+    font-family: Arial, sans-serif;
+    background: transparent;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.35;
+    min-height: 1.85em;
+    resize: vertical;
+    overflow: auto;
 }
 
 .table_datos1 .input-field1 {

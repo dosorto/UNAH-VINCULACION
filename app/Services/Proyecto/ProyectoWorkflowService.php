@@ -2,9 +2,11 @@
 
 namespace App\Services\Proyecto;
 
+use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
+use App\Services\Workflow\WorkflowResumptionPolicy;
 use Illuminate\Support\Collection;
 
 class ProyectoWorkflowService
@@ -95,6 +97,12 @@ class ProyectoWorkflowService
 
     public function destinatariosSeleccionables(Proyecto $proyecto, string $proceso): Collection
     {
+        $historicos = $this->destinatariosHistoricosNoElegibles($proyecto, $proceso);
+
+        if ($historicos !== null) {
+            return $historicos;
+        }
+
         return $this->etapas($proyecto, $proceso)
             ->filter(fn (FlujoAprobacionEtapa $etapa): bool => (bool) $etapa->emisor_define_destinatario)
             ->mapWithKeys(function (FlujoAprobacionEtapa $etapa): array {
@@ -105,8 +113,104 @@ class ProyectoWorkflowService
                         ->orderBy('name')
                         ->get()
                     : collect();
+                $usuarios = $usuarios
+                    ->filter(fn (User $user): bool => filled($user->email) && filter_var($user->email, FILTER_VALIDATE_EMAIL))
+                    ->values();
 
                 return [$etapa->id => [
+                    'etapa' => $etapa,
+                    'usuarios' => $usuarios,
+                ]];
+            });
+    }
+
+    private function destinatariosHistoricosNoElegibles(Proyecto $proyecto, string $proceso): ?Collection
+    {
+        $tipoDocumento = match ($proceso) {
+            Proyecto::FLUJO_INFORME_INTERMEDIO => 'Informe Intermedio',
+            Proyecto::FLUJO_CIERRE_PROYECTO => 'Informe Final',
+            default => null,
+        };
+
+        if (! $tipoDocumento) {
+            return null;
+        }
+
+        $documento = $proyecto->documentos()
+            ->where('tipo_documento', $tipoDocumento)
+            ->latest('id')
+            ->first();
+
+        if (! $documento) {
+            return null;
+        }
+
+        $ultimoCiclo = (int) $documento->firma_documento()
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->whereNull('deleted_at')
+            ->max('revision_ciclo');
+        $firmas = $documento->firma_documento()
+            ->where('revision_ciclo', $ultimoCiclo)
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->whereNull('deleted_at')
+            ->orderBy('orden_revision')
+            ->get()
+            ->reject(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Anulado')
+            ->values();
+
+        if (! $firmas->contains(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Rechazado')) {
+            return null;
+        }
+
+        $plan = app(WorkflowResumptionPolicy::class)->plan(
+            $firmas->map(fn (FirmaProyecto $firma): array => [
+                'stage_id' => (int) $firma->flujo_aprobacion_etapa_id,
+                'order' => (int) $firma->orden_revision,
+                'status' => match ($firma->estado_revision) {
+                    'Aprobado' => 'APPROVED',
+                    'Rechazado' => 'REJECTED',
+                    'Pendiente' => 'PENDING',
+                    default => 'INVALID',
+                },
+                'source' => $firma,
+            ])->values()
+        );
+
+        return $plan->stages
+            ->filter(function (array $snapshot): bool {
+                /** @var FirmaProyecto $firma */
+                $firma = $snapshot['source'];
+                $firma->loadMissing('empleado.user');
+
+                return ! app(WorkflowResumptionPolicy::class)->eligibleRecipient(
+                    $firma->empleado?->user,
+                    $firma->rol_requerido,
+                    true
+                );
+            })
+            ->mapWithKeys(function (array $snapshot): array {
+                /** @var FirmaProyecto $firma */
+                $firma = $snapshot['source'];
+                $etapa = $firma->flujoEtapa;
+
+                if (! $etapa) {
+                    $etapa = new FlujoAprobacionEtapa;
+                    $etapa->forceFill([
+                        'id' => $firma->flujo_aprobacion_etapa_id,
+                        'orden' => $firma->orden_revision,
+                        'codigo' => $firma->etapa_codigo,
+                        'nombre' => $firma->etapa_nombre,
+                    ]);
+                }
+
+                $usuarios = $firma->rol_requerido
+                    ? User::role($firma->rol_requerido)->whereHas('empleado')->with('empleado')->orderBy('name')->get()
+                    : User::query()->whereHas('empleado')->with('empleado')->orderBy('name')->get();
+                $usuarios = $usuarios
+                    ->filter(fn (User $user): bool => filled($user->email) && filter_var($user->email, FILTER_VALIDATE_EMAIL))
+                    ->values();
+
+                return [(int) $firma->flujo_aprobacion_etapa_id => [
                     'etapa' => $etapa,
                     'usuarios' => $usuarios,
                 ]];

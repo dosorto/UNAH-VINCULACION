@@ -54,6 +54,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Services\Proyecto\ProyectoWorkflowService;
+use App\Services\Workflow\WorkflowResumptionPolicy;
+use App\Models\Workflow\LegacyWorkflowAdoption;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class Proyecto extends Model
 {
@@ -77,6 +80,9 @@ class Proyecto extends Model
         'aldea',
         'resumen',
         'descripcion_participantes',
+        'participacion_unah',
+        'participacion_contraparte',
+        'participacion_comunidad',
         'definicion_problema',
         'objetivo_general',
         'objetivos_especificos',
@@ -172,6 +178,9 @@ class Proyecto extends Model
         'aldea',
         'resumen',
         'descripcion_participantes',
+        'participacion_unah',
+        'participacion_contraparte',
+        'participacion_comunidad',
         'definicion_problema',
         'objetivo_general',
         'objetivos_especificos',
@@ -661,6 +670,11 @@ class Proyecto extends Model
         return $this->morphMany(FirmaProyecto::class, 'firmable')
             ->whereNotNull('flujo_aprobacion_etapa_id')
             ->orderBy('orden_revision');
+    }
+
+    public function adopcionFlujoLegacy(): MorphOne
+    {
+        return $this->morphOne(LegacyWorkflowAdoption::class, 'adoptable');
     }
 
     public function flujoAprobacion()
@@ -1336,7 +1350,7 @@ class Proyecto extends Model
      * (fijas a 6 cargos hardcodeados), esto se adapta a cualquier flujo,
      * mostrando exactamente las etapas que ese flujo definió como firmantes.
      *
-     * @return Collection<int, array{etapa: FlujoAprobacionEtapa, firma: ?FirmaProyecto}>
+     * @return Collection<int, array{etapa: FlujoAprobacionEtapa, firma: ?FirmaProyecto, adoptada_antes: bool}>
      */
     public function firmasParaFicha(string $proceso = self::FLUJO_INSCRIPCION, ?DocumentoProyecto $documento = null): Collection
     {
@@ -1349,23 +1363,29 @@ class Proyecto extends Model
         }
 
         $flujoId = $this->flujoAprobacion?->id ?? $this->flujo_aprobacion_id;
-        $cicloVigente = $flujoId ? max(1, $this->ultimoCicloDeFirmasPorEtapa((int) $flujoId, $documento)) : 1;
-
-        $firmasDelCiclo = $flujoId
+        $firmasPorEtapa = $flujoId
             ? $this->relacionFirmasDeEtapas($documento)
                 ->where('flujo_aprobacion_id', $flujoId)
-                ->where('revision_ciclo', $cicloVigente)
                 ->whereIn('flujo_aprobacion_etapa_id', $etapasFirmantes->pluck('id'))
                 ->whereNull('deleted_at')
-                ->orderByRaw("estado_revision = 'Aprobado' desc")
+                ->where('estado_revision', '!=', 'Anulado')
+                ->orderByDesc('revision_ciclo')
                 ->orderByDesc('id')
                 ->get()
                 ->groupBy('flujo_aprobacion_etapa_id')
             : collect();
 
+        $adopcion = ! $documento && $proceso === self::FLUJO_INSCRIPCION
+            ? $this->adopcionFlujoLegacy()->first()
+            : null;
+
         return $etapasFirmantes->map(fn (FlujoAprobacionEtapa $etapa) => [
             'etapa' => $etapa,
-            'firma' => $firmasDelCiclo->get($etapa->id)?->first(),
+            'firma' => $firmasPorEtapa->get($etapa->id)?->first(),
+            'adoptada_antes' => $adopcion !== null && (
+                $adopcion->modo === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_COMPLETADO
+                || ($adopcion->orden_inicio !== null && (int) $etapa->orden < (int) $adopcion->orden_inicio)
+            ),
         ]);
     }
 
@@ -1552,7 +1572,7 @@ class Proyecto extends Model
                         'etapa_codigo' => $firmaBase->etapa_codigo,
                         'etapa_nombre' => $firmaBase->etapa_nombre,
                         'rol_requerido' => $firmaBase->rol_requerido,
-                        'responsable_usuario_id' => $firmaBase->responsable_usuario_id,
+                        'responsable_usuario_id' => $empleados->get((int) $firmaBase->flujo_aprobacion_etapa_id)->user_id,
                         'revision_ciclo' => $nuevoCiclo,
                         'estado_revision' => 'Pendiente',
                         'firma_id' => null,
@@ -1633,47 +1653,26 @@ class Proyecto extends Model
 
     protected function firmasBaseParaNuevoCicloDesdeRechazo(FirmaProyecto $firmaRechazada, Collection $firmasCiclo): Collection
     {
-        $firmasBase = $firmasCiclo
-            ->groupBy(fn (FirmaProyecto $firma): int => (int) $firma->flujo_aprobacion_etapa_id)
-            ->map(function (Collection $firmasEtapa) use ($firmaRechazada): FirmaProyecto {
-                $firmasActivas = $firmasEtapa
-                    ->reject(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Anulado')
-                    ->values();
+        $plan = app(WorkflowResumptionPolicy::class)->plan(
+            $firmasCiclo
+                ->reject(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Anulado')
+                ->map(fn (FirmaProyecto $firma): array => [
+                    'stage_id' => (int) $firma->flujo_aprobacion_etapa_id,
+                    'order' => (int) $firma->orden_revision,
+                    'status' => match ($firma->estado_revision) {
+                        'Aprobado' => 'APPROVED',
+                        'Rechazado' => 'REJECTED',
+                        'Pendiente' => 'PENDING',
+                        default => 'INVALID',
+                    },
+                    'source' => $firma,
+                ])
+                ->values()
+        );
 
-                if ($firmasActivas->count() !== 1) {
-                    throw new \RuntimeException('El ciclo contiene más de una firma activa para la misma etapa.');
-                }
+        $firmasBase = $plan->stages->pluck('source')->values();
 
-                $firmaBase = $firmasActivas->first();
-
-                if ((int) $firmaBase->flujo_aprobacion_etapa_id === (int) $firmaRechazada->flujo_aprobacion_etapa_id
-                    && (int) $firmaBase->id !== (int) $firmaRechazada->id
-                ) {
-                    throw new \RuntimeException('El ciclo contiene más de una firma activa para la misma etapa.');
-                }
-
-                if ((int) $firmaBase->id !== (int) $firmaRechazada->id) {
-                    $esAnterior = (int) $firmaBase->orden_revision < (int) $firmaRechazada->orden_revision;
-
-                    if ($esAnterior && $firmaBase->estado_revision !== 'Aprobado') {
-                        throw new \RuntimeException('El ciclo rechazado contiene estados inconsistentes en las etapas anteriores.');
-                    }
-
-                    if (! $esAnterior && $firmaBase->estado_revision !== 'Pendiente') {
-                        throw new \RuntimeException('El ciclo rechazado contiene estados inconsistentes en las etapas posteriores.');
-                    }
-                }
-
-                return $firmaBase;
-            })
-            ->filter(fn (FirmaProyecto $firma): bool => (int) $firma->orden_revision >= (int) $firmaRechazada->orden_revision)
-            ->sortBy([
-                ['orden_revision', 'asc'],
-                ['id', 'asc'],
-            ])
-            ->values();
-
-        if (! $firmasBase->contains(fn (FirmaProyecto $firma): bool => (int) $firma->id === (int) $firmaRechazada->id)) {
+        if ((int) $plan->rejectedStage['source']->id !== (int) $firmaRechazada->id) {
             throw new \RuntimeException('No se pudo preparar de forma segura el nuevo ciclo de revisión.');
         }
 
@@ -1712,22 +1711,23 @@ class Proyecto extends Model
                 throw new \RuntimeException(sprintf('El empleado indicado para la etapa "%s" no existe.', $etapaNombre));
             }
 
-            $empleado = Empleado::withTrashed()->find((int) $empleadoId);
+            $empleado = Empleado::withTrashed()->with('user')->find((int) $empleadoId);
 
             if (! $empleado || $empleado->trashed()) {
                 throw new \RuntimeException(sprintf('El empleado indicado para la etapa "%s" no existe.', $etapaNombre));
             }
 
-            if ($firmaBase->responsable_usuario_id) {
-                $responsableEmpleadoId = User::query()
-                    ->whereKey($firmaBase->responsable_usuario_id)
-                    ->first()
-                    ?->empleado
-                    ?->id;
+            $usuarioElegible = app(WorkflowResumptionPolicy::class)->eligibleRecipient(
+                $empleado->user,
+                $firmaBase->rol_requerido,
+                true
+            );
 
-                if ((int) $responsableEmpleadoId !== (int) $empleado->id) {
-                    throw new \RuntimeException(sprintf('El empleado indicado no corresponde al responsable fijo de la etapa "%s".', $etapaNombre));
-                }
+            if (! $usuarioElegible || (int) $usuarioElegible->empleado?->id !== (int) $empleado->id) {
+                throw new \RuntimeException(sprintf(
+                    'El revisor anterior de la etapa "%s" ya no es elegible; seleccione un reemplazo válido.',
+                    $etapaNombre
+                ));
             }
 
             $empleados->put($etapaId, $empleado);

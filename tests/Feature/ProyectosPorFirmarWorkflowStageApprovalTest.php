@@ -77,6 +77,7 @@ class ProyectosPorFirmarWorkflowStageApprovalTest extends TestCase
     public function test_firma_legacy_y_segunda_solicitud_son_rechazadas(): void
     {
         $context = $this->crearContexto();
+        $this->crearTipoEstado('En curso');
         [$user, $empleado, $role] = $this->crearUsuarioEmpleadoConRol('Rol doble');
         $legacy = $this->crearFirmaLegacy($context['proyecto'], $context['cargos'][0], $empleado);
         $firma = $this->crearFirmaDeEtapa($context['proyecto'], $context['etapas'][0], $empleado, ['rol_requerido' => $role->name]);
@@ -90,6 +91,7 @@ class ProyectosPorFirmarWorkflowStageApprovalTest extends TestCase
     public function test_permite_firma_y_sello_null_sin_modificar_identidad(): void
     {
         $context = $this->crearContexto();
+        $this->crearTipoEstado('En curso');
         [$user, $empleado, $role] = $this->crearUsuarioEmpleadoConRol('Rol sin firma');
         $firma = $this->crearFirmaDeEtapa($context['proyecto'], $context['etapas'][0], $empleado, ['rol_requerido' => $role->name]);
 
@@ -106,6 +108,7 @@ class ProyectosPorFirmarWorkflowStageApprovalTest extends TestCase
     public function test_callback_opcional_de_aprobacion_se_ejecuta_sin_variable_indefinida(): void
     {
         $context = $this->crearContexto();
+        $this->crearTipoEstado('En curso');
         [$user, $empleado, $role] = $this->crearUsuarioEmpleadoConRol('Rol callback');
         $firma = $this->crearFirmaDeEtapa($context['proyecto'], $context['etapas'][0], $empleado, ['rol_requerido' => $role->name]);
         $ejecutado = false;

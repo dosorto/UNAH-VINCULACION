@@ -66,6 +66,7 @@ class Empleado extends Model
         'user_id',
         'centro_facultad_id',
         'departamento_academico_id',
+        'carrera_id',
         'tipo_empleado',
         'tipo_participacion_docente'
     ];

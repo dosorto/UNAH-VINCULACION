@@ -34,7 +34,6 @@
                 'label' => $carrera->nombre,
             ],
         ]);
-    $ejesUnahOptions = $ejesUnah->pluck('nombre', 'id');
     $odsOptions = $odsList->pluck('nombre', 'id');
     $metasContribuyeOptions = $metasContribuye
         ->mapWithKeys(fn ($meta) => [
@@ -46,6 +45,36 @@
     $periodoAcademicoLabel = fn ($periodo) => collect([$periodo->nombre, $periodo->anio ?? null])
         ->filter()
         ->implode(' ');
+    $form018CatalogLabel = function (string $nombre): string {
+        $key = \Illuminate\Support\Str::of(\Illuminate\Support\Str::ascii($nombre))->lower()->toString();
+
+        return [
+            'proyecto de educacion continua' => 'Proyecto de educación continua',
+            'diplomado' => 'Diplomado (80 a 250 horas máximo)',
+            'congreso' => 'Congreso (2 a 5 días consecutivos, mínimo 6 horas por día)',
+            'seminario' => 'Seminario (5 a 29 horas máximo)',
+            'egresados unah' => 'Egresados(as) UNAH',
+            'funcionarios publicos' => 'Funcionarios públicos',
+            'lideres comunitarios' => 'Líderes comunitarios',
+            'profesionales universitarios otros ies' => 'Profesionales universitarios otros CES',
+            'academicos' => 'Académicos',
+            '14-18' => 'Entre 14 – 18 años',
+            '19-25' => 'Entre 19 – 25 años',
+            '26-40' => 'Entre 26 – 40 años',
+            '41-55' => 'Entre 41 – 55 años',
+            '56-70' => 'Entre 56 – 70 años',
+            'mayores de 70' => 'Mayores de 70 años',
+            'grupos etnicos' => 'Grupos étnicos',
+            'poblacion vulnerable' => 'Población vulnerable',
+            'personas con discapacidad' => 'Personas con discapacidades',
+            'campus virtual unah' => 'Campus virtual UNAH',
+            'iniciativa de la unidad academica' => 'Iniciativa de la unidad académica',
+            'solicitud de secretaria de estado' => 'Solicitud de Secretaría de Estado',
+            'secretaria de estado' => 'Secretaría de Estado',
+            'sector academico' => 'Sector académico',
+            'carta formal de solicitud' => 'Carta formal de solicitud a la unidad académica',
+        ][$key] ?? $nombre;
+    };
     $empleadosModalData = $empleados->map(fn ($empleado) => [
         'id' => $empleado->id,
         'nombre_completo' => $empleado->nombre_completo,
@@ -79,7 +108,7 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100">FORM-DVUS-018 · Educación No Formal</h1>
-                <p class="text-sm text-slate-600 dark:text-slate-300">Registro de acciones tipo programa/proyecto: diplomados, cursos, talleres, seminarios, congresos y educación continua.</p>
+                <p class="text-sm text-slate-600 dark:text-slate-300">Registro de proyectos de educación continua, diplomados, congresos y seminarios.</p>
             </div>
             <a href="{{ route('selectorTipoAccion') }}" class="text-sm font-semibold text-blue-700 hover:text-blue-900">Volver al selector</a>
         </div>
@@ -109,7 +138,7 @@
             })();
         </script>
 
-        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}" data-record-id="{{ $editingAccion?->id }}" data-autosave-url="{{ route('enf.acciones.autoguardar-borrador') }}" data-autosave-update-url-template="{{ route('enf.acciones.autoguardar-borrador.update', ['accion' => '__ID__']) }}" data-destinatarios-url-template="{{ route('enf.acciones.destinatarios-inscripcion', ['accion' => '__ID__']) }}" data-send-review-url-template="{{ route('enf.acciones.enviar-revision', ['accion' => '__ID__']) }}">
+        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}" data-record-id="{{ $editingAccion?->id }}" data-autosave-url="{{ route('enf.acciones.autoguardar-borrador') }}" data-autosave-update-url-template="{{ route('enf.acciones.autoguardar-borrador.update', ['accion' => '__ID__']) }}" data-destinatarios-url-template="{{ route('enf.acciones.destinatarios-inscripcion', ['accion' => '__ID__']) }}">
             @csrf
             @if ($editingAccion)
                 @method('PUT')
@@ -146,32 +175,23 @@
             <div class="{{ $card }}" data-step-panel="1">
                 <h2 class="{{ $sectionTitle }}">1. Información general de la acción</h2>
                 <div class="mb-4 rounded-md border border-blue-100 bg-blue-50 p-4 dark:border-blue-900/50 dark:bg-blue-950/30">
-                    <label class="{{ $label }}">Programa aprobado de educación continua</label>
+                    <label class="{{ $label }}">Programa aprobado de DAFT</label>
                     <select data-approved-program-select class="{{ $input }}">
                         <option value="">Crear acción desde cero</option>
-                        @foreach ($programasAprobados as $programaAprobado)
+                        @forelse ($programasAprobados as $programaAprobado)
                             <option value="{{ $programaAprobado['id'] }}">
-                                {{ $programaAprobado['label'] }}
+                                {{ $programaAprobado['label'] }} · {{ $programaAprobado['source'] }}
                             </option>
-                        @endforeach
+                        @empty
+                            <option value="" disabled>No hay programas aprobados disponibles</option>
+                        @endforelse
                     </select>
                     <p class="mt-2 text-xs text-blue-800 dark:text-blue-200">
-                        Los datos del programa seleccionado se copiarán como información de solo lectura. Los datos de la nueva edición permanecen editables.
+                        Al seleccionar un programa aprobado se cargarán automáticamente los datos disponibles desde DAFT. Esos datos quedarán en modo de solo lectura; los datos propios de la nueva edición permanecerán editables.
                     </p>
                     <div data-approved-program-summary class="mt-4 hidden rounded-md border border-blue-200 bg-white/80 p-4 dark:border-blue-800 dark:bg-slate-900/60"></div>
                 </div>
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div class="md:col-span-3 flex items-center gap-2 border-b border-slate-200 pb-2 dark:border-slate-700">
-                        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">🔒</span>
-                        <div>
-                            <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Datos del programa aprobado</h3>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Al seleccionar un programa, los datos disponibles en esta sección no se pueden modificar.</p>
-                        </div>
-                    </div>
-                    <div class="order-1 md:col-span-3 mt-2 border-b border-slate-200 pb-2 dark:border-slate-700">
-                        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Datos de la nueva edición</h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Completa la solicitud, número de edición y fechas correspondientes a esta acción.</p>
-                    </div>
                     <div class="order-1">
                         <label class="{{ $label }}">Fecha de solicitud</label>
                         <input type="date" name="fecha_solicitud" value="{{ old('fecha_solicitud', now()->format('Y-m-d')) }}" class="{{ $input }}">
@@ -186,13 +206,9 @@
                         <select name="catalogos[tipo_accion_enf][]" class="{{ $input }}">
                             <option value="">Seleccione...</option>
                             @foreach ($tiposAccionForm018 as $item)
-                                <option value="{{ $item->id }}" @selected(old('catalogos.tipo_accion_enf.0', $selectedTipoAccionEnfId) == $item->id)>{{ $item->nombre }}</option>
+                                <option value="{{ $item->id }}" @selected(old('catalogos.tipo_accion_enf.0', $selectedTipoAccionEnfId) == $item->id)>{{ $form018CatalogLabel($item->nombre) }}</option>
                             @endforeach
                         </select>
-                    </div>
-                    <div>
-                        <label class="{{ $label }}">Resolución VRA</label>
-                        <input name="resolucion_vra" value="{{ old('resolucion_vra') }}" class="{{ $input }}">
                     </div>
                     <div>
                         <label class="{{ $label }}">No. resolución programa original</label>
@@ -497,24 +513,6 @@
                         <label class="{{ $label }}">Edificio</label>
                         <input name="edificio" class="{{ $input }}">
                     </div>
-                    <div>
-                        <label class="{{ $label }}">Departamento</label>
-                        <select name="departamento_id" class="{{ $input }}">
-                            <option value="">Seleccione...</option>
-                            @foreach ($departamentos as $departamento)
-                                <option value="{{ $departamento->id }}">{{ $departamento->nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="{{ $label }}">Municipio</label>
-                        <select name="municipio_id" class="{{ $input }}">
-                            <option value="">Seleccione...</option>
-                            @foreach ($municipios as $municipio)
-                                <option value="{{ $municipio->id }}">{{ $municipio->nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
                     <div class="md:col-span-3">
                         <label class="{{ $label }}">Descripción de las plataformas virtuales y de teledocencia</label>
                         <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -524,7 +522,7 @@
                                     @foreach ($catalog('plataforma')->filter(fn ($item) => in_array($item->nombre, ['Teams', 'Zoom', 'Meet', 'Webex', 'Otro'], true)) as $item)
                                         <label class="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
                                             <input type="checkbox" name="catalogos[plataforma_teledocencia][]" value="{{ $item->id }}" @checked(in_array((string) $item->id, array_map('strval', (array) old('catalogos.plataforma_teledocencia', [])), true)) class="rounded border-gray-300 text-blue-600">
-                                            <span>{{ $item->nombre }}</span>
+                                            <span>{{ $form018CatalogLabel($item->nombre) }}</span>
                                         </label>
                                     @endforeach
                                 </div>
@@ -536,7 +534,7 @@
                                     @foreach ($catalog('plataforma')->filter(fn ($item) => in_array($item->nombre, ['Campus Virtual UNAH', 'Moodle', 'Classroom Google', 'Teams', 'Otro'], true)) as $item)
                                         <label class="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
                                             <input type="checkbox" name="catalogos[plataforma_campus_virtual][]" value="{{ $item->id }}" @checked(in_array((string) $item->id, array_map('strval', (array) old('catalogos.plataforma_campus_virtual', [])), true)) class="rounded border-gray-300 text-blue-600">
-                                            <span>{{ $item->nombre }}</span>
+                                            <span>{{ $form018CatalogLabel($item->nombre) }}</span>
                                         </label>
                                     @endforeach
                                 </div>
@@ -549,7 +547,7 @@
                             @foreach ($catalog('antecedente') as $item)
                                 <label class="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
                                     <input type="checkbox" name="catalogos[antecedente][]" value="{{ $item->id }}" @checked(in_array((string) $item->id, array_map('strval', (array) old('catalogos.antecedente', [])), true)) class="rounded border-gray-300 text-blue-600">
-                                    <span>{{ $item->nombre }}</span>
+                                    <span>{{ $form018CatalogLabel($item->nombre) }}</span>
                                 </label>
                             @endforeach
                         </div>
@@ -564,7 +562,7 @@
                         <label class="{{ $label }}">Perfil de participantes</label>
                         <div class="space-y-2">
                             @foreach ($catalog('perfil_participante') as $item)
-                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="catalogos[perfil_participante][]" value="{{ $item->id }}" class="rounded border-gray-300 text-blue-600"> {{ $item->nombre }}</label>
+                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="catalogos[perfil_participante][]" value="{{ $item->id }}" class="rounded border-gray-300 text-blue-600"> {{ $form018CatalogLabel($item->nombre) }}</label>
                             @endforeach
                         </div>
                     </div>
@@ -572,7 +570,7 @@
                         <label class="{{ $label }}">Rango de edad</label>
                         <div class="space-y-2">
                             @foreach ($catalog('rango_edad') as $item)
-                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="catalogos[rango_edad][]" value="{{ $item->id }}" class="rounded border-gray-300 text-blue-600"> {{ $item->nombre }}</label>
+                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="catalogos[rango_edad][]" value="{{ $item->id }}" class="rounded border-gray-300 text-blue-600"> {{ $form018CatalogLabel($item->nombre) }}</label>
                             @endforeach
                         </div>
                     </div>
@@ -580,16 +578,13 @@
                         <label class="{{ $label }}">Condición social</label>
                         <div class="space-y-2">
                             @foreach ($catalog('condicion_social') as $item)
-                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="catalogos[condicion_social][]" value="{{ $item->id }}" class="rounded border-gray-300 text-blue-600"> {{ $item->nombre }}</label>
+                                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="catalogos[condicion_social][]" value="{{ $item->id }}" class="rounded border-gray-300 text-blue-600"> {{ $form018CatalogLabel($item->nombre) }}</label>
                             @endforeach
                         </div>
                     </div>
                 </div>
-                <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-4">
-                    <div><label class="{{ $label }}">Hombres</label><input type="number" min="0" name="beneficiarios[hombres]" value="0" class="{{ $input }}"></div>
-                    <div><label class="{{ $label }}">Mujeres</label><input type="number" min="0" name="beneficiarios[mujeres]" value="0" class="{{ $input }}"></div>
-                    <div><label class="{{ $label }}">Total cupos programados</label><input type="number" min="0" name="beneficiarios[total]" value="0" class="{{ $input }} bg-slate-50 dark:bg-slate-800/70" readonly></div>
-                    <div class="md:col-span-4"><label class="{{ $label }}">Descripción de participantes</label><textarea name="descripcion_participantes" rows="3" class="{{ $input }}"></textarea></div>
+                <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div><label class="{{ $label }}">Total cupos programados</label><input type="number" min="0" name="beneficiarios[total]" value="0" class="{{ $input }}"></div>
                 </div>
             </div>
 
@@ -748,6 +743,29 @@
                             Gestionar participación
                         </button>
                     </div>
+                    <div class="mt-4 overflow-x-auto rounded-md border border-slate-200 dark:border-slate-700">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
+                            <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-800">
+                                <tr>
+                                    <th class="px-3 py-2">Tipo de participación</th>
+                                    <th class="px-3 py-2 text-right">Hombres</th>
+                                    <th class="px-3 py-2 text-right">Mujeres</th>
+                                    <th class="px-3 py-2 text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody data-participacion-summary class="divide-y divide-slate-100 bg-white dark:divide-slate-800 dark:bg-slate-900">
+                                <tr><td colspan="4" class="px-3 py-4 text-center text-slate-500">Sin participación registrada.</td></tr>
+                            </tbody>
+                            <tfoot data-participacion-summary-totals class="hidden bg-slate-50 font-semibold text-slate-800 dark:bg-slate-800 dark:text-slate-100">
+                                <tr>
+                                    <td class="px-3 py-2">Total general</td>
+                                    <td class="px-3 py-2 text-right" data-participacion-total-hombres>0</td>
+                                    <td class="px-3 py-2 text-right" data-participacion-total-mujeres>0</td>
+                                    <td class="px-3 py-2 text-right" data-participacion-total-general>0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                     <div class="hidden" data-participacion-fields>
                         @foreach ([
                             'Estudiantes de grado / posgrado',
@@ -755,11 +773,12 @@
                             'Servicio Social o PPS',
                             'Voluntariado',
                             'Personal docente',
-                            'Profesores por hora',
+                            'Profesores x hora',
                             'Profesores horarios',
                             'Profesores permanentes',
                             'Personal administrativo',
-                            'Administrativo servicios',
+                            'Administrativo',
+                            'Servicios',
                             'Asistentes técnicos laboratorios / instructores',
                         ] as $i => $tipoParticipacion)
                             <div data-participacion-row="{{ $i }}">
@@ -875,7 +894,7 @@
                         <select name="contraparte[tipo_contraparte_id]" class="{{ $input }}" data-contraparte-field>
                             <option value="">Seleccione...</option>
                             @foreach ($catalog('tipo_contraparte') as $item)
-                                <option value="{{ $item->id }}">{{ $item->nombre }}</option>
+                                <option value="{{ $item->id }}">{{ $form018CatalogLabel($item->nombre) }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -884,7 +903,7 @@
                         <select name="contraparte[instrumento_alianza_id]" class="{{ $input }}" data-contraparte-field>
                             <option value="">Seleccione...</option>
                             @foreach ($catalog('instrumento_alianza') as $item)
-                                <option value="{{ $item->id }}">{{ $item->nombre }}</option>
+                                <option value="{{ $item->id }}">{{ $form018CatalogLabel($item->nombre) }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -915,36 +934,90 @@
                         </template>
                     </div>
                     <div><label class="{{ $label }}">Alineamiento con la reforma UNAH</label><textarea name="alineamiento_reforma" rows="3" class="{{ $input }}"></textarea></div>
-                    <div><label class="{{ $label }}">Metodología</label><textarea name="metodologia" rows="3" class="{{ $input }}"></textarea></div>
                     <div><label class="{{ $label }}">Resumen de logística</label><textarea name="logistica" rows="3" class="{{ $input }}"></textarea></div>
-                    <div><label class="{{ $label }}">Bibliografía</label><textarea name="bibliografia" rows="2" class="{{ $input }}"></textarea></div>
                 </div>
             </div>
 
             <div class="{{ $card }} hidden" data-step-panel="7">
-                <h2 class="{{ $sectionTitle }}">7. Resultados, ODS y ejes UNAH</h2>
+                <h2 class="{{ $sectionTitle }}">7. Resultados esperados y ODS</h2>
                 <div class="space-y-4">
-                    @foreach (['Corto plazo', 'Mediano plazo', 'Largo plazo / impacto'] as $index => $tipo)
-                        <div class="rounded-md border border-slate-200 p-4 dark:border-slate-700">
-                            <input type="hidden" name="resultados[{{ $index }}][tipo]" value="{{ $tipo }}">
-                            <label class="{{ $label }}">{{ $tipo }} · descripción del resultado</label>
-                            <textarea name="resultados[{{ $index }}][descripcion]" rows="2" class="{{ $input }}"></textarea>
-                            <label class="{{ $label }} mt-3">Medio de verificación / indicador</label>
-                            <textarea name="resultados[{{ $index }}][indicador]" rows="2" class="{{ $input }}"></textarea>
+                    <section class="rounded-md border border-slate-200 p-4 dark:border-slate-700">
+                        @php
+                            $gruposResultados = [
+                                ['tipo' => 'Corto plazo', 'cantidad' => 6, 'clave' => 'corto', 'titulo' => 'Resultados de corto plazo'],
+                                ['tipo' => 'Mediano plazo', 'cantidad' => 5, 'clave' => 'mediano', 'titulo' => 'Resultados de mediano plazo'],
+                                ['tipo' => 'Largo plazo / impacto', 'cantidad' => 5, 'clave' => 'largo', 'titulo' => 'Resultados de largo plazo / impacto'],
+                            ];
+                        @endphp
+
+                        <div class="mb-4">
+                            <h3 class="text-base font-semibold text-slate-800 dark:text-slate-100">Resultados esperados</h3>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Agrega cada resultado en la tabla del plazo correspondiente.</p>
                         </div>
-                    @endforeach
+
+                        <p data-resultados-feedback class="mb-3 hidden rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"></p>
+
+                        <div class="space-y-5">
+                            @foreach ($gruposResultados as $grupoResultado)
+                                <div>
+                                    <div class="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <h4 class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $grupoResultado['titulo'] }}</h4>
+                                        <button type="button" data-open-resultado-modal="{{ $grupoResultado['tipo'] }}" class="self-start rounded-md bg-blue-700 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800 sm:self-auto">Agregar resultado</button>
+                                    </div>
+                                    <div class="overflow-hidden rounded-md border border-slate-200 dark:border-slate-700">
+                                        <table class="w-full table-fixed divide-y divide-slate-200 text-sm dark:divide-slate-700">
+                                            <colgroup>
+                                                @if ($grupoResultado['tipo'] === 'Corto plazo')
+                                                    <col class="w-[8%]">
+                                                    <col class="w-[40%]">
+                                                    <col class="w-[34%]">
+                                                @else
+                                                    <col class="w-[44%]">
+                                                    <col class="w-[38%]">
+                                                @endif
+                                                <col class="w-[18%]">
+                                            </colgroup>
+                                            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                                <tr>
+                                                    @if ($grupoResultado['tipo'] === 'Corto plazo')
+                                                        <th class="px-3 py-2">OE</th>
+                                                    @endif
+                                                    <th class="px-3 py-2">Descripción del resultado</th>
+                                                    <th class="px-3 py-2">Medio de verificación</th>
+                                                    <th class="px-3 py-2 text-right">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody data-resultados-list="{{ $grupoResultado['clave'] }}" data-show-objetivo="{{ $grupoResultado['tipo'] === 'Corto plazo' ? '1' : '0' }}" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <div data-resultados-fields class="hidden">
+                            @php $resultadoIndex = 0; @endphp
+                            @foreach ($gruposResultados as $grupoResultado)
+                                @for ($filaResultado = 0; $filaResultado < $grupoResultado['cantidad']; $filaResultado++, $resultadoIndex++)
+                                    <div data-resultado-row="{{ $resultadoIndex }}" data-tipo="{{ $grupoResultado['tipo'] }}" data-grupo="{{ $grupoResultado['clave'] }}">
+                                        <input type="hidden" name="resultados[{{ $resultadoIndex }}][tipo]" value="{{ $grupoResultado['tipo'] }}">
+                                        @if ($grupoResultado['tipo'] === 'Corto plazo')
+                                            <input type="number" min="1" name="resultados[{{ $resultadoIndex }}][objetivo_orden]">
+                                        @endif
+                                        <textarea name="resultados[{{ $resultadoIndex }}][descripcion]"></textarea>
+                                        <textarea name="resultados[{{ $resultadoIndex }}][indicador]"></textarea>
+                                    </div>
+                                @endfor
+                            @endforeach
+                        </div>
+                    </section>
                     <div
                         x-data="{
-                            openEjes: false,
                             openOds: false,
                             openMetas: false,
-                            searchEjes: '',
                             searchOds: '',
                             searchMetas: '',
-                            ejesOptions: @js($ejesUnahOptions),
                             odsOptions: @js($odsOptions),
                             metasOptions: @js($metasContribuyeOptions),
-                            selectedEjes: @js(array_map('strval', (array) old('eje_unah_ids', []))),
                             selectedOds: @js(array_map('strval', (array) old('ods_ids', []))),
                             selectedMetas: @js(array_map('strval', (array) old('meta_contribuye_ids', []))),
                             init() {
@@ -954,7 +1027,6 @@
                                         const initial = window.__enfInitialDrafts?.[key] || {};
                                         const stored = JSON.parse(window.localStorage.getItem(key) || '{}');
                                         const data = { ...initial, ...stored };
-                                        this.selectedEjes = this.normalized(data['eje_unah_ids[]'] ?? this.selectedEjes);
                                         this.selectedOds = this.normalized(data['ods_ids[]'] ?? this.selectedOds);
                                         this.selectedMetas = this.normalized(data['meta_contribuye_ids[]'] ?? this.selectedMetas);
                                     } catch (error) {}
@@ -1019,42 +1091,6 @@
                         }"
                         class="space-y-8 rounded-md border border-slate-200 p-4 dark:border-slate-700"
                     >
-                        <div>
-                            <label class="{{ $label }}">Ejes prioritarios UNAH</label>
-                            <div @click.outside="openEjes = false" class="relative">
-                                <div @click="openEjes = true; $nextTick(() => $refs.searchEjes?.focus())"
-                                    class="min-h-[42px] w-full cursor-text rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 dark:border-gray-600 dark:bg-gray-800">
-                                    <div class="flex flex-wrap items-center gap-1.5">
-                                        <template x-for="id in selectedEjes" :key="`eje-${id}`">
-                                            <span class="inline-flex max-w-full items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                                <span class="truncate" x-text="label(ejesOptions, id)"></span>
-                                                <button type="button" @click.stop="remove('selectedEjes', id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
-                                            </span>
-                                        </template>
-                                        <input x-ref="searchEjes" x-model="searchEjes" @focus="openEjes = true" @keydown.escape="openEjes = false"
-                                            :placeholder="selectedEjes.length ? '' : 'Buscar o seleccionar ejes prioritarios...'"
-                                            class="min-w-[180px] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 dark:text-white"
-                                            type="text">
-                                        <span class="ml-auto text-xs text-gray-400" x-text="openEjes ? '▴' : '▾'"></span>
-                                    </div>
-                                    <template x-for="id in selectedEjes" :key="`eje-input-${id}`">
-                                        <input type="checkbox" name="eje_unah_ids[]" :value="id" checked class="hidden">
-                                    </template>
-                                </div>
-                                <div x-show="openEjes" x-cloak class="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
-                                    <template x-if="optionEntries(ejesOptions, searchEjes).length === 0">
-                                        <div class="px-3 py-2 text-sm text-gray-500">Sin resultados.</div>
-                                    </template>
-                                    <template x-for="[id, name] in optionEntries(ejesOptions, searchEjes)" :key="id">
-                                        <div @click="toggle('selectedEjes', id)" class="flex cursor-pointer items-center justify-between px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-gray-700"
-                                            :class="isSelected('selectedEjes', id) ? 'bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/20 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'">
-                                            <span x-text="name"></span>
-                                            <span x-show="isSelected('selectedEjes', id)" class="text-xs">✓</span>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
                         <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
                             <div>
                                 <label class="{{ $label }}">ODS</label>
@@ -1142,13 +1178,17 @@
                     Obtendrá ingresos por el desarrollo de la actividad
                 </label>
                 <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                    @foreach (['presupuesto_ingresos' => ['Ingresos', ['Cuotas de inscripción', 'Mensualidades / módulos', 'Gestión de becas', 'Otros']], 'presupuesto_egresos' => ['Egresos', ['Pago de personal docente', 'Materiales y suministros', 'Movilización', 'Manutención y hospedaje', 'Costos administrativos', 'Otros gastos']]] as $name => [$title, $rubros])
+                    @foreach ([
+                        'presupuesto_ingresos' => ['Ingresos', ['Cuotas de inscripción', 'Mensualidades / módulos', 'Gestión de becas (donaciones)', 'Otros']],
+                        'presupuesto_egresos' => ['Egresos', ['Pago de personal docente', 'Gastos de materiales y suministros', 'Gastos de movilización (transporte, pasajes)', 'Gastos de manutención y hospedaje', 'Costos administrativos / Financieros', 'Otros gastos']],
+                        'aporte_unah' => ['Aportación de la UNAH', ['Horas de participación del personal docente del equipo ejecutor de la acción', 'Horas de participación estudiantes', 'Costos indirectos depreciación de equipo (3% de la suma de los incisos a) y b) anteriores)', 'Costos indirectos servicios públicos ((3% de la suma de los incisos a) y b) anteriores))']],
+                    ] as $name => [$title, $rubros])
                         <div class="rounded-md border border-slate-200 p-4 dark:border-slate-700" data-presupuesto-card="{{ $name }}">
                             <div class="mb-3 flex items-center justify-between gap-3">
                                 <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $title }}</h3>
                                 <button type="button" data-open-presupuesto-modal="{{ $name }}"
                                     class="rounded-md bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">
-                                    Agregar {{ $name === 'presupuesto_ingresos' ? 'ingreso' : 'egreso' }}
+                                    Agregar {{ match ($name) { 'presupuesto_ingresos' => 'ingreso', 'presupuesto_egresos' => 'egreso', default => 'aporte' } }}
                                 </button>
                             </div>
                             <div class="overflow-x-auto rounded-md border border-slate-100 dark:border-slate-800">
@@ -1232,11 +1272,17 @@
                             'slug' => 'documento_perfil_programa',
                         ],
                         [
-                            'label' => 'Otros documentos de respaldo',
+                            'label' => 'Otros (detallar)',
                             'slug' => 'otros_documentos_respaldo',
                         ],
                     ] as $documentoSupervisor)
-                    <section class="rounded-md border border-slate-200 p-4 shadow-sm dark:border-slate-700" data-doc-upload-card>
+                    @php
+                        $documentoExistente = $editingAccion?->documentos
+                            ?->where('tipo_documento', $documentoSupervisor['slug'])
+                            ->sortByDesc('id')
+                            ->first();
+                    @endphp
+                    <section class="rounded-md border border-slate-200 p-4 shadow-sm dark:border-slate-700" data-doc-upload-card data-doc-has-existing="{{ $documentoExistente ? '1' : '0' }}">
                         <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $documentoSupervisor['label'] }}</h3>
 
                         <div class="mt-4 space-y-4">
@@ -1258,7 +1304,18 @@
                             <div>
                                 <label class="{{ $label }}">Archivo adjunto</label>
                                 <input type="file" name="supervisor_documentos_archivos[{{ $documentoSupervisor['slug'] }}]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-300" data-doc-upload-file disabled>
-                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Disponible solo cuando seleccione “Sí”.</p>
+                                @if ($documentoExistente)
+                                    <div class="mt-2 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                                        <p class="font-semibold">Archivo actual guardado.</p>
+                                        <div class="mt-1 flex gap-3">
+                                            <a href="{{ route('enf.documentos.ver', $documentoExistente) }}" target="_blank" rel="noopener" class="font-semibold hover:underline">Ver anexo</a>
+                                            <a href="{{ route('enf.documentos.descargar', $documentoExistente) }}" class="font-semibold hover:underline">Descargar</a>
+                                        </div>
+                                        <p class="mt-1">Selecciona otro archivo únicamente si deseas reemplazarlo.</p>
+                                    </div>
+                                @else
+                                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Disponible solo cuando seleccione “Sí”.</p>
+                                @endif
                                 @error("supervisor_documentos_archivos.{$documentoSupervisor['slug']}")<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                             </div>
                         </div>
@@ -1287,6 +1344,37 @@
         </form>
 
         @include('enf.acciones.partials.send-review-modal')
+
+        <div data-resultado-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+            <div class="w-full max-w-2xl rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900">
+                <div class="mb-4 flex items-center justify-between gap-3">
+                    <h2 data-resultado-modal-title class="text-base font-semibold text-slate-900 dark:text-slate-100">Agregar resultado</h2>
+                    <button type="button" data-close-resultado-modal class="rounded-md px-3 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Cerrar</button>
+                </div>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div class="sm:col-span-2">
+                        <label class="{{ $label }}">Plazo</label>
+                        <input data-resultado-tipo class="{{ $input }} bg-slate-50 dark:bg-slate-800/70" readonly>
+                    </div>
+                    <div data-resultado-objetivo-wrap>
+                        <label class="{{ $label }}">Objetivo específico (OE)</label>
+                        <input type="number" min="1" data-resultado-objetivo class="{{ $input }}" placeholder="No.">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="{{ $label }}">Descripción del resultado</label>
+                        <textarea data-resultado-descripcion rows="3" class="{{ $input }}"></textarea>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="{{ $label }}">Medio de verificación (indicador)</label>
+                        <textarea data-resultado-indicador rows="3" class="{{ $input }}"></textarea>
+                    </div>
+                </div>
+                <div class="mt-5 flex justify-end gap-3">
+                    <button type="button" data-close-resultado-modal class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Cancelar</button>
+                    <button type="button" data-save-resultado class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Guardar</button>
+                </div>
+            </div>
+        </div>
 
         <div data-employee-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
             <div class="w-full max-w-3xl rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900">
@@ -1521,9 +1609,6 @@
             const totalHorasField = form.querySelector('[name="total_horas"]');
             const modalidadEjecucionField = form.querySelector('[data-modalidad-ejecucion]');
             const teledocenciaFields = form.querySelector('[data-teledocencia-fields]');
-            const beneficiariosHombresField = form.querySelector('[name="beneficiarios[hombres]"]');
-            const beneficiariosMujeresField = form.querySelector('[name="beneficiarios[mujeres]"]');
-            const beneficiariosTotalField = form.querySelector('[name="beneficiarios[total]"]');
             const employeeModal = document.querySelector('[data-employee-modal]');
             const employeeSearch = document.querySelector('[data-employee-search]');
             const employeeResults = document.querySelector('[data-employee-results]');
@@ -1573,6 +1658,16 @@
                 responsable: document.querySelector('[data-cronograma-responsable]'),
                 horas_requeridas: document.querySelector('[data-cronograma-horas]'),
             };
+            const resultadoModal = document.querySelector('[data-resultado-modal]');
+            const resultadoModalTitle = document.querySelector('[data-resultado-modal-title]');
+            const resultadoObjetivoWrap = document.querySelector('[data-resultado-objetivo-wrap]');
+            const resultadoFeedback = form.querySelector('[data-resultados-feedback]');
+            const resultadoInputs = {
+                tipo: document.querySelector('[data-resultado-tipo]'),
+                objetivo_orden: document.querySelector('[data-resultado-objetivo]'),
+                descripcion: document.querySelector('[data-resultado-descripcion]'),
+                indicador: document.querySelector('[data-resultado-indicador]'),
+            };
             let selectedEmployeeId = null;
             let currentConsultorGroup = null;
             let currentConsultorExtraField = null;
@@ -1581,6 +1676,7 @@
             let currentPresupuestoGroup = null;
             let currentPresupuestoIndex = null;
             let currentCronogramaIndex = null;
+            let currentResultadoIndex = null;
             let draftRecordId = form.dataset.recordId || draftIdField?.value || '';
             let localAutosaveTimer = null;
             let serverAutosaveTimer = null;
@@ -1599,7 +1695,6 @@
             const sendReviewNext = document.querySelector('[data-enf-send-next]');
             const sendReviewConfirm = document.querySelector('[data-enf-send-confirm]');
             const destinatariosUrlTemplate = form.dataset.destinatariosUrlTemplate || '';
-            const sendReviewUrlTemplate = form.dataset.sendReviewUrlTemplate || '';
 
             const hideSendReviewModal = () => {
                 sendReviewModal?.classList.add('hidden');
@@ -1694,34 +1789,7 @@
             };
 
             const finalSubmit = () => {
-                const sendUrl = draftRecordId && sendReviewUrlTemplate
-                    ? sendReviewUrlTemplate.replace('__ID__', encodeURIComponent(draftRecordId))
-                    : '';
-
-                if (sendUrl) {
-                    const flowForm = document.createElement('form');
-                    flowForm.method = 'POST';
-                    flowForm.action = sendUrl;
-
-                    const token = form.querySelector('[name="_token"]')?.value || '';
-                    const tokenInput = document.createElement('input');
-                    tokenInput.type = 'hidden';
-                    tokenInput.name = '_token';
-                    tokenInput.value = token;
-                    flowForm.appendChild(tokenInput);
-
-                    appendDestinatariosToForm();
-                    form.querySelectorAll('[data-enf-destinatario-hidden]').forEach((field) => {
-                        flowForm.appendChild(field.cloneNode());
-                    });
-
-                    document.body.appendChild(flowForm);
-                    window.localStorage.removeItem(storageKey);
-                    window.localStorage.removeItem(`${storageKey}:step`);
-                    flowForm.submit();
-                    return;
-                }
-
+                appendDestinatariosToForm();
                 window.localStorage.removeItem(storageKey);
                 window.localStorage.removeItem(`${storageKey}:step`);
                 sendReviewConfirmed = true;
@@ -2007,14 +2075,6 @@
                 }
 
                 totalHorasField.value = String(numericHoursValue(horasTeoricasField) + numericHoursValue(horasPracticasField));
-            };
-
-            const syncTotalCupos = () => {
-                if (!beneficiariosTotalField) {
-                    return;
-                }
-
-                beneficiariosTotalField.value = String(numericHoursValue(beneficiariosHombresField) + numericHoursValue(beneficiariosMujeresField));
             };
 
             const fieldSelector = (name) => `[name="${String(name).replace(/"/g, '\\"')}"]`;
@@ -2585,24 +2645,64 @@
 
             const renderParticipacion = () => {
                 const target = form.querySelector('[data-participacion-list]');
+                const summary = form.querySelector('[data-participacion-summary]');
+                const summaryTotals = form.querySelector('[data-participacion-summary-totals]');
                 const rows = Array.from(form.querySelectorAll('[data-participacion-row]'))
                     .map((row, index) => ({ row, index }));
 
-                if (!target) {
+                if (target) {
+                    target.innerHTML = rows.map(({ row, index }) => `
+                        <tr>
+                            <td class="px-3 py-2 font-medium text-slate-700 dark:text-slate-200">${escapeHtml(rowValue(row, 'tipo_participacion'))}</td>
+                            <td class="px-3 py-2">${escapeHtml(rowValue(row, 'hombres') || '0')}</td>
+                            <td class="px-3 py-2">${escapeHtml(rowValue(row, 'mujeres') || '0')}</td>
+                            <td class="px-3 py-2">${escapeHtml(rowValue(row, 'cantidad') || '0')}</td>
+                            <td class="px-3 py-2 text-right">
+                                <button type="button" data-edit-participacion="${index}" class="text-sm font-semibold text-blue-700 hover:text-blue-900">Editar</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+
+                if (!summary) {
                     return;
                 }
 
-                target.innerHTML = rows.map(({ row, index }) => `
+                const registeredRows = rows.filter(({ row }) =>
+                    Number(rowValue(row, 'hombres') || 0) > 0
+                    || Number(rowValue(row, 'mujeres') || 0) > 0
+                    || Number(rowValue(row, 'cantidad') || 0) > 0
+                );
+
+                if (registeredRows.length === 0) {
+                    summary.innerHTML = '<tr><td colspan="4" class="px-3 py-4 text-center text-slate-500">Sin participación registrada.</td></tr>';
+                    summaryTotals?.classList.add('hidden');
+                    return;
+                }
+
+                summary.innerHTML = registeredRows.map(({ row }) => `
                     <tr>
                         <td class="px-3 py-2 font-medium text-slate-700 dark:text-slate-200">${escapeHtml(rowValue(row, 'tipo_participacion'))}</td>
-                        <td class="px-3 py-2">${escapeHtml(rowValue(row, 'hombres') || '0')}</td>
-                        <td class="px-3 py-2">${escapeHtml(rowValue(row, 'mujeres') || '0')}</td>
-                        <td class="px-3 py-2">${escapeHtml(rowValue(row, 'cantidad') || '0')}</td>
-                        <td class="px-3 py-2 text-right">
-                            <button type="button" data-edit-participacion="${index}" class="text-sm font-semibold text-blue-700 hover:text-blue-900">Editar</button>
-                        </td>
+                        <td class="px-3 py-2 text-right">${escapeHtml(rowValue(row, 'hombres') || '0')}</td>
+                        <td class="px-3 py-2 text-right">${escapeHtml(rowValue(row, 'mujeres') || '0')}</td>
+                        <td class="px-3 py-2 text-right font-semibold">${escapeHtml(rowValue(row, 'cantidad') || '0')}</td>
                     </tr>
                 `).join('');
+
+                const totals = registeredRows.reduce((result, { row }) => ({
+                    hombres: result.hombres + Number(rowValue(row, 'hombres') || 0),
+                    mujeres: result.mujeres + Number(rowValue(row, 'mujeres') || 0),
+                    general: result.general + Number(rowValue(row, 'cantidad') || 0),
+                }), { hombres: 0, mujeres: 0, general: 0 });
+
+                const totalHombres = form.querySelector('[data-participacion-total-hombres]');
+                const totalMujeres = form.querySelector('[data-participacion-total-mujeres]');
+                const totalGeneral = form.querySelector('[data-participacion-total-general]');
+
+                if (totalHombres) totalHombres.textContent = String(totals.hombres);
+                if (totalMujeres) totalMujeres.textContent = String(totals.mujeres);
+                if (totalGeneral) totalGeneral.textContent = String(totals.general);
+                summaryTotals?.classList.remove('hidden');
             };
 
             const practicaHasValue = (row) => [
@@ -2747,6 +2847,40 @@
                 `).join('');
             };
 
+            const resultadoHasValue = (row) => [
+                'objetivo_orden',
+                'descripcion',
+                'indicador',
+            ].some((fieldName) => rowValue(row, fieldName));
+
+            const renderResultados = () => {
+                form.querySelectorAll('[data-resultados-list]').forEach((target) => {
+                    const showObjetivo = target.dataset.showObjetivo === '1';
+                    const rows = Array.from(form.querySelectorAll(`[data-resultado-row][data-grupo="${target.dataset.resultadosList}"]`))
+                        .map((row) => ({ row, index: row.dataset.resultadoRow }))
+                        .filter(({ row }) => resultadoHasValue(row));
+
+                    if (rows.length === 0) {
+                        target.innerHTML = `<tr><td colspan="${showObjetivo ? 4 : 3}" class="px-3 py-4 text-center text-slate-500">Sin resultados agregados en este plazo.</td></tr>`;
+                        return;
+                    }
+
+                    target.innerHTML = rows.map(({ row, index }) => `
+                        <tr class="align-top">
+                            ${showObjetivo ? `<td class="px-3 py-3">${escapeHtml(rowValue(row, 'objetivo_orden') || '—')}</td>` : ''}
+                            <td class="whitespace-pre-wrap break-words px-3 py-3 [overflow-wrap:anywhere]">${escapeHtml(rowValue(row, 'descripcion') || 'Sin descripción')}</td>
+                            <td class="whitespace-pre-wrap break-words px-3 py-3 [overflow-wrap:anywhere]">${escapeHtml(rowValue(row, 'indicador') || 'Sin dato')}</td>
+                            <td class="px-3 py-3 text-right">
+                                <div class="flex flex-col items-end gap-1">
+                                    <button type="button" data-edit-resultado="${index}" class="text-sm font-semibold text-blue-700 hover:text-blue-900">Editar</button>
+                                    <button type="button" data-remove-resultado="${index}" class="text-sm font-semibold text-red-600 hover:text-red-800">Quitar</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+                });
+            };
+
             const renderDynamicLists = () => {
                 renderEquipoDocente();
                 renderConsultores('consultores_nacionales');
@@ -2755,7 +2889,9 @@
                 renderPracticas();
                 updateIngresosState();
                 renderPresupuesto('presupuesto_egresos');
+                renderPresupuesto('aporte_unah');
                 renderCronograma();
+                renderResultados();
             };
 
             const renderEmployeeResults = () => {
@@ -3151,6 +3287,94 @@
                 render();
             };
 
+            const nextEmptyResultadoRow = (tipo) => Array.from(form.querySelectorAll('[data-resultado-row]'))
+                .find((row) => row.dataset.tipo === tipo && !resultadoHasValue(row));
+
+            const hideResultadoFeedback = () => {
+                if (!resultadoFeedback) {
+                    return;
+                }
+
+                resultadoFeedback.textContent = '';
+                resultadoFeedback.classList.add('hidden');
+            };
+
+            const showResultadoFeedback = (message) => {
+                if (!resultadoFeedback) {
+                    return;
+                }
+
+                resultadoFeedback.textContent = message;
+                resultadoFeedback.classList.remove('hidden');
+            };
+
+            const closeResultadoModal = () => {
+                hideModal(resultadoModal);
+                currentResultadoIndex = null;
+            };
+
+            const openResultadoModal = (tipo, index = null) => {
+                const row = index === null
+                    ? nextEmptyResultadoRow(tipo)
+                    : form.querySelector(`[data-resultado-row="${index}"]`);
+
+                hideResultadoFeedback();
+
+                if (!row) {
+                    showResultadoFeedback(`Se alcanzó el máximo de resultados para ${tipo.toLowerCase()}.`);
+                    return;
+                }
+
+                currentResultadoIndex = row.dataset.resultadoRow;
+                const editing = resultadoHasValue(row);
+                const rowTipo = row.dataset.tipo || tipo;
+
+                if (resultadoModalTitle) {
+                    resultadoModalTitle.textContent = `${editing ? 'Editar' : 'Agregar'} resultado`;
+                }
+
+                if (resultadoInputs.tipo) resultadoInputs.tipo.value = rowTipo;
+                if (resultadoInputs.objetivo_orden) resultadoInputs.objetivo_orden.value = rowValue(row, 'objetivo_orden');
+                if (resultadoInputs.descripcion) resultadoInputs.descripcion.value = rowValue(row, 'descripcion');
+                if (resultadoInputs.indicador) resultadoInputs.indicador.value = rowValue(row, 'indicador');
+
+                const isCortoPlazo = rowTipo === 'Corto plazo';
+                resultadoObjetivoWrap?.classList.toggle('hidden', !isCortoPlazo);
+                if (resultadoInputs.objetivo_orden) {
+                    resultadoInputs.objetivo_orden.required = isCortoPlazo;
+                }
+
+                showModal(resultadoModal);
+                (isCortoPlazo ? resultadoInputs.objetivo_orden : resultadoInputs.descripcion)?.focus();
+            };
+
+            const saveResultado = () => {
+                const row = currentResultadoIndex !== null
+                    ? form.querySelector(`[data-resultado-row="${currentResultadoIndex}"]`)
+                    : null;
+
+                if (!row || !resultadoInputs.descripcion?.value.trim()) {
+                    resultadoInputs.descripcion?.focus();
+                    return;
+                }
+
+                if (row.dataset.tipo === 'Corto plazo' && !resultadoInputs.objetivo_orden?.value) {
+                    resultadoInputs.objetivo_orden?.focus();
+                    return;
+                }
+
+                setRowValues(row, {
+                    objetivo_orden: resultadoInputs.objetivo_orden?.value || '',
+                    descripcion: resultadoInputs.descripcion.value,
+                    indicador: resultadoInputs.indicador?.value || '',
+                });
+
+                closeResultadoModal();
+                renderDynamicLists();
+                save();
+                render();
+            };
+
             const restore = () => {
                 const stored = window.localStorage.getItem(storageKey);
                 let data = initialDraft || {};
@@ -3316,10 +3540,11 @@
                     const file = card.querySelector('[data-doc-upload-file]');
                     const selectedRadio = radios.find((radio) => radio.checked);
                     const uploadEnabled = selectedRadio?.value === 'Si';
+                    const hasExistingFile = card.dataset.docHasExisting === '1';
 
                     if (file) {
                         file.disabled = !uploadEnabled;
-                        file.required = uploadEnabled;
+                        file.required = uploadEnabled && !hasExistingFile;
 
                         if (!uploadEnabled) {
                             file.value = '';
@@ -3386,7 +3611,6 @@
 
             restore();
             syncTotalHoras();
-            syncTotalCupos();
             updateRegisteredEmployeesDetails();
             updateSupervisorDocumentUploadState();
             updateContraparteState();
@@ -3412,7 +3636,6 @@
             form.addEventListener('input', () => {
                 shouldPersistDraft = true;
                 syncTotalHoras();
-                syncTotalCupos();
                 updateRegisteredEmployeesDetails();
                 updateSupervisorDocumentUploadState();
                 updateContraparteState();
@@ -3427,7 +3650,6 @@
             form.addEventListener('change', () => {
                 shouldPersistDraft = true;
                 syncTotalHoras();
-                syncTotalCupos();
                 updateRegisteredEmployeesDetails();
                 updateSupervisorDocumentUploadState();
                 updateContraparteState();
@@ -3451,6 +3673,8 @@
                 const removePresupuesto = event.target.closest('[data-remove-presupuesto]');
                 const editCronograma = event.target.closest('[data-edit-cronograma]');
                 const removeCronograma = event.target.closest('[data-remove-cronograma]');
+                const editResultado = event.target.closest('[data-edit-resultado]');
+                const removeResultado = event.target.closest('[data-remove-resultado]');
 
                 if (removeObjetivoEspecifico && !removeObjetivoEspecifico.disabled) {
                     removeObjetivoEspecifico.closest('[data-objetivo-especifico-row]')?.remove();
@@ -3514,6 +3738,26 @@
 
                 if (removeCronograma) {
                     clearRow(form.querySelector(`[data-cronograma-row="${removeCronograma.dataset.removeCronograma}"]`));
+                    renderDynamicLists();
+                    save();
+                    render();
+                    return;
+                }
+
+                if (editResultado) {
+                    const row = form.querySelector(`[data-resultado-row="${editResultado.dataset.editResultado}"]`);
+                    openResultadoModal(row?.dataset.tipo || '', editResultado.dataset.editResultado);
+                    return;
+                }
+
+                if (removeResultado) {
+                    const row = form.querySelector(`[data-resultado-row="${removeResultado.dataset.removeResultado}"]`);
+                    setRowValues(row, {
+                        objetivo_orden: '',
+                        descripcion: '',
+                        indicador: '',
+                    });
+                    hideResultadoFeedback();
                     renderDynamicLists();
                     save();
                     render();
@@ -3591,6 +3835,13 @@
                 button.addEventListener('click', () => hideModal(cronogramaModal));
             });
             document.querySelector('[data-save-cronograma]')?.addEventListener('click', saveCronograma);
+            document.querySelectorAll('[data-open-resultado-modal]').forEach((button) => {
+                button.addEventListener('click', () => openResultadoModal(button.dataset.openResultadoModal));
+            });
+            document.querySelectorAll('[data-close-resultado-modal]').forEach((button) => {
+                button.addEventListener('click', closeResultadoModal);
+            });
+            document.querySelector('[data-save-resultado]')?.addEventListener('click', saveResultado);
             form.addEventListener('submit', (event) => {
                 if (submittingAfterAutosave) {
                     return;

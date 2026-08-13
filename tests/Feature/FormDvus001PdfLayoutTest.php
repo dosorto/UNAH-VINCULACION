@@ -42,21 +42,20 @@ class FormDvus001PdfLayoutTest extends TestCase
             [
                 'I. INFORMACIÓN GENERAL DEL PROYECTO',
                 'II. EQUIPO EJECUTOR DEL PROYECTO',
-                'III. PARTICIPACIÓN MIEMBROS COMUNIDAD UNIVERSITARIA',
-                'IV. ENTIDAD CONTRAPARTE',
-                'V. DATOS DEL PROYECTO',
-                'VI. RESUMEN DEL MARCO LÓGICO DEL PROYECTO',
-                'VII. CRONOGRAMA DE ACTIVIDADES DEL PROYECTO',
-                'VIII. PRESUPUESTO DEL PROYECTO',
+                'III. PARTICIPACIÓN DE ESTUDIANTES Y VOLUNTARIOS',
+                'IV. INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO',
+                'V. FORMULACIÓN DEL PROYECTO',
+                'VI. CRONOGRAMA DE LAS ACTIVIDADES DEL PROYECTO',
+                'VII. DETALLE DEL PRESUPUESTO',
                 "components.fichas.firmas-dinamicas",
-                'X. DOCUMENTOS ADJUNTOS A LA FICHA',
+                'DOCUMENTOS ADJUNTOS A LA FICHA',
                 'XI. ANEXOS',
             ]
         );
 
         $this->assertNotContains(false, $positions);
         $this->assertSame($positions, collect($positions)->sort()->values()->all());
-        $this->assertSame(1, substr_count($view, '9. Presupuesto del Proyecto'));
+        $this->assertSame(1, substr_count($view, 'VII. DETALLE DEL PRESUPUESTO'));
     }
 
     public function test_documentos_adjuntos_incluyen_los_cuatro_requisitos_y_la_nota(): void
@@ -71,7 +70,7 @@ class FormDvus001PdfLayoutTest extends TestCase
             'El documento 1 o el documento 2 (cualquiera de los dos) es obligatorio. El documento 3 es obligatorio.',
             $view
         );
-        $this->assertLessThan(strpos($view, 'XI. ANEXOS'), strpos($view, 'X. DOCUMENTOS ADJUNTOS A LA FICHA'));
+        $this->assertLessThan(strpos($view, 'XI. ANEXOS'), strpos($view, 'DOCUMENTOS ADJUNTOS A LA FICHA'));
     }
 
     public function test_estilos_pdf_definen_carta_vertical_y_protegen_bloques_criticos(): void

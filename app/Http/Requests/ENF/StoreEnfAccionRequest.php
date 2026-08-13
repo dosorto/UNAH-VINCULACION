@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\ENF;
 
+use App\Models\ENF\EnfDocumento;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -14,15 +15,10 @@ class StoreEnfAccionRequest extends FormRequest
 
     public function rules(): array
     {
-        if ($this->filled('borrador_autoguardado_id') && $this->has('destinatarios')) {
-            return [
-                'borrador_autoguardado_id' => ['required', 'integer', 'exists:enf_acciones,id'],
-                'destinatarios' => ['nullable', 'array'],
-                'destinatarios.*' => ['nullable', 'integer', 'exists:users,id'],
-            ];
-        }
-
         return [
+            'borrador_autoguardado_id' => ['nullable', 'integer', 'exists:enf_acciones,id'],
+            'destinatarios' => ['nullable', 'array'],
+            'destinatarios.*' => ['nullable', 'integer', 'exists:users,id'],
             'codigo_formulario' => ['nullable', 'string', 'max:80'],
             'tipo_accion_id' => ['nullable', 'exists:vinculacion_tipos_accion,id'],
             'modalidad_id' => ['nullable', 'exists:modalidad,id'],
@@ -208,6 +204,7 @@ class StoreEnfAccionRequest extends FormRequest
             'objetivos_especificos.*' => ['nullable', 'string'],
             'resultados' => ['nullable', 'array'],
             'resultados.*.tipo' => ['nullable', 'string', 'max:80'],
+            'resultados.*.objetivo_orden' => ['nullable', 'integer', 'min:1'],
             'resultados.*.descripcion' => ['nullable', 'string'],
             'resultados.*.indicador' => ['nullable', 'string'],
             'ods_ids' => ['nullable', 'array'],
@@ -264,26 +261,40 @@ class StoreEnfAccionRequest extends FormRequest
             'supervisor_documentos_archivos' => ['nullable', 'array'],
             'supervisor_documentos_archivos.oficio_remision_decano' => [
                 Rule::excludeIf(fn () => data_get($this->input('supervisor_documentos', []), 'oficio_remision_decano.aplica') !== 'Si'),
-                Rule::requiredIf(fn () => data_get($this->input('supervisor_documentos', []), 'oficio_remision_decano.aplica') === 'Si'),
+                Rule::requiredIf(fn () => $this->requiereArchivoSupervisor('oficio_remision_decano')),
                 'file',
                 'mimes:pdf,doc,docx,jpg,jpeg,png',
                 'max:10240',
             ],
             'supervisor_documentos_archivos.documento_perfil_programa' => [
                 Rule::excludeIf(fn () => data_get($this->input('supervisor_documentos', []), 'documento_perfil_programa.aplica') !== 'Si'),
-                Rule::requiredIf(fn () => data_get($this->input('supervisor_documentos', []), 'documento_perfil_programa.aplica') === 'Si'),
+                Rule::requiredIf(fn () => $this->requiereArchivoSupervisor('documento_perfil_programa')),
                 'file',
                 'mimes:pdf,doc,docx,jpg,jpeg,png',
                 'max:10240',
             ],
             'supervisor_documentos_archivos.otros_documentos_respaldo' => [
                 Rule::excludeIf(fn () => data_get($this->input('supervisor_documentos', []), 'otros_documentos_respaldo.aplica') !== 'Si'),
-                Rule::requiredIf(fn () => data_get($this->input('supervisor_documentos', []), 'otros_documentos_respaldo.aplica') === 'Si'),
+                Rule::requiredIf(fn () => $this->requiereArchivoSupervisor('otros_documentos_respaldo')),
                 'file',
                 'mimes:pdf,doc,docx,jpg,jpeg,png',
                 'max:10240',
             ],
         ];
+    }
+
+    private function requiereArchivoSupervisor(string $tipoDocumento): bool
+    {
+        if (data_get($this->input('supervisor_documentos', []), "{$tipoDocumento}.aplica") !== 'Si') {
+            return false;
+        }
+
+        $accionId = $this->integer('borrador_autoguardado_id') ?: $this->route('accion');
+
+        return ! $accionId || ! EnfDocumento::query()
+            ->where('enf_accion_id', $accionId)
+            ->where('tipo_documento', $tipoDocumento)
+            ->exists();
     }
 
     public function attributes(): array
