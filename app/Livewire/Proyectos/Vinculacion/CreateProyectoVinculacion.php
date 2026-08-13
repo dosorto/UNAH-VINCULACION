@@ -143,14 +143,14 @@ class CreateProyectoVinculacion extends Component
     public string $bibliografia = '';
 
     // Step 6 – beneficiaries
-    public int|string|null $indigenas_hombres = 0;
-    public int|string|null $indigenas_mujeres = 0;
-    public int|string|null $afroamericanos_hombres = 0;
-    public int|string|null $afroamericanos_mujeres = 0;
-    public int|string|null $mestizos_hombres = 0;
-    public int|string|null $mestizos_mujeres = 0;
-    public int $hombres = 0;
-    public int $mujeres = 0;
+    public bool $indigenas_hombres_marcado = false;
+    public bool $indigenas_mujeres_marcado = false;
+    public bool $afroamericanos_hombres_marcado = false;
+    public bool $afroamericanos_mujeres_marcado = false;
+    public bool $mestizos_hombres_marcado = false;
+    public bool $mestizos_mujeres_marcado = false;
+    public int|string|null $hombres = 0;
+    public int|string|null $mujeres = 0;
     public int $poblacion_participante = 0;
     public array $pais = ['Honduras'];
     public string $region = '';
@@ -163,6 +163,8 @@ class CreateProyectoVinculacion extends Component
     public string $objetivo_general = '';
     public array $objetivosEspecificos = [];
     public int $selectedObjetivoIndex = 0;
+    // Resultados de mediano/largo plazo: pertenecen al proyecto, no a un objetivo específico.
+    public array $resultadosProyecto = [];
 
     // Step 8 (was 7) – presupuesto
     public array $aporte_institucional = [];
@@ -173,8 +175,9 @@ class CreateProyectoVinculacion extends Component
     public float $otros_aportes = 0;
 
     // Step 9 (was 8) – anexos
-    public $newAnexo;
+    public array $newAnexos = [];
     public int $anexosCount = 0;
+    public int $anexoUploadKey = 0;
 
     // Modal de envío por flujo
     public bool $showEnviarModal = false;
@@ -230,6 +233,11 @@ class CreateProyectoVinculacion extends Component
         'largo_plazo',
     ];
 
+    protected array $plazoOpcionesProyecto = [
+        'mediano_plazo',
+        'largo_plazo',
+    ];
+
     protected array $tipoParticipacionEstudianteOpciones = [
         'Servicio Social o PPS' => 'PPS / Servicio Social',
         'Practica Profesional' => 'Práctica Profesional',
@@ -256,12 +264,8 @@ class CreateProyectoVinculacion extends Component
     ];
 
     private const CAMPOS_BENEFICIARIOS = [
-        'indigenas_hombres',
-        'indigenas_mujeres',
-        'afroamericanos_hombres',
-        'afroamericanos_mujeres',
-        'mestizos_hombres',
-        'mestizos_mujeres',
+        'hombres',
+        'mujeres',
     ];
 
     public function mount(?int $record = null): void
@@ -431,12 +435,12 @@ class CreateProyectoVinculacion extends Component
         $this->participacion_contraparte = $record->participacion_contraparte ?? '';
         $this->participacion_comunidad = $record->participacion_comunidad ?? '';
         $this->definicion_problema = $record->definicion_problema ?? '';
-        $this->indigenas_hombres = (int)($record->indigenas_hombres ?? 0);
-        $this->indigenas_mujeres = (int)($record->indigenas_mujeres ?? 0);
-        $this->afroamericanos_hombres = (int)($record->afroamericanos_hombres ?? 0);
-        $this->afroamericanos_mujeres = (int)($record->afroamericanos_mujeres ?? 0);
-        $this->mestizos_hombres = (int)($record->mestizos_hombres ?? 0);
-        $this->mestizos_mujeres = (int)($record->mestizos_mujeres ?? 0);
+        $this->indigenas_hombres_marcado = (bool) ($record->indigenas_hombres_marcado ?? false);
+        $this->indigenas_mujeres_marcado = (bool) ($record->indigenas_mujeres_marcado ?? false);
+        $this->afroamericanos_hombres_marcado = (bool) ($record->afroamericanos_hombres_marcado ?? false);
+        $this->afroamericanos_mujeres_marcado = (bool) ($record->afroamericanos_mujeres_marcado ?? false);
+        $this->mestizos_hombres_marcado = (bool) ($record->mestizos_hombres_marcado ?? false);
+        $this->mestizos_mujeres_marcado = (bool) ($record->mestizos_mujeres_marcado ?? false);
         $this->hombres = (int)($record->hombres ?? 0);
         $this->mujeres = (int)($record->mujeres ?? 0);
         $this->poblacion_participante = (int)($record->poblacion_participante ?? 0);
@@ -479,6 +483,14 @@ class CreateProyectoVinculacion extends Component
                 'nombre_medio_verificacion' => $r->nombre_medio_verificacion,
                 'plazo' => $this->normalizePlazo($r->plazo),
             ])->toArray(),
+        ])->toArray();
+        $this->resultadosProyecto = $record->resultadosProyecto->map(fn($r) => [
+            'id' => $r->id,
+            'wire_key' => (string) Str::uuid(),
+            'nombre_resultado' => $r->nombre_resultado,
+            'nombre_indicador' => $r->nombre_indicador,
+            'nombre_medio_verificacion' => $r->nombre_medio_verificacion,
+            'plazo' => $this->normalizePlazo($r->plazo),
         ])->toArray();
 
         if ($record->aporteInstitucional->isNotEmpty()) {
@@ -622,7 +634,7 @@ class CreateProyectoVinculacion extends Component
                 'nombre_proyecto' => 'required|string|max:255',
                 'modalidad_id' => 'required|integer',
                 'categoria' => 'required|array|min:1',
-                'ejes_prioritarios_unah' => 'required|array|min:1',
+                'ejes_prioritarios_unah' => 'required|array|size:1',
                 'facultades_centros' => 'required|array|min:1',
                 'facultades_centros.*' => 'integer|exists:centro_facultad,id',
                 'departamentos_academicos' => 'required|array|min:1',
@@ -654,12 +666,14 @@ class CreateProyectoVinculacion extends Component
             ],
             5 => $this->rulesDescripcion(),
             6 => [
-                'indigenas_hombres' => 'nullable|integer|min:0',
-                'indigenas_mujeres' => 'nullable|integer|min:0',
-                'afroamericanos_hombres' => 'nullable|integer|min:0',
-                'afroamericanos_mujeres' => 'nullable|integer|min:0',
-                'mestizos_hombres' => 'nullable|integer|min:0',
-                'mestizos_mujeres' => 'nullable|integer|min:0',
+                'indigenas_hombres_marcado' => 'boolean',
+                'indigenas_mujeres_marcado' => 'boolean',
+                'afroamericanos_hombres_marcado' => 'boolean',
+                'afroamericanos_mujeres_marcado' => 'boolean',
+                'mestizos_hombres_marcado' => 'boolean',
+                'mestizos_mujeres_marcado' => 'boolean',
+                'hombres' => 'nullable|integer|min:0',
+                'mujeres' => 'nullable|integer|min:0',
                 'departamento_geo' => 'nullable|array',
                 'departamento_geo.*' => 'integer|exists:departamento,id',
                 'municipio_geo' => 'nullable|array',
@@ -675,7 +689,11 @@ class CreateProyectoVinculacion extends Component
                 'objetivosEspecificos.*.resultados.*.nombre_resultado' => 'required|string',
                 'objetivosEspecificos.*.resultados.*.nombre_indicador' => 'required|string',
                 'objetivosEspecificos.*.resultados.*.nombre_medio_verificacion' => 'required|string',
-                'objetivosEspecificos.*.resultados.*.plazo' => 'required|in:' . implode(',', $this->plazoOpciones),
+                'resultadosProyecto' => 'nullable|array',
+                'resultadosProyecto.*.nombre_resultado' => 'required|string',
+                'resultadosProyecto.*.nombre_indicador' => 'required|string',
+                'resultadosProyecto.*.nombre_medio_verificacion' => 'required|string',
+                'resultadosProyecto.*.plazo' => 'required|in:' . implode(',', $this->plazoOpcionesProyecto),
             ],
             default => [],
         };
@@ -781,7 +799,11 @@ class CreateProyectoVinculacion extends Component
             'objetivosEspecificos.*.resultados.*.nombre_resultado' => 'required|string',
             'objetivosEspecificos.*.resultados.*.nombre_indicador' => 'required|string',
             'objetivosEspecificos.*.resultados.*.nombre_medio_verificacion' => 'required|string',
-            'objetivosEspecificos.*.resultados.*.plazo' => 'required|in:' . implode(',', $this->plazoOpciones),
+            'resultadosProyecto' => 'nullable|array',
+            'resultadosProyecto.*.nombre_resultado' => 'required|string',
+            'resultadosProyecto.*.nombre_indicador' => 'required|string',
+            'resultadosProyecto.*.nombre_medio_verificacion' => 'required|string',
+            'resultadosProyecto.*.plazo' => 'required|in:' . implode(',', $this->plazoOpcionesProyecto),
         ];
     }
 
@@ -802,8 +824,15 @@ class CreateProyectoVinculacion extends Component
                 $attributes["objetivosEspecificos.$oi.resultados.$ri.nombre_resultado"] = "nombre del {$resultadoLabel}";
                 $attributes["objetivosEspecificos.$oi.resultados.$ri.nombre_indicador"] = "indicador del {$resultadoLabel}";
                 $attributes["objetivosEspecificos.$oi.resultados.$ri.nombre_medio_verificacion"] = "medio de verificación del {$resultadoLabel}";
-                $attributes["objetivosEspecificos.$oi.resultados.$ri.plazo"] = "plazo del {$resultadoLabel}";
             }
+        }
+
+        foreach ($this->resultadosProyecto as $ri => $resultado) {
+            $resultadoLabel = 'resultado de mediano/largo plazo ' . ($ri + 1);
+            $attributes["resultadosProyecto.$ri.nombre_resultado"] = "nombre del {$resultadoLabel}";
+            $attributes["resultadosProyecto.$ri.nombre_indicador"] = "indicador del {$resultadoLabel}";
+            $attributes["resultadosProyecto.$ri.nombre_medio_verificacion"] = "medio de verificación del {$resultadoLabel}";
+            $attributes["resultadosProyecto.$ri.plazo"] = "plazo del {$resultadoLabel}";
         }
 
         return $attributes;
@@ -824,8 +853,16 @@ class CreateProyectoVinculacion extends Component
                 $this->objetivosEspecificos[$oi]['resultados'][$ri]['nombre_resultado'] = trim((string) ($resultado['nombre_resultado'] ?? ''));
                 $this->objetivosEspecificos[$oi]['resultados'][$ri]['nombre_indicador'] = trim((string) ($resultado['nombre_indicador'] ?? ''));
                 $this->objetivosEspecificos[$oi]['resultados'][$ri]['nombre_medio_verificacion'] = trim((string) ($resultado['nombre_medio_verificacion'] ?? ''));
-                $this->objetivosEspecificos[$oi]['resultados'][$ri]['plazo'] = $this->normalizePlazo($resultado['plazo'] ?? '') ?: '';
+                // Los resultados anidados en un objetivo específico son siempre de corto plazo.
+                $this->objetivosEspecificos[$oi]['resultados'][$ri]['plazo'] = 'corto_plazo';
             }
+        }
+
+        foreach ($this->resultadosProyecto as $ri => $resultado) {
+            $this->resultadosProyecto[$ri]['nombre_resultado'] = trim((string) ($resultado['nombre_resultado'] ?? ''));
+            $this->resultadosProyecto[$ri]['nombre_indicador'] = trim((string) ($resultado['nombre_indicador'] ?? ''));
+            $this->resultadosProyecto[$ri]['nombre_medio_verificacion'] = trim((string) ($resultado['nombre_medio_verificacion'] ?? ''));
+            $this->resultadosProyecto[$ri]['plazo'] = $this->normalizePlazo($resultado['plazo'] ?? '') ?: '';
         }
     }
 
@@ -848,10 +885,18 @@ class CreateProyectoVinculacion extends Component
             foreach ($resultados as $resultado) {
                 if (trim((string) ($resultado['nombre_resultado'] ?? '')) === ''
                     || trim((string) ($resultado['nombre_indicador'] ?? '')) === ''
-                    || trim((string) ($resultado['nombre_medio_verificacion'] ?? '')) === ''
-                    || !$this->normalizePlazo($resultado['plazo'] ?? '')) {
+                    || trim((string) ($resultado['nombre_medio_verificacion'] ?? '')) === '') {
                     return false;
                 }
+            }
+        }
+
+        foreach ($this->resultadosProyecto as $resultado) {
+            if (trim((string) ($resultado['nombre_resultado'] ?? '')) === ''
+                || trim((string) ($resultado['nombre_indicador'] ?? '')) === ''
+                || trim((string) ($resultado['nombre_medio_verificacion'] ?? '')) === ''
+                || !$this->normalizePlazo($resultado['plazo'] ?? '')) {
+                return false;
             }
         }
 
@@ -1006,6 +1051,7 @@ class CreateProyectoVinculacion extends Component
             'showActividadModal',
             'editActividadIndex',
             'nuevaActividad',
+            'newAnexos',
         ];
 
         foreach ($propiedadesIgnoradas as $ignorada) {
@@ -1095,12 +1141,12 @@ class CreateProyectoVinculacion extends Component
             'participacion_contraparte' => $this->participacion_contraparte,
             'participacion_comunidad' => $this->participacion_comunidad,
             'definicion_problema' => $this->definicion_problema,
-            'indigenas_hombres' => (int) $this->indigenas_hombres,
-            'indigenas_mujeres' => (int) $this->indigenas_mujeres,
-            'afroamericanos_hombres' => (int) $this->afroamericanos_hombres,
-            'afroamericanos_mujeres' => (int) $this->afroamericanos_mujeres,
-            'mestizos_hombres' => (int) $this->mestizos_hombres,
-            'mestizos_mujeres' => (int) $this->mestizos_mujeres,
+            'indigenas_hombres_marcado' => $this->indigenas_hombres_marcado,
+            'indigenas_mujeres_marcado' => $this->indigenas_mujeres_marcado,
+            'afroamericanos_hombres_marcado' => $this->afroamericanos_hombres_marcado,
+            'afroamericanos_mujeres_marcado' => $this->afroamericanos_mujeres_marcado,
+            'mestizos_hombres_marcado' => $this->mestizos_hombres_marcado,
+            'mestizos_mujeres_marcado' => $this->mestizos_mujeres_marcado,
             'hombres' => (int) $this->hombres,
             'mujeres' => (int) $this->mujeres,
             'poblacion_participante' => (int) $this->poblacion_participante,
@@ -1501,7 +1547,8 @@ class CreateProyectoVinculacion extends Component
                     'nombre_resultado' => $rData['nombre_resultado'] ?: 'Resultado sin nombre',
                     'nombre_indicador' => $rData['nombre_indicador'] ?? '',
                     'nombre_medio_verificacion' => $rData['nombre_medio_verificacion'] ?? '',
-                    'plazo' => $this->normalizePlazo($rData['plazo'] ?? '') ?: 'corto_plazo',
+                    // Los resultados anidados en un objetivo específico son siempre de corto plazo.
+                    'plazo' => 'corto_plazo',
                     'orden' => $ri + 1,
                 ];
 
@@ -1533,6 +1580,51 @@ class CreateProyectoVinculacion extends Component
             $objetivo->resultados()->delete();
             $objetivo->delete();
         }
+
+        $this->guardarResultadosProyectoParcial($record);
+    }
+
+    private function guardarResultadosProyectoParcial(Proyecto $record): void
+    {
+        $resultadoIdsEnEstado = [];
+
+        foreach ($this->resultadosProyecto as $ri => $rData) {
+            $resultadoId = $this->nullableInt($rData['id'] ?? null);
+            $tieneDatos = trim((string) ($rData['nombre_resultado'] ?? '')) !== ''
+                || trim((string) ($rData['nombre_indicador'] ?? '')) !== ''
+                || trim((string) ($rData['nombre_medio_verificacion'] ?? '')) !== '';
+
+            if (!$resultadoId && !$tieneDatos) {
+                continue;
+            }
+
+            $resultado = $resultadoId
+                ? $record->resultadosProyecto()->whereKey($resultadoId)->first()
+                : null;
+
+            $resultadoData = [
+                'nombre_resultado' => $rData['nombre_resultado'] ?: 'Resultado sin nombre',
+                'nombre_indicador' => $rData['nombre_indicador'] ?? '',
+                'nombre_medio_verificacion' => $rData['nombre_medio_verificacion'] ?? '',
+                'plazo' => $this->normalizePlazo($rData['plazo'] ?? '') ?: 'mediano_plazo',
+                'orden' => $ri + 1,
+            ];
+
+            if ($resultado) {
+                $resultado->update($resultadoData);
+            } else {
+                $resultado = $record->resultadosProyecto()->create($resultadoData);
+            }
+
+            $this->resultadosProyecto[$ri]['id'] = $resultado->id;
+            $this->resultadosProyecto[$ri]['plazo'] = $resultadoData['plazo'];
+            $resultadoIdsEnEstado[] = $resultado->id;
+        }
+
+        $record->resultadosProyecto()
+            ->when(!empty($resultadoIdsEnEstado), fn($query) => $query->whereNotIn('id', $resultadoIdsEnEstado))
+            ->get()
+            ->each(fn($resultado) => $resultado->delete());
     }
 
     private function guardarPresupuestoParcial(Proyecto $record): void
@@ -1562,13 +1654,21 @@ class CreateProyectoVinculacion extends Component
 
     private function guardarAnexoParcial(Proyecto $record): void
     {
-        if (!$this->newAnexo || !is_object($this->newAnexo)) {
+        if (empty($this->newAnexos)) {
             return;
         }
 
-        $path = $this->newAnexo->store('anexos', 'public');
-        $record->anexos()->create(['documento_url' => $path]);
-        $this->newAnexo = null;
+        foreach ($this->newAnexos as $archivo) {
+            if (!is_object($archivo)) {
+                continue;
+            }
+
+            $path = $archivo->store('anexos', 'public');
+            $record->anexos()->create(['documento_url' => $path]);
+        }
+
+        $this->newAnexos = [];
+        $this->anexoUploadKey++;
     }
 
     private function limpiarRelacionesDependientes(): void
@@ -1801,7 +1901,7 @@ class CreateProyectoVinculacion extends Component
             'nombre_proyecto' => 'required|string|max:255',
             'modalidad_id' => 'required|integer',
             'categoria' => 'required|array|min:1',
-            'ejes_prioritarios_unah' => 'required|array|min:1',
+            'ejes_prioritarios_unah' => 'required|array|size:1',
             'facultades_centros' => 'required|array|min:1',
             'facultades_centros.*' => 'integer|exists:centro_facultad,id',
             'departamentos_academicos' => 'required|array|min:1',
@@ -2144,12 +2244,12 @@ class CreateProyectoVinculacion extends Component
         $this->calcTotales();
         $record = $this->ensureRecord();
         $record->update([
-            'indigenas_hombres' => $this->indigenas_hombres,
-            'indigenas_mujeres' => $this->indigenas_mujeres,
-            'afroamericanos_hombres' => $this->afroamericanos_hombres,
-            'afroamericanos_mujeres' => $this->afroamericanos_mujeres,
-            'mestizos_hombres' => $this->mestizos_hombres,
-            'mestizos_mujeres' => $this->mestizos_mujeres,
+            'indigenas_hombres_marcado' => $this->indigenas_hombres_marcado,
+            'indigenas_mujeres_marcado' => $this->indigenas_mujeres_marcado,
+            'afroamericanos_hombres_marcado' => $this->afroamericanos_hombres_marcado,
+            'afroamericanos_mujeres_marcado' => $this->afroamericanos_mujeres_marcado,
+            'mestizos_hombres_marcado' => $this->mestizos_hombres_marcado,
+            'mestizos_mujeres_marcado' => $this->mestizos_mujeres_marcado,
             'hombres' => $this->hombres,
             'mujeres' => $this->mujeres,
             'poblacion_participante' => $this->poblacion_participante,
@@ -2202,12 +2302,10 @@ class CreateProyectoVinculacion extends Component
 
     protected function saveStep9(): void
     {
-        if ($this->newAnexo) {
-            $this->validate(['newAnexo' => 'file|max:10240']);
-            $path = $this->newAnexo->store('anexos', 'public');
+        if (!empty($this->newAnexos)) {
+            $this->validate(['newAnexos.*' => 'file|max:10240']);
             $record = $this->ensureRecord();
-            $record->anexos()->create(['documento_url' => $path]);
-            $this->newAnexo = null;
+            $this->guardarAnexoParcial($record);
         }
         Notification::make()->title('Paso IX guardado')->success()->send();
     }
@@ -2217,9 +2315,7 @@ class CreateProyectoVinculacion extends Component
     public function calcTotales(): void
     {
         $this->normalizarBeneficiarios();
-        $this->hombres = $this->indigenas_hombres + $this->afroamericanos_hombres + $this->mestizos_hombres;
-        $this->mujeres = $this->indigenas_mujeres + $this->afroamericanos_mujeres + $this->mestizos_mujeres;
-        $this->poblacion_participante = $this->hombres + $this->mujeres;
+        $this->poblacion_participante = (int) $this->hombres + (int) $this->mujeres;
     }
 
     private function normalizarBeneficiarios(): void
@@ -3076,6 +3172,40 @@ class CreateProyectoVinculacion extends Component
         $this->autoGuardarBorrador();
     }
 
+    public function addResultadoProyecto(): void
+    {
+        $this->resultadosProyecto[] = $this->nuevoResultadoProyecto();
+    }
+
+    public function removeResultadoProyecto(int $ri): void
+    {
+        if (!array_key_exists($ri, $this->resultadosProyecto)) {
+            return;
+        }
+
+        $resultadoId = $this->nullableInt($this->resultadosProyecto[$ri]['id'] ?? null);
+
+        if ($resultadoId && $this->recordId) {
+            $record = $this->ensureRecord();
+            $record->resultadosProyecto()->whereKey($resultadoId)->delete();
+        }
+
+        array_splice($this->resultadosProyecto, $ri, 1);
+        $this->autoGuardarBorrador();
+    }
+
+    private function nuevoResultadoProyecto(): array
+    {
+        return [
+            'id' => null,
+            'wire_key' => (string) Str::uuid(),
+            'nombre_resultado' => '',
+            'nombre_indicador' => '',
+            'nombre_medio_verificacion' => '',
+            'plazo' => 'mediano_plazo',
+        ];
+    }
+
     private function nuevoObjetivoEspecifico(): array
     {
         return [
@@ -3120,15 +3250,22 @@ class CreateProyectoVinculacion extends Component
 
     // ─── Anexo Methods (Step 9) ───────────────────────────────────────────────
 
-    public function uploadAnexo(): void
+    public function uploadAnexos(): void
     {
-        $this->validate(['newAnexo' => 'required|file|max:10240']);
-        $path = $this->newAnexo->store('anexos', 'public');
+        $this->validate([
+            'newAnexos' => 'required|array|min:1',
+            'newAnexos.*' => 'file|max:10240',
+        ]);
+
         $record = $this->ensureRecord();
-        $record->anexos()->create(['documento_url' => $path]);
-        $this->newAnexo = null;
+        $cantidad = count($this->newAnexos);
+        $this->guardarAnexoParcial($record);
         $this->anexosCount = $record->anexos()->count();
-        Notification::make()->title('Anexo subido')->success()->send();
+
+        Notification::make()
+            ->title($cantidad > 1 ? "{$cantidad} anexos subidos" : 'Anexo subido')
+            ->success()
+            ->send();
     }
 
     public function deleteAnexo(int $id): void
@@ -3138,6 +3275,15 @@ class CreateProyectoVinculacion extends Component
             $record->anexos()->where('id', $id)->delete();
             $this->anexosCount = $record->anexos()->count();
         }
+    }
+
+    public function removeNewAnexo(int $i): void
+    {
+        if (!array_key_exists($i, $this->newAnexos)) {
+            return;
+        }
+
+        array_splice($this->newAnexos, $i, 1);
     }
 
     // ─── Student participacion updater ───────────────────────────────────────

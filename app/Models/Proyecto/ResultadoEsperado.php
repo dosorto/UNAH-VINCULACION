@@ -14,6 +14,7 @@ class ResultadoEsperado extends Model
 
     protected $fillable = [
         'objetivo_especifico_id',
+        'proyecto_id',
         'nombre_resultado',
         'nombre_indicador',
         'nombre_medio_verificacion',
@@ -38,5 +39,10 @@ class ResultadoEsperado extends Model
     public function objetivoEspecifico(): BelongsTo
     {
         return $this->belongsTo(ObjetivoEspecifico::class);
+    }
+
+    public function proyecto(): BelongsTo
+    {
+        return $this->belongsTo(Proyecto::class);
     }
 }

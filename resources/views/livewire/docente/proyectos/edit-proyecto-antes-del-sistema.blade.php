@@ -88,10 +88,20 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ejes Prioritarios UNAH</label>
-                <select wire:model="ejes_prioritarios_unah" multiple size="4" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500">
-                    @foreach($ejesPrioritarios as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Ctrl+click para seleccionar múltiples</p>
+                <div x-data="{
+                        selected: $wire.entangle('ejes_prioritarios_unah').live,
+                        get valorActual() { return (this.selected && this.selected[0]) ? String(this.selected[0]) : ''; },
+                        elegir(id) { this.selected = id ? [id] : []; },
+                    }">
+                    <select
+                        :value="valorActual"
+                        @change="elegir($event.target.value)"
+                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"
+                    >
+                        <option value="">Seleccione...</option>
+                        @foreach($ejesPrioritarios as $id => $nombre) <option value="{{ $id }}">{{ $nombre }}</option> @endforeach
+                    </select>
+                </div>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Facultades / Centros</label>

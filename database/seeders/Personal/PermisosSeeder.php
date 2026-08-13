@@ -37,6 +37,7 @@ class PermisosSeeder extends Seeder
             ['name' => 'configuracion.perfil',     'display_name' => 'Editar Mi Perfil'],
             ['name' => 'configuracion.contactanos','display_name' => 'Administrar Contactanos'],
             ['name' => 'configuracion.flujos',     'display_name' => 'Administrar Flujos de Proyectos'],
+            ['name' => 'configuracion.jornada-laboral', 'display_name' => 'Administrar Jornadas Laborales'],
             // DAFT
             ['name' => 'daft.acceso',              'display_name' => 'Acceder al Modulo DAFT'],
             ['name' => 'configuracion.integraciones-api', 'display_name' => 'Administrar Integraciones API'],
@@ -100,7 +101,7 @@ class PermisosSeeder extends Seeder
             'proyectos.historial', 'proyectos.solicitados', 'proyectos.aprobados',
             'proyectos.firma-director', 'proyectos.informes', 'proyectos.revision-final',
             'configuracion.logs', 'configuracion.perfil', 'configuracion.contactanos', 'configuracion.flujos',
-            'configuracion.integraciones-api',
+            'configuracion.integraciones-api', 'configuracion.jornada-laboral',
             'inicio.admin', 'dashboard.admin',
             'constancia.constancias',
             'unidad-academica.campus', 'unidad-academica.carrera',

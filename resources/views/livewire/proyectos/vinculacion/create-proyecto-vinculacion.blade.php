@@ -167,16 +167,29 @@
                 @error('categoria') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
 
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ejes Prioritarios UNAH <span class="text-red-500">*</span></label>
+                <div x-data="{
+                        selected: $wire.entangle('ejes_prioritarios_unah').live,
+                        get valorActual() { return (this.selected && this.selected[0]) ? String(this.selected[0]) : ''; },
+                        elegir(id) { this.selected = id ? [id] : []; },
+                    }">
+                    <select
+                        :value="valorActual"
+                        @change="elegir($event.target.value)"
+                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    >
+                        <option value="">Seleccione...</option>
+                        @foreach($ejesPrioritarios as $id => $nombre)
+                            <option value="{{ $id }}">{{ $nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                @error('ejes_prioritarios_unah') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+            </div>
+
             @php
                 $academicMultiSelects = [
-                    [
-                        'field' => 'ejes_prioritarios_unah',
-                        'label' => 'Ejes Prioritarios UNAH',
-                        'options' => $ejesPrioritarios,
-                        'placeholder' => 'Buscar o seleccionar ejes prioritarios...',
-                        'disabled' => false,
-                        'emptyMessage' => 'No hay ejes prioritarios disponibles.',
-                    ],
                     [
                         'field' => 'facultades_centros',
                         'label' => 'Facultad o Centros',
@@ -1377,7 +1390,8 @@
         <div class="space-y-6">
             {{-- Tabla beneficiarios por etnia --}}
             <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Beneficiarios por Grupo Étnico</h4>
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Beneficiarios por Grupo Étnico</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Marque los grupos que se atenderán. Puede seleccionar más de una opción.</p>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                         <thead class="bg-gray-100 dark:bg-gray-700">
@@ -1385,61 +1399,51 @@
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300">Grupo Étnico</th>
                                 <th class="px-4 py-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-300">Hombres</th>
                                 <th class="px-4 py-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-300">Mujeres</th>
-                                <th class="px-4 py-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-300">Subtotal</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                             @php
                             $grupos = [
-                                ['label' => 'Indígenas', 'h' => 'indigenas_hombres', 'm' => 'indigenas_mujeres'],
-                                ['label' => 'Afroamericanos', 'h' => 'afroamericanos_hombres', 'm' => 'afroamericanos_mujeres'],
-                                ['label' => 'Mestizos', 'h' => 'mestizos_hombres', 'm' => 'mestizos_mujeres'],
+                                ['label' => 'Indígenas', 'h' => 'indigenas_hombres_marcado', 'm' => 'indigenas_mujeres_marcado'],
+                                ['label' => 'Afroamericanos', 'h' => 'afroamericanos_hombres_marcado', 'm' => 'afroamericanos_mujeres_marcado'],
+                                ['label' => 'Mestizos', 'h' => 'mestizos_hombres_marcado', 'm' => 'mestizos_mujeres_marcado'],
                             ];
                             @endphp
                             @foreach($grupos as $g)
-                            @php
-                                $hKey = $g['h'] ?? null;
-                                $mKey = $g['m'] ?? null;
-                                $hValue = match ($hKey) {
-                                    'indigenas_hombres' => (int) ($indigenas_hombres ?? 0),
-                                    'afroamericanos_hombres' => (int) ($afroamericanos_hombres ?? 0),
-                                    'mestizos_hombres' => (int) ($mestizos_hombres ?? 0),
-                                    default => 0,
-                                };
-                                $mValue = match ($mKey) {
-                                    'indigenas_mujeres' => (int) ($indigenas_mujeres ?? 0),
-                                    'afroamericanos_mujeres' => (int) ($afroamericanos_mujeres ?? 0),
-                                    'mestizos_mujeres' => (int) ($mestizos_mujeres ?? 0),
-                                    default => 0,
-                                };
-                                $total = $hValue + $mValue;
-                            @endphp
                             <tr class="bg-white dark:bg-gray-900">
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300 font-medium text-xs">{{ $g['label'] }}</td>
                                 <td class="px-4 py-2 text-center">
-                                    <input type="number" wire:model.blur.number="{{ $g['h'] }}" wire:blur="calcTotales" min="0" step="1" inputmode="numeric"
-                                        class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center focus:border-blue-500" />
-                                    @error($g['h']) <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                    <input type="checkbox" wire:model="{{ $g['h'] }}" class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500" />
                                 </td>
                                 <td class="px-4 py-2 text-center">
-                                    <input type="number" wire:model.blur.number="{{ $g['m'] }}" wire:blur="calcTotales" min="0" step="1" inputmode="numeric"
-                                        class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center focus:border-blue-500" />
-                                    @error($g['m']) <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                                </td>
-                                <td class="px-4 py-2 text-center font-semibold text-gray-700 dark:text-gray-300">
-                                    {{ $total }}
+                                    <input type="checkbox" wire:model="{{ $g['m'] }}" class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500" />
                                 </td>
                             </tr>
                             @endforeach
-                            <tr class="bg-gray-100 dark:bg-gray-700 font-bold border-t-2 border-gray-300 dark:border-gray-500">
-                                <td class="px-4 py-2 text-gray-900 dark:text-white text-sm">Total General</td>
-                                <td class="px-4 py-2 text-center text-gray-900 dark:text-white">{{ $hombres }}</td>
-                                <td class="px-4 py-2 text-center text-gray-900 dark:text-white">{{ $mujeres }}</td>
-                                <td class="px-4 py-2 text-center text-blue-700 dark:text-blue-400 text-base">{{ $poblacion_participante }}</td>
-                            </tr>
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            {{-- Cantidad aproximada de beneficiarios --}}
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Cantidad Aproximada de Beneficiarios</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Cantidad total estimada.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Hombres</label>
+                        <input type="number" wire:model.blur.number="hombres" wire:blur="calcTotales" min="0" step="1" inputmode="numeric"
+                            class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 text-sm focus:border-blue-500" />
+                        @error('hombres') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Mujeres</label>
+                        <input type="number" wire:model.blur.number="mujeres" wire:blur="calcTotales" min="0" step="1" inputmode="numeric"
+                            class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 text-sm focus:border-blue-500" />
+                        @error('mujeres') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+                <p class="text-sm mt-3 text-gray-700 dark:text-gray-300">Total General: <strong class="text-blue-700 dark:text-blue-400">{{ $poblacion_participante }}</strong></p>
             </div>
 
             {{-- Zona geográfica --}}
@@ -1742,15 +1746,7 @@
                                     @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.nombre_medio_verificacion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
                                 <div class="col-span-2">
-                                    <label class="block text-xs text-gray-500 mb-0.5">Plazo <span class="text-red-500">*</span></label>
-                                    <select wire:model.live="objetivosEspecificos.{{ $selectedObjetivoIndex }}.resultados.{{ $ri }}.plazo"
-                                        class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500">
-                                        <option value="">Seleccione...</option>
-                                        <option value="corto_plazo">Corto plazo</option>
-                                        <option value="mediano_plazo">Mediano plazo</option>
-                                        <option value="largo_plazo">Largo plazo</option>
-                                    </select>
-                                    @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados.{$ri}.plazo") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">Corto plazo</span>
                                 </div>
                             </div>
                         </div>
@@ -1761,6 +1757,62 @@
                     </div>
                 </div>
                 @endif
+            </div>
+
+            {{-- Resultados de Mediano y Largo Plazo (efectos e impacto del proyecto, no ligados a un objetivo específico) --}}
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div class="flex items-center justify-between mb-1">
+                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Resultados de Mediano y Largo Plazo</h4>
+                    <button wire:click="addResultadoProyecto" type="button"
+                        class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                        + Agregar
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Efectos e impacto esperados del proyecto en mediano y largo plazo.</p>
+                @error('resultadosProyecto') <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    @foreach($resultadosProyecto as $ri => $resultadoProyecto)
+                    <div wire:key="resultado-proyecto-{{ $resultadoProyecto['wire_key'] ?? $resultadoProyecto['id'] ?? 'nuevo-'.$ri }}" class="p-2.5 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-xs font-semibold text-gray-500">Resultado {{ $ri + 1 }}</span>
+                            <button wire:click="removeResultadoProyecto({{ $ri }})" type="button"
+                                class="text-xs text-red-500 hover:text-red-700">✕</button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5">
+                            <div class="col-span-2">
+                                <label class="block text-xs text-gray-500 mb-0.5">Resultado <span class="text-red-500">*</span></label>
+                                <input type="text" wire:model.live.debounce.1000ms="resultadosProyecto.{{ $ri }}.nombre_resultado"
+                                    class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                @error("resultadosProyecto.{$ri}.nombre_resultado") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs text-gray-500 mb-0.5">Indicador <span class="text-red-500">*</span></label>
+                                <input type="text" wire:model.live.debounce.1000ms="resultadosProyecto.{{ $ri }}.nombre_indicador"
+                                    class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                @error("resultadosProyecto.{$ri}.nombre_indicador") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs text-gray-500 mb-0.5">Medio de Verificación <span class="text-red-500">*</span></label>
+                                <input type="text" wire:model.live.debounce.1000ms="resultadosProyecto.{{ $ri }}.nombre_medio_verificacion"
+                                    class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
+                                @error("resultadosProyecto.{$ri}.nombre_medio_verificacion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs text-gray-500 mb-0.5">Plazo <span class="text-red-500">*</span></label>
+                                <select wire:model.live="resultadosProyecto.{{ $ri }}.plazo"
+                                    class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500">
+                                    <option value="mediano_plazo">Mediano plazo</option>
+                                    <option value="largo_plazo">Largo plazo</option>
+                                </select>
+                                @error("resultadosProyecto.{$ri}.plazo") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                    @if(empty($resultadosProyecto))
+                    <p class="text-xs text-gray-500 text-center py-2 md:col-span-2">Sin resultados de mediano/largo plazo. Haz clic en "+ Agregar".</p>
+                    @endif
+                </div>
             </div>
         </div>
         @endif
@@ -1830,12 +1882,30 @@
             <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
                 <div class="space-y-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Agregar Anexo</label>
-                        <input type="file" wire:model="newAnexo" class="w-full text-sm text-gray-600 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-                        @error('newAnexo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Agregar Anexos</label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Puedes seleccionar uno o varios archivos a la vez. Nada se guarda hasta que presiones "Subir".</p>
+                        <input type="file" multiple wire:model="newAnexos" wire:key="anexo-input-{{ $anexoUploadKey }}"
+                            class="w-full text-sm text-gray-600 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                        @error('newAnexos') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        @error('newAnexos.*') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
-                    <button wire:click="uploadAnexo" type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
-                        Subir Anexo
+
+                    @if(!empty($newAnexos))
+                    <div class="space-y-1">
+                        <p class="text-xs font-medium text-gray-600 dark:text-gray-400">Listos para subir ({{ count($newAnexos) }}):</p>
+                        @foreach($newAnexos as $i => $archivo)
+                        <div wire:key="pendiente-anexo-{{ $i }}" class="flex items-center justify-between py-1.5 px-2.5 bg-blue-50 dark:bg-blue-900/20 rounded text-sm">
+                            <span class="truncate max-w-xs text-gray-700 dark:text-gray-300">{{ is_object($archivo) ? $archivo->getClientOriginalName() : '' }}</span>
+                            <button wire:click="removeNewAnexo({{ $i }})" type="button" class="text-xs text-red-600 hover:text-red-800 ml-3 shrink-0">Quitar</button>
+                        </div>
+                        @endforeach
+                    </div>
+                    @endif
+
+                    <button wire:click="uploadAnexos" type="button" wire:loading.attr="disabled" wire:target="uploadAnexos" @disabled(empty($newAnexos))
+                        class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span wire:loading.remove wire:target="uploadAnexos">Subir {{ count($newAnexos) > 1 ? 'Anexos' : 'Anexo' }}</span>
+                        <span wire:loading wire:target="uploadAnexos">Subiendo...</span>
                     </button>
                 </div>
             </div>

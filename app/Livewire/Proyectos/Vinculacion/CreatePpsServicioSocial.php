@@ -4,6 +4,7 @@ namespace App\Livewire\Proyectos\Vinculacion;
 
 use App\Models\Demografia\Departamento;
 use App\Models\Demografia\Municipio;
+use App\Models\JornadaLaboral;
 use App\Models\Personal\Empleado;
 use App\Models\PpsServicioSocial;
 use App\Models\UnidadAcademica\Carrera;
@@ -20,6 +21,15 @@ use Livewire\WithFileUploads;
 class CreatePpsServicioSocial extends Component
 {
     use WithFileUploads;
+
+    // Valores permitidos para el grado academico del jefe directo (select restringido en el formulario)
+    public const GRADO_ACADEMICO_JEFE_DIRECTO_OPCIONES = [
+        'Secundaria completa',
+        'Licenciatura',
+        'Maestría',
+        'Doctorado',
+        'Postdoctorado',
+    ];
 
     public int $currentStep = 1;
     public int $totalSteps = 9;
@@ -612,6 +622,14 @@ class CreatePpsServicioSocial extends Component
         }
     }
 
+    protected function jornadasLaboralesValidas(): array
+    {
+        return JornadaLaboral::where('activo', true)
+            ->get()
+            ->pluck('etiqueta')
+            ->all();
+    }
+
     protected function rulesForStep(int $step): array
     {
         return match ($step) {
@@ -676,7 +694,7 @@ class CreatePpsServicioSocial extends Component
                 'jefe_directo_celular' => 'nullable|string|max:30',
                 'jefe_directo_correo' => 'nullable|email|max:255',
                 'jefe_directo_cargo' => 'nullable|string|max:255',
-                'jefe_directo_grado' => 'nullable|string|max:255',
+                'jefe_directo_grado' => ['nullable', 'string', Rule::in(array_merge([''], self::GRADO_ACADEMICO_JEFE_DIRECTO_OPCIONES))],
             ],
             8 => [
                 'docente_supervisor_nombre' => 'required|string|max:255',
@@ -685,7 +703,7 @@ class CreatePpsServicioSocial extends Component
                 'docente_correo' => 'nullable|email|max:255',
                 'docente_categoria' => 'nullable|string|max:255',
                 'docente_departamento' => 'nullable|string|max:255',
-                'docente_jornada' => 'nullable|string|max:255',
+                'docente_jornada' => ['nullable', 'string', Rule::in(array_merge([''], $this->jornadasLaboralesValidas()))],
                 'docente_cubiculo' => 'nullable|string|max:255',
             ],
             9 => [
@@ -963,12 +981,19 @@ class CreatePpsServicioSocial extends Component
             ->limit(100)
             ->get();
 
+        $jornadasLaborales = JornadaLaboral::where('activo', true)
+            ->orderBy('orden')
+            ->orderBy('hora_inicio')
+            ->get()
+            ->pluck('etiqueta', 'etiqueta');
+
         return view('livewire.proyectos.vinculacion.create-pps-servicio-social', [
             'facultadesCentros' => $facultadesCentros,
             'carreras' => $carreras,
             'departamentos' => $departamentos,
             'municipios' => $municipios,
             'docentes' => $docentes,
+            'jornadasLaborales' => $jornadasLaborales,
         ]);
     }
 }

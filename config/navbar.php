@@ -168,15 +168,16 @@ return [
             [
                 'titulo' => 'Configuración',
                 'route' => 'listarLogs',
-                'routes' => ['listarLogs', 'slides', 'configuracion.flujos.proyectos', 'configuracion.integraciones-api'],
+                'routes' => ['listarLogs', 'slides', 'configuracion.flujos.proyectos', 'configuracion.integraciones-api', 'configuracion.jornada-laboral'],
                 'icono' => 'heroicon-c-cog-6-tooth',
                 'class' => 'mb-4',
-                'permisos' => ['configuracion.logs', 'apariencia.slides', 'configuracion.flujos', 'configuracion.integraciones-api'],
+                'permisos' => ['configuracion.logs', 'apariencia.slides', 'configuracion.flujos', 'configuracion.integraciones-api', 'configuracion.jornada-laboral'],
                 'children' => [
                     ['texto' => 'Logs', 'route' => 'listarLogs', 'permiso' => 'configuracion.logs'],
                     ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia.slides'],
                     ['texto' => 'Flujos de proyectos', 'route' => 'configuracion.flujos.proyectos', 'permiso' => 'configuracion.flujos'],
                     ['texto' => 'Integraciones API', 'route' => 'configuracion.integraciones-api', 'permiso' => 'configuracion.integraciones-api'],
+                    ['texto' => 'Jornada Laboral', 'route' => 'configuracion.jornada-laboral', 'permiso' => 'configuracion.jornada-laboral'],
                     ['texto' => 'Contactanos', 'route' => 'contactanos', 'permiso' => 'configuracion.contactanos']
                 ],
             ],
