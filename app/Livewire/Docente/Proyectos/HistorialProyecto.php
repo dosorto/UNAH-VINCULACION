@@ -83,7 +83,21 @@ class HistorialProyecto extends Component
 
         $this->esCoordinador = $workflow->usuarioPuedeGestionar($proyecto, $user);
 
-        if (! $puedeVerTodos && ! $puedeAuditarInformeFinal && $puedeVerCentro) {
+        // Tener una firma (pendiente o resuelta) asignada en este proyecto
+        // habilita el acceso sin importar el centro/facultad del usuario:
+        // desde que una etapa puede mandarse a cualquier usuario de un rol,
+        // el firmante asignado no necesariamente pertenece al mismo centro.
+        $esFirmante = $user?->empleado
+            && FirmaProyecto::where('firmable_type', Proyecto::class)
+                ->where('firmable_id', $proyecto->id)
+                ->where('empleado_id', $user->empleado->id)
+                ->exists();
+
+        if ($puedeVerTodos || $puedeAuditarInformeFinal || $this->esCoordinador || $esFirmante) {
+            return;
+        }
+
+        if ($puedeVerCentro) {
             $centroFacultadId = $user?->empleado?->centro_facultad_id;
             $perteneceAlCentro = $centroFacultadId
                 && $proyecto->facultades_centros()
@@ -91,28 +105,25 @@ class HistorialProyecto extends Component
                     ->exists();
 
             abort_unless($perteneceAlCentro, 403, 'No tiene permiso para ver proyectos de otra Facultad o Centro.');
-        } elseif (! $puedeVerTodos && ! $puedeAuditarInformeFinal) {
-            if (! $user || ! $user->empleado) {
-                abort(403, 'No tiene permiso para ver este proyecto');
-            }
 
-            $empleadoProyecto = EmpleadoProyecto::where('proyecto_id', $proyecto->id)
-                ->where('empleado_id', $user->empleado->id)
-                ->first();
-
-            if ($empleadoProyecto) {
-                $this->authorize('view', $empleadoProyecto);
-            } else {
-                $esFirmante = FirmaProyecto::where('firmable_type', Proyecto::class)
-                    ->where('firmable_id', $proyecto->id)
-                    ->where('empleado_id', $user->empleado->id)
-                    ->exists();
-
-                if (! $this->esCoordinador && ! $esFirmante) {
-                    abort(403, 'No tiene permiso para ver este proyecto. Solo el coordinador, firmantes o un administrador pueden acceder.');
-                }
-            }
+            return;
         }
+
+        if (! $user || ! $user->empleado) {
+            abort(403, 'No tiene permiso para ver este proyecto');
+        }
+
+        $empleadoProyecto = EmpleadoProyecto::where('proyecto_id', $proyecto->id)
+            ->where('empleado_id', $user->empleado->id)
+            ->first();
+
+        if ($empleadoProyecto) {
+            $this->authorize('view', $empleadoProyecto);
+
+            return;
+        }
+
+        abort(403, 'No tiene permiso para ver este proyecto. Solo el coordinador, firmantes o un administrador pueden acceder.');
     }
 
     public function openSubirIntermedio(): void

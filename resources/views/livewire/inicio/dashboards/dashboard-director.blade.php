@@ -604,8 +604,14 @@
                                                     </span>
                                                     
                                                     @if($estado->comentario)
-                                                        <div class="mt-3 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 p-3 rounded-md border-l-2 border-gray-300 dark:border-gray-500 italic">
-                                                            "{{ $estado->comentario }}"
+                                                        <div x-data="{ expanded: false }" class="mt-3 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 p-3 rounded-md border-l-2 border-gray-300 dark:border-gray-500 italic">
+                                                            <p class="break-words" :class="expanded ? '' : 'line-clamp-4'">"{{ $estado->comentario }}"</p>
+                                                            @if (mb_strlen($estado->comentario) > 200)
+                                                                <button type="button" @click="expanded = !expanded" class="not-italic mt-1 text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                                                                    <span x-show="!expanded">Ver más</span>
+                                                                    <span x-show="expanded" x-cloak>Ver menos</span>
+                                                                </button>
+                                                            @endif
                                                         </div>
                                                     @endif
                                                 </div>

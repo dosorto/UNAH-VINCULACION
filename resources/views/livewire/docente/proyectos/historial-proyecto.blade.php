@@ -244,7 +244,7 @@
                 Historial de movimientos
             </h2>
 
-            <div class="max-h-[calc(100vh-12rem)] overflow-y-auto pr-2">
+            <div class="max-h-[calc(100vh-12rem)] overflow-x-hidden overflow-y-auto pr-2">
                 @if ($estados->count() > 0)
                     <ol class="relative border-s border-yellow-600">
                         @foreach ($estados as $index => $estado)
@@ -275,7 +275,7 @@
                                     $tieneAdjuntos = $documentosRevisionInformeFinal->get($estado->id, collect())->isNotEmpty()
                                         || $documentosSubsanacion->get($estado->id, collect())->isNotEmpty();
                                 @endphp
-                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                <p class="mt-1 break-words text-sm text-gray-500 dark:text-gray-400">
                                     @if ($estado->empleado)
                                         Realizado por: {{ $estado->empleado->nombre_completo }}
                                     @endif
@@ -326,7 +326,7 @@
                                     Realizado por: {{ $movimientoActual->empleado->nombre_completo }}
                                 </p>
                             @endif
-                            <p class="mt-2 whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300">
+                            <p class="mt-2 whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-gray-300">
                                 {{ $movimientoActual->comentario ?: 'Sin comentario.' }}
                             </p>
                         </div>

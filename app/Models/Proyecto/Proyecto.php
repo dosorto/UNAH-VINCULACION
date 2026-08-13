@@ -2334,6 +2334,9 @@ class Proyecto extends Model
             'fecha' => $firma->fecha_firma ?? $estado->fecha ?? $estado->created_at,
             'etapa' => $firma->etapa_nombre ?: $firma->flujoEtapa?->nombre ?: 'Etapa no disponible',
             'ciclo' => (int) $firma->revision_ciclo,
+            'documento' => ProyectoDocumentoSubsanacion::where('estado_proyecto_id', $estado->id)
+                ->latest('id')
+                ->first(),
         ];
     }
 

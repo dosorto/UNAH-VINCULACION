@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Proyectos;
 
 use App\Http\Controllers\Controller;
 use App\Models\Proyecto\ProyectoDocumentoSubsanacion;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProyectoDocumentoSubsanacionController extends Controller
 {
-    public function descargar(ProyectoDocumentoSubsanacion $documento): Response
+    public function descargar(ProyectoDocumentoSubsanacion $documento): StreamedResponse
     {
         $proyecto = $documento->proyecto()->firstOrFail();
         $usuario = request()->user();
