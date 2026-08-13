@@ -140,7 +140,11 @@ class ProyectosPorFirmar extends Component
             && $firma->estado_revision === 'Pendiente'
             && $firma->responsable_usuario_id
             && (int) $firma->responsable_usuario_id === (int) Auth::id()
-            && (bool) $firma->flujoEtapa?->requiere_asignacion;
+            // Se lee el valor congelado en la firma (no el de la etapa en
+            // vivo) para que editar el flujo no afecte firmas ya enviadas.
+            // Las firmas creadas antes de este campo (requiere_asignacion
+            // null) usan el valor en vivo de la etapa como respaldo.
+            && (bool) ($firma->requiere_asignacion ?? $firma->flujoEtapa?->requiere_asignacion);
     }
 
     public function puedeReasignarEnf(?EnfRevision $revision): bool

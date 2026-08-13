@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\Inicio\Dashboards\DasboardDocente;
+use App\Support\Proyecto\ProyectoFlujoStepper;
 use Illuminate\Support\Collection;
 use Tests\TestCase;
 
@@ -83,11 +83,23 @@ class DashboardMisProyectosLayoutTest extends TestCase
         $this->assertStringContainsString("->whereNotNull('flujo_aprobacion_etapa_id')", $componente);
     }
 
+    public function test_detalle_del_proyecto_muestra_el_progreso_en_la_cabecera(): void
+    {
+        $vista = file_get_contents(resource_path('views/livewire/docente/proyectos/historial-proyecto.blade.php'));
+        $componente = file_get_contents(app_path('Livewire/Docente/Proyectos/HistorialProyecto.php'));
+
+        $this->assertStringContainsString('Progreso del flujo', $vista);
+        $this->assertStringContainsString('<x-dashboard.stepper-progreso :stepper="$progresoFlujo" />', $vista);
+        $this->assertStringContainsString('ProyectoFlujoStepper::desdeFilas', $componente);
+        $this->assertStringContainsString('etapasParaStepper', $componente);
+        $this->assertGreaterThan(
+            strpos($componente, 'public function render('),
+            strpos($componente, '$progresoFlujo = ProyectoFlujoStepper::desdeFilas')
+        );
+    }
+
     private function stepperEstados(Collection $filas): array
     {
-        $metodo = new \ReflectionMethod(DasboardDocente::class, 'stepperEstados');
-        $metodo->setAccessible(true);
-
-        return $metodo->invoke(new DasboardDocente, $filas);
+        return ProyectoFlujoStepper::desdeFilas($filas);
     }
 }

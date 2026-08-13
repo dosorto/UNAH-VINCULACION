@@ -733,7 +733,7 @@
 
                 <!-- SECCIÓN DE FIRMAS -->
                 <div class="section3">
-                    @include('components.fichas.firmas-dinamicas', ['proyecto' => $proyecto, 'isPdf' => $isPdf ?? false])
+                    @include('components.fichas.firmas-fijas-proyecto', ['proyecto' => $proyecto, 'isPdf' => $isPdf ?? false])
                 </div>
 
                 <!-- SECCIÓN DE DOCUMENTOS ADJUNTOS A LA FICHA 

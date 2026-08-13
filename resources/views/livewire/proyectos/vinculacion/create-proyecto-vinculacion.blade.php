@@ -50,6 +50,18 @@
                 <dt class="font-semibold">Etapa</dt>
                 <dd>{{ $detalleSubsanacion['etapa'] }}</dd>
             </div>
+            @if ($detalleSubsanacion['documento'] ?? null)
+                <div class="sm:col-span-2">
+                    <dt class="font-semibold">Documento adjunto</dt>
+                    <dd>
+                        <a href="{{ route('proyectos.documentos-subsanacion.descargar', $detalleSubsanacion['documento']) }}"
+                           class="text-amber-900 underline hover:text-amber-700 dark:text-amber-200 dark:hover:text-amber-100"
+                           target="_blank">
+                            {{ $detalleSubsanacion['documento']->nombre_original }}
+                        </a>
+                    </dd>
+                </div>
+            @endif
         </dl>
         @endif
     </div>

@@ -2,6 +2,7 @@
 
 namespace App\Services\Proyecto;
 
+use App\Models\Personal\Empleado;
 use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\Proyecto;
@@ -65,7 +66,9 @@ class ProyectoWorkflowService
 
     /**
      * @param  array<int|string, int|string>  $usuariosElegidosPorEtapa
-     * @return array<int, int> empleado_id indexado por etapa_id
+     * @return array<int, int|array<int>> empleado_id (o array de empleado_id
+     *                                     cuando la etapa se manda a todos los
+     *                                     usuarios de un rol) indexado por etapa_id
      */
     public function resolverEmpleados(
         Proyecto $proyecto,
@@ -79,17 +82,25 @@ class ProyectoWorkflowService
                 throw new \RuntimeException(sprintf('La etapa "%s" no tiene cargo de firma configurado.', $etapa->nombre));
             }
 
-            $usuario = $this->resolverUsuarioEtapa($etapa, $usuariosElegidosPorEtapa);
-            $empleado = $usuario?->empleado;
+            $usuarios = $this->resolverUsuariosEtapa($etapa, $usuariosElegidosPorEtapa);
 
-            if (! $empleado || $empleado->trashed()) {
+            $empleadoIds = $usuarios
+                ->map(fn (User $usuario) => $usuario->empleado)
+                ->filter(fn (?Empleado $empleado) => $empleado && ! $empleado->trashed())
+                ->map(fn (Empleado $empleado) => (int) $empleado->id)
+                ->unique()
+                ->values();
+
+            if ($empleadoIds->isEmpty()) {
                 throw new \RuntimeException(sprintf(
                     'No existe un responsable válido para la etapa "%s".',
                     $etapa->nombre
                 ));
             }
 
-            $resultado[$etapa->id] = $empleado->id;
+            $resultado[$etapa->id] = $empleadoIds->count() === 1
+                ? $empleadoIds->first()
+                : $empleadoIds->all();
         }
 
         return $resultado;
@@ -246,10 +257,17 @@ class ProyectoWorkflowService
         });
     }
 
-    private function resolverUsuarioEtapa(
+    /**
+     * @return Collection<int, User> uno o más usuarios candidatos para la etapa.
+     *                                Más de uno solo ocurre cuando la etapa no
+     *                                tiene responsable fijo ni "emisor define
+     *                                destinatario": se manda a todos los
+     *                                usuarios del rol y basta con que uno actúe.
+     */
+    private function resolverUsuariosEtapa(
         FlujoAprobacionEtapa $etapa,
         array $usuariosElegidosPorEtapa
-    ): ?User {
+    ): Collection {
         $etapa->loadMissing(['usuarioResponsable.empleado', 'rolRevisor']);
 
         if ($etapa->emisor_define_destinatario) {
@@ -272,11 +290,11 @@ class ProyectoWorkflowService
                 ));
             }
 
-            return $usuario;
+            return collect([$usuario]);
         }
 
         if ($etapa->usuarioResponsable) {
-            return $etapa->usuarioResponsable;
+            return collect([$etapa->usuarioResponsable]);
         }
 
         if ($etapa->requiere_asignacion) {
@@ -288,9 +306,25 @@ class ProyectoWorkflowService
 
         $rol = $etapa->rolRevisor?->name;
 
-        return $rol
-            ? User::role($rol)->whereHas('empleado')->with('empleado')->orderBy('name')->first()
-            : null;
+        if (! $rol) {
+            return collect();
+        }
+
+        $usuarios = User::role($rol)
+            ->whereHas('empleado')
+            ->with('empleado')
+            ->orderBy('name')
+            ->get();
+
+        if ($usuarios->isEmpty()) {
+            throw new \RuntimeException(sprintf(
+                'No hay ningún usuario con el rol "%s" para la etapa "%s".',
+                $rol,
+                $etapa->nombre
+            ));
+        }
+
+        return $usuarios;
     }
 
     private function columnaAplicacion(string $proceso): string

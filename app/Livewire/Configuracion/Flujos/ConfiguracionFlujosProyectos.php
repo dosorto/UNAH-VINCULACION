@@ -248,6 +248,16 @@ class ConfiguracionFlujosProyectos extends Component
             : (string) ($value ?? '');
 
         $stages[$index][$field] = $normalizedValue;
+
+        // "Requiere asignación" y "El emisor define el destinatario" son
+        // mutuamente excluyentes: activar uno apaga el otro.
+        if ($field === 'requiere_asignacion' && $normalizedValue) {
+            $stages[$index]['emisor_define_destinatario'] = false;
+        } elseif ($field === 'emisor_define_destinatario' && $normalizedValue) {
+            $stages[$index]['requiere_asignacion'] = false;
+            $stages[$index]['usuario_responsable_id'] = '';
+        }
+
         $this->{$collection} = $stages;
         $this->updated("{$collection}.{$index}.{$field}", $normalizedValue);
     }
@@ -368,7 +378,7 @@ class ConfiguracionFlujosProyectos extends Component
             'stages.*.aplica_informe_intermedio' => ['boolean'],
             'stages.*.aplica_cierre_proyecto' => ['boolean'],
             'stages.*.nombre' => ['required', 'string', 'max:180'],
-            'stages.*.tipo_etapa' => ['required', 'in:FORMULACION,REVISION,APROBACION'],
+            'stages.*.tipo_etapa' => ['required', 'in:REVISION,APROBACION'],
             'stages.*.rol_revisor_id' => [
                 'nullable',
                 Rule::exists('roles', 'id')->where(
@@ -396,9 +406,12 @@ class ConfiguracionFlujosProyectos extends Component
                 ->exists();
 
             if ($tieneProyectosActivos) {
+                // Los datos clave de cada firma en curso (cargo, rol, responsable,
+                // si requiere asignación) quedan congelados desde que se envían;
+                // este aviso ya no es solo cosmético: refleja el comportamiento real.
                 Notification::make()
                     ->title('Flujo con proyectos activos')
-                    ->body('Hay proyectos en revisión que usan este flujo. Los cambios solo afectarán proyectos nuevos.')
+                    ->body('Hay proyectos en revisión que usan este flujo. Sus firmas ya enviadas conservan la configuración con la que se enviaron; los cambios aplicarán a los envíos nuevos.')
                     ->warning()
                     ->send();
             }
@@ -1242,7 +1255,6 @@ class ConfiguracionFlujosProyectos extends Component
         }
 
         $cargoName = match ($tipoEtapa) {
-            'FORMULACION' => 'Coordinador Proyecto',
             'APROBACION' => 'Director Vinculacion',
             default => 'Revisor Vinculacion',
         };
