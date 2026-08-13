@@ -58,10 +58,10 @@
                         </td>
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $record->fecha_inicio?->format('d/m/Y') ?? '—' }}</td>
                         <td class="px-4 py-3">
-                            <button wire:click="openView({{ $record->id }})"
+                            <a href="{{ route('historialproyecto', $record) }}"
                                 class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
                                 Ver
-                            </button>
+                            </a>
                         </td>
                     </tr>
                 @empty
@@ -74,25 +74,4 @@
     </div>
 
     <div class="mt-4">{{ $records->links() }}</div>
-
-    {{-- Modal Ver Ficha --}}
-    @if ($viewModal && $viewProyecto)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" wire:click.self="closeView">
-            <div class="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-7xl max-h-[90vh] overflow-y-auto mx-4">
-                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Proyecto de Vinculación</h3>
-                    <button wire:click="closeView" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
-                </div>
-                <div class="p-6">
-                    @include('components.fichas.ficha-proyecto-vinculacion', ['proyecto' => $viewProyecto])
-                </div>
-                <div class="flex justify-end px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-                    <button wire:click="closeView"
-                        class="px-4 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">
-                        Cerrar
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
 </div>

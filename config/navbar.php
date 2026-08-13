@@ -245,7 +245,7 @@ return [
                 'icono' => 'heroicon-o-document-text',
                 'permisos' => ['docente.proyectos'],
                 'children' => [
-                    ['texto' => 'Revisión Comité Local', 'route' => 'SolicitudProyectosDocente', 'permiso' => 'docente.proyectos', 'funcion' => 'obtenerCantidadProyectosPorFirmar'],
+                    ['texto' => 'Revisión', 'route' => 'SolicitudProyectosDocente', 'permiso' => 'docente.proyectos', 'funcion' => 'obtenerCantidadProyectosPorFirmar'],
                     ['texto' => 'Fichas de Actualización', 'route' => 'FichasActualizacionPorFirmar', 'permiso' => 'docente.proyectos', 'funcion' => 'obtenerCantidadFichasPorFirmar'],
                     ['texto' => 'Firmas Aprobadas', 'route' => 'AprobadoProyectosDocente', 'permiso' => 'docente.proyectos'],
                     ['texto' => 'Firmas Proximas', 'route' => 'RechazadoProyectosDocente', 'permiso' => 'docente.proyectos'],

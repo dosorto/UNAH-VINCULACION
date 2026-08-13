@@ -43,10 +43,17 @@
                         </td>
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $record->cargo_firma?->descripcion ?? '—' }}</td>
                         <td class="px-4 py-3">
-                            <button wire:click="openView({{ $record->id }})"
-                                class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
-                                Ver
-                            </button>
+                            @if ($record->firmable_type === \App\Models\Proyecto\Proyecto::class)
+                                <a href="{{ route('historialproyecto', ['proyecto' => $record->proyecto, 'origen' => 'por-firmar']) }}" wire:navigate
+                                   class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                                    Ver
+                                </a>
+                            @else
+                                <button wire:click="openView({{ $record->id }})"
+                                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                                    Ver
+                                </button>
+                            @endif
                         </td>
                     </tr>
                 @endforeach
@@ -162,8 +169,6 @@
                 <div class="p-6">
                     @if ($viewDocumento)
                         @include('components.fichas.informe', ['documentoProyecto' => $viewDocumento])
-                    @elseif ($viewProyecto)
-                        @include('components.fichas.ficha-proyecto-vinculacion', ['proyecto' => $viewProyecto])
                     @endif
                 </div>
                 @if ($this->puedeSubsanar($viewFirma->id))

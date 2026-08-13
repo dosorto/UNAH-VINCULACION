@@ -36,6 +36,82 @@ document.addEventListener('alpine:init', () => {
             this.resolve = null;
         },
     });
+
+    Alpine.data('workflowStageAnimator', () => ({
+        stagePositions: {},
+
+        captureStagePositions(list) {
+            const container = this.$root.querySelector(`[data-stage-list="${list}"]`);
+
+            this.stagePositions = {};
+
+            if (!container) {
+                return;
+            }
+
+            container.querySelectorAll('[data-stage-key]').forEach((card) => {
+                card.getAnimations().forEach((animation) => animation.cancel());
+                this.stagePositions[`${list}:${card.dataset.stageKey}`] = card.getBoundingClientRect().top;
+            });
+        },
+
+        animateStageMove(event) {
+            const { list, stageKey } = event.detail || {};
+
+            if (!list || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                this.stagePositions = {};
+                return;
+            }
+
+            this.$nextTick(() => {
+                requestAnimationFrame(() => {
+                    const container = this.$root.querySelector(`[data-stage-list="${list}"]`);
+
+                    if (!container) {
+                        this.stagePositions = {};
+                        return;
+                    }
+
+                    const cards = [...container.querySelectorAll('[data-stage-key]')];
+
+                    cards.forEach((card) => {
+                        const previousTop = this.stagePositions[`${list}:${card.dataset.stageKey}`];
+
+                        if (previousTop === undefined) {
+                            return;
+                        }
+
+                        const distance = previousTop - card.getBoundingClientRect().top;
+
+                        if (Math.abs(distance) < 1) {
+                            return;
+                        }
+
+                        card.animate([
+                            { transform: `translateY(${distance}px)` },
+                            { transform: 'translateY(0)' },
+                        ], {
+                            duration: 360,
+                            easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                        });
+                    });
+
+                    const movedCard = cards.find((card) => card.dataset.stageKey === stageKey);
+
+                    movedCard?.animate([
+                        { backgroundColor: 'rgba(14, 165, 233, 0)', boxShadow: '0 0 0 0 rgba(14, 165, 233, 0)' },
+                        { backgroundColor: 'rgba(14, 165, 233, 0.10)', boxShadow: '0 0 0 4px rgba(14, 165, 233, 0.30)', offset: 0.45 },
+                        { backgroundColor: 'rgba(14, 165, 233, 0)', boxShadow: '0 0 0 0 rgba(14, 165, 233, 0)' },
+                    ], {
+                        duration: 720,
+                        easing: 'ease-out',
+                    });
+
+                    this.stagePositions = {};
+                });
+            });
+        },
+    }));
 });
 
 window.confirmDialog = (message, options) => window.Alpine.store('confirmDialog').open(message, options);

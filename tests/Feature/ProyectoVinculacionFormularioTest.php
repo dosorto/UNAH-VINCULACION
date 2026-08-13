@@ -7,6 +7,7 @@ use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
 use App\Models\Proyecto\Proyecto;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -369,9 +370,9 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $this->assertNotNull($preview);
         $this->assertNotNull($download);
         $this->assertSame('proyectos/{proyecto}/perfil-pdf', $preview->uri());
-        $this->assertSame(PDFController::class . '@previsualizarPerfilProyecto', $preview->getActionName());
+        $this->assertSame(PDFController::class.'@previsualizarPerfilProyecto', $preview->getActionName());
         $this->assertSame('proyectos/{proyecto}/perfil-pdf/descargar', $download->uri());
-        $this->assertSame(PDFController::class . '@descargarPerfilProyecto', $download->getActionName());
+        $this->assertSame(PDFController::class.'@descargarPerfilProyecto', $download->getActionName());
     }
 
     public function test_respuestas_pdf_declaran_disposition_correcto(): void
@@ -410,8 +411,86 @@ class ProyectoVinculacionFormularioTest extends TestCase
     {
         $detalle = file_get_contents(resource_path('views/livewire/docente/proyectos/historial-proyecto.blade.php'));
 
-        $this->assertStringContainsString("route('proyectosDocente', ['tipo' => 'proyectos'])", $detalle);
-        $this->assertStringNotContainsString("route('listarProyectosVinculacion')", $detalle);
+        $this->assertStringContainsString('route($historialRouteName, $historialRouteParameters)', $detalle);
+    }
+
+    public function test_director_abre_el_proyecto_en_la_pantalla_de_detalle(): void
+    {
+        $listado = file_get_contents(resource_path('views/livewire/director-facultad-centro/proyectos/list-proyectos.blade.php'));
+
+        $this->assertStringContainsString("route('historialproyecto', \$record)", $listado);
+        $this->assertStringNotContainsString('wire:click="openView', $listado);
+        $this->assertStringNotContainsString('$viewModal', $listado);
+    }
+
+    public function test_ruta_de_detalle_admite_el_permiso_de_director(): void
+    {
+        $historial = Route::getRoutes()->getByName('historialproyecto');
+        $middleware = implode('|', $historial->gatherMiddleware());
+
+        $this->assertStringContainsString('director.proyectos', $middleware);
+    }
+
+    public function test_revisores_abren_la_ficha_en_pantalla_completa(): void
+    {
+        $bandejas = [
+            'list-proyectos-vinculacion-solicitados.blade.php' => 'solicitados',
+            'list-proyecto-revision-final.blade.php' => 'revision-final',
+        ];
+
+        foreach ($bandejas as $archivo => $origen) {
+            $vista = file_get_contents(resource_path('views/livewire/proyectos/vinculacion/'.$archivo));
+
+            $this->assertStringContainsString("'origen' => '{$origen}'", $vista);
+            $this->assertStringContainsString("route('historialproyecto'", $vista);
+            $this->assertStringNotContainsString('wire:click="openView', $vista);
+            $this->assertStringNotContainsString('components.fichas.ficha-proyecto-vinculacion', $vista);
+            $this->assertStringNotContainsString('$viewModal', $vista);
+        }
+    }
+
+    public function test_ficha_base_del_proyecto_solo_se_incrusta_en_su_pantalla_completa(): void
+    {
+        $vistasConFicha = collect(File::allFiles(resource_path('views/livewire')))
+            ->filter(fn ($archivo) => str_contains(
+                file_get_contents($archivo->getPathname()),
+                'components.fichas.ficha-proyecto-vinculacion'
+            ))
+            ->map(fn ($archivo) => $archivo->getRelativePathname())
+            ->values()
+            ->all();
+
+        $this->assertSame(['docente/proyectos/historial-proyecto.blade.php'], $vistasConFicha);
+    }
+
+    public function test_proyectos_por_firmar_envia_la_ficha_base_al_detalle(): void
+    {
+        $vista = file_get_contents(resource_path('views/livewire/docente/proyectos/proyectos-por-firmar.blade.php'));
+
+        $this->assertStringContainsString("'origen' => 'por-firmar'", $vista);
+        $this->assertStringContainsString("route('historialproyecto'", $vista);
+        $this->assertStringNotContainsString('components.fichas.ficha-proyecto-vinculacion', $vista);
+    }
+
+    public function test_subsanacion_usa_nombre_correcto_y_area_amplia_para_observaciones(): void
+    {
+        $detalle = file_get_contents(resource_path('views/livewire/docente/proyectos/historial-proyecto.blade.php'));
+
+        $this->assertStringContainsString('Enviar proyecto a subsanación', $detalle);
+        $this->assertStringContainsString('rows="10"', $detalle);
+        $this->assertStringContainsString('max-w-3xl', $detalle);
+        $this->assertStringContainsString('wire:click="subsanar"', $detalle);
+        $this->assertStringNotContainsString('Rechazar Proyecto', $detalle);
+        $this->assertStringNotContainsString('Confirmar Rechazo', $detalle);
+    }
+
+    public function test_ruta_de_detalle_admite_las_bandejas_de_revision(): void
+    {
+        $historial = Route::getRoutes()->getByName('historialproyecto');
+        $middleware = implode('|', $historial->gatherMiddleware());
+
+        $this->assertStringContainsString('proyectos.solicitados', $middleware);
+        $this->assertStringContainsString('proyectos.revision-final', $middleware);
     }
 
     public function test_mi_historial_soporta_tipo_de_accion_en_query_string(): void
@@ -466,7 +545,7 @@ class ProyectoVinculacionFormularioTest extends TestCase
 
     private function formComponent(): CreateProyectoVinculacion
     {
-        return new CreateProyectoVinculacion();
+        return new CreateProyectoVinculacion;
     }
 
     private function reglasRtn(?string $pais = null, ?string $tipoEntidad = null): array
@@ -482,7 +561,7 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $method = new \ReflectionMethod(PDFController::class, 'nombreArchivoPerfilProyecto');
         $method->setAccessible(true);
 
-        return $method->invoke(new PDFController(), $proyecto);
+        return $method->invoke(new PDFController, $proyecto);
     }
 
     private function aplicarHeadersPerfilPdf(string $disposition, string $nombreArchivo)
@@ -490,7 +569,7 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $method = new \ReflectionMethod(PDFController::class, 'aplicarHeadersPerfilPdf');
         $method->setAccessible(true);
 
-        return $method->invoke(new PDFController(), response('pdf'), $disposition, $nombreArchivo);
+        return $method->invoke(new PDFController, response('pdf'), $disposition, $nombreArchivo);
     }
 
     private function llenarDescripcion(CreateProyectoVinculacion $component): void
@@ -548,7 +627,7 @@ BLADE, [
 
     private function dateInputAttributes(string $html): array
     {
-        $dom = new \DOMDocument();
+        $dom = new \DOMDocument;
         $dom->loadHTML($html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
 
         $attributes = [];
