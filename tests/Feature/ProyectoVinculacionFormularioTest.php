@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Http\Controllers\PDFController;
 use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
+use App\Models\PeriodoAcademico;
 use App\Models\Proyecto\Proyecto;
+use Database\Seeders\UnidadAcademica\PeriodoAcademicoSeeder;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
@@ -541,6 +543,82 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $this->assertTrue(Validator::make(['rtn' => '08011985123456'], $rules)->passes());
         $this->assertTrue(Validator::make(['rtn' => '0801-1985-123456'], $rules)->fails());
         $this->assertTrue(Validator::make(['rtn' => '080119851234567'], $rules)->fails());
+    }
+
+    public function test_ods_permite_hasta_tres_selecciones_y_rechaza_una_cuarta(): void
+    {
+        $component = $this->formComponent();
+        $component->currentStep = 1;
+        $method = new \ReflectionMethod(CreateProyectoVinculacion::class, 'rulesPasoActualBase');
+        $method->setAccessible(true);
+        $rules = $method->invoke($component);
+
+        $this->assertTrue(Validator::make(['ods' => [1, 2, 3]], ['ods' => $rules['ods']])->passes());
+        $this->assertTrue(Validator::make(['ods' => [1, 2, 3, 4]], ['ods' => $rules['ods']])->fails());
+    }
+
+    public function test_selector_ods_impide_agregar_una_cuarta_opcion(): void
+    {
+        $vista = file_get_contents(resource_path('views/livewire/proyectos/vinculacion/create-proyecto-vinculacion.blade.php'));
+
+        $this->assertStringContainsString('maxOds: 3', $vista);
+        $this->assertStringContainsString('if (current.length >= this.maxOds) return;', $vista);
+        $this->assertStringContainsString("(selected || []).length + '/3'", $vista);
+    }
+
+    public function test_grupo_de_estudiantes_no_se_guarda_con_total_cero(): void
+    {
+        $component = $this->formComponent();
+        $component->showEstudianteModal = true;
+        $component->nuevoEstudiante = [
+            'tipo_participacion_estudiante' => 'Voluntariado',
+            'carrera_id' => null,
+            'asignatura_id' => null,
+            'periodo_academico_id' => null,
+            'cantidad_estudiantes_hombres' => 0,
+            'cantidad_estudiantes_mujeres' => 0,
+            'total_estudiantes' => 0,
+        ];
+
+        $component->saveEstudiante();
+
+        $this->assertSame([], $component->estudiante_proyecto);
+        $this->assertTrue($component->showEstudianteModal);
+        $this->assertTrue($component->getErrorBag()->has('nuevoEstudiante.total_estudiantes'));
+    }
+
+    public function test_paso_de_equipo_rechaza_un_grupo_preexistente_con_total_cero(): void
+    {
+        $component = $this->formComponent();
+        $component->currentStep = 2;
+        $component->estudiante_proyecto = [[
+            'tipo_participacion_estudiante' => 'Voluntariado',
+            'carrera_id' => null,
+            'asignatura_id' => null,
+            'periodo_academico_id' => null,
+            'cantidad_estudiantes_hombres' => 0,
+            'cantidad_estudiantes_mujeres' => 0,
+            'total_estudiantes' => 0,
+        ]];
+
+        $component->nextStep();
+
+        $this->assertSame(2, $component->currentStep);
+        $this->assertTrue($component->getErrorBag()->has('estudiante_proyecto'));
+        $this->assertTrue($component->getErrorBag()->has('estudiante_proyecto.0.total_estudiantes'));
+    }
+
+    public function test_catalogo_base_contiene_los_tres_periodos_academicos(): void
+    {
+        $this->assertSame([
+            'Primer Periodo',
+            'Segundo Periodo',
+            'Tercer Periodo',
+        ], PeriodoAcademico::NOMBRES_BASE);
+
+        $seeder = file_get_contents((new \ReflectionClass(PeriodoAcademicoSeeder::class))->getFileName());
+        $this->assertStringContainsString('PeriodoAcademico::NOMBRES_BASE', $seeder);
+        $this->assertStringContainsString("firstOrCreate(['nombre' => \$nombre])", $seeder);
     }
 
     private function formComponent(): CreateProyectoVinculacion

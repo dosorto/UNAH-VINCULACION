@@ -261,6 +261,15 @@ class DasboardDocente extends Component
      */
     private function stepperEstados(Collection $filas): array
     {
+        $flujoIniciado = $filas->contains(
+            fn (array $fila): bool => ($fila['firma'] ?? null) !== null
+                || (bool) ($fila['adoptada_antes'] ?? false)
+        );
+
+        if (! $flujoIniciado) {
+            return [];
+        }
+
         $actualMarcado = false;
 
         return $filas->map(function (array $fila) use (&$actualMarcado): array {
