@@ -1369,6 +1369,36 @@ class InformeFinalINF001Test extends TestCase
         Storage::disk('public')->assertExists($documento->documento_url);
     }
 
+    public function test_descarga_documento_de_revision_del_informe_final(): void
+    {
+        Storage::fake('public');
+        Storage::fake('local');
+        [$user,$project]=$this->scenario();
+        $this->componentReadyForCompletion($user,$project)->call('marcarCompleto')->assertHasNoErrors();
+        $report=$project->informeFinalInf001()->firstOrFail();
+        $documento=app(InformeFinalProyectoWorkflowService::class)->enviarInformeFinal($report,$user);
+        $firma=$documento->firma_documento()->firstOrFail();
+
+        $ruta='informes-finales/'.$report->id.'/revisiones/prueba.pdf';
+        Storage::disk('local')->put($ruta,'%PDF-contenido-de-prueba');
+        $documentoRevision=\App\Models\InformeFinal\InformeFinalDocumentoRevision::create([
+            'informe_final_proyecto_id'=>$report->id,
+            'firma_proyecto_id'=>$firma->id,
+            'flujo_aprobacion_id'=>$firma->flujo_aprobacion_id,
+            'flujo_aprobacion_etapa_id'=>$firma->flujo_aprobacion_etapa_id,
+            'subido_por'=>$user->id,
+            'revision_ciclo'=>$firma->revision_ciclo,
+            'ruta'=>$ruta,
+            'nombre_original'=>'prueba.pdf',
+            'mime_type'=>'application/pdf',
+            'tamano_bytes'=>Storage::disk('local')->size($ruta),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('informes-finales.documentos-revision.descargar',$documentoRevision))
+            ->assertOk();
+    }
+
     public function test_subsanacion_reutiliza_documento_preserva_ciclo_y_habilita_edicion(): void
     {
         Storage::fake('public');
