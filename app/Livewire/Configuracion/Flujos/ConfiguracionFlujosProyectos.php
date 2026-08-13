@@ -3,14 +3,14 @@
 namespace App\Livewire\Configuracion\Flujos;
 
 use App\Http\Controllers\ENF\EnfAccionController;
+use App\Models\DAFT\TipoPrograma;
 use App\Models\PpsServicioSocial;
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\Proyecto;
-use App\Support\Notification;
-use App\Models\DAFT\TipoPrograma;
 use App\Models\User;
+use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -23,15 +23,48 @@ class ConfiguracionFlujosProyectos extends Component
     private const DAFT_ROLE_PREFIX = 'DAFT ';
 
     private const PPS_ACTION_CODE = 'PPS_VOLUNTARIADO_GESTION_RIESGO';
+
     private const PPS_DEFAULT_CODE = 'PPS_SERVICIO_SOCIAL_DEFAULT';
+
     private const ACTION_DESARROLLO_ID = -101;
+
     private const ACTION_PPS_ID = -102;
+
     private const ACTION_ENF_ID = -103;
+
     private const FORM_DESARROLLO_LOCAL_ID = -1001;
+
     private const FORM_PPS_SERVICIO_SOCIAL_ID = -1002;
+
     private const FORM_VOLUNTARIADO_ID = -1003;
+
     private const FORM_ENF_CERTIFICADO_ID = -1004;
+
     private const FORM_ENF_PROYECTO_ID = -1005;
+
+    private const EDITABLE_STAGE_FIELDS = [
+        'codigo',
+        'nombre',
+        'tipo_etapa',
+        'rol_revisor_id',
+        'usuario_responsable_id',
+        'cargo_firma_id',
+        'aplica_inscripcion',
+        'aplica_informe_intermedio',
+        'aplica_cierre_proyecto',
+        'requiere_asignacion',
+        'emisor_define_destinatario',
+        'activo',
+    ];
+
+    private const BOOLEAN_STAGE_FIELDS = [
+        'aplica_inscripcion',
+        'aplica_informe_intermedio',
+        'aplica_cierre_proyecto',
+        'requiere_asignacion',
+        'emisor_define_destinatario',
+        'activo',
+    ];
 
     /**
      * Todo formulario tiene siempre estas 4 firmas fijas (etapas de tipo
@@ -47,13 +80,17 @@ class ConfiguracionFlujosProyectos extends Component
     ];
 
     protected array $cargoFirmaCache = [];
+
     protected array $tipoAccionIdCache = [];
 
     public string $activeFlowTab = 'proyectos';
 
     public ?int $selectedActionId = null;
+
     public ?int $selectedSubactionId = null;
+
     public ?int $selectedWorkflowId = null;
+
     public ?int $workflowId = null;
 
     public array $workflow = [
@@ -67,6 +104,7 @@ class ConfiguracionFlujosProyectos extends Component
     public array $stages = [];
 
     public ?int $programSelectedTipoProgramaId = null;
+
     public ?int $programWorkflowId = null;
 
     public array $programWorkflow = [
@@ -141,6 +179,7 @@ class ConfiguracionFlujosProyectos extends Component
         if ($this->activeFlowTab === 'programas') {
             $this->programStages[] = $this->blankProgramStage(count($this->programStages) + 1);
             $this->normalizeProgramStageCodes();
+
             return;
         }
 
@@ -155,32 +194,62 @@ class ConfiguracionFlujosProyectos extends Component
     {
         if (preg_match('/^stages\.(\d+)\.tipo_etapa$/', $property, $matches) && $value !== 'APROBACION') {
             $this->stages[(int) $matches[1]]['cargo_firma_id'] = '';
+
             return;
         }
 
         if (preg_match('/^programStages\.(\d+)\.tipo_etapa$/', $property, $matches) && $value !== 'APROBACION') {
             $this->programStages[(int) $matches[1]]['cargo_firma_id'] = '';
+
             return;
         }
 
         if (preg_match('/^stages\.(\d+)\.rol_revisor_id$/', $property, $matches)) {
             $this->clearInvalidResponsible($this->stages, (int) $matches[1]);
+
             return;
         }
 
         if (preg_match('/^programStages\.(\d+)\.rol_revisor_id$/', $property, $matches)) {
             $this->clearInvalidResponsible($this->programStages, (int) $matches[1]);
+
             return;
         }
 
         if (preg_match('/^stages\.(\d+)\.(requiere_asignacion|emisor_define_destinatario)$/', $property, $matches)) {
             $this->syncResponsibleAvailability($this->stages, (int) $matches[1], $matches[2]);
+
             return;
         }
 
         if (preg_match('/^programStages\.(\d+)\.(requiere_asignacion|emisor_define_destinatario)$/', $property, $matches)) {
             $this->syncResponsibleAvailability($this->programStages, (int) $matches[1], $matches[2]);
         }
+    }
+
+    public function updateStageField(string $collection, string $stageKey, string $field, mixed $value): void
+    {
+        if (! in_array($collection, ['stages', 'programStages'], true)
+            || ! in_array($field, self::EDITABLE_STAGE_FIELDS, true)) {
+            return;
+        }
+
+        $stages = $this->{$collection};
+        $index = collect($stages)->search(
+            fn (array $stage): bool => (string) ($stage['ui_key'] ?? '') === $stageKey
+        );
+
+        if ($index === false) {
+            return;
+        }
+
+        $normalizedValue = in_array($field, self::BOOLEAN_STAGE_FIELDS, true)
+            ? filter_var($value, FILTER_VALIDATE_BOOL)
+            : (string) ($value ?? '');
+
+        $stages[$index][$field] = $normalizedValue;
+        $this->{$collection} = $stages;
+        $this->updated("{$collection}.{$index}.{$field}", $normalizedValue);
     }
 
     public function removeStage(int $index): void
@@ -194,6 +263,7 @@ class ConfiguracionFlujosProyectos extends Component
             }
 
             $this->normalizeProgramStageCodes();
+
             return;
         }
 
@@ -214,9 +284,12 @@ class ConfiguracionFlujosProyectos extends Component
                 return;
             }
 
+            $movedStageKey = $this->programStages[$index]['ui_key'] ?? null;
             [$this->programStages[$index - 1], $this->programStages[$index]] = [$this->programStages[$index], $this->programStages[$index - 1]];
             $this->programStages = array_values($this->programStages);
             $this->normalizeProgramStageCodes();
+            $this->dispatchStageMoved('program', $movedStageKey);
+
             return;
         }
 
@@ -224,9 +297,11 @@ class ConfiguracionFlujosProyectos extends Component
             return;
         }
 
+        $movedStageKey = $this->stages[$index]['ui_key'] ?? null;
         [$this->stages[$index - 1], $this->stages[$index]] = [$this->stages[$index], $this->stages[$index - 1]];
         $this->stages = array_values($this->stages);
         $this->normalizeStageCodes();
+        $this->dispatchStageMoved('project', $movedStageKey);
     }
 
     public function moveStageDown(int $index): void
@@ -236,9 +311,12 @@ class ConfiguracionFlujosProyectos extends Component
                 return;
             }
 
+            $movedStageKey = $this->programStages[$index]['ui_key'] ?? null;
             [$this->programStages[$index + 1], $this->programStages[$index]] = [$this->programStages[$index], $this->programStages[$index + 1]];
             $this->programStages = array_values($this->programStages);
             $this->normalizeProgramStageCodes();
+            $this->dispatchStageMoved('program', $movedStageKey);
+
             return;
         }
 
@@ -246,15 +324,23 @@ class ConfiguracionFlujosProyectos extends Component
             return;
         }
 
+        $movedStageKey = $this->stages[$index]['ui_key'] ?? null;
         [$this->stages[$index + 1], $this->stages[$index]] = [$this->stages[$index], $this->stages[$index + 1]];
         $this->stages = array_values($this->stages);
         $this->normalizeStageCodes();
+        $this->dispatchStageMoved('project', $movedStageKey);
+    }
+
+    protected function dispatchStageMoved(string $list, ?string $stageKey): void
+    {
+        $this->dispatch('workflow-stage-moved', list: $list, stageKey: $stageKey);
     }
 
     public function save(): void
     {
         if ($this->activeFlowTab === 'programas') {
             $this->saveProgramFlow();
+
             return;
         }
 
@@ -262,6 +348,7 @@ class ConfiguracionFlujosProyectos extends Component
 
         if (! $subaction || ! ($subaction['tipo_accion_id'] ?? null)) {
             $this->addError('workflow.nombre', 'Seleccione un formulario disponible para configurar su flujo.');
+
             return;
         }
 
@@ -675,6 +762,7 @@ class ConfiguracionFlujosProyectos extends Component
     {
         if ($this->selectedSubactionId) {
             $this->loadWorkflowForSelectedSubaction();
+
             return;
         }
 
@@ -687,6 +775,7 @@ class ConfiguracionFlujosProyectos extends Component
 
         if (! $subaction || ! ($subaction['tipo_accion_id'] ?? null)) {
             $this->resetWorkflowForm();
+
             return;
         }
 
@@ -698,6 +787,7 @@ class ConfiguracionFlujosProyectos extends Component
 
         if (! $flow) {
             $this->resetWorkflowForm();
+
             return;
         }
 
@@ -832,6 +922,7 @@ class ConfiguracionFlujosProyectos extends Component
     {
         if (! $this->programSelectedTipoProgramaId) {
             $this->resetProgramWorkflowForm();
+
             return;
         }
 
@@ -842,6 +933,7 @@ class ConfiguracionFlujosProyectos extends Component
 
         if (! $flow) {
             $this->resetProgramWorkflowForm();
+
             return;
         }
 
@@ -1056,6 +1148,7 @@ class ConfiguracionFlujosProyectos extends Component
             if ($stageModel) {
                 $stageModel->update($payload);
                 $keptIds->push($stageModel->id);
+
                 continue;
             }
 
@@ -1064,7 +1157,6 @@ class ConfiguracionFlujosProyectos extends Component
 
         $flow->etapas()->whereNotIn('id', $keptIds->all())->delete();
     }
-
 
     protected function usersGroupedByRole($roles): array
     {

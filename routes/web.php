@@ -536,7 +536,7 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('historialproyecto/{proyecto}', HistorialProyecto::class)
             ->name('historialproyecto')
-            ->middleware('can:docente.proyectos');
+            ->middleware('permission:docente.proyectos|director.proyectos|proyectos.historial|proyectos.solicitados|proyectos.revision-final');
 
         Route::get('/proyectos/{proyecto}/ficha-actualizacion', EditProyectoActualizacion::class)
             ->name('ficha-actualizacion')
