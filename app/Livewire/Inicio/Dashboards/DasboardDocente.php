@@ -87,22 +87,41 @@ class DasboardDocente extends Component
 
     public function updateChartDataUser()
     {
-        $userId = auth()->user()->empleado->id;
+        $user = auth()->user();
+        $empleadoId = $user?->empleado?->id;
+        $authUserId = $user?->id;
 
         // Obtén los proyectos del usuario con sus datos completos
-        $userProjects = Proyecto::query()->get();
+        $userProjects = $empleadoId
+            ? Proyecto::query()
+                ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+                ->where('empleado_proyecto.empleado_id', $empleadoId)
+                ->select('proyecto.*')
+                ->distinct()
+                ->get()
+            : collect();
 
-        $enfProjects = EnfAccion::query()
-            ->where(fn (Builder $query): Builder => $this->enfFormsQuery($query))
-            ->get()
+        $ppsProjects = $authUserId
+            ? PpsServicioSocial::query()
+                ->where('created_by', $authUserId)
+                ->get()
+                ->map(fn (PpsServicioSocial $registro): object => (object) [
+                    'nombre_proyecto' => $registro->nombre_estudiante ?: $registro->nombre_institucion ?: 'PPS / Servicio Social',
+                    'created_at' => $registro->created_at,
+                ])
+            : collect();
+
+        $enfProjects = $authUserId
+            ? $this->enfAccionesUser($authUserId, $empleadoId)
             ->map(function (EnfAccion $accion): object {
                 return (object) [
                     'nombre_proyecto' => $accion->nombre_accion ?: 'Educacion no formal',
                     'created_at' => $accion->created_at,
                 ];
-            });
+            })
+            : collect();
 
-        $userProjects = $userProjects->concat($enfProjects);
+        $userProjects = $userProjects->concat($ppsProjects)->concat($enfProjects);
 
         // Define el rango de años a mostrar según la opción seleccionada
         $end = now()->year;
@@ -214,6 +233,7 @@ class DasboardDocente extends Component
 
             EnfAccion::query()
                 ->where(fn (Builder $query): Builder => $this->enfFormsQuery($query))
+                ->where(fn (Builder $query): Builder => $this->enfBelongsToUserQuery($query, $userId, $empleadoId))
                 ->get()
                 ->each(function (EnfAccion $accion) use ($rows): void {
                     $rows->push([
@@ -324,8 +344,13 @@ public function getLatestActivitiesUser($limit = 3)
     $user = auth()->user();
     $empleadoId = $user?->empleado?->id;
 
-    // En el panel se muestran los formularios existentes, no solo los creados por el usuario.
-    $proyectosIds = Proyecto::query()->pluck('id')->toArray();
+    $proyectosIds = $empleadoId
+        ? Proyecto::query()
+            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+            ->where('empleado_proyecto.empleado_id', $empleadoId)
+            ->pluck('proyecto.id')
+            ->toArray()
+        : [];
         
     
     // Obtener IDs de los documentos asociados a estos proyectos
@@ -394,6 +419,7 @@ public function getLatestActivitiesUser($limit = 3)
         return EnfRevision::query()
             ->with('accion')
             ->whereHas('accion', fn (Builder $query): Builder => $this->enfFormsQuery($query))
+            ->whereHas('accion', fn (Builder $query): Builder => $this->enfBelongsToUserQuery($query, $user->id, $user?->empleado?->id))
             ->latest()
             ->limit($limit * 2)
             ->get()
@@ -433,12 +459,26 @@ public function getLatestActivitiesUser($limit = 3)
         };
     }
 
-    private function enfAccionesUser(int $userId): Collection
+    private function enfAccionesUser(int $userId, ?int $empleadoId = null): Collection
     {
         return EnfAccion::query()
-            ->where('creado_por_usuario_id', $userId)
+            ->where(fn (Builder $query): Builder => $this->enfBelongsToUserQuery($query, $userId, $empleadoId))
             ->where(fn (Builder $query): Builder => $this->enfFormsQuery($query))
             ->get();
+    }
+
+    private function enfBelongsToUserQuery(Builder $query, int $userId, ?int $empleadoId = null): Builder
+    {
+        return $query
+            ->where('creado_por_usuario_id', $userId)
+            ->orWhereHas('equipo', function (Builder $equipoQuery) use ($userId, $empleadoId): void {
+                $equipoQuery->where('user_id', $userId);
+
+                if ($empleadoId) {
+                    $equipoQuery->orWhere('empleado_id', $empleadoId);
+                }
+            })
+            ->when($empleadoId, fn (Builder $builder): Builder => $builder->orWhere('responsable_revision_id', $empleadoId));
     }
 
     private function enfAccionesPanel(): Collection
@@ -458,7 +498,7 @@ public function getLatestActivitiesUser($limit = 3)
         return match (strtoupper((string) $estado)) {
             'BORRADOR' => 'Borrador',
             'EN_REVISION' => 'En revision',
-            'APROBADO' => 'En curso',
+            'APROBADO' => 'Aprobado',
             'FINALIZADO' => 'Finalizado',
             'SUBSANACION', 'SUBSANACIÓN' => 'Subsanar',
             default => $estado ?: 'Educacion no formal',
@@ -740,7 +780,7 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
         $authUserId = auth()->id();
         $userId = auth()->user()->empleado->id;
         $enfPendientesRevisionUser = $this->enfRevisionesDisponiblesQuery()->get();
-        $enfAccionesUser = $this->enfAccionesPanel();
+        $enfAccionesUser = $this->enfAccionesUser($authUserId, $userId);
 
         // Obtén el id del estado "Finalizado"
         $finalizadosUser = collect(); // Default empty collection
@@ -809,7 +849,15 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
                 ->get();
         }
 
-        $proyectosUser = Proyecto::query()->get();
+        $proyectosUser = Proyecto::query()
+            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
+            ->where('empleado_proyecto.empleado_id', $userId)
+            ->select('proyecto.*')
+            ->distinct()
+            ->get();
+        $ppsUser = PpsServicioSocial::query()
+            ->where('created_by', $authUserId)
+            ->get();
 
         // Mis formularios: unifica Proyecto (Desarrollo Local/Voluntariado), PPS/SS
         // y ENF en una sola lista, cada fila con su stepper de progreso calculado
@@ -882,14 +930,14 @@ public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
         // Obtener proyectos en Borrador
         $enBorradorUser = $this->getProjectsByStateUser('Borrador');
 
-        $totalProyectosUser = $proyectos->count() + $enfAccionesUser->count();
-        $totalFinalizadosUser = $finalizados->count()
+        $totalProyectosUser = $proyectosUser->count() + $ppsUser->count() + $enfAccionesUser->count();
+        $totalFinalizadosUser = $finalizadosUser->count()
             + $enfAccionesUser->filter(fn (EnfAccion $accion): bool => strtoupper((string) $accion->estado_flujo) === 'FINALIZADO')->count();
-        $totalEjecucionUser = $ejecucion->count()
+        $totalEjecucionUser = $ejecucionUser->count()
             + $enfAccionesUser->filter(fn (EnfAccion $accion): bool => strtoupper((string) $accion->estado_flujo) === 'APROBADO')->count();
-        $totalBorradorUser = $borrador->count()
+        $totalBorradorUser = $borradorUser->count()
             + $enfAccionesUser->filter(fn (EnfAccion $accion): bool => strtoupper((string) $accion->estado_flujo) === 'BORRADOR')->count();
-        $totalRevisionUser = $enRevision->total()
+        $totalRevisionUser = $enRevisionUser->total()
             + $enfAccionesUser->filter(fn (EnfAccion $accion): bool => strtoupper((string) $accion->estado_flujo) === 'EN_REVISION')->count();
         $totalPendientesRevisionUser = $enfPendientesRevisionUser->count();
 

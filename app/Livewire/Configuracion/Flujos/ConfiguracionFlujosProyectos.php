@@ -377,8 +377,6 @@ class ConfiguracionFlujosProyectos extends Component
             'tiposPrograma' => $tiposPrograma,
             'selectedTipoPrograma' => $selectedTipoPrograma,
             'cargoFirmas' => $cargoFirmas,
-            'alcancesAcademicos' => $this->alcancesAcademicos(),
-            'multiplicidadesRevision' => $this->multiplicidadesRevision(),
         ])->layout('layouts.app', ['hideHorizontalNav' => true]);
     }
 

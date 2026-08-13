@@ -7,8 +7,11 @@ use App\Models\Estado\EstadoProyecto;
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
 use App\Models\PpsServicioSocial;
+use App\Models\ENF\EnfAccion;
+use App\Models\ENF\EnfRevision;
 use App\Models\Proyecto\Proyecto;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -62,9 +65,10 @@ class DashboardDirector extends Component
 
     public function updateChartDataUser(): void
     {
-        $empleadoId = auth()->user()->empleado?->id;
+        $user = auth()->user();
+        $empleadoId = $user?->empleado?->id;
 
-        if (!$empleadoId) {
+        if (!$user || !$empleadoId) {
             $this->projectsDataUser      = [];
             $this->totalProjectsYearUser = 0;
             return;
@@ -74,6 +78,15 @@ class DashboardDirector extends Component
             ->where('empleado_proyecto.empleado_id', $empleadoId)
             ->select('proyecto.*')
             ->get();
+
+        $enfProjects = $this->queryMisEnf()
+            ->get()
+            ->map(fn (EnfAccion $accion): object => (object) [
+                'nombre_proyecto' => $accion->nombre_accion ?: 'Educacion no formal',
+                'created_at' => $accion->created_at,
+            ]);
+
+        $userProjects = $userProjects->concat($enfProjects);
 
         $end        = now()->year;
         $yearsRange = $this->chartFullRange
@@ -122,6 +135,90 @@ class DashboardDirector extends Component
             ->where('empleado_proyecto.empleado_id', $empleadoId)
             ->select('proyecto.*')
             ->distinct();
+    }
+
+    private function queryMisEnf(): Builder
+    {
+        $user = auth()->user();
+        $empleadoId = $user?->empleado?->id;
+
+        if (!$user) {
+            return EnfAccion::query()->whereRaw('1 = 0');
+        }
+
+        return EnfAccion::query()
+            ->whereIn('codigo_formulario', ['FORM-DVUS-016', 'FORM-DVUS-018'])
+            ->where(function (Builder $query) use ($user, $empleadoId): void {
+                $query->where('creado_por_usuario_id', $user->id)
+                    ->orWhereHas('equipo', function (Builder $equipoQuery) use ($user, $empleadoId): void {
+                        $equipoQuery->where('user_id', $user->id);
+
+                        if ($empleadoId) {
+                            $equipoQuery->orWhere('empleado_id', $empleadoId);
+                        }
+                    });
+
+                if ($empleadoId) {
+                    $query->orWhere('responsable_revision_id', $empleadoId);
+                }
+            });
+    }
+
+    private function misEnfPorEstado(array $estados): int
+    {
+        return $this->queryMisEnf()
+            ->whereIn(DB::raw('UPPER(estado_flujo)'), array_map('strtoupper', $estados))
+            ->count();
+    }
+
+    private function misProyectosUnificados()
+    {
+        $proyectos = $this->queryMisProyectos()
+            ->with([
+                'estadoActual.tipoestado',
+                'firmasDeEtapa' => fn ($q) => $q->orderByDesc('revision_ciclo')->orderBy('orden_revision'),
+            ])
+            ->get()
+            ->map(function (Proyecto $proyecto): object {
+                return (object) [
+                    'tipo' => 'proyecto',
+                    'codigo' => $proyecto->codigo_proyecto,
+                    'nombre' => $proyecto->nombre_proyecto,
+                    'estado' => $proyecto->estadoActual?->tipoestado?->nombre,
+                    'fecha_inicio' => $proyecto->fecha_inicio,
+                    'sort_date' => $proyecto->created_at,
+                    'proyecto' => $proyecto,
+                ];
+            });
+
+        $enf = $this->queryMisEnf()
+            ->with(['revisiones' => fn ($q) => $q->orderByDesc('revision_ciclo')->orderBy('orden')])
+            ->get()
+            ->map(function (EnfAccion $accion): object {
+                return (object) [
+                    'tipo' => 'enf',
+                    'codigo' => $accion->codigo_formulario ?: $accion->numero_registro,
+                    'nombre' => $accion->nombre_accion ?: 'Educacion no formal',
+                    'estado' => $this->enfEstadoLabel($accion->estado_flujo),
+                    'fecha_inicio' => $accion->fecha_solicitud ?: $accion->fecha_inicio,
+                    'sort_date' => $accion->created_at,
+                    'accion' => $accion,
+                ];
+            });
+
+        return $proyectos->concat($enf)->sortByDesc('sort_date')->take($this->perPage)->values();
+    }
+
+    private function enfEstadoLabel(?string $estado): string
+    {
+        return match (strtoupper((string) $estado)) {
+            'BORRADOR' => 'Borrador',
+            'EN_REVISION' => 'En revision',
+            'APROBADO' => 'Aprobado',
+            'FINALIZADO' => 'Finalizado',
+            'SUBSANACION', 'SUBSANACIÓN' => 'Subsanar',
+            default => $estado ?: 'Educacion no formal',
+        };
     }
 
     private function misProyectosPorEstado(string $estadoNombre): int
@@ -309,21 +406,15 @@ class DashboardDirector extends Component
         $estadoPendienteNombre = $this->estadoPendienteParaRol();
 
         // Conteos mis proyectos
-        $totalMisProyectos = $this->queryMisProyectos()->count();
-        $finalizadosCount  = $this->misProyectosPorEstado('Finalizado');
-        $subsanarCount     = $this->misProyectosPorEstado('Subsanacion');
-        $enCursoCount      = $this->misProyectosPorEstado('En curso');
-        $borradorCount     = $this->misProyectosPorEstado('Borrador');
-        $enRevisionCount   = $this->misProyectosEnRevisionCount($estadosRevision);
+        $totalMisProyectos = $this->queryMisProyectos()->count() + $this->queryMisEnf()->count();
+        $finalizadosCount  = $this->misProyectosPorEstado('Finalizado') + $this->misEnfPorEstado(['FINALIZADO']);
+        $subsanarCount     = $this->misProyectosPorEstado('Subsanacion') + $this->misEnfPorEstado(['SUBSANACION', 'SUBSANACIÓN']);
+        $enCursoCount      = $this->misProyectosPorEstado('En curso') + $this->misEnfPorEstado(['APROBADO']);
+        $borradorCount     = $this->misProyectosPorEstado('Borrador') + $this->misEnfPorEstado(['BORRADOR']);
+        $enRevisionCount   = $this->misProyectosEnRevisionCount($estadosRevision) + $this->misEnfPorEstado(['EN_REVISION']);
 
         // Tabla mis proyectos
-        $misProyectosTable = $this->queryMisProyectos()
-            ->with([
-                'estadoActual.tipoestado',
-                'firmasDeEtapa' => fn ($q) => $q->orderByDesc('revision_ciclo')->orderBy('orden_revision'),
-            ])
-            ->orderBy('proyecto.created_at', 'desc')
-            ->paginate($this->perPage);
+        $misProyectosTable = $this->misProyectosUnificados();
 
         // Panel de estados (proyectos propios)
         $panelBorrador    = $this->misProyectosPorEstadoPaginado('Borrador');

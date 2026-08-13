@@ -257,24 +257,29 @@
                                         @forelse($misProyectosTable as $proyecto)
                                             @php
                                                 // Deduplicate: one firma per etapa (latest revision_ciclo first)
-                                                $etapasFirmas = $proyecto->firmasDeEtapa
-                                                    ->unique('flujo_aprobacion_etapa_id')
-                                                    ->values();
+                                                $modeloProyecto = $proyecto->proyecto ?? null;
+                                                $accionEnf = $proyecto->accion ?? null;
+                                                $etapasFirmas = $modeloProyecto
+                                                    ? $modeloProyecto->firmasDeEtapa->unique('flujo_aprobacion_etapa_id')->values()
+                                                    : ($accionEnf?->revisiones ?? collect())->unique('flujo_aprobacion_etapa_id')->values();
                                                 $hayProgreso = $etapasFirmas->isNotEmpty();
                                                 // First Pendiente = current stage
-                                                $etapaActualId = $etapasFirmas
-                                                    ->firstWhere('estado_revision', 'Pendiente')
-                                                    ?->flujo_aprobacion_etapa_id;
+                                                $etapaActualId = optional(
+                                                    $etapasFirmas->firstWhere('estado_revision', 'Pendiente')
+                                                        ?? $etapasFirmas->firstWhere('estado', 'PENDIENTE')
+                                                        ?? $etapasFirmas->firstWhere('estado', 'ASIGNADO')
+                                                        ?? $etapasFirmas->firstWhere('estado', 'EN_PROCESO')
+                                                )->flujo_aprobacion_etapa_id;
                                             @endphp
                                             <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                                 <td class="px-6 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                                                    {{ $proyecto->codigo_proyecto ?? '—' }}
+                                                    {{ $proyecto->codigo ?? '—' }}
                                                 </td>
-                                                <td class="px-6 py-3">{{ $proyecto->nombre_proyecto }}</td>
+                                                <td class="px-6 py-3">{{ $proyecto->nombre }}</td>
                                                 <td class="px-6 py-3">
-                                                    @if($proyecto->estadoActual?->tipoestado)
+                                                    @if($proyecto->estado)
                                                         <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                                            {{ $proyecto->estadoActual->tipoestado->nombre }}
+                                                            {{ $proyecto->estado }}
                                                         </span>
                                                     @else
                                                         <span class="text-gray-400">—</span>
@@ -286,25 +291,29 @@
                                                         @foreach($etapasFirmas as $firma)
                                                             @php
                                                                 $esCurrent = $firma->flujo_aprobacion_etapa_id === $etapaActualId;
-                                                                $colorClase = match($firma->estado_revision) {
+                                                                $estadoFirma = $firma->estado_revision ?? $firma->estado ?? null;
+                                                                $nombreEtapa = $firma->etapa_nombre ?? 'Etapa';
+                                                                $colorClase = match($estadoFirma) {
                                                                     'Aprobado' => 'bg-emerald-500 text-white',
+                                                                    'APROBADO' => 'bg-emerald-500 text-white',
                                                                     'Rechazado' => 'bg-red-500 text-white',
+                                                                    'SUBSANACION' => 'bg-red-500 text-white',
                                                                     default => $esCurrent
                                                                         ? 'bg-amber-400 text-white ring-2 ring-amber-300 ring-offset-1'
                                                                         : 'bg-slate-200 text-slate-400 dark:bg-slate-700',
                                                                 };
-                                                                $icono = match($firma->estado_revision) {
+                                                                $icono = match($estadoFirma) {
                                                                     'Aprobado' => '✓',
                                                                     'Rechazado' => '✕',
                                                                     default => $esCurrent ? '●' : '○',
                                                                 };
                                                             @endphp
-                                                            <div class="flex flex-col items-center gap-0.5" title="{{ $firma->etapa_nombre }}">
+                                                            <div class="flex flex-col items-center gap-0.5" title="{{ $nombreEtapa }}">
                                                                 <span class="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold {{ $colorClase }}">
                                                                     {{ $icono }}
                                                                 </span>
                                                                 <span class="hidden text-[9px] text-slate-400 dark:text-slate-500 max-w-[40px] text-center leading-tight truncate sm:block">
-                                                                    {{ \Illuminate\Support\Str::limit($firma->etapa_nombre, 8) }}
+                                                                    {{ \Illuminate\Support\Str::limit($nombreEtapa, 8) }}
                                                                 </span>
                                                             </div>
                                                             @if(! $loop->last)
@@ -328,7 +337,7 @@
                                     </tbody>
                                 </table>
                             </div>
-                            @if($misProyectosTable->hasMorePages())
+                            @if(false)
                                 <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700">
                                     <button wire:click="loadMore"
                                         class="w-full text-sm text-blue-600 dark:text-blue-400 hover:underline">
