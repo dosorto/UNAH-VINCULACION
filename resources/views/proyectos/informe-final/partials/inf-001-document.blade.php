@@ -56,7 +56,23 @@
         $ruta = $row->archivo ?: $row->enlace;
         if (! $ruta) return null;
         if (filter_var($ruta, FILTER_VALIDATE_URL)) return $ruta;
-        return $isPdf ? storage_path('app/public/'.$ruta) : \Illuminate\Support\Facades\Storage::disk('public')->url($ruta);
+
+        $rutaNormalizada = ltrim((string) $ruta, '/');
+        if (str_starts_with($rutaNormalizada, 'storage/')) {
+            $rutaNormalizada = substr($rutaNormalizada, strlen('storage/'));
+        }
+
+        $rutaDisco = storage_path('app/public/'.$rutaNormalizada);
+        if (is_file($rutaDisco) || \Illuminate\Support\Facades\Storage::disk('public')->exists($rutaNormalizada)) {
+            return $isPdf ? 'file://'.$rutaDisco : '/storage/'.$rutaNormalizada;
+        }
+
+        $rutaPublica = public_path('storage/'.$rutaNormalizada);
+        if (is_file($rutaPublica)) {
+            return $isPdf ? 'file://'.$rutaPublica : '/storage/'.$rutaNormalizada;
+        }
+
+        return null;
     };
 @endphp
 

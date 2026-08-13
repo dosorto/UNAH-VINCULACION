@@ -725,6 +725,18 @@ class InformeFinalINF001Test extends TestCase
         $this->assertStringContainsString('inf-photo-card',$html);
     }
 
+    public function test_vista_previa_usa_rutas_relativas_para_fotografias_sin_depender_de_app_url(): void
+    {
+        Storage::fake('public');
+        [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
+        Storage::disk('public')->put('informes-finales/fotos/taller.jpg','contenido');
+        $report->anexos()->create(['tipo'=>'fotografias','categoria'=>'fotografia','descripcion'=>'Taller comunitario','archivo'=>'informes-finales/fotos/taller.jpg','nombre_archivo'=>'taller.jpg','origen'=>'INFORME']);
+
+        $html=$this->actingAs($user)->get(route('informes-finales.inf-001.preview',$report))->assertOk()->getContent();
+
+        $this->assertStringContainsString('src="/storage/informes-finales/fotos/taller.jpg"',$html);
+    }
+
     public function test_estudiantes_se_muestran_por_grupo_sin_selector_editable_de_participacion(): void
     {
         [$user,$project]=$this->scenario();
