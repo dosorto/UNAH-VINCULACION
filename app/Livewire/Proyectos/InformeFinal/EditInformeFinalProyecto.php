@@ -189,7 +189,7 @@ class EditInformeFinalProyecto extends Component
 
     public function buscarEstudiante(IntegracionApiService $integraciones): void
     {
-        $this->resetErrorBag('estudianteBusquedaCuenta');
+        $this->resetErrorBag();
         $this->estudianteEncontrado = null;
         $this->mostrarRegistroManual = false;
         $cuenta = preg_replace('/\s+/', '', trim($this->estudianteBusquedaCuenta));
@@ -230,7 +230,7 @@ class EditInformeFinalProyecto extends Component
 
     public function limpiarSeleccionEstudiante(): void
     {
-        $this->resetErrorBag('estudianteBusquedaCuenta');
+        $this->resetErrorBag();
         $this->estudianteBusquedaCuenta = '';
         $this->estudianteEncontrado = null;
         $this->mostrarRegistroManual = false;
@@ -259,6 +259,16 @@ class EditInformeFinalProyecto extends Component
             'estudianteEncontrado.numero_cuenta'=>['required','string','max:30'],
             'estudianteEncontrado.sexo'=>['required', Rule::in(['Masculino','Femenino'])],
             'estudianteModal.horas_dedicadas'=>['required','numeric','min:0'],
+        ], [
+            'grupoEstudianteSeleccionadoId.required'=>'Debe seleccionar un grupo de estudiantes.',
+            'grupoEstudianteSeleccionadoId.exists'=>'El grupo de estudiantes seleccionado no es válido.',
+            'estudianteEncontrado.nombre.required'=>'El nombre del estudiante es obligatorio.',
+            'estudianteEncontrado.numero_cuenta.required'=>'El número de cuenta es obligatorio.',
+            'estudianteEncontrado.sexo.required'=>'El sexo del estudiante es obligatorio.',
+            'estudianteEncontrado.sexo.in'=>'El sexo seleccionado no es válido.',
+            'estudianteModal.horas_dedicadas.required'=>'Las horas reales dedicadas son obligatorias.',
+            'estudianteModal.horas_dedicadas.numeric'=>'Las horas reales dedicadas deben ser un número.',
+            'estudianteModal.horas_dedicadas.min'=>'Las horas reales dedicadas no pueden ser negativas.',
         ]);
         $grupo = $this->grupoEstudianteParaGuardar();
         $studentId = (int) $this->estudianteEncontrado['estudiante_id'];
@@ -299,6 +309,23 @@ class EditInformeFinalProyecto extends Component
             'estudianteManual.carrera'=>['nullable','string','max:255'],
             'estudianteManual.correo'=>['nullable','email','max:255'],
             'estudianteManual.horas_dedicadas'=>['required','numeric','min:0'],
+        ], [
+            'grupoEstudianteSeleccionadoId.required'=>'Debe seleccionar un grupo de estudiantes.',
+            'grupoEstudianteSeleccionadoId.exists'=>'El grupo de estudiantes seleccionado no es válido.',
+            'estudianteManual.nombres.required'=>'El nombre del estudiante es obligatorio.',
+            'estudianteManual.nombres.max'=>'El nombre del estudiante no puede superar los 150 caracteres.',
+            'estudianteManual.apellidos.max'=>'Los apellidos no pueden superar los 150 caracteres.',
+            'estudianteManual.numero_cuenta.required'=>'El número de cuenta es obligatorio.',
+            'estudianteManual.numero_cuenta.regex'=>'El número de cuenta debe contener únicamente dígitos.',
+            'estudianteManual.numero_cuenta.max'=>'El número de cuenta no puede superar los 30 caracteres.',
+            'estudianteManual.sexo.required'=>'El sexo del estudiante es obligatorio.',
+            'estudianteManual.sexo.in'=>'El sexo seleccionado no es válido.',
+            'estudianteManual.carrera.max'=>'La carrera no puede superar los 255 caracteres.',
+            'estudianteManual.correo.email'=>'El correo electrónico no tiene un formato válido.',
+            'estudianteManual.correo.max'=>'El correo electrónico no puede superar los 255 caracteres.',
+            'estudianteManual.horas_dedicadas.required'=>'Las horas reales dedicadas son obligatorias.',
+            'estudianteManual.horas_dedicadas.numeric'=>'Las horas reales dedicadas deben ser un número.',
+            'estudianteManual.horas_dedicadas.min'=>'Las horas reales dedicadas no pueden ser negativas.',
         ]);
         $grupo = $this->grupoEstudianteParaGuardar();
         $cuenta = preg_replace('/\s+/', '', $this->estudianteManual['numero_cuenta']);
