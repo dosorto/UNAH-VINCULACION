@@ -15,6 +15,7 @@ use App\Models\Proyecto\EmpleadoProyecto;
 use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\ProyectoDocumentoSubsanacion;
 use App\Services\Constancias\ConstanciaRegistroAuthorization;
 use App\Services\InformeFinal\InformeFinalProyectoWorkflowService;
 use App\Services\InformeIntermedio\InformeIntermedioProyectoWorkflowService;
@@ -52,6 +53,10 @@ class HistorialProyecto extends Component
 
     public string $subsanarComentario = '';
 
+    public $subsanarArchivo = null;
+
+    public ?int $verMovimientoId = null;
+
     public bool $aprobarModal = false;
 
     public string $aprobarCodigo = '';
@@ -79,7 +84,21 @@ class HistorialProyecto extends Component
 
         $this->esCoordinador = $workflow->usuarioPuedeGestionar($proyecto, $user);
 
-        if (! $puedeVerTodos && ! $puedeAuditarInformeFinal && $puedeVerCentro) {
+        // Tener una firma (pendiente o resuelta) asignada en este proyecto
+        // habilita el acceso sin importar el centro/facultad del usuario:
+        // desde que una etapa puede mandarse a cualquier usuario de un rol,
+        // el firmante asignado no necesariamente pertenece al mismo centro.
+        $esFirmante = $user?->empleado
+            && FirmaProyecto::where('firmable_type', Proyecto::class)
+                ->where('firmable_id', $proyecto->id)
+                ->where('empleado_id', $user->empleado->id)
+                ->exists();
+
+        if ($puedeVerTodos || $puedeAuditarInformeFinal || $this->esCoordinador || $esFirmante) {
+            return;
+        }
+
+        if ($puedeVerCentro) {
             $centroFacultadId = $user?->empleado?->centro_facultad_id;
             $perteneceAlCentro = $centroFacultadId
                 && $proyecto->facultades_centros()
@@ -87,28 +106,25 @@ class HistorialProyecto extends Component
                     ->exists();
 
             abort_unless($perteneceAlCentro, 403, 'No tiene permiso para ver proyectos de otra Facultad o Centro.');
-        } elseif (! $puedeVerTodos && ! $puedeAuditarInformeFinal) {
-            if (! $user || ! $user->empleado) {
-                abort(403, 'No tiene permiso para ver este proyecto');
-            }
 
-            $empleadoProyecto = EmpleadoProyecto::where('proyecto_id', $proyecto->id)
-                ->where('empleado_id', $user->empleado->id)
-                ->first();
-
-            if ($empleadoProyecto) {
-                $this->authorize('view', $empleadoProyecto);
-            } else {
-                $esFirmante = FirmaProyecto::where('firmable_type', Proyecto::class)
-                    ->where('firmable_id', $proyecto->id)
-                    ->where('empleado_id', $user->empleado->id)
-                    ->exists();
-
-                if (! $this->esCoordinador && ! $esFirmante) {
-                    abort(403, 'No tiene permiso para ver este proyecto. Solo el coordinador, firmantes o un administrador pueden acceder.');
-                }
-            }
+            return;
         }
+
+        if (! $user || ! $user->empleado) {
+            abort(403, 'No tiene permiso para ver este proyecto');
+        }
+
+        $empleadoProyecto = EmpleadoProyecto::where('proyecto_id', $proyecto->id)
+            ->where('empleado_id', $user->empleado->id)
+            ->first();
+
+        if ($empleadoProyecto) {
+            $this->authorize('view', $empleadoProyecto);
+
+            return;
+        }
+
+        abort(403, 'No tiene permiso para ver este proyecto. Solo el coordinador, firmantes o un administrador pueden acceder.');
     }
 
     public function openSubirIntermedio(): void
@@ -316,11 +332,22 @@ class HistorialProyecto extends Component
             ->send();
     }
 
+    public function abrirMovimiento(int $estadoId): void
+    {
+        $this->verMovimientoId = $estadoId;
+    }
+
+    public function cerrarMovimiento(): void
+    {
+        $this->verMovimientoId = null;
+    }
+
     public function openSubsanar(): void
     {
         $this->authorizeFirmaPendiente();
         $this->subsanarComentario = '';
-        $this->resetErrorBag('subsanarComentario');
+        $this->subsanarArchivo = null;
+        $this->resetErrorBag(['subsanarComentario', 'subsanarArchivo']);
         $this->subsanarModal = true;
     }
 
@@ -328,8 +355,10 @@ class HistorialProyecto extends Component
     {
         $this->validate([
             'subsanarComentario' => ['required', 'string', 'max:5000'],
+            'subsanarArchivo' => ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240'],
         ], [], [
             'subsanarComentario' => 'correcciones requeridas',
+            'subsanarArchivo' => 'documento de respaldo',
         ]);
 
         $proyecto = $this->proyecto->fresh();
@@ -406,6 +435,10 @@ class HistorialProyecto extends Component
                     'solicitud de subsanación'
                 );
             }
+
+            if ($this->subsanarArchivo) {
+                $this->guardarDocumentoSubsanacion($this->proyecto->fresh());
+            }
         } catch (\Throwable $exception) {
             report($exception);
 
@@ -420,6 +453,7 @@ class HistorialProyecto extends Component
 
         $this->subsanarModal = false;
         $this->subsanarComentario = '';
+        $this->subsanarArchivo = null;
         $this->proyecto = $this->proyecto->fresh();
 
         Notification::make()
@@ -465,6 +499,12 @@ class HistorialProyecto extends Component
                 ->groupBy('estado_proyecto_id')
             : collect();
 
+        $documentosSubsanacion = ProyectoDocumentoSubsanacion::query()
+            ->where('proyecto_id', $proyecto->id)
+            ->with('usuario')
+            ->get()
+            ->groupBy('estado_proyecto_id');
+
         $diasTranscurridos = $proyecto->created_at
             ? (int) $proyecto->created_at->diffInDays(now())
             : 0;
@@ -494,6 +534,7 @@ class HistorialProyecto extends Component
             'proyecto',
             'estados',
             'documentosRevisionInformeFinal',
+            'documentosSubsanacion',
             'diasTranscurridos',
             'cierreInformeFinal',
             'constanciaRegistro',
@@ -641,6 +682,26 @@ class HistorialProyecto extends Component
         ])->save();
         $this->proyecto->categoria()->detach();
         $this->proyecto->ods()->detach();
+    }
+
+    private function guardarDocumentoSubsanacion(Proyecto $proyecto): void
+    {
+        $estadoSubsanacion = $proyecto->estado_proyecto()
+            ->whereHas('tipoestado', fn ($q) => $q->where('nombre', 'Subsanacion'))
+            ->latest('id')
+            ->first();
+
+        $ruta = $this->subsanarArchivo->store('proyectos/'.$proyecto->id.'/subsanaciones', 'local');
+
+        ProyectoDocumentoSubsanacion::create([
+            'proyecto_id' => $proyecto->id,
+            'estado_proyecto_id' => $estadoSubsanacion?->id,
+            'subido_por' => auth()->id(),
+            'ruta' => $ruta,
+            'nombre_original' => $this->subsanarArchivo->getClientOriginalName(),
+            'mime_type' => $this->subsanarArchivo->getMimeType(),
+            'tamano_bytes' => $this->subsanarArchivo->getSize(),
+        ]);
     }
 
     private function notificarCoordinadorCambio(string $estado, string $comentario, string $tipo): void

@@ -3386,9 +3386,38 @@ class CreateProyectoVinculacion extends Component
      */
     private function reenviarAutomaticamenteTrasSubsanacion(Proyecto $proyecto): bool
     {
-        $firmaRechazada = $this->firmaRechazadaActualPorEtapa($proyecto);
+        try {
+            $firmaRechazada = $this->firmaRechazadaActualPorEtapa($proyecto);
+        } catch (\RuntimeException $e) {
+            Notification::make()
+                ->title('Ciclo de revisión inconsistente')
+                ->body($e->getMessage().' Contacte a administración para resolver el ciclo de revisión.')
+                ->danger()
+                ->send();
+
+            return true;
+        }
 
         if (! $firmaRechazada) {
+            // Si el proyecto ya tiene firmas por etapa previas pero no se pudo
+            // identificar la etapa rechazada vigente, es un estado inconsistente:
+            // no debe caer al camino de "enviar desde cero", que chocaría con
+            // validarSinFirmasPreviasParaEnvioPorEtapa() y bloquearía sin salida.
+            $tieneFirmasPorEtapaPrevias = $proyecto->firma_proyecto()
+                ->whereNotNull('flujo_aprobacion_etapa_id')
+                ->whereNull('deleted_at')
+                ->exists();
+
+            if ($tieneFirmasPorEtapaPrevias) {
+                Notification::make()
+                    ->title('No se pudo reenviar automáticamente')
+                    ->body('El proyecto ya tiene un historial de revisión por etapas pero no se encontró una etapa rechazada vigente. Contacte a administración.')
+                    ->danger()
+                    ->send();
+
+                return true;
+            }
+
             return false;
         }
 
@@ -3529,35 +3558,28 @@ class CreateProyectoVinculacion extends Component
             $proyecto->saveQuietly();
         }
 
-        $etapas = $this->etapasActivasParaEnvioPorFlujo($proyecto);
+        // El "Coordinador Proyecto" ya no es una etapa configurable del flujo:
+        // se autofirma con la firma/sello de quien inscribió el proyecto en el
+        // momento del envío. Es idempotente, así que no duplica si ya se firmó
+        // al guardar un borrador anterior.
+        $coordinadorEmpleado = auth()->user()?->empleado;
 
-        $empleadosPorEtapa = [];
-
-        foreach ($etapas as $etapa) {
-            $etapaId = (int) $etapa->id;
-
-            if ($etapa->emisor_define_destinatario && isset($this->modalDestinatarios[$etapaId])) {
-                $user = \App\Models\User::find((int) $this->modalDestinatarios[$etapaId]);
-                $empleado = $user?->empleado;
-
-                if (! $empleado) {
-                    throw new \RuntimeException(sprintf('El usuario seleccionado para la etapa "%s" no tiene empleado vinculado.', $etapa->nombre));
-                }
-
-                $empleadosPorEtapa[$etapaId] = $empleado->id;
-            } elseif ($etapa->usuario_responsable_id) {
-                $user = \App\Models\User::find((int) $etapa->usuario_responsable_id);
-                $empleado = $user?->empleado;
-
-                if (! $empleado) {
-                    throw new \RuntimeException(sprintf('El usuario responsable configurado para la etapa "%s" no tiene empleado vinculado.', $etapa->nombre));
-                }
-
-                $empleadosPorEtapa[$etapaId] = $empleado->id;
-            } else {
-                throw new \RuntimeException(sprintf('La etapa "%s" no tiene destinatario configurado. Active "El emisor define el destinatario" o establezca un usuario responsable.', $etapa->nombre));
-            }
+        if (! $coordinadorEmpleado) {
+            throw new \RuntimeException('No se pudo determinar el empleado que inscribe el proyecto para autofirmar como coordinador.');
         }
+
+        $proyecto->agregarFirma(cargoFirma: 'Coordinador Proyecto', empleado: $coordinadorEmpleado);
+
+        // Fuente única de verdad para "quién(es) deben recibir cada etapa":
+        // responsable fijo, emisor define destinatario, o todos los usuarios
+        // del rol (basta con que uno actúe) cuando ninguno de los anteriores
+        // aplica.
+        $this->etapasActivasParaEnvioPorFlujo($proyecto);
+        $empleadosPorEtapa = app(\App\Services\Proyecto\ProyectoWorkflowService::class)->resolverEmpleados(
+            $proyecto,
+            Proyecto::FLUJO_INSCRIPCION,
+            $this->modalDestinatarios
+        );
 
         $this->validarSinFirmasPreviasParaEnvioPorEtapa($proyecto, (int) $flujo->id);
 
@@ -3580,7 +3602,16 @@ class CreateProyectoVinculacion extends Component
             $firmas->map(fn (FirmaProyecto $firma): FirmaProyecto => $firma->fresh())->values()
         );
 
-        $this->notificarRevisorEtapa($proyecto, $primeraFirma, $flujo);
+        // Cuando la primera etapa se manda a todos los usuarios del rol, hay
+        // varias firmas Pendiente "candidatas" con el mismo orden/etapa que
+        // $primeraFirma: se notifica a cada una, no solo a la representante.
+        $candidatas = $firmas->filter(
+            fn (FirmaProyecto $firma): bool => (int) $firma->flujo_aprobacion_etapa_id === (int) $primeraFirma->flujo_aprobacion_etapa_id
+        );
+
+        foreach ($candidatas as $candidata) {
+            $this->notificarRevisorEtapa($proyecto, $candidata, $flujo);
+        }
     }
 
     private function notificarRevisorEtapa(Proyecto $proyecto, FirmaProyecto $firma, FlujoAprobacion $flujo): void
@@ -3640,7 +3671,10 @@ class CreateProyectoVinculacion extends Component
             ->exists();
 
         if ($existenFirmasPorEtapa) {
-            throw new RuntimeException('Ya existen firmas por etapa para este proyecto.');
+            throw new RuntimeException(sprintf(
+                'El proyecto #%d ya tiene firmas por etapa registradas para este flujo y no puede reiniciarse desde cero. Contacte a administración para resolver el ciclo de revisión.',
+                $proyecto->id
+            ));
         }
 
         $existenFirmasLegacy = $proyecto->firma_proyecto()
@@ -3650,7 +3684,10 @@ class CreateProyectoVinculacion extends Component
             ->exists();
 
         if ($existenFirmasLegacy) {
-            throw new RuntimeException('Ya existen firmantes manuales para este envío y no se puede iniciar la revisión por etapas.');
+            throw new RuntimeException(sprintf(
+                'El proyecto #%d ya tiene firmantes manuales para este envío y no se puede iniciar la revisión por etapas. Contacte a administración.',
+                $proyecto->id
+            ));
         }
     }
 
@@ -3675,20 +3712,28 @@ class CreateProyectoVinculacion extends Component
         $flujo = $proyecto->resolveFlujoAprobacion();
         $etapas = $this->etapasActivasParaEnvioPorFlujo($proyecto)->values();
 
-        if (! $flujo || $firmas->count() !== $etapas->count()) {
+        $firmas = $firmas->map(fn (FirmaProyecto $firma): FirmaProyecto => $firma->fresh())->values();
+
+        // Una etapa enviada a "todos los usuarios del rol" produce varias
+        // firmas (una por candidato) para la misma etapa; el conteo válido
+        // es que cada etapa activa esté representada por al menos una firma,
+        // no que haya exactamente una firma por etapa.
+        $idsEtapaPorFirma = $firmas->pluck('flujo_aprobacion_etapa_id')->filter()->map(fn ($id): int => (int) $id);
+        $idsEtapaEsperados = $etapas->pluck('id')->map(fn ($id): int => (int) $id);
+
+        if (! $flujo
+            || $firmas->isEmpty()
+            || $idsEtapaPorFirma->unique()->sort()->values()->all() !== $idsEtapaEsperados->unique()->sort()->values()->all()
+        ) {
             throw new RuntimeException('No se pudo preparar el envio por etapas de forma segura.');
         }
 
-        $firmas = $firmas->map(fn (FirmaProyecto $firma): FirmaProyecto => $firma->fresh())->values();
-
-        $idsEtapa = $firmas->pluck('flujo_aprobacion_etapa_id')->filter()->map(fn ($id): int => (int) $id);
         $primeraFirma = $proyecto->firmaActualDeEtapasDelFlujo((int) $flujo->id, 1);
         $tipoEstadoPrimera = $primeraFirma?->cargo_firma()->value('tipo_estado_id');
         $estadoActualId = $proyecto->fresh()->estado?->tipo_estado_id;
 
         if ($firmas->contains(fn (FirmaProyecto $firma): bool => $firma->estado_revision !== 'Pendiente')
             || $firmas->contains(fn (FirmaProyecto $firma): bool => (int) $firma->revision_ciclo !== 1)
-            || $idsEtapa->count() !== $idsEtapa->unique()->count()
             || ! $primeraFirma
             || ! $tipoEstadoPrimera
             || (int) $estadoActualId !== (int) $tipoEstadoPrimera
@@ -3698,9 +3743,9 @@ class CreateProyectoVinculacion extends Component
         }
 
         foreach ($firmas as $firma) {
-            $esPrimera = (int) $firma->id === (int) $primeraFirma->id;
+            $mismaEtapaQuePrimera = (int) $firma->flujo_aprobacion_etapa_id === (int) $primeraFirma->flujo_aprobacion_etapa_id;
 
-            if ($proyecto->firmaEsActualEnFlujoPorEtapa($firma) !== $esPrimera) {
+            if ($proyecto->firmaEsActualEnFlujoPorEtapa($firma) !== $mismaEtapaQuePrimera) {
                 throw new RuntimeException('No se pudo preparar el envio por etapas de forma segura.');
             }
         }

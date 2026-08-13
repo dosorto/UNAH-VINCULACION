@@ -149,7 +149,18 @@ trait ResuelveFirmaPorEtapa
             $proyecto->estado_proyecto()->create($payload);
         }
 
-        $this->notificarSiguienteFirmaPorEtapa($proyecto, $siguienteFirma);
+        // Cuando la siguiente etapa se manda a todos los usuarios de un rol,
+        // hay varias firmas Pendiente candidatas para ese mismo orden/etapa:
+        // se notifica a cada una, no solo a la firma representante.
+        $proyecto->firmasDeEtapasDelFlujo(
+            (int) $siguienteFirma->flujo_aprobacion_id,
+            (int) $siguienteFirma->revision_ciclo,
+            $documento
+        )
+            ->filter(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Pendiente'
+                && (int) $firma->flujo_aprobacion_etapa_id === (int) $siguienteFirma->flujo_aprobacion_etapa_id)
+            ->each(fn (FirmaProyecto $candidata) => $this->notificarSiguienteFirmaPorEtapa($proyecto, $candidata));
+
         $this->notificarCoordinadorProyecto(
             $proyecto,
             sprintf('Etapa "%s" aprobada', $firmaAprobada->etapa_nombre ?: $firmaAprobada->etapa_codigo),
