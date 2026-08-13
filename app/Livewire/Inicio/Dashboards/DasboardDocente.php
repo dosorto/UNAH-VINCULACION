@@ -10,6 +10,7 @@ use App\Models\Estado\EstadoProyecto;
 use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\ENF\EnfAccion;
 use App\Models\ENF\EnfRevision;
+use App\Support\Proyecto\ProyectoFlujoStepper;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Collection;
@@ -196,7 +197,7 @@ class DasboardDocente extends Component
                         'fecha_inicio' => $proyecto->fecha_inicio,
                         'fecha_fin' => $proyecto->fecha_finalizacion,
                         'fase' => $this->faseStepperLabel($proceso),
-                        'stepper' => $this->stepperEstados($proyecto->firmasParaFicha($proceso, $documento)),
+                        'stepper' => $this->stepperEstados($proyecto->etapasParaStepper($proceso, $documento)),
                         'sort_date' => $proyecto->created_at,
                     ]);
                 });
@@ -261,31 +262,7 @@ class DasboardDocente extends Component
      */
     private function stepperEstados(Collection $filas): array
     {
-        $actualMarcado = false;
-
-        return $filas->map(function (array $fila) use (&$actualMarcado): array {
-            $firma = $fila['firma'];
-            $estado = 'pendiente';
-
-            if ($fila['adoptada_antes'] ?? false) {
-                $estado = 'adoptado';
-            } elseif ($firma?->estado_revision === 'Aprobado') {
-                $estado = 'aprobado';
-            } elseif ($firma?->estado_revision === 'Rechazado') {
-                $estado = 'rechazado';
-            } elseif (! $actualMarcado) {
-                $estado = 'actual';
-                $actualMarcado = true;
-            }
-
-            return [
-                'nombre' => $fila['etapa']->nombre,
-                'estado' => $estado,
-                'detalle' => $estado === 'adoptado'
-                    ? $fila['etapa']->nombre.' — completada antes de la adopción al flujo'
-                    : $fila['etapa']->nombre,
-            ];
-        })->all();
+        return ProyectoFlujoStepper::desdeFilas($filas);
     }
 
     private function enfStepper(EnfAccion $accion): array

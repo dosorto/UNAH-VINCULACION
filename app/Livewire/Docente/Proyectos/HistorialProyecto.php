@@ -21,6 +21,7 @@ use App\Services\InformeFinal\InformeFinalProyectoWorkflowService;
 use App\Services\InformeIntermedio\InformeIntermedioProyectoWorkflowService;
 use App\Services\Proyecto\ProyectoWorkflowService;
 use App\Support\Notification;
+use App\Support\Proyecto\ProyectoFlujoStepper;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -529,6 +530,15 @@ class HistorialProyecto extends Component
         [$historialRouteName, $historialRouteParameters, $historialRouteLabel] = $this->historialRoute();
         $esRevisionSolicitada = $this->esRevisionSolicitada();
         $esRevisionFinal = $this->esRevisionFinal();
+        [$procesoProgresoFlujo, $documentoProgresoFlujo] = $proyecto->procesoActivoParaStepper();
+        $progresoFlujo = ProyectoFlujoStepper::desdeFilas(
+            $proyecto->etapasParaStepper($procesoProgresoFlujo, $documentoProgresoFlujo)
+        );
+        $faseProgresoFlujo = match ($procesoProgresoFlujo) {
+            Proyecto::FLUJO_INFORME_INTERMEDIO => 'Informe Intermedio',
+            Proyecto::FLUJO_CIERRE_PROYECTO => 'Informe Final',
+            default => 'Aprobación',
+        };
 
         return view('livewire.docente.proyectos.historial-proyecto', compact(
             'proyecto',
@@ -548,7 +558,9 @@ class HistorialProyecto extends Component
             'historialRouteParameters',
             'historialRouteLabel',
             'esRevisionSolicitada',
-            'esRevisionFinal'
+            'esRevisionFinal',
+            'progresoFlujo',
+            'faseProgresoFlujo'
         ));
     }
 

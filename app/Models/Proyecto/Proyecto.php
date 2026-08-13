@@ -1439,6 +1439,48 @@ class Proyecto extends Model
         ]);
     }
 
+    /**
+     * Todas las etapas activas del proceso con su revisión vigente. A diferencia
+     * de firmasParaFicha(), incluye etapas de revisión y de aprobación porque se
+     * utiliza para representar el progreso completo del flujo en pantalla.
+     *
+     * @return Collection<int, array{etapa: FlujoAprobacionEtapa, firma: ?FirmaProyecto, adoptada_antes: bool}>
+     */
+    public function etapasParaStepper(string $proceso = self::FLUJO_INSCRIPCION, ?DocumentoProyecto $documento = null): Collection
+    {
+        $etapas = $this->flujoEtapasActivasOrdenadas($proceso)->values();
+
+        if ($etapas->isEmpty()) {
+            return collect();
+        }
+
+        $flujoId = $this->flujoAprobacion?->id ?? $this->flujo_aprobacion_id;
+        $firmasPorEtapa = $flujoId
+            ? $this->relacionFirmasDeEtapas($documento)
+                ->where('flujo_aprobacion_id', $flujoId)
+                ->whereIn('flujo_aprobacion_etapa_id', $etapas->pluck('id'))
+                ->whereNull('deleted_at')
+                ->where('estado_revision', '!=', 'Anulado')
+                ->orderByDesc('revision_ciclo')
+                ->orderByDesc('id')
+                ->get()
+                ->groupBy('flujo_aprobacion_etapa_id')
+            : collect();
+
+        $adopcion = ! $documento && $proceso === self::FLUJO_INSCRIPCION
+            ? $this->adopcionFlujoLegacy()->first()
+            : null;
+
+        return $etapas->map(fn (FlujoAprobacionEtapa $etapa) => [
+            'etapa' => $etapa,
+            'firma' => $firmasPorEtapa->get($etapa->id)?->first(),
+            'adoptada_antes' => $adopcion !== null && (
+                $adopcion->modo === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_COMPLETADO
+                || ($adopcion->orden_inicio !== null && (int) $etapa->orden < (int) $adopcion->orden_inicio)
+            ),
+        ]);
+    }
+
     public function firmasDeEtapasDelFlujo(
         int $flujoAprobacionId,
         int $revisionCiclo = 1,

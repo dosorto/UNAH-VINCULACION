@@ -88,6 +88,7 @@ use App\Livewire\Ticket\ListarTicket;
 use App\Livewire\UnidadAcademica\Asignatura\Asignatura;
 use App\Livewire\UnidadAcademica\Campus\CampusList;
 use App\Livewire\UnidadAcademica\Carrera\CarreraList;
+use App\Livewire\UnidadAcademica\Categoria\CategoriaList;
 use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList;
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
 use App\Livewire\User\Roles;
@@ -237,6 +238,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('carrera', CarreraList::class)
         ->name('carrera')
         ->middleware('can:unidad-academica.carrera');
+
+    Route::get('categorias-empleado', CategoriaList::class)
+        ->name('categorias-empleado')
+        ->middleware('can:unidad-academica.categoria');
 
     Route::get('asignatura', Asignatura::class)
         ->name('asignatura')

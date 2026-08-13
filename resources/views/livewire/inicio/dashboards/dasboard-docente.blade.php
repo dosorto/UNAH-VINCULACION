@@ -475,7 +475,14 @@
                         <h4 class="text-lg p-4 text-gray-900 dark:text-white font-semibold">Mis proyectos</h4>
                         <div class="relative overflow-x-auto sm:rounded-lg">
                             <table
-                                class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                                class="w-full min-w-[1100px] table-fixed text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                                <colgroup>
+                                    <col class="w-[18%]">
+                                    <col class="w-[38%]">
+                                    <col class="w-[15%]">
+                                    <col class="w-[15%]">
+                                    <col class="w-[14%]">
+                                </colgroup>
                                 <thead
                                     class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                                     <tr class="hover:bg-gray-100 dark:hover:bg-gray-700 transition duration-150">
@@ -501,10 +508,10 @@
                                         <tr
                                             class="bg-white border-t hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-800 dark:border-gray-700 border-gray-200">
                                             <th scope="row"
-                                                class="px-6 py-4 font-medium text-gray-900 max-w-sm dark:text-white">
-                                                {{ $formulario['nombre'] }}
+                                                class="min-w-0 px-6 py-4 font-medium text-gray-900 dark:text-white">
+                                                <x-dashboard.texto-truncado :texto="$formulario['nombre']" />
                                             </th>
-                                            <td class="px-6 py-4">
+                                            <td class="px-6 py-4 align-top">
                                                 @if (! empty($formulario['stepper']))
                                                     @php
                                                         $faseClase = match ($formulario['fase'] ?? 'Aprobación') {

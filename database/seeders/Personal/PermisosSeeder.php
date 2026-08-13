@@ -61,6 +61,7 @@ class PermisosSeeder extends Seeder
             // Unidad Academica
             ['name' => 'unidad-academica.campus',       'display_name' => 'Administrar Campus'],
             ['name' => 'unidad-academica.carrera',      'display_name' => 'Administrar Carreras'],
+            ['name' => 'unidad-academica.categoria',    'display_name' => 'Administrar Categorías de Empleados'],
             ['name' => 'unidad-academica.asignatura',   'display_name' => 'Administrar Asignaturas'],
             ['name' => 'unidad-academica.departamento', 'display_name' => 'Administrar Departamentos Academicos'],
             ['name' => 'unidad-academica.facultad',     'display_name' => 'Administrar Facultades y Centros'],
@@ -104,7 +105,7 @@ class PermisosSeeder extends Seeder
             'configuracion.integraciones-api', 'configuracion.jornada-laboral',
             'inicio.admin', 'dashboard.admin',
             'constancia.constancias',
-            'unidad-academica.campus', 'unidad-academica.carrera',
+            'unidad-academica.campus', 'unidad-academica.carrera', 'unidad-academica.categoria',
             'unidad-academica.asignatura', 'unidad-academica.departamento', 'unidad-academica.facultad',
             'global.set-role',
             'apariencia.slides',

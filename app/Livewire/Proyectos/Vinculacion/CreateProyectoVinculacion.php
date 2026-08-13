@@ -47,6 +47,8 @@ class CreateProyectoVinculacion extends Component
     use WithFileUploads;
     use ReenviaDesdeSubsanacionPorEtapa;
 
+    private const MAX_ODS = 3;
+
     public int $currentStep = 1;
     public ?int $recordId = null;
     public ?int $proyectoId = null;
@@ -580,7 +582,9 @@ class CreateProyectoVinculacion extends Component
             if ($this->currentStep === 7) {
                 $this->validarMarcoLogicoCompleto();
             } elseif (!empty($rules)) {
-                $this->validate($rules);
+                $this->validate($rules, [
+                    'ods.max' => 'Puede seleccionar un máximo de 3 ODS.',
+                ]);
             }
         } catch (ValidationException $e) {
             throw $e;
@@ -643,7 +647,7 @@ class CreateProyectoVinculacion extends Component
                 'carreras.*' => 'integer|exists:carrera,id',
                 'programa_pertenece' => 'required|string',
                 'lineas_investigacion_academica' => 'required|string',
-                'ods' => 'required|array|min:1',
+                'ods' => 'required|array|min:1|max:' . self::MAX_ODS,
                 'fecha_inicio' => 'required|date',
                 'fecha_finalizacion' => 'required|date|after_or_equal:fecha_inicio',
             ],
@@ -653,6 +657,8 @@ class CreateProyectoVinculacion extends Component
                 'estudiante_proyecto.*.carrera_id' => 'nullable|exists:carrera,id',
                 'estudiante_proyecto.*.asignatura_id' => 'nullable|exists:asignaturas,id',
                 'estudiante_proyecto.*.periodo_academico_id' => 'nullable|string|max:50',
+                'estudiante_proyecto.*.cantidad_estudiantes_hombres' => 'nullable|integer|min:0',
+                'estudiante_proyecto.*.cantidad_estudiantes_mujeres' => 'nullable|integer|min:0',
             ],
             3 => [
                 'entidad_contraparte' => 'required|array|min:1',
@@ -745,6 +751,8 @@ class CreateProyectoVinculacion extends Component
         }
 
         if ($this->currentStep === 2) {
+            $this->validarTotalesGruposEstudiantes();
+
             foreach ($this->estudiante_proyecto as $i => $item) {
                 $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '')
                     ?: ($item['tipo_participacion_estudiante'] ?? '');
@@ -776,6 +784,32 @@ class CreateProyectoVinculacion extends Component
         }
 
         return $this->getErrorBag()->isEmpty();
+    }
+
+    private function validarTotalesGruposEstudiantes(): bool
+    {
+        $todosValidos = true;
+
+        foreach ($this->estudiante_proyecto as $i => $grupo) {
+            $total = (int) ($grupo['cantidad_estudiantes_hombres'] ?? 0)
+                + (int) ($grupo['cantidad_estudiantes_mujeres'] ?? 0);
+
+            $this->estudiante_proyecto[$i]['total_estudiantes'] = $total;
+
+            if ($total < 1) {
+                $this->addError(
+                    "estudiante_proyecto.$i.total_estudiantes",
+                    'El grupo debe incluir al menos un estudiante.'
+                );
+                $todosValidos = false;
+            }
+        }
+
+        if (!$todosValidos) {
+            $this->addError('estudiante_proyecto', 'Cada grupo debe incluir al menos un estudiante.');
+        }
+
+        return $todosValidos;
     }
 
     private function validarMarcoLogicoCompleto(): void
@@ -936,9 +970,14 @@ class CreateProyectoVinculacion extends Component
                 && !empty($this->programa_pertenece)
                 && !empty($this->lineas_investigacion_academica)
                 && !empty($this->ods)
+                && count($this->ods) <= self::MAX_ODS
                 && (!$this->esVoluntariado || !empty($this->tematica_principal)),
             2 => !empty($this->estudiante_proyecto)
-                && !empty(array_filter(array_column($this->estudiante_proyecto, 'tipo_participacion_estudiante'))),
+                && !empty(array_filter(array_column($this->estudiante_proyecto, 'tipo_participacion_estudiante')))
+                && collect($this->estudiante_proyecto)->every(
+                    fn(array $grupo) => (int) ($grupo['cantidad_estudiantes_hombres'] ?? 0)
+                        + (int) ($grupo['cantidad_estudiantes_mujeres'] ?? 0) > 0
+                ),
             3 => !empty(array_filter(array_column($this->entidad_contraparte, 'nombre'))),
             4 => !empty(array_filter(array_column($this->actividades, 'descripcion'))),
             5 => collect(self::CAMPOS_DESCRIPCION_REQUERIDOS)->every(
@@ -1871,13 +1910,7 @@ class CreateProyectoVinculacion extends Component
 
     private function periodosAcademicosBase(): array
     {
-        return [
-            'Primer Periodo',
-            'Segundo Periodo',
-            'Tercer Periodo',
-            'Primer Semestre',
-            'Segundo Semestre',
-        ];
+        return PeriodoAcademico::NOMBRES_BASE;
     }
 
     private function dateOrNull(mixed $value): ?string
@@ -1912,7 +1945,9 @@ class CreateProyectoVinculacion extends Component
             'fecha_finalizacion' => 'required|date|after_or_equal:fecha_inicio',
             'programa_pertenece' => 'required|string',
             'lineas_investigacion_academica' => 'required|string',
-            'ods' => 'required|array|min:1',
+            'ods' => 'required|array|min:1|max:' . self::MAX_ODS,
+        ], [
+            'ods.max' => 'Puede seleccionar un máximo de 3 ODS.',
         ]);
         $record = $this->ensureRecord();
         $record->update([
@@ -1934,6 +1969,18 @@ class CreateProyectoVinculacion extends Component
 
     public function updatedOds($value = null, ?string $key = null): void
     {
+        $odsSeleccionados = collect($this->ods)
+            ->filter(fn($id) => $id !== null && $id !== '')
+            ->unique()
+            ->values();
+
+        if ($odsSeleccionados->count() > self::MAX_ODS) {
+            $this->ods = $odsSeleccionados->take(self::MAX_ODS)->all();
+            $this->addError('ods', 'Puede seleccionar un máximo de 3 ODS.');
+        } else {
+            $this->resetErrorBag('ods');
+        }
+
         $this->cargarMetasPorOds();
         $this->autoGuardarBorrador();
     }
@@ -2007,6 +2054,10 @@ class CreateProyectoVinculacion extends Component
         ]);
 
         $hasInvalidStudentRows = false;
+        if (!$this->validarTotalesGruposEstudiantes()) {
+            $hasInvalidStudentRows = true;
+        }
+
         foreach ($this->estudiante_proyecto as $i => $item) {
             $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '') ?: ($item['tipo_participacion_estudiante'] ?? '');
             $this->estudiante_proyecto[$i]['tipo_participacion_estudiante'] = $tipo;
@@ -2457,6 +2508,20 @@ class CreateProyectoVinculacion extends Component
 
     public function saveEstudiante(): void
     {
+        $this->resetErrorBag([
+            'nuevoEstudiante.cantidad_estudiantes_hombres',
+            'nuevoEstudiante.cantidad_estudiantes_mujeres',
+            'nuevoEstudiante.total_estudiantes',
+        ]);
+
+        $this->validate([
+            'nuevoEstudiante.cantidad_estudiantes_hombres' => 'required|integer|min:0',
+            'nuevoEstudiante.cantidad_estudiantes_mujeres' => 'required|integer|min:0',
+        ], [], [
+            'nuevoEstudiante.cantidad_estudiantes_hombres' => 'cantidad de hombres',
+            'nuevoEstudiante.cantidad_estudiantes_mujeres' => 'cantidad de mujeres',
+        ]);
+
         $tipo = $this->normalizeTipoParticipacionEstudiante($this->nuevoEstudiante['tipo_participacion_estudiante'] ?? '');
         if (empty($tipo)) {
             $this->addError('nuevoEstudiante.tipo_participacion_estudiante', 'Seleccione el tipo de participación.');
@@ -2511,6 +2576,11 @@ class CreateProyectoVinculacion extends Component
         $h = (int)($this->nuevoEstudiante['cantidad_estudiantes_hombres'] ?? 0);
         $m = (int)($this->nuevoEstudiante['cantidad_estudiantes_mujeres'] ?? 0);
         $this->nuevoEstudiante['total_estudiantes'] = $h + $m;
+
+        if ($this->nuevoEstudiante['total_estudiantes'] < 1) {
+            $this->addError('nuevoEstudiante.total_estudiantes', 'El grupo debe incluir al menos un estudiante.');
+            return;
+        }
 
         if ($this->editEstudianteIndex !== null) {
             $this->estudiante_proyecto[$this->editEstudianteIndex] = $this->nuevoEstudiante;

@@ -144,11 +144,12 @@ return [
             [
                 'titulo' => 'Unidad Academica',
                 'route' => 'campus',
-                'routes' => ['campus', 'carrera', 'departamento-academico', 'facultad-centro'],
+                'routes' => ['campus', 'carrera', 'categorias-empleado', 'departamento-academico', 'facultad-centro'],
                 'icono' => 'heroicon-o-building-library',
                 'permisos' => [
                     'unidad-academica.campus',
                     'unidad-academica.carrera',
+                    'unidad-academica.categoria',
                     'unidad-academica.departamento',
                     'unidad-academica.facultad',
                     'unidad-academica.asignatura',
@@ -156,6 +157,7 @@ return [
                 'children' => [
                     ['texto' => 'Campus', 'route' => 'campus', 'permiso' => 'unidad-academica.campus'],
                     ['texto' => 'Carrera', 'route' => 'carrera', 'permiso' => 'unidad-academica.carrera'],
+                    ['texto' => 'Categorías', 'route' => 'categorias-empleado', 'permiso' => 'unidad-academica.categoria'],
                     ['texto' => 'Asignatura', 'route' => 'asignatura', 'permiso' => 'unidad-academica.asignatura'],
                     ['texto' => 'Departamento Academico', 'route' => 'departamento-academico', 'permiso' => 'unidad-academica.departamento'],
                     ['texto' => 'Facultad Centro', 'route' => 'facultad-centro', 'permiso' => 'unidad-academica.facultad'],

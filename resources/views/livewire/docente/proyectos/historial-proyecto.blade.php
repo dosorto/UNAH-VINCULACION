@@ -17,12 +17,12 @@
     @endphp
 
     <div class="no-print rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
+        <div class="grid gap-5 lg:grid-cols-[minmax(220px,0.8fr)_minmax(340px,1.5fr)_auto] lg:items-center">
+            <div class="min-w-0">
                 <a href="{{ route($historialRouteName, $historialRouteParameters) }}" class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
                     {{ $historialRouteLabel }}
                 </a>
-                <h1 class="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+                <h1 class="mt-1 truncate text-xl font-bold text-gray-900 dark:text-white" title="{{ $proyecto->nombre_proyecto }}">
                     {{ $proyecto->nombre_proyecto }}
                 </h1>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -30,7 +30,19 @@
                 </p>
             </div>
 
-            <div class="flex flex-wrap gap-2">
+            <div class="min-w-0 rounded-lg bg-slate-50 px-4 py-3 dark:bg-slate-800/70">
+                <div class="mb-3 flex items-center justify-between gap-3">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Progreso del flujo</p>
+                    @if(!empty($progresoFlujo))
+                        <span class="rounded-full bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600 shadow-sm dark:bg-slate-700 dark:text-slate-200">
+                            {{ $faseProgresoFlujo }}
+                        </span>
+                    @endif
+                </div>
+                <x-dashboard.stepper-progreso :stepper="$progresoFlujo" />
+            </div>
+
+            <div class="flex flex-wrap gap-2 lg:justify-end">
                 <a href="{{ route('proyecto.perfil.pdf.download', ['proyecto' => $proyecto->id]) }}"
                    class="inline-flex items-center rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700">
                     Descargar PDF
