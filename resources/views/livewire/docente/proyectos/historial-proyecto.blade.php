@@ -19,8 +19,8 @@
     <div class="no-print rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <a href="{{ route('proyectosDocente', ['tipo' => 'proyectos']) }}" class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
-                    Volver al historial
+                <a href="{{ route($historialRouteName, $historialRouteParameters) }}" class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                    {{ $historialRouteLabel }}
                 </a>
                 <h1 class="mt-1 text-xl font-bold text-gray-900 dark:text-white">
                     {{ $proyecto->nombre_proyecto }}
@@ -38,10 +38,10 @@
 
                 @if ($firmaRevisionPendiente)
                     <button wire:click="openSubsanar"
-                            class="inline-flex items-center rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">
+                            class="inline-flex items-center rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">
                         Subsanar
                     </button>
-                    <button x-on:click.prevent="confirmDialog('¿Aprobar esta etapa y avanzar el proyecto?').then((ok) => ok && $wire.aprobarFirmaPendiente())"
+                    <button wire:click="openAprobar"
                             class="inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700">
                         Aprobar
                     </button>
@@ -293,18 +293,23 @@
 
     @if ($subsanarModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-gray-800">
-                <div class="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold dark:text-white">Enviar a subsanacion</h3>
+            <div class="w-full max-w-3xl rounded-xl bg-white shadow-xl dark:bg-gray-800">
+                <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+                    <div>
+                        <h3 class="text-lg font-semibold dark:text-white">Enviar proyecto a subsanación</h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Detalle claramente todos los cambios que debe realizar el responsable del proyecto.</p>
+                    </div>
                     <button wire:click="$set('subsanarModal', false)" class="text-2xl leading-none text-gray-400 hover:text-gray-600">&times;</button>
                 </div>
-                <div class="space-y-4 p-4">
+                <div class="space-y-4 p-6">
                     <div>
                         <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Correcciones requeridas <span class="text-red-500">*</span>
                         </label>
-                        <textarea wire:model="subsanarComentario" rows="5"
-                                  class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
+                        <textarea wire:model="subsanarComentario" rows="10" maxlength="5000"
+                                  placeholder="Escriba aquí las observaciones y correcciones requeridas..."
+                                  class="min-h-64 w-full resize-y rounded-md border border-gray-300 bg-white px-3 py-3 text-sm text-gray-900 shadow-sm focus:border-red-500 focus:ring-red-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"></textarea>
+                        <p class="mt-1 text-right text-xs text-gray-500">Máximo 5,000 caracteres</p>
                         @error('subsanarComentario') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div class="flex justify-end gap-3 pt-2">
@@ -313,8 +318,63 @@
                             Cancelar
                         </button>
                         <button wire:click="subsanar"
-                                class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">
+                                wire:loading.attr="disabled" wire:target="subsanar"
+                                class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">
                             Subsanar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if ($aprobarModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="w-full max-w-xl rounded-xl bg-white shadow-xl dark:bg-gray-800">
+                <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold dark:text-white">Confirmar aprobación</h3>
+                    <button wire:click="$set('aprobarModal', false)" class="text-2xl leading-none text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+                <div class="space-y-4 p-6">
+                    @if ($esRevisionSolicitada)
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">N° de dictamen</label>
+                            <input type="text" wire:model="aprobarDictamen" readonly
+                                   class="w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                            @error('aprobarDictamen') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Código del proyecto</label>
+                            <input type="text" wire:model="aprobarCodigo"
+                                   @if (! auth()->user()->hasRole(['admin', 'Director/Enlace'])) readonly @endif
+                                   class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                            @error('aprobarCodigo') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    @endif
+
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Observación de aprobación <span class="font-normal text-gray-500">(opcional)</span></label>
+                        <textarea wire:model="aprobacionComentario" rows="4" maxlength="5000"
+                                  class="w-full resize-y rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"></textarea>
+                        @error('aprobacionComentario') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        @if ($esRevisionFinal)
+                            Al aprobar se completará el registro del proyecto y se generarán las constancias correspondientes.
+                        @else
+                            Al aprobar, el proyecto avanzará a la siguiente etapa configurada.
+                        @endif
+                    </p>
+
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button wire:click="$set('aprobarModal', false)"
+                                class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            Cancelar
+                        </button>
+                        <button wire:click="aprobarFirmaPendiente" wire:loading.attr="disabled" wire:target="aprobarFirmaPendiente"
+                                class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">
+                            Aprobar
                         </button>
                     </div>
                 </div>

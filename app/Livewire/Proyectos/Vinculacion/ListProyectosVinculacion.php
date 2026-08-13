@@ -35,9 +35,6 @@ class ListProyectosVinculacion extends Component
     public ?int $filterCentroFacultad = null;
     public ?int $filterDepartamento = null;
 
-    public bool $viewModal = false;
-    public ?int $viewProyectoId = null;
-
     public bool $firmasModal = false;
     public ?int $firmasProyectoId = null;
     public ?int $firmas_jefe_id = null;
@@ -65,12 +62,6 @@ class ListProyectosVinculacion extends Component
     public function updatingFilterFechaFin(): void { $this->resetPage(); }
     public function updatingFilterCentroFacultad(): void { $this->filterDepartamento = null; $this->resetPage(); }
     public function updatingFilterDepartamento(): void { $this->resetPage(); }
-
-    public function openView(int $id): void
-    {
-        $this->viewProyectoId = $id;
-        $this->viewModal = true;
-    }
 
     public function openFirmas(int $id): void
     {
@@ -510,10 +501,6 @@ class ListProyectosVinculacion extends Component
     {
         $records = $this->paginateRows($this->historialRows());
 
-        $viewProyecto = $this->viewProyectoId
-            ? Proyecto::with(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye'])->find($this->viewProyectoId)
-            : null;
-
         $estadosTipo     = TipoEstado::orderBy('nombre')->pluck('nombre', 'id');
         $centros         = \App\Models\UnidadAcademica\FacultadCentro::orderBy('nombre')->pluck('nombre', 'id');
         $departamentos   = $this->filterCentroFacultad
@@ -531,7 +518,7 @@ class ListProyectosVinculacion extends Component
         $flowModes       = app(ProyectoLegacyWorkflowAdoptionService::class)->modos();
 
         return view('livewire.proyectos.vinculacion.list-proyectos-vinculacion', compact(
-            'records', 'viewProyecto', 'estadosTipo', 'centros', 'departamentos',
+            'records', 'estadosTipo', 'centros', 'departamentos',
             'empleados', 'categorias', 'modalidades', 'odsList', 'flujos', 'flowModes'
         ));
     }
