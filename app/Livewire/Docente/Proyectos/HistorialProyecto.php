@@ -15,6 +15,7 @@ use App\Models\Proyecto\EmpleadoProyecto;
 use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\Proyecto;
+use App\Services\Constancias\ConstanciaRegistroAuthorization;
 use App\Services\InformeFinal\InformeFinalProyectoWorkflowService;
 use App\Services\InformeIntermedio\InformeIntermedioProyectoWorkflowService;
 use App\Services\Proyecto\ProyectoWorkflowService;
@@ -469,6 +470,12 @@ class HistorialProyecto extends Component
             : 0;
 
         $cierreInformeFinal = $workflow->resumenCierre($proyecto, auth()->user());
+        $constanciaRegistro = Schema::hasTable('constancias_registro_proyecto')
+            ? $proyecto->constanciaRegistroProyecto
+            : null;
+        $puedeVerConstanciaRegistro = $constanciaRegistro
+            && app(ConstanciaRegistroAuthorization::class)->puedeVerProyecto($proyecto, auth()->user());
+        $puedeDescargarConstanciaRegistro = $puedeVerConstanciaRegistro && $constanciaRegistro->puedeDescargarse();
         $fichaActualizacionPendiente = FichaActualizacion::query()
             ->where('proyecto_id', $proyecto->id)
             ->pendientes()
@@ -489,6 +496,9 @@ class HistorialProyecto extends Component
             'documentosRevisionInformeFinal',
             'diasTranscurridos',
             'cierreInformeFinal',
+            'constanciaRegistro',
+            'puedeVerConstanciaRegistro',
+            'puedeDescargarConstanciaRegistro',
             'fichaActualizacionPendiente',
             'informeIntermedio',
             'opcionesDestinatariosIntermedio',

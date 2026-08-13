@@ -71,6 +71,39 @@
         </div>
     </div>
 
+    @if($puedeVerConstanciaRegistro)
+        <section class="no-print rounded-xl border border-indigo-200 bg-white p-5 shadow-sm dark:border-indigo-900 dark:bg-gray-900">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-400">Registro del proyecto</p>
+                    <h2 class="mt-1 text-lg font-bold text-gray-900 dark:text-white">Constancia de Registro</h2>
+                    <dl class="mt-3 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                        <div><dt class="text-gray-500">Estado</dt><dd class="font-semibold text-gray-900 dark:text-gray-100">{{ \Illuminate\Support\Str::title(strtolower($constanciaRegistro->estado)) }}</dd></div>
+                        @if($constanciaRegistro->estado === \App\Models\Constancias\ConstanciaRegistroProyecto::ESTADO_EMITIDA)
+                            <div><dt class="text-gray-500">Número</dt><dd class="text-gray-900 dark:text-gray-100">{{ $constanciaRegistro->numero }}</dd></div>
+                            <div><dt class="text-gray-500">Fecha de emisión</dt><dd class="text-gray-900 dark:text-gray-100">{{ $constanciaRegistro->fecha_emision?->format('d/m/Y') }}</dd></div>
+                        @endif
+                    </dl>
+                    @if($constanciaRegistro->estado === \App\Models\Constancias\ConstanciaRegistroProyecto::ESTADO_ANULADA)
+                        <p class="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">
+                            <strong>Anulada:</strong> {{ $constanciaRegistro->motivo_anulacion }}
+                        </p>
+                    @endif
+                </div>
+
+                <div class="flex flex-wrap justify-end gap-2">
+                    @if($puedeDescargarConstanciaRegistro)
+                        <a href="{{ route('constancias.registro.descargar', ['constancia' => $constanciaRegistro->getKey()]) }}" class="rounded-lg bg-indigo-700 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-800">Descargar constancia de registro</a>
+                    @elseif($constanciaRegistro->estado === \App\Models\Constancias\ConstanciaRegistroProyecto::ESTADO_PENDIENTE)
+                        <p class="text-sm text-gray-500 dark:text-gray-400">La constancia de registro está en proceso de generación.</p>
+                    @elseif($constanciaRegistro->estado === \App\Models\Constancias\ConstanciaRegistroProyecto::ESTADO_ERROR)
+                        <p class="text-sm text-amber-700 dark:text-amber-300">No fue posible generar la constancia de registro.</p>
+                    @endif
+                </div>
+            </div>
+        </section>
+    @endif
+
     @if($informeIntermedio['visible'])
         <section class="no-print rounded-xl border border-sky-200 bg-white p-5 shadow-sm dark:border-sky-900 dark:bg-gray-900">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
