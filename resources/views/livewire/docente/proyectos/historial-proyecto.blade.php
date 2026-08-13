@@ -19,8 +19,8 @@
     <div class="no-print rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-                <a href="{{ route('proyectosDocente', ['tipo' => 'proyectos']) }}" class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
-                    Volver al historial
+                <a href="{{ route($historialRouteName, $historialRouteParameters) }}" class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                    {{ $historialRouteLabel }}
                 </a>
                 <h1 class="mt-1 text-xl font-bold text-gray-900 dark:text-white">
                     {{ $proyecto->nombre_proyecto }}
@@ -38,10 +38,10 @@
 
                 @if ($firmaRevisionPendiente)
                     <button wire:click="openSubsanar"
-                            class="inline-flex items-center rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">
+                            class="inline-flex items-center rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">
                         Subsanar
                     </button>
-                    <button x-on:click.prevent="confirmDialog('¿Aprobar esta etapa y avanzar el proyecto?').then((ok) => ok && $wire.aprobarFirmaPendiente())"
+                    <button wire:click="openAprobar"
                             class="inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700">
                         Aprobar
                     </button>
@@ -266,19 +266,27 @@
                                 <span class="mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $esMovimientoCierre ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800' }}">
                                     {{ $esMovimientoCierre ? 'Flujo de cierre INF-001' : 'Flujo normal del proyecto' }}
                                 </span>
+                                @php
+                                    $comentarioCompleto = trim((string) $estado->comentario);
+                                    $comentarioLargo = mb_strlen($comentarioCompleto) > 200;
+                                    $comentarioMostrado = $comentarioLargo
+                                        ? mb_substr($comentarioCompleto, 0, 200) . '…'
+                                        : $comentarioCompleto;
+                                    $tieneAdjuntos = $documentosRevisionInformeFinal->get($estado->id, collect())->isNotEmpty()
+                                        || $documentosSubsanacion->get($estado->id, collect())->isNotEmpty();
+                                @endphp
                                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                                     @if ($estado->empleado)
                                         Realizado por: {{ $estado->empleado->nombre_completo }}
                                     @endif
-                                    {{ $estado->comentario ? ' - ' . $estado->comentario : '' }}
+                                    {{ $comentarioMostrado ? ' - ' . $comentarioMostrado : '' }}
                                 </p>
-                                @foreach($documentosRevisionInformeFinal->get($estado->id, collect()) as $documentoRevision)
-                                    <div class="mt-2 rounded-md bg-gray-50 p-2 text-sm dark:bg-gray-800">
-                                        <p class="font-medium">Documento de revisión · {{ $documentoRevision->firma?->etapa_nombre ?: 'Etapa de revisión' }}</p>
-                                        <p class="text-xs text-gray-500">{{ $documentoRevision->nombre_original }} · Ciclo {{ $documentoRevision->revision_ciclo }} · {{ $documentoRevision->usuario?->name }}</p>
-                                        <a class="text-blue-700 underline" href="{{ route('informes-finales.documentos-revision.descargar', $documentoRevision) }}">Ver PDF</a>
-                                    </div>
-                                @endforeach
+                                @if ($comentarioLargo || $tieneAdjuntos)
+                                    <button type="button" wire:click="abrirMovimiento({{ $estado->id }})"
+                                            class="mt-1 text-xs font-medium text-yellow-700 underline hover:text-yellow-800 dark:text-yellow-500">
+                                        Ver más
+                                    </button>
+                                @endif
                             </li>
                         @endforeach
                     </ol>
@@ -291,21 +299,95 @@
         </aside>
     </div>
 
+    @if ($verMovimientoId)
+        @php
+            $movimientoActual = $estados->firstWhere('id', $verMovimientoId);
+        @endphp
+        @if ($movimientoActual)
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                <div class="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-xl bg-white shadow-xl dark:bg-gray-800">
+                    <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+                        <div>
+                            <h3 class="text-lg font-semibold dark:text-white">
+                                Estado: {{ $movimientoActual->tipoestado?->nombre ?? 'Cambio de estado' }}
+                            </h3>
+                            <time class="text-sm text-gray-500 dark:text-gray-400">
+                                {{ Carbon::parse($movimientoActual->created_at)->format('d') }} de
+                                {{ Carbon::parse($movimientoActual->created_at)->translatedFormat('F') }} del
+                                {{ Carbon::parse($movimientoActual->created_at)->format('Y') }}
+                            </time>
+                        </div>
+                        <button wire:click="cerrarMovimiento" class="text-2xl leading-none text-gray-400 hover:text-gray-600">&times;</button>
+                    </div>
+                    <div class="flex-1 space-y-4 overflow-y-auto p-6">
+                        <div>
+                            @if ($movimientoActual->empleado)
+                                <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Realizado por: {{ $movimientoActual->empleado->nombre_completo }}
+                                </p>
+                            @endif
+                            <p class="mt-2 whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300">
+                                {{ $movimientoActual->comentario ?: 'Sin comentario.' }}
+                            </p>
+                        </div>
+
+                        @foreach($documentosRevisionInformeFinal->get($movimientoActual->id, collect()) as $documentoRevision)
+                            <div class="rounded-md bg-gray-50 p-3 text-sm dark:bg-gray-900">
+                                <p class="font-medium">Documento de revisión · {{ $documentoRevision->firma?->etapa_nombre ?: 'Etapa de revisión' }}</p>
+                                <p class="text-xs text-gray-500">{{ $documentoRevision->nombre_original }} · Ciclo {{ $documentoRevision->revision_ciclo }} · {{ $documentoRevision->usuario?->name }}</p>
+                                <a class="text-blue-700 underline" href="{{ route('informes-finales.documentos-revision.descargar', $documentoRevision) }}">Descargar</a>
+                            </div>
+                        @endforeach
+
+                        @foreach($documentosSubsanacion->get($movimientoActual->id, collect()) as $documentoSubsanacion)
+                            <div class="rounded-md bg-gray-50 p-3 text-sm dark:bg-gray-900">
+                                <p class="font-medium">Documento de subsanación</p>
+                                <p class="text-xs text-gray-500">{{ $documentoSubsanacion->nombre_original }} · {{ $documentoSubsanacion->usuario?->name }}</p>
+                                <a class="text-blue-700 underline" href="{{ route('proyectos.documentos-subsanacion.descargar', $documentoSubsanacion) }}">Descargar</a>
+                            </div>
+                        @endforeach
+                    </div>
+                    <div class="flex justify-end gap-3 border-t border-gray-200 px-6 py-4 dark:border-gray-700">
+                        <button wire:click="cerrarMovimiento"
+                                class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endif
+
     @if ($subsanarModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-gray-800">
-                <div class="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
-                    <h3 class="text-lg font-semibold dark:text-white">Enviar a subsanacion</h3>
+            <div class="flex max-h-[90vh] w-full max-w-4xl flex-col rounded-xl bg-white shadow-xl dark:bg-gray-800">
+                <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+                    <div>
+                        <h3 class="text-lg font-semibold dark:text-white">Enviar proyecto a subsanación</h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Detalle claramente todos los cambios que debe realizar el responsable del proyecto.</p>
+                    </div>
                     <button wire:click="$set('subsanarModal', false)" class="text-2xl leading-none text-gray-400 hover:text-gray-600">&times;</button>
                 </div>
-                <div class="space-y-4 p-4">
+                <div class="flex-1 space-y-4 overflow-y-auto p-6">
                     <div>
                         <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Correcciones requeridas <span class="text-red-500">*</span>
                         </label>
-                        <textarea wire:model="subsanarComentario" rows="5"
-                                  class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"></textarea>
+                        <textarea wire:model="subsanarComentario" rows="18" maxlength="5000"
+                                  placeholder="Escriba aquí las observaciones y correcciones requeridas..."
+                                  class="min-h-[28rem] w-full resize-y rounded-md border border-gray-300 bg-white px-3 py-3 text-sm text-gray-900 shadow-sm focus:border-red-500 focus:ring-red-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"></textarea>
+                        <p class="mt-1 text-right text-xs text-gray-500">Máximo 5,000 caracteres</p>
                         @error('subsanarComentario') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Documento de respaldo (opcional)
+                        </label>
+                        <input type="file" wire:model="subsanarArchivo"
+                               class="block w-full text-sm text-gray-900 file:mr-4 file:rounded-md file:border-0 file:bg-red-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-red-700 hover:file:bg-red-100 dark:text-gray-300">
+                        <p class="mt-1 text-xs text-gray-500">PDF, Word o imagen. Máximo 10 MB.</p>
+                        <div wire:loading wire:target="subsanarArchivo" class="mt-1 text-xs text-gray-500">Subiendo...</div>
+                        @error('subsanarArchivo') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div class="flex justify-end gap-3 pt-2">
                         <button wire:click="$set('subsanarModal', false)"
@@ -313,8 +395,63 @@
                             Cancelar
                         </button>
                         <button wire:click="subsanar"
-                                class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">
+                                wire:loading.attr="disabled" wire:target="subsanar"
+                                class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">
                             Subsanar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if ($aprobarModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div class="w-full max-w-xl rounded-xl bg-white shadow-xl dark:bg-gray-800">
+                <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold dark:text-white">Confirmar aprobación</h3>
+                    <button wire:click="$set('aprobarModal', false)" class="text-2xl leading-none text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+                <div class="space-y-4 p-6">
+                    @if ($esRevisionSolicitada)
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">N° de dictamen</label>
+                            <input type="text" wire:model="aprobarDictamen" readonly
+                                   class="w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                            @error('aprobarDictamen') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Código del proyecto</label>
+                            <input type="text" wire:model="aprobarCodigo"
+                                   @if (! auth()->user()->hasRole(['admin', 'Director/Enlace'])) readonly @endif
+                                   class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                            @error('aprobarCodigo') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    @endif
+
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Observación de aprobación <span class="font-normal text-gray-500">(opcional)</span></label>
+                        <textarea wire:model="aprobacionComentario" rows="4" maxlength="5000"
+                                  class="w-full resize-y rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"></textarea>
+                        @error('aprobacionComentario') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        @if ($esRevisionFinal)
+                            Al aprobar se completará el registro del proyecto y se generarán las constancias correspondientes.
+                        @else
+                            Al aprobar, el proyecto avanzará a la siguiente etapa configurada.
+                        @endif
+                    </p>
+
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button wire:click="$set('aprobarModal', false)"
+                                class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            Cancelar
+                        </button>
+                        <button wire:click="aprobarFirmaPendiente" wire:loading.attr="disabled" wire:target="aprobarFirmaPendiente"
+                                class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">
+                            Aprobar
                         </button>
                     </div>
                 </div>

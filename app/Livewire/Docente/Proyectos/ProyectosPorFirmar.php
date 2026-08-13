@@ -68,6 +68,10 @@ class ProyectosPorFirmar extends Component
 
     public function openView(int $id): void
     {
+        $firma = $this->authorizeFirmaAction($id);
+
+        abort_if($firma->firmable_type === Proyecto::class, 422, 'La ficha del proyecto se abre en su pantalla de detalle.');
+
         $this->viewId = $id;
         $this->viewModal = true;
     }
@@ -136,7 +140,11 @@ class ProyectosPorFirmar extends Component
             && $firma->estado_revision === 'Pendiente'
             && $firma->responsable_usuario_id
             && (int) $firma->responsable_usuario_id === (int) Auth::id()
-            && (bool) $firma->flujoEtapa?->requiere_asignacion;
+            // Se lee el valor congelado en la firma (no el de la etapa en
+            // vivo) para que editar el flujo no afecte firmas ya enviadas.
+            // Las firmas creadas antes de este campo (requiere_asignacion
+            // null) usan el valor en vivo de la etapa como respaldo.
+            && (bool) ($firma->requiere_asignacion ?? $firma->flujoEtapa?->requiere_asignacion);
     }
 
     public function puedeReasignarEnf(?EnfRevision $revision): bool
@@ -685,18 +693,14 @@ class ProyectosPorFirmar extends Component
         $viewEnfRevision = $this->viewEnfRevisionId
             ? EnfRevision::with(['accion' => fn ($query) => $query->with($this->enfViewRelations()), 'flujoEtapa.rolRevisor'])->find($this->viewEnfRevisionId)
             : null;
-        $viewProyecto = null;
         $viewDocumento = null;
         if ($viewFirma) {
-            if ($viewFirma->firmable_type == Proyecto::class) {
-                $viewProyecto = $viewFirma->proyecto?->load(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye']);
-            } else {
+            if ($viewFirma->firmable_type !== Proyecto::class) {
                 $viewDocumento = $viewFirma->documento_proyecto?->load(['estadoActual.tipoestado']);
-                $viewProyecto = $viewDocumento?->proyecto?->load(['aporteInstitucional', 'presupuesto', 'ods', 'metasContribuye']);
             }
         }
 
-        return view('livewire.docente.proyectos.proyectos-por-firmar', compact('records', 'enfRevisiones', 'ppsRegistros', 'viewFirma', 'viewProyecto', 'viewDocumento', 'viewEnfRevision'));
+        return view('livewire.docente.proyectos.proyectos-por-firmar', compact('records', 'enfRevisiones', 'ppsRegistros', 'viewFirma', 'viewDocumento', 'viewEnfRevision'));
     }
 
     private function authorizeFirmaAction(int $firmaId): FirmaProyecto

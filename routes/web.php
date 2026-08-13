@@ -21,6 +21,7 @@ use App\Http\Controllers\Proyectos\ConstanciaFinalizacionProyectoController;
 use App\Http\Controllers\Proyectos\ConstanciaRegistroProyectoController;
 use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalAnexoController;
 use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalDocumentoRevisionController;
+use App\Http\Controllers\Proyectos\ProyectoDocumentoSubsanacionController;
 use App\Http\Controllers\Proyectos\InformeFinal\InformeFinalProyectoController;
 use App\Http\Controllers\Proyectos\InformeIntermedio\InformeIntermedioProyectoController;
 use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialAnexoController;
@@ -397,6 +398,8 @@ Route::middleware(['auth'])->group(function () {
             ->name('constancias.registro.descargar');
         Route::get('/informes-finales/documentos-revision/{documento}/descargar', [InformeFinalDocumentoRevisionController::class, 'descargar'])
             ->name('informes-finales.documentos-revision.descargar');
+        Route::get('/proyectos/documentos-subsanacion/{documento}/descargar', [ProyectoDocumentoSubsanacionController::class, 'descargar'])
+            ->name('proyectos.documentos-subsanacion.descargar');
         Route::get('/informes-finales/anexos/{anexo}', [InformeFinalAnexoController::class, 'mostrar'])
             ->name('informes-finales.anexos.mostrar');
         Route::get('/informes-finales/anexos/{anexo}/descargar', [InformeFinalAnexoController::class, 'descargar'])
@@ -536,7 +539,7 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('historialproyecto/{proyecto}', HistorialProyecto::class)
             ->name('historialproyecto')
-            ->middleware('can:docente.proyectos');
+            ->middleware('permission:docente.proyectos|director.proyectos|proyectos.historial|proyectos.solicitados|proyectos.revision-final');
 
         Route::get('/proyectos/{proyecto}/ficha-actualizacion', EditProyectoActualizacion::class)
             ->name('ficha-actualizacion')

@@ -1,4 +1,8 @@
-<div class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+<div
+    x-data="workflowStageAnimator"
+    x-on:workflow-stage-moved.window="animateStageMove($event)"
+    class="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8"
+>
     <section class="flex flex-col gap-3 rounded-2xl bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <p class="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-400">Configuracion</p>
@@ -156,7 +160,7 @@
                 </div>
                 @error('stages')<p class="mt-3 rounded-xl bg-rose-50 px-4 py-2 text-sm text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">{{ $message }}</p>@enderror
 
-                <div class="mt-5 space-y-4">
+                <div data-stage-list="project" class="mt-5 space-y-4">
                     @if (count($stages) > 0)
                         <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/50">
                             <div class="flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
@@ -176,7 +180,8 @@
 
                     @foreach ($stages as $index => $stage)
                         @php($stageUiKey = $stage['ui_key'] ?? (($stage['id'] ?? null) ? 'project-stage-'.$stage['id'] : 'project-stage-'.$index))
-                        <div wire:key="project-stage-card-{{ $stageUiKey }}" class="relative overflow-hidden rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                        @php($stageRenderKey = $stageUiKey.'-position-'.$index)
+                        <div wire:key="project-stage-card-{{ $stageRenderKey }}" data-stage-key="{{ $stageUiKey }}" class="relative overflow-hidden rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
                             <div class="absolute inset-y-0 left-0 w-1.5 {{ $loop->first ? 'bg-emerald-500' : ($loop->last ? 'bg-rose-500' : 'bg-cyan-500') }}"></div>
                             <div class="flex items-center justify-between gap-3">
                                 <div class="flex items-center gap-3 pl-2">
@@ -191,10 +196,10 @@
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <button wire:click="moveStageUp({{ $index }})" @disabled($loop->first) class="rounded-full border border-slate-300 p-2 text-slate-600 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300">
+                                    <button type="button" x-on:click.capture="captureStagePositions('project')" wire:click="moveStageUp({{ $index }})" wire:loading.attr="disabled" wire:target="moveStageUp({{ $index }})" @disabled($loop->first) title="Subir etapa" aria-label="Subir etapa {{ $index + 1 }}" class="rounded-full border border-slate-300 p-2 text-slate-600 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300">
                                         <span class="material-symbols-outlined text-[18px]">arrow_upward</span>
                                     </button>
-                                    <button wire:click="moveStageDown({{ $index }})" @disabled($loop->last) class="rounded-full border border-slate-300 p-2 text-slate-600 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300">
+                                    <button type="button" x-on:click.capture="captureStagePositions('project')" wire:click="moveStageDown({{ $index }})" wire:loading.attr="disabled" wire:target="moveStageDown({{ $index }})" @disabled($loop->last) title="Bajar etapa" aria-label="Bajar etapa {{ $index + 1 }}" class="rounded-full border border-slate-300 p-2 text-slate-600 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300">
                                         <span class="material-symbols-outlined text-[18px]">arrow_downward</span>
                                     </button>
                                     <button wire:click="removeStage({{ $index }})" class="text-sm font-medium text-rose-600 dark:text-rose-300">Quitar</button>
@@ -204,20 +209,19 @@
                             <div class="mt-4 grid gap-4 pl-2 md:grid-cols-2 xl:grid-cols-3">
                                 <label class="block space-y-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Codigo</span>
-                                    <input wire:model.live.debounce.300ms="stages.{{ $index }}.codigo" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                                    <input value="{{ $stage['codigo'] }}" wire:input.debounce.300ms="updateStageField('stages', '{{ $stageUiKey }}', 'codigo', $event.target.value)" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                                     @error("stages.$index.codigo")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                 </label>
                                 <label class="block space-y-2 xl:col-span-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Nombre</span>
-                                    <input wire:model.live.debounce.300ms="stages.{{ $index }}.nombre" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                                    <input value="{{ $stage['nombre'] }}" wire:input.debounce.300ms="updateStageField('stages', '{{ $stageUiKey }}', 'nombre', $event.target.value)" type="text" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                                     @error("stages.$index.nombre")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                 </label>
                                 <label class="block space-y-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Tipo</span>
-                                    <select wire:model.live="stages.{{ $index }}.tipo_etapa" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                                        <option value="FORMULACION">Formulacion</option>
-                                        <option value="REVISION">Revision</option>
-                                        <option value="APROBACION">Aprobacion</option>
+                                    <select wire:change="updateStageField('stages', '{{ $stageUiKey }}', 'tipo_etapa', $event.target.value)" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                        <option value="REVISION" @selected(($stage['tipo_etapa'] ?? '') === 'REVISION')>Revision</option>
+                                        <option value="APROBACION" @selected(($stage['tipo_etapa'] ?? '') === 'APROBACION')>Aprobacion</option>
                                     </select>
                                     <p class="text-xs text-slate-400">Revision solo pasa a la siguiente etapa. Aprobacion ademas deja una firma y sello registrados en el documento.</p>
                                     @error("stages.$index.tipo_etapa")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
@@ -225,10 +229,10 @@
                                 @if (($stage['tipo_etapa'] ?? null) === 'APROBACION')
                                     <label class="block space-y-2">
                                         <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Cargo de firma *</span>
-                                        <select wire:key="project-stage-cargo-{{ $stageUiKey }}" wire:model.live="stages.{{ $index }}.cargo_firma_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                        <select wire:key="project-stage-cargo-{{ $stageRenderKey }}" wire:change="updateStageField('stages', '{{ $stageUiKey }}', 'cargo_firma_id', $event.target.value)" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
                                             <option value="">Seleccione</option>
                                             @foreach ($cargoFirmas as $cargo)
-                                                <option value="{{ $cargo->id }}">{{ $cargo->label }}</option>
+                                                <option value="{{ $cargo->id }}" @selected((string) ($stage['cargo_firma_id'] ?? '') === (string) $cargo->id)>{{ $cargo->label }}</option>
                                             @endforeach
                                         </select>
                                         <p class="text-xs text-slate-400">Firma y sello que quedarán registrados en el documento cuando esta etapa apruebe.</p>
@@ -237,10 +241,10 @@
                                 @endif
                                 <label class="block space-y-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Rol con acceso</span>
-                                    <select wire:key="project-stage-role-{{ $stageUiKey }}" wire:model.live="stages.{{ $index }}.rol_revisor_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                    <select wire:key="project-stage-role-{{ $stageRenderKey }}" wire:change="updateStageField('stages', '{{ $stageUiKey }}', 'rol_revisor_id', $event.target.value)" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
                                         <option value="">Seleccione</option>
                                         @foreach ($projectRoles as $role)
-                                            <option value="{{ $role->id }}">{{ $role->name }}</option>
+                                            <option value="{{ $role->id }}" @selected((string) ($stage['rol_revisor_id'] ?? '') === (string) $role->id)>{{ $role->name }}</option>
                                         @endforeach
                                     </select>
                                     @error("stages.$index.rol_revisor_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
@@ -248,10 +252,10 @@
                                 <label class="block space-y-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Usuario responsable de asignacion</span>
                                     @php($usuariosEtapa = $projectUsersByRole[(string) ($stage['rol_revisor_id'] ?? '')] ?? [])
-                                    <select wire:key="project-stage-responsible-{{ $stageUiKey }}-{{ $stage['rol_revisor_id'] ?: 'none' }}" wire:model="stages.{{ $index }}.usuario_responsable_id" @disabled(!($stage['rol_revisor_id'] ?? null) || !($stage['requiere_asignacion'] ?? false) || ($stage['emisor_define_destinatario'] ?? false)) class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-800/60 dark:disabled:text-slate-500">
+                                    <select wire:key="project-stage-responsible-{{ $stageRenderKey }}-{{ $stage['rol_revisor_id'] ?: 'none' }}" wire:change="updateStageField('stages', '{{ $stageUiKey }}', 'usuario_responsable_id', $event.target.value)" @disabled(!($stage['rol_revisor_id'] ?? null) || !($stage['requiere_asignacion'] ?? false) || ($stage['emisor_define_destinatario'] ?? false)) class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-800/60 dark:disabled:text-slate-500">
                                         <option value="">{{ ($stage['rol_revisor_id'] ?? null) ? 'Sin responsable fijo' : 'Seleccione un rol primero' }}</option>
                                         @foreach ($usuariosEtapa as $usuario)
-                                            <option value="{{ $usuario['id'] }}">{{ $usuario['name'] }}</option>
+                                            <option value="{{ $usuario['id'] }}" @selected((string) ($stage['usuario_responsable_id'] ?? '') === (string) $usuario['id'])>{{ $usuario['name'] }}</option>
                                         @endforeach
                                     </select>
                                     @error("stages.$index.usuario_responsable_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
@@ -262,15 +266,15 @@
                                 <div class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Procesos donde aplica esta etapa</div>
                                 <div class="mt-3 flex flex-wrap gap-4">
                                     <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        <input wire:model.live="stages.{{ $index }}.aplica_inscripcion" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                        <input wire:change="updateStageField('stages', '{{ $stageUiKey }}', 'aplica_inscripcion', $event.target.checked)" type="checkbox" @checked((bool) ($stage['aplica_inscripcion'] ?? false)) class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
                                         Inscripcion
                                     </label>
                                     <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        <input wire:model.live="stages.{{ $index }}.aplica_informe_intermedio" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                        <input wire:change="updateStageField('stages', '{{ $stageUiKey }}', 'aplica_informe_intermedio', $event.target.checked)" type="checkbox" @checked((bool) ($stage['aplica_informe_intermedio'] ?? false)) class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
                                         Informe intermedio
                                     </label>
                                     <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        <input wire:model.live="stages.{{ $index }}.aplica_cierre_proyecto" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                        <input wire:change="updateStageField('stages', '{{ $stageUiKey }}', 'aplica_cierre_proyecto', $event.target.checked)" type="checkbox" @checked((bool) ($stage['aplica_cierre_proyecto'] ?? false)) class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
                                         Cierre de proyecto
                                     </label>
                                 </div>
@@ -282,7 +286,7 @@
                             <div class="mt-4 flex flex-wrap gap-x-6 gap-y-3">
                                 <label class="inline-flex cursor-pointer items-center gap-3">
                                     <span class="relative inline-flex h-6 w-11 flex-shrink-0">
-                                        <input wire:model.live="stages.{{ $index }}.requiere_asignacion" type="checkbox" class="peer sr-only" />
+                                        <input wire:key="stage-requiere-asig-{{ $stageRenderKey }}-{{ (int) ($stage['requiere_asignacion'] ?? false) }}" wire:change="updateStageField('stages', '{{ $stageUiKey }}', 'requiere_asignacion', $event.target.checked)" type="checkbox" @checked((bool) ($stage['requiere_asignacion'] ?? false)) class="peer sr-only" />
                                         <span class="h-6 w-11 rounded-full bg-slate-200 transition-colors peer-checked:bg-primary dark:bg-slate-700 dark:peer-checked:bg-primary"></span>
                                         <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></span>
                                     </span>
@@ -290,14 +294,14 @@
                                 </label>
                                 <label class="inline-flex cursor-pointer items-center gap-3">
                                     <span class="relative inline-flex h-6 w-11 flex-shrink-0">
-                                        <input wire:model.live="stages.{{ $index }}.emisor_define_destinatario" type="checkbox" class="peer sr-only" />
+                                        <input wire:key="stage-emisor-define-{{ $stageRenderKey }}-{{ (int) ($stage['emisor_define_destinatario'] ?? false) }}" wire:change="updateStageField('stages', '{{ $stageUiKey }}', 'emisor_define_destinatario', $event.target.checked)" type="checkbox" @checked((bool) ($stage['emisor_define_destinatario'] ?? false)) class="peer sr-only" />
                                         <span class="h-6 w-11 rounded-full bg-slate-200 transition-colors peer-checked:bg-primary dark:bg-slate-700 dark:peer-checked:bg-primary"></span>
                                         <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></span>
                                     </span>
                                     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">El emisor define el destinatario al enviar</span>
                                 </label>
                                 <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                    <input wire:model="stages.{{ $index }}.activo" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                    <input wire:change="updateStageField('stages', '{{ $stageUiKey }}', 'activo', $event.target.checked)" type="checkbox" @checked((bool) ($stage['activo'] ?? false)) class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
                                     Etapa activa
                                 </label>
                             </div>
@@ -426,10 +430,11 @@
                     @endif
 
                 
-                        <div class="mt-5 space-y-4">
+                        <div data-stage-list="program" class="mt-5 space-y-4">
                             @foreach ($programStages as $index => $stage)
                                 @php($stageUiKey = $stage['ui_key'] ?? (($stage['id'] ?? null) ? 'program-stage-'.$stage['id'] : 'program-stage-'.$index))
-                                <div wire:key="program-stage-card-{{ $stageUiKey }}" class="relative overflow-hidden rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                                @php($stageRenderKey = $stageUiKey.'-position-'.$index)
+                                <div wire:key="program-stage-card-{{ $stageRenderKey }}" data-stage-key="{{ $stageUiKey }}" class="relative overflow-hidden rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
                                     <div class="absolute inset-y-0 left-0 w-1.5 {{ $loop->first ? 'bg-emerald-500' : ($loop->last ? 'bg-rose-500' : 'bg-cyan-500') }}"></div>
                                     <div class="flex items-center justify-between gap-3">
                                         <div class="flex items-center gap-3 pl-2">
@@ -444,10 +449,10 @@
                                             </div>
                                         </div>
                                         <div class="flex items-center gap-2">
-                                            <button wire:click="moveStageUp({{ $index }})" @disabled($loop->first) class="rounded-full border border-slate-300 p-2 text-slate-600 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300">
+                                            <button type="button" x-on:click.capture="captureStagePositions('program')" wire:click="moveStageUp({{ $index }})" wire:loading.attr="disabled" wire:target="moveStageUp({{ $index }})" @disabled($loop->first) title="Subir etapa" aria-label="Subir etapa {{ $index + 1 }}" class="rounded-full border border-slate-300 p-2 text-slate-600 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300">
                                                 <span class="material-symbols-outlined text-[18px]">arrow_upward</span>
                                             </button>
-                                            <button wire:click="moveStageDown({{ $index }})" @disabled($loop->last) class="rounded-full border border-slate-300 p-2 text-slate-600 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300">
+                                            <button type="button" x-on:click.capture="captureStagePositions('program')" wire:click="moveStageDown({{ $index }})" wire:loading.attr="disabled" wire:target="moveStageDown({{ $index }})" @disabled($loop->last) title="Bajar etapa" aria-label="Bajar etapa {{ $index + 1 }}" class="rounded-full border border-slate-300 p-2 text-slate-600 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300">
                                                 <span class="material-symbols-outlined text-[18px]">arrow_downward</span>
                                             </button>
                                             <button wire:click="removeStage({{ $index }})" class="text-sm font-medium text-rose-600 dark:text-rose-300">Quitar</button>
@@ -459,19 +464,19 @@
                                     <div class="mt-4 grid gap-4 pl-2 md:grid-cols-2 xl:grid-cols-3">
                                         <label class="block space-y-2">
                                             <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Codigo <span class="text-red-500">*</span></span>
-                                            <input wire:model.live.debounce.300ms="programStages.{{ $index }}.codigo" type="text" required class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                                            <input value="{{ $stage['codigo'] }}" wire:input.debounce.300ms="updateStageField('programStages', '{{ $stageUiKey }}', 'codigo', $event.target.value)" type="text" required class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                                             @error("programStages.$index.codigo")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                         </label>
                                         <label class="block space-y-2 xl:col-span-2">
                                             <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Nombre <span class="text-red-500">*</span></span>
-                                            <input wire:model.live.debounce.300ms="programStages.{{ $index }}.nombre" type="text" required class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+                                            <input value="{{ $stage['nombre'] }}" wire:input.debounce.300ms="updateStageField('programStages', '{{ $stageUiKey }}', 'nombre', $event.target.value)" type="text" required class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
                                             @error("programStages.$index.nombre")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
                                         </label>
                                         <label class="block space-y-2">
                                             <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Tipo</span>
-                                            <select wire:model.live="programStages.{{ $index }}.tipo_etapa" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                                                <option value="REVISION">Revision</option>
-                                                <option value="APROBACION">Aprobacion</option>
+                                            <select wire:change="updateStageField('programStages', '{{ $stageUiKey }}', 'tipo_etapa', $event.target.value)" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                                <option value="REVISION" @selected(($stage['tipo_etapa'] ?? '') === 'REVISION')>Revision</option>
+                                                <option value="APROBACION" @selected(($stage['tipo_etapa'] ?? '') === 'APROBACION')>Aprobacion</option>
                                             </select>
                                             <p class="text-xs text-slate-400">Revision solo pasa a la siguiente etapa. Aprobacion ademas deja una firma registrada.</p>
                                             @error("programStages.$index.tipo_etapa")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
@@ -479,10 +484,10 @@
                                         @if (($stage['tipo_etapa'] ?? null) === 'APROBACION')
                                             <label class="block space-y-2">
                                                 <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Cargo de firma *</span>
-                                                <select wire:key="program-stage-cargo-{{ $stageUiKey }}" wire:model.live="programStages.{{ $index }}.cargo_firma_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                                <select wire:key="program-stage-cargo-{{ $stageRenderKey }}" wire:change="updateStageField('programStages', '{{ $stageUiKey }}', 'cargo_firma_id', $event.target.value)" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
                                                     <option value="">Seleccione</option>
                                                     @foreach ($cargoFirmas as $cargo)
-                                                        <option value="{{ $cargo->id }}">{{ $cargo->label }}</option>
+                                                        <option value="{{ $cargo->id }}" @selected((string) ($stage['cargo_firma_id'] ?? '') === (string) $cargo->id)>{{ $cargo->label }}</option>
                                                     @endforeach
                                                 </select>
                                                 <p class="text-xs text-slate-400">Firma que quedará registrada cuando esta etapa apruebe.</p>
@@ -491,10 +496,10 @@
                                         @endif
                                         <label class="block space-y-2">
                                             <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Rol revisor</span>
-                                            <select wire:key="program-stage-role-{{ $stageUiKey }}" wire:model.live="programStages.{{ $index }}.rol_revisor_id" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                                            <select wire:key="program-stage-role-{{ $stageRenderKey }}" wire:change="updateStageField('programStages', '{{ $stageUiKey }}', 'rol_revisor_id', $event.target.value)" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
                                                 <option value="">Sin rol especifico</option>
                                                 @foreach ($programRoles as $role)
-                                                    <option value="{{ $role->id }}">{{ $role->name }}</option>
+                                                    <option value="{{ $role->id }}" @selected((string) ($stage['rol_revisor_id'] ?? '') === (string) $role->id)>{{ $role->name }}</option>
                                                 @endforeach
                                             </select>
                                             @error("programStages.$index.rol_revisor_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
@@ -502,10 +507,10 @@
                                         <label class="block space-y-2">
                                             <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Responsable</span>
                                             @php($usuariosEtapa = $programUsersByRole[(string) ($stage['rol_revisor_id'] ?? '')] ?? [])
-                                            <select wire:key="program-stage-responsible-{{ $stageUiKey }}-{{ $stage['rol_revisor_id'] ?: 'none' }}" wire:model="programStages.{{ $index }}.usuario_responsable_id" @disabled(!($stage['rol_revisor_id'] ?? null) || !($stage['requiere_asignacion'] ?? false) || ($stage['emisor_define_destinatario'] ?? false)) class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-800/60 dark:disabled:text-slate-500">
+                                            <select wire:key="program-stage-responsible-{{ $stageRenderKey }}-{{ $stage['rol_revisor_id'] ?: 'none' }}" wire:change="updateStageField('programStages', '{{ $stageUiKey }}', 'usuario_responsable_id', $event.target.value)" @disabled(!($stage['rol_revisor_id'] ?? null) || !($stage['requiere_asignacion'] ?? false) || ($stage['emisor_define_destinatario'] ?? false)) class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:disabled:bg-slate-800/60 dark:disabled:text-slate-500">
                                                 <option value="">{{ ($stage['rol_revisor_id'] ?? null) ? 'Sin responsable fijo' : 'Seleccione un rol primero' }}</option>
                                                 @foreach ($usuariosEtapa as $usuario)
-                                                    <option value="{{ $usuario['id'] }}">{{ $usuario['name'] }}</option>
+                                                    <option value="{{ $usuario['id'] }}" @selected((string) ($stage['usuario_responsable_id'] ?? '') === (string) $usuario['id'])>{{ $usuario['name'] }}</option>
                                                 @endforeach
                                             </select>
                                             @error("programStages.$index.usuario_responsable_id")<p class="text-xs text-rose-600 dark:text-rose-300">{{ $message }}</p>@enderror
@@ -515,7 +520,7 @@
                                     <div class="mt-4 flex flex-wrap gap-x-6 gap-y-3">
                                         <label class="inline-flex cursor-pointer items-center gap-3">
                                             <span class="relative inline-flex h-6 w-11 flex-shrink-0">
-                                                <input wire:model.live="programStages.{{ $index }}.requiere_asignacion" type="checkbox" class="peer sr-only" />
+                                                <input wire:key="program-stage-requiere-asig-{{ $stageRenderKey }}-{{ (int) ($stage['requiere_asignacion'] ?? false) }}" wire:change="updateStageField('programStages', '{{ $stageUiKey }}', 'requiere_asignacion', $event.target.checked)" type="checkbox" @checked((bool) ($stage['requiere_asignacion'] ?? false)) class="peer sr-only" />
                                                 <span class="h-6 w-11 rounded-full bg-slate-200 transition-colors peer-checked:bg-primary dark:bg-slate-700 dark:peer-checked:bg-primary"></span>
                                                 <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></span>
                                             </span>
@@ -523,14 +528,14 @@
                                         </label>
                                         <label class="inline-flex cursor-pointer items-center gap-3">
                                             <span class="relative inline-flex h-6 w-11 flex-shrink-0">
-                                                <input wire:model.live="programStages.{{ $index }}.emisor_define_destinatario" type="checkbox" class="peer sr-only" />
+                                                <input wire:key="program-stage-emisor-define-{{ $stageRenderKey }}-{{ (int) ($stage['emisor_define_destinatario'] ?? false) }}" wire:change="updateStageField('programStages', '{{ $stageUiKey }}', 'emisor_define_destinatario', $event.target.checked)" type="checkbox" @checked((bool) ($stage['emisor_define_destinatario'] ?? false)) class="peer sr-only" />
                                                 <span class="h-6 w-11 rounded-full bg-slate-200 transition-colors peer-checked:bg-primary dark:bg-slate-700 dark:peer-checked:bg-primary"></span>
                                                 <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></span>
                                             </span>
                                             <span class="text-sm font-medium text-slate-700 dark:text-slate-300">El emisor define el destinatario al enviar</span>
                                         </label>
                                         <label class="inline-flex items-center gap-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                            <input wire:model="programStages.{{ $index }}.activo" type="checkbox" class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
+                                            <input wire:change="updateStageField('programStages', '{{ $stageUiKey }}', 'activo', $event.target.checked)" type="checkbox" @checked((bool) ($stage['activo'] ?? false)) class="rounded border-slate-300 text-primary dark:border-slate-700 dark:bg-slate-800" />
                                             Etapa activa
                                         </label>
                                     </div>

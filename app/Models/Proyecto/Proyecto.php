@@ -1207,12 +1207,20 @@ class Proyecto extends Model
         return $firma;
     }
 
+    /**
+     * @param  bool  $etapaCompartidaPorRol  true cuando la etapa se envía a todos
+     *                                        los usuarios de un rol (sin responsable
+     *                                        fijo): se crea una fila por candidato en
+     *                                        vez de reutilizar/anular una sola fila
+     *                                        compartida por etapa+ciclo.
+     */
     public function guardarFirmaDeEtapa(
         FlujoAprobacionEtapa $etapa,
         Empleado $empleado,
         array $attributes = [],
         ?DocumentoProyecto $documento = null,
-        int $revisionCiclo = 1
+        int $revisionCiclo = 1,
+        bool $etapaCompartidaPorRol = false
     ): FirmaProyecto {
         $this->validarFirmaDeEtapa($etapa, $empleado, $documento, $revisionCiclo);
 
@@ -1222,11 +1230,17 @@ class Proyecto extends Model
 
         $etapa->loadMissing('rolRevisor');
 
+        $matchKey = [
+            'flujo_aprobacion_etapa_id' => $etapa->id,
+            'revision_ciclo' => $revisionCiclo,
+        ];
+
+        if ($etapaCompartidaPorRol) {
+            $matchKey['empleado_id'] = $empleado->id;
+        }
+
         $firma = $relation->updateOrCreate(
-            [
-                'flujo_aprobacion_etapa_id' => $etapa->id,
-                'revision_ciclo' => $revisionCiclo,
-            ],
+            $matchKey,
             array_merge($attributes, [
                 'empleado_id' => $empleado->id,
                 'cargo_firma_id' => $etapa->cargo_firma_id,
@@ -1236,13 +1250,18 @@ class Proyecto extends Model
                 'etapa_codigo' => $etapa->codigo,
                 'etapa_nombre' => $etapa->nombre,
                 'rol_requerido' => $etapa->rolRevisor?->name,
-                'responsable_usuario_id' => $etapa->usuario_responsable_id,
+                'responsable_usuario_id' => $etapaCompartidaPorRol ? null : $etapa->usuario_responsable_id,
                 'revision_ciclo' => $revisionCiclo,
+                // Se congela aquí para que editar el flujo después no cambie
+                // si esta firma en curso puede reasignarse (ver puedeReasignar()).
+                'requiere_asignacion' => (bool) $etapa->requiere_asignacion,
                 'hash' => $attributes['hash'] ?? 'hash',
             ])
         );
 
-        $this->anularFirmasPendientesDuplicadasDeEtapa($etapa->id, $revisionCiclo, $firma->id, $documento);
+        if (! $etapaCompartidaPorRol) {
+            $this->anularFirmasPendientesDuplicadasDeEtapa($etapa->id, $revisionCiclo, $firma->id, $documento);
+        }
 
         return $firma;
     }
@@ -1285,6 +1304,9 @@ class Proyecto extends Model
             throw new \RuntimeException('No hay etapas activas configuradas para el proceso de inscripción.');
         }
 
+        // Cada valor puede ser un solo empleado_id (responsable fijo o emisor
+        // define destinatario) o un array de empleado_id (etapa enviada a
+        // todos los usuarios de un rol: cualquiera de ellos puede resolverla).
         $empleadosNormalizados = $this->normalizarEmpleadosPorEtapa($empleadosPorEtapa);
         $etapaIds = $etapas->pluck('id')->map(fn ($id) => (int) $id);
 
@@ -1294,7 +1316,8 @@ class Proyecto extends Model
             }
         }
 
-        $empleados = Empleado::whereIn('id', array_values($empleadosNormalizados))
+        $todosLosEmpleadoIds = collect($empleadosNormalizados)->flatten()->unique()->values();
+        $empleados = Empleado::whereIn('id', $todosLosEmpleadoIds)
             ->get()
             ->keyBy('id');
 
@@ -1303,23 +1326,28 @@ class Proyecto extends Model
                 throw new \RuntimeException(sprintf('La etapa "%s" no tiene cargo de firma.', $etapa->nombre));
             }
 
-            if (! array_key_exists((int) $etapa->id, $empleadosNormalizados)) {
+            if (! array_key_exists((int) $etapa->id, $empleadosNormalizados) || empty($empleadosNormalizados[(int) $etapa->id])) {
                 throw new \RuntimeException(sprintf('No se indicó un empleado para la etapa "%s".', $etapa->nombre));
             }
 
-            $empleadoId = $empleadosNormalizados[(int) $etapa->id];
-
-            if (! $empleados->has($empleadoId)) {
-                throw new \RuntimeException(sprintf('El empleado indicado para la etapa "%s" no existe.', $etapa->nombre));
+            foreach ((array) $empleadosNormalizados[(int) $etapa->id] as $empleadoId) {
+                if (! $empleados->has($empleadoId)) {
+                    throw new \RuntimeException(sprintf('El empleado indicado para la etapa "%s" no existe.', $etapa->nombre));
+                }
             }
         }
 
         return DB::transaction(function () use ($etapas, $empleadosNormalizados, $empleados, $documento, $revisionCiclo): Collection {
-            return $etapas
-                ->map(function (FlujoAprobacionEtapa $etapa) use ($empleadosNormalizados, $empleados, $documento, $revisionCiclo): FirmaProyecto {
-                    return $this->guardarFirmaDeEtapa(
+            $firmas = collect();
+
+            foreach ($etapas as $etapa) {
+                $empleadoIds = (array) $empleadosNormalizados[(int) $etapa->id];
+                $etapaCompartidaPorRol = count($empleadoIds) > 1;
+
+                foreach ($empleadoIds as $empleadoId) {
+                    $firmas->push($this->guardarFirmaDeEtapa(
                         $etapa,
-                        $empleados->get($empleadosNormalizados[(int) $etapa->id]),
+                        $empleados->get($empleadoId),
                         [
                             'estado_revision' => 'Pendiente',
                             'firma_id' => null,
@@ -1327,10 +1355,13 @@ class Proyecto extends Model
                             'fecha_firma' => null,
                         ],
                         $documento,
-                        $revisionCiclo
-                    );
-                })
-                ->values();
+                        $revisionCiclo,
+                        $etapaCompartidaPorRol
+                    ));
+                }
+            }
+
+            return $firmas->values();
         });
     }
 
@@ -1465,7 +1496,16 @@ class Proyecto extends Model
             $documento
         );
 
-        return (int) $firmaActual?->id === (int) $firma->id;
+        if (! $firmaActual) {
+            return false;
+        }
+
+        // Cuando una etapa se manda a todos los usuarios de un rol (sin
+        // responsable fijo), puede haber varias firmas Pendiente "candidatas"
+        // para la misma etapa/orden: cualquiera de ellas es "la actual", no
+        // solo la primera encontrada por id.
+        return (int) $firmaActual->flujo_aprobacion_etapa_id === (int) $firma->flujo_aprobacion_etapa_id
+            && (int) $firmaActual->orden_revision === (int) $firma->orden_revision;
     }
 
     public function siguienteFirmaDeEtapa(FirmaProyecto $firma): ?FirmaProyecto
@@ -1592,6 +1632,7 @@ class Proyecto extends Model
                         'etapa_nombre' => $firmaBase->etapa_nombre,
                         'rol_requerido' => $firmaBase->rol_requerido,
                         'responsable_usuario_id' => $empleados->get((int) $firmaBase->flujo_aprobacion_etapa_id)->user_id,
+                        'requiere_asignacion' => $firmaBase->requiere_asignacion,
                         'revision_ciclo' => $nuevoCiclo,
                         'estado_revision' => 'Pendiente',
                         'firma_id' => null,
@@ -1675,6 +1716,11 @@ class Proyecto extends Model
         $plan = app(WorkflowResumptionPolicy::class)->plan(
             $firmasCiclo
                 ->reject(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Anulado')
+                // Una etapa enviada a "todos los usuarios del rol" puede tener
+                // varias firmas Pendiente candidatas para la misma etapa (aún
+                // no alcanzada): WorkflowResumptionPolicy asume una firma por
+                // etapa, así que se colapsa a una sola representante.
+                ->unique(fn (FirmaProyecto $firma): int => (int) $firma->flujo_aprobacion_etapa_id)
                 ->map(fn (FirmaProyecto $firma): array => [
                     'stage_id' => (int) $firma->flujo_aprobacion_etapa_id,
                     'order' => (int) $firma->orden_revision,
@@ -1870,6 +1916,16 @@ class Proyecto extends Model
         $normalizados = [];
 
         foreach ($empleadosPorEtapa as $etapaId => $empleado) {
+            if (is_array($empleado) || $empleado instanceof Collection) {
+                $normalizados[(int) $etapaId] = collect($empleado)
+                    ->map(fn ($item) => $item instanceof Empleado ? (int) $item->id : (int) $item)
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                continue;
+            }
+
             $normalizados[(int) $etapaId] = $empleado instanceof Empleado
                 ? (int) $empleado->id
                 : (int) $empleado;
