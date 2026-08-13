@@ -318,6 +318,42 @@ class InformeFinalINF001Test extends TestCase
         $this->assertDatabaseHas('informe_final_beneficiarios',['edad_19_25'=>3504]);
     }
 
+    public function test_beneficiarios_rechaza_decimales_y_ceros_a_la_izquierda(): void
+    {
+        [$user,$project]=$this->scenario(); $component=$this->livewireComponent($user,$project);
+
+        $component->set('beneficiarios.hombres','03')->assertHasErrors('beneficiarios.hombres');
+        $this->assertDatabaseMissing('informe_final_beneficiarios',['hombres'=>3]);
+
+        $component->set('beneficiarios.mujeres','10.5')->assertHasErrors('beneficiarios.mujeres');
+        $this->assertDatabaseMissing('informe_final_beneficiarios',['mujeres'=>10.5]);
+
+        $component->set('beneficiarios.hombres','7')->assertHasNoErrors('beneficiarios.hombres');
+        $this->assertDatabaseHas('informe_final_beneficiarios',['hombres'=>7]);
+    }
+
+    public function test_beneficiario_vacio_se_autoguarda_como_cero_sin_romper(): void
+    {
+        [$user,$project]=$this->scenario();
+        $component=$this->livewireComponent($user,$project);
+
+        $component->set('beneficiarios.edad_36_50','')->assertHasNoErrors('beneficiarios.edad_36_50');
+        $this->assertDatabaseHas('informe_final_beneficiarios',['edad_36_50'=>0]);
+    }
+
+    public function test_beneficiarios_vacios_se_guardan_como_cero_al_avanzar_de_paso(): void
+    {
+        [$user,$project]=$this->scenario();
+        $component=$this->livewireComponent($user,$project)
+            ->set('beneficiarios.edad_36_50','')
+            ->set('beneficiarios.edad_66_80','')
+            ->call('siguiente')
+            ->assertHasNoErrors()
+            ->assertSet('currentStep',2);
+
+        $this->assertDatabaseHas('informe_final_beneficiarios',['edad_36_50'=>0,'edad_66_80'=>0]);
+    }
+
     public function test_se_calculan_totales_por_sexo(): void
     {
         $model=new InformeFinalBeneficiario(['hombres'=>1700,'mujeres'=>1804]); $this->assertSame(3504,$model->total_sexo);
