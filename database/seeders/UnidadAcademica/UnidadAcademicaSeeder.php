@@ -15,6 +15,8 @@ class UnidadAcademicaSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(CategoriaEmpleadoSeeder::class);
+
         $actualizarCatalogo = static function (string $modelo, array $clave, array $atributos) {
             $registro = $modelo::withTrashed()->updateOrCreate($clave, $atributos);
 
