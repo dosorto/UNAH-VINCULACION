@@ -83,10 +83,11 @@ trait ReenviaDesdeSubsanacionPorEtapa
             $nombreEtapa = $firma->etapa_nombre ?: $firma->flujoEtapa?->nombre ?: 'sin nombre';
 
             if (array_key_exists($etapaId, $empleadosPorEtapa)) {
-                throw new \RuntimeException(sprintf(
-                    'El ciclo contiene más de una asignación activa para la etapa "%s".',
-                    $nombreEtapa
-                ));
+                // Etapa enviada a todos los usuarios de un rol: puede haber
+                // varias firmas Pendiente candidatas para la misma etapa; al
+                // reanudar el ciclo se colapsa a la primera candidata elegible
+                // ya encontrada, en vez de volver a fanear a todo el rol.
+                continue;
             }
 
             $empleado = $firma->empleado;
@@ -143,6 +144,9 @@ trait ReenviaDesdeSubsanacionPorEtapa
                 $firma->rol_requerido,
                 true
             ))
+            // Etapas compartidas por rol pueden tener varias firmas Pendiente
+            // candidatas: se listan una sola vez.
+            ->unique(fn (FirmaProyecto $firma): int => (int) $firma->flujo_aprobacion_etapa_id)
             ->map(fn (FirmaProyecto $firma): array => [
                 'id' => (int) $firma->flujo_aprobacion_etapa_id,
                 'nombre' => $firma->etapa_nombre ?: $firma->etapa_codigo,
