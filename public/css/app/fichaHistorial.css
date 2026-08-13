@@ -79,13 +79,13 @@ a {
 
 h1 {
     font-size: 18px;
-    font-family: Aptos Narrow;
+    font-family: 'Aptos Narrow', Arial, sans-serif;
     text-align: center;
 }
 
 .detalles {
     font-size: 18px;
-    font-family: Aptos Narrow;
+    font-family: 'Aptos Narrow', Arial, sans-serif;
 }
 
 .contact-info {
@@ -93,12 +93,12 @@ h1 {
     margin-left: 0px; /* Cambia de left a right */
     font-size: 14px;
     margin-bottom: 20px;
-    font-family: Calibri;
+    font-family: Calibri, Arial, sans-serif;
     font-weight: bold; /* Aplica negrita */
     color: rgb(4, 4, 126); /* Cambia el color a azul */
 }
 .section-title {
-    font-family: Aptos Narrow;
+    font-family: 'Aptos Narrow', Arial, sans-serif;
     text-align: left;
     margin-top: 0px;
     font-style: italic;
@@ -106,7 +106,7 @@ h1 {
 
 p {
     font-size: 16px;
-    font-family: Aptos Narrow;
+    font-family: 'Aptos Narrow', Arial, sans-serif;
     text-align: left;
     margin-top: 0px;
     font-style: italic; /* Estilo cursivo */
@@ -348,7 +348,7 @@ p {
 
 .table_datos2 p {
     font-size: 16px;
-    font-family: Aptos Narrow;
+    font-family: 'Aptos Narrow', Arial, sans-serif;
     text-align: center;
     margin-top: 0px;
     font-style: italic; /* Estilo cursivo */
@@ -421,7 +421,7 @@ p {
 
 .table_datos3 p {
     font-size: 16px;
-    font-family: Aptos Narrow;
+    font-family: 'Aptos Narrow', Arial, sans-serif;
     text-align: center;
     margin-top: 0px;
     font-style: italic; /* Estilo cursivo */
@@ -429,7 +429,7 @@ p {
 
 .table_datos3 h1 {
     font-size: 18px;
-    font-family: Aptos Narrow;
+    font-family: 'Aptos Narrow', Arial, sans-serif;
     text-align: center;
     margin-top: 0px;
 }
@@ -475,7 +475,7 @@ p {
 
 .table_datos4 p {
     font-size: 16px;
-    font-family: Aptos Narrow;
+    font-family: 'Aptos Narrow', Arial, sans-serif;
     text-align: center;
     margin-top: 0px;
     font-style: italic; /* Estilo cursivo */
@@ -483,7 +483,7 @@ p {
 
 .table_datos4 h1 {
     font-size: 18px;
-    font-family: Aptos Narrow;
+    font-family: 'Aptos Narrow', Arial, sans-serif;
     text-align: center;
     margin-top: 0px;
 }
@@ -529,7 +529,7 @@ p {
 
 .table_datos5 p {
     font-size: 16px;
-    font-family: Aptos Narrow;
+    font-family: 'Aptos Narrow', Arial, sans-serif;
     text-align: center;
     margin-top: 0px;
     font-style: italic; /* Estilo cursivo */
@@ -537,7 +537,7 @@ p {
 
 .table_datos5 h1 {
     font-size: 18px;
-    font-family: Aptos Narrow;
+    font-family: 'Aptos Narrow', Arial, sans-serif;
     text-align: center;
     margin-top: 0px;
 }
@@ -581,7 +581,7 @@ p {
 
 .table_datos7 p {
     font-size: 16px;
-    font-family: Aptos Narrow;
+    font-family: 'Aptos Narrow', Arial, sans-serif;
     text-align: center;
     margin-top: 0px;
     font-style: italic; /* Estilo cursivo */
@@ -589,7 +589,7 @@ p {
 
 .table_datos7 h1 {
     font-size: 18px;
-    font-family: Aptos Narrow;
+    font-family: 'Aptos Narrow', Arial, sans-serif;
     text-align: center;
     margin-top: 0px;
 }
