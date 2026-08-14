@@ -609,6 +609,20 @@ class EditInformeFinalProyecto extends Component
         $this->estadoGuardado = 'guardado';
     }
 
+    public function formatearAporteOds(int $index): void
+    {
+        if (! isset($this->ods[$index])) {
+            return;
+        }
+
+        $valor = $this->ods[$index]['descripcion_aporte'] ?? null;
+        $this->ods[$index]['descripcion_aporte'] = is_numeric($valor)
+            ? number_format((float) $valor, 2, '.', '')
+            : null;
+
+        $this->guardarFilaAutoguardado('ods', $index);
+    }
+
     public function anexoDocumentoUrl(?int $id): ?string
     {
         return $id ? route('informes-finales.anexos.mostrar', ['anexo' => $id], false) : null;
@@ -1410,8 +1424,12 @@ class EditInformeFinalProyecto extends Component
                 ? $persistido
                 : null;
             if ($original) {
+                $camposEvaluacion = Arr::only($ods, ['descripcion_aporte', 'evidencia', 'nivel_contribucion']);
                 $ods = $original->toArray();
                 $ods['origen'] = 'PLANIFICADO';
+                foreach ($camposEvaluacion as $campo => $valor) {
+                    $ods[$campo] = $valor;
+                }
             } else {
                 $ods['origen'] = 'EJECUCION';
             }
@@ -1624,6 +1642,7 @@ class EditInformeFinalProyecto extends Component
             'actividades.*.origen' => [Rule::in(['planificada','emergente'])],
             'actividades.*.participantes.*.tipo' => [Rule::in(['docente','estudiante','voluntario','externo'])],
             'actividades.*.participantes.*.horas_dedicadas' => $nonNegative,
+            'ods.*.descripcion_aporte' => $nonNegative,
             'ods.*.nivel_contribucion' => [Rule::in(['directa','indirecta'])],
             'presupuesto.*.fuente' => [Rule::in(['UNAH','CONTRAPARTE'])],
             'anexos.*.categoria' => [Rule::in(['documento_general','instrumento_contraparte','fotografia'])],
@@ -1729,11 +1748,14 @@ class EditInformeFinalProyecto extends Component
             $this->estudiantes[$index] = $row;
         }
         if (! $config || ! is_array($row)) return;
-        if ($grupo === 'ods' && ($row['origen'] ?? 'PLANIFICADO') !== 'EJECUCION') return;
         [$relation, $fields] = $config;
         $id = isset($row['id']) ? (int) $row['id'] : null;
         $record = $id ? $this->informe->{$relation}()->whereKey($id)->first() : null;
         $data = Arr::only($row, $fields);
+        if ($grupo === 'ods' && ($row['origen'] ?? 'PLANIFICADO') !== 'EJECUCION') {
+            if (! $record) return;
+            $data = Arr::only($row, ['descripcion_aporte', 'evidencia', 'nivel_contribucion']);
+        }
         $record ? $record->update($data) : $record = $this->informe->{$relation}()->create($data);
         $this->{$grupo}[$index]['id'] = $record->id;
         if ($grupo === 'actividades') {

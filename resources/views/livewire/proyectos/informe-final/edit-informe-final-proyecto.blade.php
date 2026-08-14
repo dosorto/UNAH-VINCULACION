@@ -212,9 +212,12 @@
                             <div>
                                 <label class="{{ $label }}">Aporte</label>
                                 <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
                                     wire:model.live.debounce.1000ms="ods.{{ $i }}.descripcion_aporte"
-                                    @readonly($esPlanificado)
-                                    class="{{ $esPlanificado ? $readonly : $input }}"
+                                    wire:blur="formatearAporteOds({{ $i }})"
+                                    class="{{ $input }}"
                                 >
                             </div>
 
@@ -222,25 +225,16 @@
                                 <label class="{{ $label }}">Evidencia</label>
                                 <input
                                     wire:model.live.debounce.1000ms="ods.{{ $i }}.evidencia"
-                                    @readonly($esPlanificado)
-                                    class="{{ $esPlanificado ? $readonly : $input }}"
+                                    class="{{ $input }}"
                                 >
                             </div>
 
                             <div>
                                 <label class="{{ $label }}">Contribución</label>
-                                @if($esPlanificado)
-                                    <input
-                                        value="{{ ($odsItem['nivel_contribucion'] ?? 'directa') === 'indirecta' ? 'Indirecta' : 'Directa' }}"
-                                        readonly
-                                        class="{{ $readonly }}"
-                                    >
-                                @else
-                                    <select wire:model="ods.{{ $i }}.nivel_contribucion" class="{{ $input }}">
-                                        <option value="directa">Directa</option>
-                                        <option value="indirecta">Indirecta</option>
-                                    </select>
-                                @endif
+                                <select wire:model="ods.{{ $i }}.nivel_contribucion" class="{{ $input }}">
+                                    <option value="directa">Directa</option>
+                                    <option value="indirecta">Indirecta</option>
+                                </select>
                             </div>
 
                             @unless($esPlanificado)
