@@ -105,6 +105,34 @@ class ConstanciaFinalizacionArchitectureTest extends TestCase
         $this->assertSame($temporalesAntes, glob(storage_path('app/constancias/tmp/constancia-qr-*')) ?: []);
     }
 
+    public function test_la_plantilla_renderiza_firma_y_sello_cuando_estan_disponibles(): void
+    {
+        $snapshot = ['autoridad' => ['nombre' => 'Autoridad de prueba', 'cargo' => 'Director Vinculación']];
+
+        $conFirma = view('pdf.constancias.constancia-finalizacion-proyecto', [
+            'snapshot' => $snapshot,
+            'qr' => 'file:///tmp/qr.svg',
+            'firma' => 'file:///tmp/firma.webp',
+            'sello' => 'file:///tmp/sello.png',
+            'institucional' => ['telefono' => '', 'correo' => ''],
+        ])->render();
+
+        $this->assertStringContainsString('<img class="constancia-signature-firma" src="file:///tmp/firma.webp"', $conFirma);
+        $this->assertStringContainsString('<img class="constancia-signature-sello" src="file:///tmp/sello.png"', $conFirma);
+
+        $sinFirma = view('pdf.constancias.constancia-finalizacion-proyecto', [
+            'snapshot' => $snapshot,
+            'qr' => 'file:///tmp/qr.svg',
+            'firma' => null,
+            'sello' => null,
+            'institucional' => ['telefono' => '', 'correo' => ''],
+        ])->render();
+
+        $this->assertStringNotContainsString('<img class="constancia-signature-firma"', $sinFirma);
+        $this->assertStringNotContainsString('<img class="constancia-signature-sello"', $sinFirma);
+        $this->assertStringNotContainsString('constancia-signature-assets">', $sinFirma);
+    }
+
     public function test_se_emite_con_revisor_vinculacion_cuando_el_flujo_de_cierre_no_tiene_director(): void
     {
         [$proyecto, $revisorFinal, $informe, $documento] = $this->scenarioCierreSinDirectorVinculacion();

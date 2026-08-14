@@ -294,6 +294,36 @@ class ConstanciaRegistroArchitectureTest extends TestCase
         Storage::disk('local')->delete($ruta);
     }
 
+    public function test_docente_participante_del_proyecto_puede_descargar_constancia_registro(): void
+    {
+        [$user, $proyecto] = $this->scenario(false);
+        $this->aprobarTodasLasEtapas($proyecto, $user);
+
+        $constancia = ConstanciaRegistroProyecto::query()
+            ->where('proyecto_id', $proyecto->id)
+            ->firstOrFail();
+
+        $contenido = app(ConstanciaRegistroPdfGenerator::class)->content($constancia);
+        $ruta = 'constancias/registro/test-' . uniqid() . '.pdf';
+        Storage::disk('local')->put($ruta, $contenido);
+        $constancia->update([
+            'ruta_archivo' => $ruta,
+            'hash_archivo' => hash('sha256', $contenido),
+            'estado' => ConstanciaRegistroProyecto::ESTADO_EMITIDA,
+        ]);
+
+        $integranteUser = User::factory()->create();
+        $integranteUser->assignRole(Role::firstOrCreate(['name' => 'docente', 'guard_name' => 'web']));
+        $integranteEmpleado = Empleado::create(['nombre_completo' => 'Integrante de prueba', 'numero_empleado' => (string) random_int(100000, 999999), 'celular' => '99999999', 'sexo' => 'Masculino', 'user_id' => $integranteUser->id, 'tipo_empleado' => 'docente']);
+        EmpleadoProyecto::create(['empleado_id' => $integranteEmpleado->id, 'proyecto_id' => $proyecto->id, 'rol' => 'Integrante']);
+
+        $this->actingAs($integranteUser)
+            ->get(route('constancias.registro.descargar', $constancia))
+            ->assertOk();
+
+        Storage::disk('local')->delete($ruta);
+    }
+
     public function test_anulacion_cambia_estado_y_bloquea_descarga(): void
     {
         [$user, $proyecto] = $this->scenario(false);

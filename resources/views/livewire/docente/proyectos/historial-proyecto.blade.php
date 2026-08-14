@@ -83,6 +83,12 @@
         </div>
     </div>
 
+    @if(session('mensaje_historial'))
+        <div class="no-print rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950/30 dark:text-green-200">
+            {{ session('mensaje_historial') }}
+        </div>
+    @endif
+
     @if($puedeVerConstanciaRegistro)
         <section class="no-print rounded-xl border border-indigo-200 bg-white p-5 shadow-sm dark:border-indigo-900 dark:bg-gray-900">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

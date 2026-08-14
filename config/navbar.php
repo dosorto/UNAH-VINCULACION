@@ -144,7 +144,7 @@ return [
             [
                 'titulo' => 'Unidad Academica',
                 'route' => 'campus',
-                'routes' => ['campus', 'carrera', 'categorias-empleado', 'departamento-academico', 'facultad-centro'],
+                'routes' => ['campus', 'carrera', 'categorias-empleado', 'departamento-academico', 'facultad-centro', 'configuracion.jornada-laboral', 'configuracion.nivel-academico'],
                 'icono' => 'heroicon-o-building-library',
                 'permisos' => [
                     'unidad-academica.campus',
@@ -153,6 +153,8 @@ return [
                     'unidad-academica.departamento',
                     'unidad-academica.facultad',
                     'unidad-academica.asignatura',
+                    'configuracion.jornada-laboral',
+                    'configuracion.nivel-academico',
                 ],
                 'children' => [
                     ['texto' => 'Campus', 'route' => 'campus', 'permiso' => 'unidad-academica.campus'],
@@ -161,6 +163,8 @@ return [
                     ['texto' => 'Asignatura', 'route' => 'asignatura', 'permiso' => 'unidad-academica.asignatura'],
                     ['texto' => 'Departamento Academico', 'route' => 'departamento-academico', 'permiso' => 'unidad-academica.departamento'],
                     ['texto' => 'Facultad Centro', 'route' => 'facultad-centro', 'permiso' => 'unidad-academica.facultad'],
+                    ['texto' => 'Jornada Laboral', 'route' => 'configuracion.jornada-laboral', 'permiso' => 'configuracion.jornada-laboral'],
+                    ['texto' => 'Nivel Académico', 'route' => 'configuracion.nivel-academico', 'permiso' => 'configuracion.nivel-academico'],
                 ],
                 'funcion' => null,
                 'parametro' => null,
@@ -170,16 +174,15 @@ return [
             [
                 'titulo' => 'Configuración',
                 'route' => 'listarLogs',
-                'routes' => ['listarLogs', 'slides', 'configuracion.flujos.proyectos', 'configuracion.integraciones-api', 'configuracion.jornada-laboral'],
+                'routes' => ['listarLogs', 'slides', 'configuracion.flujos.proyectos', 'configuracion.integraciones-api'],
                 'icono' => 'heroicon-c-cog-6-tooth',
                 'class' => 'mb-4',
-                'permisos' => ['configuracion.logs', 'apariencia.slides', 'configuracion.flujos', 'configuracion.integraciones-api', 'configuracion.jornada-laboral'],
+                'permisos' => ['configuracion.logs', 'apariencia.slides', 'configuracion.flujos', 'configuracion.integraciones-api'],
                 'children' => [
                     ['texto' => 'Logs', 'route' => 'listarLogs', 'permiso' => 'configuracion.logs'],
                     ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia.slides'],
                     ['texto' => 'Flujos de proyectos', 'route' => 'configuracion.flujos.proyectos', 'permiso' => 'configuracion.flujos'],
                     ['texto' => 'Integraciones API', 'route' => 'configuracion.integraciones-api', 'permiso' => 'configuracion.integraciones-api'],
-                    ['texto' => 'Jornada Laboral', 'route' => 'configuracion.jornada-laboral', 'permiso' => 'configuracion.jornada-laboral'],
                     ['texto' => 'Contactanos', 'route' => 'contactanos', 'permiso' => 'configuracion.contactanos']
                 ],
             ],

@@ -14,7 +14,7 @@ use App\Models\User;
 
 class ProyectoEstadoCambiado extends Mailable implements ShouldQueue
 {
-    use SerializesModels;
+    use Queueable, SerializesModels;
 
     public $proyecto;
     public $usuario;

@@ -32,4 +32,5 @@
     .registro-validation p { font-size: 7.5pt; font-style: italic; margin: 0; text-align: right; }
 
     .registro-academic-year { font-size: 8pt; font-weight: bold; color: #002060; margin-top: 10pt; text-align: center; }
+    .registro-footer-codigo { bottom: 95pt; color: #999; font-family: Arial, Helvetica, sans-serif; font-size: 6.3pt; left: 26pt; position: fixed; right: 26pt; z-index: 20; }
 </style>
