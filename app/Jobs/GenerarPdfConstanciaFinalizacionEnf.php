@@ -35,7 +35,8 @@ class GenerarPdfConstanciaFinalizacionEnf implements ShouldQueue
         try {
             $contenido = $generator->content($constancia);
             $codigo = preg_replace('/[^A-Za-z0-9_-]+/', '-', (string) data_get($constancia->snapshot, 'accion.nombre', 'enf'));
-            $ruta = sprintf('constancias/enf/finalizacion/%d/%s/constancia-finalizacion-enf-%s.pdf', $constancia->anio, trim($codigo, '-'), trim($codigo, '-'));
+            $slug = trim($codigo, '-').'-'.$constancia->id;
+            $ruta = sprintf('constancias/enf/finalizacion/%d/%s/constancia-finalizacion-enf-%s.pdf', $constancia->anio, $slug, $slug);
 
             if (! Storage::disk('local')->put($ruta, $contenido)) {
                 throw new \RuntimeException('No se pudo almacenar el PDF de la constancia ENF.');
