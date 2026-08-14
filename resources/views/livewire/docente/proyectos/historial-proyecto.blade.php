@@ -83,6 +83,39 @@
         </div>
     </div>
 
+    @if($puedeVerConstanciaRegistro)
+        <section class="no-print rounded-xl border border-indigo-200 bg-white p-5 shadow-sm dark:border-indigo-900 dark:bg-gray-900">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-400">Registro del proyecto</p>
+                    <h2 class="mt-1 text-lg font-bold text-gray-900 dark:text-white">Constancia de Registro</h2>
+                    <dl class="mt-3 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                        <div><dt class="text-gray-500">Estado</dt><dd class="font-semibold text-gray-900 dark:text-gray-100">{{ \Illuminate\Support\Str::title(strtolower($constanciaRegistro->estado)) }}</dd></div>
+                        @if($constanciaRegistro->estado === \App\Models\Constancias\ConstanciaRegistroProyecto::ESTADO_EMITIDA)
+                            <div><dt class="text-gray-500">Número</dt><dd class="text-gray-900 dark:text-gray-100">{{ $constanciaRegistro->numero }}</dd></div>
+                            <div><dt class="text-gray-500">Fecha de emisión</dt><dd class="text-gray-900 dark:text-gray-100">{{ $constanciaRegistro->fecha_emision?->format('d/m/Y') }}</dd></div>
+                        @endif
+                    </dl>
+                    @if($constanciaRegistro->estado === \App\Models\Constancias\ConstanciaRegistroProyecto::ESTADO_ANULADA)
+                        <p class="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">
+                            <strong>Anulada:</strong> {{ $constanciaRegistro->motivo_anulacion }}
+                        </p>
+                    @endif
+                </div>
+
+                <div class="flex flex-wrap justify-end gap-2">
+                    @if($puedeDescargarConstanciaRegistro)
+                        <a href="{{ route('constancias.registro.descargar', ['constancia' => $constanciaRegistro->getKey()]) }}" class="rounded-lg bg-indigo-700 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-800">Descargar constancia de registro</a>
+                    @elseif($constanciaRegistro->estado === \App\Models\Constancias\ConstanciaRegistroProyecto::ESTADO_PENDIENTE)
+                        <p class="text-sm text-gray-500 dark:text-gray-400">La constancia de registro está en proceso de generación.</p>
+                    @elseif($constanciaRegistro->estado === \App\Models\Constancias\ConstanciaRegistroProyecto::ESTADO_ERROR)
+                        <p class="text-sm text-amber-700 dark:text-amber-300">No fue posible generar la constancia de registro.</p>
+                    @endif
+                </div>
+            </div>
+        </section>
+    @endif
+
     @if($informeIntermedio['visible'])
         <section class="no-print rounded-xl border border-sky-200 bg-white p-5 shadow-sm dark:border-sky-900 dark:bg-gray-900">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -134,6 +167,8 @@
                     @if($informeIntermedio['informe'])
                         <a href="{{ route('informes-intermedios.ver', $informeIntermedio['informe']) }}" target="_blank" class="rounded-lg border border-sky-300 px-3 py-2 text-sm font-medium text-sky-700 dark:border-sky-700 dark:text-sky-300">Ver PDF</a>
                         <a href="{{ route('informes-intermedios.descargar', $informeIntermedio['informe']) }}" class="rounded-lg border border-sky-300 px-3 py-2 text-sm font-medium text-sky-700 dark:border-sky-700 dark:text-sky-300">Descargar</a>
+                    @elseif($informeIntermedio['legacy']?->documento_url && \Illuminate\Support\Facades\Storage::disk('public')->exists($informeIntermedio['legacy']->documento_url))
+                        <a href="/storage/{{ $informeIntermedio['legacy']->documento_url }}" target="_blank" class="rounded-lg border border-sky-300 px-3 py-2 text-sm font-medium text-sky-700 dark:border-sky-700 dark:text-sky-300">Ver PDF cargado</a>
                     @endif
                     @if($informeIntermedio['puede_editar'])
                         <button wire:click="openSubirIntermedio" class="rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700">
@@ -228,7 +263,6 @@
                         <a href="{{ route('informes-finales.inf-001.preview', $cierreInformeFinal['informe']) }}" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 dark:border-gray-600 dark:text-gray-200">Informe final en revisión</a>
                     @elseif($cierreInformeFinal['accion'] === 'aprobado')
                         <a href="{{ route('informes-finales.inf-001.preview', $cierreInformeFinal['informe']) }}" class="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">Ver informe final aprobado</a>
-                        <a href="{{ route('informes-finales.inf-001.pdf', $cierreInformeFinal['informe']) }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Descargar PDF final</a>
                     @endif
                     <?php $constanciaFinalizacion = $cierreInformeFinal['constancia_finalizacion'] ?? null; ?>
                     @if($cierreInformeFinal['accion'] === 'aprobado' && $constanciaFinalizacion?->estado === \App\Models\Constancias\ConstanciaFinalizacionProyecto::ESTADO_EMITIDA && ($cierreInformeFinal['puede_descargar_constancia'] ?? false))

@@ -15,6 +15,7 @@ use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\TipoCargoFirma;
 use App\Models\Proyecto\VinculacionTipoAccion;
+use App\Livewire\Docente\Proyectos\HistorialProyecto;
 use App\Models\Estado\TipoEstado;
 use App\Models\User;
 use App\Services\Constancias\ConstanciaRegistroPdfGenerator;
@@ -22,6 +23,7 @@ use App\Services\Constancias\EmitirConstanciaRegistroProyecto;
 use App\Services\Constancias\NumeroConstanciaRegistro;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Livewire\Livewire;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -327,6 +329,169 @@ class ConstanciaRegistroArchitectureTest extends TestCase
         $this->assertStringContainsString('registro-vigencia', $vista);
         $this->assertStringContainsString('CONSTAR', $vista);
         $this->assertStringContainsString('Artículo 277', $vista);
+    }
+
+    public function test_se_emite_con_revisor_vinculacion_cuando_el_flujo_no_tiene_director(): void
+    {
+        [$user, $proyecto, $revisorFinal] = $this->scenarioSinDirectorVinculacion();
+
+        $constancia = app(EmitirConstanciaRegistroProyecto::class)->emitir($proyecto->fresh(), $user->id);
+
+        $this->assertSame(ConstanciaRegistroProyecto::ESTADO_PENDIENTE, $constancia->estado);
+        $this->assertSame($revisorFinal->nombre_completo, $constancia->snapshot['autoridad']['nombre']);
+        $this->assertSame('Revisor Vinculacion', $constancia->snapshot['autoridad']['cargo']);
+    }
+
+    public function test_historial_del_proyecto_muestra_la_constancia_de_registro_emitida(): void
+    {
+        [$user, $proyecto] = $this->scenario(false);
+        $this->aprobarTodasLasEtapas($proyecto, $user);
+
+        $coordinadorUser = $proyecto->coordinador_proyecto()->first()->empleado->user;
+
+        Livewire::actingAs($coordinadorUser)
+            ->test(HistorialProyecto::class, ['proyecto' => $proyecto->fresh()])
+            ->assertSee('Constancia de Registro')
+            ->assertSee('Descargar constancia de registro');
+    }
+
+    public function test_historial_muestra_el_pdf_del_informe_intermedio_legacy_sin_metadatos(): void
+    {
+        Storage::fake('public');
+        [$user,$proyecto]=$this->scenario(false);
+        $proyecto->documentos()->create([
+            'tipo_documento'=>'Informe Intermedio',
+            'documento_url'=>'documentos/legacy-intermedio.pdf',
+        ]);
+        Storage::disk('public')->put('documentos/legacy-intermedio.pdf','contenido');
+        $coordinadorUser=$proyecto->coordinador_proyecto()->first()->empleado->user;
+
+        Livewire::actingAs($coordinadorUser)
+            ->test(HistorialProyecto::class,['proyecto'=>$proyecto->fresh()])
+            ->assertSee('Este informe fue enviado antes de habilitarse el registro documental con metadatos.')
+            ->assertSee('Ver PDF cargado')
+            ->assertSeeHtml('href="/storage/documentos/legacy-intermedio.pdf"');
+    }
+
+    /**
+     * Replica un flujo como "FORM-DVUS-001 - Desarrollo local y regional": dos etapas
+     * "Revisor Vinculacion" (sin "Director Vinculacion"), con el nombre de etapa guardado
+     * como el número de orden ("1", "2"), tal como ocurre en datos reales.
+     *
+     * @return array{0: User, 1: Proyecto, 2: Empleado}
+     */
+    private function scenarioSinDirectorVinculacion(): array
+    {
+        $user = User::factory()->create(['name' => 'Coordinador Test ' . uniqid(), 'email' => 'coord.' . uniqid() . '@example.test']);
+        $role = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $user->assignRole($role);
+        $empleado = Empleado::create([
+            'nombre_completo' => 'Profesor Coordinador Test',
+            'numero_empleado' => (string) random_int(100000, 999999),
+            'celular' => '99999999',
+            'sexo' => 'Masculino',
+            'user_id' => $user->id,
+            'tipo_empleado' => 'docente',
+        ]);
+
+        $revisor1 = Empleado::create([
+            'nombre_completo' => 'Revisor Vinculación Uno',
+            'numero_empleado' => (string) random_int(100000, 999999),
+            'celular' => '99999999',
+            'sexo' => 'Femenino',
+            'user_id' => User::factory()->create()->id,
+            'tipo_empleado' => 'administrativo',
+        ]);
+        $revisor2 = Empleado::create([
+            'nombre_completo' => 'Revisor Vinculación Dos',
+            'numero_empleado' => (string) random_int(100000, 999999),
+            'celular' => '99999999',
+            'sexo' => 'Femenino',
+            'user_id' => User::factory()->create()->id,
+            'tipo_empleado' => 'administrativo',
+        ]);
+
+        $type = VinculacionTipoAccion::firstOrCreate(['codigo' => 'DESARROLLO_LOCAL_REGIONAL'], ['nombre' => 'Desarrollo local y regional', 'activo' => true]);
+        $proyecto = Proyecto::create([
+            'tipo_accion_id' => $type->id,
+            'codigo_proyecto' => 'PROY-REG-' . uniqid(),
+            'nombre_proyecto' => 'Proyecto sin etapa Director',
+            'fecha_inicio' => '2026-01-15',
+            'fecha_finalizacion' => '2026-12-15',
+            'objetivo_general' => 'Objetivo de prueba',
+            'poblacion_participante' => 100,
+            'hombres' => 50,
+            'mujeres' => 50,
+            'mestizos_hombres' => 50,
+            'mestizos_mujeres' => 50,
+            'impacto_deseado' => 'Impacto de prueba',
+            'total_aporte_institucional' => 50000,
+        ]);
+        EmpleadoProyecto::create(['empleado_id' => $empleado->id, 'proyecto_id' => $proyecto->id, 'rol' => 'Coordinador']);
+
+        $now = now();
+        $campusId = DB::table('campus')->insertGetId(['nombre_campus' => 'Campus Test ' . uniqid(), 'direccion' => 'Tegucigalpa', 'telefono' => '00000000', 'url' => 'https://unah.edu.hn', 'created_at' => $now, 'updated_at' => $now]);
+        $centroId = DB::table('centro_facultad')->insertGetId(['nombre' => 'Facultad Test ' . uniqid(), 'es_facultad' => true, 'siglas' => 'FTEST', 'campus_id' => $campusId, 'created_at' => $now, 'updated_at' => $now]);
+        DB::table('proyecto_centro_facultad')->insert(['proyecto_id' => $proyecto->id, 'centro_facultad_id' => $centroId, 'created_at' => $now, 'updated_at' => $now]);
+
+        $estadoEnCurso = TipoEstado::firstOrCreate(['nombre' => 'En curso']);
+        $tipoCargoRevisor = TipoCargoFirma::firstOrCreate(['nombre' => 'Revisor Vinculacion']);
+        $cargoRevisor = CargoFirma::firstOrCreate(
+            ['descripcion' => 'Proyecto', 'tipo_cargo_firma_id' => $tipoCargoRevisor->id],
+            ['tipo_estado_id' => $estadoEnCurso->id]
+        );
+
+        $flujo = FlujoAprobacion::create([
+            'codigo' => 'REG_SIN_DIRECTOR_' . uniqid(),
+            'nombre' => 'Flujo FORM-DVUS-001 - Desarrollo local y regional',
+            'proceso' => 'PROYECTO',
+            'tipo_accion_id' => $type->id,
+            'codigo_formulario' => 'FORM-DVUS-001',
+            'activo' => true,
+        ]);
+        $proyecto->update(['flujo_aprobacion_id' => $flujo->id]);
+
+        foreach ([1 => $revisor1, 2 => $revisor2] as $orden => $revisor) {
+            $etapa = FlujoAprobacionEtapa::create([
+                'flujo_aprobacion_id' => $flujo->id,
+                'orden' => $orden,
+                'codigo' => 'ETAPA_REV_' . $orden . '_' . uniqid(),
+                'nombre' => (string) $orden,
+                'tipo_etapa' => 'APROBACION',
+                'cargo_firma_id' => $cargoRevisor->id,
+                'usuario_responsable_id' => $revisor->user_id,
+                'activo' => true,
+                'aplica_inscripcion' => true,
+            ]);
+
+            $proyecto->firma_proyecto()->create([
+                'empleado_id' => $revisor->id,
+                'cargo_firma_id' => $cargoRevisor->id,
+                'estado_revision' => 'Aprobado',
+                'hash' => 'reg-sin-director-' . uniqid(),
+                'firmable_type' => Proyecto::class,
+                'firmable_id' => $proyecto->id,
+                'flujo_aprobacion_id' => $flujo->id,
+                'flujo_aprobacion_etapa_id' => $etapa->id,
+                'orden_revision' => $orden,
+                'etapa_codigo' => $etapa->codigo,
+                'etapa_nombre' => $etapa->nombre,
+                'revision_ciclo' => 1,
+                'fecha_firma' => $now,
+            ]);
+        }
+
+        $proyecto->estado_proyecto()->create([
+            'empleado_id' => $empleado->id,
+            'tipo_estado_id' => $estadoEnCurso->id,
+            'fecha' => now(),
+            'comentario' => 'Flujo de inscripción aprobado.',
+            'es_actual' => true,
+        ]);
+
+        config(['queue.default' => 'sync']);
+
+        return [$user, $proyecto, $revisor2];
     }
 
     private function scenario(bool $conFirmasPendientes = false): array

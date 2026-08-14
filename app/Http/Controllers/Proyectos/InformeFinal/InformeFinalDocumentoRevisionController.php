@@ -4,12 +4,11 @@ namespace App\Http\Controllers\Proyectos\InformeFinal;
 
 use App\Http\Controllers\Controller;
 use App\Models\InformeFinal\InformeFinalDocumentoRevision;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 
 class InformeFinalDocumentoRevisionController extends Controller
 {
-    public function descargar(InformeFinalDocumentoRevision $documento): Response
+    public function descargar(InformeFinalDocumentoRevision $documento)
     {
         $informe = $documento->informe()->with('proyecto')->firstOrFail();
         $usuario = request()->user();

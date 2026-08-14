@@ -1309,7 +1309,7 @@ class EditInformeFinalProyecto extends Component
             $mainFields = array_keys(Arr::except($this->general, ['estado','fecha_registro']));
             $payloadGeneral = $this->normalizarCamposNumericosInforme(Arr::only($this->general, $mainFields));
             $this->informe->update($payloadGeneral + ['updated_by' => auth()->id()]);
-            $this->informe->beneficiarios()->updateOrCreate([], Arr::except($this->beneficiarios, ['id','informe_final_proyecto_id','created_at','updated_at']));
+            $this->informe->beneficiarios()->updateOrCreate([], $this->normalizarCamposBeneficiarios(Arr::except($this->beneficiarios, ['id','informe_final_proyecto_id','created_at','updated_at'])));
             $participacion = ['estado_participacion','observacion_no_participacion','removido_en','removido_por'];
             foreach ($this->estudiantes as $index => &$estudiante) {
                 $estudiante = $this->normalizarAsociacionEstudiante($estudiante, $index);
@@ -1552,6 +1552,18 @@ class EditInformeFinalProyecto extends Component
         return $payload;
     }
 
+    private function normalizarCamposBeneficiarios(array $payload): array
+    {
+        // Las columnas de informe_final_beneficiarios son unsignedInteger NOT NULL con default 0.
+        foreach ($payload as $campo => $valor) {
+            if (is_string($valor) && trim($valor) === '') {
+                $payload[$campo] = 0;
+            }
+        }
+
+        return $payload;
+    }
+
     private function normalizarCamposDecimalesRelacion(string $relation, array $payload): array
     {
         $modelo = $this->informe->{$relation}()->getRelated();
@@ -1640,7 +1652,7 @@ class EditInformeFinalProyecto extends Component
                 } elseif ($root === 'beneficiarios') {
                     $field = explode('.', $propertyName)[1] ?? null;
                     if ($field && array_key_exists($field, $this->beneficiarios)) {
-                        $this->informe->beneficiarios()->updateOrCreate([], [$field => $this->beneficiarios[$field]]);
+                        $this->informe->beneficiarios()->updateOrCreate([], $this->normalizarCamposBeneficiarios([$field => $this->beneficiarios[$field]]));
                     }
                 } elseif (is_numeric($index)) {
                     $this->guardarFilaAutogardadaSinTransaccion($root, (int) $index);

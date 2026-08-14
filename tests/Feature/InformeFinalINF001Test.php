@@ -318,6 +318,42 @@ class InformeFinalINF001Test extends TestCase
         $this->assertDatabaseHas('informe_final_beneficiarios',['edad_19_25'=>3504]);
     }
 
+    public function test_beneficiarios_rechaza_decimales_y_ceros_a_la_izquierda(): void
+    {
+        [$user,$project]=$this->scenario(); $component=$this->livewireComponent($user,$project);
+
+        $component->set('beneficiarios.hombres','03')->assertHasErrors('beneficiarios.hombres');
+        $this->assertDatabaseMissing('informe_final_beneficiarios',['hombres'=>3]);
+
+        $component->set('beneficiarios.mujeres','10.5')->assertHasErrors('beneficiarios.mujeres');
+        $this->assertDatabaseMissing('informe_final_beneficiarios',['mujeres'=>10.5]);
+
+        $component->set('beneficiarios.hombres','7')->assertHasNoErrors('beneficiarios.hombres');
+        $this->assertDatabaseHas('informe_final_beneficiarios',['hombres'=>7]);
+    }
+
+    public function test_beneficiario_vacio_se_autoguarda_como_cero_sin_romper(): void
+    {
+        [$user,$project]=$this->scenario();
+        $component=$this->livewireComponent($user,$project);
+
+        $component->set('beneficiarios.edad_36_50','')->assertHasNoErrors('beneficiarios.edad_36_50');
+        $this->assertDatabaseHas('informe_final_beneficiarios',['edad_36_50'=>0]);
+    }
+
+    public function test_beneficiarios_vacios_se_guardan_como_cero_al_avanzar_de_paso(): void
+    {
+        [$user,$project]=$this->scenario();
+        $component=$this->livewireComponent($user,$project)
+            ->set('beneficiarios.edad_36_50','')
+            ->set('beneficiarios.edad_66_80','')
+            ->call('siguiente')
+            ->assertHasNoErrors()
+            ->assertSet('currentStep',2);
+
+        $this->assertDatabaseHas('informe_final_beneficiarios',['edad_36_50'=>0,'edad_66_80'=>0]);
+    }
+
     public function test_se_calculan_totales_por_sexo(): void
     {
         $model=new InformeFinalBeneficiario(['hombres'=>1700,'mujeres'=>1804]); $this->assertSame(3504,$model->total_sexo);
@@ -723,6 +759,18 @@ class InformeFinalINF001Test extends TestCase
         $this->assertStringContainsString('Fotografías del proyecto',$html);
         $this->assertStringContainsString('Taller comunitario',$html);
         $this->assertStringContainsString('inf-photo-card',$html);
+    }
+
+    public function test_vista_previa_usa_rutas_relativas_para_fotografias_sin_depender_de_app_url(): void
+    {
+        Storage::fake('public');
+        [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
+        Storage::disk('public')->put('informes-finales/fotos/taller.jpg','contenido');
+        $report->anexos()->create(['tipo'=>'fotografias','categoria'=>'fotografia','descripcion'=>'Taller comunitario','archivo'=>'informes-finales/fotos/taller.jpg','nombre_archivo'=>'taller.jpg','origen'=>'INFORME']);
+
+        $html=$this->actingAs($user)->get(route('informes-finales.inf-001.preview',$report))->assertOk()->getContent();
+
+        $this->assertStringContainsString('src="/storage/informes-finales/fotos/taller.jpg"',$html);
     }
 
     public function test_estudiantes_se_muestran_por_grupo_sin_selector_editable_de_participacion(): void
@@ -1321,6 +1369,36 @@ class InformeFinalINF001Test extends TestCase
         Storage::disk('public')->assertExists($documento->documento_url);
     }
 
+    public function test_descarga_documento_de_revision_del_informe_final(): void
+    {
+        Storage::fake('public');
+        Storage::fake('local');
+        [$user,$project]=$this->scenario();
+        $this->componentReadyForCompletion($user,$project)->call('marcarCompleto')->assertHasNoErrors();
+        $report=$project->informeFinalInf001()->firstOrFail();
+        $documento=app(InformeFinalProyectoWorkflowService::class)->enviarInformeFinal($report,$user);
+        $firma=$documento->firma_documento()->firstOrFail();
+
+        $ruta='informes-finales/'.$report->id.'/revisiones/prueba.pdf';
+        Storage::disk('local')->put($ruta,'%PDF-contenido-de-prueba');
+        $documentoRevision=\App\Models\InformeFinal\InformeFinalDocumentoRevision::create([
+            'informe_final_proyecto_id'=>$report->id,
+            'firma_proyecto_id'=>$firma->id,
+            'flujo_aprobacion_id'=>$firma->flujo_aprobacion_id,
+            'flujo_aprobacion_etapa_id'=>$firma->flujo_aprobacion_etapa_id,
+            'subido_por'=>$user->id,
+            'revision_ciclo'=>$firma->revision_ciclo,
+            'ruta'=>$ruta,
+            'nombre_original'=>'prueba.pdf',
+            'mime_type'=>'application/pdf',
+            'tamano_bytes'=>Storage::disk('local')->size($ruta),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('informes-finales.documentos-revision.descargar',$documentoRevision))
+            ->assertOk();
+    }
+
     public function test_subsanacion_reutiliza_documento_preserva_ciclo_y_habilita_edicion(): void
     {
         Storage::fake('public');
@@ -1367,14 +1445,14 @@ class InformeFinalINF001Test extends TestCase
 
         $html = Livewire::actingAs($user)->test(HistorialProyecto::class, ['proyecto' => $project])
             ->assertSee('Ver informe final aprobado')
-            ->assertSee('Descargar PDF final')
+            ->assertDontSee('Descargar PDF final')
             ->assertSee('Descargar constancia de finalización')
             ->html();
 
-        $this->assertStringContainsString(route('informes-finales.inf-001.pdf', $report, false), $html);
+        $this->assertStringContainsString(route('informes-finales.inf-001.preview', $report, false), $html);
         $this->assertStringContainsString(route('constancias.finalizacion.descargar', $constancia, false), $html);
         $this->assertNotSame(
-            route('informes-finales.inf-001.pdf', $report, false),
+            route('informes-finales.inf-001.preview', $report, false),
             route('constancias.finalizacion.descargar', $constancia, false)
         );
     }
@@ -1387,7 +1465,7 @@ class InformeFinalINF001Test extends TestCase
         ] as $estado => $mensaje) {
             [$user, $project] = $this->cierreFinalizadoConConstancia($estado);
             Livewire::actingAs($user)->test(HistorialProyecto::class, ['proyecto' => $project])
-                ->assertSee('Descargar PDF final')
+                ->assertSee('Ver informe final aprobado')
                 ->assertSee($mensaje)
                 ->assertDontSee('Descargar constancia de finalización');
         }
