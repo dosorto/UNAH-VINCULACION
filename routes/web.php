@@ -204,6 +204,7 @@ Route::middleware(['auth'])->prefix('enf')->name('enf.')->group(function () {
     Route::post('acciones/{accion}/informe-intermedio', [EnfInformeIntermedioController::class, 'store'])->name('acciones.informe-intermedio.store');
     Route::post('informes-intermedios/{informe}/enviar', [EnfInformeIntermedioController::class, 'enviar'])->name('informes-intermedios.enviar');
     Route::get('informes-intermedios/{informe}/ver', [EnfInformeIntermedioController::class, 'ver'])->name('informes-intermedios.ver');
+    Route::get('informes-intermedios/{informe}/descargar', [EnfInformeIntermedioController::class, 'descargar'])->name('informes-intermedios.descargar');
     Route::post('informes-finales/{informeFinal}/enviar', [EnfInformeFinalController::class, 'enviar'])->name('informes-finales.enviar');
     Route::post('acciones/autoguardar-borrador', [EnfAccionController::class, 'autoguardarBorrador'])->name('acciones.autoguardar-borrador');
     Route::post('acciones/{accion}/autoguardar-borrador', [EnfAccionController::class, 'autoguardarBorrador'])->name('acciones.autoguardar-borrador.update');

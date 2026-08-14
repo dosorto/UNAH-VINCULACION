@@ -78,10 +78,25 @@
         ->values();
     $odsTexto = $accion->ods->pluck('nombre')->filter()->implode('; ');
     $metasTexto = $accion->metasContribuye->map(fn ($meta) => trim(($meta->numero_meta ?? '').' '.($meta->descripcion ?? '')))->filter()->implode('; ');
+    $objetivosTexto = $accion->objetivosEspecificos->sortBy('orden')->pluck('descripcion')->filter()->implode("\n");
+    $resultadosPlanificadosTexto = $accion->resultados
+        ->sortBy('orden')
+        ->map(fn ($row) => trim(collect([$row->resultado, $row->indicador])->filter()->implode(' - ')))
+        ->filter()
+        ->implode("\n");
+    $participacionUniversitaria = $accion->participacionUniversitaria ?? collect();
+    $practicasAsignatura = $accion->practicasAsignatura ?? collect();
+    $espaciosAprendizaje = $accion->espaciosAprendizaje ?? collect();
+    $sistematizador = $accion->equipo->firstWhere('rol', 'Responsable de sistematizacion');
     $tituloInforme = $esForm018 ? 'INFORME FINAL DE PROYECTO DE EDUCACION NO FORMAL' : 'INFORME FINAL DE CERTIFICADO UNIVERSITARIO DE EDUCACION NO FORMAL';
     $participantesTitulo = $esForm018 ? 'Participantes finales del proyecto' : 'Participantes que finalizaron y obtuvieron acreditacion';
     $modalidadCierreLabel = $esForm018 ? 'Tipo de accion ejecutada' : 'Modalidad de acreditacion';
     $modalidadCierreValor = $informe?->modalidad_acreditacion ?: ($esForm018 ? ($accion->tipoAccion?->nombre ?: $accion->modalidad?->nombre) : ($certificado?->figuraAcreditacion?->nombre ?: 'Pendiente'));
+    $participacionSexo = function ($row, string $sexo): string {
+        preg_match('/'.($sexo === 'hombres' ? 'Hombres' : 'Mujeres').':\s*(\d+)/i', (string) $row->descripcion, $match);
+
+        return $match[1] ?? '';
+    };
 @endphp
 
 <style>
@@ -158,6 +173,8 @@
             <tr><td class="enf-label">Carrera</td><td colspan="2">{{ $accion->carrera?->nombre }}</td></tr>
             <tr><td class="enf-label">Programa de vinculacion</td><td colspan="2">{{ $accion->programa_vinculacion ?? '' }}</td></tr>
             <tr><td class="enf-blue">Modalidad</td><td colspan="3">{{ $accion->modalidad?->nombre ?: ($lugar?->modalidad_ejecucion ?: 'Pendiente') }}</td></tr>
+            <tr><td class="enf-label">Descripcion de participantes</td><td colspan="3" class="enf-field">{{ $accion->descripcion_participantes }}</td></tr>
+            <tr><td class="enf-label">Impacto esperado desde inscripcion</td><td colspan="3" class="enf-field">{{ $accion->impacto_esperado }}</td></tr>
         </table>
         <table class="enf-table enf-small">
             <tr><th colspan="5" class="enf-blue">Fecha de ejecucion y duracion</th></tr>
@@ -211,6 +228,28 @@
             <tr><th>Hombres</th><th>Mujeres</th><th>Total</th><th>Hombres</th><th>Mujeres</th><th>Total</th></tr>
             <tr class="enf-center"><td>{{ $beneficiarios?->hombres ?? 0 }}</td><td>{{ $beneficiarios?->mujeres ?? 0 }}</td><td>{{ $totalParticipantesPlanificados }}</td><td>{{ $countSexo($participantesFinales, 'hombres') }}</td><td>{{ $countSexo($participantesFinales, 'mujeres') }}</td><td>{{ $finalizaron }}</td></tr>
         </table>
+        @if($participacionUniversitaria->isNotEmpty() || $practicasAsignatura->isNotEmpty())
+            <table class="enf-table enf-small">
+                <thead><tr><th colspan="5" class="enf-blue">Participacion universitaria planificada desde inscripcion</th></tr><tr><th>Tipo</th><th>Hombres</th><th>Mujeres</th><th>Total</th><th>Descripcion</th></tr></thead>
+                <tbody>
+                    @forelse($participacionUniversitaria as $row)
+                        <tr><td>{{ $row->tipo_participacion }}</td><td class="enf-center">{{ $participacionSexo($row, 'hombres') }}</td><td class="enf-center">{{ $participacionSexo($row, 'mujeres') }}</td><td class="enf-center">{{ $row->cantidad }}</td><td>{{ $row->descripcion }}</td></tr>
+                    @empty
+                        <tr><td colspan="5" class="enf-empty">Sin participacion universitaria planificada.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+            <table class="enf-table enf-small">
+                <thead><tr><th colspan="5" class="enf-blue">Practicas de asignatura planificadas</th></tr><tr><th>Codigo</th><th>Asignatura / posgrado</th><th>Periodo</th><th>Matricula</th><th>Distribucion</th></tr></thead>
+                <tbody>
+                    @forelse($practicasAsignatura as $row)
+                        <tr><td>{{ $row->codigo_asignatura }}</td><td>{{ $row->nombre_asignatura ?: $row->asignatura?->nombre }}</td><td>{{ $row->periodo_academico_texto ?: $row->periodoAcademico?->nombre }}</td><td class="enf-center">{{ $row->cantidad_estudiantes }}</td><td>H: {{ $row->matricula_hombres }} / M: {{ $row->matricula_mujeres }}</td></tr>
+                    @empty
+                        <tr><td colspan="5" class="enf-empty">Sin practicas de asignatura planificadas.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        @endif
         <table class="enf-table enf-small">
             <tr><th>No.</th><th>Concepto</th><th>Hombres</th><th>Mujeres</th><th>Total</th><th>Observacion</th></tr>
             <tr><td>1</td><td>Personas matriculadas / inscritas</td><td>{{ $inscritos['hombres'] }}</td><td>{{ $inscritos['mujeres'] }}</td><td>{{ $inscritos['total'] }}</td><td>Registro real de cierre.</td></tr>
@@ -239,6 +278,10 @@
         <div class="enf-section">V. Informe de ejecucion de las acciones planificadas</div>
         <table class="enf-table">
             <tr><td class="enf-label" style="width: 24%">Resumen ejecutivo</td><td class="enf-field">{{ $informe?->resumen_ejecutivo ?: $accion->resumen }}</td></tr>
+            <tr><td class="enf-label">Problema / necesidad identificada</td><td class="enf-field">{{ $accion->definicion_problema }}</td></tr>
+            <tr><td class="enf-label">Objetivo general</td><td class="enf-field">{{ $accion->objetivo_general }}</td></tr>
+            <tr><td class="enf-label">Objetivos especificos</td><td class="enf-field">{{ $objetivosTexto }}</td></tr>
+            <tr><td class="enf-label">Resultados planificados</td><td class="enf-field">{{ $resultadosPlanificadosTexto }}</td></tr>
             <tr><td class="enf-label">Resultados obtenidos</td><td class="enf-field">{{ $informe?->resultados_obtenidos }}</td></tr>
             <tr><td class="enf-label">Limitaciones</td><td class="enf-field">{{ $informe?->limitaciones }}</td></tr>
         </table>
@@ -261,7 +304,20 @@
             <tr><td class="enf-blue">Cronograma de desarrollo de la accion</td><td class="enf-field">Indique cambios del cronograma: {{ $informe?->cronograma_cambios ?: 'Pendiente' }}</td></tr>
             <tr><td class="enf-blue">{{ $modalidadCierreLabel }}</td><td>{{ $modalidadCierreValor }}</td></tr>
             <tr><td class="enf-blue">Seguimiento</td><td class="enf-field">{{ $informe?->seguimiento_sistematizacion ?: 'Pendiente' }}</td></tr>
+            @if($sistematizador)
+                <tr><td class="enf-blue">Responsable de sistematizacion</td><td>{{ $sistematizador->nombre_completo }}</td></tr>
+            @endif
         </table>
+        @if(! $esForm018 && $espaciosAprendizaje->isNotEmpty())
+            <table class="enf-table enf-small">
+                <thead><tr><th colspan="5" class="enf-blue">Espacios de aprendizaje registrados en inscripcion</th></tr><tr><th>No.</th><th>Nombre</th><th>Codigo</th><th>Creditos</th><th>Horas</th></tr></thead>
+                <tbody>
+                    @foreach($espaciosAprendizaje as $row)
+                        <tr><td class="enf-center">{{ $loop->iteration }}</td><td>{{ $row->nombre }}</td><td>{{ $row->codigo }}</td><td class="enf-center">{{ $row->creditos }}</td><td class="enf-center">{{ $row->horas }}</td></tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
 
         <div class="enf-section">VI. Reporte de acciones planificadas que no fueron ejecutadas</div>
         <table class="enf-table enf-small">
@@ -280,7 +336,8 @@
             <tr><td class="enf-label" style="width: 30%">Dificultades</td><td class="enf-field">{{ $informe?->dificultades ?: $informe?->limitaciones }}</td></tr>
             <tr><td class="enf-label">Lecciones aprendidas</td><td class="enf-field">{{ $informe?->lecciones_aprendidas }}</td></tr>
             <tr><td class="enf-label">Buenas practicas</td><td class="enf-field">{{ $informe?->buenas_practicas }}</td></tr>
-            <tr><td class="enf-label">Cambios logrados</td><td class="enf-field">{{ $informe?->transformacion_lograda ?: $informe?->resultados_obtenidos }}</td></tr>
+            <tr><td class="enf-label">Cambios logrados</td><td class="enf-field">{{ $informe?->transformacion_lograda ?: ($accion->impacto_esperado ?: $informe?->resultados_obtenidos) }}</td></tr>
+            <tr><td class="enf-label">Respuesta a la reforma universitaria</td><td class="enf-field">{{ $informe?->respuesta_reforma_universitaria ?: $accion->alineamiento_reforma }}</td></tr>
             <tr><td class="enf-label">ODS a los que se contribuyo</td><td>{{ $odsTexto ?: 'Pendiente' }}</td></tr>
             <tr><td class="enf-label">Metas a las que se contribuyo</td><td>{{ $metasTexto ?: 'Pendiente' }}</td></tr>
             <tr><td class="enf-label">Recomendaciones</td><td class="enf-field">{{ $informe?->recomendaciones }}</td></tr>

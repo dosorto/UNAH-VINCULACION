@@ -18,6 +18,8 @@
     $revisionesInscripcion = $accion->revisiones
         ->filter(fn ($revision) => blank($revision->proceso) || $revision->proceso === \App\Models\ENF\EnfAccion::PROCESO_INSCRIPCION)
         ->sortBy(fn ($revision) => sprintf('%06d-%06d', $revision->revision_ciclo, $revision->orden));
+    $constanciaRegistroEnf = $accion->constanciaRegistro;
+    $constanciaFinalizacionEnf = $accion->constanciaFinalizacion ?: $accion->informeFinal?->constanciaFinalizacion;
 @endphp
 
 @push('styles')
@@ -85,17 +87,6 @@
                             </a>
                         @endif
 
-                        @if ($accion->constanciaRegistro?->puedeDescargarse())
-                            <a href="{{ route('enf.constancias.registro.descargar', $accion->constanciaRegistro) }}" class="inline-flex items-center rounded-lg bg-blue-700 px-3 py-2 text-sm font-medium text-white hover:bg-blue-800">
-                                Constancia de registro
-                            </a>
-                        @endif
-
-                        @if ($accion->constanciaFinalizacion?->puedeDescargarse())
-                            <a href="{{ route('enf.constancias.finalizacion.descargar', $accion->constanciaFinalizacion) }}" class="inline-flex items-center rounded-lg bg-emerald-700 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-800">
-                                Constancia de finalizaci&oacute;n
-                            </a>
-                        @endif
                     @endif
 
                     @if ($puedeReenviar ?? false)
@@ -116,6 +107,39 @@
                 $informeFinal = $accion->informeFinal;
             @endphp
             <div class="no-print space-y-5">
+                @if($constanciaRegistroEnf)
+                    <section class="rounded-xl border border-indigo-200 bg-white p-5 shadow-sm dark:border-indigo-900 dark:bg-gray-900">
+                        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div>
+                                <p class="text-xs font-bold uppercase tracking-wide text-indigo-700 dark:text-indigo-400">Registro del proyecto</p>
+                                <h2 class="mt-1 text-lg font-bold text-gray-900 dark:text-white">Constancia de Registro</h2>
+                                <dl class="mt-3 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                                    <div><dt class="text-gray-500">Estado</dt><dd class="font-semibold text-gray-900 dark:text-gray-100">{{ \Illuminate\Support\Str::title(strtolower($constanciaRegistroEnf->estado)) }}</dd></div>
+                                    @if($constanciaRegistroEnf->estado === \App\Models\ENF\EnfConstanciaRegistro::ESTADO_EMITIDA)
+                                        <div><dt class="text-gray-500">N&uacute;mero</dt><dd class="text-gray-900 dark:text-gray-100">{{ $constanciaRegistroEnf->numero }}</dd></div>
+                                        <div><dt class="text-gray-500">Fecha de emisi&oacute;n</dt><dd class="text-gray-900 dark:text-gray-100">{{ $constanciaRegistroEnf->fecha_emision?->format('d/m/Y') }}</dd></div>
+                                    @endif
+                                </dl>
+                                @if($constanciaRegistroEnf->estado === \App\Models\ENF\EnfConstanciaRegistro::ESTADO_ANULADA)
+                                    <p class="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">
+                                        <strong>Anulada:</strong> {{ $constanciaRegistroEnf->motivo_anulacion }}
+                                    </p>
+                                @endif
+                            </div>
+
+                            <div class="flex flex-wrap justify-end gap-2">
+                                @if($constanciaRegistroEnf->puedeDescargarse())
+                                    <a href="{{ route('enf.constancias.registro.descargar', $constanciaRegistroEnf) }}" class="rounded-lg bg-indigo-700 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-800">Descargar constancia de registro</a>
+                                @elseif($constanciaRegistroEnf->estado === \App\Models\ENF\EnfConstanciaRegistro::ESTADO_PENDIENTE)
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">La constancia de registro est&aacute; en proceso de generaci&oacute;n.</p>
+                                @elseif($constanciaRegistroEnf->estado === \App\Models\ENF\EnfConstanciaRegistro::ESTADO_ERROR)
+                                    <p class="text-sm text-amber-700 dark:text-amber-300">No fue posible generar la constancia de registro.</p>
+                                @endif
+                            </div>
+                        </div>
+                    </section>
+                @endif
+
                 <section class="rounded-xl border border-sky-200 bg-white p-5 shadow-sm dark:border-sky-900 dark:bg-gray-900">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div>
@@ -134,6 +158,7 @@
                         <div class="flex flex-wrap justify-end gap-2">
                             @if($informeIntermedio?->archivo_pdf)
                                 <a href="{{ route('enf.informes-intermedios.ver', $informeIntermedio) }}" target="_blank" class="rounded-lg border border-sky-300 px-3 py-2 text-sm font-medium text-sky-700 dark:border-sky-700 dark:text-sky-300">Ver PDF</a>
+                                <a href="{{ route('enf.informes-intermedios.descargar', $informeIntermedio) }}" class="rounded-lg border border-sky-300 px-3 py-2 text-sm font-medium text-sky-700 dark:border-sky-700 dark:text-sky-300">Descargar</a>
                             @endif
                             @if(($puedeGestionarInformeIntermedio ?? false) && (! $informeIntermedio || $informeIntermedio->esEditable()))
                                 <button type="button" data-open-enf-intermedio-upload class="rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700">
@@ -275,7 +300,13 @@
                                     <a href="{{ route('enf.acciones.informe-final.preview-pdf', $accion) }}" target="_blank" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 dark:border-gray-600 dark:text-gray-200">Informe final en revisi&oacute;n</a>
                                 @elseif(($cierreInformeFinal['accion'] ?? null) === 'aprobado')
                                     <a href="{{ route('enf.acciones.informe-final.preview-pdf', $accion) }}" target="_blank" class="rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-700 dark:border-emerald-700 dark:text-emerald-300">Ver informe final aprobado</a>
-                                    <a href="{{ route('enf.acciones.informe-final.pdf', $accion) }}" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Descargar PDF final</a>
+                                @endif
+                                @if(($cierreInformeFinal['accion'] ?? null) === 'aprobado' && $constanciaFinalizacionEnf?->puedeDescargarse())
+                                    <a href="{{ route('enf.constancias.finalizacion.descargar', $constanciaFinalizacionEnf) }}" class="rounded-lg bg-sky-700 px-4 py-2 text-sm font-medium text-white hover:bg-sky-800">Descargar constancia de finalizaci&oacute;n</a>
+                                @elseif(($cierreInformeFinal['accion'] ?? null) === 'aprobado' && $constanciaFinalizacionEnf?->estado === \App\Models\ENF\EnfConstanciaFinalizacion::ESTADO_PENDIENTE)
+                                    <p class="basis-full text-right text-sm text-gray-500 dark:text-gray-400">La constancia de finalizaci&oacute;n est&aacute; en proceso de generaci&oacute;n.</p>
+                                @elseif(($cierreInformeFinal['accion'] ?? null) === 'aprobado' && $constanciaFinalizacionEnf?->estado === \App\Models\ENF\EnfConstanciaFinalizacion::ESTADO_ERROR)
+                                    <p class="basis-full text-right text-sm text-amber-700 dark:text-amber-300">No fue posible generar la constancia de finalizaci&oacute;n.</p>
                                 @endif
                             </div>
                         </div>

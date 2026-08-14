@@ -429,7 +429,9 @@ class EditInformeFinalForm018 extends Component
             'lugaresEjecucion.municipio',
             'beneficiarios',
             'equipo',
-            'practicasAsignatura',
+            'participacionUniversitaria',
+            'practicasAsignatura.asignatura',
+            'practicasAsignatura.periodoAcademico',
             'contrapartes.tipoContraparte',
             'objetivosEspecificos',
             'resultados',
@@ -454,10 +456,14 @@ class EditInformeFinalForm018 extends Component
         return [
             'fecha_presentacion' => now()->toDateString(),
             'resumen_ejecutivo' => $this->accion->resumen,
-            'resultados_obtenidos' => null,
+            'resultados_obtenidos' => $this->textoResultadosPlanificados(),
             'inscritos_hombres' => (int) ($beneficiarios?->hombres ?? 0),
             'inscritos_mujeres' => (int) ($beneficiarios?->mujeres ?? 0),
             'modalidad_acreditacion' => $this->accion->tipoAccion?->nombre ?: $this->accion->modalidad?->nombre,
+            'seguimiento_sistematizacion' => $this->textoSeguimientoBase(),
+            'transformacion_lograda' => $this->accion->impacto_esperado,
+            'respuesta_reforma_universitaria' => $this->accion->alineamiento_reforma,
+            'valoracion_total_beneficiarios' => (int) ($beneficiarios?->total ?? (($beneficiarios?->hombres ?? 0) + ($beneficiarios?->mujeres ?? 0))),
             'aprobado_por_empleado_id' => null,
             'estado' => 'borrador',
         ];
@@ -474,6 +480,7 @@ class EditInformeFinalForm018 extends Component
         if (blank($this->general['modalidad_acreditacion'] ?? null)) {
             $this->general['modalidad_acreditacion'] = $this->accion->tipoAccion?->nombre ?: $this->accion->modalidad?->nombre;
         }
+        $this->completarCamposBase();
         $this->participantes = $this->informe->participantesFinales->toArray();
         $this->accionesEjecutadas = $this->informe->accionesEjecutadas->map(function ($row) use ($date) {
             $data = $row->toArray();
@@ -509,6 +516,54 @@ class EditInformeFinalForm018 extends Component
                 'observaciones' => '',
             ])->values()->all();
         }
+    }
+
+    private function completarCamposBase(): void
+    {
+        $beneficiarios = $this->accion->beneficiarios;
+        $defaults = [
+            'resumen_ejecutivo' => $this->accion->resumen,
+            'resultados_obtenidos' => $this->textoResultadosPlanificados(),
+            'seguimiento_sistematizacion' => $this->textoSeguimientoBase(),
+            'transformacion_lograda' => $this->accion->impacto_esperado,
+            'respuesta_reforma_universitaria' => $this->accion->alineamiento_reforma,
+        ];
+
+        foreach ($defaults as $field => $value) {
+            if (blank($this->general[$field] ?? null) && filled($value)) {
+                $this->general[$field] = $value;
+            }
+        }
+
+        foreach ([
+            'inscritos_hombres' => (int) ($beneficiarios?->hombres ?? 0),
+            'inscritos_mujeres' => (int) ($beneficiarios?->mujeres ?? 0),
+            'valoracion_total_beneficiarios' => (int) ($beneficiarios?->total ?? (($beneficiarios?->hombres ?? 0) + ($beneficiarios?->mujeres ?? 0))),
+        ] as $field => $value) {
+            if ((int) ($this->general[$field] ?? 0) === 0 && $value > 0) {
+                $this->general[$field] = $value;
+            }
+        }
+    }
+
+    private function textoResultadosPlanificados(): ?string
+    {
+        return $this->accion->resultados
+            ->sortBy('orden')
+            ->map(fn ($row) => trim(collect([$row->resultado, $row->indicador])->filter()->implode(' - ')))
+            ->filter()
+            ->implode("\n") ?: null;
+    }
+
+    private function textoSeguimientoBase(): ?string
+    {
+        $sistematizador = $this->accion->equipo->firstWhere('rol', 'Responsable de sistematizacion');
+
+        return collect([
+            $sistematizador?->nombre_completo ? 'Responsable de sistematizacion: '.$sistematizador->nombre_completo : null,
+            $this->accion->metodologia ? 'Metodologia prevista: '.$this->accion->metodologia : null,
+            $this->accion->logistica ? 'Logistica prevista: '.$this->accion->logistica : null,
+        ])->filter()->implode("\n") ?: null;
     }
 
     private function persistir(bool $reload = true): void
