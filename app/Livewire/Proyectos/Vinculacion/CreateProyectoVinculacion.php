@@ -16,6 +16,7 @@ use App\Models\Proyecto\EjesPrioritariosUnah;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\MetaContribuye;
 use App\Models\Proyecto\IntegranteInternacional;
+use App\Models\NivelAcademico;
 use App\Models\Proyecto\EntidadContraparte;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Demografia\Municipio;
@@ -66,6 +67,7 @@ class CreateProyectoVinculacion extends Component
     public array $facultades_centros = [];
     public array $departamentos_academicos = [];
     public array $carreras = [];
+    public bool $carrera_no_aplica = false;
     public string $programa_pertenece = '';
     public string $lineas_investigacion_academica = '';
     public array $ods = [];
@@ -111,6 +113,7 @@ class CreateProyectoVinculacion extends Component
         'email' => '',
         'pais' => '',
         'institucion' => '',
+        'nivel_academico_id' => null,
     ];
 
     // Step 3 – modal contraparte (refactor in-place)
@@ -214,6 +217,7 @@ class CreateProyectoVinculacion extends Component
     ];
 
     protected array $validationAttributes = [
+        // Voluntariado (FORM-DVUS-015)
         'tematica_principal' => 'temática principal',
         'tematica_principal_otro' => 'temática principal (otro)',
         'metodologia_seguimiento' => 'metodología de seguimiento',
@@ -221,6 +225,113 @@ class CreateProyectoVinculacion extends Component
         'experiencia_habilidades_tecnicas' => 'habilidades técnicas',
         'experiencia_competencias_blandas' => 'competencias blandas',
         'espacios_institucionales' => 'espacios institucionales',
+
+        // Paso 1: Información General
+        'nombre_proyecto' => 'nombre del proyecto',
+        'modalidad_id' => 'modalidad',
+        'categoria' => 'categoría',
+        'ejes_prioritarios_unah' => 'alineamiento institucional',
+        'facultades_centros' => 'facultad, centro universitario regional o instituto tecnológico',
+        'facultades_centros.*' => 'facultad, centro universitario regional o instituto tecnológico',
+        'departamentos_academicos' => 'escuela, departamento académico, técnicos universitarios, instituto de investigación, observatorio o consultorio',
+        'departamentos_academicos.*' => 'escuela, departamento académico, técnicos universitarios, instituto de investigación, observatorio o consultorio',
+        'carreras' => 'carrera',
+        'carreras.*' => 'carrera',
+        'programa_pertenece' => 'programa/estrategia al que pertenece',
+        'lineas_investigacion_academica' => 'líneas de investigación de la unidad académica',
+        'ods' => 'ODS',
+        'fecha_inicio' => 'fecha de inicio',
+        'fecha_finalizacion' => 'fecha de finalización',
+
+        // Paso 2: Equipo Ejecutor
+        'estudiante_proyecto' => 'participación de estudiantes',
+        'estudiante_proyecto.*.tipo_participacion_estudiante' => 'tipo de participación del estudiante',
+        'estudiante_proyecto.*.carrera_id' => 'carrera del estudiante',
+        'estudiante_proyecto.*.asignatura_id' => 'asignatura',
+        'estudiante_proyecto.*.periodo_academico_id' => 'periodo académico',
+        'estudiante_proyecto.*.cantidad_estudiantes_hombres' => 'cantidad de hombres',
+        'estudiante_proyecto.*.cantidad_estudiantes_mujeres' => 'cantidad de mujeres',
+        'empleado_proyecto.*.empleado_id' => 'empleado integrante',
+        'integrante_internacional_proyecto.*.integrante_internacional_id' => 'integrante internacional',
+        'nuevaAsignaturaCodigo' => 'código de la asignatura',
+        'nuevaAsignaturaNombre' => 'nombre de la asignatura',
+        'nuevaAsignaturaCarreraId' => 'carrera de la asignatura',
+        'nuevoIntegranteInternacional.nombre_completo' => 'nombre completo del integrante internacional',
+        'nuevoIntegranteInternacional.documento_identidad' => 'documento de identidad del integrante internacional',
+        'nuevoIntegranteInternacional.rtn' => 'RTN / identificador fiscal',
+        'nuevoIntegranteInternacional.sexo' => 'sexo',
+        'nuevoIntegranteInternacional.email' => 'correo electrónico del integrante internacional',
+        'nuevoIntegranteInternacional.pais' => 'país del integrante internacional',
+        'nuevoIntegranteInternacional.institucion' => 'institución del integrante internacional',
+        'nuevoIntegranteInternacional.nivel_academico_id' => 'nivel académico',
+
+        // Paso 3: Entidades Contraparte
+        'entidad_contraparte' => 'entidad contraparte',
+        'entidad_contraparte.*.nombre' => 'nombre de la entidad contraparte',
+        'entidad_contraparte.*.instrumento_formalizacion.*.tipo_documento' => 'tipo de instrumento de formalización',
+        'entidad_contraparte.*.instrumento_formalizacion.*.documento_file' => 'documento del instrumento de formalización',
+        'nuevaContraparte.rtn' => 'RTN de la contraparte',
+        'nuevaContraparte.nombre' => 'nombre de la contraparte',
+        'nuevaContraparte.tipo_entidad' => 'tipo de entidad',
+        'nuevaContraparte.nombre_contacto' => 'nombre de contacto',
+        'nuevaContraparte.cargo_contacto' => 'cargo de contacto',
+        'nuevaContraparte.telefono' => 'teléfono de contacto',
+        'nuevaContraparte.correo' => 'correo de contacto',
+        'nuevaContraparte.descripcion_acuerdos' => 'descripción de acuerdos',
+        'nuevaContraparte.instrumento_formalizacion.*.tipo_documento' => 'tipo de instrumento de formalización',
+        'nuevaContraparte.instrumento_formalizacion.*.documento_file' => 'documento del instrumento de formalización',
+
+        // Paso 4: Actividades
+        'actividades' => 'actividades',
+        'actividades.*.descripcion' => 'descripción de la actividad',
+        'actividades.*.fecha_inicio' => 'fecha de inicio de la actividad',
+        'actividades.*.fecha_finalizacion' => 'fecha de finalización de la actividad',
+        'actividades.*.empleados' => 'responsables de la actividad',
+        'nuevaActividad.descripcion' => 'descripción de la actividad',
+        'nuevaActividad.resultados' => 'productos a cargo',
+        'nuevaActividad.fecha_inicio' => 'fecha de inicio de la actividad',
+        'nuevaActividad.fecha_finalizacion' => 'fecha de finalización de la actividad',
+        'nuevaActividad.horas' => 'horas de la actividad',
+
+        // Paso 5: Descripción
+        'resumen' => 'resumen',
+        'participacion_unah' => 'participación UNAH',
+        'participacion_contraparte' => 'participación de la contraparte',
+        'participacion_comunidad' => 'participación de la comunidad',
+        'definicion_problema' => 'definición del problema',
+        'alineamiento_reforma' => 'alineamiento con la reforma',
+        'metodologia' => 'metodología',
+        'bibliografia' => 'bibliografía',
+
+        // Paso 6: Beneficiarios y Zona de Impacto
+        'hombres' => 'cantidad de hombres beneficiarios',
+        'mujeres' => 'cantidad de mujeres beneficiarias',
+        'departamento_geo' => 'departamento de la zona de impacto',
+        'departamento_geo.*' => 'departamento de la zona de impacto',
+        'municipio_geo' => 'municipio de la zona de impacto',
+        'municipio_geo.*' => 'municipio de la zona de impacto',
+        'aldea' => 'aldea',
+        'caserio' => 'caserío',
+        'region' => 'región',
+        'pais' => 'país de la zona de impacto',
+        'pais.*' => 'país de la zona de impacto',
+
+        // Paso 7: Marco Lógico (ver también atributosMarcoLogico())
+        'objetivo_general' => 'objetivo general',
+        'objetivosEspecificos' => 'objetivos específicos',
+        'resultadosProyecto' => 'resultados de mediano/largo plazo',
+
+        // Paso 8: Presupuesto
+        'aporte_institucional' => 'aporte institucional',
+        'aporte_contraparte' => 'aporte de la contraparte',
+        'aporte_internacionales' => 'aporte de organismos internacionales',
+        'aporte_otras_universidades' => 'aporte de otras universidades',
+        'aporte_comunidad' => 'aporte de la comunidad',
+        'otros_aportes' => 'otros aportes',
+
+        // Paso 9: Anexos
+        'newAnexos' => 'anexos',
+        'newAnexos.*' => 'anexo',
     ];
 
     protected array $instrumentoTipos = [
@@ -242,14 +353,12 @@ class CreateProyectoVinculacion extends Component
 
     protected array $tipoParticipacionEstudianteOpciones = [
         'Servicio Social o PPS' => 'PPS / Servicio Social',
-        'Practica Profesional' => 'Práctica Profesional',
-        'Practica Asignatura' => 'Asignatura',
+        'Practica Asignatura' => 'Práctica de asignatura/posgrado',
         'Voluntariado' => 'Voluntariado',
     ];
 
     protected array $tipoParticipacionEstudiantePermitidos = [
         'Servicio Social o PPS',
-        'Practica Profesional',
         'Practica Asignatura',
         'Voluntariado',
     ];
@@ -365,6 +474,7 @@ class CreateProyectoVinculacion extends Component
         $this->facultades_centros = $record->facultades_centros->pluck('id')->toArray();
         $this->departamentos_academicos = $record->departamentos_academicos->pluck('id')->toArray();
         $this->carreras = $record->carreras->pluck('id')->toArray();
+        $this->carrera_no_aplica = (bool) ($record->carrera_no_aplica ?? false);
         $this->asignaturas = $record->asignaturas->pluck('id')->toArray();
         $this->programa_pertenece = $record->programa_pertenece ?? '';
         $this->lineas_investigacion_academica = $record->lineas_investigacion_academica ?? '';
@@ -385,7 +495,7 @@ class CreateProyectoVinculacion extends Component
         ])->toArray();
 
         $this->estudiante_proyecto = $record->estudiante_proyecto->map(fn($ep) => [
-            'tipo_participacion_estudiante' => $this->normalizeTipoParticipacionEstudiante($ep->tipo_participacion_estudiante) ?: $ep->tipo_participacion_estudiante,
+            'tipo_participacion_estudiante' => $this->normalizeTipoParticipacionEstudianteLegado($ep->tipo_participacion_estudiante),
             'carrera_id' => $ep->carrera_id,
             'asignatura_id' => $ep->asignatura_id,
             'periodo_academico_id' => $ep->periodo_academico_id,
@@ -400,6 +510,8 @@ class CreateProyectoVinculacion extends Component
             'rtn' => $ip->integranteInternacional?->rtn ?? '',
             'pais' => $ip->integranteInternacional?->pais ?? '',
             'institucion' => $ip->integranteInternacional?->institucion ?? '',
+            'nivel_academico_id' => $ip->integranteInternacional?->nivel_academico_id,
+            'nivel_academico_nombre' => $ip->integranteInternacional?->nivelAcademico?->nombre ?? '',
         ])->toArray();
 
         $this->entidad_contraparte = $record->entidad_contraparte_proyecto()->with('entidadContraparte')->with('instrumentoFormalizacion')->get()->map(fn($pivot) => [
@@ -537,8 +649,14 @@ class CreateProyectoVinculacion extends Component
     {
         $this->resetErrorBag();
 
-        if (!$this->validarPasoActualParaNavegacion()) {
-            return;
+        try {
+            if (!$this->validarPasoActualParaNavegacion()) {
+                $this->dispatch('validation-failed');
+                return;
+            }
+        } catch (ValidationException $e) {
+            $this->dispatch('validation-failed');
+            throw $e;
         }
 
         if ($this->currentStep < 9) {
@@ -564,8 +682,14 @@ class CreateProyectoVinculacion extends Component
         if ($step > $this->currentStep) {
             $this->resetErrorBag();
 
-            if (!$this->validarPasoActualParaNavegacion()) {
-                return;
+            try {
+                if (!$this->validarPasoActualParaNavegacion()) {
+                    $this->dispatch('validation-failed');
+                    return;
+                }
+            } catch (ValidationException $e) {
+                $this->dispatch('validation-failed');
+                throw $e;
             }
         }
 
@@ -643,7 +767,8 @@ class CreateProyectoVinculacion extends Component
                 'facultades_centros.*' => 'integer|exists:centro_facultad,id',
                 'departamentos_academicos' => 'required|array|min:1',
                 'departamentos_academicos.*' => 'integer|exists:departamento_academico,id',
-                'carreras' => 'required|array|min:1',
+                'carrera_no_aplica' => 'boolean',
+                'carreras' => 'required_if:carrera_no_aplica,false|array',
                 'carreras.*' => 'integer|exists:carrera,id',
                 'programa_pertenece' => 'required|string',
                 'lineas_investigacion_academica' => 'required|string',
@@ -680,12 +805,14 @@ class CreateProyectoVinculacion extends Component
                 'mestizos_mujeres_marcado' => 'boolean',
                 'hombres' => 'nullable|integer|min:0',
                 'mujeres' => 'nullable|integer|min:0',
-                'departamento_geo' => 'nullable|array',
+                'departamento_geo' => 'required|array|min:1',
                 'departamento_geo.*' => 'integer|exists:departamento,id',
-                'municipio_geo' => 'nullable|array',
+                'municipio_geo' => 'required|array|min:1',
                 'municipio_geo.*' => 'integer|exists:municipio,id',
-                'aldea' => 'nullable|string|max:255',
-                'caserio' => 'nullable|string|max:255',
+                'aldea' => 'required|string|max:255',
+                'caserio' => 'required|string|max:255',
+                'region' => 'required|string|max:255',
+                'pais' => 'required|array|min:1',
             ],
             7 => [
                 'objetivo_general' => 'required|string',
@@ -775,9 +902,6 @@ class CreateProyectoVinculacion extends Component
             }
         }
 
-        if ($this->currentStep === 6 && empty($this->departamento_geo) && $this->poblacion_participante <= 0) {
-            $this->addError('departamento_geo', 'Complete la zona de impacto o registre beneficiarios para continuar.');
-        }
 
         if ($this->currentStep === 8 && collect($this->aporte_institucional)->sum('costo_total') <= 0) {
             $this->addError('aporte_institucional', 'Registre al menos un aporte institucional para continuar.');
@@ -988,7 +1112,12 @@ class CreateProyectoVinculacion extends Component
                     && !empty($this->experiencia_habilidades_tecnicas)
                     && !empty($this->experiencia_competencias_blandas)
                 )),
-            6 => !empty($this->departamento_geo) || $this->poblacion_participante > 0,
+            6 => !empty($this->departamento_geo)
+                && !empty($this->municipio_geo)
+                && trim((string) $this->aldea) !== ''
+                && trim((string) $this->caserio) !== ''
+                && trim((string) $this->region) !== ''
+                && !empty($this->pais),
             7 => !empty($this->objetivo_general)
                 && $this->marcoLogicoTieneResultadosCompletos(),
             8 => collect($this->aporte_institucional)->sum('costo_total') > 0,
@@ -1047,6 +1176,10 @@ class CreateProyectoVinculacion extends Component
 
         if ($this->esPropiedadAcademicaDependiente($propertyName)) {
             $this->limpiarRelacionesDependientes();
+        }
+
+        if ($propertyName === 'carrera_no_aplica' && $this->carrera_no_aplica) {
+            $this->carreras = [];
         }
 
         if (!$this->autoguardadoActivo || !$this->debeAutoguardar($propertyName)) {
@@ -1174,6 +1307,7 @@ class CreateProyectoVinculacion extends Component
             'fecha_finalizacion' => $this->dateOrNull($this->fecha_finalizacion),
             'programa_pertenece' => $this->programa_pertenece,
             'lineas_investigacion_academica' => $this->lineas_investigacion_academica,
+            'carrera_no_aplica' => $this->carrera_no_aplica,
             'resumen' => $this->resumen,
             'descripcion_participantes' => $this->descripcion_participantes,
             'participacion_unah' => $this->participacion_unah,
@@ -1210,12 +1344,12 @@ class CreateProyectoVinculacion extends Component
         $record->ejes_prioritarios_unah()->sync($this->ids($this->ejes_prioritarios_unah));
         $record->facultades_centros()->sync($this->ids($this->facultades_centros));
         $record->departamentos_academicos()->sync($this->ids($this->departamentos_academicos));
-        $record->carreras()->sync($this->ids($this->carreras));
+        $record->carreras()->sync($this->carrera_no_aplica ? [] : $this->ids($this->carreras));
         // sincronizar asignaturas seleccionadas (si existe la tabla)
         if (Schema::hasTable('proyecto_asignatura')) {
             $record->asignaturas()->sync($this->ids($this->asignaturas));
         }
-        $record->ods()->sync($this->ids($this->ods));
+        $record->ods()->sync($this->odsSyncConOrden());
         $record->departamento()->sync($this->ids($this->departamento_geo));
         $record->municipio()->sync($this->ids($this->municipio_geo));
 
@@ -1939,7 +2073,8 @@ class CreateProyectoVinculacion extends Component
             'facultades_centros.*' => 'integer|exists:centro_facultad,id',
             'departamentos_academicos' => 'required|array|min:1',
             'departamentos_academicos.*' => 'integer|exists:departamento_academico,id',
-            'carreras' => 'required|array|min:1',
+            'carrera_no_aplica' => 'boolean',
+            'carreras' => 'required_if:carrera_no_aplica,false|array',
             'carreras.*' => 'integer|exists:carrera,id',
             'fecha_inicio' => 'required|date',
             'fecha_finalizacion' => 'required|date|after_or_equal:fecha_inicio',
@@ -1957,13 +2092,14 @@ class CreateProyectoVinculacion extends Component
             'fecha_finalizacion' => $this->fecha_finalizacion,
             'programa_pertenece' => $this->programa_pertenece,
             'lineas_investigacion_academica' => $this->lineas_investigacion_academica,
+            'carrera_no_aplica' => $this->carrera_no_aplica,
         ]);
         $record->categoria()->sync($this->categoria);
         $record->ejes_prioritarios_unah()->sync($this->ejes_prioritarios_unah);
         $record->facultades_centros()->sync($this->facultades_centros);
         $record->departamentos_academicos()->sync($this->departamentos_academicos ?? []);
-        $record->carreras()->sync($this->carreras ?? []);
-        $record->ods()->sync($this->ods);
+        $record->carreras()->sync($this->carrera_no_aplica ? [] : ($this->carreras ?? []));
+        $record->ods()->sync($this->odsSyncConOrden());
         Notification::make()->title('Paso I guardado')->success()->send();
     }
 
@@ -1983,6 +2119,23 @@ class CreateProyectoVinculacion extends Component
 
         $this->cargarMetasPorOds();
         $this->autoGuardarBorrador();
+    }
+
+    /**
+     * Construye el arreglo de sincronización para la relación ods() preservando
+     * el orden de selección en la columna pivote `orden` (el primer ODS
+     * seleccionado queda marcado como "ODS principal").
+     */
+    private function odsSyncConOrden(): array
+    {
+        $ids = $this->ids($this->ods);
+        $syncData = [];
+
+        foreach (array_values($ids) as $index => $id) {
+            $syncData[$id] = ['orden' => $index];
+        }
+
+        return $syncData;
     }
 
     private function cargarMetasPorOds(): void
@@ -2158,6 +2311,8 @@ class CreateProyectoVinculacion extends Component
 
         $hasMissingDocument = false;
         foreach ($this->entidad_contraparte as $ci => $item) {
+            $tieneAlMenosUnDocumento = false;
+
             foreach ($item['instrumento_formalizacion'] ?? [] as $ii => $inst) {
                 if (empty($inst['tipo_documento'])) continue;
                 $isExisting = !empty($inst['id']);
@@ -2167,6 +2322,14 @@ class CreateProyectoVinculacion extends Component
                     $this->addError("entidad_contraparte.$ci.instrumento_formalizacion.$ii.documento_file", 'El documento es obligatorio para instrumentos nuevos.');
                     $hasMissingDocument = true;
                 }
+                if ($hasStoredDocument || $hasUploadedDocument) {
+                    $tieneAlMenosUnDocumento = true;
+                }
+            }
+
+            if (!empty($item['nombre']) && !$tieneAlMenosUnDocumento) {
+                $this->addError("entidad_contraparte.$ci", 'Cada contraparte debe tener al menos un documento de instrumento de formalización adjunto.');
+                $hasMissingDocument = true;
             }
         }
         if ($hasMissingDocument) return;
@@ -2293,6 +2456,18 @@ class CreateProyectoVinculacion extends Component
     protected function saveStep6(): void
     {
         $this->calcTotales();
+
+        $this->validate([
+            'departamento_geo' => 'required|array|min:1',
+            'departamento_geo.*' => 'integer|exists:departamento,id',
+            'municipio_geo' => 'required|array|min:1',
+            'municipio_geo.*' => 'integer|exists:municipio,id',
+            'aldea' => 'required|string|max:255',
+            'caserio' => 'required|string|max:255',
+            'region' => 'required|string|max:255',
+            'pais' => 'required|array|min:1',
+        ]);
+
         $record = $this->ensureRecord();
         $record->update([
             'indigenas_hombres_marcado' => $this->indigenas_hombres_marcado,
@@ -2660,6 +2835,7 @@ class CreateProyectoVinculacion extends Component
             'nuevoIntegranteInternacional.email' => 'required|email|max:255',
             'nuevoIntegranteInternacional.pais' => ['required', 'string', 'max:255', Rule::exists('pais', 'nombre')->whereNull('deleted_at')],
             'nuevoIntegranteInternacional.institucion' => 'required|string|max:255',
+            'nuevoIntegranteInternacional.nivel_academico_id' => 'nullable|exists:niveles_academicos,id',
         ])['nuevoIntegranteInternacional'];
 
         $data = [
@@ -2670,6 +2846,7 @@ class CreateProyectoVinculacion extends Component
             'email' => trim($data['email']),
             'pais' => trim($data['pais']),
             'institucion' => trim($data['institucion']),
+            'nivel_academico_id' => $this->nullableInt($data['nivel_academico_id'] ?? null),
         ];
 
         $query = IntegranteInternacional::where('email', $data['email'])
@@ -2685,6 +2862,7 @@ class CreateProyectoVinculacion extends Component
             $integrante = IntegranteInternacional::create($data);
             Notification::make()->title('Integrante internacional creado')->success()->send();
         } else {
+            $integrante->update(['nivel_academico_id' => $data['nivel_academico_id']]);
             Notification::make()->title('Integrante internacional existente seleccionado')->success()->send();
         }
 
@@ -2696,7 +2874,7 @@ class CreateProyectoVinculacion extends Component
 
     protected function resetNuevoIntegranteInternacional(): void
     {
-        $this->nuevoIntegranteInternacional = ['nombre_completo' => '', 'documento_identidad' => '', 'rtn' => '', 'sexo' => '', 'email' => '', 'pais' => '', 'institucion' => ''];
+        $this->nuevoIntegranteInternacional = ['nombre_completo' => '', 'documento_identidad' => '', 'rtn' => '', 'sexo' => '', 'email' => '', 'pais' => '', 'institucion' => '', 'nivel_academico_id' => null];
     }
 
     protected function selectIntegranteInternacional(int $integranteId, array $data = []): void
@@ -2711,6 +2889,8 @@ class CreateProyectoVinculacion extends Component
             'rtn' => $integrante?->rtn ?? ($data['rtn'] ?? ''),
             'pais' => $integrante?->pais ?? ($data['pais'] ?? ''),
             'institucion' => $integrante?->institucion ?? ($data['institucion'] ?? ''),
+            'nivel_academico_id' => $integrante?->nivel_academico_id ?? ($data['nivel_academico_id'] ?? null),
+            'nivel_academico_nombre' => $integrante?->nivelAcademico?->nombre ?? '',
         ];
     }
 
@@ -2938,6 +3118,7 @@ class CreateProyectoVinculacion extends Component
     private function validarInstrumentosContraparteModal(): bool
     {
         $valido = true;
+        $tieneAlMenosUnDocumento = false;
 
         foreach ($this->nuevaContraparte['instrumento_formalizacion'] ?? [] as $ii => $inst) {
             $tipo = $inst['tipo_documento'] ?? '';
@@ -2952,7 +3133,14 @@ class CreateProyectoVinculacion extends Component
             if (!$hasStoredDocument && !$hasUploadedDocument) {
                 $this->addError("nuevaContraparte.instrumento_formalizacion.$ii.documento_file", 'Seleccione el documento del instrumento.');
                 $valido = false;
+            } else {
+                $tieneAlMenosUnDocumento = true;
             }
+        }
+
+        if (!$tieneAlMenosUnDocumento) {
+            $this->addError('nuevaContraparte.instrumento_formalizacion', 'Cada contraparte debe tener al menos un documento de instrumento de formalización adjunto.');
+            $valido = false;
         }
 
         return $valido;
@@ -3316,6 +3504,23 @@ class CreateProyectoVinculacion extends Component
         $this->aporte_institucional[$i]['costo_total'] = (float)($this->aporte_institucional[$i]['cantidad'] ?? 0) * (float)($this->aporte_institucional[$i]['costo_unitario'] ?? 0);
         $this->recalculateAporteInstitucional();
         $this->autoGuardarBorrador();
+    }
+
+    /**
+     * Total general del presupuesto: aporte institucional UNAH + "Otros Aportes".
+     * Debe coincidir exactamente con "TOTAL PROYECTO" en la ficha descargable
+     * (ver ficha-proyecto-vinculacion.blade.php).
+     */
+    public function totalGeneralPresupuesto(): float
+    {
+        $totalInstitucional = collect($this->aporte_institucional)->sum('costo_total');
+        $totalOtrosAportes = (float) $this->aporte_contraparte
+            + (float) $this->aporte_internacionales
+            + (float) $this->aporte_otras_universidades
+            + (float) $this->aporte_comunidad
+            + (float) $this->otros_aportes;
+
+        return $totalInstitucional + $totalOtrosAportes;
     }
 
     // ─── Anexo Methods (Step 9) ───────────────────────────────────────────────
@@ -3915,11 +4120,31 @@ class CreateProyectoVinculacion extends Component
         $n = trim((string) preg_replace('/[^a-z0-9]+/u', '_', $n), '_');
         return match ($n) {
             'pps', 'servicio_social', 'servicio_social_o_pps', 'pps_servicio_social', 'servicio_social_pps' => 'Servicio Social o PPS',
-            'practica_profesional' => 'Practica Profesional',
-            'asignatura', 'practica_asignatura', 'practica_de_asignatura' => 'Practica Asignatura',
+            'asignatura', 'practica_asignatura', 'practica_de_asignatura', 'practica_de_asignatura_posgrado' => 'Practica Asignatura',
             'voluntariado' => 'Voluntariado',
+            // 'Practica Profesional' fue fusionada en 'Servicio Social o PPS' (ver migración
+            // merge_practica_profesional_into_servicio_social). Se mantiene el mapeo aquí como
+            // red de seguridad para registros legados que aún no hayan pasado por la migración.
+            'practica_profesional' => 'Servicio Social o PPS',
             default => '',
         };
+    }
+
+    /**
+     * Igual que normalizeTipoParticipacionEstudiante(), pero para datos ya persistidos
+     * (hidratación de un proyecto existente): si el valor guardado no coincide con ninguna
+     * modalidad reconocida, se normaliza a 'Servicio Social o PPS' en vez de dejarlo vacío,
+     * para no perder la fila ni mostrar una modalidad eliminada del catálogo.
+     */
+    protected function normalizeTipoParticipacionEstudianteLegado(?string $value): string
+    {
+        $normalizado = $this->normalizeTipoParticipacionEstudiante($value);
+
+        if ($normalizado !== '') {
+            return $normalizado;
+        }
+
+        return trim((string) $value) !== '' ? 'Servicio Social o PPS' : '';
     }
 
     protected function isTipoParticipacionAsignatura(?string $value): bool
@@ -3963,8 +4188,8 @@ class CreateProyectoVinculacion extends Component
             ['concepto' => 'gastos_movilizacion', 'concepto_label' => 'c) Gastos de movilización', 'unidad' => 'global', 'unidad_label' => 'Global', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0, 'editable' => true],
             ['concepto' => 'utiles_materiales_oficina', 'concepto_label' => 'd) Útiles y materiales de oficina', 'unidad' => 'global', 'unidad_label' => 'Global', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0, 'editable' => true],
             ['concepto' => 'gastos_impresion', 'concepto_label' => 'e) Gastos de impresión', 'unidad' => 'global', 'unidad_label' => 'Global', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0, 'editable' => true],
-            ['concepto' => 'costos_indirectos_infraestructura', 'concepto_label' => 'f) Costos indirectos por infraestructura', 'unidad' => 'porcentaje', 'unidad_label' => '%', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0, 'editable' => false],
-            ['concepto' => 'costos_indirectos_servicios', 'concepto_label' => 'g) Costos indirectos por servicios públicos', 'unidad' => 'porcentaje', 'unidad_label' => '%', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0, 'editable' => false],
+            ['concepto' => 'costos_indirectos_infraestructura', 'concepto_label' => 'f) Costos indirectos por infraestructura universidad (depreciación de equipo, 3% calculado sobre la sumatoria de los conceptos a – e)', 'unidad' => 'porcentaje', 'unidad_label' => '%', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0, 'editable' => false],
+            ['concepto' => 'costos_indirectos_servicios', 'concepto_label' => 'g) Costos indirectos por servicios públicos (internet, electricidad, otros, 3% calculado sobre la sumatoria de los conceptos a – e)', 'unidad' => 'porcentaje', 'unidad_label' => '%', 'cantidad' => 0, 'costo_unitario' => 0, 'costo_total' => 0, 'editable' => false],
         ];
     }
 
@@ -4046,6 +4271,7 @@ class CreateProyectoVinculacion extends Component
             'internacionales' => IntegranteInternacional::orderBy('nombre_completo')->get()->mapWithKeys(fn($i) => [$i->id => "{$i->nombre_completo} ({$i->pais})"]),
             'contrapartesExistentes' => EntidadContraparte::orderBy('nombre')->get()->mapWithKeys(fn($c) => [$c->id => "{$c->nombre} ({$c->tipo_entidad})"]),
             'paises' => Pais::orderBy('nombre')->pluck('nombre', 'id'),
+            'nivelesAcademicos' => NivelAcademico::where('activo', true)->orderBy('orden')->orderBy('nombre')->pluck('nombre', 'id'),
             'tiposParticipacionEstudiante' => $this->tipoParticipacionEstudianteOpciones,
             'asignaturasOpciones' => $this->asignaturasDisponibles,
             'carrerasSeleccionadas' => $this->carrerasSeleccionadasOptions(),

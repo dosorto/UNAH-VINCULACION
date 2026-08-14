@@ -3,10 +3,10 @@
     @php
         $stepLabels = [
             1 => 'Info General',
-            2 => 'Equipo',
+            2 => 'Equipo Ejecutor',
             3 => 'Contraparte',
-            4 => 'Actividades',
-            5 => 'Descripción',
+            4 => 'Cronograma',
+            5 => 'Formulación',
             6 => 'Beneficiarios',
             7 => 'Marco Lógico',
             8 => 'Presupuesto',
@@ -20,6 +20,12 @@
         if ($event.detail?.id && !window.location.pathname.endsWith('/' + $event.detail.id)) {
             window.history.replaceState({}, '', baseUrl + '/' + $event.detail.id);
         }
+    "
+    x-on:validation-failed.window="
+        $nextTick(() => {
+            const el = document.getElementById('validation-error-summary');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
     "
 >
     @if($esVoluntariado)
@@ -95,6 +101,17 @@
     </div>
 
     <div class="bg-white dark:bg-gray-900 shadow rounded-lg p-6">
+
+        @if($errors->any())
+        <div id="validation-error-summary" class="mb-6 rounded-lg border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700 px-4 py-3">
+            <p class="text-sm font-semibold text-red-800 dark:text-red-300 mb-1">Revise los siguientes campos antes de continuar:</p>
+            <ul class="list-disc list-inside space-y-0.5 text-xs text-red-700 dark:text-red-300">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
 
         {{-- ══════════════════ PASO 1: Información General ══════════════════ --}}
         @if($currentStep === 1)
@@ -180,7 +197,7 @@
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ejes Prioritarios UNAH <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alineamiento Institucional <span class="text-red-500">*</span></label>
                 <div x-data="{
                         selected: $wire.entangle('ejes_prioritarios_unah').live,
                         get valorActual() { return (this.selected && this.selected[0]) ? String(this.selected[0]) : ''; },
@@ -204,7 +221,7 @@
                 $academicMultiSelects = [
                     [
                         'field' => 'facultades_centros',
-                        'label' => 'Facultad o Centros',
+                        'label' => 'Facultad, Centro Universitario Regional o Instituto Tecnológico',
                         'options' => $facultadesCentros,
                         'placeholder' => 'Buscar o seleccionar facultades/centros...',
                         'disabled' => false,
@@ -212,7 +229,7 @@
                     ],
                     [
                         'field' => 'departamentos_academicos',
-                        'label' => 'Departamentos Académicos',
+                        'label' => 'Escuela, Departamento Académico, Técnicos Universitarios, Instituto de Investigación, Observatorio o Consultorio',
                         'options' => $departamentosAcademicos,
                         'placeholder' => 'Buscar o seleccionar departamentos...',
                         'disabled' => empty($facultades_centros) || !$departamentosAcademicos->count(),
@@ -225,17 +242,31 @@
                         'label' => 'Carreras',
                         'options' => $carrerasOpts,
                         'placeholder' => 'Buscar o seleccionar carreras...',
-                        'disabled' => empty($departamentos_academicos) || !$carrerasOpts->count(),
-                        'emptyMessage' => empty($departamentos_academicos)
-                            ? 'Seleccione primero Departamentos Académicos.'
-                            : 'No hay carreras para el Departamento Académico seleccionado.',
+                        'disabled' => $carrera_no_aplica || empty($departamentos_academicos) || !$carrerasOpts->count(),
+                        'emptyMessage' => $carrera_no_aplica
+                            ? 'No aplica: este proyecto no requiere seleccionar carreras.'
+                            : (empty($departamentos_academicos)
+                                ? 'Seleccione primero Departamentos Académicos.'
+                                : 'No hay carreras para el Departamento Académico seleccionado.'),
                     ],
                 ];
             @endphp
 
             @foreach($academicMultiSelects as $field)
-            <div wire:key="academico-{{ $field['field'] }}-{{ md5(json_encode($field['options'])) }}">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ $field['label'] }} <span class="text-red-500">*</span></label>
+            <div wire:key="academico-{{ $field['field'] }}-{{ md5(json_encode($field['options'])) }}-{{ $field['disabled'] ? '1' : '0' }}">
+                <div class="mb-1 flex items-center justify-between gap-3">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ $field['label'] }} <span class="text-red-500">*</span></label>
+                    @if($field['field'] === 'carreras')
+                    <label class="inline-flex cursor-pointer items-center gap-2">
+                        <span class="relative inline-flex h-5 w-9 flex-shrink-0">
+                            <input wire:model.live="carrera_no_aplica" type="checkbox" class="peer sr-only" />
+                            <span class="h-5 w-9 rounded-full bg-slate-200 transition-colors peer-checked:bg-blue-600 dark:bg-slate-700 dark:peer-checked:bg-blue-600"></span>
+                            <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-4"></span>
+                        </span>
+                        <span class="text-xs font-medium text-gray-600 dark:text-gray-300">No aplica</span>
+                    </label>
+                    @endif
+                </div>
                 <div
                     x-data="{
                         open: false,
@@ -333,12 +364,12 @@
 
             {{-- Programa / Líneas --}}
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Programa al que Pertenece <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Programa/Estrategia al que Pertenece <span class="text-red-500">*</span></label>
                 <input type="text" wire:model.live.debounce.1000ms="programa_pertenece" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                 @error('programa_pertenece') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Líneas de Investigación Académica <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Líneas de Investigación de la Unidad Académica <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="lineas_investigacion_academica" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 @error('lineas_investigacion_academica') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
@@ -349,6 +380,10 @@
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">ODS <span class="text-red-500">*</span></label>
                     <span class="text-xs text-gray-500 dark:text-gray-400">Máximo 3</span>
                 </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    Indique el o los ODS a los que pretende contribuir el proyecto y las metas correspondientes. Para esta descripción deberá basarse en el
+                    <a href="https://www.un.org/sustainabledevelopment/es/objetivos-de-desarrollo-sostenible/" target="_blank" rel="noopener" class="underline hover:text-blue-600">documento de ODS de la ONU (Objetivos y metas de desarrollo sostenible)</a>.
+                </p>
                 <div wire:ignore x-data="{
                         open: false,
                         maxOds: 3,
@@ -380,7 +415,7 @@
                         }
                     }" @click.outside="open=false" class="relative">
                     <div @click="open=!open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
-                        <template x-for="id in (selected||[])" :key="id"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"><span x-text="getName(id)"></span><button type="button" @click.stop="toggle(id)" class="font-bold">×</button></span></template>
+                        <template x-for="(id, idx) in (selected||[])" :key="id"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"><span x-show="idx === 0" class="rounded-full bg-blue-700 px-1.5 py-0.5 text-[9px] font-bold uppercase text-white">Principal</span><span x-text="getName(id)"></span><button type="button" @click.stop="toggle(id)" class="font-bold">×</button></span></template>
                         <span x-show="!selected||selected.length===0" class="text-gray-400 text-sm">Seleccione los ODS...</span>
                         <span class="ml-auto text-gray-400 text-xs"><span x-text="(selected || []).length + '/3'"></span> <span x-text="open?'▴':'▾'"></span></span>
                     </div>
@@ -394,7 +429,7 @@
             {{-- Metas (carga automática al seleccionar ODS) --}}
             @if($metasList->count())
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Metas que Contribuye</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Meta(s) a la que se Contribuye</label>
                 <div wire:key="metas-contribuye-{{ md5(json_encode($metasDisponibles)) }}" x-data="{
                         open: false,
                         search: '',
@@ -474,12 +509,12 @@
             {{-- Fechas --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha Inicio <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de Inicio <span class="text-red-500">*</span></label>
                     <input type="date" wire:model.blur="fecha_inicio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                     @error('fecha_inicio') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha Finalización <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de Finalización <span class="text-red-500">*</span></label>
                     <input type="date" wire:model.blur="fecha_finalizacion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                     @error('fecha_finalizacion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
@@ -497,14 +532,17 @@
                 <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold shrink-0">C</div>
                 <div>
                     <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $coordNombre }}</p>
-                    <p class="text-xs text-blue-600 dark:text-blue-400">Coordinador del proyecto</p>
+                    <p class="text-xs text-blue-600 dark:text-blue-400">Coordinador/a del Proyecto</p>
                 </div>
             </div>
 
             {{-- Empleados integrantes --}}
             <div>
                 <div class="flex items-center justify-between mb-3">
-                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Empleados Integrantes</h4>
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Integrantes del Equipo Docente Permanente Tiempo Completo</h4>
+                        <p class="text-xs text-gray-500 mt-0.5">Agregar más líneas de ser necesario.</p>
+                    </div>
                     <button wire:click="openEmpleadoModal" type="button"
                         class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
                         + Agregar empleado
@@ -540,7 +578,7 @@
             <div>
                 <div class="flex items-center justify-between mb-3">
                     <div>
-                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Participación de Estudiantes <span class="text-red-500">*</span></h4>
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Participación de Estudiantes UNAH <span class="text-red-500">*</span></h4>
                         <p class="text-xs text-gray-500 mt-0.5">Debe agregar al menos un grupo para continuar.</p>
                     </div>
                     <button wire:click="openEstudianteModal" type="button"
@@ -604,7 +642,10 @@
             {{-- Integrantes Internacionales --}}
             <div>
                 <div class="flex items-center justify-between mb-3">
-                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Integrantes Internacionales</h4>
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Docentes Internacionales Participantes en el Proyecto</h4>
+                        <p class="text-xs text-gray-500 mt-0.5">Agregar más líneas de ser necesario.</p>
+                    </div>
                     <button wire:click="openInternacionalModal" type="button"
                         class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
                         + Agregar internacional
@@ -619,6 +660,7 @@
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">RTN</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">País</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Institución</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Nivel Académico</th>
                                 <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500"></th>
                             </tr>
                         </thead>
@@ -629,6 +671,7 @@
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['rtn'] ?? '-' }}</td>
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['pais'] ?? '-' }}</td>
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['institucion'] ?? '-' }}</td>
+                                <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['nivel_academico_nombre'] ?? '-' }}</td>
                                 <td class="px-4 py-2 text-right"><button wire:click="removeInternacional({{ $i }})" type="button" class="text-xs text-red-600 hover:text-red-800">Eliminar</button></td>
                             </tr>
                             @endforeach
@@ -825,7 +868,7 @@
             <div class="relative flex min-h-full items-center justify-center p-4">
                 <div class="relative w-full max-w-2xl rounded-lg bg-white dark:bg-gray-900 shadow-xl border border-gray-200 dark:border-gray-700">
                     <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3">
-                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white">Crear / Seleccionar Integrante Internacional</h4>
+                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white">Crear / Seleccionar Docente Internacional</h4>
                         <button wire:click="closeInternacionalModal" type="button" class="text-gray-500 hover:text-gray-800 text-lg leading-none">✕</button>
                     </div>
                     <div class="p-5 space-y-4">
@@ -901,6 +944,16 @@
                                 <input type="text" wire:model.live.debounce.1000ms="nuevoIntegranteInternacional.institucion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                                 @error('nuevoIntegranteInternacional.institucion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
+                            <div class="sm:col-span-2">
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nivel Académico</label>
+                                <select wire:model.live="nuevoIntegranteInternacional.nivel_academico_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500">
+                                    <option value="">Seleccione un nivel académico</option>
+                                    @foreach($nivelesAcademicos as $id => $nombre)
+                                        <option value="{{ $id }}">{{ $nombre }}</option>
+                                    @endforeach
+                                </select>
+                                @error('nuevoIntegranteInternacional.nivel_academico_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
                         </div>
                     </div>
                     <div class="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 px-5 py-3">
@@ -915,10 +968,10 @@
 
         {{-- ══════════════════ PASO 3: Entidades Contraparte ══════════════════ --}}
         @if($currentStep === 3)
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 3: Entidades Contraparte</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 3: Información de la Entidad Contraparte del Proyecto</h3>
         <div class="space-y-4">
             <div class="flex items-center justify-between">
-                <p class="text-sm text-gray-500">Entidades socias del proyecto.</p>
+                <p class="text-sm text-gray-500">Si existe más de una contraparte, añada una entidad por cada una de ellas.</p>
                 <button wire:click="openContraparteModal" type="button"
                     class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
                     + Agregar entidad
@@ -928,11 +981,28 @@
             @php
                 $contrapartesConNombre = collect($entidad_contraparte)->filter(fn($contraparte) => !empty($contraparte['nombre'] ?? null));
                 $instrumentoLabels = [
-                    'carta_formal_solicitud' => 'Carta formal de solicitud',
-                    'carta_intenciones' => 'Carta de intenciones',
-                    'convenio_marco' => 'Convenio marco',
+                    'carta_formal_solicitud' => 'Carta formal de solicitud a la unidad académica',
+                    'carta_intenciones' => 'Carta de intenciones con la UNAH',
+                    'convenio_marco' => 'Convenio marco con la UNAH',
                 ];
+                $tipoContraparteLabels = [
+                    'gobierno_nacional' => 'Gobierno Nacional',
+                    'gobierno_municipal' => 'Gobierno Municipal',
+                    'ong' => 'ONG',
+                    'sociedad_civil' => 'Sociedad Civil Organizada',
+                    'sector_privado' => 'Sector Privado',
+                    'internacional' => 'Internacional',
+                ];
+                $contraparteDocErrors = collect($errors->keys())->filter(fn($k) => preg_match('/^entidad_contraparte\.\d+$/', $k));
             @endphp
+
+            @if($contraparteDocErrors->isNotEmpty())
+            <div class="rounded-md border border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-700 px-3 py-2">
+                @foreach($contraparteDocErrors as $errorKey)
+                    <p class="text-red-600 dark:text-red-400 text-xs">{{ $errors->first($errorKey) }}</p>
+                @endforeach
+            </div>
+            @endif
 
             <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
                 <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
@@ -940,8 +1010,8 @@
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Nombre</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">RTN</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Tipo de entidad</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Contacto</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Tipo de contraparte</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Contacto directo</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Cargo</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Teléfono</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Correo</th>
@@ -959,7 +1029,7 @@
                                     {{ !empty($contraparte['rtn'] ?? null) ? $contraparte['rtn'] : '-' }}
                                 </td>
                                 <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
-                                    {{ !empty($contraparte['tipo_entidad']) ? ucfirst(str_replace('_', ' ', $contraparte['tipo_entidad'])) : 'No especificado' }}
+                                    {{ !empty($contraparte['tipo_entidad']) ? ($tipoContraparteLabels[$contraparte['tipo_entidad']] ?? ucfirst(str_replace('_', ' ', $contraparte['tipo_entidad']))) : 'No especificado' }}
                                 </td>
                                 <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
                                     {{ !empty($contraparte['nombre_contacto'] ?? null) ? $contraparte['nombre_contacto'] : 'No especificado' }}
@@ -1076,25 +1146,25 @@
                                 @error('nuevaContraparte.nombre') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo de Entidad <span class="text-red-500">*</span></label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo de Contraparte <span class="text-red-500">*</span></label>
                                 <select wire:model="nuevaContraparte.tipo_entidad" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500">
                                     <option value="">Seleccione...</option>
-                                    <option value="internacional">Internacional</option>
                                     <option value="gobierno_nacional">Gobierno Nacional</option>
                                     <option value="gobierno_municipal">Gobierno Municipal</option>
                                     <option value="ong">ONG</option>
-                                    <option value="sociedad_civil">Sociedad Civil</option>
+                                    <option value="sociedad_civil">Sociedad Civil Organizada</option>
                                     <option value="sector_privado">Sector Privado</option>
+                                    <option value="internacional">Internacional</option>
                                 </select>
                                 @error('nuevaContraparte.tipo_entidad') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre Contacto</label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre del Contacto Directo</label>
                                 <input type="text" wire:model="nuevaContraparte.nombre_contacto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                                 @error('nuevaContraparte.nombre_contacto') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Cargo</label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Cargo del Contacto del Proyecto</label>
                                 <input type="text" wire:model="nuevaContraparte.cargo_contacto" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                                 @error('nuevaContraparte.cargo_contacto') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -1104,12 +1174,12 @@
                                 @error('nuevaContraparte.telefono') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo</label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo Electrónico</label>
                                 <input type="email" wire:model="nuevaContraparte.correo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                                 @error('nuevaContraparte.correo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div class="sm:col-span-2">
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción de Acuerdos</label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Breve Descripción de los Compromisos Asumidos por la Contraparte</label>
                                 <textarea wire:model="nuevaContraparte.descripcion_acuerdos" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500"></textarea>
                                 @error('nuevaContraparte.descripcion_acuerdos') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -1117,9 +1187,10 @@
                         {{-- Instrumentos de formalización --}}
                         <div class="mt-2">
                             <div class="flex items-center justify-between mb-2">
-                                <p class="text-xs font-semibold text-gray-600 dark:text-gray-400">Instrumentos de Formalización</p>
+                                <p class="text-xs font-semibold text-gray-600 dark:text-gray-400">Tipo de Instrumento que da Lugar a la Alianza <span class="text-red-500">*</span></p>
                                 <button wire:click="addInstrumentoToModal" type="button" class="text-xs text-blue-600 hover:text-blue-800">+ Agregar</button>
                             </div>
+                            @error('nuevaContraparte.instrumento_formalizacion') <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
                             @foreach($nuevaContraparte['instrumento_formalizacion'] ?? [] as $ii => $inst)
                             <div class="mb-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-600">
                                 <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-start">
@@ -1127,9 +1198,9 @@
                                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo de instrumento <span class="text-red-500">*</span></label>
                                         <select wire:model="nuevaContraparte.instrumento_formalizacion.{{ $ii }}.tipo_documento" class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm focus:border-blue-500">
                                             <option value="">Tipo de documento...</option>
-                                            <option value="carta_formal_solicitud">Carta formal de solicitud</option>
-                                            <option value="carta_intenciones">Carta de intenciones</option>
-                                            <option value="convenio_marco">Convenio marco</option>
+                                            <option value="carta_formal_solicitud">Carta formal de solicitud a la unidad académica</option>
+                                            <option value="carta_intenciones">Carta de intenciones con la UNAH</option>
+                                            <option value="convenio_marco">Convenio marco con la UNAH</option>
                                         </select>
                                         @error("nuevaContraparte.instrumento_formalizacion.$ii.tipo_documento") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                     </div>
@@ -1185,12 +1256,14 @@
 
         {{-- ══════════════════ PASO 4: Actividades ══════════════════ --}}
         @if($currentStep === 4)
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 4: Actividades / Cronograma</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 4: Cronograma de las Actividades del Proyecto</h3>
         <div class="space-y-4">
-            <div class="flex items-center justify-between">
-                <p class="text-sm text-gray-500">Actividades del proyecto con responsables y fechas.</p>
+            <div class="flex items-center justify-between gap-4">
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Descripción de todas las actividades enmarcadas en el proyecto, las cuales pueden ser, entre otras, la negociación inicial, la organización de los equipos de trabajo, la planificación, el desarrollo de actividades de capacitación y fortalecimiento, presentación de informe intermedio o parciales, presentación del informe final, proceso de evaluación, proceso de sistematización, publicación de artículo, otras acciones de divulgación.
+                </p>
                 <button wire:click="openActividadModal" type="button"
-                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                    class="inline-flex shrink-0 items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
                     + Agregar actividad
                 </button>
             </div>
@@ -1207,8 +1280,8 @@
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Actividad</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Fecha inicio</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Fecha fin</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Horas</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Responsables</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Horas requeridas</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Responsable</th>
                             <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Acciones</th>
                         </tr>
                     </thead>
@@ -1285,12 +1358,12 @@
                     </div>
                     <div class="p-5 space-y-4">
                         <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción <span class="text-red-500">*</span></label>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Actividad <span class="text-red-500">*</span></label>
                             <textarea wire:model="nuevaActividad.descripcion" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500"></textarea>
                             @error('nuevaActividad.descripcion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Productos a cargo</label>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Producto</label>
                             <textarea wire:model="nuevaActividad.resultados" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500"></textarea>
                             @error('nuevaActividad.resultados') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
@@ -1309,7 +1382,7 @@
                                 @error('nuevaActividad.fecha_finalizacion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Horas</label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Horas Requeridas</label>
                                 <input type="number" wire:model.blur.number="nuevaActividad.horas" min="0" step="1" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                                 @error('nuevaActividad.horas') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -1363,15 +1436,22 @@
 
         {{-- ══════════════════ PASO 5: Descripción ══════════════════ --}}
         @if($currentStep === 5)
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 5: Descripción del Proyecto</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 5: Formulación del Proyecto</h3>
         <div class="space-y-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Resumen <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de los Antecedentes del Proyecto <span class="text-red-500">*</span></label>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Explicar brevemente los antecedentes que dieron su origen y la importancia que tiene para los objetivos estratégicos de la UNAH.</p>
                 <textarea wire:model.live.debounce.1000ms="resumen" rows="8" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 @error('resumen') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de la participación de la UNAH <span class="text-red-500">*</span></label>
+                <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">Descripción de los Participantes del Proyecto</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    Breve descripción de los alcances de la participación de los actores del proyecto. En el caso de la participación de la UNAH, se describirá de manera sucinta, cómo se articula el proyecto de vinculación con las funciones de la docencia (participación de asignaturas) y/o la investigación (si participa un grupo de investigación, o se generan insumos de una investigación en marcha).
+                </p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción de la participación de la UNAH en el proyecto a través de las funciones de docencia e investigación <span class="text-red-500">*</span></label>
                 <textarea wire:model.live.debounce.1000ms="participacion_unah" rows="4" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 @error('participacion_unah') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
@@ -1387,6 +1467,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Definición del Problema <span class="text-red-500">*</span></label>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Breve descripción del problema que se desea resolver, indicando línea base que se tendrá en consideración para la definición de los resultados del proyecto. La línea base debe representarse con datos y debe de describirse las causas del problema identificado.</p>
                 <textarea wire:model.live.debounce.1000ms="definicion_problema" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 @error('definicion_problema') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
@@ -1414,7 +1495,8 @@
             @endif
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alineamiento a la Reforma <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alineamiento con lo Esencial de la Reforma de la UNAH <span class="text-red-500">*</span></label>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Detalle brevemente cómo se alinean los ejes de lo esencial de la reforma en la ejecución de este proyecto. En resumen, describa qué competencias relacionadas con los ejes de lo esencial de la reforma adquirirán los(as) estudiantes con la participación en este proyecto.</p>
                 <textarea wire:model.live.debounce.1000ms="alineamiento_reforma" rows="5" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 @error('alineamiento_reforma') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
@@ -1437,7 +1519,7 @@
         <div class="space-y-6">
             {{-- Tabla beneficiarios por etnia --}}
             <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Beneficiarios por Grupo Étnico</h4>
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Tipo de Población a la que está Dirigido el Proyecto</h4>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Marque los grupos que se atenderán. Puede seleccionar más de una opción.</p>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -1452,7 +1534,7 @@
                             @php
                             $grupos = [
                                 ['label' => 'Indígenas', 'h' => 'indigenas_hombres_marcado', 'm' => 'indigenas_mujeres_marcado'],
-                                ['label' => 'Afroamericanos', 'h' => 'afroamericanos_hombres_marcado', 'm' => 'afroamericanos_mujeres_marcado'],
+                                ['label' => 'Afrodescendientes', 'h' => 'afroamericanos_hombres_marcado', 'm' => 'afroamericanos_mujeres_marcado'],
                                 ['label' => 'Mestizos', 'h' => 'mestizos_hombres_marcado', 'm' => 'mestizos_mujeres_marcado'],
                             ];
                             @endphp
@@ -1495,10 +1577,10 @@
 
             {{-- Zona geográfica --}}
             <div>
-                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Zona de Impacto</h4>
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Sitio de Ejecución del Proyecto</h4>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departamento(s)</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Departamento <span class="text-red-500">*</span></label>
                         <div wire:key="departamentos-impacto" x-data="{
                             open: false,
                             search: '',
@@ -1573,9 +1655,10 @@
                                 </template>
                             </div>
                         </div>
+                        @error('departamento_geo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Municipio(s)</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Municipio <span class="text-red-500">*</span></label>
                         <div wire:key="municipios-impacto-{{ md5(json_encode($departamento_geo)) }}-{{ md5(json_encode($municipiosGeo->keys()->values()->toArray())) }}" x-data="{
                             open: false,
                             search: '',
@@ -1658,18 +1741,82 @@
                                 </template>
                             </div>
                         </div>
+                        @error('municipio_geo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aldea</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">País <span class="text-red-500">*</span></label>
+                        <div wire:key="paises-impacto" x-data="{
+                            open: false,
+                            search: '',
+                            selected: @js(collect($pais)->map(fn($p) => (string) $p)->values()->toArray()),
+                            options: @js($paises->values()->toArray()),
+                            values() { return this.options || []; },
+                            selectedValues() { return (this.selected || []).map(String); },
+                            filteredOptions() {
+                                const term = this.search.trim().toLowerCase();
+                                return this.values().filter(name => !term || String(name).toLowerCase().includes(term));
+                            },
+                            toggle(name) {
+                                const current = this.selectedValues();
+                                const index = current.indexOf(name);
+                                index === -1 ? current.push(name) : current.splice(index, 1);
+                                this.selected = current;
+                                this.search = '';
+                                this.$wire.set('pais', current, true);
+                                this.$nextTick(() => this.$refs.search?.focus());
+                            },
+                            remove(name) {
+                                this.selected = this.selectedValues().filter(value => value !== name);
+                                this.$wire.set('pais', this.selected, true);
+                            },
+                            isSelected(name) { return this.selectedValues().includes(String(name)); }
+                        }" @click.outside="open = false" class="relative">
+                            <div @click="open = true; $nextTick(() => $refs.search?.focus())"
+                                class="min-h-[42px] max-h-24 w-full overflow-y-auto rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-2 cursor-text focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+                                <div class="flex min-w-0 flex-wrap items-center gap-1.5 pr-4">
+                                    <template x-for="name in selectedValues()" :key="name">
+                                        <span class="inline-flex max-w-[180px] items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                            <span class="truncate" x-text="name"></span>
+                                            <button type="button" @click.stop="remove(name)" class="shrink-0 font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
+                                        </span>
+                                    </template>
+                                    <input x-ref="search" x-model="search" @focus="open = true" @keydown.escape="open = false"
+                                        :placeholder="selectedValues().length ? '' : 'Buscar países...'"
+                                        class="min-w-[140px] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 dark:text-white"
+                                        type="text" />
+                                    <span class="ml-auto shrink-0 text-gray-400 text-xs" x-text="open ? '▴' : '▾'"></span>
+                                </div>
+                            </div>
+                            <div x-show="open" x-cloak class="absolute left-0 right-0 z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
+                                <template x-if="filteredOptions().length === 0">
+                                    <div class="px-3 py-2 text-sm text-gray-500">Sin resultados.</div>
+                                </template>
+                                <template x-for="name in filteredOptions()" :key="name">
+                                    <div @click="toggle(name)" class="px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 dark:hover:bg-gray-700 flex items-center justify-between"
+                                        :class="isSelected(name) ? 'bg-blue-50 text-blue-700 font-medium dark:bg-blue-900/30 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'">
+                                        <span x-text="name"></span>
+                                        <span x-show="isSelected(name)" class="text-xs">✓</span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        @error('pais') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aldea <span class="text-red-500">*</span></label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Aplica también para ciudad.</p>
                         <input type="text" wire:model.live.debounce.1000ms="aldea" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                        @error('aldea') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Caserío</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Caserío <span class="text-red-500">*</span></label>
                         <input type="text" wire:model.live.debounce.1000ms="caserio" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                        @error('caserio') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Región</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Región <span class="text-red-500">*</span></label>
                         <input type="text" wire:model.live.debounce.1000ms="region" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                        @error('region') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>
             </div>
@@ -1695,11 +1842,15 @@
 
         {{-- ══════════════════ PASO 7: Marco Lógico ══════════════════ --}}
         @if($currentStep === 7)
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Paso 7: Marco Lógico</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Paso 7: Marco Lógico</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            El indicador de resultado es una medida específica y observable que permite evaluar el grado de cumplimiento de los resultados que se han planteado. Sirven para evaluar en qué medida y calidad se lograron los objetivos del proyecto. Hay tres tipos de resultados: 1) corto plazo, que son los productos que se obtendrán con el proyecto, 2) los de mediano plazo, que son los efectos que alcanzará el proyecto, y 3) los de largo plazo, resultados de impacto.
+        </p>
         <div class="space-y-4">
             {{-- Objetivo General (full width) --}}
             <div class="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <label class="block text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">Objetivo General <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">Objetivo General <span class="text-red-500">*</span></label>
+                <p class="text-xs text-blue-700/80 dark:text-blue-300/80 mb-2">El objetivo debe estar basado en la población participante del proyecto.</p>
                 <textarea wire:model.live.debounce.1000ms="objetivo_general" rows="3" placeholder="Describe el propósito central del proyecto..."
                     class="w-full rounded-md border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                 @error('objetivo_general') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
@@ -1709,13 +1860,14 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {{-- Columna 1: Objetivos Específicos list --}}
                 <div>
-                    <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center justify-between mb-1">
                         <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Objetivos Específicos <span class="text-red-500">*</span></h4>
                         <button wire:click="addObjetivo" type="button"
                             class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
                             + Agregar
                         </button>
                     </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Deben estar relacionados con los resultados que esperan obtener en el proyecto.</p>
                     <div class="space-y-2 max-h-[520px] overflow-y-auto pr-1">
                         @foreach($objetivosEspecificos as $oi => $objetivo)
                         <div wire:key="objetivo-{{ $objetivo['wire_key'] ?? $objetivo['id'] ?? 'nuevo-'.$oi }}" wire:click="selectObjetivo({{ $oi }})" class="cursor-pointer rounded-lg border-2 p-3 transition-colors
@@ -1759,11 +1911,12 @@
 
                 {{-- Columna 3: Resultados Esperados del objetivo activo --}}
                 <div wire:key="objetivo-resultados-{{ $objetivoActivoKey }}" class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">Resultados Esperados <span class="text-red-500">*</span></p>
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">Resultados de Corto Plazo del Proyecto <span class="text-red-500">*</span></p>
                         <button wire:click="addResultado({{ $selectedObjetivoIndex }})" type="button"
                             class="text-xs text-blue-600 hover:text-blue-800">+ Agregar</button>
                     </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Debe plantearse un resultado para cada objetivo específico. Son los productos que se lograrán a corto plazo.</p>
                     @error("objetivosEspecificos.{$selectedObjetivoIndex}.resultados") <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
                     <div class="space-y-2 max-h-[420px] overflow-y-auto pr-1">
                         @foreach($objActivo['resultados'] ?? [] as $ri => $resultado)
@@ -1815,7 +1968,10 @@
                         + Agregar
                     </button>
                 </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Efectos e impacto esperados del proyecto en mediano y largo plazo.</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    Mediano plazo: son los efectos que se esperan alcanzar del proyecto, es decir, la transformación esperada en la población beneficiada.
+                    Largo plazo (impacto): debe expresar los indicadores de impacto que se desea generar en el proyecto.
+                </p>
                 @error('resultadosProyecto') <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     @foreach($resultadosProyecto as $ri => $resultadoProyecto)
@@ -1866,10 +2022,10 @@
 
         {{-- ══════════════════ PASO 8: Presupuesto ══════════════════ --}}
         @if($currentStep === 8)
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 8: Presupuesto</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 8: Detalle del Presupuesto</h3>
         <div class="space-y-6">
             <div>
-                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Aporte Institucional UNAH</h4>
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Aporte Institucional (Manifestado en Lempiras)</h4>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                         <thead class="bg-gray-50 dark:bg-gray-800">
@@ -1892,7 +2048,7 @@
                             </tr>
                             @endforeach
                             <tr class="border-t-2 border-gray-400 dark:border-gray-500 bg-gray-50 dark:bg-gray-800">
-                                <td colspan="4" class="py-2 px-3 text-sm font-semibold text-gray-700 dark:text-gray-300">Total Aporte UNAH</td>
+                                <td colspan="4" class="py-2 px-3 text-sm font-semibold text-gray-700 dark:text-gray-300">Total Aporte Institucional</td>
                                 <td class="py-2 px-3 text-center font-bold text-gray-900 dark:text-white">L. {{ number_format(collect($aporte_institucional)->sum('costo_total'), 2) }}</td>
                             </tr>
                         </tbody>
@@ -1900,31 +2056,40 @@
                 </div>
             </div>
             <div>
-                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Otros Aportes (Lempiras)</h4>
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Otras Aportaciones (Manifestado en Lempiras)</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">El aporte de la institución contraparte y de la comunidad deberá ser certificado al finalizar el proyecto mediante documento de declaración firmada por el representante legal de la entidad contraparte y/o comunidad. De no poder contarse con este documento, no se deberá detallar este dato.</p>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     @php
                     $aportes = [
-                        ['field' => 'aporte_contraparte',        'label' => 'Aporte Contraparte'],
-                        ['field' => 'aporte_internacionales',    'label' => 'Aporte Internacionales'],
-                        ['field' => 'aporte_otras_universidades','label' => 'Otras Universidades'],
-                        ['field' => 'aporte_comunidad',          'label' => 'Aporte Comunidad'],
+                        ['field' => 'aporte_contraparte',        'label' => 'Aporte de la Contraparte'],
+                        ['field' => 'aporte_internacionales',    'label' => 'Aporte Fondos Internacionales'],
+                        ['field' => 'aporte_otras_universidades','label' => 'Aporte de Otras Universidades'],
+                        ['field' => 'aporte_comunidad',          'label' => 'Aporte de los Beneficiarios (Comunidad)'],
                         ['field' => 'otros_aportes',             'label' => 'Otros Aportes'],
                     ];
                     @endphp
                     @foreach($aportes as $a)
                     <div>
                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ $a['label'] }}</label>
-                        <input type="number" wire:model="{{ $a['field'] }}" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                        <input type="number" wire:model.live.debounce.500ms="{{ $a['field'] }}" min="0" step="0.01" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
                     </div>
                     @endforeach
                 </div>
+            </div>
+            <div class="rounded-lg border-2 border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 p-4 flex items-center justify-between">
+                <span class="text-sm font-semibold text-blue-900 dark:text-blue-200">Total Proyecto (Aporte Institucional + Otras Aportaciones)</span>
+                <span class="text-lg font-bold text-blue-900 dark:text-blue-100">L. {{ number_format($this->totalGeneralPresupuesto(), 2) }}</span>
             </div>
         </div>
         @endif
 
         {{-- ══════════════════ PASO 9: Anexos ══════════════════ --}}
         @if($currentStep === 9)
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Paso 9: Anexos</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Paso 9: Anexos</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-5">
+            Documentos adjuntos a la ficha: 1) Carta de solicitud del proyecto firmada por el representante legal de la contraparte, 2) Convenio/carta de intenciones firmada entre la UNAH y la contraparte, 3) Oficio de remisión del Decano/Director del Centro Regional, 4) Otros (detallar).
+            El documento 1 o el documento 2 (cualquiera de los dos) es obligatorio; los documentos 2 y 3 son obligatorios.
+        </p>
         <div class="space-y-4">
             <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
                 <div class="space-y-3">

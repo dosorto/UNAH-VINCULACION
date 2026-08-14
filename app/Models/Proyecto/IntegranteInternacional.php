@@ -2,7 +2,9 @@
 
 namespace App\Models\Proyecto;
 
+use App\Models\NivelAcademico;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -22,6 +24,7 @@ class IntegranteInternacional extends Model
         'email',
         'pais',
         'institucion',
+        'nivel_academico_id',
     ];
 
     protected $casts = [
@@ -43,6 +46,11 @@ class IntegranteInternacional extends Model
     }
 
     // Relaciones
+    public function nivelAcademico(): BelongsTo
+    {
+        return $this->belongsTo(NivelAcademico::class, 'nivel_academico_id');
+    }
+
     public function proyectos(): BelongsToMany
     {
         return $this->belongsToMany(

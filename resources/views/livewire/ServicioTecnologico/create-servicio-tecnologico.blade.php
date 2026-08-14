@@ -215,7 +215,7 @@
                                 <td class="py-1 px-3"><input type="number" wire:model="indigenas_mujeres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
                             </tr>
                             <tr>
-                                <td class="py-1 pr-6 text-gray-700 dark:text-gray-300">Afroamericanos</td>
+                                <td class="py-1 pr-6 text-gray-700 dark:text-gray-300">Afrodescendientes</td>
                                 <td class="py-1 px-3"><input type="number" wire:model="afroamericanos_hombres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
                                 <td class="py-1 px-3"><input type="number" wire:model="afroamericanos_mujeres" wire:change="calcTotales" min="0" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-sm text-center" /></td>
                             </tr>

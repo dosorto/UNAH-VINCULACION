@@ -232,6 +232,7 @@ class Proyecto extends Model
         'numero_dictamen',
         'programa_pertenece',
         'lineas_investigacion_academica',
+        'carrera_no_aplica',
         'responsable_revision_id',
         'flujo_aprobacion_id',
         // FORM-DVUS-015 (Voluntariado Académico)
@@ -254,6 +255,7 @@ class Proyecto extends Model
         'region' => 'array',
         'caserio' => 'array',
         'metodologia_seguimiento' => 'array',
+        'carrera_no_aplica' => 'boolean',
     ];
 
     // funcion para capturar cada ves que se crea un proyecto
@@ -484,7 +486,9 @@ class Proyecto extends Model
     // relacion muchos a muchos con el modelo categoria
     public function ods()
     {
-        return $this->belongsToMany(Od::class, 'proyecto_ods', 'proyecto_id', 'ods_id');
+        return $this->belongsToMany(Od::class, 'proyecto_ods', 'proyecto_id', 'ods_id')
+            ->withPivot('orden')
+            ->orderBy('proyecto_ods.orden');
     }
 
     // relacion muchos a muchos con las metas de ODS
