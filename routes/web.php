@@ -30,6 +30,7 @@ use App\Http\Controllers\SetRoleController;
 use App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
 use App\Livewire\Configuracion\IntegracionesApi;
 use App\Livewire\Configuracion\JornadaLaboral\JornadaLaboralList;
+use App\Livewire\Configuracion\NivelAcademico\NivelAcademicoList;
 use App\Livewire\Configuracion\Logs\ListLogs;
 use App\Livewire\Constancia\ListConstancias;
 use App\Livewire\DAFT\Catalogos\DaftCatalogos;
@@ -334,6 +335,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('configuracion/jornada-laboral', JornadaLaboralList::class)
             ->name('configuracion.jornada-laboral')
             ->middleware('can:configuracion.jornada-laboral');
+
+        Route::get('configuracion/nivel-academico', NivelAcademicoList::class)
+            ->name('configuracion.nivel-academico')
+            ->middleware('can:configuracion.nivel-academico');
 
         Route::get('configuracion/integraciones-api', IntegracionesApi::class)
             ->name('configuracion.integraciones-api')
