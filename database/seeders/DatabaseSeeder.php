@@ -14,6 +14,7 @@ use Database\Seeders\Demografia\MunicipioSeeder;
 use Database\Seeders\Personal\PermisosSeeder;
 use Database\Seeders\EjesPrioritariosUnahSeeder;
 use Database\Seeders\Proyecto\MetasContribuyeSeeder;
+use Database\Seeders\Proyecto\TipoAnexoSeeder;
 use Database\Seeders\ENF\EnfCatalogoSeeder;
 use Database\Seeders\NivelAcademicoSeeder;
 
@@ -39,6 +40,7 @@ class DatabaseSeeder extends Seeder
         $this->call(EjesPrioritariosUnahSeeder::class);
         $this->call(CarreraDepartamentoSeeder::class);
         $this->call(MetasContribuyeSeeder::class);
+        $this->call(TipoAnexoSeeder::class);
         $this->call(EnfCatalogoSeeder::class);
         $this->call(NivelAcademicoSeeder::class);
 

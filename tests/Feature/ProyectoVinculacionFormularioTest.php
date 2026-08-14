@@ -5,8 +5,12 @@ namespace Tests\Feature;
 use App\Http\Controllers\PDFController;
 use App\Livewire\Docente\Proyectos\ProyectosDocenteList;
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
+use App\Models\NivelAcademico;
 use App\Models\PeriodoAcademico;
+use App\Models\Proyecto\Anexo;
+use App\Models\Proyecto\IntegranteInternacional;
 use App\Models\Proyecto\Proyecto;
+use App\Models\Proyecto\TipoAnexo;
 use Database\Seeders\UnidadAcademica\PeriodoAcademicoSeeder;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
@@ -26,10 +30,11 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $component->fecha_finalizacion = '2026-07-01';
         $component->actividades = [[
             'descripcion' => 'Jornada comunitaria',
+            'resultados' => 'Producto esperado',
             'fecha_inicio' => '2026-07-01',
             'fecha_finalizacion' => '2026-07-05',
             'horas' => 12,
-            'empleados' => [],
+            'empleados' => [1],
         ]];
 
         $component->nextStep();
@@ -45,10 +50,11 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $component->fecha_finalizacion = '2026-07-01';
         $component->actividades = [[
             'descripcion' => 'Actividad registrada posteriormente',
+            'resultados' => 'Producto esperado',
             'fecha_inicio' => '2026-05-10',
             'fecha_finalizacion' => '2026-05-15',
             'horas' => 12,
-            'empleados' => [],
+            'empleados' => [1],
         ]];
 
         $component->nextStep();
@@ -64,10 +70,11 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $component->fecha_finalizacion = '2026-07-01';
         $component->actividades = [[
             'descripcion' => 'Actividad iniciada antes',
+            'resultados' => 'Producto esperado',
             'fecha_inicio' => '2026-06-30',
             'fecha_finalizacion' => '2026-07-01',
             'horas' => 10,
-            'empleados' => [],
+            'empleados' => [1],
         ]];
 
         $component->nextStep();
@@ -81,10 +88,11 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $component->currentStep = 4;
         $component->actividades = [[
             'descripcion' => 'Jornada comunitaria',
+            'resultados' => 'Producto esperado',
             'fecha_inicio' => '2026-07-01',
             'fecha_finalizacion' => '2026-07-01',
             'horas' => 8,
-            'empleados' => [],
+            'empleados' => [1],
         ]];
 
         $component->nextStep();
@@ -100,10 +108,11 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $component->fecha_finalizacion = '2026-07-01';
         $component->actividades = [[
             'descripcion' => 'Jornada comunitaria',
+            'resultados' => 'Producto esperado',
             'fecha_inicio' => '2026-07-01',
             'fecha_finalizacion' => '2026-07-05',
             'horas' => 80,
-            'empleados' => [],
+            'empleados' => [1],
         ]];
 
         $component->nextStep();
@@ -117,10 +126,11 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $component->currentStep = 4;
         $component->actividades = [[
             'descripcion' => 'Jornada comunitaria',
+            'resultados' => 'Producto esperado',
             'fecha_inicio' => '2026-07-03',
             'fecha_finalizacion' => '2026-07-01',
             'horas' => 12,
-            'empleados' => [],
+            'empleados' => [1],
         ]];
 
         $component->nextStep();
@@ -135,10 +145,11 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $component->currentStep = 4;
         $component->actividades = [[
             'descripcion' => 'Jornada comunitaria',
+            'resultados' => 'Producto esperado',
             'fecha_inicio' => '',
             'fecha_finalizacion' => '2026-05-10',
             'horas' => 12,
-            'empleados' => [],
+            'empleados' => [1],
         ]];
 
         try {
@@ -156,10 +167,11 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $component->currentStep = 4;
         $component->actividades = [[
             'descripcion' => 'Jornada comunitaria',
+            'resultados' => 'Producto esperado',
             'fecha_inicio' => '2026-05-10',
             'fecha_finalizacion' => '',
             'horas' => 12,
-            'empleados' => [],
+            'empleados' => [1],
         ]];
 
         try {
@@ -169,6 +181,65 @@ class ProyectoVinculacionFormularioTest extends TestCase
             $this->assertArrayHasKey('actividades.0.fecha_finalizacion', $exception->validator->errors()->toArray());
             $this->assertSame(4, $component->currentStep);
         }
+    }
+
+    public function test_actividad_exige_producto_horas_positivas_y_responsables(): void
+    {
+        $component = $this->formComponent();
+        $component->currentStep = 4;
+        $component->actividades = [[
+            'descripcion' => 'Jornada comunitaria',
+            'resultados' => '',
+            'fecha_inicio' => '2026-08-14',
+            'fecha_finalizacion' => '2026-08-14',
+            'horas' => 0,
+            'empleados' => [],
+        ]];
+
+        try {
+            $component->nextStep();
+            $this->fail('El paso 4 avanzó con campos obligatorios incompletos.');
+        } catch (ValidationException $exception) {
+            $errores = $exception->validator->errors();
+
+            $this->assertTrue($errores->has('actividades.0.resultados'));
+            $this->assertTrue($errores->has('actividades.0.horas'));
+            $this->assertTrue($errores->has('actividades.0.empleados'));
+            $this->assertSame(4, $component->currentStep);
+        }
+    }
+
+    public function test_horas_docentes_suman_horas_por_responsables_de_todas_las_actividades(): void
+    {
+        $component = $this->formComponent();
+        $component->actividades = [
+            ['horas' => 12, 'empleados' => [1, 2]],
+            ['horas' => 5, 'empleados' => ['2', '3', '3']],
+            ['horas' => 8, 'empleados' => []],
+        ];
+        $component->aporte_institucional = [[
+            'concepto' => 'horas_trabajo_docentes',
+            'cantidad' => 999,
+            'costo_unitario' => 500,
+            'costo_total' => 499500,
+        ]];
+
+        $method = new \ReflectionMethod(CreateProyectoVinculacion::class, 'recalculateAporteInstitucional');
+        $method->setAccessible(true);
+        $method->invoke($component);
+
+        $aporteDocentes = collect($component->aporte_institucional)
+            ->firstWhere('concepto', 'horas_trabajo_docentes');
+
+        $this->assertSame(34, $component->totalHorasTrabajoDocentes());
+        $this->assertSame(34, $aporteDocentes['cantidad']);
+        $this->assertSame(17000.0, $aporteDocentes['costo_total']);
+
+        $vista = file_get_contents(resource_path('views/livewire/proyectos/vinculacion/create-proyecto-vinculacion.blade.php'));
+        $this->assertStringContainsString(
+            "@readonly((\$aporte['concepto'] ?? '') === 'horas_trabajo_docentes')",
+            $vista
+        );
     }
 
     public function test_editar_actividad_de_varios_dias_conserva_las_fechas_pasadas(): void
@@ -566,6 +637,111 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $this->assertStringContainsString("(selected || []).length + '/3'", $vista);
     }
 
+    public function test_paso_uno_se_marca_completo_cuando_la_carrera_no_aplica(): void
+    {
+        $component = $this->formComponent();
+        $component->recordId = 10;
+        $component->nombre_proyecto = 'Proyecto sin carrera';
+        $component->modalidad_id = 1;
+        $component->categoria = [1];
+        $component->ejes_prioritarios_unah = [1];
+        $component->facultades_centros = [1];
+        $component->departamentos_academicos = [1];
+        $component->carreras = [];
+        $component->carrera_no_aplica = true;
+        $component->programa_pertenece = 'Programa institucional';
+        $component->lineas_investigacion_academica = 'Línea institucional';
+        $component->ods = [1];
+        $component->fecha_inicio = '2026-08-01';
+        $component->fecha_finalizacion = '2026-08-31';
+
+        $this->assertTrue($component->isStepComplete(1));
+
+        $component->carrera_no_aplica = false;
+
+        $this->assertFalse($component->isStepComplete(1));
+    }
+
+    public function test_aportes_vacios_se_calculan_como_cero_sin_error_de_tipo(): void
+    {
+        $component = $this->formComponent();
+        $component->aporte_institucional = [['costo_total' => 125.50]];
+
+        foreach ([
+            'aporte_contraparte',
+            'aporte_internacionales',
+            'aporte_otras_universidades',
+            'aporte_comunidad',
+            'otros_aportes',
+        ] as $campo) {
+            $component->{$campo} = '';
+        }
+
+        $this->assertSame(125.50, $component->totalGeneralPresupuesto());
+    }
+
+    public function test_fila_internacional_refleja_el_nivel_academico_seleccionado(): void
+    {
+        $nivel = new NivelAcademico(['nombre' => 'Maestría']);
+        $nivel->id = 2;
+
+        $integrante = new IntegranteInternacional([
+            'nombre_completo' => 'Docente internacional',
+            'rtn' => 'INT-2026',
+            'sexo' => 'femenino',
+            'pais' => 'Guatemala',
+            'institucion' => 'Universidad internacional',
+            'nivel_academico_id' => 2,
+        ]);
+        $integrante->id = 15;
+        $integrante->setRelation('nivelAcademico', $nivel);
+
+        $method = new \ReflectionMethod(CreateProyectoVinculacion::class, 'filaIntegranteInternacional');
+        $method->setAccessible(true);
+        $fila = $method->invoke($this->formComponent(), $integrante);
+
+        $this->assertSame(2, $fila['nivel_academico_id']);
+        $this->assertSame('Maestría', $fila['nivel_academico_nombre']);
+        $this->assertSame('femenino', $fila['sexo']);
+    }
+
+    public function test_formulario_internacional_incluye_edicion_y_nivel_obligatorio(): void
+    {
+        $vista = file_get_contents(resource_path('views/livewire/proyectos/vinculacion/create-proyecto-vinculacion.blade.php'));
+        $componente = file_get_contents(app_path('Livewire/Proyectos/Vinculacion/CreateProyectoVinculacion.php'));
+
+        $this->assertStringContainsString('wire:click="openInternacionalModal({{ $i }})"', $vista);
+        $this->assertStringContainsString("'Editar Docente Internacional'", $vista);
+        $this->assertStringContainsString("'Actualizar docente'", $vista);
+        $this->assertStringContainsString("'nuevoIntegranteInternacional.nivel_academico_id' => [", $componente);
+        $this->assertStringContainsString("'nuevoIntegranteInternacional.sexo' => 'required|in:masculino,femenino'", $componente);
+        $this->assertStringContainsString('Seleccione el sexo para contabilizar al docente en la ficha.', $componente);
+        $this->assertStringContainsString("'required',", $componente);
+    }
+
+    public function test_paso_de_equipo_requiere_sexo_y_nivel_para_reflejar_docente_en_ficha(): void
+    {
+        $component = $this->formComponent();
+        $component->recordId = 70;
+        $component->estudiante_proyecto = [[
+            'tipo_participacion_estudiante' => 'Voluntariado',
+            'cantidad_estudiantes_hombres' => 1,
+            'cantidad_estudiantes_mujeres' => 0,
+        ]];
+        $component->integrante_internacional_proyecto = [[
+            'integrante_internacional_id' => 3,
+            'nivel_academico_id' => 3,
+            'nivel_academico_nombre' => 'Doctorado/Posgrado',
+            'sexo' => '',
+        ]];
+
+        $this->assertFalse($component->isStepComplete(2));
+
+        $component->integrante_internacional_proyecto[0]['sexo'] = 'masculino';
+
+        $this->assertTrue($component->isStepComplete(2));
+    }
+
     public function test_grupo_de_estudiantes_no_se_guarda_con_total_cero(): void
     {
         $component = $this->formComponent();
@@ -619,6 +795,71 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $seeder = file_get_contents((new \ReflectionClass(PeriodoAcademicoSeeder::class))->getFileName());
         $this->assertStringContainsString('PeriodoAcademico::NOMBRES_BASE', $seeder);
         $this->assertStringContainsString("firstOrCreate(['nombre' => \$nombre])", $seeder);
+    }
+
+    public function test_catalogo_de_anexos_contiene_los_cuatro_tipos_solicitados(): void
+    {
+        $this->assertSame([
+            'Carta de solicitud del proyecto firmada por el representante legal de la contraparte',
+            'Convenio/carta de intenciones firmada entre la UNAH y contraparte',
+            'Oficio de remisión del Decano/Director Centro Regional',
+            'Otros (detallar)',
+        ], array_column(TipoAnexo::TIPOS_BASE, 'nombre'));
+
+        $this->assertFalse(TipoAnexo::TIPOS_BASE[0]['requiere_detalle']);
+        $this->assertTrue(TipoAnexo::TIPOS_BASE[3]['requiere_detalle']);
+
+        $seeder = file_get_contents(database_path('seeders/Proyecto/TipoAnexoSeeder.php'));
+        $this->assertStringContainsString('TipoAnexo::TIPOS_BASE', $seeder);
+        $this->assertStringContainsString("['codigo' => \$datos['codigo']]", $seeder);
+    }
+
+    public function test_anexos_se_cargan_desde_modal_y_se_muestran_en_tabla_con_tipo(): void
+    {
+        $vista = file_get_contents(resource_path('views/livewire/proyectos/vinculacion/create-proyecto-vinculacion.blade.php'));
+        $componente = file_get_contents(app_path('Livewire/Proyectos/Vinculacion/CreateProyectoVinculacion.php'));
+
+        $this->assertStringContainsString('wire:click="openAnexoModal"', $vista);
+        $this->assertStringContainsString('wire:model.live="nuevoAnexoTipoId"', $vista);
+        $this->assertStringContainsString('Seleccione o suelte sus documentos aquí', $vista);
+        $this->assertStringContainsString('$anexo->tipoAnexo?->nombre', $vista);
+        $this->assertStringContainsString('Detalle el tipo de documento que está adjuntando.', $componente);
+        $this->assertStringContainsString("'nombre_archivo' => mb_substr", $componente);
+
+        $anexo = new Anexo([
+            'tipo_anexo_id' => 4,
+            'documento_url' => 'anexos/archivo.pdf',
+            'nombre_archivo' => 'Carta firmada.pdf',
+            'detalle' => 'Documento complementario',
+        ]);
+
+        $this->assertSame(4, $anexo->tipo_anexo_id);
+        $this->assertSame('Carta firmada.pdf', $anexo->nombre_archivo);
+        $this->assertSame('Documento complementario', $anexo->detalle);
+    }
+
+    public function test_paso_de_anexos_exige_documento_uno_o_dos_y_documento_tres(): void
+    {
+        $component = $this->formComponent();
+        $component->recordId = 70;
+
+        $component->codigosTiposAnexoAdjuntos = [
+            TipoAnexo::CODIGO_CARTA_SOLICITUD,
+            TipoAnexo::CODIGO_OFICIO_REMISION,
+        ];
+        $this->assertTrue($component->isStepComplete(9));
+
+        $component->codigosTiposAnexoAdjuntos = [
+            TipoAnexo::CODIGO_CONVENIO_CARTA,
+            TipoAnexo::CODIGO_OFICIO_REMISION,
+        ];
+        $this->assertTrue($component->isStepComplete(9));
+
+        $component->codigosTiposAnexoAdjuntos = [TipoAnexo::CODIGO_OFICIO_REMISION];
+        $this->assertFalse($component->isStepComplete(9));
+
+        $component->codigosTiposAnexoAdjuntos = [TipoAnexo::CODIGO_CARTA_SOLICITUD];
+        $this->assertFalse($component->isStepComplete(9));
     }
 
     private function formComponent(): CreateProyectoVinculacion

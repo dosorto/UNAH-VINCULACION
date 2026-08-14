@@ -16,6 +16,7 @@ use App\Models\Proyecto\EjesPrioritariosUnah;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\MetaContribuye;
 use App\Models\Proyecto\IntegranteInternacional;
+use App\Models\Proyecto\TipoAnexo;
 use App\Models\NivelAcademico;
 use App\Models\Proyecto\EntidadContraparte;
 use App\Models\Proyecto\FlujoAprobacion;
@@ -104,6 +105,7 @@ class CreateProyectoVinculacion extends Component
     public ?int $nuevaAsignaturaCarreraId = null;
 
     public bool $showInternacionalModal = false;
+    public ?int $editIntegranteInternacionalIndex = null;
     public $integranteInternacionalSeleccionadoId = null;
     public array $nuevoIntegranteInternacional = [
         'nombre_completo' => '',
@@ -173,16 +175,20 @@ class CreateProyectoVinculacion extends Component
 
     // Step 8 (was 7) – presupuesto
     public array $aporte_institucional = [];
-    public float $aporte_contraparte = 0;
-    public float $aporte_internacionales = 0;
-    public float $aporte_otras_universidades = 0;
-    public float $aporte_comunidad = 0;
-    public float $otros_aportes = 0;
+    public int|float|string|null $aporte_contraparte = 0;
+    public int|float|string|null $aporte_internacionales = 0;
+    public int|float|string|null $aporte_otras_universidades = 0;
+    public int|float|string|null $aporte_comunidad = 0;
+    public int|float|string|null $otros_aportes = 0;
 
     // Step 9 (was 8) – anexos
     public array $newAnexos = [];
     public int $anexosCount = 0;
+    public array $codigosTiposAnexoAdjuntos = [];
     public int $anexoUploadKey = 0;
+    public bool $showAnexoModal = false;
+    public int|string|null $nuevoAnexoTipoId = null;
+    public string $nuevoAnexoDetalle = '';
 
     // Modal de envío por flujo
     public bool $showEnviarModal = false;
@@ -284,14 +290,17 @@ class CreateProyectoVinculacion extends Component
         // Paso 4: Actividades
         'actividades' => 'actividades',
         'actividades.*.descripcion' => 'descripción de la actividad',
+        'actividades.*.resultados' => 'producto de la actividad',
         'actividades.*.fecha_inicio' => 'fecha de inicio de la actividad',
         'actividades.*.fecha_finalizacion' => 'fecha de finalización de la actividad',
+        'actividades.*.horas' => 'horas requeridas de la actividad',
         'actividades.*.empleados' => 'responsables de la actividad',
         'nuevaActividad.descripcion' => 'descripción de la actividad',
         'nuevaActividad.resultados' => 'productos a cargo',
         'nuevaActividad.fecha_inicio' => 'fecha de inicio de la actividad',
         'nuevaActividad.fecha_finalizacion' => 'fecha de finalización de la actividad',
         'nuevaActividad.horas' => 'horas de la actividad',
+        'nuevaActividad.empleados' => 'responsables de la actividad',
 
         // Paso 5: Descripción
         'resumen' => 'resumen',
@@ -332,6 +341,8 @@ class CreateProyectoVinculacion extends Component
         // Paso 9: Anexos
         'newAnexos' => 'anexos',
         'newAnexos.*' => 'anexo',
+        'nuevoAnexoTipoId' => 'tipo de documento',
+        'nuevoAnexoDetalle' => 'detalle del documento',
     ];
 
     protected array $instrumentoTipos = [
@@ -379,6 +390,14 @@ class CreateProyectoVinculacion extends Component
         'mujeres',
     ];
 
+    private const CAMPOS_OTROS_APORTES = [
+        'aporte_contraparte',
+        'aporte_internacionales',
+        'aporte_otras_universidades',
+        'aporte_comunidad',
+        'otros_aportes',
+    ];
+
     public function mount(?int $record = null): void
     {
         $this->tipo_accion_id = request()->integer('tipo_accion_id') ?: null;
@@ -394,7 +413,7 @@ class CreateProyectoVinculacion extends Component
                 $this->proyectoId = $proyecto->id;
                 $this->tipo_accion_id = $proyecto->tipo_accion_id ?: $this->tipo_accion_id;
                 $this->loadFromRecord($proyecto);
-                $this->anexosCount = $proyecto->anexos()->count();
+                $this->actualizarEstadoAnexos($proyecto);
             }
         }
         $this->resolverEsVoluntariado();
@@ -450,10 +469,10 @@ class CreateProyectoVinculacion extends Component
             'actividades.empleados',
             'presupuesto',
             'ods',
-            'anexos',
+            'anexos.tipoAnexo',
             'coordinador_proyecto',
             'empleado_proyecto.empleado',
-            'integrante_internacional_proyecto.integranteInternacional',
+            'integrante_internacional_proyecto.integranteInternacional.nivelAcademico',
             'aporteInstitucional',
             'categoria',
             'ejes_prioritarios_unah',
@@ -508,6 +527,7 @@ class CreateProyectoVinculacion extends Component
             'integrante_internacional_id' => $ip->integrante_internacional_id,
             'nombre' => $ip->integranteInternacional?->nombre_completo ?? '',
             'rtn' => $ip->integranteInternacional?->rtn ?? '',
+            'sexo' => $ip->integranteInternacional?->sexo ?? '',
             'pais' => $ip->integranteInternacional?->pais ?? '',
             'institucion' => $ip->integranteInternacional?->institucion ?? '',
             'nivel_academico_id' => $ip->integranteInternacional?->nivel_academico_id,
@@ -792,8 +812,12 @@ class CreateProyectoVinculacion extends Component
             4 => [
                 'actividades' => 'required|array|min:1',
                 'actividades.*.descripcion' => 'required|string',
+                'actividades.*.resultados' => 'required|string',
                 'actividades.*.fecha_inicio' => 'required|date',
                 'actividades.*.fecha_finalizacion' => 'required|date',
+                'actividades.*.horas' => 'required|integer|min:1',
+                'actividades.*.empleados' => 'required|array|min:1',
+                'actividades.*.empleados.*' => 'integer',
             ],
             5 => $this->rulesDescripcion(),
             6 => [
@@ -879,6 +903,7 @@ class CreateProyectoVinculacion extends Component
 
         if ($this->currentStep === 2) {
             $this->validarTotalesGruposEstudiantes();
+            $this->validarIntegrantesInternacionalesParaFicha();
 
             foreach ($this->estudiante_proyecto as $i => $item) {
                 $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '')
@@ -931,6 +956,38 @@ class CreateProyectoVinculacion extends Component
 
         if (!$todosValidos) {
             $this->addError('estudiante_proyecto', 'Cada grupo debe incluir al menos un estudiante.');
+        }
+
+        return $todosValidos;
+    }
+
+    private function validarIntegrantesInternacionalesParaFicha(): bool
+    {
+        $todosValidos = true;
+
+        foreach ($this->integrante_internacional_proyecto as $i => $integrante) {
+            if (empty($integrante['nivel_academico_id']) || empty($integrante['nivel_academico_nombre'])) {
+                $this->addError(
+                    "integrante_internacional_proyecto.$i.nivel_academico_id",
+                    'Seleccione el nivel académico del docente internacional.'
+                );
+                $todosValidos = false;
+            }
+
+            if (!in_array($integrante['sexo'] ?? '', ['masculino', 'femenino'], true)) {
+                $this->addError(
+                    "integrante_internacional_proyecto.$i.sexo",
+                    'Seleccione el sexo para contabilizar al docente en la ficha.'
+                );
+                $todosValidos = false;
+            }
+        }
+
+        if (!$todosValidos) {
+            $this->addError(
+                'integrante_internacional_proyecto',
+                'Edite los docentes internacionales marcados como incompletos antes de continuar.'
+            );
         }
 
         return $todosValidos;
@@ -1088,7 +1145,7 @@ class CreateProyectoVinculacion extends Component
                 && !empty($this->ejes_prioritarios_unah)
                 && !empty($this->facultades_centros)
                 && !empty($this->departamentos_academicos)
-                && !empty($this->carreras)
+                && ($this->carrera_no_aplica || !empty($this->carreras))
                 && !empty($this->fecha_inicio)
                 && !empty($this->fecha_finalizacion)
                 && !empty($this->programa_pertenece)
@@ -1101,9 +1158,26 @@ class CreateProyectoVinculacion extends Component
                 && collect($this->estudiante_proyecto)->every(
                     fn(array $grupo) => (int) ($grupo['cantidad_estudiantes_hombres'] ?? 0)
                         + (int) ($grupo['cantidad_estudiantes_mujeres'] ?? 0) > 0
+                )
+                && collect($this->integrante_internacional_proyecto)->every(
+                    fn(array $integrante) => !empty($integrante['nivel_academico_id'])
+                        && !empty($integrante['nivel_academico_nombre'])
+                        && in_array($integrante['sexo'] ?? '', ['masculino', 'femenino'], true)
                 ),
             3 => !empty(array_filter(array_column($this->entidad_contraparte, 'nombre'))),
-            4 => !empty(array_filter(array_column($this->actividades, 'descripcion'))),
+            4 => !empty($this->actividades)
+                && collect($this->actividades)->every(function (array $actividad): bool {
+                    $fechaInicio = $this->dateOrNull($actividad['fecha_inicio'] ?? null);
+                    $fechaFin = $this->dateOrNull($actividad['fecha_finalizacion'] ?? null);
+
+                    return trim((string) ($actividad['descripcion'] ?? '')) !== ''
+                        && trim((string) ($actividad['resultados'] ?? '')) !== ''
+                        && $fechaInicio !== null
+                        && $fechaFin !== null
+                        && $fechaFin >= $fechaInicio
+                        && (int) ($actividad['horas'] ?? 0) > 0
+                        && collect($actividad['empleados'] ?? [])->filter()->unique()->isNotEmpty();
+                }),
             5 => collect(self::CAMPOS_DESCRIPCION_REQUERIDOS)->every(
                     fn(string $campo) => trim((string) ($this->{$campo} ?? '')) !== ''
                 )
@@ -1121,7 +1195,7 @@ class CreateProyectoVinculacion extends Component
             7 => !empty($this->objetivo_general)
                 && $this->marcoLogicoTieneResultadosCompletos(),
             8 => collect($this->aporte_institucional)->sum('costo_total') > 0,
-            9 => $this->anexosCount > 0,
+            9 => $this->anexosObligatoriosCompletos(),
             default => false,
         };
     }
@@ -1215,6 +1289,7 @@ class CreateProyectoVinculacion extends Component
             'proyectoId',
             'metasDisponibles',
             'showInternacionalModal',
+            'editIntegranteInternacionalIndex',
             'nuevoIntegranteInternacional',
             'showContraparteModal',
             'editContraparteIndex',
@@ -1224,6 +1299,9 @@ class CreateProyectoVinculacion extends Component
             'editActividadIndex',
             'nuevaActividad',
             'newAnexos',
+            'showAnexoModal',
+            'nuevoAnexoTipoId',
+            'nuevoAnexoDetalle',
         ];
 
         foreach ($propiedadesIgnoradas as $ignorada) {
@@ -1358,7 +1436,6 @@ class CreateProyectoVinculacion extends Component
         $this->guardarActividadesParcial($record);
         $this->guardarMarcoLogicoParcial($record);
         $this->guardarPresupuestoParcial($record);
-        $this->guardarAnexoParcial($record);
         $this->guardarEspaciosInstitucionalesParcial($record);
     }
 
@@ -1817,15 +1894,15 @@ class CreateProyectoVinculacion extends Component
         }
 
         $record->presupuesto()->updateOrCreate([], [
-            'aporte_contraparte' => (float) $this->aporte_contraparte,
-            'aporte_internacionales' => (float) $this->aporte_internacionales,
-            'aporte_otras_universidades' => (float) $this->aporte_otras_universidades,
-            'aporte_comunidad' => (float) $this->aporte_comunidad,
-            'otros_aportes' => (float) $this->otros_aportes,
+            'aporte_contraparte' => $this->montoNoNegativo($this->aporte_contraparte),
+            'aporte_internacionales' => $this->montoNoNegativo($this->aporte_internacionales),
+            'aporte_otras_universidades' => $this->montoNoNegativo($this->aporte_otras_universidades),
+            'aporte_comunidad' => $this->montoNoNegativo($this->aporte_comunidad),
+            'otros_aportes' => $this->montoNoNegativo($this->otros_aportes),
         ]);
     }
 
-    private function guardarAnexoParcial(Proyecto $record): void
+    private function guardarAnexoParcial(Proyecto $record, TipoAnexo $tipo): void
     {
         if (empty($this->newAnexos)) {
             return;
@@ -1837,11 +1914,17 @@ class CreateProyectoVinculacion extends Component
             }
 
             $path = $archivo->store('anexos', 'public');
-            $record->anexos()->create(['documento_url' => $path]);
+            $record->anexos()->create([
+                'tipo_anexo_id' => $tipo->id,
+                'documento_url' => $path,
+                'nombre_archivo' => mb_substr(basename($archivo->getClientOriginalName()), 0, 255),
+                'detalle' => $tipo->requiere_detalle
+                    ? trim($this->nuevoAnexoDetalle)
+                    : null,
+            ]);
         }
 
-        $this->newAnexos = [];
-        $this->anexoUploadKey++;
+        $this->limpiarNuevoAnexo();
     }
 
     private function limpiarRelacionesDependientes(): void
@@ -2210,6 +2293,9 @@ class CreateProyectoVinculacion extends Component
         if (!$this->validarTotalesGruposEstudiantes()) {
             $hasInvalidStudentRows = true;
         }
+        if (!$this->validarIntegrantesInternacionalesParaFicha()) {
+            $hasInvalidStudentRows = true;
+        }
 
         foreach ($this->estudiante_proyecto as $i => $item) {
             $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '') ?: ($item['tipo_participacion_estudiante'] ?? '');
@@ -2394,8 +2480,12 @@ class CreateProyectoVinculacion extends Component
         $this->validate([
             'actividades' => 'required|array|min:1',
             'actividades.*.descripcion' => 'required|string',
+            'actividades.*.resultados' => 'required|string',
             'actividades.*.fecha_inicio' => 'required|date',
-            'actividades.*.fecha_finalizacion' => 'required|date',
+            'actividades.*.fecha_finalizacion' => 'required|date|after_or_equal:actividades.*.fecha_inicio',
+            'actividades.*.horas' => 'required|integer|min:1',
+            'actividades.*.empleados' => 'required|array|min:1',
+            'actividades.*.empleados.*' => 'integer',
         ]);
 
         foreach ($this->actividades as $i => $actividad) {
@@ -2429,7 +2519,11 @@ class CreateProyectoVinculacion extends Component
         }
         if ($hasInvalidResponsables) return;
 
-        DB::transaction(fn() => $this->guardarActividadesParcial($record));
+        DB::transaction(function () use ($record) {
+            $this->guardarActividadesParcial($record);
+            $this->recalculateAporteInstitucional();
+            $this->guardarPresupuestoParcial($record);
+        });
         Notification::make()->title('Paso IV guardado')->success()->send();
     }
 
@@ -2517,11 +2611,11 @@ class CreateProyectoVinculacion extends Component
         }
         $record->update(['total_aporte_institucional' => $totalAporteInstitucional]);
         $record->presupuesto()->updateOrCreate([], [
-            'aporte_contraparte' => $this->aporte_contraparte,
-            'aporte_internacionales' => $this->aporte_internacionales,
-            'aporte_otras_universidades' => $this->aporte_otras_universidades,
-            'aporte_comunidad' => $this->aporte_comunidad,
-            'otros_aportes' => $this->otros_aportes,
+            'aporte_contraparte' => $this->montoNoNegativo($this->aporte_contraparte),
+            'aporte_internacionales' => $this->montoNoNegativo($this->aporte_internacionales),
+            'aporte_otras_universidades' => $this->montoNoNegativo($this->aporte_otras_universidades),
+            'aporte_comunidad' => $this->montoNoNegativo($this->aporte_comunidad),
+            'otros_aportes' => $this->montoNoNegativo($this->otros_aportes),
         ]);
         Notification::make()->title('Paso VIII guardado')->success()->send();
     }
@@ -2529,9 +2623,10 @@ class CreateProyectoVinculacion extends Component
     protected function saveStep9(): void
     {
         if (!empty($this->newAnexos)) {
-            $this->validate(['newAnexos.*' => 'file|max:10240']);
+            $tipo = $this->validarNuevoAnexo();
             $record = $this->ensureRecord();
-            $this->guardarAnexoParcial($record);
+            $this->guardarAnexoParcial($record, $tipo);
+            $this->actualizarEstadoAnexos($record);
         }
         Notification::make()->title('Paso IX guardado')->success()->send();
     }
@@ -2777,16 +2872,41 @@ class CreateProyectoVinculacion extends Component
 
     // ─── Internacional Modal (Step 2) ─────────────────────────────────────────
 
-    public function openInternacionalModal(): void
+    public function openInternacionalModal(?int $index = null): void
     {
         $this->resetErrorBag();
         $this->integranteInternacionalSeleccionadoId = null;
+        $this->editIntegranteInternacionalIndex = null;
+        $this->resetNuevoIntegranteInternacional();
+
+        if ($index !== null) {
+            $integranteId = $this->nullableInt(
+                $this->integrante_internacional_proyecto[$index]['integrante_internacional_id'] ?? null
+            );
+            $integrante = $integranteId
+                ? IntegranteInternacional::with('nivelAcademico')->find($integranteId)
+                : null;
+
+            if (!$integrante) {
+                Notification::make()
+                    ->title('No se pudo editar el docente internacional')
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+
+            $this->editIntegranteInternacionalIndex = $index;
+            $this->nuevoIntegranteInternacional = $this->datosFormularioIntegranteInternacional($integrante);
+        }
+
         $this->showInternacionalModal = true;
     }
 
     public function closeInternacionalModal(): void
     {
         $this->showInternacionalModal = false;
+        $this->editIntegranteInternacionalIndex = null;
         $this->integranteInternacionalSeleccionadoId = null;
         $this->resetNuevoIntegranteInternacional();
     }
@@ -2800,10 +2920,40 @@ class CreateProyectoVinculacion extends Component
             return;
         }
 
-        $integrante = IntegranteInternacional::find($this->integranteInternacionalSeleccionadoId);
+        $integrante = IntegranteInternacional::with('nivelAcademico')
+            ->find($this->integranteInternacionalSeleccionadoId);
 
         if (!$integrante) {
             $this->addError('integranteInternacionalSeleccionadoId', 'El integrante seleccionado no existe.');
+            return;
+        }
+
+        $nivelValidoParaFicha = $integrante->nivel_academico_id && $integrante->nivelAcademico;
+        $sexoValidoParaFicha = in_array($integrante->sexo, ['masculino', 'femenino'], true);
+
+        if (!$nivelValidoParaFicha || !$sexoValidoParaFicha) {
+            $this->integranteInternacionalSeleccionadoId = null;
+            $this->nuevoIntegranteInternacional = $this->datosFormularioIntegranteInternacional($integrante);
+
+            if (!$nivelValidoParaFicha) {
+                $this->addError(
+                    'nuevoIntegranteInternacional.nivel_academico_id',
+                    'Seleccione el nivel académico antes de agregar este docente.'
+                );
+            }
+
+            if (!$sexoValidoParaFicha) {
+                $this->addError(
+                    'nuevoIntegranteInternacional.sexo',
+                    'Seleccione el sexo para contabilizar al docente en la ficha.'
+                );
+            }
+
+            Notification::make()
+                ->title('Complete los datos requeridos del docente')
+                ->warning()
+                ->send();
+
             return;
         }
 
@@ -2825,29 +2975,73 @@ class CreateProyectoVinculacion extends Component
 
     public function saveNuevoIntegranteInternacional(): void
     {
+        $integranteEditando = null;
+        if ($this->editIntegranteInternacionalIndex !== null) {
+            $integranteId = $this->nullableInt(
+                $this->integrante_internacional_proyecto[$this->editIntegranteInternacionalIndex]['integrante_internacional_id'] ?? null
+            );
+            $integranteEditando = $integranteId ? IntegranteInternacional::find($integranteId) : null;
+
+            if (!$integranteEditando) {
+                $this->addError(
+                    'nuevoIntegranteInternacional.nombre_completo',
+                    'El docente internacional que intenta editar ya no existe.'
+                );
+
+                return;
+            }
+        }
+
+        $emailRules = ['required', 'email', 'max:255'];
+        if ($integranteEditando) {
+            $emailRules[] = Rule::unique('integrante_internacional', 'email')->ignore($integranteEditando->id);
+        }
+
         $data = $this->validate([
             'nuevoIntegranteInternacional.nombre_completo' => 'required|string|max:255',
             'nuevoIntegranteInternacional.documento_identidad' => 'required|string|max:255',
             'nuevoIntegranteInternacional.rtn' => $this->reglasRtn(
                 $this->nuevoIntegranteInternacional['pais'] ?? null
             ),
-            'nuevoIntegranteInternacional.sexo' => 'nullable|in:masculino,femenino,otro',
-            'nuevoIntegranteInternacional.email' => 'required|email|max:255',
+            'nuevoIntegranteInternacional.sexo' => 'required|in:masculino,femenino',
+            'nuevoIntegranteInternacional.email' => $emailRules,
             'nuevoIntegranteInternacional.pais' => ['required', 'string', 'max:255', Rule::exists('pais', 'nombre')->whereNull('deleted_at')],
             'nuevoIntegranteInternacional.institucion' => 'required|string|max:255',
-            'nuevoIntegranteInternacional.nivel_academico_id' => 'nullable|exists:niveles_academicos,id',
+            'nuevoIntegranteInternacional.nivel_academico_id' => [
+                'required',
+                'integer',
+                Rule::exists('niveles_academicos', 'id')
+                    ->where('activo', true)
+                    ->whereNull('deleted_at'),
+            ],
         ])['nuevoIntegranteInternacional'];
 
         $data = [
             'nombre_completo' => trim($data['nombre_completo']),
             'documento_identidad' => trim($data['documento_identidad']),
             'rtn' => !empty($data['rtn']) ? trim($data['rtn']) : null,
-            'sexo' => $data['sexo'] ?: null,
+            'sexo' => $data['sexo'],
             'email' => trim($data['email']),
             'pais' => trim($data['pais']),
             'institucion' => trim($data['institucion']),
             'nivel_academico_id' => $this->nullableInt($data['nivel_academico_id'] ?? null),
         ];
+
+        if ($integranteEditando) {
+            $integranteEditando->update($data);
+            $integranteEditando->refresh()->load('nivelAcademico');
+            $this->integrante_internacional_proyecto[$this->editIntegranteInternacionalIndex] =
+                $this->filaIntegranteInternacional($integranteEditando);
+
+            Notification::make()->title('Docente internacional actualizado')->success()->send();
+
+            $this->showInternacionalModal = false;
+            $this->editIntegranteInternacionalIndex = null;
+            $this->resetNuevoIntegranteInternacional();
+            $this->autoGuardarBorrador();
+
+            return;
+        }
 
         $query = IntegranteInternacional::where('email', $data['email'])
             ->orWhere('documento_identidad', $data['documento_identidad']);
@@ -2862,12 +3056,14 @@ class CreateProyectoVinculacion extends Component
             $integrante = IntegranteInternacional::create($data);
             Notification::make()->title('Integrante internacional creado')->success()->send();
         } else {
-            $integrante->update(['nivel_academico_id' => $data['nivel_academico_id']]);
+            $integrante->update($data);
             Notification::make()->title('Integrante internacional existente seleccionado')->success()->send();
         }
 
+        $integrante->refresh()->load('nivelAcademico');
         $this->selectIntegranteInternacional((int) $integrante->id, $data);
         $this->showInternacionalModal = false;
+        $this->editIntegranteInternacionalIndex = null;
         $this->resetNuevoIntegranteInternacional();
         $this->autoGuardarBorrador();
     }
@@ -2879,18 +3075,67 @@ class CreateProyectoVinculacion extends Component
 
     protected function selectIntegranteInternacional(int $integranteId, array $data = []): void
     {
+        $integrante = IntegranteInternacional::with('nivelAcademico')->find($integranteId);
+
         foreach ($this->integrante_internacional_proyecto as $i => $item) {
-            if ((int)($item['integrante_internacional_id'] ?? 0) === $integranteId) return;
+            if ((int)($item['integrante_internacional_id'] ?? 0) !== $integranteId) {
+                continue;
+            }
+
+            if ($integrante) {
+                $this->integrante_internacional_proyecto[$i] = $this->filaIntegranteInternacional($integrante);
+            }
+
+            return;
         }
-        $integrante = IntegranteInternacional::find($integranteId);
+
+        if ($integrante) {
+            $this->integrante_internacional_proyecto[] = $this->filaIntegranteInternacional($integrante);
+            return;
+        }
+
+        $nivelAcademicoId = $this->nullableInt($data['nivel_academico_id'] ?? null);
         $this->integrante_internacional_proyecto[] = [
             'integrante_internacional_id' => $integranteId,
-            'nombre' => $integrante?->nombre_completo ?? ($data['nombre_completo'] ?? ''),
-            'rtn' => $integrante?->rtn ?? ($data['rtn'] ?? ''),
-            'pais' => $integrante?->pais ?? ($data['pais'] ?? ''),
-            'institucion' => $integrante?->institucion ?? ($data['institucion'] ?? ''),
-            'nivel_academico_id' => $integrante?->nivel_academico_id ?? ($data['nivel_academico_id'] ?? null),
-            'nivel_academico_nombre' => $integrante?->nivelAcademico?->nombre ?? '',
+            'nombre' => $data['nombre_completo'] ?? '',
+            'rtn' => $data['rtn'] ?? '',
+            'sexo' => $data['sexo'] ?? '',
+            'pais' => $data['pais'] ?? '',
+            'institucion' => $data['institucion'] ?? '',
+            'nivel_academico_id' => $nivelAcademicoId,
+            'nivel_academico_nombre' => $nivelAcademicoId
+                ? (NivelAcademico::find($nivelAcademicoId)?->nombre ?? '')
+                : '',
+        ];
+    }
+
+    private function datosFormularioIntegranteInternacional(IntegranteInternacional $integrante): array
+    {
+        return [
+            'nombre_completo' => $integrante->nombre_completo ?? '',
+            'documento_identidad' => $integrante->documento_identidad ?? '',
+            'rtn' => $integrante->rtn ?? '',
+            'sexo' => $integrante->sexo ?? '',
+            'email' => $integrante->email ?? '',
+            'pais' => $integrante->pais ?? '',
+            'institucion' => $integrante->institucion ?? '',
+            'nivel_academico_id' => $integrante->nivel_academico_id,
+        ];
+    }
+
+    private function filaIntegranteInternacional(IntegranteInternacional $integrante): array
+    {
+        $integrante->loadMissing('nivelAcademico');
+
+        return [
+            'integrante_internacional_id' => $integrante->id,
+            'nombre' => $integrante->nombre_completo ?? '',
+            'rtn' => $integrante->rtn ?? '',
+            'sexo' => $integrante->sexo ?? '',
+            'pais' => $integrante->pais ?? '',
+            'institucion' => $integrante->institucion ?? '',
+            'nivel_academico_id' => $integrante->nivel_academico_id,
+            'nivel_academico_nombre' => $integrante->nivelAcademico?->nombre ?? '',
         ];
     }
 
@@ -3235,16 +3480,19 @@ class CreateProyectoVinculacion extends Component
 
         $this->validate([
             'nuevaActividad.descripcion' => 'required|string',
-            'nuevaActividad.resultados' => 'nullable|string',
+            'nuevaActividad.resultados' => 'required|string',
             'nuevaActividad.fecha_inicio' => 'required|date',
             'nuevaActividad.fecha_finalizacion' => 'required|date|after_or_equal:nuevaActividad.fecha_inicio',
-            'nuevaActividad.horas' => 'nullable|integer|min:0',
+            'nuevaActividad.horas' => 'required|integer|min:1',
+            'nuevaActividad.empleados' => 'required|array|min:1',
+            'nuevaActividad.empleados.*' => 'integer',
         ], [], [
             'nuevaActividad.descripcion' => 'descripción de la actividad',
             'nuevaActividad.resultados' => 'productos a cargo',
             'nuevaActividad.fecha_inicio' => 'fecha de inicio de la actividad',
             'nuevaActividad.fecha_finalizacion' => 'fecha de finalización de la actividad',
             'nuevaActividad.horas' => 'horas de la actividad',
+            'nuevaActividad.empleados' => 'responsables de la actividad',
         ]);
 
         $record = $this->ensureRecord();
@@ -3298,6 +3546,8 @@ class CreateProyectoVinculacion extends Component
         } else {
             $this->actividades[] = $this->nuevaActividad;
         }
+        $this->recalculateAporteInstitucional();
+        $this->autoGuardarBorrador();
         $this->showActividadModal = false;
         $this->editActividadIndex = null;
         $this->nuevaActividad = ['id' => null, 'descripcion' => '', 'resultados' => '', 'empleados' => [], 'fecha_inicio' => '', 'fecha_finalizacion' => '', 'horas' => ''];
@@ -3321,6 +3571,8 @@ class CreateProyectoVinculacion extends Component
         }
 
         array_splice($this->actividades, $i, 1);
+        $this->recalculateAporteInstitucional();
+        $this->autoGuardarBorrador();
     }
 
     // ─── Marco Lógico (Step 7) ────────────────────────────────────────────────
@@ -3514,28 +3766,39 @@ class CreateProyectoVinculacion extends Component
     public function totalGeneralPresupuesto(): float
     {
         $totalInstitucional = collect($this->aporte_institucional)->sum('costo_total');
-        $totalOtrosAportes = (float) $this->aporte_contraparte
-            + (float) $this->aporte_internacionales
-            + (float) $this->aporte_otras_universidades
-            + (float) $this->aporte_comunidad
-            + (float) $this->otros_aportes;
+        $totalOtrosAportes = collect(self::CAMPOS_OTROS_APORTES)
+            ->sum(fn(string $campo): float => $this->montoNoNegativo($this->{$campo}));
 
         return $totalInstitucional + $totalOtrosAportes;
     }
 
+    private function montoNoNegativo(mixed $valor): float
+    {
+        return is_numeric($valor) ? max(0, (float) $valor) : 0.0;
+    }
+
     // ─── Anexo Methods (Step 9) ───────────────────────────────────────────────
+
+    public function openAnexoModal(): void
+    {
+        $this->resetErrorBag();
+        $this->limpiarNuevoAnexo();
+        $this->showAnexoModal = true;
+    }
+
+    public function closeAnexoModal(): void
+    {
+        $this->limpiarNuevoAnexo();
+    }
 
     public function uploadAnexos(): void
     {
-        $this->validate([
-            'newAnexos' => 'required|array|min:1',
-            'newAnexos.*' => 'file|max:10240',
-        ]);
+        $tipo = $this->validarNuevoAnexo();
 
         $record = $this->ensureRecord();
         $cantidad = count($this->newAnexos);
-        $this->guardarAnexoParcial($record);
-        $this->anexosCount = $record->anexos()->count();
+        $this->guardarAnexoParcial($record, $tipo);
+        $this->actualizarEstadoAnexos($record);
 
         Notification::make()
             ->title($cantidad > 1 ? "{$cantidad} anexos subidos" : 'Anexo subido')
@@ -3543,12 +3806,103 @@ class CreateProyectoVinculacion extends Component
             ->send();
     }
 
+    private function validarNuevoAnexo(): TipoAnexo
+    {
+        $this->validate([
+            'nuevoAnexoTipoId' => [
+                'required',
+                'integer',
+                Rule::exists('tipos_anexo', 'id')
+                    ->where('activo', true)
+                    ->whereNull('deleted_at'),
+            ],
+            'nuevoAnexoDetalle' => 'nullable|string|max:255',
+            'newAnexos' => 'required|array|min:1',
+            'newAnexos.*' => 'file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:10240',
+        ]);
+
+        $tipo = TipoAnexo::query()
+            ->where('activo', true)
+            ->findOrFail((int) $this->nuevoAnexoTipoId);
+
+        if ($tipo->requiere_detalle && trim($this->nuevoAnexoDetalle) === '') {
+            throw ValidationException::withMessages([
+                'nuevoAnexoDetalle' => 'Detalle el tipo de documento que está adjuntando.',
+            ]);
+        }
+
+        $this->nuevoAnexoDetalle = trim($this->nuevoAnexoDetalle);
+
+        return $tipo;
+    }
+
+    private function limpiarNuevoAnexo(): void
+    {
+        $this->showAnexoModal = false;
+        $this->nuevoAnexoTipoId = null;
+        $this->nuevoAnexoDetalle = '';
+        $this->newAnexos = [];
+        $this->anexoUploadKey++;
+    }
+
     public function deleteAnexo(int $id): void
     {
         if ($this->recordId) {
             $record = Proyecto::findOrFail($this->recordId);
             $record->anexos()->where('id', $id)->delete();
-            $this->anexosCount = $record->anexos()->count();
+            $this->actualizarEstadoAnexos($record);
+        }
+    }
+
+    private function actualizarEstadoAnexos(?Proyecto $record = null): void
+    {
+        $record ??= $this->recordId ? Proyecto::find($this->recordId) : null;
+
+        if (! $record) {
+            $this->anexosCount = 0;
+            $this->codigosTiposAnexoAdjuntos = [];
+
+            return;
+        }
+
+        $anexos = $record->anexos()
+            ->with('tipoAnexo:id,codigo')
+            ->get(['id', 'tipo_anexo_id']);
+
+        $this->anexosCount = $anexos->count();
+        $this->codigosTiposAnexoAdjuntos = $anexos
+            ->pluck('tipoAnexo.codigo')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function anexosObligatoriosCompletos(): bool
+    {
+        $tieneDocumentoUnoODos = in_array(TipoAnexo::CODIGO_CARTA_SOLICITUD, $this->codigosTiposAnexoAdjuntos, true)
+            || in_array(TipoAnexo::CODIGO_CONVENIO_CARTA, $this->codigosTiposAnexoAdjuntos, true);
+        $tieneDocumentoTres = in_array(TipoAnexo::CODIGO_OFICIO_REMISION, $this->codigosTiposAnexoAdjuntos, true);
+
+        return $tieneDocumentoUnoODos && $tieneDocumentoTres;
+    }
+
+    private function validarAnexosObligatorios(?Proyecto $record = null): void
+    {
+        $this->actualizarEstadoAnexos($record);
+        $mensajes = [];
+
+        if (! in_array(TipoAnexo::CODIGO_CARTA_SOLICITUD, $this->codigosTiposAnexoAdjuntos, true)
+            && ! in_array(TipoAnexo::CODIGO_CONVENIO_CARTA, $this->codigosTiposAnexoAdjuntos, true)) {
+            $mensajes[] = 'Adjunte el documento 1 o el documento 2 (cualquiera de los dos).';
+        }
+
+        if (! in_array(TipoAnexo::CODIGO_OFICIO_REMISION, $this->codigosTiposAnexoAdjuntos, true)) {
+            $mensajes[] = 'Adjunte el documento 3: Oficio de remisión del Decano/Director Centro Regional.';
+        }
+
+        if ($mensajes !== []) {
+            throw ValidationException::withMessages(['anexos' => $mensajes]);
         }
     }
 
@@ -3599,6 +3953,19 @@ class CreateProyectoVinculacion extends Component
         if (! $proyecto) {
             Notification::make()->title('Error')->body('No se encontró el borrador del proyecto.')->danger()->send();
             return;
+        }
+
+        try {
+            $this->validarAnexosObligatorios($proyecto);
+        } catch (ValidationException $exception) {
+            $this->currentStep = 9;
+            Notification::make()
+                ->title('Documentos obligatorios pendientes')
+                ->body('Adjunte el documento 1 o 2 y el documento 3 antes de enviar el proyecto.')
+                ->warning()
+                ->send();
+
+            throw $exception;
         }
 
         $this->modalEsReenvioSubsanacion = false;
@@ -3922,12 +4289,15 @@ class CreateProyectoVinculacion extends Component
             $this->trimCamposDescripcion();
             $this->validate($this->rulesDescripcion());
             $this->validarMarcoLogicoCompleto();
+            $this->validarAnexosObligatorios();
         } catch (ValidationException $e) {
             $errores = $e->validator->errors();
             $primerCampo = collect($errores->keys())->first();
-            $this->currentStep = str_starts_with((string) $primerCampo, 'objetivo')
-                ? 7
-                : 5;
+            $this->currentStep = match (true) {
+                $primerCampo === 'anexos' => 9,
+                str_starts_with((string) $primerCampo, 'objetivo') => 7,
+                default => 5,
+            };
 
             throw $e;
         }
@@ -4209,9 +4579,18 @@ class CreateProyectoVinculacion extends Component
     protected function recalculateAporteInstitucional(): void
     {
         $this->aporte_institucional = $this->normalizeAporteRows($this->aporte_institucional);
+        $horasTrabajoDocentes = $this->totalHorasTrabajoDocentes();
+
+        foreach ($this->aporte_institucional as $index => $aporte) {
+            if (($aporte['concepto'] ?? '') === 'horas_trabajo_docentes') {
+                $this->aporte_institucional[$index]['cantidad'] = $horasTrabajoDocentes;
+            }
+        }
+
         foreach ($this->aporte_institucional as $index => $aporte) {
             if ($aporte['editable'] ?? true) {
-                $this->aporte_institucional[$index]['costo_total'] = (float)($aporte['cantidad'] ?? 0) * (float)($aporte['costo_unitario'] ?? 0);
+                $cantidad = $this->aporte_institucional[$index]['cantidad'] ?? 0;
+                $this->aporte_institucional[$index]['costo_total'] = (float) $cantidad * (float)($aporte['costo_unitario'] ?? 0);
             }
         }
         $base = collect($this->aporte_institucional)->whereIn('concepto', ['horas_trabajo_docentes', 'horas_trabajo_estudiantes', 'gastos_movilizacion', 'utiles_materiales_oficina', 'gastos_impresion']);
@@ -4227,15 +4606,34 @@ class CreateProyectoVinculacion extends Component
         }
     }
 
+    public function totalHorasTrabajoDocentes(): int
+    {
+        return (int) collect($this->actividades)->sum(function (array $actividad): int {
+            $horas = max(0, (int) ($actividad['horas'] ?? 0));
+            $responsables = collect($actividad['empleados'] ?? [])
+                ->filter(fn($id) => $this->nullableInt($id) !== null)
+                ->map(fn($id) => (int) $id)
+                ->unique()
+                ->count();
+
+            return $horas * $responsables;
+        });
+    }
+
     // ─── Render ───────────────────────────────────────────────────────────────
 
     public function render(): View
     {
-        $record = $this->recordId ? Proyecto::with('anexos')->find($this->recordId) : null;
+        $record = $this->recordId ? Proyecto::with('anexos.tipoAnexo')->find($this->recordId) : null;
         $enSubsanacion = $record
             ? $record->estaEnSubsanacionActiva() || $record->puedeRepararSubsanacionDegradada()
             : false;
         $detalleSubsanacion = $enSubsanacion ? $record?->detalleSubsanacionActiva() : null;
+        $tiposAnexo = TipoAnexo::query()
+            ->where('activo', true)
+            ->orderBy('orden')
+            ->orderBy('nombre')
+            ->get();
 
         // Empleados para modal de búsqueda (paso 2)
         $empleadosModal = $this->showEmpleadoModal
@@ -4282,6 +4680,7 @@ class CreateProyectoVinculacion extends Component
                 : Municipio::whereIn('departamento_id', $this->ids($this->departamento_geo))->orderBy('nombre')->pluck('nombre', 'id'),
             'tematicaPrincipalOpciones' => $this->tematicaPrincipalOpciones,
             'metodologiaSeguimientoOpciones' => $this->metodologiaSeguimientoOpciones,
+            'tiposAnexo' => $tiposAnexo,
             'record' => $record,
             'enSubsanacion' => $enSubsanacion,
             'detalleSubsanacion' => $detalleSubsanacion,
