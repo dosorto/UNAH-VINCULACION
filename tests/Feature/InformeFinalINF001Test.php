@@ -239,6 +239,28 @@ class InformeFinalINF001Test extends TestCase
             ->assertSet('general.problema_inicial',$origen['definicion_problema']);
     }
 
+    public function test_campo_de_reflexion_heredado_sin_valor_de_origen_queda_editable_y_no_bloquea_el_cierre(): void
+    {
+        [$user,$project]=$this->scenario();
+        $project->update(['impacto_deseado'=>null]);
+        $project = $project->fresh();
+        $report = $this->initialize($project,$user);
+
+        $this->assertNull($report->transformacion_lograda);
+
+        $component = $this->livewireComponent($user,$project)
+            ->set('currentStep',6)
+            ->assertSet('general.transformacion_lograda',null);
+
+        $this->assertFalse($component->instance()->esCampoReflexionHeredado('transformacion_lograda'));
+
+        $component->set('general.transformacion_lograda','Escrito directamente en el informe final')
+            ->call('guardarBorrador')
+            ->assertSet('general.transformacion_lograda','Escrito directamente en el informe final');
+
+        $this->assertDatabaseHas('informe_final_proyectos',['id'=>$report->id,'transformacion_lograda'=>'Escrito directamente en el informe final']);
+    }
+
     public function test_autoguardado_no_valida_todo_y_guarda_fila_dinamica(): void
     {
         [$user,$project]=$this->scenario();
@@ -1083,8 +1105,13 @@ class InformeFinalINF001Test extends TestCase
 
     public function test_se_marca_completo(): void
     {
-        [$user,$project]=$this->scenario(); $component=$this->componentReadyForCompletion($user,$project); $component->call('marcarCompleto')->assertHasNoErrors()->assertSet('general.estado','COMPLETO');
+        [$user,$project]=$this->scenario(); $component=$this->componentReadyForCompletion($user,$project);
+        $component->call('marcarCompleto')
+            ->assertHasNoErrors()
+            ->assertSet('general.estado','COMPLETO')
+            ->assertRedirect(route('historialproyecto',$project));
         $this->assertDatabaseHas('informe_final_proyectos',['proyecto_id'=>$project->id,'estado'=>'COMPLETO']);
+        $this->assertTrue(session()->has('mensaje_historial'));
     }
 
     public function test_no_se_marca_completo_con_inconsistencias(): void
@@ -1479,6 +1506,22 @@ class InformeFinalINF001Test extends TestCase
         $this->actingAs($otroUsuario)
             ->get(route('constancias.finalizacion.descargar', $constancia))
             ->assertForbidden();
+    }
+
+    public function test_docente_participante_del_proyecto_puede_descargar_constancia_finalizacion(): void
+    {
+        Storage::fake('local');
+        [, $project, , $constancia] = $this->cierreFinalizadoConConstancia(ConstanciaFinalizacionProyecto::ESTADO_EMITIDA);
+        Storage::disk('local')->put($constancia->ruta_archivo, '%PDF-constancia-finalizacion-prueba');
+
+        $integranteUser = User::factory()->create();
+        $integranteUser->assignRole(Role::firstOrCreate(['name' => 'docente', 'guard_name' => 'web']));
+        $integranteEmpleado = Empleado::create(['nombre_completo' => 'Integrante de prueba', 'numero_empleado' => (string) random_int(100000, 999999), 'celular' => '99999999', 'sexo' => 'Masculino', 'user_id' => $integranteUser->id, 'tipo_empleado' => 'docente']);
+        EmpleadoProyecto::create(['empleado_id' => $integranteEmpleado->id, 'proyecto_id' => $project->id, 'rol' => 'Integrante']);
+
+        $this->actingAs($integranteUser)
+            ->get(route('constancias.finalizacion.descargar', $constancia))
+            ->assertOk();
     }
 
     public function test_descarga_constancia_entrega_el_pdf_privado_y_nunca_el_inf001(): void

@@ -1,6 +1,14 @@
 @if ($documentoProyecto && $documentoProyecto->documento_url != null)
 @php
-    $documentoUrl = asset('storage/' . $documentoProyecto->documento_url);
+    $informeIntermedio = $documentoProyecto->tipo_documento === 'Informe Intermedio'
+        ? \App\Models\InformeIntermedio\InformeIntermedioProyecto::where('documento_proyecto_id', $documentoProyecto->id)->first()
+        : null;
+    $documentoUrl = $informeIntermedio
+        ? route('informes-intermedios.ver', $informeIntermedio)
+        : asset('storage/' . $documentoProyecto->documento_url);
+    $documentoDescargaUrl = $informeIntermedio
+        ? route('informes-intermedios.descargar', $informeIntermedio)
+        : $documentoUrl;
     $extension = strtolower(pathinfo($documentoProyecto->documento_url, PATHINFO_EXTENSION));
     $estado = $documentoProyecto->estadoActual ?? $documentoProyecto->estado;
 @endphp
@@ -33,7 +41,7 @@
                class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
                 Abrir en nueva pestaña
             </a>
-            <a href="{{ $documentoUrl }}" download
+            <a href="{{ $documentoDescargaUrl }}" @unless($informeIntermedio) download @endunless
                class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200">
                 Descargar
             </a>

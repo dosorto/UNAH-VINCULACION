@@ -37,6 +37,8 @@ class EditInformeFinalProyecto extends Component
         'bibliografia' => 'bibliografia',
     ];
 
+    private array $camposReflexionConValorHeredado = [];
+
     public Proyecto $proyecto;
     public InformeFinalProyecto $informe;
     public int $currentStep = 1;
@@ -628,7 +630,8 @@ class EditInformeFinalProyecto extends Component
 
     public function esCampoReflexionHeredado(string $campo): bool
     {
-        return array_key_exists($campo, self::CAMPOS_REFLEXION_HEREDADOS);
+        return array_key_exists($campo, self::CAMPOS_REFLEXION_HEREDADOS)
+            && ($this->camposReflexionConValorHeredado[$campo] ?? false);
     }
 
     public function agregarFila(string $grupo): void
@@ -966,7 +969,7 @@ class EditInformeFinalProyecto extends Component
         $this->marcarCompleto($validator);
     }
 
-    public function marcarCompleto(InformeFinalProyectoValidator $validator): void
+    public function marcarCompleto(InformeFinalProyectoValidator $validator)
     {
         $this->authorizeSensitive();
         $this->validate($this->draftRules());
@@ -980,7 +983,10 @@ class EditInformeFinalProyecto extends Component
             app(InformeFinalProyectoWorkflowService::class)->registrarInformeCompleto($this->informe, auth()->user());
         }
         $this->general['estado'] = 'COMPLETO';
-        $this->mensaje = 'El INF-001 quedó marcado como completo. No se inició ningún flujo ni firma.';
+
+        session()->flash('mensaje_historial', 'El INF-001 quedó marcado como completo. Envíelo desde aquí para iniciar el flujo de cierre.');
+
+        return $this->redirectRoute('historialproyecto', ['proyecto' => $this->proyecto->id], navigate: true);
     }
 
     public function getTotalesBeneficiariosProperty(): array
@@ -1385,7 +1391,12 @@ class EditInformeFinalProyecto extends Component
         $proyecto = Proyecto::query()->findOrFail($this->proyecto->getKey());
 
         foreach (self::CAMPOS_REFLEXION_HEREDADOS as $campoInforme => $campoProyecto) {
-            $this->general[$campoInforme] = $proyecto->{$campoProyecto};
+            $valorHeredado = $proyecto->{$campoProyecto};
+            $this->camposReflexionConValorHeredado[$campoInforme] = filled($valorHeredado);
+
+            if (filled($valorHeredado)) {
+                $this->general[$campoInforme] = $valorHeredado;
+            }
         }
     }
 

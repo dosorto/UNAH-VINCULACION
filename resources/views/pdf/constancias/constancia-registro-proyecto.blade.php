@@ -22,6 +22,7 @@
     @include('pdf.constancias.partials.registro-watermark')
     @include('pdf.constancias.partials.registro-header')
     @include('pdf.constancias.partials.registro-footer')
+    <div class="registro-footer-codigo">{{ data_get($snapshot, 'constancia.codigo_validacion') }}</div>
 
     <main class="registro-content">
         <div class="registro-meta">
