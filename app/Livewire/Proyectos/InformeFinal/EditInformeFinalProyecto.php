@@ -1382,7 +1382,9 @@ class EditInformeFinalProyecto extends Component
                 continue;
             }
 
+            $enlace = $anexo['enlace'] ?? $original->enlace;
             $this->anexos[$index] = array_replace($anexo, $original->toArray());
+            $this->anexos[$index]['enlace'] = $enlace;
         }
     }
 
@@ -1410,8 +1412,12 @@ class EditInformeFinalProyecto extends Component
                 ? $persistido
                 : null;
             if ($original) {
+                $aporte = $ods['descripcion_aporte'] ?? $original->descripcion_aporte;
+                $evidencia = $ods['evidencia'] ?? $original->evidencia;
                 $ods = $original->toArray();
                 $ods['origen'] = 'PLANIFICADO';
+                $ods['descripcion_aporte'] = $aporte;
+                $ods['evidencia'] = $evidencia;
             } else {
                 $ods['origen'] = 'EJECUCION';
             }
@@ -1729,7 +1735,6 @@ class EditInformeFinalProyecto extends Component
             $this->estudiantes[$index] = $row;
         }
         if (! $config || ! is_array($row)) return;
-        if ($grupo === 'ods' && ($row['origen'] ?? 'PLANIFICADO') !== 'EJECUCION') return;
         [$relation, $fields] = $config;
         $id = isset($row['id']) ? (int) $row['id'] : null;
         $record = $id ? $this->informe->{$relation}()->whereKey($id)->first() : null;

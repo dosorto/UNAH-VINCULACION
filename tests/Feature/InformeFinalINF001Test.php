@@ -723,6 +723,25 @@ class InformeFinalINF001Test extends TestCase
         $this->livewireComponent($user,$project)->set('currentStep',4)->assertSee('Carta de intenciones con la UNAH')->assertSee('Disponible')->assertSee('carta-intenciones.pdf');
     }
 
+    public function test_anexo_planificado_permite_editar_enlace_sin_perder_lo_escrito(): void
+    {
+        [$user,$project]=$this->scenario();
+        $pivot=$project->entidad_contraparte_proyecto()->firstOrFail();
+        $instrumento=InstrumenFormalizacion::create(['entidad_contraparte_id'=>$pivot->id,'tipo_documento'=>'carta_intenciones','documento_url'=>'instrumentos/carta-intenciones.pdf','nombre_archivo'=>'carta-intenciones.pdf']);
+        $report=$this->initialize($project,$user);
+        $anexoId=$report->anexos()->where('instrumento_formalizacion_id',$instrumento->id)->firstOrFail()->id;
+
+        $component=$this->livewireComponent($user,$project)
+            ->set('currentStep',8)
+            ->set('anexos.0.enlace','https://example.test/evidencia-instrumento')
+            ->assertSet('anexos.0.enlace','https://example.test/evidencia-instrumento');
+
+        $this->assertDatabaseHas('informe_final_anexos',['id'=>$anexoId,'enlace'=>'https://example.test/evidencia-instrumento','categoria'=>'instrumento_contraparte']);
+
+        $this->livewireComponent($user,$project)
+            ->assertSet('anexos.0.enlace','https://example.test/evidencia-instrumento');
+    }
+
     public function test_fotografias_validan_formato_tamano_limite_muestran_miniatura_y_se_pueden_quitar(): void
     {
         Storage::fake('public');
@@ -1067,6 +1086,27 @@ class InformeFinalINF001Test extends TestCase
         $this->assertStringContainsString('Ejecución',$html);
         $this->assertStringContainsString('readonly',$html);
         $this->assertStringContainsString('wire:model="ods.1.ods_id"',$html);
+    }
+
+    public function test_ods_planificado_permite_editar_aporte_y_evidencia_sin_perder_lo_escrito(): void
+    {
+        [$user,$project]=$this->scenario();
+        $odsId=DB::table('ods')->where('nombre','6. Agua limpia y saneamiento')->value('id') ?: DB::table('ods')->insertGetId(['nombre'=>'6. Agua limpia y saneamiento','created_at'=>now(),'updated_at'=>now()]);
+        $project->ods()->syncWithoutDetaching([$odsId]);
+        $report=$this->initialize($project,$user);
+
+        $component=$this->livewireComponent($user,$project)
+            ->set('currentStep',6)
+            ->set('ods.0.descripcion_aporte','Aporte real ejecutado')
+            ->set('ods.0.evidencia','Fotografías y bitácora de campo')
+            ->assertSet('ods.0.descripcion_aporte','Aporte real ejecutado')
+            ->assertSet('ods.0.evidencia','Fotografías y bitácora de campo');
+
+        $this->assertDatabaseHas('informe_final_ods',['informe_final_proyecto_id'=>$report->id,'ods_id'=>$odsId,'descripcion_aporte'=>'Aporte real ejecutado','evidencia'=>'Fotografías y bitácora de campo']);
+
+        $this->livewireComponent($user,$project)
+            ->assertSet('ods.0.descripcion_aporte','Aporte real ejecutado')
+            ->assertSet('ods.0.evidencia','Fotografías y bitácora de campo');
     }
 
     public function test_se_valida_muestra_comunitaria(): void
