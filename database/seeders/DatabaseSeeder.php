@@ -15,6 +15,7 @@ use Database\Seeders\Personal\PermisosSeeder;
 use Database\Seeders\EjesPrioritariosUnahSeeder;
 use Database\Seeders\Proyecto\MetasContribuyeSeeder;
 use Database\Seeders\ENF\EnfCatalogoSeeder;
+use Database\Seeders\NivelAcademicoSeeder;
 
 
 
@@ -39,6 +40,7 @@ class DatabaseSeeder extends Seeder
         $this->call(CarreraDepartamentoSeeder::class);
         $this->call(MetasContribuyeSeeder::class);
         $this->call(EnfCatalogoSeeder::class);
+        $this->call(NivelAcademicoSeeder::class);
 
     }
 }

@@ -160,4 +160,63 @@ return [
     'uploaded' => 'El campo :attribute falló al subir.',
     'url' => 'El campo :attribute debe ser una URL válida.',
     'uuid' => 'El campo :attribute debe ser un UUID válido.',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Atributos personalizados de validación
+    |--------------------------------------------------------------------------
+    |
+    | Las siguientes líneas se usan para reemplazar el marcador :attribute con
+    | algo más legible como "Dirección de Correo Electrónico" en lugar de
+    | "email". Cubren campos transversales reutilizados en varios formularios
+    | de la aplicación (proyectos, catálogos, personal, etc.).
+    |
+    */
+
+    'attributes' => [
+        'nombre' => 'nombre',
+        'nombre_completo' => 'nombre completo',
+        'nombre_proyecto' => 'nombre del proyecto',
+        'nombre_contacto' => 'nombre de contacto',
+        'apellido' => 'apellido',
+        'correo' => 'correo electrónico',
+        'correo_electronico' => 'correo electrónico',
+        'email' => 'correo electrónico',
+        'telefono' => 'teléfono',
+        'celular' => 'número de celular',
+        'direccion' => 'dirección',
+        'fecha_inicio' => 'fecha de inicio',
+        'fecha_fin' => 'fecha de finalización',
+        'fecha_finalizacion' => 'fecha de finalización',
+        'fecha_nacimiento' => 'fecha de nacimiento',
+        'descripcion' => 'descripción',
+        'observaciones' => 'observaciones',
+        'departamento' => 'departamento',
+        'departamento_id' => 'departamento',
+        'municipio' => 'municipio',
+        'municipio_id' => 'municipio',
+        'aldea' => 'aldea',
+        'caserio' => 'caserío',
+        'region' => 'región',
+        'pais' => 'país',
+        'rtn' => 'RTN',
+        'dni' => 'número de identidad',
+        'documento_identidad' => 'documento de identidad',
+        'cargo' => 'cargo',
+        'institucion' => 'institución',
+        'sexo' => 'sexo',
+        'carrera' => 'carrera',
+        'carrera_id' => 'carrera',
+        'carreras' => 'carreras',
+        'facultad' => 'facultad',
+        'centro' => 'centro',
+        'archivo' => 'archivo',
+        'documento' => 'documento',
+        'documento_file' => 'documento',
+        'documento_url' => 'documento',
+        'monto' => 'monto',
+        'cantidad' => 'cantidad',
+        'costo_unitario' => 'costo unitario',
+        'costo_total' => 'costo total',
+    ],
 ];

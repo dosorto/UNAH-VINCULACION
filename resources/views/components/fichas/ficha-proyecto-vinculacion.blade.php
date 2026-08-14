@@ -458,7 +458,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <th class="full-width1" rowspan="3">3. Unidad Académica:</th>
+                            <th class="full-width1" rowspan="3">3. Unidad(s) Académica(as):</th>
                             <td class="sub-header" colspan="1">Facultad /Centro Universitario Regional/Instituto Tecnológico</td>
                             <td class="full-width" colspan="4">
                                 <ul>
@@ -481,11 +481,15 @@
                         <tr>
                             <td class="sub-header" colspan="1">Carreras</td>
                             <td class="full-width" colspan="4">
-                                <ul>
-                                    @foreach ($proyecto->carreras as $carrera)
-                                        <li>{{ $carrera->nombre }}</li>
-                                    @endforeach
-                                </ul>
+                                @if($proyecto->carrera_no_aplica)
+                                    <span>No aplica</span>
+                                @else
+                                    <ul>
+                                        @foreach ($proyecto->carreras as $carrera)
+                                            <li>{{ $carrera->nombre }}</li>
+                                        @endforeach
+                                    </ul>
+                                @endif
                             </td>
                         </tr>
                         <tr>
@@ -644,7 +648,7 @@
                                 <div class="input-field-multiline-static">{{ $departamentosTexto !== '' ? $departamentosTexto : 'No hay departamentos' }}</div>
                             @endif
                         </td>
-                        <td class="sub-header" colspan="1">Aldea (incluye ciudad)</td>
+                        <td class="sub-header" colspan="1">Aldea (Aplica también para ciudad)</td>
                         <td class="full-width" colspan="3">
                             @if (!empty($isPdf))
                                 <div class="pdf-text-block">{!! $renderPdfText($proyecto->aldea) !!}</div>
@@ -1080,6 +1084,14 @@
                         </tr>
 
                         <!-- 14. VOLUNTARIADO INTERNACIONAL -->
+                        @php
+                            $integrantesInternacionalesFicha = $proyecto->integrantesInternacionales;
+                            $contarVoluntariosInternacionales = function (string $nombreNivel, string $sexo) use ($integrantesInternacionalesFicha) {
+                                return $integrantesInternacionalesFicha->filter(function ($integrante) use ($nombreNivel, $sexo) {
+                                    return ($integrante->nivelAcademico?->nombre === $nombreNivel) && $integrante->sexo === $sexo;
+                                })->count();
+                            };
+                        @endphp
                         <tr>
                             <th class="full-width1" rowspan="4">14. Voluntariado internacional</th>
                             <td colspan="8" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic; text-align:center;">Desglose del voluntariado internacional (cantidad)</td>
@@ -1098,12 +1110,12 @@
                             <td class="sub-header" colspan="2" style="text-align:center;">Mujeres</td>
                         </tr>
                         <tr>
-                            <td class="full-width"></td>
-                            <td class="full-width"></td>
-                            <td class="full-width"></td>
-                            <td class="full-width"></td>
-                            <td class="full-width" colspan="2"></td>
-                            <td class="full-width" colspan="2"></td>
+                            <td class="full-width" style="text-align:center;">{{ $contarVoluntariosInternacionales('Estudiante de grado', 'masculino') }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $contarVoluntariosInternacionales('Estudiante de grado', 'femenino') }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $contarVoluntariosInternacionales('Maestría', 'masculino') }}</td>
+                            <td class="full-width" style="text-align:center;">{{ $contarVoluntariosInternacionales('Maestría', 'femenino') }}</td>
+                            <td class="full-width" colspan="2" style="text-align:center;">{{ $contarVoluntariosInternacionales('Doctorado/Posgrado', 'masculino') }}</td>
+                            <td class="full-width" colspan="2" style="text-align:center;">{{ $contarVoluntariosInternacionales('Doctorado/Posgrado', 'femenino') }}</td>
                         </tr>
 
                         <!-- 15. DETALLE DE LA PRÁCTICA DE ASIGNATURA/POSGRADO -->
@@ -1596,13 +1608,16 @@
                             <td class="sub-header" colspan="9" style="font-style:normal; font-weight:bold; text-align:center;">ODS</td>
                             <td class="sub-header" colspan="10" style="font-style:normal; font-weight:bold; text-align:center;">Meta a la que se contribuye</td>
                         </tr>
-                        @forelse ($proyecto->ods as $ods)
+                        @forelse ($proyecto->ods as $odsIndex => $ods)
                             <tr>
                                 <td class="full-width" colspan="9">
+                                    @php
+                                        $odsTexto = $odsIndex === 0 ? $ods->nombre . ' (ODS principal)' : $ods->nombre;
+                                    @endphp
                                     @if (!empty($isPdf))
-                                        <div class="pdf-text-block">{!! $renderPdfText($ods->nombre) !!}</div>
+                                        <div class="pdf-text-block">{!! $renderPdfText($odsTexto) !!}</div>
                                     @else
-                                        <div class="input-field-multiline-static">{{ $ods->nombre }}</div>
+                                        <div class="input-field-multiline-static">{{ $odsTexto }}</div>
                                     @endif
                                 </td>
                                 <td class="full-width" colspan="10">
@@ -1781,7 +1796,7 @@
                         <!-- Horas de trabajo docentes -->
                         <tr>
                             <td class="sub-header" colspan="7">a) Horas de trabajo docentes</td>
-                            <td class="sub-header" colspan="3">Hra/profesores</td>
+                            <td class="sub-header" colspan="3">Hra/profes</td>
                             <td class="full-width" colspan="3">
                                 @if (!empty($isPdf))
                                     <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('horas_trabajo_docentes')?->cantidad ?? '') !!}</div>
@@ -1808,7 +1823,7 @@
                         <!-- Horas de trabajo estudiantes -->
                         <tr>
                             <td class="sub-header" colspan="7">b) Horas de trabajo estudiantes</td>
-                            <td class="sub-header" colspan="3">Hra/estudiantes</td>
+                            <td class="sub-header" colspan="3">Hra/estud</td>
                             <td class="full-width" colspan="3">
                                 @if (!empty($isPdf))
                                     <div class="pdf-text-block">{!! $renderPdfText($conceptos->get('horas_trabajo_estudiantes')?->cantidad ?? '') !!}</div>
@@ -1915,7 +1930,7 @@
                         
                         <!-- Costos indirectos por infraestructura -->
                         <tr>
-                            <td class="sub-header" colspan="7">f) Costos indirectos por infraestructura universidad (depreciación de equipo, calculado sobre la sumatoria de los conceptos a – e)</td>
+                            <td class="sub-header" colspan="7">f) Costos indirectos por infraestructura universidad (depreciación de equipo, 3% calculado sobre la sumatoria de los conceptos a – e)</td>
                             <td class="sub-header" colspan="3">%</td>
                             <td class="full-width" colspan="3">
                                 @if (!empty($isPdf))
@@ -1942,7 +1957,7 @@
                         
                         <!-- Costos indirectos por servicios públicos -->
                         <tr>
-                            <td class="sub-header" colspan="7">g) Costos indirectos por servicios públicos (internet, electricidad, otros, calculado sobre la sumatoria de los conceptos a – e)</td>
+                            <td class="sub-header" colspan="7">g) Costos indirectos por servicios públicos (internet, electricidad, otros, 3% calculado sobre la sumatoria de los conceptos a – e)</td>
                             <td class="sub-header" colspan="3">%</td>
                             <td class="full-width" colspan="3">
                                 @if (!empty($isPdf))
