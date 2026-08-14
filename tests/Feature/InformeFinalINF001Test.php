@@ -798,7 +798,7 @@ class InformeFinalINF001Test extends TestCase
     public function test_estudiantes_se_muestran_por_grupo_sin_selector_editable_de_participacion(): void
     {
         [$user,$project]=$this->scenario();
-        foreach ([['Uno','Masculino','Practica Profesional'],['Dos','Femenino','Servicio Social o PPS'],['Tres','Masculino','Voluntariado']] as $i=>[$name,$sex,$type]) {
+        foreach ([['Uno','Masculino','Practica Asignatura'],['Dos','Femenino','Servicio Social o PPS'],['Tres','Masculino','Voluntariado']] as $i=>[$name,$sex,$type]) {
             $student=Estudiante::create(['nombre'=>$name,'apellido'=>'Individual','cuenta'=>'IND-'.$i.'-'.uniqid(),'sexo'=>$sex,'user_id'=>$user->id]);
             EstudianteProyecto::create(['estudiante_id'=>$student->id,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>$type,'cantidad_estudiantes_hombres'=>$sex==='Masculino'?1:0,'cantidad_estudiantes_mujeres'=>$sex==='Femenino'?1:0,'total_estudiantes'=>1]);
         }
