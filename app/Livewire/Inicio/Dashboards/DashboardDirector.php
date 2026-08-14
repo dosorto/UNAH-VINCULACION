@@ -419,6 +419,8 @@ class DashboardDirector extends Component
             ->with([
                 'estadoActual.tipoestado',
                 'firmasDeEtapa' => fn ($q) => $q
+                    ->whereNotNull('flujo_aprobacion_id')
+                    ->whereNotNull('flujo_aprobacion_etapa_id')
                     ->where('estado_revision', '!=', 'Anulado')
                     ->orderByDesc('revision_ciclo')
                     ->orderByDesc('id'),

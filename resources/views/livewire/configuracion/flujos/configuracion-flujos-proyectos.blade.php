@@ -220,7 +220,6 @@
                                 <label class="block space-y-2">
                                     <span class="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Tipo</span>
                                     <select wire:change="updateStageField('stages', '{{ $stageUiKey }}', 'tipo_etapa', $event.target.value)" class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-                                        <option value="FORMULACION" @selected(($stage['tipo_etapa'] ?? '') === 'FORMULACION')>Formulacion</option>
                                         <option value="REVISION" @selected(($stage['tipo_etapa'] ?? '') === 'REVISION')>Revision</option>
                                         <option value="APROBACION" @selected(($stage['tipo_etapa'] ?? '') === 'APROBACION')>Aprobacion</option>
                                     </select>
@@ -287,7 +286,7 @@
                             <div class="mt-4 flex flex-wrap gap-x-6 gap-y-3">
                                 <label class="inline-flex cursor-pointer items-center gap-3">
                                     <span class="relative inline-flex h-6 w-11 flex-shrink-0">
-                                        <input wire:change="updateStageField('stages', '{{ $stageUiKey }}', 'requiere_asignacion', $event.target.checked)" type="checkbox" @checked((bool) ($stage['requiere_asignacion'] ?? false)) class="peer sr-only" />
+                                        <input wire:key="stage-requiere-asig-{{ $stageRenderKey }}-{{ (int) ($stage['requiere_asignacion'] ?? false) }}" wire:change="updateStageField('stages', '{{ $stageUiKey }}', 'requiere_asignacion', $event.target.checked)" type="checkbox" @checked((bool) ($stage['requiere_asignacion'] ?? false)) class="peer sr-only" />
                                         <span class="h-6 w-11 rounded-full bg-slate-200 transition-colors peer-checked:bg-primary dark:bg-slate-700 dark:peer-checked:bg-primary"></span>
                                         <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></span>
                                     </span>
@@ -295,7 +294,7 @@
                                 </label>
                                 <label class="inline-flex cursor-pointer items-center gap-3">
                                     <span class="relative inline-flex h-6 w-11 flex-shrink-0">
-                                        <input wire:change="updateStageField('stages', '{{ $stageUiKey }}', 'emisor_define_destinatario', $event.target.checked)" type="checkbox" @checked((bool) ($stage['emisor_define_destinatario'] ?? false)) class="peer sr-only" />
+                                        <input wire:key="stage-emisor-define-{{ $stageRenderKey }}-{{ (int) ($stage['emisor_define_destinatario'] ?? false) }}" wire:change="updateStageField('stages', '{{ $stageUiKey }}', 'emisor_define_destinatario', $event.target.checked)" type="checkbox" @checked((bool) ($stage['emisor_define_destinatario'] ?? false)) class="peer sr-only" />
                                         <span class="h-6 w-11 rounded-full bg-slate-200 transition-colors peer-checked:bg-primary dark:bg-slate-700 dark:peer-checked:bg-primary"></span>
                                         <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></span>
                                     </span>
@@ -521,7 +520,7 @@
                                     <div class="mt-4 flex flex-wrap gap-x-6 gap-y-3">
                                         <label class="inline-flex cursor-pointer items-center gap-3">
                                             <span class="relative inline-flex h-6 w-11 flex-shrink-0">
-                                                <input wire:change="updateStageField('programStages', '{{ $stageUiKey }}', 'requiere_asignacion', $event.target.checked)" type="checkbox" @checked((bool) ($stage['requiere_asignacion'] ?? false)) class="peer sr-only" />
+                                                <input wire:key="program-stage-requiere-asig-{{ $stageRenderKey }}-{{ (int) ($stage['requiere_asignacion'] ?? false) }}" wire:change="updateStageField('programStages', '{{ $stageUiKey }}', 'requiere_asignacion', $event.target.checked)" type="checkbox" @checked((bool) ($stage['requiere_asignacion'] ?? false)) class="peer sr-only" />
                                                 <span class="h-6 w-11 rounded-full bg-slate-200 transition-colors peer-checked:bg-primary dark:bg-slate-700 dark:peer-checked:bg-primary"></span>
                                                 <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></span>
                                             </span>
@@ -529,7 +528,7 @@
                                         </label>
                                         <label class="inline-flex cursor-pointer items-center gap-3">
                                             <span class="relative inline-flex h-6 w-11 flex-shrink-0">
-                                                <input wire:change="updateStageField('programStages', '{{ $stageUiKey }}', 'emisor_define_destinatario', $event.target.checked)" type="checkbox" @checked((bool) ($stage['emisor_define_destinatario'] ?? false)) class="peer sr-only" />
+                                                <input wire:key="program-stage-emisor-define-{{ $stageRenderKey }}-{{ (int) ($stage['emisor_define_destinatario'] ?? false) }}" wire:change="updateStageField('programStages', '{{ $stageUiKey }}', 'emisor_define_destinatario', $event.target.checked)" type="checkbox" @checked((bool) ($stage['emisor_define_destinatario'] ?? false)) class="peer sr-only" />
                                                 <span class="h-6 w-11 rounded-full bg-slate-200 transition-colors peer-checked:bg-primary dark:bg-slate-700 dark:peer-checked:bg-primary"></span>
                                                 <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></span>
                                             </span>

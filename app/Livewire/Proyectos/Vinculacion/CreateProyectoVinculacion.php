@@ -47,6 +47,8 @@ class CreateProyectoVinculacion extends Component
     use WithFileUploads;
     use ReenviaDesdeSubsanacionPorEtapa;
 
+    private const MAX_ODS = 3;
+
     public int $currentStep = 1;
     public ?int $recordId = null;
     public ?int $proyectoId = null;
@@ -580,7 +582,9 @@ class CreateProyectoVinculacion extends Component
             if ($this->currentStep === 7) {
                 $this->validarMarcoLogicoCompleto();
             } elseif (!empty($rules)) {
-                $this->validate($rules);
+                $this->validate($rules, [
+                    'ods.max' => 'Puede seleccionar un máximo de 3 ODS.',
+                ]);
             }
         } catch (ValidationException $e) {
             throw $e;
@@ -643,7 +647,7 @@ class CreateProyectoVinculacion extends Component
                 'carreras.*' => 'integer|exists:carrera,id',
                 'programa_pertenece' => 'required|string',
                 'lineas_investigacion_academica' => 'required|string',
-                'ods' => 'required|array|min:1',
+                'ods' => 'required|array|min:1|max:' . self::MAX_ODS,
                 'fecha_inicio' => 'required|date',
                 'fecha_finalizacion' => 'required|date|after_or_equal:fecha_inicio',
             ],
@@ -653,6 +657,8 @@ class CreateProyectoVinculacion extends Component
                 'estudiante_proyecto.*.carrera_id' => 'nullable|exists:carrera,id',
                 'estudiante_proyecto.*.asignatura_id' => 'nullable|exists:asignaturas,id',
                 'estudiante_proyecto.*.periodo_academico_id' => 'nullable|string|max:50',
+                'estudiante_proyecto.*.cantidad_estudiantes_hombres' => 'nullable|integer|min:0',
+                'estudiante_proyecto.*.cantidad_estudiantes_mujeres' => 'nullable|integer|min:0',
             ],
             3 => [
                 'entidad_contraparte' => 'required|array|min:1',
@@ -745,6 +751,8 @@ class CreateProyectoVinculacion extends Component
         }
 
         if ($this->currentStep === 2) {
+            $this->validarTotalesGruposEstudiantes();
+
             foreach ($this->estudiante_proyecto as $i => $item) {
                 $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '')
                     ?: ($item['tipo_participacion_estudiante'] ?? '');
@@ -776,6 +784,32 @@ class CreateProyectoVinculacion extends Component
         }
 
         return $this->getErrorBag()->isEmpty();
+    }
+
+    private function validarTotalesGruposEstudiantes(): bool
+    {
+        $todosValidos = true;
+
+        foreach ($this->estudiante_proyecto as $i => $grupo) {
+            $total = (int) ($grupo['cantidad_estudiantes_hombres'] ?? 0)
+                + (int) ($grupo['cantidad_estudiantes_mujeres'] ?? 0);
+
+            $this->estudiante_proyecto[$i]['total_estudiantes'] = $total;
+
+            if ($total < 1) {
+                $this->addError(
+                    "estudiante_proyecto.$i.total_estudiantes",
+                    'El grupo debe incluir al menos un estudiante.'
+                );
+                $todosValidos = false;
+            }
+        }
+
+        if (!$todosValidos) {
+            $this->addError('estudiante_proyecto', 'Cada grupo debe incluir al menos un estudiante.');
+        }
+
+        return $todosValidos;
     }
 
     private function validarMarcoLogicoCompleto(): void
@@ -936,9 +970,14 @@ class CreateProyectoVinculacion extends Component
                 && !empty($this->programa_pertenece)
                 && !empty($this->lineas_investigacion_academica)
                 && !empty($this->ods)
+                && count($this->ods) <= self::MAX_ODS
                 && (!$this->esVoluntariado || !empty($this->tematica_principal)),
             2 => !empty($this->estudiante_proyecto)
-                && !empty(array_filter(array_column($this->estudiante_proyecto, 'tipo_participacion_estudiante'))),
+                && !empty(array_filter(array_column($this->estudiante_proyecto, 'tipo_participacion_estudiante')))
+                && collect($this->estudiante_proyecto)->every(
+                    fn(array $grupo) => (int) ($grupo['cantidad_estudiantes_hombres'] ?? 0)
+                        + (int) ($grupo['cantidad_estudiantes_mujeres'] ?? 0) > 0
+                ),
             3 => !empty(array_filter(array_column($this->entidad_contraparte, 'nombre'))),
             4 => !empty(array_filter(array_column($this->actividades, 'descripcion'))),
             5 => collect(self::CAMPOS_DESCRIPCION_REQUERIDOS)->every(
@@ -1871,13 +1910,7 @@ class CreateProyectoVinculacion extends Component
 
     private function periodosAcademicosBase(): array
     {
-        return [
-            'Primer Periodo',
-            'Segundo Periodo',
-            'Tercer Periodo',
-            'Primer Semestre',
-            'Segundo Semestre',
-        ];
+        return PeriodoAcademico::NOMBRES_BASE;
     }
 
     private function dateOrNull(mixed $value): ?string
@@ -1912,7 +1945,9 @@ class CreateProyectoVinculacion extends Component
             'fecha_finalizacion' => 'required|date|after_or_equal:fecha_inicio',
             'programa_pertenece' => 'required|string',
             'lineas_investigacion_academica' => 'required|string',
-            'ods' => 'required|array|min:1',
+            'ods' => 'required|array|min:1|max:' . self::MAX_ODS,
+        ], [
+            'ods.max' => 'Puede seleccionar un máximo de 3 ODS.',
         ]);
         $record = $this->ensureRecord();
         $record->update([
@@ -1934,6 +1969,18 @@ class CreateProyectoVinculacion extends Component
 
     public function updatedOds($value = null, ?string $key = null): void
     {
+        $odsSeleccionados = collect($this->ods)
+            ->filter(fn($id) => $id !== null && $id !== '')
+            ->unique()
+            ->values();
+
+        if ($odsSeleccionados->count() > self::MAX_ODS) {
+            $this->ods = $odsSeleccionados->take(self::MAX_ODS)->all();
+            $this->addError('ods', 'Puede seleccionar un máximo de 3 ODS.');
+        } else {
+            $this->resetErrorBag('ods');
+        }
+
         $this->cargarMetasPorOds();
         $this->autoGuardarBorrador();
     }
@@ -2007,6 +2054,10 @@ class CreateProyectoVinculacion extends Component
         ]);
 
         $hasInvalidStudentRows = false;
+        if (!$this->validarTotalesGruposEstudiantes()) {
+            $hasInvalidStudentRows = true;
+        }
+
         foreach ($this->estudiante_proyecto as $i => $item) {
             $tipo = $this->normalizeTipoParticipacionEstudiante($item['tipo_participacion_estudiante'] ?? '') ?: ($item['tipo_participacion_estudiante'] ?? '');
             $this->estudiante_proyecto[$i]['tipo_participacion_estudiante'] = $tipo;
@@ -2457,6 +2508,20 @@ class CreateProyectoVinculacion extends Component
 
     public function saveEstudiante(): void
     {
+        $this->resetErrorBag([
+            'nuevoEstudiante.cantidad_estudiantes_hombres',
+            'nuevoEstudiante.cantidad_estudiantes_mujeres',
+            'nuevoEstudiante.total_estudiantes',
+        ]);
+
+        $this->validate([
+            'nuevoEstudiante.cantidad_estudiantes_hombres' => 'required|integer|min:0',
+            'nuevoEstudiante.cantidad_estudiantes_mujeres' => 'required|integer|min:0',
+        ], [], [
+            'nuevoEstudiante.cantidad_estudiantes_hombres' => 'cantidad de hombres',
+            'nuevoEstudiante.cantidad_estudiantes_mujeres' => 'cantidad de mujeres',
+        ]);
+
         $tipo = $this->normalizeTipoParticipacionEstudiante($this->nuevoEstudiante['tipo_participacion_estudiante'] ?? '');
         if (empty($tipo)) {
             $this->addError('nuevoEstudiante.tipo_participacion_estudiante', 'Seleccione el tipo de participación.');
@@ -2511,6 +2576,11 @@ class CreateProyectoVinculacion extends Component
         $h = (int)($this->nuevoEstudiante['cantidad_estudiantes_hombres'] ?? 0);
         $m = (int)($this->nuevoEstudiante['cantidad_estudiantes_mujeres'] ?? 0);
         $this->nuevoEstudiante['total_estudiantes'] = $h + $m;
+
+        if ($this->nuevoEstudiante['total_estudiantes'] < 1) {
+            $this->addError('nuevoEstudiante.total_estudiantes', 'El grupo debe incluir al menos un estudiante.');
+            return;
+        }
 
         if ($this->editEstudianteIndex !== null) {
             $this->estudiante_proyecto[$this->editEstudianteIndex] = $this->nuevoEstudiante;
@@ -3386,9 +3456,38 @@ class CreateProyectoVinculacion extends Component
      */
     private function reenviarAutomaticamenteTrasSubsanacion(Proyecto $proyecto): bool
     {
-        $firmaRechazada = $this->firmaRechazadaActualPorEtapa($proyecto);
+        try {
+            $firmaRechazada = $this->firmaRechazadaActualPorEtapa($proyecto);
+        } catch (\RuntimeException $e) {
+            Notification::make()
+                ->title('Ciclo de revisión inconsistente')
+                ->body($e->getMessage().' Contacte a administración para resolver el ciclo de revisión.')
+                ->danger()
+                ->send();
+
+            return true;
+        }
 
         if (! $firmaRechazada) {
+            // Si el proyecto ya tiene firmas por etapa previas pero no se pudo
+            // identificar la etapa rechazada vigente, es un estado inconsistente:
+            // no debe caer al camino de "enviar desde cero", que chocaría con
+            // validarSinFirmasPreviasParaEnvioPorEtapa() y bloquearía sin salida.
+            $tieneFirmasPorEtapaPrevias = $proyecto->firma_proyecto()
+                ->whereNotNull('flujo_aprobacion_etapa_id')
+                ->whereNull('deleted_at')
+                ->exists();
+
+            if ($tieneFirmasPorEtapaPrevias) {
+                Notification::make()
+                    ->title('No se pudo reenviar automáticamente')
+                    ->body('El proyecto ya tiene un historial de revisión por etapas pero no se encontró una etapa rechazada vigente. Contacte a administración.')
+                    ->danger()
+                    ->send();
+
+                return true;
+            }
+
             return false;
         }
 
@@ -3529,35 +3628,28 @@ class CreateProyectoVinculacion extends Component
             $proyecto->saveQuietly();
         }
 
-        $etapas = $this->etapasActivasParaEnvioPorFlujo($proyecto);
+        // El "Coordinador Proyecto" ya no es una etapa configurable del flujo:
+        // se autofirma con la firma/sello de quien inscribió el proyecto en el
+        // momento del envío. Es idempotente, así que no duplica si ya se firmó
+        // al guardar un borrador anterior.
+        $coordinadorEmpleado = auth()->user()?->empleado;
 
-        $empleadosPorEtapa = [];
-
-        foreach ($etapas as $etapa) {
-            $etapaId = (int) $etapa->id;
-
-            if ($etapa->emisor_define_destinatario && isset($this->modalDestinatarios[$etapaId])) {
-                $user = \App\Models\User::find((int) $this->modalDestinatarios[$etapaId]);
-                $empleado = $user?->empleado;
-
-                if (! $empleado) {
-                    throw new \RuntimeException(sprintf('El usuario seleccionado para la etapa "%s" no tiene empleado vinculado.', $etapa->nombre));
-                }
-
-                $empleadosPorEtapa[$etapaId] = $empleado->id;
-            } elseif ($etapa->usuario_responsable_id) {
-                $user = \App\Models\User::find((int) $etapa->usuario_responsable_id);
-                $empleado = $user?->empleado;
-
-                if (! $empleado) {
-                    throw new \RuntimeException(sprintf('El usuario responsable configurado para la etapa "%s" no tiene empleado vinculado.', $etapa->nombre));
-                }
-
-                $empleadosPorEtapa[$etapaId] = $empleado->id;
-            } else {
-                throw new \RuntimeException(sprintf('La etapa "%s" no tiene destinatario configurado. Active "El emisor define el destinatario" o establezca un usuario responsable.', $etapa->nombre));
-            }
+        if (! $coordinadorEmpleado) {
+            throw new \RuntimeException('No se pudo determinar el empleado que inscribe el proyecto para autofirmar como coordinador.');
         }
+
+        $proyecto->agregarFirma(cargoFirma: 'Coordinador Proyecto', empleado: $coordinadorEmpleado);
+
+        // Fuente única de verdad para "quién(es) deben recibir cada etapa":
+        // responsable fijo, emisor define destinatario, o todos los usuarios
+        // del rol (basta con que uno actúe) cuando ninguno de los anteriores
+        // aplica.
+        $this->etapasActivasParaEnvioPorFlujo($proyecto);
+        $empleadosPorEtapa = app(\App\Services\Proyecto\ProyectoWorkflowService::class)->resolverEmpleados(
+            $proyecto,
+            Proyecto::FLUJO_INSCRIPCION,
+            $this->modalDestinatarios
+        );
 
         $this->validarSinFirmasPreviasParaEnvioPorEtapa($proyecto, (int) $flujo->id);
 
@@ -3580,7 +3672,16 @@ class CreateProyectoVinculacion extends Component
             $firmas->map(fn (FirmaProyecto $firma): FirmaProyecto => $firma->fresh())->values()
         );
 
-        $this->notificarRevisorEtapa($proyecto, $primeraFirma, $flujo);
+        // Cuando la primera etapa se manda a todos los usuarios del rol, hay
+        // varias firmas Pendiente "candidatas" con el mismo orden/etapa que
+        // $primeraFirma: se notifica a cada una, no solo a la representante.
+        $candidatas = $firmas->filter(
+            fn (FirmaProyecto $firma): bool => (int) $firma->flujo_aprobacion_etapa_id === (int) $primeraFirma->flujo_aprobacion_etapa_id
+        );
+
+        foreach ($candidatas as $candidata) {
+            $this->notificarRevisorEtapa($proyecto, $candidata, $flujo);
+        }
     }
 
     private function notificarRevisorEtapa(Proyecto $proyecto, FirmaProyecto $firma, FlujoAprobacion $flujo): void
@@ -3640,7 +3741,10 @@ class CreateProyectoVinculacion extends Component
             ->exists();
 
         if ($existenFirmasPorEtapa) {
-            throw new RuntimeException('Ya existen firmas por etapa para este proyecto.');
+            throw new RuntimeException(sprintf(
+                'El proyecto #%d ya tiene firmas por etapa registradas para este flujo y no puede reiniciarse desde cero. Contacte a administración para resolver el ciclo de revisión.',
+                $proyecto->id
+            ));
         }
 
         $existenFirmasLegacy = $proyecto->firma_proyecto()
@@ -3650,7 +3754,10 @@ class CreateProyectoVinculacion extends Component
             ->exists();
 
         if ($existenFirmasLegacy) {
-            throw new RuntimeException('Ya existen firmantes manuales para este envío y no se puede iniciar la revisión por etapas.');
+            throw new RuntimeException(sprintf(
+                'El proyecto #%d ya tiene firmantes manuales para este envío y no se puede iniciar la revisión por etapas. Contacte a administración.',
+                $proyecto->id
+            ));
         }
     }
 
@@ -3675,20 +3782,28 @@ class CreateProyectoVinculacion extends Component
         $flujo = $proyecto->resolveFlujoAprobacion();
         $etapas = $this->etapasActivasParaEnvioPorFlujo($proyecto)->values();
 
-        if (! $flujo || $firmas->count() !== $etapas->count()) {
+        $firmas = $firmas->map(fn (FirmaProyecto $firma): FirmaProyecto => $firma->fresh())->values();
+
+        // Una etapa enviada a "todos los usuarios del rol" produce varias
+        // firmas (una por candidato) para la misma etapa; el conteo válido
+        // es que cada etapa activa esté representada por al menos una firma,
+        // no que haya exactamente una firma por etapa.
+        $idsEtapaPorFirma = $firmas->pluck('flujo_aprobacion_etapa_id')->filter()->map(fn ($id): int => (int) $id);
+        $idsEtapaEsperados = $etapas->pluck('id')->map(fn ($id): int => (int) $id);
+
+        if (! $flujo
+            || $firmas->isEmpty()
+            || $idsEtapaPorFirma->unique()->sort()->values()->all() !== $idsEtapaEsperados->unique()->sort()->values()->all()
+        ) {
             throw new RuntimeException('No se pudo preparar el envio por etapas de forma segura.');
         }
 
-        $firmas = $firmas->map(fn (FirmaProyecto $firma): FirmaProyecto => $firma->fresh())->values();
-
-        $idsEtapa = $firmas->pluck('flujo_aprobacion_etapa_id')->filter()->map(fn ($id): int => (int) $id);
         $primeraFirma = $proyecto->firmaActualDeEtapasDelFlujo((int) $flujo->id, 1);
         $tipoEstadoPrimera = $primeraFirma?->cargo_firma()->value('tipo_estado_id');
         $estadoActualId = $proyecto->fresh()->estado?->tipo_estado_id;
 
         if ($firmas->contains(fn (FirmaProyecto $firma): bool => $firma->estado_revision !== 'Pendiente')
             || $firmas->contains(fn (FirmaProyecto $firma): bool => (int) $firma->revision_ciclo !== 1)
-            || $idsEtapa->count() !== $idsEtapa->unique()->count()
             || ! $primeraFirma
             || ! $tipoEstadoPrimera
             || (int) $estadoActualId !== (int) $tipoEstadoPrimera
@@ -3698,9 +3813,9 @@ class CreateProyectoVinculacion extends Component
         }
 
         foreach ($firmas as $firma) {
-            $esPrimera = (int) $firma->id === (int) $primeraFirma->id;
+            $mismaEtapaQuePrimera = (int) $firma->flujo_aprobacion_etapa_id === (int) $primeraFirma->flujo_aprobacion_etapa_id;
 
-            if ($proyecto->firmaEsActualEnFlujoPorEtapa($firma) !== $esPrimera) {
+            if ($proyecto->firmaEsActualEnFlujoPorEtapa($firma) !== $mismaEtapaQuePrimera) {
                 throw new RuntimeException('No se pudo preparar el envio por etapas de forma segura.');
             }
         }

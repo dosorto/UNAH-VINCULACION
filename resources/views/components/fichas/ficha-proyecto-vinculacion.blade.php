@@ -301,11 +301,16 @@
             text-align: center;
         }
 
+        .signature-image-cell {
+            height: 160px;
+            vertical-align: middle;
+        }
+
         .signature-image-cell img {
             display: block;
-            width: auto;
-            max-width: 200px;
-            max-height: 110px;
+            width: 160px;
+            height: 90px;
+            object-fit: contain;
             margin: 0 auto;
         }
 
@@ -2058,7 +2063,7 @@
 
                 {{-- FIRMAS --}}
                 <div class="section3 section-signatures">
-                    @include('components.fichas.firmas-dinamicas', ['proyecto' => $proyecto, 'isPdf' => $isPdf ?? false])
+                    @include('components.fichas.firmas-fijas-proyecto', ['proyecto' => $proyecto, 'isPdf' => $isPdf ?? false])
                 </div>
 
                 {{-- DOCUMENTOS ADJUNTOS --}}

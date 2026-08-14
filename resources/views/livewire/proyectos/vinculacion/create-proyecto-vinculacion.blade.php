@@ -50,6 +50,18 @@
                 <dt class="font-semibold">Etapa</dt>
                 <dd>{{ $detalleSubsanacion['etapa'] }}</dd>
             </div>
+            @if ($detalleSubsanacion['documento'] ?? null)
+                <div class="sm:col-span-2">
+                    <dt class="font-semibold">Documento adjunto</dt>
+                    <dd>
+                        <a href="{{ route('proyectos.documentos-subsanacion.descargar', $detalleSubsanacion['documento']) }}"
+                           class="text-amber-900 underline hover:text-amber-700 dark:text-amber-200 dark:hover:text-amber-100"
+                           target="_blank">
+                            {{ $detalleSubsanacion['documento']->nombre_original }}
+                        </a>
+                    </dd>
+                </div>
+            @endif
         </dl>
         @endif
     </div>
@@ -333,15 +345,47 @@
 
             {{-- ODS --}}
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ODS <span class="text-red-500">*</span></label>
-                <div wire:ignore x-data="{open:false,selected:($wire.get('ods')||[]).map(String),options:@js($odsList),toggle(id){id=String(id);let c=(this.selected||[]).map(String);const i=c.indexOf(id);i===-1?c.push(id):c.splice(i,1);this.selected=c;$wire.set('ods',c,true);},isSelected(id){return(this.selected||[]).map(String).includes(String(id));},getName(id){return this.options[id]??this.options[String(id)]??id;}}" @click.outside="open=false" class="relative">
+                <div class="mb-1 flex items-center justify-between gap-3">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">ODS <span class="text-red-500">*</span></label>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Máximo 3</span>
+                </div>
+                <div wire:ignore x-data="{
+                        open: false,
+                        maxOds: 3,
+                        selected: ($wire.get('ods') || []).map(String),
+                        options: @js($odsList),
+                        toggle(id) {
+                            id = String(id);
+                            const current = (this.selected || []).map(String);
+                            const index = current.indexOf(id);
+
+                            if (index === -1) {
+                                if (current.length >= this.maxOds) return;
+                                current.push(id);
+                            } else {
+                                current.splice(index, 1);
+                            }
+
+                            this.selected = current;
+                            $wire.set('ods', current, true);
+                        },
+                        isSelected(id) {
+                            return (this.selected || []).map(String).includes(String(id));
+                        },
+                        isDisabled(id) {
+                            return !this.isSelected(id) && (this.selected || []).length >= this.maxOds;
+                        },
+                        getName(id) {
+                            return this.options[id] ?? this.options[String(id)] ?? id;
+                        }
+                    }" @click.outside="open=false" class="relative">
                     <div @click="open=!open" class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 cursor-pointer flex flex-wrap gap-1 items-center">
                         <template x-for="id in (selected||[])" :key="id"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"><span x-text="getName(id)"></span><button type="button" @click.stop="toggle(id)" class="font-bold">×</button></span></template>
                         <span x-show="!selected||selected.length===0" class="text-gray-400 text-sm">Seleccione los ODS...</span>
-                        <span class="ml-auto text-gray-400 text-xs" x-text="open?'▴':'▾'"></span>
+                        <span class="ml-auto text-gray-400 text-xs"><span x-text="(selected || []).length + '/3'"></span> <span x-text="open?'▴':'▾'"></span></span>
                     </div>
                     <div x-show="open" x-cloak class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-56 overflow-y-auto">
-                        <template x-for="[id,name] in Object.entries(options)" :key="id"><div @click="toggle(id)" class="px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between" :class="isSelected(id)?'bg-blue-50 text-blue-700 font-medium':'text-gray-700 dark:text-gray-300'"><span x-text="name"></span><span x-show="isSelected(id)" class="text-xs">✓</span></div></template>
+                        <template x-for="[id,name] in Object.entries(options)" :key="id"><div @click="toggle(id)" class="px-3 py-2 text-sm flex items-center justify-between" :class="isSelected(id)?'bg-blue-50 text-blue-700 font-medium cursor-pointer':(isDisabled(id)?'text-gray-400 dark:text-gray-600 cursor-not-allowed':'text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700')" :aria-disabled="isDisabled(id)"><span x-text="name"></span><span x-show="isSelected(id)" class="text-xs">✓</span></div></template>
                     </div>
                 </div>
                 @error('ods') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
@@ -751,16 +795,19 @@
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Cantidad Hombres</label>
                                 <input type="number" wire:model="nuevoEstudiante.cantidad_estudiantes_hombres" min="0"
                                     class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                                @error('nuevoEstudiante.cantidad_estudiantes_hombres') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Cantidad Mujeres</label>
                                 <input type="number" wire:model="nuevoEstudiante.cantidad_estudiantes_mujeres" min="0"
                                     class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                                @error('nuevoEstudiante.cantidad_estudiantes_mujeres') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
                         <p class="text-xs text-gray-500">
                             Total: <strong>{{ (int)($nuevoEstudiante['cantidad_estudiantes_hombres'] ?? 0) + (int)($nuevoEstudiante['cantidad_estudiantes_mujeres'] ?? 0) }}</strong> estudiantes
                         </p>
+                        @error('nuevoEstudiante.total_estudiantes') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div class="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 px-5 py-3">
                         <button wire:click="closeEstudianteModal" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 hover:bg-gray-200">Cancelar</button>

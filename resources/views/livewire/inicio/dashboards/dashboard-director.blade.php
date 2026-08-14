@@ -243,7 +243,14 @@
                                 <h2 class="text-base font-semibold text-gray-900 dark:text-white">Mis proyectos</h2>
                             </div>
                             <div class="overflow-x-auto">
-                                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                                <table class="w-full min-w-[960px] table-fixed text-sm text-left text-gray-500 dark:text-gray-400">
+                                    <colgroup>
+                                        <col class="w-[10%]">
+                                        <col class="w-[19%]">
+                                        <col class="w-[15%]">
+                                        <col class="w-[41%]">
+                                        <col class="w-[15%]">
+                                    </colgroup>
                                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                                         <tr>
                                             <th scope="col" class="px-6 py-3">Código</th>
@@ -263,63 +270,41 @@
                                                     ->values();
                                                 $hayProgreso = $etapasFirmas->isNotEmpty();
                                                 // First Pendiente = current stage
-                                                $etapaActualId = optional(
-                                                    $etapasFirmas->firstWhere('estado_revision', 'Pendiente')
-                                                        ?? $etapasFirmas->firstWhere('estado', 'PENDIENTE')
-                                                        ?? $etapasFirmas->firstWhere('estado', 'ASIGNADO')
-                                                        ?? $etapasFirmas->firstWhere('estado', 'EN_PROCESO')
-                                                )->flujo_aprobacion_etapa_id;
+                                                $etapaActualId = $etapasFirmas
+                                                    ->firstWhere('estado_revision', 'Pendiente')
+                                                    ?->flujo_aprobacion_etapa_id;
+                                                $stepperDirector = $etapasFirmas->map(function ($firma) use ($etapaActualId) {
+                                                    $esActual = $firma->flujo_aprobacion_etapa_id === $etapaActualId;
+
+                                                    return [
+                                                        'nombre' => $firma->etapa_nombre,
+                                                        'estado' => match ($firma->estado_revision) {
+                                                            'Aprobado' => 'aprobado',
+                                                            'Rechazado' => 'rechazado',
+                                                            default => $esActual ? 'actual' : 'pendiente',
+                                                        },
+                                                    ];
+                                                })->all();
                                             @endphp
                                             <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                                 <td class="px-6 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                                                    {{ $proyecto->codigo ?? '—' }}
+                                                    {{ $proyecto->codigo_proyecto ?? '—' }}
                                                 </td>
-                                                <td class="px-6 py-3">{{ $proyecto->nombre }}</td>
+                                                <td class="min-w-0 px-6 py-3 font-medium text-gray-700 dark:text-gray-200">
+                                                    <x-dashboard.texto-truncado :texto="$proyecto->nombre_proyecto" />
+                                                </td>
                                                 <td class="px-6 py-3">
-                                                    @if($proyecto->estado)
+                                                    @if($proyecto->estadoActual?->tipoestado)
                                                         <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                                            {{ $proyecto->estado }}
+                                                            {{ $proyecto->estadoActual->tipoestado->nombre }}
                                                         </span>
                                                     @else
                                                         <span class="text-gray-400">—</span>
                                                     @endif
                                                 </td>
-                                                <td class="px-6 py-3">
+                                                <td class="px-6 py-3 align-top">
                                                     @if($hayProgreso)
-                                                    <div class="flex items-center gap-1">
-                                                        @foreach($etapasFirmas as $firma)
-                                                            @php
-                                                                $esCurrent = $firma->flujo_aprobacion_etapa_id === $etapaActualId;
-                                                                $estadoFirma = $firma->estado_revision ?? $firma->estado ?? null;
-                                                                $nombreEtapa = $firma->etapa_nombre ?? 'Etapa';
-                                                                $colorClase = match($estadoFirma) {
-                                                                    'Aprobado' => 'bg-emerald-500 text-white',
-                                                                    'APROBADO' => 'bg-emerald-500 text-white',
-                                                                    'Rechazado' => 'bg-red-500 text-white',
-                                                                    'SUBSANACION' => 'bg-red-500 text-white',
-                                                                    default => $esCurrent
-                                                                        ? 'bg-amber-400 text-white ring-2 ring-amber-300 ring-offset-1'
-                                                                        : 'bg-slate-200 text-slate-400 dark:bg-slate-700',
-                                                                };
-                                                                $icono = match($estadoFirma) {
-                                                                    'Aprobado' => '✓',
-                                                                    'Rechazado' => '✕',
-                                                                    default => $esCurrent ? '●' : '○',
-                                                                };
-                                                            @endphp
-                                                            <div class="flex flex-col items-center gap-0.5" title="{{ $nombreEtapa }}">
-                                                                <span class="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold {{ $colorClase }}">
-                                                                    {{ $icono }}
-                                                                </span>
-                                                                <span class="hidden text-[9px] text-slate-400 dark:text-slate-500 max-w-[40px] text-center leading-tight truncate sm:block">
-                                                                    {{ \Illuminate\Support\Str::limit($nombreEtapa, 8) }}
-                                                                </span>
-                                                            </div>
-                                                            @if(! $loop->last)
-                                                                <div class="h-px w-3 bg-slate-300 dark:bg-slate-600 mb-3 shrink-0"></div>
-                                                            @endif
-                                                        @endforeach
-                                                    </div>
+                                                        <x-dashboard.stepper-progreso :stepper="$stepperDirector" />
                                                     @else
                                                         <span class="text-xs text-slate-400">Sin enviar</span>
                                                     @endif
@@ -336,7 +321,7 @@
                                     </tbody>
                                 </table>
                             </div>
-                            @if(false)
+                            @if($misProyectosTable->hasMorePages())
                                 <div class="px-6 py-3 border-t border-gray-200 dark:border-gray-700">
                                     <button wire:click="loadMore"
                                         class="w-full text-sm text-blue-600 dark:text-blue-400 hover:underline">
@@ -611,8 +596,14 @@
                                                     </span>
                                                     
                                                     @if($estado->comentario)
-                                                        <div class="mt-3 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 p-3 rounded-md border-l-2 border-gray-300 dark:border-gray-500 italic">
-                                                            "{{ $estado->comentario }}"
+                                                        <div x-data="{ expanded: false }" class="mt-3 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 p-3 rounded-md border-l-2 border-gray-300 dark:border-gray-500 italic">
+                                                            <p class="break-words" :class="expanded ? '' : 'line-clamp-4'">"{{ $estado->comentario }}"</p>
+                                                            @if (mb_strlen($estado->comentario) > 200)
+                                                                <button type="button" @click="expanded = !expanded" class="not-italic mt-1 text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400">
+                                                                    <span x-show="!expanded">Ver más</span>
+                                                                    <span x-show="expanded" x-cloak>Ver menos</span>
+                                                                </button>
+                                                            @endif
                                                         </div>
                                                     @endif
                                                 </div>

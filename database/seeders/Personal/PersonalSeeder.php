@@ -10,6 +10,7 @@ use App\Models\Estudiante\Estudiante;
 
 use App\Models\Personal\CategoriaEmpleado;
 use App\Models\Proyecto\FlujoAprobacion;
+use Database\Seeders\UnidadAcademica\CategoriaEmpleadoSeeder;
 use Spatie\Permission\Models\Role;
 
 
@@ -20,62 +21,7 @@ class PersonalSeeder extends Seeder
      */
     public function run(): void
     {
-        // crear los seeders de las categorias de empleados
-        CategoriaEmpleado::create([
-            'nombre' => 'Auxiliar',
-            'descripcion' => 'Auxiliar de la universidad'
-        ]);
-
-        CategoriaEmpleado::create([
-            'nombre' => 'Titular I',
-            'descripcion' => 'Titular 1 de la universidad'
-        ]);
-
-        CategoriaEmpleado::create([
-            'nombre' => 'Titular II',
-            'descripcion' => 'Titular 2 de la universidad'
-        ]);
-
-        CategoriaEmpleado::create([
-            'nombre' => 'Titular III',
-            'descripcion' => 'Titular 3 de la universidad'
-        ]);
-
-        CategoriaEmpleado::create([
-            'nombre' => 'Titular IV',
-            'descripcion' => 'Titular 4 de la universidad'
-        ]);
-
-        CategoriaEmpleado::create([
-            'nombre' => 'Titular V',
-            'descripcion' => 'Titular 5 de la universidad'
-        ]);
-
-        CategoriaEmpleado::create([
-            'nombre' => 'Profesores x hora',
-            'descripcion' => 'Profesores x hora'
-        ]);
-
-        CategoriaEmpleado::create([
-            'nombre' => 'Profesores horarios',
-            'descripcion' => 'Profesores horarios'
-        ]);
-
-        CategoriaEmpleado::create([
-            'nombre' => 'Administrativo',
-            'descripcion' => 'Administrativo'
-        ]);
-
-        CategoriaEmpleado::create([
-            'nombre' => 'Servicios',
-            'descripcion' => 'Servicios'
-        ]);
-
-        CategoriaEmpleado::create([
-            'nombre' => 'Asistentes técnicos laboratorios / Instructores',
-            'descripcion' => 'Asistentes técnicos laboratorios / Instructores'
-        ]);
-
+        $this->call(CategoriaEmpleadoSeeder::class);
 
         $user = User::updateOrCreate(
             ['microsoft_id' => "0d887b9b-9589-4e2c-8d65-4ced9d5d6c87"],

@@ -136,6 +136,27 @@ class InformeFinalINF001Test extends TestCase
         $this->assertSame('Aplicación informática disponible',$report->resultados->first()->resultado_planificado);
     }
 
+    public function test_se_precargan_resultados_de_mediano_y_largo_plazo_del_proyecto(): void
+    {
+        [$user,$project]=$this->scenario();
+        $mediano=ResultadoEsperado::create(['proyecto_id'=>$project->id,'nombre_resultado'=>'Organizaciones fortalecidas','nombre_indicador'=>'Tres organizaciones fortalecidas','nombre_medio_verificacion'=>'Informe de seguimiento','plazo'=>'mediano_plazo','orden'=>1]);
+        $largo=ResultadoEsperado::create(['proyecto_id'=>$project->id,'nombre_resultado'=>'Comunidad autogestionada','nombre_indicador'=>'Autogestión comunitaria sostenida','nombre_medio_verificacion'=>'Informe de impacto','plazo'=>'largo_plazo','orden'=>2]);
+
+        $report=$this->initialize($project,$user);
+
+        $resultadoMediano=$report->resultados->firstWhere('resultado_esperado_id',$mediano->id);
+        $resultadoLargo=$report->resultados->firstWhere('resultado_esperado_id',$largo->id);
+
+        $this->assertNotNull($resultadoMediano);
+        $this->assertSame('Resultado de mediano plazo del proyecto',$resultadoMediano->objetivo_especifico);
+        $this->assertSame('Organizaciones fortalecidas',$resultadoMediano->resultado_planificado);
+        $this->assertSame('Tres organizaciones fortalecidas',$resultadoMediano->indicador_propuesto);
+
+        $this->assertNotNull($resultadoLargo);
+        $this->assertSame('Resultado de largo plazo del proyecto',$resultadoLargo->objetivo_especifico);
+        $this->assertSame('Comunidad autogestionada',$resultadoLargo->resultado_planificado);
+    }
+
     public function test_se_precargan_actividades(): void
     {
         [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
@@ -834,6 +855,102 @@ class InformeFinalINF001Test extends TestCase
             ->assertSet('estadoGuardado','guardado');
         $this->assertSame($before, Estudiante::count());
         $this->assertDatabaseHas('informe_final_estudiantes',['informe_final_grupo_estudiante_id'=>$grupo->id,'nombre'=>'Estudiante Manual','numero_cuenta'=>'20269990000','sexo'=>'Masculino','tipo_participacion'=>'pps_servicio_social','correo'=>'manual@example.test','origen'=>'MANUAL','estudiante_id'=>null]);
+    }
+
+    public function test_select_sexo_tiene_opcion_vacia_para_obligar_seleccion_manual(): void
+    {
+        [$user,$project]=$this->scenario();
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Servicio Social o PPS','cantidad_estudiantes_hombres'=>1,'cantidad_estudiantes_mujeres'=>0,'total_estudiantes'=>1]);
+        $report=$this->initialize($project,$user);
+        $grupo=$report->gruposEstudiantes()->firstOrFail();
+
+        $html=$this->livewireComponent($user,$project)
+            ->call('openEstudianteModal',null,$grupo->id)
+            ->set('estudianteBusquedaCuenta','20269990000')
+            ->call('buscarEstudiante')
+            ->html();
+
+        $sexoSelect=match (true) {
+            preg_match('/<select wire:model="estudianteManual\.sexo"[^>]*>(.*?)<\/select>/s',$html,$m) === 1 => $m[1],
+            default => '',
+        };
+        $this->assertStringContainsString('<option value="">Seleccione el sexo</option>',$sexoSelect);
+    }
+
+    public function test_sexo_masculino_se_guarda_sin_error_required(): void
+    {
+        [$user,$project]=$this->scenario();
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Servicio Social o PPS','cantidad_estudiantes_hombres'=>2,'cantidad_estudiantes_mujeres'=>2,'total_estudiantes'=>4]);
+        $report=$this->initialize($project,$user);
+        $grupo=$report->gruposEstudiantes()->firstOrFail();
+        $component=$this->livewireComponent($user,$project)->call('openEstudianteModal',null,$grupo->id);
+        $this->configurarRegistroManual($component)
+            ->set('estudianteManual.sexo','Masculino')
+            ->call('saveEstudianteManual')
+            ->assertHasNoErrors('estudianteManual.sexo');
+        $this->assertDatabaseHas('informe_final_estudiantes',['informe_final_grupo_estudiante_id'=>$grupo->id,'sexo'=>'Masculino','origen'=>'MANUAL','numero_cuenta'=>'20269990000']);
+    }
+
+    public function test_sexo_femenino_se_guarda_sin_error_required(): void
+    {
+        [$user,$project]=$this->scenario();
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Servicio Social o PPS','cantidad_estudiantes_hombres'=>2,'cantidad_estudiantes_mujeres'=>2,'total_estudiantes'=>4]);
+        $report=$this->initialize($project,$user);
+        $grupo=$report->gruposEstudiantes()->firstOrFail();
+        $component=$this->livewireComponent($user,$project)->call('openEstudianteModal',null,$grupo->id);
+        $this->configurarRegistroManual($component)
+            ->set('estudianteManual.sexo','Femenino')
+            ->call('saveEstudianteManual')
+            ->assertHasNoErrors('estudianteManual.sexo');
+        $this->assertDatabaseHas('informe_final_estudiantes',['informe_final_grupo_estudiante_id'=>$grupo->id,'sexo'=>'Femenino','origen'=>'MANUAL','numero_cuenta'=>'20269990000']);
+    }
+
+    public function test_sexo_vacio_muestra_mensaje_en_espanol(): void
+    {
+        [$user,$project]=$this->scenario();
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Servicio Social o PPS','cantidad_estudiantes_hombres'=>2,'cantidad_estudiantes_mujeres'=>2,'total_estudiantes'=>4]);
+        $report=$this->initialize($project,$user);
+        $grupo=$report->gruposEstudiantes()->firstOrFail();
+        $component=$this->livewireComponent($user,$project)->call('openEstudianteModal',null,$grupo->id);
+        $this->configurarRegistroManual($component)
+            ->call('saveEstudianteManual')
+            ->assertHasErrors(['estudianteManual.sexo'=>'El sexo del estudiante es obligatorio.']);
+        $this->assertDatabaseMissing('informe_final_estudiantes',['informe_final_grupo_estudiante_id'=>$grupo->id,'origen'=>'MANUAL']);
+    }
+
+    public function test_los_mensajes_del_registro_manual_estan_en_espanol(): void
+    {
+        [$user,$project]=$this->scenario();
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Servicio Social o PPS','cantidad_estudiantes_hombres'=>2,'cantidad_estudiantes_mujeres'=>2,'total_estudiantes'=>4]);
+        $report=$this->initialize($project,$user);
+        $grupo=$report->gruposEstudiantes()->firstOrFail();
+        $component=$this->livewireComponent($user,$project)->call('openEstudianteModal',null,$grupo->id);
+        $this->configurarRegistroManual($component)
+            ->set('estudianteManual.nombres','')
+            ->set('estudianteManual.numero_cuenta','')
+            ->set('estudianteManual.sexo','')
+            ->set('estudianteManual.horas_dedicadas','')
+            ->call('saveEstudianteManual')
+            ->assertHasErrors([
+                'estudianteManual.nombres'=>'El nombre del estudiante es obligatorio.',
+                'estudianteManual.numero_cuenta'=>'El número de cuenta es obligatorio.',
+                'estudianteManual.sexo'=>'El sexo del estudiante es obligatorio.',
+                'estudianteManual.horas_dedicadas'=>'Las horas reales dedicadas son obligatorias.',
+            ]);
+    }
+
+    private function configurarRegistroManual($component)
+    {
+        return $component
+            ->set('estudianteBusquedaCuenta','20269990000')
+            ->call('buscarEstudiante')
+            ->assertSet('mostrarRegistroManual',true)
+            ->set('estudianteManual.nombres','Estudiante')
+            ->set('estudianteManual.apellidos','Manual')
+            ->set('estudianteManual.numero_cuenta','20269990000')
+            ->set('estudianteManual.carrera','Ingeniería en Sistemas')
+            ->set('estudianteManual.correo','manual@example.test')
+            ->set('estudianteManual.horas_dedicadas',40);
     }
 
     public function test_se_guardan_contrapartes(): void
