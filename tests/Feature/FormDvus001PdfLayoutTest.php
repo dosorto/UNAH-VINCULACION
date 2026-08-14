@@ -47,7 +47,7 @@ class FormDvus001PdfLayoutTest extends TestCase
                 'V. FORMULACIÓN DEL PROYECTO',
                 'VI. CRONOGRAMA DE LAS ACTIVIDADES DEL PROYECTO',
                 'VII. DETALLE DEL PRESUPUESTO',
-                "components.fichas.firmas-dinamicas",
+                "components.fichas.firmas-fijas-proyecto",
                 'DOCUMENTOS ADJUNTOS A LA FICHA',
                 'XI. ANEXOS',
             ]
@@ -70,6 +70,11 @@ class FormDvus001PdfLayoutTest extends TestCase
             'El documento 1 o el documento 2 (cualquiera de los dos) es obligatorio. El documento 3 es obligatorio.',
             $view
         );
+        $this->assertStringContainsString("'adjunto' => \$anexosPorCodigo->has(\$documento['codigo'])", $view);
+        $this->assertStringContainsString("\$pdfCheck(\$documento['adjunto'])", $view);
+        $this->assertStringContainsString("\$pdfCheck(! \$documento['adjunto'])", $view);
+        $this->assertStringContainsString("->pluck('detalle')", $view);
+        $this->assertStringContainsString("'Otros (detallar)'.(\$detallesOtros !== '' ? ': '.\$detallesOtros : '')", $view);
         $this->assertLessThan(strpos($view, 'XI. ANEXOS'), strpos($view, 'DOCUMENTOS ADJUNTOS A LA FICHA'));
     }
 

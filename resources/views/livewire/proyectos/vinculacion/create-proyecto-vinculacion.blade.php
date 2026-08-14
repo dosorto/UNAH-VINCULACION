@@ -658,6 +658,7 @@
                             <tr>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Nombre</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">RTN</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Sexo</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">País</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Institución</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500">Nivel Académico</th>
@@ -666,18 +667,27 @@
                         </thead>
                         <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
                             @foreach($integrante_internacional_proyecto as $i => $int)
-                            <tr>
+                            <tr wire:key="integrante-internacional-{{ $int['integrante_internacional_id'] ?? $i }}-{{ $i }}">
                                 <td class="px-4 py-2 text-gray-900 dark:text-white">{{ $int['nombre'] ?: 'Integrante #'.($int['integrante_internacional_id'] ?? '-') }}</td>
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['rtn'] ?? '-' }}</td>
+                                <td class="px-4 py-2 {{ in_array($int['sexo'] ?? '', ['masculino', 'femenino'], true) ? 'text-gray-700 dark:text-gray-300' : 'text-red-600 font-medium' }}">
+                                    {{ ($int['sexo'] ?? '') === 'masculino' ? 'Masculino' : (($int['sexo'] ?? '') === 'femenino' ? 'Femenino' : 'Sin registrar') }}
+                                </td>
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['pais'] ?? '-' }}</td>
                                 <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['institucion'] ?? '-' }}</td>
-                                <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $int['nivel_academico_nombre'] ?? '-' }}</td>
-                                <td class="px-4 py-2 text-right"><button wire:click="removeInternacional({{ $i }})" type="button" class="text-xs text-red-600 hover:text-red-800">Eliminar</button></td>
+                                <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ !empty($int['nivel_academico_nombre']) ? $int['nivel_academico_nombre'] : 'Sin registrar' }}</td>
+                                <td class="px-4 py-2 text-right space-x-2">
+                                    <button wire:click="openInternacionalModal({{ $i }})" type="button" class="text-xs text-blue-600 hover:text-blue-800">Editar</button>
+                                    <button wire:click="removeInternacional({{ $i }})" type="button" class="text-xs text-red-600 hover:text-red-800">Eliminar</button>
+                                </td>
                             </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
+                @error('integrante_internacional_proyecto')
+                    <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
+                @enderror
                 @else
                 <p class="text-sm text-gray-500 text-center py-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">Sin integrantes internacionales.</p>
                 @endif
@@ -868,10 +878,13 @@
             <div class="relative flex min-h-full items-center justify-center p-4">
                 <div class="relative w-full max-w-2xl rounded-lg bg-white dark:bg-gray-900 shadow-xl border border-gray-200 dark:border-gray-700">
                     <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3">
-                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white">Crear / Seleccionar Docente Internacional</h4>
+                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white">
+                            {{ $editIntegranteInternacionalIndex !== null ? 'Editar Docente Internacional' : 'Crear / Seleccionar Docente Internacional' }}
+                        </h4>
                         <button wire:click="closeInternacionalModal" type="button" class="text-gray-500 hover:text-gray-800 text-lg leading-none">✕</button>
                     </div>
                     <div class="p-5 space-y-4">
+                        @if($editIntegranteInternacionalIndex === null)
                         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                             <h5 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Seleccionar integrante existente</h5>
                             <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-start">
@@ -898,6 +911,7 @@
                             <span class="text-xs font-medium text-gray-500 dark:text-gray-400">O crear nuevo integrante</span>
                             <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
                         </div>
+                        @endif
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div class="sm:col-span-2">
@@ -916,13 +930,13 @@
                                 @error('nuevoIntegranteInternacional.rtn') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Sexo</label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Sexo <span class="text-red-500">*</span></label>
                                 <select wire:model.live="nuevoIntegranteInternacional.sexo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500">
-                                    <option value="">No especificado</option>
+                                    <option value="">Seleccione el sexo</option>
                                     <option value="masculino">Masculino</option>
                                     <option value="femenino">Femenino</option>
-                                    <option value="otro">Otro</option>
                                 </select>
+                                @error('nuevoIntegranteInternacional.sexo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Correo electrónico <span class="text-red-500">*</span></label>
@@ -945,7 +959,7 @@
                                 @error('nuevoIntegranteInternacional.institucion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div class="sm:col-span-2">
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nivel Académico</label>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nivel Académico <span class="text-red-500">*</span></label>
                                 <select wire:model.live="nuevoIntegranteInternacional.nivel_academico_id" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500">
                                     <option value="">Seleccione un nivel académico</option>
                                     @foreach($nivelesAcademicos as $id => $nombre)
@@ -958,7 +972,9 @@
                     </div>
                     <div class="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 px-5 py-3">
                         <button wire:click="closeInternacionalModal" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 hover:bg-gray-200">Cancelar</button>
-                        <button wire:click="saveNuevoIntegranteInternacional" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-orange-600 text-white hover:bg-orange-700">Guardar integrante</button>
+                        <button wire:click="saveNuevoIntegranteInternacional" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-orange-600 text-white hover:bg-orange-700">
+                            {{ $editIntegranteInternacionalIndex !== null ? 'Actualizar docente' : 'Guardar integrante' }}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1359,36 +1375,36 @@
                     <div class="p-5 space-y-4">
                         <div>
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Actividad <span class="text-red-500">*</span></label>
-                            <textarea wire:model="nuevaActividad.descripcion" rows="3" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500"></textarea>
+                            <textarea wire:model="nuevaActividad.descripcion" rows="3" required class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500"></textarea>
                             @error('nuevaActividad.descripcion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Producto</label>
-                            <textarea wire:model="nuevaActividad.resultados" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500"></textarea>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Producto <span class="text-red-500">*</span></label>
+                            <textarea wire:model="nuevaActividad.resultados" rows="2" required class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500"></textarea>
                             @error('nuevaActividad.resultados') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha Inicio <span class="text-red-500">*</span></label>
-                                <input type="date" wire:model.live="nuevaActividad.fecha_inicio"
+                                <input type="date" wire:model.live="nuevaActividad.fecha_inicio" required
                                     class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500 @error('nuevaActividad.fecha_inicio') border-red-500 @enderror" />
                                 @error('nuevaActividad.fecha_inicio') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Fecha Fin <span class="text-red-500">*</span></label>
-                                <input type="date" wire:model.live="nuevaActividad.fecha_finalizacion"
+                                <input type="date" wire:model.live="nuevaActividad.fecha_finalizacion" required
                                     @if($actividadFechaFinMin) min="{{ $actividadFechaFinMin }}" @endif
                                     class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500 @error('nuevaActividad.fecha_finalizacion') border-red-500 @enderror" />
                                 @error('nuevaActividad.fecha_finalizacion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Horas Requeridas</label>
-                                <input type="number" wire:model.blur.number="nuevaActividad.horas" min="0" step="1" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Horas Requeridas <span class="text-red-500">*</span></label>
+                                <input type="number" wire:model.blur.number="nuevaActividad.horas" min="1" step="1" required class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                                 @error('nuevaActividad.horas') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Responsables</label>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Responsables <span class="text-red-500">*</span></label>
                             <div
                                 x-data="{
                                     open: false,
@@ -1402,7 +1418,7 @@
                                 getName(id){return this.options[id]??this.options[String(id)]??`#${id}`;},
                                 filteredOptions(){const t=this.query.toLowerCase();return Object.entries(this.options).filter(([i,n])=>String(n).toLowerCase().includes(t));}
                             }" x-init="normalize()" @click.outside="open=false" class="relative">
-                                <div class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-2 cursor-text flex flex-wrap gap-1.5 items-center" @click="open=true">
+                                <div class="min-h-[42px] w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-2 cursor-text flex flex-wrap gap-1.5 items-center @error('nuevaActividad.empleados') border-red-500 @enderror" @click="open=true">
                                     <template x-for="id in selected" :key="id">
                                         <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-200">
                                             <span x-text="getName(id)"></span>
@@ -1422,6 +1438,7 @@
                                 </div>
                             </div>
                             <p class="text-xs text-gray-500 mt-1">Solo integrantes del equipo ejecutor.</p>
+                            @error('nuevaActividad.empleados') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
                     <div class="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 px-5 py-3">
@@ -2042,7 +2059,7 @@
                             <tr class="border-t border-gray-200 dark:border-gray-700 {{ !($aporte['editable'] ?? true) ? 'bg-gray-50 dark:bg-gray-800/50' : '' }}">
                                 <td class="py-2 px-3 text-gray-700 dark:text-gray-300 text-xs">{{ $aporte['concepto_label'] ?? $aporte['concepto'] }}</td>
                                 <td class="py-2 px-3 text-gray-500 text-xs">{{ $aporte['unidad_label'] ?? $aporte['unidad'] }}</td>
-                                <td class="py-2 px-3"><input type="number" wire:model="aporte_institucional.{{ $i }}.cantidad" wire:change="updateAporteTotal({{ $i }})" min="0" @disabled(!($aporte['editable']??true)) class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
+                                <td class="py-2 px-3"><input type="number" wire:model="aporte_institucional.{{ $i }}.cantidad" wire:change="updateAporteTotal({{ $i }})" min="0" @readonly(($aporte['concepto'] ?? '') === 'horas_trabajo_docentes') @disabled(!($aporte['editable']??true)) title="{{ ($aporte['concepto'] ?? '') === 'horas_trabajo_docentes' ? 'Calculado con las horas requeridas y responsables de todas las actividades' : '' }}" class="w-24 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 read-only:bg-gray-100 read-only:text-gray-600 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
                                 <td class="py-2 px-3"><input type="number" wire:model="aporte_institucional.{{ $i }}.costo_unitario" wire:change="updateAporteTotal({{ $i }})" min="0" step="0.01" @disabled(!($aporte['editable']??true)) class="w-28 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-gray-800 px-2 py-1 text-sm text-center mx-auto block focus:border-blue-500" /></td>
                                 <td class="py-2 px-3 text-center font-medium text-gray-900 dark:text-white">L. {{ number_format($aporte['costo_total'] ?? 0, 2) }}</td>
                             </tr>
@@ -2053,6 +2070,7 @@
                             </tr>
                         </tbody>
                     </table>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">La cantidad de horas de trabajo docentes se calcula sumando, para cada actividad, las horas requeridas multiplicadas por su número de responsables.</p>
                 </div>
             </div>
             <div>
@@ -2087,52 +2105,138 @@
         @if($currentStep === 9)
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Paso 9: Anexos</h3>
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-5">
-            Documentos adjuntos a la ficha: 1) Carta de solicitud del proyecto firmada por el representante legal de la contraparte, 2) Convenio/carta de intenciones firmada entre la UNAH y la contraparte, 3) Oficio de remisión del Decano/Director del Centro Regional, 4) Otros (detallar).
-            El documento 1 o el documento 2 (cualquiera de los dos) es obligatorio; los documentos 2 y 3 son obligatorios.
+            Agregue cada documento indicando el tipo de anexo al que corresponde. Puede adjuntar archivos PDF, documentos de Office o imágenes de hasta 10 MB.
         </p>
         <div class="space-y-4">
-            <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6">
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Agregar Anexos</label>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Puedes seleccionar uno o varios archivos a la vez. Nada se guarda hasta que presiones "Subir".</p>
-                        <input type="file" multiple wire:model="newAnexos" wire:key="anexo-input-{{ $anexoUploadKey }}"
-                            class="w-full text-sm text-gray-600 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-                        @error('newAnexos') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                        @error('newAnexos.*') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                    </div>
+            <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
+                <span class="font-semibold">Documentos obligatorios:</span>
+                adjunte el documento 1 o el documento 2 (cualquiera de los dos), y el documento 3.
+            </div>
+            @error('anexos')
+                <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+                    {{ $message }}
+                </div>
+            @enderror
+            <div class="flex items-center justify-between gap-4">
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Anexos guardados ({{ $record?->anexos->count() ?? 0 }})</h4>
+                <button wire:click="openAnexoModal" type="button"
+                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                    + Agregar anexo
+                </button>
+            </div>
 
-                    @if(!empty($newAnexos))
-                    <div class="space-y-1">
-                        <p class="text-xs font-medium text-gray-600 dark:text-gray-400">Listos para subir ({{ count($newAnexos) }}):</p>
-                        @foreach($newAnexos as $i => $archivo)
-                        <div wire:key="pendiente-anexo-{{ $i }}" class="flex items-center justify-between py-1.5 px-2.5 bg-blue-50 dark:bg-blue-900/20 rounded text-sm">
-                            <span class="truncate max-w-xs text-gray-700 dark:text-gray-300">{{ is_object($archivo) ? $archivo->getClientOriginalName() : '' }}</span>
-                            <button wire:click="removeNewAnexo({{ $i }})" type="button" class="text-xs text-red-600 hover:text-red-800 ml-3 shrink-0">Quitar</button>
+            <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-800">
+                        <tr>
+                            <th class="w-16 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">No.</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Nombre</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Tipo</th>
+                            <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 bg-white dark:divide-gray-700 dark:bg-gray-900">
+                        @forelse($record?->anexos ?? collect() as $anexo)
+                            <tr wire:key="anexo-guardado-{{ $anexo->id }}">
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ $loop->iteration }}</td>
+                                <td class="px-4 py-3 text-gray-900 dark:text-white">
+                                    <span class="block max-w-md truncate" title="{{ $anexo->nombre_archivo ?: basename($anexo->documento_url) }}">
+                                        {{ $anexo->nombre_archivo ?: basename($anexo->documento_url) }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-gray-700 dark:text-gray-300">
+                                    <span>{{ $anexo->tipoAnexo?->nombre ?? 'Sin clasificar (registro anterior)' }}</span>
+                                    @if(!empty($anexo->detalle))
+                                        <span class="block text-xs text-gray-500 dark:text-gray-400">{{ $anexo->detalle }}</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-right whitespace-nowrap">
+                                    <a href="{{ Storage::url($anexo->documento_url) }}" target="_blank" rel="noopener" class="text-xs text-blue-600 hover:text-blue-800">Ver</a>
+                                    <button x-on:click.prevent="confirmDialog('¿Eliminar este anexo?', { type: 'danger' }).then((ok) => ok && $wire.deleteAnexo({{ $anexo->id }}))" type="button" class="ml-3 text-xs text-red-600 hover:text-red-800">Eliminar</button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">No hay anexos agregados.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            @if($showAnexoModal)
+            @php
+                $tipoAnexoSeleccionado = $tiposAnexo->firstWhere('id', (int) $nuevoAnexoTipoId);
+            @endphp
+            <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+                <div class="fixed inset-0 bg-black/50"></div>
+                <div class="relative flex min-h-full items-center justify-center p-4">
+                    <div class="relative w-full max-w-xl rounded-lg bg-white dark:bg-gray-900 shadow-xl border border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3">
+                            <h4 class="text-sm font-semibold text-gray-900 dark:text-white">Agregar anexo</h4>
+                            <button wire:click="closeAnexoModal" type="button" class="text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 text-lg leading-none">✕</button>
                         </div>
-                        @endforeach
-                    </div>
-                    @endif
 
-                    <button wire:click="uploadAnexos" type="button" wire:loading.attr="disabled" wire:target="uploadAnexos" @disabled(empty($newAnexos))
-                        class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <span wire:loading.remove wire:target="uploadAnexos">Subir {{ count($newAnexos) > 1 ? 'Anexos' : 'Anexo' }}</span>
-                        <span wire:loading wire:target="uploadAnexos">Subiendo...</span>
-                    </button>
+                        <div class="p-5 space-y-4">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo de documento <span class="text-red-500">*</span></label>
+                                <select wire:model.live="nuevoAnexoTipoId" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500">
+                                    <option value="">Seleccione el tipo de documento</option>
+                                    @foreach($tiposAnexo as $tipoAnexo)
+                                        <option value="{{ $tipoAnexo->id }}">{{ $tipoAnexo->nombre }}</option>
+                                    @endforeach
+                                </select>
+                                @error('nuevoAnexoTipoId') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+
+                            @if($tipoAnexoSeleccionado?->requiere_detalle)
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Detalle del documento <span class="text-red-500">*</span></label>
+                                    <input type="text" wire:model="nuevoAnexoDetalle" maxlength="255" placeholder="Especifique el tipo de documento"
+                                        class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500" />
+                                    @error('nuevoAnexoDetalle') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                            @endif
+
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Archivo <span class="text-red-500">*</span></label>
+                                <div class="relative flex min-h-40 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 p-6 text-center hover:border-blue-400">
+                                    <input type="file" multiple wire:model="newAnexos" wire:key="anexo-input-{{ $anexoUploadKey }}"
+                                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                                        class="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                                    <div class="pointer-events-none">
+                                        <p class="text-sm font-medium text-gray-700 dark:text-gray-200">Seleccione o suelte sus documentos aquí</p>
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">PDF, Office o imagen · máximo 10 MB por archivo</p>
+                                        <p wire:loading wire:target="newAnexos" class="mt-2 text-xs font-medium text-blue-600">Cargando archivos...</p>
+                                    </div>
+                                </div>
+                                @error('newAnexos') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                @error('newAnexos.*') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+
+                            @if(!empty($newAnexos))
+                                <div class="space-y-1.5">
+                                    @foreach($newAnexos as $i => $archivo)
+                                        <div wire:key="pendiente-anexo-{{ $i }}" class="flex items-center justify-between rounded bg-blue-50 dark:bg-blue-900/20 px-3 py-2 text-sm">
+                                            <span class="max-w-sm truncate text-gray-700 dark:text-gray-300">{{ is_object($archivo) ? $archivo->getClientOriginalName() : '' }}</span>
+                                            <button wire:click="removeNewAnexo({{ $i }})" type="button" class="ml-3 shrink-0 text-xs text-red-600 hover:text-red-800">Quitar</button>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 px-5 py-3">
+                            <button wire:click="closeAnexoModal" type="button" class="px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 hover:bg-gray-200">Cancelar</button>
+                            <button wire:click="uploadAnexos" type="button" wire:loading.attr="disabled" wire:target="uploadAnexos,newAnexos" @disabled(empty($newAnexos) || empty($nuevoAnexoTipoId))
+                                class="px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span wire:loading.remove wire:target="uploadAnexos">Agregar</span>
+                                <span wire:loading wire:target="uploadAnexos">Subiendo...</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            @if($record && $record->anexos->count())
-            <div>
-                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Anexos Guardados ({{ $record->anexos->count() }})</h4>
-                @foreach($record->anexos as $anexo)
-                <div class="flex items-center justify-between py-2 px-3 border border-gray-200 dark:border-gray-700 rounded-lg mb-2">
-                    <a href="{{ Storage::url($anexo->documento_url) }}" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 truncate max-w-xs">{{ basename($anexo->documento_url) }}</a>
-                    <button x-on:click.prevent="confirmDialog('¿Eliminar este anexo?', { type: 'danger' }).then((ok) => ok && $wire.deleteAnexo({{ $anexo->id }}))" type="button" class="text-xs text-red-600 hover:text-red-800 ml-3 shrink-0">Eliminar</button>
-                </div>
-                @endforeach
-            </div>
-            @else
-            <p class="text-sm text-gray-500 text-center py-4">Sin anexos guardados.</p>
             @endif
 
             {{-- Uso de espacios, servicios y medios institucionales (FORM-DVUS-015 · sólo Voluntariado) --}}

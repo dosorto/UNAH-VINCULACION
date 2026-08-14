@@ -52,7 +52,7 @@ class PDFController extends Controller
             'empleados.departamento_academico',
             'actividades.empleados',
             'entidad_contraparte_proyecto.entidadContraparte', 'entidad_contraparte_proyecto.instrumentoFormalizacion',
-            'anexos',
+            'anexos.tipoAnexo',
             'aporteInstitucional',
             'objetivosEspecificos.resultados',
             'estudiante_proyecto.estudiante.user',
