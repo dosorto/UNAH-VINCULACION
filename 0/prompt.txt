@@ -1,0 +1,1 @@
+en esta parte el objetivo. especifico el numero no deberia ser un campo que deba llenar ell usuario sino que se agregue automaticamente e incremente segun se vayan agregando mas
