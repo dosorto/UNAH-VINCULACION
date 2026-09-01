@@ -1,0 +1,1 @@
+y en el caso que ya tenga una bd con tablas no puedo migrar esa informacion?
