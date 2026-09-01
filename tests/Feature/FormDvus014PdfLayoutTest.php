@@ -145,6 +145,20 @@ class FormDvus014PdfLayoutTest extends TestCase
         $this->assertStringContainsString('page-break-inside: avoid', $view);
     }
 
+    public function test_formulario_resuelve_firmas_sin_romper_si_no_existe_archivo(): void
+    {
+        $data = $this->viewSource('components.pps-servicio-social.form-014');
+        $content = $this->viewSource('components.pps-servicio-social.partials.form-014-content');
+        $mapper = file_get_contents(app_path('Support/PpsServicioSocial/FormDvus014Data.php'));
+
+        $this->assertStringContainsString("Storage::disk('public')->exists", $mapper);
+        $this->assertStringContainsString("Storage::disk('public')->path", $mapper);
+        $this->assertStringContainsString("\$firmas = \$formData['firmas'] ?? []", $data);
+        $this->assertStringContainsString("\$firmas['coordinador']['ruta']", $content);
+        $this->assertStringContainsString("\$firmas['supervisor']['ruta']", $content);
+        $this->assertStringContainsString("\$firmas['estudiante']['ruta']", $content);
+    }
+
     public function test_controlador_no_usa_isPhpEnabled(): void
     {
         $source = file_get_contents(app_path('Http/Controllers/Proyectos/Vinculacion/PpsServicioSocialPdfController.php'));
