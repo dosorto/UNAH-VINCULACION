@@ -1,0 +1,1 @@
+bien mira tengo la bd en el proyecto y el dump es sde una version anterior del sistema que ahora tiene mas tablas y campos, puedo ejecutar el dump o no debe ser en una versio totalmente vacia de la bd?
