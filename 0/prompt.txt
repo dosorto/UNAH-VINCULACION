@@ -1,0 +1,1 @@
+si tengo ya migraciones creadas en el proyecto (las nuevas y viejas) y quiero migrar la informacion que estaba antes para no perderla y adaptarla al nuevo no puedo hacerlo
