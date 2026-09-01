@@ -1,0 +1,78 @@
+PLEASE IMPLEMENT THIS PLAN:
+# Reanudación global de flujos después de subsanación
+
+## Resumen
+
+Aplicar una política única a todos los flujos configurables:
+
+- Proyectos de vinculación y sus informes/documentos.
+- PPS/Servicio Social.
+- Programas DAFT.
+- Educación No Formal: inscripción, informe intermedio e informe final.
+
+Todo reenvío debe crear un ciclo desde la etapa que solicitó la corrección, conservar las aprobaciones anteriores y regresar al mismo revisor. Los rechazos legacy sin flujo configurable, como fichas de actualización, quedan fuera porque no tienen ciclos ni etapas de retorno.
+
+## Regla global del motor
+
+Crear una política compartida e independiente del tipo de registro que:
+
+- Examine únicamente el último ciclo del proceso correspondiente.
+- Exija exactamente una etapa rechazada o en subsanación.
+- Tome como nuevo recorrido la etapa rechazada y todas las posteriores.
+- Use la configuración histórica guardada en las revisiones, evitando que cambios posteriores del flujo alteren un trámite en curso.
+- Asigne la primera etapa al usuario que solicitó la subsanación:
+  - `decidido_por_usuario_id` en DAFT y ENF.
+  - Usuario/empleado que rechazó en Proyectos, documentos y PPS.
+- Conserve los responsables anteriores de las etapas posteriores.
+- Valide cuenta activa, rol histórico requerido y empleado activo cuando corresponda.
+- Si un responsable dejó de ser elegible, bloquee el reenvío y solicite escoger un reemplazo válido; nunca elegirá automáticamente al primer usuario del rol.
+- Ante ciclos ambiguos, múltiples rechazos o historial incompleto, bloquee la operación sin reiniciar el flujo.
+
+## Cambios por subsistema
+
+| Motor | Situación actual | Cambio |
+|---|---|---|
+| Proyectos e informes | Ya retoman la etapa rechazada | Integrarlos con la política global, validar elegibilidad y conservar el comportamiento existente |
+| DAFT | Retoma la etapa, pero prioriza al asignado anterior | Priorizar exactamente al usuario que pidió subsanar |
+| PPS/SS | Crea nuevamente todas las etapas | Crear el nuevo ciclo desde la etapa rechazada |
+| ENF | Reinicia todas las etapas | Centralizar inscripción e informes en el servicio ENF y reanudar desde el rechazo |
+
+- Centralizar la lógica duplicada de ENF actualmente ubicada en el controlador.
+- Ajustar `TieneFlujoPorEtapas` para que PPS cree solamente la cola desde la etapa rechazada.
+- Mantener el motor robusto de `Proyecto` como base para proyectos y documentos, reutilizando la política compartida.
+- Agregar consultas internas de “destinatarios requeridos para reenvío”; los formularios mostrarán únicamente las etapas cuyo responsable anterior ya no sea válido.
+- Hacer cada reenvío transaccional y con bloqueo del registro para impedir dobles ciclos.
+- Validar destinatarios y correos antes de confirmar; enviar notificaciones únicamente después del commit.
+- Registrar en logs: proceso, registro, flujo, ciclo anterior, ciclo nuevo, etapa de retorno y revisor.
+- No cambiar rutas públicas ni eliminar ciclos históricos.
+
+## Presentación y compatibilidad
+
+- Los steppers de Proyectos, PPS y ENF combinarán la última revisión de cada etapa: las anteriores aparecerán aprobadas y la etapa retomada aparecerá como actual.
+- El historial conservará todos los ciclos completos.
+- Las bandejas mostrarán solamente la primera etapa pendiente del nuevo ciclo.
+- Los ciclos duplicados creados antes del cambio no se eliminarán.
+- Las subsanaciones existentes podrán reanudarse si su último ciclo permite identificar una única etapa rechazada.
+- No se crearán flujos ni responsables ficticios. La base actual no contiene flujos configurados; deberán cargarse administrativamente para realizar envíos iniciales.
+
+## Pruebas y aceptación
+
+- Prueba contractual de la política compartida: etapa inicial, intermedia, final, múltiples rechazos e historial inconsistente.
+- Matriz completa para Proyectos, documentos, DAFT, PPS y los tres procesos ENF.
+- Rechazo en la segunda etapa: el ciclo siguiente empieza en la segunda y no recrea la primera.
+- El revisor que pidió subsanar recibe nuevamente la tarea y la única notificación.
+- Revisor eliminado o sin rol: el reenvío se bloquea y solicita reemplazo.
+- Reemplazo válido: crea el ciclo y lo asigna al usuario elegido.
+- Dos solicitudes concurrentes no crean ciclos duplicados.
+- Un error de validación mantiene el registro en subsanación.
+- Steppers, bandejas, contadores e historiales reflejan el ciclo parcial correctamente.
+- Los flujos legacy no configurables mantienen su comportamiento actual.
+- Ejecutar las suites de Proyectos, informes, DAFT, PPS y ENF antes del despliegue.
+
+## Impacto
+
+- Riesgo técnico: medio-alto por afectar todos los motores configurables.
+- Base de datos: no requiere migración ni limpieza de historial.
+- Operación: reduce aprobaciones repetidas, tareas duplicadas y correos innecesarios.
+- Seguridad: evita reenviar a usuarios que perdieron su rol o vínculo laboral.
+- Despliegue: cambio de código reversible; los registros existentes no se transforman ni eliminan.
