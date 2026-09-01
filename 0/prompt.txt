@@ -1,0 +1,1 @@
+porque cuanado selecciono el decano en cargo firma me selecciona DAFT revisor y cuando lo cambio se desselecciona todo, si datf revisor es para el flujo de daft completamente separado de los flujos de proyecto
