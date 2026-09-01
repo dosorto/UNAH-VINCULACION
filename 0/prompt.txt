@@ -1,0 +1,1 @@
+mira agrefue el dump a una carpeta en estorage en el .env como modifico la ruta para ejecutarlo?
