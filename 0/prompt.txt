@@ -1,0 +1,1 @@
+na duda entonces de forma local no sean ejecutado los cambios o seeder de la nueva bd, y otra cosa como verifico que toda la informacion se haya migrado de forma correcta
