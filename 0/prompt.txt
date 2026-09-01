@@ -1,0 +1,1 @@
+necesito que quites esto del login, y quiero saber si podemos cambiar el nombre al boton de microsoft a "continuar con tu correo institucional"
