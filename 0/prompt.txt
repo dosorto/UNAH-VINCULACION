@@ -1,0 +1,1 @@
+en esta parte de mis proyectos debemos hacer que el nombre se limite(osea que no aparezaca todo o que no abarque tanto espacio en la tabla) y darle prioridad al progreso osea que se extienda o usa un tooltip cuando se pasemel cursor sobre las etapas del flujo
