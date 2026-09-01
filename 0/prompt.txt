@@ -1,0 +1,1 @@
+mira pa tenemos que solucionar que cuando se suban archivos (el paso 10), se debe poder visualizar esos archivo al momento de dar click en ver documento debe aparecer un boton para poder "ver nexo" y descargar el archivo
