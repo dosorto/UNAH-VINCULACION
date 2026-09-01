@@ -1,0 +1,1 @@
+en esta parte quitaste la parte que cuando se aprueba un proyecto de DAFT haya un select de esos proyectos ya aprobados y que se carguen los campos que trae desde DAFT?
