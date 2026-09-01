@@ -1,0 +1,1 @@
+neceitamos que cuando se le de click al boton de ver en la parte superior se vea el progreso del flujo (las etapas de donde esta con tooltip)
