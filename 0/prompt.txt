@@ -1,0 +1,1 @@
+s tengo la bd con tablas pero vacias puedo migrar con el dump
