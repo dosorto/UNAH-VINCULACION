@@ -1,0 +1,1 @@
+cuando se cambia algo a una etapa ya sea el nombre, tipo(revision o aprobacion), cargo firma, el usuario responsable, rola acceso, eso afecta a todas las etapas en todas se ve el cambio
