@@ -78,7 +78,14 @@ return [
          * direct class use like:
          * $dompdf = new DOMPDF();  $dompdf->load_html($htmldata); $dompdf->render(); $pdfdata = $dompdf->output();
          */
-        'chroot' => realpath(base_path()),
+        // Además del release, DomPDF necesita leer los archivos públicos de
+        // Laravel. En producción `storage` puede residir fuera del release y
+        // estar expuesto mediante un enlace simbólico `public/storage`.
+        'chroot' => array_values(array_unique(array_filter([
+            realpath(base_path()),
+            realpath(storage_path('app/public')),
+            realpath(public_path('storage')),
+        ]))),
 
         /**
          * Protocol whitelist

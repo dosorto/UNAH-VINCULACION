@@ -310,19 +310,19 @@
         <tr>
             <td>
                 Nombre:&nbsp;
-                @if(!empty($firmas['coordinador']['ruta']))<img class="signature" src="{{ $firmas['coordinador']['ruta'] }}" alt="Firma del coordinador">@endif
+                @if(!empty($firmas['coordinador']['src']))<img class="signature" src="{{ $firmas['coordinador']['src'] }}" alt="Firma del coordinador">@endif
                 <div class="sline"></div>
                 <div class="scap">Firma del(a) coordinador(a) de la carrera</div>
             </td>
             <td>
                 Nombre: {!! $dato($registro->nombre_docente_supervisor) !!}
-                @if(!empty($firmas['supervisor']['ruta']))<img class="signature" src="{{ $firmas['supervisor']['ruta'] }}" alt="Firma del supervisor">@endif
+                @if(!empty($firmas['supervisor']['src']))<img class="signature" src="{{ $firmas['supervisor']['src'] }}" alt="Firma del supervisor">@endif
                 <div class="sline"></div>
                 <div class="scap">Firma del(a) supervisor(a) de la PPS / SS</div>
             </td>
             <td>
                 Nombre: {!! $dato($registro->nombre_estudiante) !!}
-                @if(!empty($firmas['estudiante']['ruta']))<img class="signature" src="{{ $firmas['estudiante']['ruta'] }}" alt="Firma del estudiante">@endif
+                @if(!empty($firmas['estudiante']['src']))<img class="signature" src="{{ $firmas['estudiante']['src'] }}" alt="Firma del estudiante">@endif
                 <div class="sline"></div>
                 <div class="scap">Firma del(a) estudiante que realiza la PPS / SS</div>
             </td>

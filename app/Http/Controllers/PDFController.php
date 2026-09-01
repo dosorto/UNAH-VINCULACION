@@ -61,6 +61,10 @@ class PDFController extends Controller
             'coordinador_proyecto.empleado.categoria',
             'coordinador_proyecto.empleado.departamento_academico',
             'firma_proyecto.empleado',
+            'firma_proyecto.empleado.firma',
+            'firma_proyecto.empleado.sello',
+            'firma_proyecto.firma',
+            'firma_proyecto.sello',
             'integrantesInternacionales',
         ]);
 
@@ -100,6 +104,9 @@ class PDFController extends Controller
     {
         $response->headers->set('Content-Type', 'application/pdf');
         $response->headers->set('Content-Disposition', $disposition . '; filename="' . $nombreArchivo . '"');
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Expires', '0');
 
         return $response;
     }

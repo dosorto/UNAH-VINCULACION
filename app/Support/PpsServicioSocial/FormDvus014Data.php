@@ -3,7 +3,7 @@
 namespace App\Support\PpsServicioSocial;
 
 use App\Models\PpsServicioSocial;
-use Illuminate\Support\Facades\Storage;
+use App\Support\Fichas\FirmaImagen;
 use Illuminate\Support\Str;
 
 class FormDvus014Data
@@ -192,19 +192,20 @@ class FormDvus014Data
         ];
     }
 
-    /** Devuelve únicamente rutas locales existentes para uso seguro con DomPDF. */
+    /** Resuelve firmas del FORM-014 usando el mismo mecanismo seguro que los demás PDF. */
     private static function firmasParaPdf(PpsServicioSocial $registro): array
     {
         $firmas = ['coordinador' => null, 'supervisor' => null, 'estudiante' => null];
         $asignar = static function (string $tipo, $empleado) use (&$firmas): void {
             $firma = $empleado?->firma;
             $ruta = trim((string) ($firma?->ruta_storage ?? ''));
+            $imagen = FirmaImagen::resolver($ruta, true);
 
-            if (! $firma || ! $ruta || ! Storage::disk('public')->exists($ruta)) {
+            if (! $firma || ! $imagen) {
                 return;
             }
 
-            $firmas[$tipo] = ['nombre' => $empleado->nombre_completo, 'ruta' => Storage::disk('public')->path($ruta)];
+            $firmas[$tipo] = ['nombre' => $empleado->nombre_completo, 'src' => $imagen['src']];
         };
 
         $ciclo = max(1, (int) $registro->firmasDeEtapa()->max('revision_ciclo'));

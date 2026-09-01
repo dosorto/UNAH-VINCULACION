@@ -11,7 +11,7 @@ class FirmaImagenTest extends TestCase
     /** PNG de 1x1 px, mínimo válido. */
     private const PNG_1PX = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
-    public function test_en_modo_pdf_embebe_la_imagen_como_data_uri(): void
+    public function test_en_modo_pdf_usa_una_ruta_local_compatible_con_dompdf(): void
     {
         Storage::fake('public');
         Storage::disk('public')->put('images/firmas/firma.png', base64_decode(self::PNG_1PX));
@@ -19,11 +19,8 @@ class FirmaImagenTest extends TestCase
         $resuelto = FirmaImagen::resolver('images/firmas/firma.png', true);
 
         $this->assertNotNull($resuelto);
-        $this->assertStringStartsWith('data:image/png;base64,', $resuelto['src']);
-        $this->assertSame(
-            base64_decode(self::PNG_1PX),
-            base64_decode(substr($resuelto['src'], strlen('data:image/png;base64,')))
-        );
+        $this->assertStringStartsWith('file://', $resuelto['src']);
+        $this->assertStringNotContainsString('data:', $resuelto['src']);
     }
 
     public function test_acepta_la_ruta_con_prefijo_storage(): void
@@ -34,7 +31,7 @@ class FirmaImagenTest extends TestCase
         $resuelto = FirmaImagen::resolver('/storage/images/firmas/firma.png', true);
 
         $this->assertNotNull($resuelto);
-        $this->assertStringStartsWith('data:image/png;base64,', $resuelto['src']);
+        $this->assertStringStartsWith('file://', $resuelto['src']);
     }
 
     public function test_en_pantalla_devuelve_una_url_publica_no_un_data_uri(): void
@@ -70,5 +67,14 @@ class FirmaImagenTest extends TestCase
         $sinArchivo = FirmaImagen::dimensionesContenidas(null, 160, 90);
 
         $this->assertSame(['width' => 160, 'height' => 90], $sinArchivo);
+    }
+
+    public function test_el_chroot_de_dompdf_permite_el_directorio_de_firmas_publicas(): void
+    {
+        $chroots = config('dompdf.options.chroot');
+
+        $this->assertContains(realpath(base_path()), $chroots);
+        $this->assertContains(realpath(storage_path('app/public')), $chroots);
+        $this->assertContains(realpath(public_path('storage')), $chroots);
     }
 }

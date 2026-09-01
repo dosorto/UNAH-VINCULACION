@@ -151,12 +151,11 @@ class FormDvus014PdfLayoutTest extends TestCase
         $content = $this->viewSource('components.pps-servicio-social.partials.form-014-content');
         $mapper = file_get_contents(app_path('Support/PpsServicioSocial/FormDvus014Data.php'));
 
-        $this->assertStringContainsString("Storage::disk('public')->exists", $mapper);
-        $this->assertStringContainsString("Storage::disk('public')->path", $mapper);
+        $this->assertStringContainsString('FirmaImagen::resolver', $mapper);
         $this->assertStringContainsString("\$firmas = \$formData['firmas'] ?? []", $data);
-        $this->assertStringContainsString("\$firmas['coordinador']['ruta']", $content);
-        $this->assertStringContainsString("\$firmas['supervisor']['ruta']", $content);
-        $this->assertStringContainsString("\$firmas['estudiante']['ruta']", $content);
+        $this->assertStringContainsString("\$firmas['coordinador']['src']", $content);
+        $this->assertStringContainsString("\$firmas['supervisor']['src']", $content);
+        $this->assertStringContainsString("\$firmas['estudiante']['src']", $content);
     }
 
     public function test_controlador_no_usa_isPhpEnabled(): void
