@@ -1,0 +1,1 @@
+en la parte de resultados deja los apartados en modals, y que se vayan agregando en una tabla
