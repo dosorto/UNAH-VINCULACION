@@ -1,0 +1,1 @@
+mira pa estos que se ven no estan enviados a ningun flujo y me los esta mostrando, debe hacer que solamente muestrre los proyectos que ya estan en un flujo, y que los proyectos que no estan en ningun flujo en el progreso sin enviar
