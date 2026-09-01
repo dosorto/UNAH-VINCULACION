@@ -1,0 +1,1 @@
+osea un flujo extra solo para registros legacy, antes de la implementacion del sistema de flujos
