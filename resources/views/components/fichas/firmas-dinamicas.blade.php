@@ -4,42 +4,9 @@
     $documentoFirmas = $documento ?? null;
     $filasFirmas = $proyecto->firmasParaFicha($procesoFirmas, $documentoFirmas);
 
-    $resolverRutaFirma = function (?string $ruta) use ($isPdfMode) {
-        if (empty($ruta)) {
-            return null;
-        }
-
-        $rutaNormalizada = ltrim($ruta, '/');
-
-        if (str_starts_with($rutaNormalizada, 'storage/')) {
-            $rutaNormalizada = substr($rutaNormalizada, strlen('storage/'));
-        }
-
-        $rutaPublica = public_path('storage/' . $rutaNormalizada);
-        $rutaDiscoPublico = storage_path('app/public/' . $rutaNormalizada);
-
-        if (filter_var($ruta, FILTER_VALIDATE_URL)) {
-            return $ruta;
-        }
-
-        if (is_file($ruta)) {
-            return $isPdfMode ? $ruta : asset(str_replace(public_path() . '/', '', $ruta));
-        }
-
-        if (is_file($rutaPublica)) {
-            return $isPdfMode ? $rutaPublica : asset('storage/' . $rutaNormalizada);
-        }
-
-        if (is_file($rutaDiscoPublico) || \Illuminate\Support\Facades\Storage::disk('public')->exists($rutaNormalizada)) {
-            return $isPdfMode ? $rutaPublica : \Illuminate\Support\Facades\Storage::url($rutaNormalizada);
-        }
-
-        if (!$isPdfMode) {
-            return \Illuminate\Support\Facades\Storage::url($rutaNormalizada);
-        }
-
-        return null;
-    };
+    // En pantalla devuelve una URL; en el PDF, un data URI base64 (DomPDF no
+    // sigue el symlink `public/storage`). La lógica vive en el helper.
+    $resolverRutaFirma = fn (?string $ruta) => \App\Support\Fichas\FirmaImagen::resolver($ruta, $isPdfMode)['src'] ?? null;
 
     $formatearFechaFirma = function ($fecha) {
         if (empty($fecha)) {
