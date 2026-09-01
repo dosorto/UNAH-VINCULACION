@@ -1,0 +1,1 @@
+en este apartado necesitamos hacer cambios primero: departamento academico que quede como "Escuela / Departamento Academico / Tecnicos universitarios / Instituto de Investigacion / Observatorio / Consultorio", segundo que el apartado de Carrera quede como opcional
