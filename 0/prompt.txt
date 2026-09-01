@@ -1,0 +1,28 @@
+dev@Mac-Mini-LBIS-11 UNAH-VINCULACION % php artisan db:seed --class='Database\Seeders\LegacyDatabaseMigrationSeeder' --force
+
+   INFO  Seeding database.  
+
+Este proceso solo es seguro en una base MySQL vacía. No interrumpa la ejecución.
+  Database\Seeders\LegacyDatabaseDumpSeeder ........... RUNNING  
+
+   RuntimeException 
+
+  La base de destino 'db_prueba_migracion' no está vacía. No se modificó ninguna tabla.
+
+  at database/seeders/LegacyDatabaseDumpSeeder.php:111
+    107▕             [$database],
+    108▕         );
+    109▕ 
+    110▕         if ($tables !== []) {
+  ➜ 111▕             throw new RuntimeException(
+    112▕                 "La base de destino '{$database}' no está vacía. No se modificó ninguna tabla."
+    113▕             );
+    114▕         }
+    115▕     }
+
+  1   database/seeders/LegacyDatabaseDumpSeeder.php:27
+      Database\Seeders\LegacyDatabaseDumpSeeder::ensureDatabaseIsEmpty(Object(Illuminate\Database\MySqlConnection))
+      +8 vendor frames 
+
+  10  database/seeders/LegacyDatabaseMigrationSeeder.php:52
+      Illuminate\Database\Seeder::call("Database\Seeders\LegacyDatabaseDumpSeeder")
