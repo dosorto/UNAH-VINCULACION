@@ -1,0 +1,1 @@
+en esta parte podemos hacer que cuando se agreguen se muestre en el formulario los vaya aagregando y que no quede solamnete en el modal
