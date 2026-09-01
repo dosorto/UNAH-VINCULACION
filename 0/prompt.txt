@@ -1,0 +1,1 @@
+y si se crea una bd nueva vacia que pasa con las migraciones que ya tenia que se ha trabajado antes
