@@ -1,0 +1,1 @@
+mira pa, tenemos una situacion en el dump hay un campo con el nombre descripcion_participantes, el cual se cambio a 3 campos, necesito que me des las informacion que esta en ese campo y lo agregues en participacion_unah en los formularios que lo requieran, primero evalua el dump
