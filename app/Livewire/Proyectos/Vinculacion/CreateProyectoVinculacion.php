@@ -51,6 +51,9 @@ class CreateProyectoVinculacion extends Component
 
     private const MAX_ODS = 3;
 
+    /** Tasa de los costos indirectos institucionales (3% sobre la sumatoria de conceptos a–e). */
+    private const TASA_COSTOS_INDIRECTOS = 0.03;
+
     public int $currentStep = 1;
     public ?int $recordId = null;
     public ?int $proyectoId = null;
@@ -171,7 +174,14 @@ class CreateProyectoVinculacion extends Component
     public array $objetivosEspecificos = [];
     public int $selectedObjetivoIndex = 0;
     // Resultados de mediano/largo plazo: pertenecen al proyecto, no a un objetivo específico.
+    // Se editan en una tabla con modal (agregar/editar/borrar).
     public array $resultadosProyecto = [];
+    public bool $showResultadoProyectoModal = false;
+    public ?int $editResultadoProyectoIndex = null;
+    public array $resultadoProyectoModal = [
+        'id' => null, 'wire_key' => null, 'nombre_resultado' => '',
+        'nombre_indicador' => '', 'nombre_medio_verificacion' => '', 'plazo' => 'mediano_plazo',
+    ];
 
     // Step 8 (was 7) – presupuesto
     public array $aporte_institucional = [];
@@ -1298,6 +1308,9 @@ class CreateProyectoVinculacion extends Component
             'showActividadModal',
             'editActividadIndex',
             'nuevaActividad',
+            'showResultadoProyectoModal',
+            'editResultadoProyectoIndex',
+            'resultadoProyectoModal',
             'newAnexos',
             'showAnexoModal',
             'nuevoAnexoTipoId',
@@ -3682,9 +3695,59 @@ class CreateProyectoVinculacion extends Component
         $this->autoGuardarBorrador();
     }
 
-    public function addResultadoProyecto(): void
+    public function openResultadoProyectoModal(?int $index = null): void
     {
-        $this->resultadosProyecto[] = $this->nuevoResultadoProyecto();
+        $this->resetErrorBag();
+
+        if ($index !== null && isset($this->resultadosProyecto[$index])) {
+            $this->resultadoProyectoModal = array_merge($this->nuevoResultadoProyecto(), $this->resultadosProyecto[$index]);
+            $this->editResultadoProyectoIndex = $index;
+        } else {
+            $this->resultadoProyectoModal = $this->nuevoResultadoProyecto();
+            $this->editResultadoProyectoIndex = null;
+        }
+
+        $this->showResultadoProyectoModal = true;
+    }
+
+    public function closeResultadoProyectoModal(): void
+    {
+        $this->showResultadoProyectoModal = false;
+        $this->editResultadoProyectoIndex = null;
+        $this->resultadoProyectoModal = $this->nuevoResultadoProyecto();
+        $this->resetErrorBag();
+    }
+
+    public function saveResultadoProyecto(): void
+    {
+        foreach (['nombre_resultado', 'nombre_indicador', 'nombre_medio_verificacion'] as $campo) {
+            $this->resultadoProyectoModal[$campo] = trim((string) ($this->resultadoProyectoModal[$campo] ?? ''));
+        }
+        $this->resultadoProyectoModal['plazo'] = $this->normalizePlazo($this->resultadoProyectoModal['plazo'] ?? '') ?: 'mediano_plazo';
+
+        $this->validate([
+            'resultadoProyectoModal.nombre_resultado' => 'required|string',
+            'resultadoProyectoModal.nombre_indicador' => 'required|string',
+            'resultadoProyectoModal.nombre_medio_verificacion' => 'required|string',
+            'resultadoProyectoModal.plazo' => 'required|in:' . implode(',', $this->plazoOpcionesProyecto),
+        ], [], [
+            'resultadoProyectoModal.nombre_resultado' => 'nombre del resultado',
+            'resultadoProyectoModal.nombre_indicador' => 'indicador',
+            'resultadoProyectoModal.nombre_medio_verificacion' => 'medio de verificación',
+            'resultadoProyectoModal.plazo' => 'plazo',
+        ]);
+
+        $fila = $this->resultadoProyectoModal;
+        $fila['wire_key'] = $fila['wire_key'] ?: (string) Str::uuid();
+
+        if ($this->editResultadoProyectoIndex !== null && isset($this->resultadosProyecto[$this->editResultadoProyectoIndex])) {
+            $this->resultadosProyecto[$this->editResultadoProyectoIndex] = $fila;
+        } else {
+            $this->resultadosProyecto[] = $fila;
+        }
+
+        $this->autoGuardarBorrador();
+        $this->closeResultadoProyectoModal();
     }
 
     public function removeResultadoProyecto(int $ri): void
@@ -4594,8 +4657,10 @@ class CreateProyectoVinculacion extends Component
             }
         }
         $base = collect($this->aporte_institucional)->whereIn('concepto', ['horas_trabajo_docentes', 'horas_trabajo_estudiantes', 'gastos_movilizacion', 'utiles_materiales_oficina', 'gastos_impresion']);
-        $cantidad = round($base->sum('cantidad') * 0.05, 2);
-        $costoUnitario = round($base->sum('costo_unitario') * 0.05, 2);
+        // Los formatos FORM-DVUS-001/015 e INF-001 definen estos costos indirectos como el
+        // 3% de la sumatoria de los conceptos a–e (ver etiquetas de los conceptos).
+        $cantidad = round($base->sum('cantidad') * self::TASA_COSTOS_INDIRECTOS, 2);
+        $costoUnitario = round($base->sum('costo_unitario') * self::TASA_COSTOS_INDIRECTOS, 2);
         $costoTotal = round($cantidad * $costoUnitario, 2);
         foreach ($this->aporte_institucional as $index => $aporte) {
             if (in_array($aporte['concepto'], ['costos_indirectos_infraestructura', 'costos_indirectos_servicios'], true)) {

@@ -42,11 +42,11 @@ class FormDvus001PdfLayoutTest extends TestCase
             [
                 'I. INFORMACIÓN GENERAL DEL PROYECTO',
                 'II. EQUIPO EJECUTOR DEL PROYECTO',
-                'III. PARTICIPACIÓN DE ESTUDIANTES Y VOLUNTARIOS',
+                'PARTICIPACIÓN DE ESTUDIANTES Y VOLUNTARIOS',
                 'IV. INFORMACIÓN DE LA ENTIDAD CONTRAPARTE DEL PROYECTO',
                 'V. FORMULACIÓN DEL PROYECTO',
-                'VI. CRONOGRAMA DE LAS ACTIVIDADES DEL PROYECTO',
-                'VII. DETALLE DEL PRESUPUESTO',
+                'CRONOGRAMA DE LAS ACTIVIDADES DEL PROYECTO',
+                'DETALLE DEL PRESUPUESTO',
                 "components.fichas.firmas-fijas-proyecto",
                 'DOCUMENTOS ADJUNTOS A LA FICHA',
                 'XI. ANEXOS',
@@ -55,7 +55,7 @@ class FormDvus001PdfLayoutTest extends TestCase
 
         $this->assertNotContains(false, $positions);
         $this->assertSame($positions, collect($positions)->sort()->values()->all());
-        $this->assertSame(1, substr_count($view, 'VII. DETALLE DEL PRESUPUESTO'));
+        $this->assertSame(1, substr_count($view, 'DETALLE DEL PRESUPUESTO'));
     }
 
     public function test_documentos_adjuntos_incluyen_los_cuatro_requisitos_y_la_nota(): void

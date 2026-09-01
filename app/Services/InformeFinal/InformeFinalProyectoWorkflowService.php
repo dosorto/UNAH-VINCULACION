@@ -16,6 +16,22 @@ use Illuminate\Support\Str;
 
 class InformeFinalProyectoWorkflowService
 {
+    /**
+     * Tipos de acción cuyo cierre se documenta con el formato INF-001. El INF-001 es
+     * un formato único para todos los proyectos de vinculación (su ítem 7 incluye la
+     * categoría "Voluntariado académico"); la disponibilidad real del cierre la gobierna
+     * la configuración de etapas de `cierre_proyecto` (ver Proyecto::tieneFlujoCierreProyecto()).
+     */
+    public const TIPOS_ACCION_INF_001 = [
+        'DESARROLLO_LOCAL_REGIONAL',
+        'VOLUNTARIADO',
+    ];
+
+    public function aplicaInformeFinalInf001(Proyecto $proyecto): bool
+    {
+        return in_array($proyecto->tipoAccion?->codigo, self::TIPOS_ACCION_INF_001, true);
+    }
+
     public function __construct(
         private readonly InformeFinalProyectoInitializer $initializer,
         private readonly InformeFinalProyectoValidator $validator,
@@ -57,7 +73,7 @@ class InformeFinalProyectoWorkflowService
 
     public function puedeIniciarInformeFinal(Proyecto $proyecto, ?User $user): bool
     {
-        return $proyecto->tipoAccion?->codigo === 'DESARROLLO_LOCAL_REGIONAL'
+        return $this->aplicaInformeFinalInf001($proyecto)
             && $this->usuarioPuedeGestionar($proyecto, $user)
             && ! $proyecto->informeFinalInf001()->exists()
             && $proyecto->puedeMostrarCierreProyecto($user);

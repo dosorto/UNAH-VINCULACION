@@ -29,7 +29,6 @@ class EditInformeFinalProyecto extends Component
 {
     use WithFileUploads;
 
-    private const TIPO_ACCION_FORM_DVUS_001 = 'DESARROLLO_LOCAL_REGIONAL';
     private const CAMPOS_REFLEXION_HEREDADOS = [
         'problema_inicial' => 'definicion_problema',
         'transformacion_lograda' => 'impacto_deseado',
@@ -99,7 +98,7 @@ class EditInformeFinalProyecto extends Component
 
     public function mount(Proyecto $proyecto, InformeFinalProyectoWorkflowService $workflow): void
     {
-        abort_unless($proyecto->tipoAccion?->codigo === self::TIPO_ACCION_FORM_DVUS_001, 404);
+        abort_unless($workflow->aplicaInformeFinalInf001($proyecto), 404);
 
         $this->proyecto = $proyecto;
         $existente = $proyecto->informeFinalInf001()->first();
@@ -1331,6 +1330,13 @@ class EditInformeFinalProyecto extends Component
             if ($this->contrapartesSoportanOrigen()) {
                 $camposContraparte[] = 'origen';
             }
+            foreach ($this->contrapartes as &$contraparte) {
+                $contraparte['tipo_instrumento'] = filled($contraparte['tipo_instrumento'] ?? null)
+                    ? $contraparte['tipo_instrumento']
+                    : null;
+                $contraparte['existe_apoyo'] = (bool) ($contraparte['existe_apoyo'] ?? false);
+            }
+            unset($contraparte);
             $this->syncRows('contrapartes', $this->contrapartes, $camposContraparte);
             $this->sincronizarFilaAporteContraparte();
             foreach ($this->resultados as &$resultado) {
