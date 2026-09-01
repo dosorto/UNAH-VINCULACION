@@ -1,0 +1,1 @@
+en esta parte mejor pon un modal y con un select que muestre todos los tipos, y que pueda agregar los hombre y mujeres y calcule el total automaticamente
