@@ -1,0 +1,1 @@
+una cosa con la migracion del dump se crean tambien las tablas que ya tenia o solo se ejecutan las del dump?
