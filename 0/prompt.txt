@@ -1,0 +1,1 @@
+necesitamos que en los flujos cuando se intercambian de posicion las etapas poner una animacion pequeña del movimiento ya que actualmente se mueve pero el usuario puede quedar perdido si no esta atento a las etapas
