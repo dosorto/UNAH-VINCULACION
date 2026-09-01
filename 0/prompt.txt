@@ -1,0 +1,1 @@
+necesitamos crear una tabla catalogo para categorias, que este en unidad academica y llenala en un seeder con las categorias que ya estan en el codigo
