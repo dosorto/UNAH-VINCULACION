@@ -1,0 +1,1 @@
+en esta parte si esta en revision no podes capturar automaticamente la eta exacta en la que esta el proyecto sin necesidad de seleccionarla, y ademas que eso no se pueda modificar si no que el sistema lo capture sin que se pueda modificar
