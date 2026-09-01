@@ -1,0 +1,1 @@
+esta modal tambien aparece en revisor vinculacion y debe ser en una pantalla diferente, y tambien que el boton rojo no debe decir rechazar si no subsanar y al subsanar que apaezca un modal con espacio suficiente para agregar el texto, ademas verifica si hay en otros roles que aun tengan ese modal para quitarlo y que se vea en una pantalla aparte
