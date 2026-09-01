@@ -1,0 +1,1 @@
+en el .env como seria en el servidor
