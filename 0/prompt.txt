@@ -1,0 +1,28 @@
+dev@Mac-Mini-LBIS-11 UNAH-VINCULACION % php artisan db:seed --class='Database\Seeders\LegacyDatabaseMigrationSeeder' --force
+
+   INFO  Seeding database.  
+
+Este proceso solo es seguro en una base MySQL vacía. No interrumpa la ejecución.
+  Database\Seeders\LegacyDatabaseDumpSeeder ...................... RUNNING  
+
+   RuntimeException 
+
+  Importación bloqueada. Configure LEGACY_DB_IMPORT_ENABLED=true para autorizarla explícitamente.
+
+  at database/seeders/LegacyDatabaseDumpSeeder.php:84
+     80▕ 
+     81▕     private function ensureImportIsEnabled(): void
+     82▕     {
+     83▕         if (! config('legacy-import.enabled')) {
+  ➜  84▕             throw new RuntimeException(
+     85▕                 'Importación bloqueada. Configure LEGACY_DB_IMPORT_ENABLED=true para autorizarla explícitamente.'
+     86▕             );
+     87▕         }
+     88▕     }
+
+  1   database/seeders/LegacyDatabaseDumpSeeder.php:23
+      Database\Seeders\LegacyDatabaseDumpSeeder::ensureImportIsEnabled()
+      +8 vendor frames 
+
+  10  database/seeders/LegacyDatabaseMigrationSeeder.php:52
+      Illuminate\Database\Seeder::call("Database\Seeders\LegacyDatabaseDumpSeeder")
