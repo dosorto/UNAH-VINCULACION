@@ -1,0 +1,1 @@
+dame el comando para ejecutar los seeders nuevos que se crearon
