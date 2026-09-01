@@ -1,0 +1,1 @@
+en esta parte necesitamos cambiar la forma de subir los archivoa que quede como la imagen 2 una tabla con un boton agregar y seleccionar el tipo de archivo crea una tabla catalogo para eso imagen 3 esos serian los datos que hirian crealos en un seeder
