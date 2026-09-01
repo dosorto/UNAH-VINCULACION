@@ -1,0 +1,1 @@
+en esta parte deja todos los campos obligatorios y necesito que dependiendo las horas requeridas registradas mutiplicarlas por los responsables de esa actividad y sumarlas si hay mas actividades, eso se reflejara em presupuesto en horas de trabajo por docente  en el campo cantidad que seria un campo calculado
