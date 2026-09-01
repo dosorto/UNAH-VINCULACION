@@ -1,0 +1,1 @@
+puedes crear un seeder para correr las migraciones del dump (que se migre toda la informacion), para poder ejecutarlo
