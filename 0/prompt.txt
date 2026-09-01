@@ -1,0 +1,1 @@
+osea si se subsana en una etapa y se reenvia vualve a la persona que lo subsano y continua con el flujo despues de ser aprobada esa etapa, eso ya se asi en algunos motores configurables?, pero no en ENF, explicame eso
