@@ -2084,6 +2084,42 @@
                 {{-- DOCUMENTOS ADJUNTOS --}}
                 <div class="section4 section-documents">
                     <div class="section-title">DOCUMENTOS ADJUNTOS A LA FICHA</div>
+                    @php
+                        $anexosPorCodigo = $proyecto->anexos
+                            ->filter(fn ($anexo) => filled($anexo->tipoAnexo?->codigo))
+                            ->groupBy(fn ($anexo) => $anexo->tipoAnexo->codigo);
+                        $detallesOtros = $anexosPorCodigo
+                            ->get(\App\Models\Proyecto\TipoAnexo::CODIGO_OTROS, collect())
+                            ->pluck('detalle')
+                            ->map(fn ($detalle) => trim((string) $detalle))
+                            ->filter()
+                            ->unique()
+                            ->implode('; ');
+                        $documentosAdjuntos = collect([
+                            [
+                                'numero' => 1,
+                                'codigo' => \App\Models\Proyecto\TipoAnexo::CODIGO_CARTA_SOLICITUD,
+                                'descripcion' => 'Carta de solicitud del proyecto firmada por el representante legal de la contraparte',
+                            ],
+                            [
+                                'numero' => 2,
+                                'codigo' => \App\Models\Proyecto\TipoAnexo::CODIGO_CONVENIO_CARTA,
+                                'descripcion' => 'Convenio/ carta de intenciones firmada entre la UNAH y contraparte',
+                            ],
+                            [
+                                'numero' => 3,
+                                'codigo' => \App\Models\Proyecto\TipoAnexo::CODIGO_OFICIO_REMISION,
+                                'descripcion' => 'Oficio de remisión del Decano/Director Centro Regional',
+                            ],
+                            [
+                                'numero' => 4,
+                                'codigo' => \App\Models\Proyecto\TipoAnexo::CODIGO_OTROS,
+                                'descripcion' => 'Otros (detallar)'.($detallesOtros !== '' ? ': '.$detallesOtros : ''),
+                            ],
+                        ])->map(fn (array $documento) => array_merge($documento, [
+                            'adjunto' => $anexosPorCodigo->has($documento['codigo']),
+                        ]));
+                    @endphp
                     <table class="table_datos5">
                         <tr>
                             <th class="header" colspan="1">No</th>
@@ -2091,46 +2127,18 @@
                             <th class="header" colspan="4">Si</th>
                             <th class="header" colspan="4">No</th>
                         </tr>
-                        <tr>
-                            <td class="sub-header" colspan="1">1</td>
-                            <td class="full-width" colspan="10">Carta de solicitud del proyecto firmada por el representante legal de la contraparte</td>
-                            <td class="full-width" colspan="4">
-                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
-                            </td>
-                            <td class="full-width" colspan="4">
-                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="1">2</td>
-                            <td class="full-width" colspan="10">Convenio/ carta de intenciones firmada entre la UNAH y contraparte</td>
-                            <td class="full-width" colspan="4">
-                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
-                            </td>
-                            <td class="full-width" colspan="4">
-                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="1">3</td>
-                            <td class="full-width" colspan="10">Oficio de remisión del Decano/Director Centro Regional</td>
-                            <td class="full-width" colspan="4">
-                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
-                            </td>
-                            <td class="full-width" colspan="4">
-                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="sub-header" colspan="1">4</td>
-                            <td class="full-width" colspan="10">Otros (detallar)</td>
-                            <td class="full-width" colspan="4">
-                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
-                            </td>
-                            <td class="full-width" colspan="4">
-                                @if (!empty($isPdf)){!! $pdfCheck(false) !!}@else<input disabled type="checkbox" class="checkbox-field">@endif
-                            </td>
-                        </tr>
+                        @foreach ($documentosAdjuntos as $documento)
+                            <tr>
+                                <td class="sub-header" colspan="1">{{ $documento['numero'] }}</td>
+                                <td class="full-width" colspan="10">{{ $documento['descripcion'] }}</td>
+                                <td class="full-width" colspan="4">
+                                    @if (!empty($isPdf)){!! $pdfCheck($documento['adjunto']) !!}@else<input disabled type="checkbox" class="checkbox-field" @checked($documento['adjunto'])>@endif
+                                </td>
+                                <td class="full-width" colspan="4">
+                                    @if (!empty($isPdf)){!! $pdfCheck(! $documento['adjunto']) !!}@else<input disabled type="checkbox" class="checkbox-field" @checked(! $documento['adjunto'])>@endif
+                                </td>
+                            </tr>
+                        @endforeach
                     </table>
                     
                     <div class="documents-note">

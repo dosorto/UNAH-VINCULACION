@@ -347,7 +347,7 @@
                                 {{-- Enlace --}}
                                 <div class="min-w-0">
                                     <label class="{{ $label }}">Enlace</label>
-                                    <input type="url" wire:model.live.debounce.1000ms="anexos.{{ $i }}.enlace" @readonly($esAnexoPlanificado) class="{{ $esAnexoPlanificado ? $readonly : $input }}">
+                                    <input type="url" wire:model.live.debounce.1000ms="anexos.{{ $i }}.enlace" class="{{ $input }}">
                                 </div>
 
                                 {{-- Fecha --}}

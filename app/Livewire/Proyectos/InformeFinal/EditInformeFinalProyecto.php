@@ -1396,7 +1396,9 @@ class EditInformeFinalProyecto extends Component
                 continue;
             }
 
+            $enlace = $anexo['enlace'] ?? $original->enlace;
             $this->anexos[$index] = array_replace($anexo, $original->toArray());
+            $this->anexos[$index]['enlace'] = $enlace;
         }
     }
 

@@ -92,6 +92,7 @@ use App\Livewire\UnidadAcademica\Carrera\CarreraList;
 use App\Livewire\UnidadAcademica\Categoria\CategoriaList;
 use App\Livewire\UnidadAcademica\DepartamentoAcademico\DepartamentoAcademicoList;
 use App\Livewire\UnidadAcademica\FacultadCentro\FacultadCentroList;
+use App\Livewire\UnidadAcademica\TipoAnexo\TipoAnexoList;
 use App\Livewire\User\Roles;
 use App\Livewire\User\Users;
 use App\Models\ENF\EnfAccion;
@@ -256,6 +257,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('facultad-centro', FacultadCentroList::class)
         ->name('facultad-centro')
         ->middleware('can:unidad-academica.facultad');
+
+    Route::get('tipos-anexo', TipoAnexoList::class)
+        ->name('unidad-academica.tipo-anexo')
+        ->middleware('can:unidad-academica.tipo-anexo');
 
     Route::get('setPerfil/{role_id}', [SetRoleController::class, 'SetRole'])
         ->name('setrole');

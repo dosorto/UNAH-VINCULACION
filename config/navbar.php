@@ -144,7 +144,7 @@ return [
             [
                 'titulo' => 'Unidad Academica',
                 'route' => 'campus',
-                'routes' => ['campus', 'carrera', 'categorias-empleado', 'departamento-academico', 'facultad-centro', 'configuracion.jornada-laboral', 'configuracion.nivel-academico'],
+                'routes' => ['campus', 'carrera', 'categorias-empleado', 'departamento-academico', 'facultad-centro', 'configuracion.jornada-laboral', 'configuracion.nivel-academico', 'unidad-academica.tipo-anexo'],
                 'icono' => 'heroicon-o-building-library',
                 'permisos' => [
                     'unidad-academica.campus',
@@ -155,6 +155,7 @@ return [
                     'unidad-academica.asignatura',
                     'configuracion.jornada-laboral',
                     'configuracion.nivel-academico',
+                    'unidad-academica.tipo-anexo',
                 ],
                 'children' => [
                     ['texto' => 'Campus', 'route' => 'campus', 'permiso' => 'unidad-academica.campus'],
@@ -165,6 +166,7 @@ return [
                     ['texto' => 'Facultad Centro', 'route' => 'facultad-centro', 'permiso' => 'unidad-academica.facultad'],
                     ['texto' => 'Jornada Laboral', 'route' => 'configuracion.jornada-laboral', 'permiso' => 'configuracion.jornada-laboral'],
                     ['texto' => 'Nivel Académico', 'route' => 'configuracion.nivel-academico', 'permiso' => 'configuracion.nivel-academico'],
+                    ['texto' => 'Tipos de anexos', 'route' => 'unidad-academica.tipo-anexo', 'permiso' => 'unidad-academica.tipo-anexo'],
                 ],
                 'funcion' => null,
                 'parametro' => null,

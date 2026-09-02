@@ -3,6 +3,7 @@
 namespace App\Support\PpsServicioSocial;
 
 use App\Models\PpsServicioSocial;
+use App\Support\Fichas\FirmaImagen;
 use Illuminate\Support\Str;
 
 class FormDvus014Data
@@ -140,6 +141,7 @@ class FormDvus014Data
 
         return [
             'fields' => $fields,
+            'firmas' => self::firmasParaPdf($registro),
             'checked' => [
                 'tipo_pps' => [
                     'pps' => $tipoPps === 'Practica Profesional Supervisada',
@@ -188,6 +190,42 @@ class FormDvus014Data
             ],
             'missing' => self::missingFields($fields, $registro, $territorio, $modalidad),
         ];
+    }
+
+    /** Resuelve firmas del FORM-014 usando el mismo mecanismo seguro que los demás PDF. */
+    private static function firmasParaPdf(PpsServicioSocial $registro): array
+    {
+        $firmas = ['coordinador' => null, 'supervisor' => null, 'estudiante' => null];
+        $asignar = static function (string $tipo, $empleado) use (&$firmas): void {
+            $firma = $empleado?->firma;
+            $ruta = trim((string) ($firma?->ruta_storage ?? ''));
+            $imagen = FirmaImagen::resolver($ruta, true);
+
+            if (! $firma || ! $imagen) {
+                return;
+            }
+
+            $firmas[$tipo] = ['nombre' => $empleado->nombre_completo, 'src' => $imagen['src']];
+        };
+
+        $ciclo = max(1, (int) $registro->firmasDeEtapa()->max('revision_ciclo'));
+        $etapas = $registro->firmasDeEtapa()->with(['empleado.firma', 'flujoEtapa'])
+            ->where('revision_ciclo', $ciclo)->get();
+
+        foreach ($etapas as $firma) {
+            $nombre = Str::lower((string) ($firma->etapa_nombre ?: $firma->flujoEtapa?->nombre));
+            if (Str::contains($nombre, ['coordinador'])) {
+                $asignar('coordinador', $firma->empleado);
+            } elseif (Str::contains($nombre, ['supervisor', 'docente'])) {
+                $asignar('supervisor', $firma->empleado);
+            }
+        }
+
+        $estudiante = $registro->created_by
+            ? \App\Models\User::with('empleado.firma')->find($registro->created_by)?->empleado : null;
+        $asignar('estudiante', $estudiante);
+
+        return $firmas;
     }
 
     private static function missingFields(
