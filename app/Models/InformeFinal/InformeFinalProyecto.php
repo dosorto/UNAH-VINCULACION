@@ -37,9 +37,20 @@ class InformeFinalProyecto extends Model
         'presupuesto_planificado' => 'decimal:2',
         'aporte_beneficiarios' => 'decimal:2',
         'otros_aportes' => 'decimal:2',
+        'pais' => 'array',
     ];
 
     public function proyecto(): BelongsTo { return $this->belongsTo(Proyecto::class); }
+
+    public function departamentosTerritoriales(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(\App\Models\Demografia\Departamento::class, 'inf_final_departamento', 'informe_final_proyecto_id', 'departamento_id');
+    }
+
+    public function municipiosTerritoriales(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(\App\Models\Demografia\Municipio::class, 'inf_final_municipio', 'informe_final_proyecto_id', 'municipio_id');
+    }
     public function creador(): BelongsTo { return $this->belongsTo(User::class, 'created_by'); }
     public function actualizador(): BelongsTo { return $this->belongsTo(User::class, 'updated_by'); }
     public function beneficiarios(): HasOne { return $this->hasOne(InformeFinalBeneficiario::class); }

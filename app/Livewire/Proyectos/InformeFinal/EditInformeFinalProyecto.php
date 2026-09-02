@@ -2,9 +2,13 @@
 
 namespace App\Livewire\Proyectos\InformeFinal;
 
+use App\Models\Demografia\Departamento;
+use App\Models\Demografia\Municipio;
+use App\Models\Demografia\Pais;
 use App\Models\Estudiante\Estudiante;
 use App\Models\InformeFinal\InformeFinalProyecto;
 use App\Models\Personal\Empleado;
+use App\Models\Proyecto\IntegranteInternacional;
 use App\Models\Proyecto\MetaContribuye;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\Proyecto;
@@ -92,6 +96,10 @@ class EditInformeFinalProyecto extends Component
     public array $estudianteModal = ['tipo_participacion'=>'practica_asignatura','horas_dedicadas'=>0];
     public array $estudianteManual = ['nombres'=>'','apellidos'=>'','numero_cuenta'=>'','sexo'=>'','carrera'=>'','correo'=>'','tipo_participacion'=>'practica_asignatura','horas_dedicadas'=>0];
     public array $voluntarioModal = ['empleado_id'=>null,'nombre'=>'','sexo'=>'','identidad'=>'','departamento'=>'','tipo'=>'egresado','horas_dedicadas'=>0];
+    public bool $showCooperacionModal = false;
+    public ?int $editCooperacionIndex = null;
+    public $cooperacionIntegranteId = null;
+    public array $cooperacionModal = ['nombre'=>'','pasaporte'=>'','correo'=>'','pais'=>'','universidad'=>'','horas_dedicadas'=>0];
     public string $mensaje = '';
     public string $estadoGuardado = 'guardado';
     private bool $autoGuardando = false;
@@ -486,6 +494,101 @@ class EditInformeFinalProyecto extends Component
         $this->closeVoluntarioModal();
     }
 
+    /** Catálogo de integrantes de cooperación internacional ya registrados en el sistema. */
+    public function getIntegrantesInternacionalesCatalogoProperty()
+    {
+        return IntegranteInternacional::orderBy('nombre_completo')->get(['id','nombre_completo','pais','documento_identidad','email','institucion']);
+    }
+
+    public function openCooperacionModal(?int $index = null): void
+    {
+        $this->authorizeSensitive();
+        $this->resetErrorBag();
+        $this->editCooperacionIndex = $index;
+        $this->cooperacionIntegranteId = null;
+        $this->cooperacionModal = ['nombre'=>'','pasaporte'=>'','correo'=>'','pais'=>'','universidad'=>'','horas_dedicadas'=>0];
+
+        if ($index !== null && isset($this->cooperacion[$index])) {
+            $this->cooperacionModal = Arr::only(
+                array_merge($this->cooperacionModal, $this->cooperacion[$index]),
+                ['nombre','pasaporte','correo','pais','universidad','horas_dedicadas']
+            );
+        }
+
+        $this->showCooperacionModal = true;
+    }
+
+    public function updatedCooperacionIntegranteId($value): void
+    {
+        if (blank($value)) {
+            return;
+        }
+
+        $integrante = IntegranteInternacional::find($value);
+
+        if (! $integrante) {
+            return;
+        }
+
+        $this->cooperacionModal = array_merge($this->cooperacionModal, [
+            'nombre' => $integrante->nombre_completo,
+            'pasaporte' => $integrante->documento_identidad,
+            'correo' => $integrante->email,
+            'pais' => $integrante->pais,
+            'universidad' => $integrante->institucion,
+        ]);
+    }
+
+    public function closeCooperacionModal(): void
+    {
+        $this->showCooperacionModal = false;
+        $this->editCooperacionIndex = null;
+        $this->cooperacionIntegranteId = null;
+        $this->cooperacionModal = ['nombre'=>'','pasaporte'=>'','correo'=>'','pais'=>'','universidad'=>'','horas_dedicadas'=>0];
+        $this->resetErrorBag();
+    }
+
+    public function saveCooperacionModal(): void
+    {
+        $this->authorizeSensitive();
+        $this->validate([
+            'cooperacionModal.nombre' => ['required','string','max:255'],
+            'cooperacionModal.pasaporte' => ['nullable','string','max:60'],
+            'cooperacionModal.correo' => ['nullable','email','max:255'],
+            'cooperacionModal.pais' => ['nullable','string','max:120'],
+            'cooperacionModal.universidad' => ['nullable','string','max:255'],
+            'cooperacionModal.horas_dedicadas' => ['required','numeric','min:0'],
+        ], [], [
+            'cooperacionModal.nombre' => 'nombre completo',
+            'cooperacionModal.horas_dedicadas' => 'horas dedicadas',
+        ]);
+
+        $nombreNuevo = mb_strtolower(trim((string) $this->cooperacionModal['nombre']));
+        $duplicado = collect($this->cooperacion)->contains(function ($row, $i) use ($nombreNuevo) {
+            return $i !== $this->editCooperacionIndex
+                && mb_strtolower(trim((string) ($row['nombre'] ?? ''))) === $nombreNuevo;
+        });
+        if ($duplicado) {
+            $this->addError('cooperacionModal.nombre', 'Este integrante ya fue agregado.');
+            return;
+        }
+
+        $index = $this->editCooperacionIndex;
+
+        if ($index === null) {
+            $this->cooperacion[] = array_merge(
+                ['estado_participacion'=>'activo'],
+                $this->cooperacionModal
+            );
+            $index = array_key_last($this->cooperacion);
+        } else {
+            $this->cooperacion[$index] = array_merge($this->cooperacion[$index], $this->cooperacionModal);
+        }
+
+        $this->guardarFilaAutoguardado('cooperacion', $index);
+        $this->closeCooperacionModal();
+    }
+
     public function openNoParticipacionModal(string $tipo, int $index): void
     {
         $this->authorizeSensitive();
@@ -869,7 +972,9 @@ class EditInformeFinalProyecto extends Component
     {
         $this->authorizeSensitive();
         abort_unless(property_exists($this, $grupo), 404);
-        abort_if(in_array($grupo, ['equipo', 'cooperacion', 'estudiantes', 'voluntarios'], true), 422, 'Los integrantes del informe final conservan su trazabilidad; cambie su estado de participación.');
+        // La cooperación internacional es data de ejecución (no hereda registros de personal
+        // de la UNAH), por eso sí admite eliminación directa; el resto conserva trazabilidad.
+        abort_if(in_array($grupo, ['equipo', 'estudiantes', 'voluntarios'], true), 422, 'Los integrantes del informe final conservan su trazabilidad; cambie su estado de participación.');
         abort_if($grupo === 'resultados', 422, 'Los resultados del proyecto se conservan; registre o edite únicamente su ejecución.');
         $fila = $this->{$grupo}[$indice] ?? null;
         abort_unless($fila !== null, 404);
@@ -1267,12 +1372,79 @@ class EditInformeFinalProyecto extends Component
         $this->presupuesto[$indice] = array_replace($this->presupuesto[$indice], $fila);
     }
 
+    // ── Territorio de ejecución (catálogos multi-selección, igual que el registro del proyecto) ──
+
+    public array $paisesTerritorioSel = [];
+    public array $departamentosTerritorioSel = [];
+    public array $municipiosTerritorioSel = [];
+
+    public function getPaisesTerritorioProperty()
+    {
+        return Pais::orderBy('nombre')->get(['id', 'nombre']);
+    }
+
+    public function getDepartamentosTerritorioProperty()
+    {
+        return Departamento::orderBy('nombre')->get(['id', 'nombre']);
+    }
+
+    public function getMunicipiosTerritorioProperty()
+    {
+        $departamentos = array_filter(array_map('intval', $this->departamentosTerritorioSel));
+
+        if (empty($departamentos)) {
+            return collect();
+        }
+
+        return Municipio::whereIn('departamento_id', $departamentos)
+            ->orderBy('nombre')
+            ->get(['id', 'nombre', 'departamento_id']);
+    }
+
+    public function updatedDepartamentosTerritorioSel(): void
+    {
+        // Quitar municipios cuyo departamento ya no está seleccionado.
+        $municipiosValidos = $this->municipiosTerritorio->pluck('id')->map(fn ($id) => (string) $id)->all();
+        $this->municipiosTerritorioSel = array_values(array_intersect(
+            array_map('strval', $this->municipiosTerritorioSel),
+            $municipiosValidos
+        ));
+    }
+
+    /** Columnas de resumen legible + primer id (compatibilidad con scopes/PDF). */
+    private function payloadTerritorio(): array
+    {
+        $departamentoIds = array_values(array_unique(array_filter(array_map('intval', $this->departamentosTerritorioSel))));
+        $municipioIds = array_values(array_unique(array_filter(array_map('intval', $this->municipiosTerritorioSel))));
+
+        return [
+            'pais' => array_values(array_filter(array_map('trim', $this->paisesTerritorioSel))),
+            'departamento_territorial_id' => $departamentoIds[0] ?? null,
+            'municipio_id' => $municipioIds[0] ?? null,
+            'departamento_territorial' => Departamento::whereIn('id', $departamentoIds)->orderBy('nombre')->pluck('nombre')->implode(', '),
+            'municipio' => Municipio::whereIn('id', $municipioIds)->orderBy('nombre')->pluck('nombre')->implode(', '),
+        ];
+    }
+
+    private function sincronizarTerritorio(): void
+    {
+        $this->informe->departamentosTerritoriales()->sync(
+            array_values(array_unique(array_filter(array_map('intval', $this->departamentosTerritorioSel))))
+        );
+        $this->informe->municipiosTerritoriales()->sync(
+            array_values(array_unique(array_filter(array_map('intval', $this->municipiosTerritorioSel))))
+        );
+    }
+
     private function cargarFormulario(): void
     {
-        $this->informe->load(['beneficiarios','equipoDocente','cooperacion','gruposEstudiantes.asignatura','estudiantes','voluntarios','contrapartes','resultados','actividades.participantes','accionesNoEjecutadas','accionesEmergentes','ods','presupuestoDetalles','anexos']);
+        $this->informe->load(['beneficiarios','equipoDocente','cooperacion','gruposEstudiantes.asignatura','estudiantes','voluntarios','contrapartes','resultados','actividades.participantes','accionesNoEjecutadas','accionesEmergentes','ods','presupuestoDetalles','anexos','departamentosTerritoriales','municipiosTerritoriales']);
         $date = fn ($value) => $value?->format('Y-m-d');
+        $this->paisesTerritorioSel = array_values(array_filter((array) ($this->informe->pais ?? [])));
+        $this->departamentosTerritorioSel = $this->informe->departamentosTerritoriales->pluck('id')->map(fn ($id) => (string) $id)->all();
+        $this->municipiosTerritorioSel = $this->informe->municipiosTerritoriales->pluck('id')->map(fn ($id) => (string) $id)->all();
         $this->general = Arr::only($this->informe->toArray(), [
-            'numero_registro','nombre_proyecto','facultad_centro','unidad_academica','departamento_academico','carrera','programa_vinculacion','linea_investigacion','modalidad','ejes_prioritarios','categoria','pais','region','departamento_territorial','municipio','aldea_ciudad','caserio','objetivo_general','dificultades','acciones_dificultades','lecciones_aprendidas','buenas_practicas','problema_inicial','transformacion_lograda','mecanismos_sostenibilidad','acciones_contraparte_sostenibilidad','desafios','respuesta_reforma_universitaria','recomendaciones','bibliografia','valoracion_total_beneficiarios','valoracion_muestra','valoracion_excelente','valoracion_muy_buena','valoracion_regular','valoracion_mala','presupuesto_planificado','aporte_beneficiarios','otros_aportes','observacion_voluntarios_no_incorporados','observaciones_finales','confirmacion_veracidad','estado',
+            'numero_registro','nombre_proyecto','facultad_centro','unidad_academica','departamento_academico','carrera','programa_vinculacion','linea_investigacion','modalidad','ejes_prioritarios','categoria','region','aldea_ciudad','caserio','objetivo_general','dificultades','acciones_dificultades','lecciones_aprendidas','buenas_practicas','problema_inicial','transformacion_lograda','mecanismos_sostenibilidad','acciones_contraparte_sostenibilidad','desafios','respuesta_reforma_universitaria','recomendaciones','bibliografia','valoracion_total_beneficiarios','valoracion_muestra','valoracion_excelente','valoracion_muy_buena','valoracion_regular','valoracion_mala','presupuesto_planificado','aporte_beneficiarios','otros_aportes','observacion_voluntarios_no_incorporados','observaciones_finales','confirmacion_veracidad','estado',
         ]);
         $this->general['fecha_registro'] = $date($this->informe->fecha_registro);
         $this->general['fecha_inicio'] = $date($this->informe->fecha_inicio);
@@ -1313,7 +1485,8 @@ class EditInformeFinalProyecto extends Component
             $this->sincronizarCamposReflexionHeredados();
             $mainFields = array_keys(Arr::except($this->general, ['estado','fecha_registro']));
             $payloadGeneral = $this->normalizarCamposNumericosInforme(Arr::only($this->general, $mainFields));
-            $this->informe->update($payloadGeneral + ['updated_by' => auth()->id()]);
+            $this->informe->update($payloadGeneral + $this->payloadTerritorio() + ['updated_by' => auth()->id()]);
+            $this->sincronizarTerritorio();
             $this->informe->beneficiarios()->updateOrCreate([], $this->normalizarCamposBeneficiarios(Arr::except($this->beneficiarios, ['id','informe_final_proyecto_id','created_at','updated_at'])));
             $participacion = ['estado_participacion','observacion_no_participacion','removido_en','removido_por'];
             foreach ($this->estudiantes as $index => &$estudiante) {
@@ -1649,7 +1822,10 @@ class EditInformeFinalProyecto extends Component
         foreach (['general.','beneficiarios.','gruposEstudiantes.','equipo.','cooperacion.','estudiantes.','voluntarios.','contrapartes.','resultados.','actividades.','accionesNoEjecutadas.','accionesEmergentes.','ods.','presupuesto.','anexos.'] as $root) {
             if (str_starts_with($propertyName, $root)) return true;
         }
-        return false;
+        return in_array($propertyName, ['paisesTerritorioSel', 'departamentosTerritorioSel', 'municipiosTerritorioSel'], true)
+            || str_starts_with($propertyName, 'paisesTerritorioSel')
+            || str_starts_with($propertyName, 'departamentosTerritorioSel')
+            || str_starts_with($propertyName, 'municipiosTerritorioSel');
     }
 
     public function autoGuardarCampo(string $propertyName): void
@@ -1667,7 +1843,10 @@ class EditInformeFinalProyecto extends Component
             }
             DB::transaction(function () use ($propertyName) {
                 [$root, $index] = array_pad(explode('.', $propertyName, 3), 2, null);
-                if ($root === 'general') {
+                if (in_array($root, ['paisesTerritorioSel', 'departamentosTerritorioSel', 'municipiosTerritorioSel'], true)) {
+                    $this->informe->update($this->payloadTerritorio() + ['updated_by' => auth()->id()]);
+                    $this->sincronizarTerritorio();
+                } elseif ($root === 'general') {
                     $field = explode('.', $propertyName)[1] ?? null;
                     if ($field && ! in_array($field, ['estado','fecha_registro'], true) && array_key_exists($field, $this->general)) {
                         $this->informe->update([$field => $this->general[$field], 'updated_by' => auth()->id()]);
