@@ -1,3 +1,13 @@
+@php
+    // FORM-DVUS-015 (Voluntariado Académico) reutiliza esta ficha en "modo voluntariado":
+    // alterna encabezado, numeración de secciones, nombre de archivo del PDF y los campos
+    // exclusivos del formato 015.
+    $esVoluntariado = $proyecto->esVoluntariado();
+    $codigoFormulario = $esVoluntariado ? 'FORM-DVUS-015' : 'FORM-DVUS-001';
+    $tituloFormulario = $esVoluntariado
+        ? 'Registro de Proyectos de Voluntariado Académico'
+        : 'Registro de Proyectos de Vinculación';
+@endphp
 <!DOCTYPE html>
 <html lang="es">
 
@@ -5,7 +15,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, user-scalable=yes">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>FORM-DVUS-001 - Registro de Proyectos de Vinculación</title>
+    <title>{{ $codigoFormulario }} - {{ $tituloFormulario }}</title>
     @if (!empty($isPdf))
         <style>
             {!! file_get_contents(public_path('css/app/fichaHistorial.css')) !!}
@@ -352,6 +362,13 @@
 
 <body style="background-color: #f2f2f2; ">
     @php
+        $encabezadoFicha = $esVoluntariado
+            ? [
+                'institutionalTitle' => 'FORMULARIO DE REGISTRO DE PROYECTOS DE',
+                'institutionalSubtitle' => 'VOLUNTARIADO ACADÉMICO',
+                'institutionalCode' => 'FORM-DVUS-015',
+            ]
+            : [];
         $renderPdfText = static function ($value, string $fallback = '') {
             $text = filled($value) ? (string) $value : $fallback;
 
@@ -360,6 +377,50 @@
         $pdfCheck = static fn (bool $checked) => new \Illuminate\Support\HtmlString(
             '<span class="pdf-check'.($checked ? ' is-checked' : '').'">'.($checked ? 'X' : '&nbsp;').'</span>'
         );
+
+        // Numeración de ítems y secciones. El formato FORM-DVUS-001 y el FORM-DVUS-015
+        // difieren: el 015 añade "Temática principal" (I.6) y "Metodología de seguimiento"
+        // (I.10), lo que corre toda la numeración posterior, y suma la sección VI
+        // "Uso de espacios institucionales". Este helper mantiene el 001 intacto.
+        $numItem001 = [
+            'fecha_registro' => '1', 'nombre' => '2', 'unidad' => '3', 'modalidad' => '4',
+            'alineamiento' => '5', 'tematica' => null, 'fecha_ejecucion' => '6',
+            'beneficiarios' => '7', 'sitio' => '8', 'metodologia_seguimiento' => null,
+            'coordinador' => '9', 'docentes' => '10', 'internacionales' => '11',
+            'estudiantes' => '12', 'vol_personal' => '13', 'vol_internacional' => '14',
+            'detalle_practica' => '15', 'contraparte_nombre' => '16', 'contraparte_tipo' => '17',
+            'contraparte_contacto' => '18', 'contraparte_cargo' => '19', 'contraparte_instrumento' => '20',
+            'contraparte_compromisos' => '21', 'antecedentes' => '22', 'participantes' => '23',
+            'problema' => '24', 'objetivo_general' => '25', 'objetivos_especificos' => '26',
+            'resultados' => '27', 'ods' => '28', 'alineamiento_reforma' => '29',
+            'experiencia' => null, 'metodologia' => '30', 'bibliografia' => '31',
+            'actividades' => '32', 'aporte_institucional' => '33', 'otras_aportaciones' => '34',
+        ];
+        $numItem015 = [
+            'fecha_registro' => '1', 'nombre' => '2', 'unidad' => '3', 'modalidad' => '4',
+            'alineamiento' => '5', 'tematica' => '6', 'fecha_ejecucion' => '7',
+            'beneficiarios' => '8', 'sitio' => '9', 'metodologia_seguimiento' => '10',
+            'coordinador' => '11', 'docentes' => '12', 'internacionales' => '13',
+            'estudiantes' => '14', 'vol_personal' => '15', 'vol_internacional' => '16',
+            'detalle_practica' => '17', 'contraparte_nombre' => '18', 'contraparte_tipo' => '19',
+            'contraparte_contacto' => '20', 'contraparte_cargo' => '21', 'contraparte_instrumento' => '22',
+            'contraparte_compromisos' => '23', 'antecedentes' => '24', 'participantes' => '25',
+            'problema' => '26', 'objetivo_general' => '27', 'objetivos_especificos' => '28',
+            'resultados' => '29', 'ods' => '30', 'alineamiento_reforma' => '31',
+            'experiencia' => '32', 'metodologia' => '33', 'bibliografia' => '34',
+            'actividades' => '1', 'aporte_institucional' => '2', 'otras_aportaciones' => '3',
+        ];
+        $numItem = static fn (string $clave) => ($esVoluntariado ? $numItem015 : $numItem001)[$clave] ?? '';
+
+        // Secciones romanas. El 015 intercala "VI. Uso de espacios" antes del cronograma.
+        $numSec = static fn (string $clave) => match ($clave) {
+            'espacios'    => $esVoluntariado ? 'VI. ' : '',
+            'cronograma'  => $esVoluntariado ? 'VII. ' : 'VI. ',
+            'presupuesto' => $esVoluntariado ? 'VIII. ' : 'VII. ',
+            'firmas'      => $esVoluntariado ? 'IX. ' : '',
+            'anexos'      => $esVoluntariado ? '' : 'XI. ',
+            default       => '',
+        };
     @endphp
     @if (empty($isPdf) && empty($hideEmbeddedDocuments) && $proyecto->documento_intermedio() && $proyecto->documento_intermedio()->documento_url != null)
         <details class="rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -398,7 +459,7 @@
     @endif
 
     @if (!empty($isPdf))
-        @include('components.fichas.partials.form-dvus-001-header', ['isPdf' => true])
+        @include('components.fichas.partials.form-dvus-001-header', array_merge(['isPdf' => true], $encabezadoFicha))
     @endif
 
     <div class="{{ empty($isPdf) ? 'rounded-xl border border-gray-200 bg-white shadow-sm' : '' }}">
@@ -411,7 +472,7 @@
         <div class="{{ !empty($isPdf) ? 'pdf-content-wrapper' : '' }}" style="{{ empty($isPdf) ? 'display: flex; justify-content: center; margin-top: 20px; background-color: white;' : '' }}">
             <div class="container">
                 @if (empty($isPdf))
-                    @include('components.fichas.partials.form-dvus-001-header', ['isPdf' => false])
+                    @include('components.fichas.partials.form-dvus-001-header', array_merge(['isPdf' => false], $encabezadoFicha))
                 @endif
 
                 {{-- INFORMACIÓN GENERAL --}}
@@ -430,7 +491,7 @@
                             $fechaRegistro = $proyecto->fecha_registro;
                         @endphp
                         <tr>
-                            <th class="full-width1">1. Fecha de solicitud de registro:</th>
+                            <th class="full-width1">{{ $numItem('fecha_registro') }}. Fecha de solicitud de registro:</th>
                             <td class="full-width date-cell" colspan="5">
                                 <table class="date-inner-table">
                                     <tr>
@@ -447,7 +508,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <th class="full-width1">2. Nombre del Proyecto:</th>
+                            <th class="full-width1">{{ $numItem('nombre') }}. Nombre del Proyecto:</th>
                             <td class="full-width" colspan="5">
 
                                 @if (!empty($isPdf))
@@ -458,7 +519,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <th class="full-width1" rowspan="3">3. Unidad(s) Académica(as):</th>
+                            <th class="full-width1" rowspan="3">{{ $numItem('unidad') }}. Unidad(s) Académica(as):</th>
                             <td class="sub-header" colspan="1">Facultad /Centro Universitario Regional/Instituto Tecnológico</td>
                             <td class="full-width" colspan="4">
                                 <ul>
@@ -493,7 +554,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <th class="full-width1" rowspan="1">4. Modalidad</th>
+                            <th class="full-width1" rowspan="1">{{ $numItem('modalidad') }}. Modalidad</th>
                             <td class="sub-header1 pdf-choice" colspan="1">Unidisciplinar <br>
                                 @if (!empty($isPdf)){!! $pdfCheck($proyecto->modalidad?->nombre == 'Unidisciplinar') !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->modalidad?->nombre == 'Unidisciplinar') checked @endif>@endif
                             </td>
@@ -508,7 +569,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <th class="full-width1" rowspan="3">5. Alineamiento institucional</th>
+                            <th class="full-width1" rowspan="3">{{ $numItem('alineamiento') }}. {{ $esVoluntariado ? 'Alineamiento con ejes prioritarios de la UNAH' : 'Alineamiento institucional' }}</th>
                             <td class="sub-header1 pdf-choice" colspan="1">Desarrollo económico y social <br>
                                 @if (!empty($isPdf)){!! $pdfCheck((bool) $proyecto->ejes_prioritarios_unah?->contains('nombre', 'Desarrollo económico y social')) !!}@else<input disabled type="checkbox" class="No" @if ($proyecto->ejes_prioritarios_unah?->contains('nombre', 'Desarrollo económico y social')) checked @endif>@endif
                             </td>
@@ -543,13 +604,46 @@
                             </td>
                         </tr>
 
+                        @if ($esVoluntariado)
+                            @php
+                                $tematicaOpciones = [
+                                    'educacion' => 'Educación',
+                                    'salud_bienestar' => 'Salud y bienestar',
+                                    'cultura_patrimonio' => 'Cultura y patrimonio',
+                                    'ambiente_sostenibilidad' => 'Ambiente y sostenibilidad',
+                                    'desarrollo_comunitario' => 'Desarrollo comunitario',
+                                    'otros' => 'Otros',
+                                ];
+                            @endphp
+                            <tr>
+                                <th class="full-width1" rowspan="1">{{ $numItem('tematica') }}. Temática principal del proyecto</th>
+                                <td class="full-width" colspan="5" style="padding:0 !important;">
+                                    <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
+                                        <tr>
+                                            @foreach ($tematicaOpciones as $clave => $etiqueta)
+                                                <td class="sub-header1 pdf-choice" style="border:1px solid #000; padding:3px 5px; text-align:center;">
+                                                    {{ $etiqueta }}<br>
+                                                    @if (!empty($isPdf)){!! $pdfCheck($proyecto->tematica_principal === $clave) !!}@else<input disabled type="checkbox" @if ($proyecto->tematica_principal === $clave) checked @endif>@endif
+                                                </td>
+                                            @endforeach
+                                        </tr>
+                                        @if ($proyecto->tematica_principal === 'otros' && filled($proyecto->tematica_principal_otro))
+                                            <tr>
+                                                <td colspan="6" style="border:1px solid #000; padding:3px 5px;">Otro: {{ $proyecto->tematica_principal_otro }}</td>
+                                            </tr>
+                                        @endif
+                                    </table>
+                                </td>
+                            </tr>
+                        @endif
+
                         <!-- FECHAS DE EJECUCION  -->
                         @php
                             $fechaInicio = $proyecto->fecha_inicio;
                             $fechaFinalizacion = $proyecto->fecha_finalizacion;
                         @endphp
                         <tr>
-                            <th class="full-width1" rowspan="1">6. Fecha de ejecución</th>
+                            <th class="full-width1" rowspan="1">{{ $numItem('fecha_ejecucion') }}. Fecha de ejecución</th>
                             <td class="full-width date-cell" colspan="5" style="padding:0 !important;">
                                 <table style="width:100%; border-collapse:collapse; table-layout:fixed;">
                                     <tr>
@@ -578,7 +672,7 @@
                    
                         <!-- TABLA DE BENEFICIARIOS DIRECTOS -->
                         <tr>
-                            <th class="full-width1" rowspan="3">7. Descripción de los beneficiarios</th>
+                            <th class="full-width1" rowspan="3">{{ $numItem('beneficiarios') }}. Descripción de los beneficiarios</th>
                             <td class="sub-header" colspan="1">Cantidad aproximada</td>
                             <td class="full-width" colspan="4" style="padding:0 !important;">
                                 <table class="beneficiary-summary" style="width:100%; border-collapse:collapse;">
@@ -627,7 +721,7 @@
                     <!-- Sitio de ejecución del proyecto -->
                     <table class="table_datos1 pdf-table pdf-section-avoid-break section-site-execution">
                     <tr>
-                        <th class="full-width1" colspan="6" style="text-align:left !important;">8. Sitio de ejecución del proyecto</th>
+                        <th class="full-width1" colspan="6" style="text-align:left !important;">{{ $numItem('sitio') }}. Sitio de ejecución del proyecto</th>
                     </tr>
                     @php
                         $departamentosTexto = $proyecto->departamento->pluck('nombre')->implode(', ');
@@ -696,6 +790,27 @@
 
                     </table>
 
+                    @if ($esVoluntariado)
+                        @php
+                            $metodologiaSeguimientoSel = is_array($proyecto->metodologia_seguimiento) ? $proyecto->metodologia_seguimiento : [];
+                        @endphp
+                        <table class="table_datos1 pdf-table pdf-section-avoid-break">
+                            <tr>
+                                <th class="full-width1" colspan="6" style="text-align:left !important;">{{ $numItem('metodologia_seguimiento') }}. Metodología de seguimiento</th>
+                            </tr>
+                            <tr>
+                                <td class="sub-header1 pdf-choice" colspan="3" style="text-align:center;">
+                                    Encuestas<br>
+                                    @if (!empty($isPdf)){!! $pdfCheck(in_array('encuestas', $metodologiaSeguimientoSel, true)) !!}@else<input disabled type="checkbox" @if (in_array('encuestas', $metodologiaSeguimientoSel, true)) checked @endif>@endif
+                                </td>
+                                <td class="sub-header1 pdf-choice" colspan="3" style="text-align:center;">
+                                    Entrevistas<br>
+                                    @if (!empty($isPdf)){!! $pdfCheck(in_array('entrevistas', $metodologiaSeguimientoSel, true)) !!}@else<input disabled type="checkbox" @if (in_array('entrevistas', $metodologiaSeguimientoSel, true)) checked @endif>@endif
+                                </td>
+                            </tr>
+                        </table>
+                    @endif
+
                 </div>
 
                 {{-- EQUIPO EJECUTOR --}}
@@ -707,7 +822,7 @@
                     <table class="table_datos1">
                         <!-- TABLA COORDINADOR DEL PROYECTO -->
                         <tr>
-                            <th class="full-width1" rowspan="3">9. Coordinador/a del Proyecto:</th>
+                            <th class="full-width1" rowspan="3">{{ $numItem('coordinador') }}. Coordinador/a del {{ $esVoluntariado ? 'Programa' : 'Proyecto' }}:</th>
                             <td class="sub-header">Nombre Completo:</td>
                             <td class="full-width" colspan="2">
                                 @if (!empty($isPdf))
@@ -766,7 +881,7 @@
                     <!-- TABLA DE INTEGRANTES DEL EQUIPO UNIVERSITARIO -->
                     <table class="table_datos1">
                         <tr>
-                            <th class="full-width1" colspan="8" style="text-align:left !important; padding-left:8px;">10. Integrantes del equipo docente permanente tiempo completo
+                            <th class="full-width1" colspan="8" style="text-align:left !important; padding-left:8px;">{{ $numItem('docentes') }}. Integrantes del equipo docente permanente tiempo completo
                                 (Agregar más líneas de ser necesario)</th>
                         </tr>
                         <tr>
@@ -857,7 +972,7 @@
                         @endforelse
                        
                         <tr>
-                            <th class="full-width1" colspan="8" style="text-align:left !important; padding-left:8px;">11. Docentes internacionales participantes en el proyecto
+                            <th class="full-width1" colspan="8" style="text-align:left !important; padding-left:8px;">{{ $numItem('internacionales') }}. {{ $esVoluntariado ? 'Integrantes del equipo de cooperación internacional' : 'Docentes internacionales participantes en el proyecto' }}
                                 (Agregar más líneas de ser necesario)</th>
                         </tr>
                         <tr>
@@ -1017,11 +1132,11 @@
 
                 {{-- PARTICIPACIÓN DE ESTUDIANTES Y VOLUNTARIOS --}}
                 <div class="section3">
-                    <div class="section-title">III. PARTICIPACIÓN DE ESTUDIANTES Y VOLUNTARIOS</div>
+                    <div class="section-title">III. {{ $esVoluntariado ? 'PARTICIPACIÓN DE LA COMUNIDAD UNIVERSITARIA' : 'PARTICIPACIÓN DE ESTUDIANTES Y VOLUNTARIOS' }}</div>
                     <table class="table_datos1">
                         <!-- 12. PARTICIPACIÓN DE ESTUDIANTES UNAH -->
                         <tr>
-                            <th class="full-width1" rowspan="4">12. Participación de estudiantes UNAH</th>
+                            <th class="full-width1" rowspan="4">{{ $numItem('estudiantes') }}. Participación de estudiantes UNAH</th>
                             <td colspan="8" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic; text-align:center;">Desglose del tipo de participación de estudiantes (cantidad)</td>
                         </tr>
                         <tr>
@@ -1053,7 +1168,7 @@
 
                         <!-- 13. VOLUNTARIADO PERSONAL DE LA UNAH -->
                         <tr>
-                            <th class="full-width1" rowspan="4">13. Voluntariado personal de la UNAH</th>
+                            <th class="full-width1" rowspan="4">{{ $numItem('vol_personal') }}. Voluntariado personal de la UNAH</th>
                             <td colspan="8" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic; text-align:center;">Desglose del tipo de participación de personal de la UNAH (cantidad)</td>
                         </tr>
                         <tr>
@@ -1093,7 +1208,7 @@
                             };
                         @endphp
                         <tr>
-                            <th class="full-width1" rowspan="4">14. Voluntariado internacional</th>
+                            <th class="full-width1" rowspan="4">{{ $numItem('vol_internacional') }}. Voluntariado internacional</th>
                             <td colspan="8" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic; text-align:center;">Desglose del voluntariado internacional (cantidad)</td>
                         </tr>
                         <tr>
@@ -1120,7 +1235,7 @@
 
                         <!-- 15. DETALLE DE LA PRÁCTICA DE ASIGNATURA/POSGRADO -->
                         <tr>
-                            <th class="full-width1" rowspan="{{ 2 + $filasPractica }}">15. Detalle de la Práctica de asignatura/posgrado estudiantes UNAH</th>
+                            <th class="full-width1" rowspan="{{ 2 + $filasPractica }}">{{ $numItem('detalle_practica') }}. Detalle de la Práctica de asignatura/posgrado estudiantes UNAH</th>
                             <td colspan="1" rowspan="2" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:normal; text-align:center;">Código</td>
                             <td colspan="3" rowspan="2" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:normal; text-align:center;">Nombre</td>
                             <td colspan="2" rowspan="2" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:normal; text-align:center;">Periodo académico</td>
@@ -1154,7 +1269,7 @@
                         @forelse ($proyecto->entidad_contraparte_proyecto()->with('entidadContraparte')->with('instrumentoFormalizacion')->get() as $pivot)
                             @php $entidad = $pivot->entidadContraparte; @endphp
                             <tr>
-                                <td style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">16. Nombre de la contraparte:</td>
+                                <td style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">{{ $numItem('contraparte_nombre') }}. Nombre de la contraparte:</td>
                                 <td class="full-width" colspan="6">
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($entidad->nombre) !!}</div>
@@ -1174,7 +1289,7 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td rowspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">17. Tipo de contraparte:</td>
+                                <td rowspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">{{ $numItem('contraparte_tipo') }}. Tipo de contraparte:</td>
                                 <td class="sub-header1 pdf-choice" colspan="1">Gobierno Nacional <br>
                                     @if (!empty($isPdf)){!! $pdfCheck($entidad->tipo_entidad == 'gobierno_nacional') !!}@else<input disabled type="checkbox" class="No" @if ($entidad->tipo_entidad == 'gobierno_nacional') checked @endif>@endif
                                 </td>
@@ -1195,7 +1310,7 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td rowspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">18. Nombre del contacto directo</td>
+                                <td rowspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">{{ $numItem('contraparte_contacto') }}. Nombre del contacto directo</td>
                                 <td class="full-width" colspan="3">
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($entidad->nombre_contacto) !!}</div>
@@ -1213,7 +1328,7 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td colspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">19. Cargo del contacto del proyecto</td>
+                                <td colspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">{{ $numItem('contraparte_cargo') }}. Cargo del contacto del proyecto</td>
                                 <td class="full-width" colspan="3">
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($entidad->cargo_contacto ?? '') !!}</div>
@@ -1231,7 +1346,7 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td colspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">20. Tipo de instrumento que da lugar a la alianza</td>
+                                <td colspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">{{ $numItem('contraparte_instrumento') }}. Tipo de instrumento que da lugar a la alianza</td>
                                 <td class="sub-header1 pdf-choice" colspan="2">Carta formal de solicitud a la unidad académica <br>
                                     @if (!empty($isPdf)){!! $pdfCheck($pivot->instrumentoFormalizacion->contains('tipo_documento', 'carta_formal_solicitud')) !!}@else<input disabled type="checkbox" class="No" @if ($pivot->instrumentoFormalizacion->contains('tipo_documento', 'carta_formal_solicitud')) checked @endif>@endif
                                 </td>
@@ -1243,7 +1358,7 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td colspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">21. Breve descripción de los compromisos asumidos por la contraparte</td>
+                                <td colspan="1" style="background-color:#001b44; color:#fff; font-weight:bold; font-style:italic;">{{ $numItem('contraparte_compromisos') }}. Breve descripción de los compromisos asumidos por la contraparte</td>
                                 <td class="full-width" colspan="6">
                                     @if (!empty($isPdf))
                                         <div class="pdf-text-block">{!! $renderPdfText($pivot->descripcion_acuerdos ?? '') !!}</div>
@@ -1346,7 +1461,7 @@
                     <div class="section-title">V. FORMULACIÓN DEL PROYECTO </div>
                     <table class="table_datos3">
                         <tr>
-                            <th class="header" colspan="19" style="text-align:left !important;">22. DESCRIPCIÓN DE LOS ANTECEDENTES DEL PROYECTO: (Explicar brevemente los antecedentes que dieron su origen y 
+                            <th class="header" colspan="19" style="text-align:left !important;">{{ $numItem('antecedentes') }}. DESCRIPCIÓN DE LOS ANTECEDENTES DEL PROYECTO: (Explicar brevemente los antecedentes que dieron su origen y
                                 la importancia que tiene para los objetivos estratégicos de la UNAH)</th>
                         </tr>
                         <tr>
@@ -1362,7 +1477,7 @@
 
                         </tr>
                         <tr>
-                            <th class="header" colspan="19" style="text-align:left !important;">23. DESCRIPCIÓN DE LOS PARTICIPANTES DEL PROYECTO (En esta sección se hace una breve
+                            <th class="header" colspan="19" style="text-align:left !important;">{{ $numItem('participantes') }}. DESCRIPCIÓN DE LOS PARTICIPANTES DEL PROYECTO (En esta sección se hace una breve
                                 descripción de los alcances de la participación de los actores del proyecto. En el caso de la participación de
                                 la UNAH, se describirá de manera sucinta, cómo se articula el proyecto de vinculación con las funciones de
                                 la docencia (participación de asignaturas) y/o la investigación (si participa un grupo de investigación, o se
@@ -1406,7 +1521,7 @@
                         </tr>
 
                         <tr>
-                            <th class="header" colspan="19" style="text-align:left !important;">24.	DEFINICIÓN DEL PROBLEMA:  Breve descripción del problema que se desea resolver, indicando línea base que se tendrá en consideración 
+                            <th class="header" colspan="19" style="text-align:left !important;">{{ $numItem('problema') }}. DEFINICIÓN DEL PROBLEMA: Breve descripción del problema que se desea resolver, indicando línea base que se tendrá en consideración 
                                 para la definición de los resultados del proyecto. La línea base debe representarse con datos y debe de describirse las causas del problema identificado</th>
                         </tr>
                         <tr>
@@ -1421,7 +1536,7 @@
                         </tr>
 
                         <tr>
-                            <th class="header" colspan="19" style="text-align:left !important;">25. OBJETIVO GENERAL (El objetivo debe estar basado en la población participante del proyecto)</th>
+                            <th class="header" colspan="19" style="text-align:left !important;">{{ $numItem('objetivo_general') }}. OBJETIVO GENERAL (El objetivo debe estar basado en la población participante del proyecto)</th>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
@@ -1435,7 +1550,7 @@
                         </tr>
 
                         <tr>
-                            <th class="header" colspan="19" style="text-align:left !important;">26. OBJETIVOS ESPECÍFICOS (Los objetivos específicos deben estar relacionados con los resultados que esperan obtener en el proyecto)</th>
+                            <th class="header" colspan="19" style="text-align:left !important;">{{ $numItem('objetivos_especificos') }}. OBJETIVOS ESPECÍFICOS (Los objetivos específicos deben estar relacionados con los resultados que esperan obtener en el proyecto)</th>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
@@ -1454,7 +1569,7 @@
                         </tr>
 
                         <tr>
-                            <th class="header" colspan="19">27. RESULTADOS DEL PROYECTO
+                            <th class="header" colspan="19">{{ $numItem('resultados') }}. RESULTADOS DEL PROYECTO
                                 El indicador de resultado es una medida específica y observable que permite evaluar el grado de cumplimiento
                                 de los resultados que se han planteado. Sirven para evaluar en qué medida y calidad se lograron los objetivos
                                 del proyecto. Hay tres tipos de resultados: 1) corto plazo, que son los productos que se obtendrán con el
@@ -1595,7 +1710,7 @@
                         @endforelse
 
                         <tr>
-                            <td class="header" colspan="19" style="text-align:left !important;">28. OBJETIVOS DE DESARROLLO SOSTENIBLE (ODS) A LOS QUE SE CONTRIBUYE: Indicar el o los
+                            <td class="header" colspan="19" style="text-align:left !important;">{{ $numItem('ods') }}. OBJETIVOS DE DESARROLLO SOSTENIBLE (ODS) A LOS QUE SE CONTRIBUYE: Indicar el o los
                                 ODS a los que pretende contribuir el proyecto y las metas correspondientes. Para esta descripción deberá basarse
                                 en el documento de ODS que puede consultar en el siguiente enlace:</th>
                         </tr>
@@ -1647,7 +1762,7 @@
                         @endforelse
 
                         <tr>
-                            <td class="header" colspan="19">29. ALINEAMIENTO CON LO ESENCIAL DE LA REFORMA DE LA UNAH (detalle brevemente cómo se alinean los ejes de lo esencial de la reforma en la ejecución de este proyecto, en resumen, describa qué competencias relacionadas con los ejes de lo esencial de la reforma adquirirán los estudiantes con la participación en este proyecto.</th>
+                            <td class="header" colspan="19">{{ $numItem('alineamiento_reforma') }}. ALINEAMIENTO CON LO ESENCIAL DE LA REFORMA DE LA UNAH (detalle brevemente cómo se alinean los ejes de lo esencial de la reforma en la ejecución de este proyecto, en resumen, describa qué competencias relacionadas con los ejes de lo esencial de la reforma adquirirán los estudiantes con la participación en este proyecto.</th>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
@@ -1659,8 +1774,43 @@
                                 @endif
                             </td>
                         </tr>
+                        @if ($esVoluntariado)
+                            <tr>
+                                <td class="header" colspan="19" style="text-align:left !important;">{{ $numItem('experiencia') }}. DESCRIPCIÓN DE LA EXPERIENCIA ACADÉMICA QUE SE DESARROLLARÁ</td>
+                            </tr>
+                            <tr>
+                                <td class="sub-header" colspan="5" style="font-style:normal; font-weight:bold;">Descripción de los conocimientos teóricos que se aplicarán</td>
+                                <td class="full-width" colspan="14">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($proyecto->experiencia_conocimientos_teoricos) !!}</div>
+                                    @else
+                                        <textarea disabled cols="30" rows="4" class="input-field">{{ $proyecto->experiencia_conocimientos_teoricos ?? '' }}</textarea>
+                                    @endif
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="sub-header" colspan="5" style="font-style:normal; font-weight:bold;">Descripción de las habilidades técnicas que se aplicarán</td>
+                                <td class="full-width" colspan="14">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($proyecto->experiencia_habilidades_tecnicas) !!}</div>
+                                    @else
+                                        <textarea disabled cols="30" rows="4" class="input-field">{{ $proyecto->experiencia_habilidades_tecnicas ?? '' }}</textarea>
+                                    @endif
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="sub-header" colspan="5" style="font-style:normal; font-weight:bold;">Descripción de las competencias blandas que adquirirán los(as) estudiantes con esta experiencia</td>
+                                <td class="full-width" colspan="14">
+                                    @if (!empty($isPdf))
+                                        <div class="pdf-text-block">{!! $renderPdfText($proyecto->experiencia_competencias_blandas) !!}</div>
+                                    @else
+                                        <textarea disabled cols="30" rows="4" class="input-field">{{ $proyecto->experiencia_competencias_blandas ?? '' }}</textarea>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endif
                         <tr>
-                            <td class="header" colspan="19" style="text-align:left !important;">30. METODOLOGÍA</th>
+                            <td class="header" colspan="19" style="text-align:left !important;">{{ $numItem('metodologia') }}. METODOLOGÍA</th>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
@@ -1673,7 +1823,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="header" colspan="19" style="text-align:left !important;">31. BIBLIOGRAFÍA</th>
+                            <td class="header" colspan="19" style="text-align:left !important;">{{ $numItem('bibliografia') }}. BIBLIOGRAFÍA</th>
                         </tr>
                         <tr>
                             <td class="full-width" colspan="19">
@@ -1688,13 +1838,44 @@
                     </table>
                 </div>
 
+                @if ($esVoluntariado)
+                    {{-- USO DE ESPACIOS, SERVICIOS Y MEDIOS INSTITUCIONALES (FORM-DVUS-015) --}}
+                    <div class="section2">
+                        <div class="section-title">{{ $numSec('espacios') }}INFORMACIÓN SOBRE EL USO DE ESPACIOS, SERVICIOS Y MEDIOS INSTITUCIONALES</div>
+                        <table class="table_datos3">
+                            <thead>
+                                <tr>
+                                    <th class="header" style="text-align:left !important;">Descripción del servicio o infraestructura</th>
+                                    <th class="header" style="text-align:left !important;">Ubicación</th>
+                                    <th class="header" style="text-align:left !important;">Unidad gestora</th>
+                                    <th class="header" style="text-align:left !important;">Tiempo de uso (horas)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($proyecto->espaciosInstitucionales as $espacio)
+                                    <tr>
+                                        <td class="full-width">{{ $espacio->descripcion }}</td>
+                                        <td class="full-width">{{ $espacio->ubicacion }}</td>
+                                        <td class="full-width">{{ $espacio->unidad_gestora }}</td>
+                                        <td class="full-width" style="text-align:center;">{{ $espacio->tiempo_uso_horas }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td class="full-width" colspan="4" style="text-align:center;">No se registraron espacios, servicios o medios institucionales.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
                 {{-- CRONOGRAMA --}}
                 <div class="section2">
-                    <div class="section-title">VI. CRONOGRAMA DE LAS ACTIVIDADES DEL PROYECTO</div>
+                    <div class="section-title">{{ $numSec('cronograma') }}CRONOGRAMA DE LAS ACTIVIDADES DEL PROYECTO</div>
                     <table class="table_datos3">
                         <thead>
                             <tr>
-                                <th class="header" colspan="19" style="text-align:left !important;">32. DESCRIPCIÓN DE ACTIVIDADES DEL PROYECTO (Descripción de todas las actividades enmarcadas en
+                                <th class="header" colspan="19" style="text-align:left !important;">{{ $numItem('actividades') }}. DESCRIPCIÓN DE ACTIVIDADES DEL PROYECTO (Descripción de todas las actividades enmarcadas en
                                     el proyecto, las cuales pueden ser, entre otras, la negociación inicial, la organización de los equipos de
                                     trabajo, la planificación, el desarrollo de actividades de capacitación y fortalecimiento, presentación de
                                     informe intermedio o parciales, presentación del informe final, proceso de evaluación, proceso de
@@ -1763,10 +1944,10 @@
 
                 {{-- PRESUPUESTO --}}
                 <div class="section2 section-budget">
-                    <div class="section-title">VII. DETALLE DEL PRESUPUESTO</div>
+                    <div class="section-title">{{ $numSec('presupuesto') }}DETALLE DEL PRESUPUESTO</div>
                     <table class="table_datos3">
                         <tr>
-                            <td class="header" colspan="19" style="text-align:left !important;">33. APORTE INSTITUCIONAL (manifestado en lempiras)</td>
+                            <td class="header" colspan="19" style="text-align:left !important;">{{ $numItem('aporte_institucional') }}. APORTE INSTITUCIONAL (manifestado en lempiras)</td>
                         </tr>
                         <tr>
                             <td class="header" colspan="7">Concepto</td>
@@ -1786,8 +1967,9 @@
                                 $conceptos->get('utiles_materiales_oficina'),
                                 $conceptos->get('gastos_impresion'),
                             ])->filter();
-                            $cantidadIndirecta = round($baseAporteInstitucional->sum('cantidad') * 0.05, 2);
-                            $costoUnitarioIndirecto = round($baseAporteInstitucional->sum('costo_unitario') * 0.05, 2);
+                            // 3% sobre la sumatoria de los conceptos a–e (ver etiquetas f/g y formatos oficiales).
+                            $cantidadIndirecta = round($baseAporteInstitucional->sum('cantidad') * 0.03, 2);
+                            $costoUnitarioIndirecto = round($baseAporteInstitucional->sum('costo_unitario') * 0.03, 2);
                             $costoTotalIndirecto = round($cantidadIndirecta * $costoUnitarioIndirecto, 2);
                             $infraestructura = $conceptos->get('costos_indirectos_infraestructura');
                             $servicios = $conceptos->get('costos_indirectos_servicios');
@@ -1994,7 +2176,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="header" colspan="19" style="text-align:left !important;">34. OTRAS APORTACIONES (Manifestado en lempiras)</td>
+                            <td class="header" colspan="19" style="text-align:left !important;">{{ $numItem('otras_aportaciones') }}. OTRAS APORTACIONES (Manifestado en lempiras)</td>
                         </tr>
                         <tr>
                             <td class="sub-headert" colspan="16">Aporte de la contraparte</td>
@@ -2078,9 +2260,13 @@
 
                 {{-- FIRMAS --}}
                 <div class="section3 section-signatures">
+                    @if ($esVoluntariado)
+                        <div class="section-title">{{ $numSec('firmas') }}FIRMAS</div>
+                    @endif
                     @include('components.fichas.firmas-fijas-proyecto', ['proyecto' => $proyecto, 'isPdf' => $isPdf ?? false])
                 </div>
 
+                @if (!$esVoluntariado)
                 {{-- DOCUMENTOS ADJUNTOS --}}
                 <div class="section4 section-documents">
                     <div class="section-title">DOCUMENTOS ADJUNTOS A LA FICHA</div>
@@ -2219,6 +2405,8 @@
                             </tr>
                         @endforelse
                     </table>
+                </div>
+                @endif
 
             </div>
         </div>

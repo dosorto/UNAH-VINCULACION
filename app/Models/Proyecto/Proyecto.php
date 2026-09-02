@@ -836,6 +836,16 @@ class Proyecto extends Model
         };
     }
 
+    /**
+     * Indica si el proyecto se registró bajo la acción de Voluntariado Académico
+     * (FORM-DVUS-015). La ficha y el PDF usan esto para alternar encabezado,
+     * numeración de secciones y los campos exclusivos de voluntariado.
+     */
+    public function esVoluntariado(): bool
+    {
+        return $this->codigoFormularioFlujo() === 'FORM-DVUS-015';
+    }
+
     public function flujoEtapasOrdenadas(?string $proceso = null): Collection
     {
         $proceso = $proceso ?: self::FLUJO_INSCRIPCION;

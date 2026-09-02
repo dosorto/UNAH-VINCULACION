@@ -29,9 +29,9 @@
     "
 >
     @if($esVoluntariado)
-    <div class="mb-4 rounded-lg border border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 px-4 py-3">
-        <p class="text-xs font-semibold uppercase tracking-wide text-yellow-700 dark:text-yellow-300">FORM-DVUS-015</p>
-        <h2 class="text-lg font-bold text-yellow-900 dark:text-yellow-200">Registro de Proyecto de Voluntariado Académico</h2>
+    <div class="mb-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 px-4 py-3">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">FORM-DVUS-015</p>
+        <h2 class="text-lg font-bold text-gray-900 dark:text-white">Registro de Proyecto de Voluntariado Académico</h2>
     </div>
     @endif
 
@@ -139,8 +139,8 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Temática principal del proyecto <span class="text-red-500">*</span></label>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     @foreach($tematicaPrincipalOpciones as $valor => $etiqueta)
-                    <label class="flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer hover:border-yellow-400">
-                        <input type="radio" wire:model.live="tematica_principal" value="{{ $valor }}" class="text-yellow-600 focus:ring-yellow-500" />
+                    <label class="flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer hover:border-blue-400">
+                        <input type="radio" wire:model.live="tematica_principal" value="{{ $valor }}" class="text-blue-600 focus:ring-blue-500" />
                         <span>{{ $etiqueta }}</span>
                     </label>
                     @endforeach
@@ -150,7 +150,7 @@
                 @if($tematica_principal === 'otros')
                 <div class="mt-2">
                     <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Especifique la temática</label>
-                    <input type="text" wire:model.live.debounce.1000ms="tematica_principal_otro" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500" />
+                    <input type="text" wire:model.live.debounce.1000ms="tematica_principal_otro" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
                     @error('tematica_principal_otro') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 @endif
@@ -1491,21 +1491,21 @@
 
             {{-- Descripción de la experiencia académica (FORM-DVUS-015 · sólo Voluntariado) --}}
             @if($esVoluntariado)
-            <div class="rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50/50 dark:bg-yellow-900/10 p-4 space-y-4">
-                <h4 class="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Descripción de la experiencia académica que se desarrollará</h4>
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 p-4 space-y-4">
+                <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Descripción de la experiencia académica que se desarrollará</h4>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Conocimientos teóricos que se aplicarán <span class="text-red-500">*</span></label>
-                    <textarea wire:model.live.debounce.1000ms="experiencia_conocimientos_teoricos" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-yellow-500"></textarea>
+                    <textarea wire:model.live.debounce.1000ms="experiencia_conocimientos_teoricos" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                     @error('experiencia_conocimientos_teoricos') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Habilidades técnicas que se aplicarán <span class="text-red-500">*</span></label>
-                    <textarea wire:model.live.debounce.1000ms="experiencia_habilidades_tecnicas" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-yellow-500"></textarea>
+                    <textarea wire:model.live.debounce.1000ms="experiencia_habilidades_tecnicas" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                     @error('experiencia_habilidades_tecnicas') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Competencias blandas que adquirirán los(as) estudiantes <span class="text-red-500">*</span></label>
-                    <textarea wire:model.live.debounce.1000ms="experiencia_competencias_blandas" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-yellow-500"></textarea>
+                    <textarea wire:model.live.debounce.1000ms="experiencia_competencias_blandas" rows="6" class="w-full resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500"></textarea>
                     @error('experiencia_competencias_blandas') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
             </div>
@@ -1840,12 +1840,12 @@
 
             {{-- Metodología de seguimiento (FORM-DVUS-015 · sólo Voluntariado) --}}
             @if($esVoluntariado)
-            <div class="rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50/50 dark:bg-yellow-900/10 p-4">
-                <h4 class="text-sm font-semibold text-yellow-800 dark:text-yellow-300 mb-3">Metodología de seguimiento</h4>
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 p-4">
+                <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3">Metodología de seguimiento</h4>
                 <div class="flex flex-wrap gap-3">
                     @foreach($metodologiaSeguimientoOpciones as $valor => $etiqueta)
-                    <label class="flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer hover:border-yellow-400">
-                        <input type="checkbox" wire:model.live="metodologia_seguimiento" value="{{ $valor }}" class="text-yellow-600 focus:ring-yellow-500 rounded" />
+                    <label class="flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer hover:border-blue-400">
+                        <input type="checkbox" wire:model.live="metodologia_seguimiento" value="{{ $valor }}" class="text-blue-600 focus:ring-blue-500 rounded" />
                         <span>{{ $etiqueta }}</span>
                     </label>
                     @endforeach
@@ -1980,7 +1980,7 @@
             <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <div class="flex items-center justify-between mb-1">
                     <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Resultados de Mediano y Largo Plazo</h4>
-                    <button wire:click="addResultadoProyecto" type="button"
+                    <button wire:click="openResultadoProyectoModal" type="button"
                         class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
                         + Agregar
                     </button>
@@ -1990,51 +1990,87 @@
                     Largo plazo (impacto): debe expresar los indicadores de impacto que se desea generar en el proyecto.
                 </p>
                 @error('resultadosProyecto') <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    @foreach($resultadosProyecto as $ri => $resultadoProyecto)
-                    <div wire:key="resultado-proyecto-{{ $resultadoProyecto['wire_key'] ?? $resultadoProyecto['id'] ?? 'nuevo-'.$ri }}" class="p-2.5 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-xs font-semibold text-gray-500">Resultado {{ $ri + 1 }}</span>
-                            <button wire:click="removeResultadoProyecto({{ $ri }})" type="button"
-                                class="text-xs text-red-500 hover:text-red-700">✕</button>
-                        </div>
-                        <div class="grid grid-cols-2 gap-1.5">
-                            <div class="col-span-2">
-                                <label class="block text-xs text-gray-500 mb-0.5">Resultado <span class="text-red-500">*</span></label>
-                                <input type="text" wire:model.live.debounce.1000ms="resultadosProyecto.{{ $ri }}.nombre_resultado"
-                                    class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
-                                @error("resultadosProyecto.{$ri}.nombre_resultado") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                            </div>
-                            <div class="col-span-2">
-                                <label class="block text-xs text-gray-500 mb-0.5">Indicador <span class="text-red-500">*</span></label>
-                                <input type="text" wire:model.live.debounce.1000ms="resultadosProyecto.{{ $ri }}.nombre_indicador"
-                                    class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
-                                @error("resultadosProyecto.{$ri}.nombre_indicador") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                            </div>
-                            <div class="col-span-2">
-                                <label class="block text-xs text-gray-500 mb-0.5">Medio de Verificación <span class="text-red-500">*</span></label>
-                                <input type="text" wire:model.live.debounce.1000ms="resultadosProyecto.{{ $ri }}.nombre_medio_verificacion"
-                                    class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500" />
-                                @error("resultadosProyecto.{$ri}.nombre_medio_verificacion") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                            </div>
-                            <div class="col-span-2">
-                                <label class="block text-xs text-gray-500 mb-0.5">Plazo <span class="text-red-500">*</span></label>
-                                <select wire:model.live="resultadosProyecto.{{ $ri }}.plazo"
-                                    class="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs focus:border-blue-500">
-                                    <option value="mediano_plazo">Mediano plazo</option>
-                                    <option value="largo_plazo">Largo plazo</option>
-                                </select>
-                                @error("resultadosProyecto.{$ri}.plazo") <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
-                    @if(empty($resultadosProyecto))
-                    <p class="text-xs text-gray-500 text-center py-2 md:col-span-2">Sin resultados de mediano/largo plazo. Haz clic en "+ Agregar".</p>
-                    @endif
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                        <thead class="bg-gray-50 dark:bg-gray-800">
+                            <tr class="text-xs text-gray-500 text-left">
+                                <th class="py-2 px-3">Resultado</th>
+                                <th class="py-2 px-3">Indicador</th>
+                                <th class="py-2 px-3">Medio de verificación</th>
+                                <th class="py-2 px-3 w-28">Plazo</th>
+                                <th class="py-2 px-3 w-24 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                            @forelse($resultadosProyecto as $ri => $resultadoProyecto)
+                            <tr wire:key="resultado-proyecto-{{ $resultadoProyecto['wire_key'] ?? $resultadoProyecto['id'] ?? 'nuevo-'.$ri }}" class="align-top">
+                                <td class="py-2 px-3">{{ $resultadoProyecto['nombre_resultado'] ?? '' }}</td>
+                                <td class="py-2 px-3">{{ $resultadoProyecto['nombre_indicador'] ?? '' }}</td>
+                                <td class="py-2 px-3">{{ $resultadoProyecto['nombre_medio_verificacion'] ?? '' }}</td>
+                                <td class="py-2 px-3">{{ ($resultadoProyecto['plazo'] ?? '') === 'largo_plazo' ? 'Largo plazo' : 'Mediano plazo' }}</td>
+                                <td class="py-2 px-3 text-right whitespace-nowrap">
+                                    <button wire:click="openResultadoProyectoModal({{ $ri }})" type="button" class="text-xs text-blue-600 hover:text-blue-800">Editar</button>
+                                    <button wire:click="removeResultadoProyecto({{ $ri }})" type="button" class="ml-2 text-xs text-red-500 hover:text-red-700">Borrar</button>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="py-3 px-3 text-center text-xs text-gray-500">Sin resultados de mediano/largo plazo. Haz clic en "+ Agregar".</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
+
+        @if($showResultadoProyectoModal)
+        <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog">
+            <div class="fixed inset-0 bg-black/50" wire:click="closeResultadoProyectoModal"></div>
+            <div class="relative flex min-h-full items-center justify-center p-4">
+                <div class="relative w-full max-w-xl rounded-lg bg-white dark:bg-gray-900 shadow-xl border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3">
+                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white">
+                            {{ $editResultadoProyectoIndex !== null ? 'Editar' : 'Nuevo' }} resultado de mediano/largo plazo
+                        </h4>
+                        <button wire:click="closeResultadoProyectoModal" type="button" class="text-gray-500 hover:text-gray-800 text-lg leading-none">✕</button>
+                    </div>
+                    <div class="p-5 space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Resultado <span class="text-red-500">*</span></label>
+                            <textarea wire:model="resultadoProyectoModal.nombre_resultado" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500"></textarea>
+                            @error('resultadoProyectoModal.nombre_resultado') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Indicador <span class="text-red-500">*</span></label>
+                            <textarea wire:model="resultadoProyectoModal.nombre_indicador" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500"></textarea>
+                            @error('resultadoProyectoModal.nombre_indicador') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Medio de verificación <span class="text-red-500">*</span></label>
+                            <textarea wire:model="resultadoProyectoModal.nombre_medio_verificacion" rows="2" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500"></textarea>
+                            @error('resultadoProyectoModal.nombre_medio_verificacion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Plazo <span class="text-red-500">*</span></label>
+                            <select wire:model="resultadoProyectoModal.plazo" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:border-blue-500">
+                                <option value="mediano_plazo">Mediano plazo</option>
+                                <option value="largo_plazo">Largo plazo</option>
+                            </select>
+                            @error('resultadoProyectoModal.plazo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 border-t border-gray-200 dark:border-gray-700 px-5 py-3">
+                        <button wire:click="closeResultadoProyectoModal" type="button" class="rounded-md bg-gray-100 dark:bg-gray-700 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200">Cancelar</button>
+                        <button wire:click="saveResultadoProyecto" type="button" class="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">
+                            {{ $editResultadoProyectoIndex !== null ? 'Guardar cambios' : 'Agregar' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
         @endif
 
         {{-- ══════════════════ PASO 8: Presupuesto ══════════════════ --}}
@@ -2241,10 +2277,10 @@
 
             {{-- Uso de espacios, servicios y medios institucionales (FORM-DVUS-015 · sólo Voluntariado) --}}
             @if($esVoluntariado)
-            <div class="rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50/50 dark:bg-yellow-900/10 p-4">
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 p-4">
                 <div class="flex items-center justify-between mb-3">
-                    <h4 class="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Uso de espacios, servicios y medios institucionales</h4>
-                    <button wire:click="addEspacioInstitucional" type="button" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-yellow-600 text-white hover:bg-yellow-700">
+                    <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Uso de espacios, servicios y medios institucionales</h4>
+                    <button wire:click="addEspacioInstitucional" type="button" class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
                         + Agregar
                     </button>
                 </div>
@@ -2252,23 +2288,23 @@
 
                 <div class="space-y-3">
                     @foreach($espacios_institucionales as $i => $espacio)
-                    <div wire:key="espacio-{{ $i }}" class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end border-b border-yellow-100 dark:border-yellow-900/40 pb-3">
+                    <div wire:key="espacio-{{ $i }}" class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end border-b border-gray-100 dark:border-gray-700 pb-3">
                         <div class="md:col-span-4">
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción del servicio o infraestructura</label>
-                            <input type="text" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.descripcion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-yellow-500" />
+                            <input type="text" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.descripcion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                             @error('espacios_institucionales.'.$i.'.descripcion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div class="md:col-span-3">
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ubicación</label>
-                            <input type="text" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.ubicacion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-yellow-500" />
+                            <input type="text" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.ubicacion" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                         </div>
                         <div class="md:col-span-3">
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Unidad gestora</label>
-                            <input type="text" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.unidad_gestora" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-yellow-500" />
+                            <input type="text" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.unidad_gestora" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm focus:border-blue-500" />
                         </div>
                         <div class="md:col-span-1">
                             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Horas</label>
-                            <input type="number" min="0" step="0.5" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.tiempo_uso_horas" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm focus:border-yellow-500" />
+                            <input type="number" min="0" step="0.5" wire:model.live.debounce.1000ms="espacios_institucionales.{{ $i }}.tiempo_uso_horas" class="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm focus:border-blue-500" />
                             @error('espacios_institucionales.'.$i.'.tiempo_uso_horas') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div class="md:col-span-1 flex justify-end">

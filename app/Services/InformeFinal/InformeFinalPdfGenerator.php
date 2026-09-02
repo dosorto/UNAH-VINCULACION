@@ -44,16 +44,24 @@ class InformeFinalPdfGenerator
             'enlace' => null,
             'decano' => null,
         ];
+        // Los 4 cuadros del INF-001 se resuelven contra `tipo_cargo_firma.nombre` (fuente
+        // canónica: Proyecto::firma_proyecto_jefe/enlace/decano y firma_coodinador_proyecto).
+        // Las variantes de texto quedan como respaldo para `etapa_nombre`/`rol_requerido`.
         $cargos = [
             'coordinador proyecto' => 'coordinador',
             'coordinador del proyecto' => 'coordinador',
             'jefe departamento' => 'jefe',
             'jefe de departamento' => 'jefe',
+            'jefe de la unidad académica' => 'jefe',
             'enlace vinculacion' => 'enlace',
+            'enlace vinculación' => 'enlace',
             'coordinador comité vinculación' => 'enlace',
+            'coordinador(a) del comité de vinculación' => 'enlace',
             'director centro' => 'decano',
             'director de centro' => 'decano',
+            'director del centro regional' => 'decano',
             'decano' => 'decano',
+            'decano(a) o director(a) del centro regional' => 'decano',
         ];
 
         $documento = $informe->documentoCierre;
