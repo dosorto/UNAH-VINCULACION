@@ -6,9 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ENF\StoreEnfAccionRequest;
 use App\Http\Requests\ENF\UpdateEnfAccionRequest;
 use App\Models\Asignatura;
-use App\Models\DAFT\ProgramaCertificacion;
-use App\Models\Demografia\Departamento;
-use App\Models\Demografia\Municipio;
 use App\Models\ENF\EnfAccion;
 use App\Models\ENF\EnfCatalogo;
 use App\Models\ENF\EnfRevision;
@@ -17,7 +14,6 @@ use App\Models\Personal\Empleado;
 use App\Models\Proyecto\EjesPrioritariosUnah;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\MetaContribuye;
-use App\Models\Proyecto\Modalidad;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\VinculacionTipoAccion;
 use App\Models\UnidadAcademica\Campus;
@@ -27,6 +23,7 @@ use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\User;
 use App\Services\ENF\EnfWorkflowService;
 use App\Services\FormDvus018DocumentService;
+use App\Support\Notification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -152,14 +149,10 @@ class EnfAccionController extends Controller
                 ->orderBy('nombre')
                 ->get(),
             'clearDraftOnLoad' => $clearDraftOnLoad,
-            'programasAprobados' => $this->programasAprobadosEducacionContinua(),
-            'modalidades' => Modalidad::orderBy('nombre')->get(),
             'centrosFacultad' => FacultadCentro::orderBy('nombre')->get(),
             'departamentosAcademicos' => DepartamentoAcademico::orderBy('nombre')->get(),
             'carreras' => Carrera::with(['facultadCentros', 'departamentosAcademicos'])->orderBy('nombre')->get(),
             'campus' => Campus::orderBy('nombre_campus')->get(),
-            'departamentos' => Departamento::orderBy('nombre')->get(),
-            'municipios' => Municipio::orderBy('nombre')->get(),
             'empleados' => Empleado::with(['categoria', 'departamento_academico', 'user'])
                 ->orderBy('nombre_completo')
                 ->limit(250)
@@ -189,169 +182,6 @@ class EnfAccionController extends Controller
             ->where('nombre', $nombre)
             ->where('activo', true)
             ->value('id');
-    }
-
-    private function programasAprobadosEducacionContinua()
-    {
-        $tiposAccionEnfPorNombre = EnfCatalogo::query()
-            ->where('tipo', 'tipo_accion_enf')
-            ->where('activo', true)
-            ->get()
-            ->mapWithKeys(fn (EnfCatalogo $catalogo) => [
-                $this->normalizarNombreCatalogo($catalogo->nombre) => $catalogo->id,
-            ]);
-
-        $tipoProgramaEnfId = $tiposAccionEnfPorNombre->get($this->normalizarNombreCatalogo('Programa de educacion continua'))
-            ?? $tiposAccionEnfPorNombre->get($this->normalizarNombreCatalogo(self::TIPO_ACCION_ENF_VISIBLE));
-
-        $programasEnf = EnfAccion::query()
-            ->with(['modalidad', 'centroFacultad', 'departamentoAcademico', 'carrera', 'accionCatalogos.catalogo'])
-            ->whereIn('estado_flujo', ['APROBADO', 'Aprobado', 'aprobado'])
-            ->whereHas('accionCatalogos.catalogo', function ($query) {
-                $query->where('tipo', 'tipo_accion_enf')
-                    ->whereIn('nombre', [self::TIPO_ACCION_ENF_VISIBLE, 'Programa de educacion continua']);
-            })
-            ->orderBy('nombre_accion')
-            ->get()
-            ->map(function (EnfAccion $programa) {
-                $tipoAccionEnfId = $programa->accionCatalogos
-                    ->first(fn ($catalogo) => $catalogo->tipo === 'tipo_accion_enf')
-                    ?->enf_catalogo_id;
-
-                return [
-                    'id' => 'enf-'.$programa->id,
-                    'label' => trim(($programa->numero_registro ? $programa->numero_registro.' · ' : '').$programa->nombre_accion),
-                    'source' => 'Registro ENF',
-                    'details' => array_values(array_filter([
-                        ['label' => 'No. de registro', 'value' => $programa->numero_registro],
-                        ['label' => 'Nombre', 'value' => $programa->nombre_accion],
-                        ['label' => 'Tipo', 'value' => $programa->accionCatalogos
-                            ->first(fn ($catalogo) => $catalogo->tipo === 'tipo_accion_enf')
-                            ?->catalogo?->nombre],
-                        ['label' => 'Modalidad', 'value' => $programa->modalidad?->nombre],
-                        ['label' => 'Centro / Facultad', 'value' => $programa->centroFacultad?->nombre],
-                        ['label' => 'Departamento académico', 'value' => $programa->departamentoAcademico?->nombre],
-                        ['label' => 'Carrera', 'value' => $programa->carrera?->nombre],
-                        ['label' => 'Resolución VRA', 'value' => $programa->resolucion_vra],
-                        ['label' => 'Resolución original', 'value' => $programa->resolucion_original],
-                        ['label' => 'Última actualización', 'value' => $programa->resolucion_actualizacion],
-                        ['label' => 'Horas', 'value' => $programa->total_horas.' horas'],
-                    ], fn (array $detail) => filled($detail['value']))),
-                    'fields' => [
-                        'nombre_accion' => $programa->nombre_accion,
-                        'catalogos[tipo_accion_enf][]' => $tipoAccionEnfId,
-                        'resolucion_vra' => $programa->resolucion_vra,
-                        'resolucion_original' => $programa->resolucion_original,
-                        'resolucion_actualizacion' => $programa->resolucion_actualizacion,
-                        'modalidad_id' => $programa->modalidad_id,
-                        'centro_facultad_id' => $programa->centro_facultad_id,
-                        'centro_facultad_ids[]' => array_values(array_filter([(string) $programa->centro_facultad_id])),
-                        'departamento_academico_id' => $programa->departamento_academico_id,
-                        'departamento_academico_ids[]' => array_values(array_filter([(string) $programa->departamento_academico_id])),
-                        'carrera_id' => $programa->carrera_id,
-                        'carrera_ids[]' => array_values(array_filter([(string) $programa->carrera_id])),
-                        'horas_teoricas' => $programa->horas_teoricas,
-                        'horas_practicas' => $programa->horas_practicas,
-                        'total_horas' => $programa->total_horas,
-                    ],
-                ];
-            });
-
-        $programasDaft = ProgramaCertificacion::query()
-            ->with([
-                'centroFacultad',
-                'tipoPrograma',
-                'centrosPrograma.centroFacultad',
-                'asignaturasPrograma.asignatura',
-            ])
-            ->where('estado_flujo', 'APROBADO')
-            ->orderBy('nombre')
-            ->get()
-            ->map(function (ProgramaCertificacion $programa) use ($tiposAccionEnfPorNombre, $tipoProgramaEnfId) {
-                $centroIds = collect([$programa->centro_facultad_id])
-                    ->merge($programa->centrosPrograma->where('activo', true)->pluck('centro_facultad_id'))
-                    ->filter()
-                    ->map(fn ($id) => (string) $id)
-                    ->unique()
-                    ->values()
-                    ->all();
-
-                $totalHoras = (int) ($programa->horas_maximas_programa ?? 0);
-                $tipoAccionEnfId = $this->resolverTipoAccionEnfDaftId(
-                    $programa->tipoPrograma?->nombre ?? $programa->tipo_programa,
-                    $tiposAccionEnfPorNombre,
-                    $tipoProgramaEnfId
-                );
-                $tipoPrograma = $programa->tipoPrograma?->nombre ?? $programa->tipo_programa;
-                $centros = collect([$programa->centroFacultad?->nombre])
-                    ->merge($programa->centrosPrograma
-                        ->where('activo', true)
-                        ->pluck('centroFacultad.nombre'))
-                    ->filter()
-                    ->unique()
-                    ->implode(', ');
-                $asignaturas = $programa->asignaturasPrograma
-                    ->map(fn ($item) => trim(collect([
-                        $item->asignatura?->codigo,
-                        $item->asignatura?->nombre,
-                    ])->filter()->implode(' · ')))
-                    ->filter()
-                    ->implode(', ');
-
-                return [
-                    'id' => 'daft-'.$programa->id,
-                    'label' => trim(($programa->codigo ? $programa->codigo.' · ' : '').$programa->nombre),
-                    'source' => 'Programa DAFT',
-                    'details' => array_values(array_filter([
-                        ['label' => 'Código', 'value' => $programa->codigo],
-                        ['label' => 'Nombre', 'value' => $programa->nombre],
-                        ['label' => 'Tipo', 'value' => $tipoPrograma],
-                        ['label' => 'Versión aprobada', 'value' => 'V'.$programa->version_actual],
-                        ['label' => 'Centro principal', 'value' => $programa->centroFacultad?->nombre],
-                        ['label' => 'Centros habilitados', 'value' => $centros],
-                        ['label' => 'Horas del programa', 'value' => $totalHoras.' horas'],
-                        ['label' => 'Descripción', 'value' => $programa->descripcion],
-                        ['label' => 'Asignaturas', 'value' => $asignaturas],
-                    ], fn (array $detail) => filled($detail['value']))),
-                    'fields' => [
-                        'nombre_accion' => $programa->nombre,
-                        'catalogos[tipo_accion_enf][]' => $tipoAccionEnfId,
-                        'centro_facultad_id' => $centroIds[0] ?? null,
-                        'centro_facultad_ids[]' => $centroIds,
-                        'horas_teoricas' => 0,
-                        'horas_practicas' => $totalHoras,
-                        'total_horas' => $totalHoras,
-                        'resumen' => $programa->descripcion,
-                    ],
-                ];
-            });
-
-        return $programasDaft
-            ->concat($programasEnf)
-            ->sortBy('label')
-            ->values();
-    }
-
-    private function resolverTipoAccionEnfDaftId(?string $tipoPrograma, $tiposAccionEnfPorNombre, ?int $fallbackId): ?int
-    {
-        $tipoNormalizado = $this->normalizarNombreCatalogo($tipoPrograma);
-
-        $catalogoDestino = match (true) {
-            str_contains($tipoNormalizado, 'diplom') => 'Diplomado',
-            str_contains($tipoNormalizado, 'curso') => 'Curso',
-            str_contains($tipoNormalizado, 'taller') => 'Taller',
-            str_contains($tipoNormalizado, 'congreso') => 'Congreso',
-            str_contains($tipoNormalizado, 'seminario') => 'Seminario',
-            str_contains($tipoNormalizado, 'programa') => 'Programa de educacion continua',
-            str_contains($tipoNormalizado, 'proyecto') => self::TIPO_ACCION_ENF_VISIBLE,
-            default => $tipoPrograma,
-        };
-
-        if (! filled($catalogoDestino)) {
-            return $fallbackId;
-        }
-
-        return $tiposAccionEnfPorNombre->get($this->normalizarNombreCatalogo($catalogoDestino)) ?? $fallbackId;
     }
 
     private function normalizarNombreCatalogo(?string $nombre): string
@@ -606,6 +436,7 @@ class EnfAccionController extends Controller
     public function store(StoreEnfAccionRequest $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validated();
+        $guardarSoloBorrador = $request->boolean('guardar_solo_borrador');
 
         if (($validated['codigo_formulario'] ?? null) === self::FORM_CERTIFICADO_UNIVERSITARIO
             && ! self::FORM_CERTIFICADO_UNIVERSITARIO_ENABLED) {
@@ -620,13 +451,13 @@ class EnfAccionController extends Controller
 
         if ($request->filled('borrador_autoguardado_id')) {
             try {
-                [$accion, $flujoIniciado] = DB::transaction(function () use ($request, $validated) {
+                [$accion, $flujoIniciado] = DB::transaction(function () use ($request, $validated, $guardarSoloBorrador) {
                     $record = EnfAccion::findOrFail($request->integer('borrador_autoguardado_id'));
 
                     abort_unless($this->usuarioPuedeEditarBorrador($request->user(), $record), 403);
 
                     $this->actualizarRegistroFormulario($record, $validated, $request, true);
-                    $flujoIniciado = app(EnfWorkflowService::class)->enviarInscripcion(
+                    $flujoIniciado = ! $guardarSoloBorrador && app(EnfWorkflowService::class)->enviarInscripcion(
                         $record->fresh(),
                         $request->user(),
                         $request->input('destinatarios', [])
@@ -639,18 +470,14 @@ class EnfAccionController extends Controller
             }
 
             if (! $request->expectsJson()) {
-                return redirect()
-                    ->route('proyectosDocente')
-                    ->with('status', $flujoIniciado
-                        ? 'Accion de Educacion No Formal enviada a revisión.'
-                        : 'Accion de Educacion No Formal guardada como borrador. No hay flujo de revisión activo para este formulario.');
+                return $this->redireccionDespuesDeGuardar($request, $flujoIniciado, false);
             }
 
             return response()->json($accion->fresh(), 201);
         }
 
         try {
-            [$accion, $flujoIniciado] = DB::transaction(function () use ($request, $validated) {
+            [$accion, $flujoIniciado] = DB::transaction(function () use ($request, $validated, $guardarSoloBorrador) {
                 $accionFields = $this->accionStoreFields();
 
                 $data = array_intersect_key($validated, array_flip($accionFields));
@@ -666,7 +493,7 @@ class EnfAccionController extends Controller
                 $accion = EnfAccion::create($data);
 
                 $this->guardarRelacionesFormulario($accion, $validated, $request);
-                $flujoIniciado = app(EnfWorkflowService::class)->enviarInscripcion(
+                $flujoIniciado = ! $guardarSoloBorrador && app(EnfWorkflowService::class)->enviarInscripcion(
                     $accion->fresh(),
                     $request->user(),
                     $request->input('destinatarios', [])
@@ -679,11 +506,7 @@ class EnfAccionController extends Controller
         }
 
         if (! $request->expectsJson()) {
-            return redirect()
-                ->route('proyectosDocente')
-                ->with('status', $flujoIniciado
-                    ? 'Accion de Educacion No Formal enviada a revisión.'
-                    : 'Accion de Educacion No Formal guardada como borrador. No hay flujo de revisión activo para este formulario.');
+            return $this->redireccionDespuesDeGuardar($request, $flujoIniciado, false);
         }
 
         return response()->json($accion->fresh(), 201);
@@ -692,13 +515,19 @@ class EnfAccionController extends Controller
     public function autoguardarBorrador(Request $request, ?int $accion = null): JsonResponse
     {
         $data = $this->draftDataFromRequest($request);
-        $recordId = $accion ?: $request->integer('borrador_autoguardado_id');
+        // La ruta de creación nunca debe confiar en un ID enviado por el navegador:
+        // podría pertenecer a otro borrador conservado en localStorage.
+        $recordId = $accion;
 
         $record = DB::transaction(function () use ($request, $data, $recordId): EnfAccion {
             if ($recordId) {
                 $record = EnfAccion::findOrFail($recordId);
 
                 abort_unless($this->usuarioPuedeEditarBorrador($request->user(), $record), 403);
+                abort_unless(
+                    ($data['codigo_formulario'] ?? self::FORM_PROYECTO_ENF) === $record->codigo_formulario,
+                    409
+                );
 
                 $this->actualizarRegistroFormulario($record, $data, $request, true);
 
@@ -848,12 +677,6 @@ class EnfAccionController extends Controller
             'centro_facultad_id',
             'departamento_academico_id',
             'carrera_id',
-            'numero_edicion',
-            'horas_teoricas',
-            'horas_practicas',
-            'total_horas',
-            'carga_horaria_creditos',
-            'revision_ciclo',
             'responsable_revision_id',
         ] as $field) {
             if (! array_key_exists($field, $data)) {
@@ -861,6 +684,21 @@ class EnfAccionController extends Controller
             }
 
             $data[$field] = is_numeric($data[$field]) ? (int) $data[$field] : null;
+        }
+
+        foreach ([
+            'numero_edicion' => 1,
+            'horas_teoricas' => 0,
+            'horas_practicas' => 0,
+            'total_horas' => 0,
+            'carga_horaria_creditos' => 0,
+            'revision_ciclo' => 0,
+        ] as $field => $default) {
+            if (! array_key_exists($field, $data)) {
+                continue;
+            }
+
+            $data[$field] = is_numeric($data[$field]) ? (int) $data[$field] : $default;
         }
 
         foreach ([
@@ -1595,14 +1433,15 @@ class EnfAccionController extends Controller
     {
         $record = EnfAccion::findOrFail($accion);
         $validated = $request->validated();
+        $guardarSoloBorrador = $request->boolean('guardar_solo_borrador');
 
         abort_unless($this->usuarioPuedeEditarBorrador($request->user(), $record), 403);
 
         try {
-            $flujoIniciado = DB::transaction(function () use ($record, $validated, $request): bool {
+            $flujoIniciado = DB::transaction(function () use ($record, $validated, $request, $guardarSoloBorrador): bool {
                 $this->actualizarRegistroFormulario($record, $validated, $request, true);
 
-                return app(EnfWorkflowService::class)->enviarInscripcion(
+                return ! $guardarSoloBorrador && app(EnfWorkflowService::class)->enviarInscripcion(
                     $record->fresh(),
                     $request->user(),
                     $request->input('destinatarios', [])
@@ -1613,14 +1452,39 @@ class EnfAccionController extends Controller
         }
 
         if (! $request->expectsJson()) {
-            return redirect()
-                ->route('proyectosDocente')
-                ->with('status', $flujoIniciado
-                    ? 'Accion de Educacion No Formal enviada a revisión.'
-                    : 'Accion de Educacion No Formal guardada como borrador. No hay flujo de revisión activo para este formulario.');
+            return $this->redireccionDespuesDeGuardar($request, $flujoIniciado, true);
         }
 
         return response()->json($record->fresh());
+    }
+
+    private function redireccionDespuesDeGuardar(Request $request, bool $flujoIniciado, bool $actualizado): RedirectResponse
+    {
+        if ($request->boolean('guardar_solo_borrador')) {
+            $codigoFormulario = $request->string('codigo_formulario')->toString() ?: self::FORM_PROYECTO_ENF;
+            $mostrarComoActualizado = $actualizado && ! $request->boolean('es_nuevo_borrador');
+            $mensaje = $mostrarComoActualizado
+                ? "El borrador {$codigoFormulario} se actualizó correctamente."
+                : "El borrador {$codigoFormulario} se guardó correctamente.";
+
+            Notification::make()
+                ->title($mostrarComoActualizado ? 'Borrador actualizado' : 'Borrador guardado')
+                ->body($mensaje)
+                ->success()
+                ->send();
+
+            return redirect()
+                ->route('proyectosDocente', ['tipo' => 'educacion_no_formal'])
+                ->with('status', $mensaje);
+        }
+
+        $mensaje = $flujoIniciado
+            ? 'Acción de Educación No Formal enviada a revisión.'
+            : 'Acción de Educación No Formal guardada como borrador. No hay flujo de revisión activo para este formulario.';
+
+        return redirect()
+            ->route('proyectosDocente', ['tipo' => 'educacion_no_formal'])
+            ->with('status', $mensaje);
     }
 
     private function respuestaErrorFlujo(Request $request, \RuntimeException $exception): JsonResponse|RedirectResponse

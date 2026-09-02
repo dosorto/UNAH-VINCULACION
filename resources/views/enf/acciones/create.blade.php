@@ -85,7 +85,6 @@
         'departamento' => $empleado->departamento_academico?->nombre,
         'jornada_laboral' => $empleado->jornada_laboral,
     ])->values();
-    $programasAprobadosData = $programasAprobados->values();
     $stepLabels = [
         1 => 'Información',
         2 => 'Lugar',
@@ -97,6 +96,34 @@
         8 => 'Presupuesto',
         9 => 'Cronograma',
         10 => 'Documentos',
+    ];
+    $documentosSupervisor = [
+        [
+            'label' => 'Oficio de remisión del Decano/Director Centro Regional',
+            'slug' => 'oficio_remision_decano',
+        ],
+        [
+            'label' => 'Documento perfil del programa de formación',
+            'slug' => 'documento_perfil_programa',
+        ],
+        [
+            'label' => 'Otros (detallar)',
+            'slug' => 'otros_documentos_respaldo',
+        ],
+    ];
+    $tiposParticipacion = [
+        'Estudiantes de grado / posgrado',
+        'Práctica de asignatura',
+        'Servicio Social o PPS',
+        'Voluntariado',
+        'Personal docente',
+        'Profesores x hora',
+        'Profesores horarios',
+        'Profesores permanentes',
+        'Personal administrativo',
+        'Administrativo',
+        'Servicios',
+        'Asistentes técnicos laboratorios / instructores',
     ];
     $editingAccion = $accion ?? null;
     $formAction = $editingAccion ? route('enf.acciones.update', $editingAccion) : route('enf.acciones.store');
@@ -115,7 +142,12 @@
 
         @if ($errors->any())
             <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                Hay campos pendientes o con formato inválido. Revisa la ficha antes de guardar.
+                <p class="font-semibold">No se pudo guardar la ficha. Revisa los siguientes campos:</p>
+                <ul class="mt-2 list-disc space-y-1 pl-5">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
             </div>
         @endif
 
@@ -138,12 +170,14 @@
             })();
         </script>
 
-        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}" data-record-id="{{ $editingAccion?->id }}" data-autosave-url="{{ route('enf.acciones.autoguardar-borrador') }}" data-autosave-update-url-template="{{ route('enf.acciones.autoguardar-borrador.update', ['accion' => '__ID__']) }}" data-destinatarios-url-template="{{ route('enf.acciones.destinatarios-inscripcion', ['accion' => '__ID__']) }}">
+        <form method="POST" action="{{ $formAction }}" enctype="multipart/form-data" novalidate class="space-y-6" data-enf-wizard-form data-total-steps="{{ count($stepLabels) }}" data-storage-key="{{ $storageKey }}" data-clear-draft-on-load="{{ $clearDraftOnLoad ? '1' : '0' }}" data-lock-step-navigation="{{ $editingAccion ? '0' : '1' }}" data-record-id="{{ $editingAccion?->id }}" data-autosave-url="{{ route('enf.acciones.autoguardar-borrador') }}" data-autosave-update-url-template="{{ route('enf.acciones.autoguardar-borrador.update', ['accion' => '__ID__']) }}" data-form-update-url-template="{{ route('enf.acciones.update', ['accion' => '__ID__']) }}" data-destinatarios-url-template="{{ route('enf.acciones.destinatarios-inscripcion', ['accion' => '__ID__']) }}">
             @csrf
             @if ($editingAccion)
                 @method('PUT')
             @endif
             <input type="hidden" name="borrador_autoguardado_id" value="{{ $editingAccion?->id }}">
+            <input type="hidden" name="guardar_solo_borrador" value="1" data-save-draft-field>
+            <input type="hidden" name="es_nuevo_borrador" value="{{ $editingAccion ? '0' : '1' }}">
             <input type="hidden" name="tipo_accion_id" value="{{ old('tipo_accion_id', $tipoAccionVinculacionEnfId ?: $tiposAccion->first()?->id) }}">
             <input type="hidden" name="codigo_formulario" value="FORM-DVUS-018">
             <input type="hidden" name="estado_flujo" value="BORRADOR">
@@ -174,23 +208,6 @@
 
             <div class="{{ $card }}" data-step-panel="1">
                 <h2 class="{{ $sectionTitle }}">1. Información general de la acción</h2>
-                <div class="mb-4 rounded-md border border-blue-100 bg-blue-50 p-4 dark:border-blue-900/50 dark:bg-blue-950/30">
-                    <label class="{{ $label }}">Programa aprobado de DAFT</label>
-                    <select data-approved-program-select class="{{ $input }}">
-                        <option value="">Crear acción desde cero</option>
-                        @forelse ($programasAprobados as $programaAprobado)
-                            <option value="{{ $programaAprobado['id'] }}">
-                                {{ $programaAprobado['label'] }} · {{ $programaAprobado['source'] }}
-                            </option>
-                        @empty
-                            <option value="" disabled>No hay programas aprobados disponibles</option>
-                        @endforelse
-                    </select>
-                    <p class="mt-2 text-xs text-blue-800 dark:text-blue-200">
-                        Al seleccionar un programa aprobado se cargarán automáticamente los datos disponibles desde DAFT. Esos datos quedarán en modo de solo lectura; los datos propios de la nueva edición permanecerán editables.
-                    </p>
-                    <div data-approved-program-summary class="mt-4 hidden rounded-md border border-blue-200 bg-white/80 p-4 dark:border-blue-800 dark:bg-slate-900/60"></div>
-                </div>
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div class="order-1">
                         <label class="{{ $label }}">Fecha de solicitud</label>
@@ -230,36 +247,11 @@
                         <label class="{{ $label }}">Fecha de finalización</label>
                         <input type="date" name="fecha_finalizacion" value="{{ old('fecha_finalizacion') }}" class="{{ $input }}">
                     </div>
-                    <div>
-                        <label class="{{ $label }}">Modalidad</label>
-                        <select name="modalidad_id" class="{{ $input }}">
-                            <option value="">Seleccione...</option>
-                            @foreach ($modalidades as $modalidad)
-                                <option value="{{ $modalidad->id }}" @selected(old('modalidad_id') == $modalidad->id)>{{ $modalidad->nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
                     <div
-                        @enf-approved-program-selected.window="
-                            lockedCentros = Boolean($event.detail.locked_centros);
-                            lockedDepartamentos = Boolean($event.detail.locked_departamentos);
-                            lockedCarreras = Boolean($event.detail.locked_carreras);
-                            openCentros = false;
-                            openDepartamentos = false;
-                            openCarreras = false;
-                            selectedCentros = normalized($event.detail.centro_facultad_ids || []);
-                            selectedDepartamentos = normalized($event.detail.departamento_academico_ids || []);
-                            selectedCarreras = normalized($event.detail.carrera_ids || []);
-                            filterSelections();
-                            notifyChange();
-                        "
                         x-data="{
                             openCentros: false,
                             openDepartamentos: false,
                             openCarreras: false,
-                            lockedCentros: false,
-                            lockedDepartamentos: false,
-                            lockedCarreras: false,
                             searchCentros: '',
                             searchDepartamentos: '',
                             searchCarreras: '',
@@ -355,16 +347,16 @@
                         <div>
                             <label class="{{ $label }}">Centro / Facultad</label>
                             <div @click.outside="openCentros = false" class="relative">
-                                <div @click="if (!lockedCentros) { openCentros = true; $nextTick(() => $refs.searchCentros?.focus()) }"
+                                <div @click="openCentros = true; $nextTick(() => $refs.searchCentros?.focus())"
                                     class="min-h-[42px] w-full cursor-text rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 dark:border-gray-600 dark:bg-gray-800">
                                     <div class="flex flex-wrap items-center gap-1.5">
                                         <template x-for="id in selectedCentros" :key="`centro-${id}`">
                                             <span class="inline-flex max-w-full items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                                                 <span class="truncate" x-text="label(centrosOptions, id)"></span>
-                                                <button x-show="!lockedCentros" type="button" @click.stop="remove('selectedCentros', id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
+                                                <button type="button" @click.stop="remove('selectedCentros', id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
                                             </span>
                                         </template>
-                                        <input x-ref="searchCentros" x-model="searchCentros" @focus="if (!lockedCentros) openCentros = true" @keydown.escape="openCentros = false" :disabled="lockedCentros"
+                                        <input x-ref="searchCentros" x-model="searchCentros" @focus="openCentros = true" @keydown.escape="openCentros = false"
                                             :placeholder="selectedCentros.length ? '' : 'Buscar o seleccionar centros/facultades...'"
                                             class="min-w-[180px] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 dark:text-white"
                                             type="text">
@@ -375,7 +367,7 @@
                                         <input type="checkbox" name="centro_facultad_ids[]" :value="id" checked class="hidden">
                                     </template>
                                 </div>
-                                <div x-show="openCentros && !lockedCentros" x-cloak class="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
+                                <div x-show="openCentros" x-cloak class="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
                                     <template x-if="optionEntries(centrosOptions, searchCentros).length === 0">
                                         <div class="px-3 py-2 text-sm text-gray-500">Sin resultados.</div>
                                     </template>
@@ -392,18 +384,18 @@
                         <div>
                             <label class="{{ $label }}">Departamento académico</label>
                             <div @click.outside="openDepartamentos = false" class="relative">
-                                <div @click="if (selectedCentros.length && !lockedDepartamentos) { openDepartamentos = true; $nextTick(() => $refs.searchDepartamentos?.focus()) }"
+                                <div @click="if (selectedCentros.length) { openDepartamentos = true; $nextTick(() => $refs.searchDepartamentos?.focus()) }"
                                     class="min-h-[42px] w-full rounded-md border px-3 py-2 text-sm shadow-sm transition"
                                     :class="selectedCentros.length ? 'cursor-text border-gray-300 bg-white focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 dark:border-gray-600 dark:bg-gray-800' : 'cursor-not-allowed border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/60'">
                                     <div class="flex flex-wrap items-center gap-1.5">
                                         <template x-for="id in selectedDepartamentos" :key="`departamento-${id}`">
                                             <span class="inline-flex max-w-full items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                                                 <span class="truncate" x-text="label(departamentosOptions, id)"></span>
-                                                <button x-show="!lockedDepartamentos" type="button" @click.stop="remove('selectedDepartamentos', id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
+                                                <button type="button" @click.stop="remove('selectedDepartamentos', id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
                                             </span>
                                         </template>
                                         <input x-ref="searchDepartamentos" x-model="searchDepartamentos" @focus="if (selectedCentros.length) openDepartamentos = true" @keydown.escape="openDepartamentos = false"
-                                            :disabled="!selectedCentros.length || lockedDepartamentos"
+                                            :disabled="!selectedCentros.length"
                                             :placeholder="selectedDepartamentos.length ? '' : (selectedCentros.length ? 'Buscar o seleccionar departamentos...' : 'Seleccione primero Centro / Facultad.')"
                                             class="min-w-[180px] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 disabled:cursor-not-allowed dark:text-white"
                                             type="text">
@@ -414,7 +406,7 @@
                                         <input type="checkbox" name="departamento_academico_ids[]" :value="id" checked class="hidden">
                                     </template>
                                 </div>
-                                <div x-show="openDepartamentos && selectedCentros.length && !lockedDepartamentos" x-cloak class="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
+                                <div x-show="openDepartamentos && selectedCentros.length" x-cloak class="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
                                     <template x-if="departamentoEntries().length === 0">
                                         <div class="px-3 py-2 text-sm text-gray-500">Sin resultados.</div>
                                     </template>
@@ -431,18 +423,18 @@
                         <div>
                             <label class="{{ $label }}">Carrera</label>
                             <div @click.outside="openCarreras = false" class="relative">
-                                <div @click="if (selectedCentros.length && !lockedCarreras) { openCarreras = true; $nextTick(() => $refs.searchCarreras?.focus()) }"
+                                <div @click="if (selectedCentros.length) { openCarreras = true; $nextTick(() => $refs.searchCarreras?.focus()) }"
                                     class="min-h-[42px] w-full rounded-md border px-3 py-2 text-sm shadow-sm transition"
                                     :class="selectedCentros.length ? 'cursor-text border-gray-300 bg-white focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 dark:border-gray-600 dark:bg-gray-800' : 'cursor-not-allowed border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/60'">
                                     <div class="flex flex-wrap items-center gap-1.5">
                                         <template x-for="id in selectedCarreras" :key="`carrera-${id}`">
                                             <span class="inline-flex max-w-full items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                                                 <span class="truncate" x-text="label(carrerasOptions, id)"></span>
-                                                <button x-show="!lockedCarreras" type="button" @click.stop="remove('selectedCarreras', id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
+                                                <button type="button" @click.stop="remove('selectedCarreras', id)" class="font-bold leading-none hover:text-blue-950 dark:hover:text-blue-100">×</button>
                                             </span>
                                         </template>
                                         <input x-ref="searchCarreras" x-model="searchCarreras" @focus="if (selectedCentros.length) openCarreras = true" @keydown.escape="openCarreras = false"
-                                            :disabled="!selectedCentros.length || lockedCarreras"
+                                            :disabled="!selectedCentros.length"
                                             :placeholder="selectedCarreras.length ? '' : (selectedCentros.length ? 'Buscar o seleccionar carreras...' : 'Seleccione primero Centro / Facultad.')"
                                             class="min-w-[180px] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-0 disabled:cursor-not-allowed dark:text-white"
                                             type="text">
@@ -453,7 +445,7 @@
                                         <input type="checkbox" name="carrera_ids[]" :value="id" checked class="hidden">
                                     </template>
                                 </div>
-                                <div x-show="openCarreras && selectedCentros.length && !lockedCarreras" x-cloak class="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
+                                <div x-show="openCarreras && selectedCentros.length" x-cloak class="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-blue-200 bg-white shadow-lg dark:border-blue-700 dark:bg-gray-800">
                                     <template x-if="carreraEntries().length === 0">
                                         <div class="px-3 py-2 text-sm text-gray-500">Sin resultados.</div>
                                     </template>
@@ -738,9 +730,9 @@
                             <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Participación de la comunidad universitaria</h3>
                             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Registre la distribución de hombres y mujeres por tipo de participación.</p>
                         </div>
-                        <button type="button" data-open-participacion-list-modal
+                        <button type="button" data-open-participacion-modal
                             class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">
-                            Gestionar participación
+                            Agregar participación
                         </button>
                     </div>
                     <div class="mt-4 overflow-x-auto rounded-md border border-slate-200 dark:border-slate-700">
@@ -751,10 +743,11 @@
                                     <th class="px-3 py-2 text-right">Hombres</th>
                                     <th class="px-3 py-2 text-right">Mujeres</th>
                                     <th class="px-3 py-2 text-right">Total</th>
+                                    <th class="px-3 py-2 text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody data-participacion-summary class="divide-y divide-slate-100 bg-white dark:divide-slate-800 dark:bg-slate-900">
-                                <tr><td colspan="4" class="px-3 py-4 text-center text-slate-500">Sin participación registrada.</td></tr>
+                                <tr><td colspan="5" class="px-3 py-4 text-center text-slate-500">Sin participación registrada.</td></tr>
                             </tbody>
                             <tfoot data-participacion-summary-totals class="hidden bg-slate-50 font-semibold text-slate-800 dark:bg-slate-800 dark:text-slate-100">
                                 <tr>
@@ -762,25 +755,13 @@
                                     <td class="px-3 py-2 text-right" data-participacion-total-hombres>0</td>
                                     <td class="px-3 py-2 text-right" data-participacion-total-mujeres>0</td>
                                     <td class="px-3 py-2 text-right" data-participacion-total-general>0</td>
+                                    <td></td>
                                 </tr>
                             </tfoot>
                         </table>
                     </div>
                     <div class="hidden" data-participacion-fields>
-                        @foreach ([
-                            'Estudiantes de grado / posgrado',
-                            'Práctica de asignatura',
-                            'Servicio Social o PPS',
-                            'Voluntariado',
-                            'Personal docente',
-                            'Profesores x hora',
-                            'Profesores horarios',
-                            'Profesores permanentes',
-                            'Personal administrativo',
-                            'Administrativo',
-                            'Servicios',
-                            'Asistentes técnicos laboratorios / instructores',
-                        ] as $i => $tipoParticipacion)
+                        @foreach ($tiposParticipacion as $i => $tipoParticipacion)
                             <div data-participacion-row="{{ $i }}">
                                 <input type="hidden" name="participacion_universitaria[{{ $i }}][tipo_participacion]" value="{{ $tipoParticipacion }}">
                                 <input type="number" min="0" name="participacion_universitaria[{{ $i }}][cantidad]" class="{{ $input }}" placeholder="Total">
@@ -788,36 +769,6 @@
                                 <input type="number" min="0" name="participacion_universitaria[{{ $i }}][mujeres]" class="{{ $input }}" placeholder="M">
                             </div>
                         @endforeach
-                    </div>
-                </div>
-
-                <div data-participacion-list-modal role="dialog" aria-modal="true" aria-labelledby="participacion-list-modal-title"
-                    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
-                    <div class="flex max-h-[90vh] w-full max-w-6xl flex-col rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900">
-                        <div class="mb-4 flex items-center justify-between gap-3">
-                            <div>
-                                <h2 id="participacion-list-modal-title" class="text-base font-semibold text-slate-900 dark:text-slate-100">Participación de la comunidad universitaria</h2>
-                                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Seleccione “Editar” para ingresar la cantidad de hombres y mujeres.</p>
-                            </div>
-                            <button type="button" data-close-participacion-list-modal class="rounded-md px-3 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Cerrar</button>
-                        </div>
-                        <div class="overflow-auto rounded-md border border-slate-200 dark:border-slate-700">
-                            <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
-                                <thead class="sticky top-0 bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-800">
-                                    <tr>
-                                        <th class="px-3 py-2">Tipo</th>
-                                        <th class="px-3 py-2">Hombres</th>
-                                        <th class="px-3 py-2">Mujeres</th>
-                                        <th class="px-3 py-2">Total</th>
-                                        <th class="px-3 py-2"></th>
-                                    </tr>
-                                </thead>
-                                <tbody data-participacion-list class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
-                            </table>
-                        </div>
-                        <div class="mt-5 flex justify-end">
-                            <button type="button" data-close-participacion-list-modal class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Listo</button>
-                        </div>
                     </div>
                 </div>
 
@@ -883,7 +834,6 @@
                         </div>
                     </div>
                     <div><label class="{{ $label }}">Nombre de la contraparte</label><input name="contraparte[nombre]" class="{{ $input }}" data-contraparte-field></div>
-                    <div><label class="{{ $label }}">RTN / identificación internacional</label><input name="contraparte[rtn]" maxlength="50" class="{{ $input }}" data-contraparte-field></div>
                     <div><label class="{{ $label }}">Contacto directo</label><input name="contraparte[representante]" class="{{ $input }}" data-contraparte-field></div>
                     <div><label class="{{ $label }}">Cargo del contacto</label><input name="contraparte[cargo_contacto]" class="{{ $input }}" data-contraparte-field></div>
                     <div><label class="{{ $label }}">Correo</label><input type="email" name="contraparte[correo]" class="{{ $input }}" data-contraparte-field></div>
@@ -1247,7 +1197,7 @@
                     </table>
                 </div>
                 <div class="hidden" data-cronograma-fields>
-                    @for ($i = 0; $i < 5; $i++)
+                    @for ($i = 0; $i < 9; $i++)
                         <div data-cronograma-row="{{ $i }}">
                             <input name="cronograma[{{ $i }}][actividad]" class="{{ $input }}" placeholder="Actividad">
                             <input name="cronograma[{{ $i }}][producto]" class="{{ $input }}" placeholder="Producto">
@@ -1260,69 +1210,144 @@
             </div>
 
             <div class="{{ $card }} hidden" data-step-panel="10">
-                <h2 class="{{ $sectionTitle }}">10. Documentos adjuntos</h2>
-                <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                    @foreach ([
-                        [
-                            'label' => 'Oficio de remisión del Decano/Director Centro Regional',
-                            'slug' => 'oficio_remision_decano',
-                        ],
-                        [
-                            'label' => 'Documento perfil del programa de formación',
-                            'slug' => 'documento_perfil_programa',
-                        ],
-                        [
-                            'label' => 'Otros (detallar)',
-                            'slug' => 'otros_documentos_respaldo',
-                        ],
-                    ] as $documentoSupervisor)
-                    @php
-                        $documentoExistente = $editingAccion?->documentos
-                            ?->where('tipo_documento', $documentoSupervisor['slug'])
-                            ->sortByDesc('id')
-                            ->first();
-                    @endphp
-                    <section class="rounded-md border border-slate-200 p-4 shadow-sm dark:border-slate-700" data-doc-upload-card data-doc-has-existing="{{ $documentoExistente ? '1' : '0' }}">
-                        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $documentoSupervisor['label'] }}</h3>
+                <h2 class="mb-1 text-lg font-semibold text-slate-900 dark:text-slate-100">10. Documentos adjuntos</h2>
+                <p class="mb-5 text-xs text-slate-500 dark:text-slate-400">
+                    Agregue cada documento indicando el tipo al que corresponde. Puede adjuntar archivos PDF, documentos de Office o imágenes de hasta 10 MB.
+                </p>
 
-                        <div class="mt-4 space-y-4">
-                            <div>
-                                <p class="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">¿Desea subir archivo?</p>
-                                <div class="flex items-center gap-5">
-                                    <label class="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                                        <input type="radio" name="supervisor_documentos[{{ $documentoSupervisor['slug'] }}][aplica]" value="Si" class="text-blue-600 focus:ring-blue-500" data-doc-upload-radio>
-                                        Sí
-                                    </label>
-                                    <label class="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                                        <input type="radio" name="supervisor_documentos[{{ $documentoSupervisor['slug'] }}][aplica]" value="No" class="text-blue-600 focus:ring-blue-500" data-doc-upload-radio checked>
-                                        No
-                                    </label>
-                                </div>
-                                @error("supervisor_documentos.{$documentoSupervisor['slug']}.aplica")<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                            </div>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between gap-4">
+                        <h3 class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            Anexos guardados (<span data-document-count>{{ $editingAccion?->documentos?->whereIn('tipo_documento', collect($documentosSupervisor)->pluck('slug'))->count() ?? 0 }}</span>)
+                        </h3>
+                        <button type="button" data-open-document-modal
+                            class="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                            + Agregar anexo
+                        </button>
+                    </div>
 
-                            <div>
-                                <label class="{{ $label }}">Archivo adjunto</label>
-                                <input type="file" name="supervisor_documentos_archivos[{{ $documentoSupervisor['slug'] }}]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-300" data-doc-upload-file disabled>
-                                @if ($documentoExistente)
-                                    <div class="mt-2 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-                                        <p class="font-semibold">Archivo actual guardado.</p>
-                                        <div class="mt-1 flex gap-3">
-                                            <a href="{{ route('enf.documentos.ver', $documentoExistente) }}" target="_blank" rel="noopener" class="font-semibold hover:underline">Ver anexo</a>
-                                            <a href="{{ route('enf.documentos.descargar', $documentoExistente) }}" class="font-semibold hover:underline">Descargar</a>
-                                        </div>
-                                        <p class="mt-1">Selecciona otro archivo únicamente si deseas reemplazarlo.</p>
-                                    </div>
-                                @else
-                                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Disponible solo cuando seleccione “Sí”.</p>
-                                @endif
-                                @error("supervisor_documentos_archivos.{$documentoSupervisor['slug']}")<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                            </div>
+                    <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                        <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
+                            <thead class="bg-slate-50 dark:bg-slate-800">
+                                <tr>
+                                    <th class="w-16 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">No.</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Nombre</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Tipo</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody data-document-list class="divide-y divide-slate-100 bg-white dark:divide-slate-700 dark:bg-slate-900">
+                                @foreach ($documentosSupervisor as $documentoSupervisor)
+                                    @php
+                                        $documentoExistente = $editingAccion?->documentos
+                                            ?->where('tipo_documento', $documentoSupervisor['slug'])
+                                            ->sortByDesc('id')
+                                            ->first();
+                                    @endphp
+                                    <tr data-document-row="{{ $documentoSupervisor['slug'] }}"
+                                        data-document-label="{{ $documentoSupervisor['label'] }}"
+                                        data-existing-name="{{ $documentoExistente ? basename($documentoExistente->ruta) : '' }}"
+                                        class="hidden">
+                                        <td class="px-4 py-3 text-slate-600 dark:text-slate-300" data-document-number></td>
+                                        <td class="px-4 py-3 text-slate-900 dark:text-white">
+                                            <span class="block max-w-md truncate" data-document-name></span>
+                                            <span class="mt-0.5 hidden text-xs font-medium text-amber-600 dark:text-amber-400" data-document-pending-state></span>
+                                        </td>
+                                        <td class="px-4 py-3 text-slate-700 dark:text-slate-300">{{ $documentoSupervisor['label'] }}</td>
+                                        <td class="whitespace-nowrap px-4 py-3 text-right">
+                                            @if ($documentoExistente)
+                                                <span data-document-existing-actions>
+                                                    <a href="{{ route('enf.documentos.ver', $documentoExistente) }}" target="_blank" rel="noopener" class="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400">Ver</a>
+                                                    <a href="{{ route('enf.documentos.descargar', $documentoExistente) }}" class="ml-3 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">Descargar</a>
+                                                </span>
+                                            @endif
+                                            <button type="button" data-remove-pending-document="{{ $documentoSupervisor['slug'] }}" class="ml-3 hidden text-xs font-semibold text-red-600 hover:text-red-800">Quitar</button>
+                                            <button type="button" data-replace-document="{{ $documentoSupervisor['slug'] }}" class="ml-3 text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400">{{ $documentoExistente ? 'Reemplazar' : 'Agregar archivo' }}</button>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                <tr data-document-empty>
+                                    <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">No hay anexos agregados.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if ($editingAccion?->documentos?->whereIn('tipo_documento', collect($documentosSupervisor)->pluck('slug'))->isNotEmpty())
+                        <p class="rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                            <span class="font-semibold">Archivo actual guardado.</span> Selecciona otro archivo únicamente si deseas reemplazarlo.
+                        </p>
+                    @endif
+
+                    <div class="space-y-1">
+                        @foreach ($documentosSupervisor as $documentoSupervisor)
+                            @error("supervisor_documentos.{$documentoSupervisor['slug']}.aplica")<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                            @error("supervisor_documentos_archivos.{$documentoSupervisor['slug']}")<p class="text-xs text-red-600"><span class="font-semibold">{{ $documentoSupervisor['label'] }}:</span> {{ $message }}</p>@enderror
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="hidden" data-document-upload-fields>
+                    @foreach ($documentosSupervisor as $documentoSupervisor)
+                        @php
+                            $documentoExistente = $editingAccion?->documentos
+                                ?->where('tipo_documento', $documentoSupervisor['slug'])
+                                ->sortByDesc('id')
+                                ->first();
+                            $documentoAplica = old(
+                                "supervisor_documentos.{$documentoSupervisor['slug']}.aplica",
+                                $documentoExistente ? 'Si' : 'No'
+                            );
+                        @endphp
+                        <div data-doc-upload-card="{{ $documentoSupervisor['slug'] }}" data-doc-has-existing="{{ $documentoExistente ? '1' : '0' }}">
+                            <input type="hidden" name="supervisor_documentos[{{ $documentoSupervisor['slug'] }}][aplica]" value="{{ $documentoAplica }}" data-doc-upload-aplica>
+                            <input type="file" name="supervisor_documentos_archivos[{{ $documentoSupervisor['slug'] }}]"
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" data-doc-upload-file data-doc-upload-slug="{{ $documentoSupervisor['slug'] }}">
                         </div>
-                    </section>
                     @endforeach
                 </div>
 
+                <div data-document-modal class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="document-modal-title">
+                    <button type="button" data-close-document-modal class="absolute inset-0 h-full w-full bg-black/50" aria-label="Cerrar modal"></button>
+                    <div class="relative w-full max-w-xl rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
+                        <div class="flex items-center justify-between border-b border-slate-200 px-5 py-3 dark:border-slate-700">
+                            <h3 id="document-modal-title" class="text-sm font-semibold text-slate-900 dark:text-white">Agregar anexo</h3>
+                            <button type="button" data-close-document-modal class="rounded p-1 text-xl leading-none text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-200" aria-label="Cerrar">&times;</button>
+                        </div>
+
+                        <div class="space-y-4 p-5">
+                            <div>
+                                <label for="document-modal-type" class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Tipo de documento <span class="text-red-500">*</span></label>
+                                <select id="document-modal-type" data-document-modal-type class="{{ $input }}">
+                                    <option value="">Seleccione el tipo de documento</option>
+                                    @foreach ($documentosSupervisor as $documentoSupervisor)
+                                        <option value="{{ $documentoSupervisor['slug'] }}">{{ $documentoSupervisor['label'] }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Archivo <span class="text-red-500">*</span></label>
+                                <div class="relative flex min-h-36 items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition hover:border-blue-400 dark:border-slate-600 dark:bg-slate-800/50" data-document-dropzone>
+                                    <input type="file" data-document-modal-file accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                                        class="absolute inset-0 h-full w-full cursor-pointer opacity-0">
+                                    <div class="pointer-events-none">
+                                        <p class="text-sm font-medium text-slate-700 dark:text-slate-200" data-document-file-prompt>Seleccione o suelte su documento aquí</p>
+                                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">PDF, Office o imagen · máximo 10 MB por archivo</p>
+                                        <p class="mt-2 hidden max-w-md truncate text-xs font-semibold text-blue-600 dark:text-blue-400" data-document-selected-file></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p data-document-modal-feedback class="hidden rounded-md bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300"></p>
+                        </div>
+
+                        <div class="flex justify-end gap-2 border-t border-slate-200 px-5 py-3 dark:border-slate-700">
+                            <button type="button" data-close-document-modal class="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600">Cancelar</button>
+                            <button type="button" data-add-document disabled class="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">Agregar</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1336,8 +1361,11 @@
                         class="rounded-md bg-blue-700 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">
                         Siguiente
                     </button>
-                    <button data-submit-step class="rounded-md bg-blue-700 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">
-                        {{ $editingAccion ? 'Actualizar borrador ENF' : 'Guardar borrador ENF' }}
+                    <button type="submit" data-submit-step class="rounded-md border border-slate-300 bg-white px-5 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+                        {{ $editingAccion ? 'Guardar cambios' : 'Guardar como Borrador' }}
+                    </button>
+                    <button type="button" data-send-step class="rounded-md bg-amber-500 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600">
+                        {{ in_array(strtoupper((string) $editingAccion?->estado_flujo), ['SUBSANACION', 'SUBSANACIÓN'], true) ? 'Reenviar a revisión' : 'Enviar para Firmar' }}
                     </button>
                 </div>
             </div>
@@ -1358,7 +1386,8 @@
                     </div>
                     <div data-resultado-objetivo-wrap>
                         <label class="{{ $label }}">Objetivo específico (OE)</label>
-                        <input type="number" min="1" data-resultado-objetivo class="{{ $input }}" placeholder="No.">
+                        <div data-resultado-objetivo class="{{ $input }} cursor-default bg-slate-50 font-semibold dark:bg-slate-800/70"></div>
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">El número se asigna automáticamente.</p>
                     </div>
                     <div class="sm:col-span-2">
                         <label class="{{ $label }}">Descripción del resultado</label>
@@ -1432,27 +1461,33 @@
         <div data-participacion-modal class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
             <div class="w-full max-w-xl rounded-lg bg-white p-5 shadow-xl dark:bg-slate-900">
                 <div class="mb-4 flex items-center justify-between gap-3">
-                    <h2 data-participacion-modal-title class="text-base font-semibold text-slate-900 dark:text-slate-100">Editar participación</h2>
+                    <h2 data-participacion-modal-title class="text-base font-semibold text-slate-900 dark:text-slate-100">Agregar participación</h2>
                     <button type="button" data-close-participacion-modal class="rounded-md px-3 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">Cerrar</button>
                 </div>
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div class="sm:col-span-3">
                         <label class="{{ $label }}">Tipo de participación</label>
-                        <input data-participacion-tipo class="{{ $input }}" readonly>
+                        <select data-participacion-tipo class="{{ $input }}">
+                            <option value="">Seleccione...</option>
+                            @foreach ($tiposParticipacion as $tipoParticipacion)
+                                <option value="{{ $tipoParticipacion }}">{{ $tipoParticipacion }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div>
                         <label class="{{ $label }}">Hombres</label>
-                        <input type="number" min="0" data-participacion-hombres class="{{ $input }}">
+                        <input type="number" min="0" step="1" data-participacion-hombres class="{{ $input }}">
                     </div>
                     <div>
                         <label class="{{ $label }}">Mujeres</label>
-                        <input type="number" min="0" data-participacion-mujeres class="{{ $input }}">
+                        <input type="number" min="0" step="1" data-participacion-mujeres class="{{ $input }}">
                     </div>
                     <div>
                         <label class="{{ $label }}">Total</label>
                         <input type="number" min="0" data-participacion-cantidad class="{{ $input }}" readonly>
                     </div>
                 </div>
+                <p data-participacion-feedback class="mt-3 hidden rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"></p>
                 <div class="mt-5 flex justify-end gap-3">
                     <button type="button" data-close-participacion-modal class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Cancelar</button>
                     <button type="button" data-save-participacion class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-800">Guardar</button>
@@ -1583,22 +1618,22 @@
             }
 
             const totalSteps = Number(form.dataset.totalSteps || 1);
-            const storageKey = form.dataset.storageKey || 'enf-accion-form-draft';
+            let storageKey = form.dataset.storageKey || 'enf-accion-form-draft';
             const clearDraftOnLoad = form.dataset.clearDraftOnLoad === '1';
             const shouldLockStepNavigation = form.dataset.lockStepNavigation === '1';
-            const approvedPrograms = @js($programasAprobadosData);
             const empleados = @js($empleadosModalData);
             const initialDraft = @js($initialDraft ?? []);
             const autosaveUrl = form.dataset.autosaveUrl;
             const autosaveUpdateUrlTemplate = form.dataset.autosaveUpdateUrlTemplate || '';
+            const formUpdateUrlTemplate = form.dataset.formUpdateUrlTemplate || '';
             const draftIdField = form.querySelector('[name="borrador_autoguardado_id"]');
             const oldObjetivosEspecificos = @js(array_values((array) old('objetivos_especificos', [])));
-            const approvedProgramSelect = form.querySelector('[data-approved-program-select]');
-            const approvedProgramSummary = form.querySelector('[data-approved-program-summary]');
             const panels = Array.from(form.querySelectorAll('[data-step-panel]'));
             const previousButton = form.querySelector('[data-previous-step]');
             const nextButton = form.querySelector('[data-next-step]');
             const submitButton = form.querySelector('[data-submit-step]');
+            const sendButton = form.querySelector('[data-send-step]');
+            const saveDraftField = form.querySelector('[data-save-draft-field]');
             const status = form.querySelector('[data-autosave-status]');
             const stepValidationMessage = form.querySelector('[data-step-validation-message]');
             const objetivosEspecificosList = form.querySelector('[data-objetivos-especificos-list]');
@@ -1622,8 +1657,8 @@
                 horas: document.querySelector('[data-consultor-horas]'),
             };
             const participacionModal = document.querySelector('[data-participacion-modal]');
-            const participacionListModal = form.querySelector('[data-participacion-list-modal]');
             const participacionModalTitle = document.querySelector('[data-participacion-modal-title]');
+            const participacionFeedback = document.querySelector('[data-participacion-feedback]');
             const participacionInputs = {
                 tipo: document.querySelector('[data-participacion-tipo]'),
                 cantidad: document.querySelector('[data-participacion-cantidad]'),
@@ -1668,6 +1703,12 @@
                 descripcion: document.querySelector('[data-resultado-descripcion]'),
                 indicador: document.querySelector('[data-resultado-indicador]'),
             };
+            const documentModal = form.querySelector('[data-document-modal]');
+            const documentModalType = form.querySelector('[data-document-modal-type]');
+            const documentModalFile = form.querySelector('[data-document-modal-file]');
+            const documentModalFeedback = form.querySelector('[data-document-modal-feedback]');
+            const documentSelectedFile = form.querySelector('[data-document-selected-file]');
+            const addDocumentButton = form.querySelector('[data-add-document]');
             let selectedEmployeeId = null;
             let currentConsultorGroup = null;
             let currentConsultorExtraField = null;
@@ -1677,7 +1718,7 @@
             let currentPresupuestoIndex = null;
             let currentCronogramaIndex = null;
             let currentResultadoIndex = null;
-            let draftRecordId = form.dataset.recordId || draftIdField?.value || '';
+            let draftRecordId = form.dataset.recordId || '';
             let localAutosaveTimer = null;
             let serverAutosaveTimer = null;
             let serverAutosavePromise = Promise.resolve();
@@ -1688,6 +1729,30 @@
             let sendReviewConfirmed = false;
             let sendReviewEtapas = [];
             let sendReviewStep = 0;
+
+            const hasPendingDocumentFiles = () => Array.from(form.querySelectorAll('[data-doc-upload-file]'))
+                .some((field) => field.files?.length > 0);
+
+            const pendingDocumentMessage = 'Archivos seleccionados. Guarde el borrador o envíe para firmar para subirlos.';
+
+            if (draftIdField) {
+                draftIdField.value = draftRecordId;
+            }
+
+            if (!draftRecordId) {
+                try {
+                    const storedDraft = JSON.parse(window.localStorage.getItem(storageKey) || '{}');
+
+                    if (storedDraft.borrador_autoguardado_id) {
+                        delete storedDraft.borrador_autoguardado_id;
+                        delete storedDraft._method;
+                        window.localStorage.setItem(storageKey, JSON.stringify(storedDraft));
+                    }
+                } catch (error) {
+                    window.localStorage.removeItem(storageKey);
+                    window.localStorage.removeItem(`${storageKey}:step`);
+                }
+            }
             const sendReviewModal = document.querySelector('[data-enf-send-modal]');
             const sendReviewSteps = document.querySelector('[data-enf-send-steps]');
             const sendReviewBody = document.querySelector('[data-enf-send-body]');
@@ -1699,6 +1764,8 @@
             const hideSendReviewModal = () => {
                 sendReviewModal?.classList.add('hidden');
                 sendReviewModal?.classList.remove('flex');
+                submitButton?.removeAttribute('disabled');
+                sendButton?.removeAttribute('disabled');
             };
 
             const showSendReviewModal = () => {
@@ -1790,10 +1857,18 @@
 
             const finalSubmit = () => {
                 appendDestinatariosToForm();
+                const sendingForSignature = saveDraftField?.value === '0';
+                submittingAfterAutosave = true;
+                shouldPersistDraft = false;
+                serverAutosaveDirty = false;
+                window.clearTimeout(localAutosaveTimer);
+                window.clearTimeout(serverAutosaveTimer);
                 window.localStorage.removeItem(storageKey);
                 window.localStorage.removeItem(`${storageKey}:step`);
                 sendReviewConfirmed = true;
-                submittingAfterAutosave = true;
+                status.textContent = sendingForSignature
+                    ? (hasPendingDocumentFiles() ? 'Enviando para firma con sus archivos...' : 'Enviando para firma...')
+                    : (hasPendingDocumentFiles() ? 'Guardando el borrador y sus archivos...' : 'Guardando el borrador...');
                 HTMLFormElement.prototype.submit.call(form);
             };
 
@@ -1815,11 +1890,11 @@
                         sendReviewStep = 0;
                         renderSendReviewModal();
                         showSendReviewModal();
-                        submitButton?.removeAttribute('disabled');
                     })
                     .catch(() => {
-                        submitButton?.removeAttribute('disabled');
-                        status.textContent = 'No se pudo cargar el flujo de revisión.';
+                        // Consultar los destinatarios no debe impedir que el usuario
+                        // guarde el formulario y los archivos seleccionados.
+                        finalSubmit();
                     });
             };
 
@@ -1859,7 +1934,9 @@
                 const data = {};
 
                 form.querySelectorAll('input[name], select[name], textarea[name]').forEach((field) => {
-                    if (field.type === 'file' || field.name === '_token' || field.disabled) {
+                    if (field.type === 'file'
+                        || ['_token', '_method', 'borrador_autoguardado_id'].includes(field.name)
+                        || field.disabled) {
                         return;
                     }
 
@@ -1903,11 +1980,45 @@
                     return;
                 }
 
+                const previousStorageKey = storageKey;
                 draftRecordId = String(payload.id);
                 form.dataset.recordId = draftRecordId;
+                storageKey = `enf-accion-form-draft-${draftRecordId}`;
+                form.dataset.storageKey = storageKey;
+
+                if (previousStorageKey !== storageKey) {
+                    const storedDraft = window.localStorage.getItem(previousStorageKey);
+                    const storedStep = window.localStorage.getItem(`${previousStorageKey}:step`);
+
+                    if (storedDraft) {
+                        window.localStorage.setItem(storageKey, storedDraft);
+                    }
+
+                    if (storedStep) {
+                        window.localStorage.setItem(`${storageKey}:step`, storedStep);
+                    }
+
+                    window.localStorage.removeItem(previousStorageKey);
+                    window.localStorage.removeItem(`${previousStorageKey}:step`);
+                }
 
                 if (draftIdField) {
                     draftIdField.value = draftRecordId;
+                }
+
+                if (formUpdateUrlTemplate) {
+                    form.action = formUpdateUrlTemplate.replace('__ID__', encodeURIComponent(draftRecordId));
+
+                    let methodField = form.querySelector('input[name="_method"]');
+
+                    if (!methodField) {
+                        methodField = document.createElement('input');
+                        methodField.type = 'hidden';
+                        methodField.name = '_method';
+                        form.appendChild(methodField);
+                    }
+
+                    methodField.value = 'PUT';
                 }
 
                 if (payload.edit_url && !window.location.pathname.endsWith(`/enf/acciones/${draftRecordId}/edit`)) {
@@ -1938,6 +2049,7 @@
                 });
 
                 formData.set('estado_flujo', 'BORRADOR');
+                formData.delete('borrador_autoguardado_id');
 
                 if (draftRecordId) {
                     formData.set('borrador_autoguardado_id', draftRecordId);
@@ -1948,6 +2060,19 @@
 
             const serverAutosave = ({ force = false, keepalive = false } = {}) => {
                 window.clearTimeout(serverAutosaveTimer);
+
+                if (serverAutosaveInFlight) {
+                    serverAutosaveDirty = true;
+                    const pendingAutosave = serverAutosavePromise;
+
+                    return pendingAutosave.then(() => {
+                        if (!force && !serverAutosaveDirty) {
+                            return undefined;
+                        }
+
+                        return serverAutosave({ force: true, keepalive });
+                    });
+                }
 
                 if (!force && !serverAutosaveDirty) {
                     return serverAutosavePromise;
@@ -1981,7 +2106,9 @@
                     })
                     .then((payload) => {
                         updateDraftRecord(payload);
-                        status.textContent = `Borrador guardado ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                        status.textContent = hasPendingDocumentFiles()
+                            ? pendingDocumentMessage
+                            : `Borrador guardado ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                     })
                     .catch(() => {
                         serverAutosaveDirty = true;
@@ -2005,7 +2132,9 @@
                 const data = collectDraftData();
 
                 window.localStorage.setItem(storageKey, JSON.stringify(data));
-                status.textContent = `Autoguardado ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                status.textContent = hasPendingDocumentFiles()
+                    ? pendingDocumentMessage
+                    : `Autoguardado ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 
                 if (persist) {
                     scheduleServerAutosave();
@@ -2096,6 +2225,28 @@
                 return field && fieldHasValue(field);
             });
 
+            const resultadoGrupoCompleto = (panel, grupo) => {
+                return Array.from(panel.querySelectorAll(`[data-resultado-row][data-grupo="${grupo}"]`))
+                    .some((row) => {
+                        const descripcion = row.querySelector('textarea[name$="[descripcion]"]');
+                        const indicador = row.querySelector('textarea[name$="[indicador]"]');
+
+                        return descripcion
+                            && indicador
+                            && fieldHasValue(descripcion)
+                            && fieldHasValue(indicador);
+                    });
+            };
+
+            const stepSevenIsComplete = (panel) => {
+                const gruposCompletos = ['corto', 'mediano', 'largo']
+                    .every((grupo) => resultadoGrupoCompleto(panel, grupo));
+                const hasOds = Boolean(panel.querySelector('input[name="ods_ids[]"]:checked'));
+                const hasMeta = Boolean(panel.querySelector('input[name="meta_contribuye_ids[]"]:checked'));
+
+                return gruposCompletos && hasOds && hasMeta;
+            };
+
             const stepIsComplete = (stepNumber) => {
                 const panel = form.querySelector(`[data-step-panel="${stepNumber}"]`);
 
@@ -2103,9 +2254,23 @@
                     return false;
                 }
 
+                if (stepNumber === 7) {
+                    return stepSevenIsComplete(panel);
+                }
+
                 if (stepNumber === 9) {
                     return Array.from(panel.querySelectorAll('[data-cronograma-row]')).some((row) => {
                         return Array.from(row.querySelectorAll('input[name]')).some((field) => String(field.value ?? '').trim() !== '');
+                    });
+                }
+
+                if (stepNumber === 10) {
+                    return Array.from(panel.querySelectorAll('[data-doc-upload-card]')).every((card) => {
+                        const aplica = card.querySelector('[data-doc-upload-aplica]')?.value === 'Si';
+                        const hasExistingFile = card.dataset.docHasExisting === '1';
+                        const hasSelectedFile = (card.querySelector('[data-doc-upload-file]')?.files?.length || 0) > 0;
+
+                        return !aplica || hasExistingFile || hasSelectedFile;
                     });
                 }
 
@@ -2122,6 +2287,7 @@
                             || field.closest('[data-consultor-fields]')
                             || field.closest('[data-participacion-fields]')
                             || field.closest('[data-practicas-fields]')
+                            || field.closest('[data-resultados-fields]')
                             || field.closest('[data-presupuesto-fields]')
                             || field.closest('[data-cronograma-fields]')) {
                             return false;
@@ -2167,6 +2333,7 @@
                 '[data-consultor-fields]',
                 '[data-participacion-fields]',
                 '[data-practicas-fields]',
+                '[data-resultados-fields]',
                 '[data-presupuesto-fields]',
                 '[data-cronograma-fields]',
             ].join(',');
@@ -2305,6 +2472,9 @@
 
                 if (stepNumber === 9 && !stepIsComplete(stepNumber)) {
                     firstInvalidField = panel.querySelector('[data-open-cronograma-modal]');
+                } else if (stepNumber === 10 && !stepIsComplete(stepNumber)) {
+                    firstInvalidField = panel.querySelector('[data-open-document-modal]');
+                    markInvalidTarget(firstInvalidField, invalidFieldClasses);
                 } else {
                     const groupedChoices = new Map();
                     const fields = Array.from(panel.querySelectorAll('input[name], select[name], textarea[name]'))
@@ -2371,70 +2541,6 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             };
 
-            const setFieldValue = (name, value) => {
-                const field = form.querySelector(fieldSelector(name));
-
-                if (!field || Array.isArray(value)) {
-                    return;
-                }
-
-                field.value = value ?? '';
-                field.dispatchEvent(new Event('input', { bubbles: true }));
-                field.dispatchEvent(new Event('change', { bubbles: true }));
-            };
-
-            const approvedProgramFieldNames = [...new Set(approvedPrograms.flatMap((program) =>
-                Object.keys(program.fields || {}).filter((name) => !name.endsWith('_ids[]'))
-            ))];
-
-            const setApprovedProgramFieldLocked = (name, locked) => {
-                const field = form.querySelector(fieldSelector(name));
-
-                if (!field) {
-                    return;
-                }
-
-                if (field.matches('input, textarea')) {
-                    if (!field.dataset.approvedProgramOriginalReadonly) {
-                        field.dataset.approvedProgramOriginalReadonly = field.readOnly ? '1' : '0';
-                    }
-                    field.readOnly = locked || field.dataset.approvedProgramOriginalReadonly === '1';
-                } else if (field.matches('select')) {
-                    field.classList.toggle('pointer-events-none', locked);
-                    field.setAttribute('aria-disabled', locked ? 'true' : 'false');
-                    field.tabIndex = locked ? -1 : 0;
-                }
-
-                field.classList.toggle('cursor-not-allowed', locked);
-                field.classList.toggle('bg-slate-100', locked);
-                field.classList.toggle('text-slate-600', locked);
-                field.classList.toggle('dark:bg-slate-800/70', locked);
-            };
-
-            const renderApprovedProgramSummary = (program) => {
-                if (!approvedProgramSummary || !program) {
-                    approvedProgramSummary?.classList.add('hidden');
-                    if (approvedProgramSummary) approvedProgramSummary.innerHTML = '';
-                    return;
-                }
-
-                const details = (program.details || []).map((detail) => `
-                    <div class="rounded-md bg-blue-50/70 px-3 py-2 dark:bg-blue-950/30">
-                        <dt class="text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">${escapeHtml(detail.label)}</dt>
-                        <dd class="mt-1 whitespace-pre-wrap text-sm text-slate-800 dark:text-slate-100">${escapeHtml(detail.value)}</dd>
-                    </div>
-                `).join('');
-
-                approvedProgramSummary.innerHTML = `
-                    <div class="mb-3 flex items-center justify-between gap-3">
-                        <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Información disponible del programa</h3>
-                        <span class="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/50 dark:text-blue-200">${escapeHtml(program.source || 'Programa aprobado')}</span>
-                    </div>
-                    <dl class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">${details}</dl>
-                `;
-                approvedProgramSummary.classList.remove('hidden');
-            };
-
             const setRegisteredEmployeeField = (group, fieldName, value) => {
                 const field = form.querySelector(fieldSelector(`${group}[${fieldName}]`));
 
@@ -2464,51 +2570,6 @@
 
             const updateRegisteredEmployeesDetails = () => {
                 form.querySelectorAll('[data-registered-employee-select]').forEach(updateRegisteredEmployeeDetails);
-            };
-
-            const applyApprovedProgram = (programId) => {
-                const program = approvedPrograms.find((item) => String(item.id) === String(programId));
-
-                approvedProgramFieldNames.forEach((name) => {
-                    setApprovedProgramFieldLocked(name, false);
-                    setFieldValue(name, '');
-                });
-
-                if (!program) {
-                    renderApprovedProgramSummary(null);
-                    form.dispatchEvent(new CustomEvent('enf-approved-program-selected', {
-                        bubbles: true,
-                        detail: {
-                            locked_centros: false,
-                            locked_departamentos: false,
-                            locked_carreras: false,
-                            centro_facultad_ids: [],
-                            departamento_academico_ids: [],
-                            carrera_ids: [],
-                        },
-                    }));
-                    syncTotalHoras();
-                    save();
-                    return;
-                }
-
-                Object.entries(program.fields || {}).forEach(([name, value]) => setFieldValue(name, value));
-                Object.entries(program.fields || {})
-                    .filter(([name, value]) => !name.endsWith('_ids[]') && value !== null && value !== undefined && value !== '')
-                    .forEach(([name]) => setApprovedProgramFieldLocked(name, true));
-                renderApprovedProgramSummary(program);
-                form.dispatchEvent(new CustomEvent('enf-approved-program-selected', {
-                    bubbles: true,
-                    detail: {
-                        locked_centros: Boolean(program.fields?.['centro_facultad_ids[]']?.length || program.fields?.centro_facultad_id),
-                        locked_departamentos: Boolean(program.fields?.['departamento_academico_ids[]']?.length || program.fields?.departamento_academico_id),
-                        locked_carreras: Boolean(program.fields?.['carrera_ids[]']?.length || program.fields?.carrera_id),
-                        centro_facultad_ids: program.fields?.['centro_facultad_ids[]'] || (program.fields?.centro_facultad_id ? [program.fields.centro_facultad_id] : []),
-                        departamento_academico_ids: program.fields?.['departamento_academico_ids[]'] || (program.fields?.departamento_academico_id ? [program.fields.departamento_academico_id] : []),
-                        carrera_ids: program.fields?.['carrera_ids[]'] || (program.fields?.carrera_id ? [program.fields.carrera_id] : []),
-                    },
-                }));
-                save();
             };
 
             const showModal = (modal) => {
@@ -2643,49 +2704,42 @@
                 `).join('');
             };
 
+            const participacionHasValue = (row) => [
+                'hombres',
+                'mujeres',
+                'cantidad',
+            ].some((fieldName) => Number(rowValue(row, fieldName) || 0) > 0);
+
             const renderParticipacion = () => {
-                const target = form.querySelector('[data-participacion-list]');
                 const summary = form.querySelector('[data-participacion-summary]');
                 const summaryTotals = form.querySelector('[data-participacion-summary-totals]');
                 const rows = Array.from(form.querySelectorAll('[data-participacion-row]'))
                     .map((row, index) => ({ row, index }));
 
-                if (target) {
-                    target.innerHTML = rows.map(({ row, index }) => `
-                        <tr>
-                            <td class="px-3 py-2 font-medium text-slate-700 dark:text-slate-200">${escapeHtml(rowValue(row, 'tipo_participacion'))}</td>
-                            <td class="px-3 py-2">${escapeHtml(rowValue(row, 'hombres') || '0')}</td>
-                            <td class="px-3 py-2">${escapeHtml(rowValue(row, 'mujeres') || '0')}</td>
-                            <td class="px-3 py-2">${escapeHtml(rowValue(row, 'cantidad') || '0')}</td>
-                            <td class="px-3 py-2 text-right">
-                                <button type="button" data-edit-participacion="${index}" class="text-sm font-semibold text-blue-700 hover:text-blue-900">Editar</button>
-                            </td>
-                        </tr>
-                    `).join('');
-                }
-
                 if (!summary) {
                     return;
                 }
 
-                const registeredRows = rows.filter(({ row }) =>
-                    Number(rowValue(row, 'hombres') || 0) > 0
-                    || Number(rowValue(row, 'mujeres') || 0) > 0
-                    || Number(rowValue(row, 'cantidad') || 0) > 0
-                );
+                const registeredRows = rows.filter(({ row }) => participacionHasValue(row));
 
                 if (registeredRows.length === 0) {
-                    summary.innerHTML = '<tr><td colspan="4" class="px-3 py-4 text-center text-slate-500">Sin participación registrada.</td></tr>';
+                    summary.innerHTML = '<tr><td colspan="5" class="px-3 py-4 text-center text-slate-500">Sin participación registrada.</td></tr>';
                     summaryTotals?.classList.add('hidden');
                     return;
                 }
 
-                summary.innerHTML = registeredRows.map(({ row }) => `
+                summary.innerHTML = registeredRows.map(({ row, index }) => `
                     <tr>
                         <td class="px-3 py-2 font-medium text-slate-700 dark:text-slate-200">${escapeHtml(rowValue(row, 'tipo_participacion'))}</td>
                         <td class="px-3 py-2 text-right">${escapeHtml(rowValue(row, 'hombres') || '0')}</td>
                         <td class="px-3 py-2 text-right">${escapeHtml(rowValue(row, 'mujeres') || '0')}</td>
                         <td class="px-3 py-2 text-right font-semibold">${escapeHtml(rowValue(row, 'cantidad') || '0')}</td>
+                        <td class="px-3 py-2 text-right">
+                            <div class="flex justify-end gap-3">
+                                <button type="button" data-edit-participacion="${index}" class="text-sm font-semibold text-blue-700 hover:text-blue-900">Editar</button>
+                                <button type="button" data-remove-participacion="${index}" class="text-sm font-semibold text-red-600 hover:text-red-800">Quitar</button>
+                            </div>
+                        </td>
                     </tr>
                 `).join('');
 
@@ -3011,53 +3065,114 @@
                 }
             };
 
-            const openParticipacionModal = (index) => {
-                const row = form.querySelector(`[data-participacion-row="${index}"]`);
-
-                if (!row) {
+            const setParticipacionFeedback = (message = '') => {
+                if (!participacionFeedback) {
                     return;
                 }
 
+                participacionFeedback.textContent = message;
+                participacionFeedback.classList.toggle('hidden', !message);
+            };
+
+            const clearParticipacionRow = (row) => setRowValues(row, {
+                cantidad: '',
+                hombres: '',
+                mujeres: '',
+            });
+
+            const configureParticipacionOptions = (currentType = '') => {
+                Array.from(participacionInputs.tipo?.options || []).forEach((option) => {
+                    if (!option.value) {
+                        option.disabled = false;
+                        return;
+                    }
+
+                    const matchingRow = Array.from(form.querySelectorAll('[data-participacion-row]'))
+                        .find((row) => rowValue(row, 'tipo_participacion') === option.value);
+
+                    option.disabled = option.value !== currentType && participacionHasValue(matchingRow);
+                });
+            };
+
+            const openParticipacionModal = (index = null) => {
+                const row = index !== null
+                    ? form.querySelector(`[data-participacion-row="${index}"]`)
+                    : null;
+                const currentType = rowValue(row, 'tipo_participacion');
+
                 currentParticipacionIndex = index;
                 if (participacionModalTitle) {
-                    participacionModalTitle.textContent = `Editar ${rowValue(row, 'tipo_participacion').toLowerCase()}`;
+                    participacionModalTitle.textContent = row ? 'Editar participación' : 'Agregar participación';
                 }
-                participacionInputs.tipo.value = rowValue(row, 'tipo_participacion');
+                configureParticipacionOptions(currentType);
+                participacionInputs.tipo.value = currentType;
                 participacionInputs.cantidad.value = rowValue(row, 'cantidad');
                 participacionInputs.hombres.value = rowValue(row, 'hombres');
                 participacionInputs.mujeres.value = rowValue(row, 'mujeres');
                 updateParticipacionTotal();
-                hideModal(participacionListModal);
+                setParticipacionFeedback();
                 showModal(participacionModal);
-                participacionInputs.hombres?.focus();
+                (row ? participacionInputs.hombres : participacionInputs.tipo)?.focus();
             };
 
             const cancelParticipacion = () => {
                 hideModal(participacionModal);
                 currentParticipacionIndex = null;
-                renderParticipacion();
-                showModal(participacionListModal);
+                setParticipacionFeedback();
             };
 
             const saveParticipacion = () => {
-                const row = currentParticipacionIndex !== null
+                const tipo = participacionInputs.tipo?.value || '';
+                const hombres = numericValue(participacionInputs.hombres?.value);
+                const mujeres = numericValue(participacionInputs.mujeres?.value);
+                const total = hombres + mujeres;
+                const sourceRow = currentParticipacionIndex !== null
                     ? form.querySelector(`[data-participacion-row="${currentParticipacionIndex}"]`)
                     : null;
+                const targetRow = Array.from(form.querySelectorAll('[data-participacion-row]'))
+                    .find((row) => rowValue(row, 'tipo_participacion') === tipo);
 
-                if (!row) {
+                if (!tipo) {
+                    setParticipacionFeedback('Seleccione un tipo de participación.');
+                    participacionInputs.tipo?.focus();
                     return;
                 }
 
-                setRowValues(row, {
-                    cantidad: String(numericValue(participacionInputs.hombres?.value) + numericValue(participacionInputs.mujeres?.value)),
-                    hombres: participacionInputs.hombres?.value || '',
-                    mujeres: participacionInputs.mujeres?.value || '',
+                if (!Number.isInteger(hombres) || hombres < 0 || !Number.isInteger(mujeres) || mujeres < 0) {
+                    setParticipacionFeedback('Las cantidades de hombres y mujeres deben ser números enteros mayores o iguales a cero.');
+                    return;
+                }
+
+                if (total === 0) {
+                    setParticipacionFeedback('Ingrese al menos una persona para agregar la participación.');
+                    participacionInputs.hombres?.focus();
+                    return;
+                }
+
+                if (!targetRow) {
+                    setParticipacionFeedback('No se encontró el tipo de participación seleccionado.');
+                    return;
+                }
+
+                if (targetRow !== sourceRow && participacionHasValue(targetRow)) {
+                    setParticipacionFeedback('Este tipo de participación ya fue agregado. Puede editarlo desde la tabla.');
+                    return;
+                }
+
+                if (sourceRow && sourceRow !== targetRow) {
+                    clearParticipacionRow(sourceRow);
+                }
+
+                setRowValues(targetRow, {
+                    cantidad: String(total),
+                    hombres: String(hombres),
+                    mujeres: String(mujeres),
                 });
 
                 hideModal(participacionModal);
                 currentParticipacionIndex = null;
+                setParticipacionFeedback();
                 renderDynamicLists();
-                showModal(participacionListModal);
                 save();
                 render();
             };
@@ -3290,6 +3405,39 @@
             const nextEmptyResultadoRow = (tipo) => Array.from(form.querySelectorAll('[data-resultado-row]'))
                 .find((row) => row.dataset.tipo === tipo && !resultadoHasValue(row));
 
+            const filasResultadoPorTipo = (tipo) => Array.from(form.querySelectorAll('[data-resultado-row]'))
+                .filter((row) => row.dataset.tipo === tipo);
+
+            const compactarResultados = (tipo) => {
+                const rows = filasResultadoPorTipo(tipo);
+                const resultados = rows
+                    .filter((row) => rowValue(row, 'descripcion'))
+                    .map((row) => ({
+                        objetivo_orden: rowValue(row, 'objetivo_orden'),
+                        descripcion: rowValue(row, 'descripcion'),
+                        indicador: rowValue(row, 'indicador'),
+                    }));
+
+                rows.forEach((row, index) => {
+                    const resultado = resultados[index];
+                    const objetivoField = rowField(row, 'objetivo_orden');
+                    const descripcionField = rowField(row, 'descripcion');
+                    const indicadorField = rowField(row, 'indicador');
+
+                    if (objetivoField) {
+                        objetivoField.value = resultado
+                            ? String(tipo === 'Corto plazo' ? index + 1 : resultado.objetivo_orden || '')
+                            : '';
+                    }
+                    if (descripcionField) descripcionField.value = resultado?.descripcion || '';
+                    if (indicadorField) indicadorField.value = resultado?.indicador || '';
+                });
+            };
+
+            const siguienteOrdenResultadoCortoPlazo = () => filasResultadoPorTipo('Corto plazo')
+                .filter((row) => rowValue(row, 'descripcion'))
+                .length + 1;
+
             const hideResultadoFeedback = () => {
                 if (!resultadoFeedback) {
                     return;
@@ -3328,24 +3476,25 @@
                 currentResultadoIndex = row.dataset.resultadoRow;
                 const editing = resultadoHasValue(row);
                 const rowTipo = row.dataset.tipo || tipo;
+                const isCortoPlazo = rowTipo === 'Corto plazo';
 
                 if (resultadoModalTitle) {
                     resultadoModalTitle.textContent = `${editing ? 'Editar' : 'Agregar'} resultado`;
                 }
 
                 if (resultadoInputs.tipo) resultadoInputs.tipo.value = rowTipo;
-                if (resultadoInputs.objetivo_orden) resultadoInputs.objetivo_orden.value = rowValue(row, 'objetivo_orden');
+                if (resultadoInputs.objetivo_orden) {
+                    resultadoInputs.objetivo_orden.textContent = isCortoPlazo
+                        ? rowValue(row, 'objetivo_orden') || String(siguienteOrdenResultadoCortoPlazo())
+                        : '';
+                }
                 if (resultadoInputs.descripcion) resultadoInputs.descripcion.value = rowValue(row, 'descripcion');
                 if (resultadoInputs.indicador) resultadoInputs.indicador.value = rowValue(row, 'indicador');
 
-                const isCortoPlazo = rowTipo === 'Corto plazo';
                 resultadoObjetivoWrap?.classList.toggle('hidden', !isCortoPlazo);
-                if (resultadoInputs.objetivo_orden) {
-                    resultadoInputs.objetivo_orden.required = isCortoPlazo;
-                }
 
                 showModal(resultadoModal);
-                (isCortoPlazo ? resultadoInputs.objetivo_orden : resultadoInputs.descripcion)?.focus();
+                resultadoInputs.descripcion?.focus();
             };
 
             const saveResultado = () => {
@@ -3358,16 +3507,14 @@
                     return;
                 }
 
-                if (row.dataset.tipo === 'Corto plazo' && !resultadoInputs.objetivo_orden?.value) {
-                    resultadoInputs.objetivo_orden?.focus();
-                    return;
-                }
-
                 setRowValues(row, {
-                    objetivo_orden: resultadoInputs.objetivo_orden?.value || '',
+                    objetivo_orden: row.dataset.tipo === 'Corto plazo'
+                        ? resultadoInputs.objetivo_orden?.textContent || String(siguienteOrdenResultadoCortoPlazo())
+                        : '',
                     descripcion: resultadoInputs.descripcion.value,
                     indicador: resultadoInputs.indicador?.value || '',
                 });
+                compactarResultados(row.dataset.tipo);
 
                 closeResultadoModal();
                 renderDynamicLists();
@@ -3392,7 +3539,9 @@
                     : oldObjetivosEspecificos);
 
                 form.querySelectorAll('input[name], select[name], textarea[name]').forEach((field) => {
-                    if (field.type === 'file' || field.name === '_token' || !(field.name in data)) {
+                    if (field.type === 'file'
+                        || ['_token', '_method', 'borrador_autoguardado_id'].includes(field.name)
+                        || !(field.name in data)) {
                         return;
                     }
 
@@ -3425,6 +3574,8 @@
 
                     field.value = value;
                 });
+
+                compactarResultados('Corto plazo');
             };
 
             const render = () => {
@@ -3502,6 +3653,10 @@
                 submitButton?.setAttribute('aria-disabled', canLeaveCurrentStep ? 'false' : 'true');
                 submitButton?.classList.toggle('opacity-60', step === totalSteps && !canLeaveCurrentStep);
                 submitButton?.classList.toggle('cursor-not-allowed', step === totalSteps && !canLeaveCurrentStep);
+                sendButton?.classList.toggle('hidden', step !== totalSteps);
+                sendButton?.setAttribute('aria-disabled', canLeaveCurrentStep ? 'false' : 'true');
+                sendButton?.classList.toggle('opacity-60', step === totalSteps && !canLeaveCurrentStep);
+                sendButton?.classList.toggle('cursor-not-allowed', step === totalSteps && !canLeaveCurrentStep);
             };
 
             const goTo = (targetStep) => {
@@ -3536,21 +3691,202 @@
 
             const updateSupervisorDocumentUploadState = () => {
                 form.querySelectorAll('[data-doc-upload-card]').forEach((card) => {
-                    const radios = Array.from(card.querySelectorAll('[data-doc-upload-radio]'));
+                    const aplica = card.querySelector('[data-doc-upload-aplica]');
                     const file = card.querySelector('[data-doc-upload-file]');
-                    const selectedRadio = radios.find((radio) => radio.checked);
-                    const uploadEnabled = selectedRadio?.value === 'Si';
                     const hasExistingFile = card.dataset.docHasExisting === '1';
+                    const hasSelectedFile = (file?.files?.length || 0) > 0;
+
+                    if (aplica && (hasExistingFile || hasSelectedFile)) {
+                        aplica.value = 'Si';
+                    }
 
                     if (file) {
+                        const uploadEnabled = aplica?.value === 'Si';
                         file.disabled = !uploadEnabled;
                         file.required = uploadEnabled && !hasExistingFile;
-
-                        if (!uploadEnabled) {
-                            file.value = '';
-                        }
                     }
                 });
+
+                renderSupervisorDocuments();
+            };
+
+            const documentUploadCard = (slug) => form.querySelector(`[data-doc-upload-card="${slug}"]`);
+
+            const setDocumentModalFeedback = (message = '') => {
+                if (!documentModalFeedback) {
+                    return;
+                }
+
+                documentModalFeedback.textContent = message;
+                documentModalFeedback.classList.toggle('hidden', !message);
+            };
+
+            const syncDocumentModalState = () => {
+                const file = documentModalFile?.files?.[0];
+
+                if (documentSelectedFile) {
+                    documentSelectedFile.textContent = file?.name || '';
+                    documentSelectedFile.classList.toggle('hidden', !file);
+                }
+
+                if (addDocumentButton) {
+                    addDocumentButton.disabled = !documentModalType?.value || !file;
+                }
+            };
+
+            const closeDocumentModal = () => {
+                hideModal(documentModal);
+                setDocumentModalFeedback();
+
+                if (documentModalType) {
+                    documentModalType.value = '';
+                }
+                if (documentModalFile) {
+                    documentModalFile.value = '';
+                }
+
+                syncDocumentModalState();
+            };
+
+            const openDocumentModal = (slug = '') => {
+                closeDocumentModal();
+
+                if (documentModalType) {
+                    documentModalType.value = slug;
+                }
+
+                const modalTitle = documentModal?.querySelector('#document-modal-title');
+                if (modalTitle) {
+                    modalTitle.textContent = slug && documentUploadCard(slug)?.dataset.docHasExisting === '1'
+                        ? 'Reemplazar anexo'
+                        : 'Agregar anexo';
+                }
+
+                syncDocumentModalState();
+                showModal(documentModal);
+                (slug ? documentModalFile : documentModalType)?.focus();
+            };
+
+            const renderSupervisorDocuments = () => {
+                const visibleRows = [];
+
+                form.querySelectorAll('[data-document-row]').forEach((row) => {
+                    const slug = row.dataset.documentRow;
+                    const card = documentUploadCard(slug);
+                    const aplica = card?.querySelector('[data-doc-upload-aplica]')?.value === 'Si';
+                    const file = card?.querySelector('[data-doc-upload-file]')?.files?.[0];
+                    const hasExistingFile = card?.dataset.docHasExisting === '1';
+                    const isVisible = Boolean(file || hasExistingFile || aplica);
+                    const name = row.querySelector('[data-document-name]');
+                    const pendingState = row.querySelector('[data-document-pending-state]');
+                    const removePending = row.querySelector('[data-remove-pending-document]');
+
+                    row.classList.toggle('hidden', !isVisible);
+
+                    if (!isVisible) {
+                        return;
+                    }
+
+                    visibleRows.push(row);
+
+                    if (name) {
+                        name.textContent = file?.name || row.dataset.existingName || 'Archivo pendiente de seleccionar';
+                        name.title = name.textContent;
+                    }
+
+                    if (pendingState) {
+                        pendingState.textContent = file
+                            ? (hasExistingFile ? 'Reemplazo pendiente de guardar' : 'Pendiente de guardar')
+                            : (!hasExistingFile && aplica ? 'Seleccione un archivo' : '');
+                        pendingState.classList.toggle('hidden', !pendingState.textContent);
+                    }
+
+                    removePending?.classList.toggle('hidden', !file && (hasExistingFile || !aplica));
+                });
+
+                visibleRows.forEach((row, index) => {
+                    const number = row.querySelector('[data-document-number]');
+                    if (number) {
+                        number.textContent = String(index + 1);
+                    }
+                });
+
+                form.querySelector('[data-document-empty]')?.classList.toggle('hidden', visibleRows.length > 0);
+
+                const count = form.querySelector('[data-document-count]');
+                if (count) {
+                    count.textContent = String(visibleRows.length);
+                }
+            };
+
+            const addDocumentFromModal = () => {
+                const slug = documentModalType?.value || '';
+                const selectedFile = documentModalFile?.files?.[0];
+                const card = documentUploadCard(slug);
+                const target = card?.querySelector('[data-doc-upload-file]');
+                const aplica = card?.querySelector('[data-doc-upload-aplica]');
+
+                if (!slug) {
+                    setDocumentModalFeedback('Seleccione el tipo de documento.');
+                    documentModalType?.focus();
+                    return;
+                }
+
+                if (!selectedFile) {
+                    setDocumentModalFeedback('Seleccione el archivo que desea adjuntar.');
+                    documentModalFile?.focus();
+                    return;
+                }
+
+                if (selectedFile.size > 10 * 1024 * 1024) {
+                    setDocumentModalFeedback('El archivo supera el tamaño máximo de 10 MB.');
+                    return;
+                }
+
+                if (!/\.(pdf|doc|docx|xls|xlsx|jpg|jpeg|png)$/i.test(selectedFile.name)) {
+                    setDocumentModalFeedback('El formato del archivo no está permitido.');
+                    return;
+                }
+
+                if (!target || !aplica) {
+                    setDocumentModalFeedback('No se pudo preparar este tipo de documento.');
+                    return;
+                }
+
+                try {
+                    const transfer = new DataTransfer();
+                    transfer.items.add(selectedFile);
+                    target.files = transfer.files;
+                } catch (error) {
+                    setDocumentModalFeedback('El navegador no pudo conservar el archivo seleccionado. Inténtelo nuevamente.');
+                    return;
+                }
+
+                aplica.value = 'Si';
+                target.disabled = false;
+                shouldPersistDraft = true;
+                updateSupervisorDocumentUploadState();
+                render();
+                status.textContent = pendingDocumentMessage;
+                closeDocumentModal();
+            };
+
+            const removePendingDocument = (slug) => {
+                const card = documentUploadCard(slug);
+                const file = card?.querySelector('[data-doc-upload-file]');
+                const aplica = card?.querySelector('[data-doc-upload-aplica]');
+                const hasExistingFile = card?.dataset.docHasExisting === '1';
+
+                if (file) {
+                    file.value = '';
+                }
+                if (aplica) {
+                    aplica.value = hasExistingFile ? 'Si' : 'No';
+                }
+
+                updateSupervisorDocumentUploadState();
+                save();
+                render();
             };
 
             const updateContraparteState = () => {
@@ -3633,7 +3969,7 @@
                 syncRequiredMarkers();
                 render();
             });
-            form.addEventListener('input', () => {
+            form.addEventListener('input', (event) => {
                 shouldPersistDraft = true;
                 syncTotalHoras();
                 updateRegisteredEmployeesDetails();
@@ -3645,9 +3981,15 @@
                 syncRequiredMarkers();
                 render();
                 refreshValidationFeedback();
+
+                if (event.target.matches('[data-doc-upload-file]')) {
+                    status.textContent = pendingDocumentMessage;
+                    return;
+                }
+
                 debouncedSave();
             });
-            form.addEventListener('change', () => {
+            form.addEventListener('change', (event) => {
                 shouldPersistDraft = true;
                 syncTotalHoras();
                 updateRegisteredEmployeesDetails();
@@ -3659,14 +4001,20 @@
                 syncRequiredMarkers();
                 render();
                 refreshValidationFeedback();
+
+                if (event.target.matches('[data-doc-upload-file]')) {
+                    status.textContent = pendingDocumentMessage;
+                    return;
+                }
+
                 save();
             });
-            approvedProgramSelect?.addEventListener('change', (event) => applyApprovedProgram(event.target.value));
             form.addEventListener('click', (event) => {
                 const removeObjetivoEspecifico = event.target.closest('[data-remove-objetivo-especifico]');
                 const removeDocente = event.target.closest('[data-remove-equipo-docente]');
                 const removeConsultor = event.target.closest('[data-remove-consultor]');
                 const editParticipacion = event.target.closest('[data-edit-participacion]');
+                const removeParticipacion = event.target.closest('[data-remove-participacion]');
                 const editPractica = event.target.closest('[data-edit-practica]');
                 const removePractica = event.target.closest('[data-remove-practica]');
                 const editPresupuesto = event.target.closest('[data-edit-presupuesto]');
@@ -3702,6 +4050,14 @@
 
                 if (editParticipacion) {
                     openParticipacionModal(editParticipacion.dataset.editParticipacion);
+                    return;
+                }
+
+                if (removeParticipacion) {
+                    clearParticipacionRow(form.querySelector(`[data-participacion-row="${removeParticipacion.dataset.removeParticipacion}"]`));
+                    renderDynamicLists();
+                    save();
+                    render();
                     return;
                 }
 
@@ -3757,6 +4113,7 @@
                         descripcion: '',
                         indicador: '',
                     });
+                    compactarResultados(row?.dataset.tipo || '');
                     hideResultadoFeedback();
                     renderDynamicLists();
                     save();
@@ -3795,13 +4152,7 @@
                 button.addEventListener('click', () => hideModal(consultorModal));
             });
             document.querySelector('[data-add-consultor]')?.addEventListener('click', addConsultor);
-            form.querySelector('[data-open-participacion-list-modal]')?.addEventListener('click', () => {
-                renderParticipacion();
-                showModal(participacionListModal);
-            });
-            form.querySelectorAll('[data-close-participacion-list-modal]').forEach((button) => {
-                button.addEventListener('click', () => hideModal(participacionListModal));
-            });
+            form.querySelector('[data-open-participacion-modal]')?.addEventListener('click', () => openParticipacionModal());
             document.querySelectorAll('[data-close-participacion-modal]').forEach((button) => {
                 button.addEventListener('click', cancelParticipacion);
             });
@@ -3835,6 +4186,25 @@
                 button.addEventListener('click', () => hideModal(cronogramaModal));
             });
             document.querySelector('[data-save-cronograma]')?.addEventListener('click', saveCronograma);
+            form.querySelector('[data-open-document-modal]')?.addEventListener('click', () => openDocumentModal());
+            form.querySelectorAll('[data-close-document-modal]').forEach((button) => {
+                button.addEventListener('click', closeDocumentModal);
+            });
+            form.querySelectorAll('[data-replace-document]').forEach((button) => {
+                button.addEventListener('click', () => openDocumentModal(button.dataset.replaceDocument));
+            });
+            form.querySelectorAll('[data-remove-pending-document]').forEach((button) => {
+                button.addEventListener('click', () => removePendingDocument(button.dataset.removePendingDocument));
+            });
+            documentModalType?.addEventListener('change', () => {
+                setDocumentModalFeedback();
+                syncDocumentModalState();
+            });
+            documentModalFile?.addEventListener('change', () => {
+                setDocumentModalFeedback();
+                syncDocumentModalState();
+            });
+            addDocumentButton?.addEventListener('click', addDocumentFromModal);
             document.querySelectorAll('[data-open-resultado-modal]').forEach((button) => {
                 button.addEventListener('click', () => openResultadoModal(button.dataset.openResultadoModal));
             });
@@ -3842,28 +4212,76 @@
                 button.addEventListener('click', closeResultadoModal);
             });
             document.querySelector('[data-save-resultado]')?.addEventListener('click', saveResultado);
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !documentModal?.classList.contains('hidden')) {
+                    closeDocumentModal();
+                }
+            });
+            const prepareFinalSubmission = (sendForSignature = false) => {
+                const blockedStep = shouldLockStepNavigation ? firstIncompleteStepInForm() : null;
+
+                if (blockedStep) {
+                    blockAtStep(
+                        blockedStep,
+                        sendForSignature
+                            ? 'Completa los campos pendientes antes de enviar la acción para firma.'
+                            : 'Completa los campos pendientes antes de guardar la acción.',
+                    );
+
+                    return false;
+                }
+
+                if (saveDraftField) {
+                    saveDraftField.value = sendForSignature ? '0' : '1';
+                }
+
+                save({ persist: false });
+                submitButton?.setAttribute('disabled', 'disabled');
+                sendButton?.setAttribute('disabled', 'disabled');
+                window.clearTimeout(localAutosaveTimer);
+                window.clearTimeout(serverAutosaveTimer);
+                status.textContent = sendForSignature
+                    ? (hasPendingDocumentFiles() ? 'Preparando el envío y sus archivos...' : 'Preparando el envío para firma...')
+                    : (hasPendingDocumentFiles() ? 'Preparando el borrador y sus archivos...' : 'Preparando el borrador...');
+
+                return true;
+            };
+
+            sendButton?.addEventListener('click', () => {
+                if (submittingAfterAutosave || !prepareFinalSubmission(true)) {
+                    return;
+                }
+
+                serverAutosave({ force: true })
+                    .finally(() => openSendReviewOrSubmit());
+            });
             form.addEventListener('submit', (event) => {
                 if (submittingAfterAutosave) {
                     return;
                 }
 
-                const blockedStep = shouldLockStepNavigation ? firstIncompleteStepInForm() : null;
+                event.preventDefault();
 
-                if (blockedStep) {
-                    event.preventDefault();
-                    blockAtStep(blockedStep, 'Completa los campos pendientes antes de guardar la acción.');
+                if (!prepareFinalSubmission(false)) {
                     return;
                 }
 
-                save();
-                event.preventDefault();
-                submitButton?.setAttribute('disabled', 'disabled');
-
-                serverAutosave({ force: true })
-                    .finally(() => openSendReviewOrSubmit());
+                // El botón guarda únicamente el borrador. Esperamos cualquier
+                // autoguardado que ya esté en curso y enviamos enseguida el formulario
+                // multipart, que incluye los archivos y redirige al historial.
+                Promise.resolve(serverAutosavePromise)
+                    .finally(() => finalSubmit());
             });
-            window.addEventListener('beforeunload', () => save({ persist: shouldPersistDraft }));
+            window.addEventListener('beforeunload', () => {
+                if (!submittingAfterAutosave) {
+                    save({ persist: shouldPersistDraft });
+                }
+            });
             window.addEventListener('pagehide', () => {
+                if (submittingAfterAutosave) {
+                    return;
+                }
+
                 save({ persist: shouldPersistDraft });
 
                 if (shouldPersistDraft && (serverAutosaveDirty || serverAutosaveInFlight)) {
@@ -3871,7 +4289,7 @@
                 }
             });
             document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'hidden') {
+                if (document.visibilityState === 'hidden' && !submittingAfterAutosave) {
                     save({ persist: shouldPersistDraft });
 
                     if (shouldPersistDraft) {

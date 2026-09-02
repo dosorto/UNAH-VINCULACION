@@ -118,7 +118,7 @@ class FormDvus018DataMapper
         foreach (['Secretaría de Estado', 'Gobierno Municipal', 'Sector productivo', 'Entidades financieras', 'Sector privado de servicios', 'Organizaciones gremiales', 'Sociedad civil organizada', 'Sector académico', 'Organismos internacionales', 'Unidad de la UNAH'] as $index => $option) {
             $put(5, $index < 5 ? 5 : 7, ($index % 5) + 1, $this->contains($counterpartType, $option) ? 'X' : '');
         }
-        $put(5, 8, 2, trim(($counterpart?->nombre ?? '').($counterpart?->rtn ? " — RTN: {$counterpart->rtn}" : '')));
+        $put(5, 8, 2, $counterpart?->nombre);
         $put(5, 9, 2, $counterpart?->representante);
         $put(5, 10, 2, $counterpart?->cargo_contacto);
         $put(5, 12, 2, $counterpart?->correo);

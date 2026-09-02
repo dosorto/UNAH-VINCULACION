@@ -169,7 +169,7 @@ SH);
         $documents->shouldReceive('hash')->twice()->with($pdf)->andReturn($hash);
         $controller = app(EnfAccionController::class);
 
-        $inline = $controller->verPdf($action, $documents);
+        $inline = $controller->contenidoPdf($action, $documents);
         $attachment = $controller->descargarPdf($action, $documents);
 
         $this->assertSame('application/pdf', $inline->headers->get('Content-Type'));

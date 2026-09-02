@@ -17,6 +17,8 @@ class StoreEnfAccionRequest extends FormRequest
     {
         return [
             'borrador_autoguardado_id' => ['nullable', 'integer', 'exists:enf_acciones,id'],
+            'guardar_solo_borrador' => ['nullable', 'boolean'],
+            'es_nuevo_borrador' => ['nullable', 'boolean'],
             'destinatarios' => ['nullable', 'array'],
             'destinatarios.*' => ['nullable', 'integer', 'exists:users,id'],
             'codigo_formulario' => ['nullable', 'string', 'max:80'],
@@ -263,21 +265,21 @@ class StoreEnfAccionRequest extends FormRequest
                 Rule::excludeIf(fn () => data_get($this->input('supervisor_documentos', []), 'oficio_remision_decano.aplica') !== 'Si'),
                 Rule::requiredIf(fn () => $this->requiereArchivoSupervisor('oficio_remision_decano')),
                 'file',
-                'mimes:pdf,doc,docx,jpg,jpeg,png',
+                'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
                 'max:10240',
             ],
             'supervisor_documentos_archivos.documento_perfil_programa' => [
                 Rule::excludeIf(fn () => data_get($this->input('supervisor_documentos', []), 'documento_perfil_programa.aplica') !== 'Si'),
                 Rule::requiredIf(fn () => $this->requiereArchivoSupervisor('documento_perfil_programa')),
                 'file',
-                'mimes:pdf,doc,docx,jpg,jpeg,png',
+                'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
                 'max:10240',
             ],
             'supervisor_documentos_archivos.otros_documentos_respaldo' => [
                 Rule::excludeIf(fn () => data_get($this->input('supervisor_documentos', []), 'otros_documentos_respaldo.aplica') !== 'Si'),
                 Rule::requiredIf(fn () => $this->requiereArchivoSupervisor('otros_documentos_respaldo')),
                 'file',
-                'mimes:pdf,doc,docx,jpg,jpeg,png',
+                'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
                 'max:10240',
             ],
         ];

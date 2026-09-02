@@ -1436,7 +1436,7 @@
                     <td class="form018-mark" colspan="3">{{ $hasText($contraparte?->tipoContraparte?->nombre, 'Organismos internacionales') ? 'X' : '' }}</td>
                     <td class="form018-mark">{{ $hasText($contraparte?->tipoContraparte?->nombre, 'Unidad de la UNAH') ? 'X' : '' }}</td>
                 </tr>
-                <tr style="height: 25.3px;"><td class="form018-blue form018-numbered" colspan="2"><span class="num">25.</span>Nombre de la contraparte</td><td colspan="4">{{ $contraparte?->nombre }}</td><td class="form018-light form018-center" colspan="2">RTN / identificación internacional</td><td>{{ $contraparte?->rtn }}</td></tr>
+                <tr style="height: 25.3px;"><td class="form018-blue form018-numbered" colspan="2"><span class="num">25.</span>Nombre de la contraparte</td><td colspan="7">{{ $contraparte?->nombre }}</td></tr>
                 <tr style="height: 46.7px;"><td class="form018-blue form018-numbered" colspan="2"><span class="num">26.</span>Nombre del contacto directo</td><td colspan="7">{{ $contraparte?->representante }}</td></tr>
                 <tr style="height: 37.3px;"><td class="form018-blue form018-numbered" colspan="2"><span class="num">27.</span>Cargo del contacto de la contraparte</td><td colspan="7">{{ $contraparte?->cargo_contacto }}</td></tr>
                 <tr style="height: 37.3px;">
