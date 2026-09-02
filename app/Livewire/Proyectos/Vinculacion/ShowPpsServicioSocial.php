@@ -89,7 +89,7 @@ class ShowPpsServicioSocial extends Component
 
             Notification::make()
                 ->title('Error')
-                ->body('No se pudo enviar el registro a revisión. Intente nuevamente.')
+                ->body('No se pudo enviar el registro a revisión. Detalle: '.$e->getMessage())
                 ->danger()
                 ->send();
 
@@ -322,12 +322,17 @@ class ShowPpsServicioSocial extends Component
 
     public function render(): View
     {
-        $this->registro->loadMissing(['flujoAprobacion', 'etapaActual']);
+        $this->registro->loadMissing([
+            'flujoAprobacion',
+            'etapaActual',
+            'historialEstados' => fn ($query) => $query->with(['empleado', 'tipoestado'])->orderBy('created_at'),
+        ]);
 
         return view('livewire.proyectos.vinculacion.show-pps-servicio-social', [
             'historialRouteName' => $this->historialRouteName(),
             'anexos' => $this->anexosRegistrados(),
-            'formData' => FormDvus014Data::from($this->registro),
+            'movimientos' => $this->registro->historialEstados,
+            'formData' => FormDvus014Data::from($this->registro, false),
         ]);
     }
 

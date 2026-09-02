@@ -90,6 +90,12 @@ class PpsServicioSocialWorkflowTest extends TestCase
         $this->assertNotNull($registro->fecha_revision);
         $this->assertSame('Documentación incompleta.', $registro->motivo_rechazo);
 
+        $this->assertDatabaseHas('estado_proyecto', [
+            'estadoable_type' => PpsServicioSocial::class,
+            'estadoable_id' => $registro->id,
+            'comentario' => 'Documentación incompleta.',
+        ]);
+
         $firma = $registro->firmasDeEtapa()->first();
         $this->assertSame('Rechazado', $firma->estado_revision);
     }
@@ -104,6 +110,11 @@ class PpsServicioSocialWorkflowTest extends TestCase
         $registro = $service->iniciarSubsanacion($registro, $ctx['usuario']->id);
 
         $this->assertSame('borrador', $registro->estado);
+        $this->assertDatabaseHas('estado_proyecto', [
+            'estadoable_type' => PpsServicioSocial::class,
+            'estadoable_id' => $registro->id,
+            'comentario' => 'Inicio de subsanación.',
+        ]);
     }
 
     public function test_reenvio_despues_de_subsanacion_crea_nuevo_ciclo(): void
@@ -118,6 +129,7 @@ class PpsServicioSocialWorkflowTest extends TestCase
 
         $this->assertSame('enviado', $reenviado->estado);
         $this->assertSame($ctx['etapas'][0]->id, $reenviado->etapa_actual_id);
+        $this->assertNull($reenviado->motivo_rechazo);
 
         $firmas = $reenviado->firmasDeEtapa()
             ->where('revision_ciclo', 2)
@@ -189,9 +201,9 @@ class PpsServicioSocialWorkflowTest extends TestCase
             'user_id' => $reemplazo->id,
             'tipo_empleado' => 'docente',
         ]);
-        $etapaId = $ctx['etapas'][0]->id;
+        $reemplazos = $ctx['etapas']->mapWithKeys(fn ($etapa) => [(int) $etapa->id => $reemplazo->id])->all();
 
-        $reenviado = $service->enviarARevision($registro, $ctx['usuario']->id, [$etapaId => $reemplazo->id]);
+        $reenviado = $service->enviarARevision($registro, $ctx['usuario']->id, $reemplazos);
 
         $this->assertSame($empleado->id, $reenviado->firmasDeEtapa()->where('revision_ciclo', 2)->value('empleado_id'));
     }

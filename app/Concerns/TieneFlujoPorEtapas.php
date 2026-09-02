@@ -507,6 +507,11 @@ trait TieneFlujoPorEtapas
 
         }
 
-        return $empleados;
+        // El creador de ciclos consume la colección indexada por etapa; la
+        // consulta anterior queda indexada por id de empleado y provocaba un
+        // null al reanudar desde subsanación.
+        return $empleadosNormalizados->mapWithKeys(
+            fn (int $empleadoId, int $etapaId): array => [$etapaId => $empleados->get($empleadoId)]
+        );
     }
 }

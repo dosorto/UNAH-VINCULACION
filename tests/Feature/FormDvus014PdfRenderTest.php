@@ -21,10 +21,11 @@ class FormDvus014PdfRenderTest extends TestCase
             'carrera' => 'Ingeniería en Sistemas',
             'numero_cuenta' => '20241000001',
             'nombre_estudiante' => 'Estudiante de prueba',
+            'celular_estudiante' => '9999-0000',
             'correo_institucional' => 'estudiante@unah.edu.hn',
             'tipo_pps_ss' => 'Practica Profesional Supervisada',
-            'fecha_inicio' => '2025-02-01',
-            'fecha_finalizacion' => '2025-08-01',
+            'fecha_inicio' => '2026-09-01',
+            'fecha_finalizacion' => '2027-01-01',
             'tipo_instrumento' => 'Carta de intenciones con la UNAH',
             'territorio_ejecucion' => 'Nacional',
             'modalidad_ejecucion' => '100% presencial',
@@ -35,8 +36,8 @@ class FormDvus014PdfRenderTest extends TestCase
         ]);
 
         $data = FormDvus014Data::from($registro);
-        $this->assertSame('2025-02-01', $data['fields']['fecha_inicio']->format('Y-m-d'));
-        $this->assertSame('2025-08-01', $data['fields']['fecha_finalizacion']->format('Y-m-d'));
+        $this->assertSame('2026-09-01', $data['fields']['fecha_inicio']->format('Y-m-d'));
+        $this->assertSame('2027-01-01', $data['fields']['fecha_finalizacion']->format('Y-m-d'));
 
         $html = view('components.pps-servicio-social.form-014', [
             'registro' => $registro,
@@ -44,11 +45,18 @@ class FormDvus014PdfRenderTest extends TestCase
             'isPdf' => true,
         ])->render();
 
-        $this->assertStringContainsString('01', $html);
-        $this->assertStringContainsString('08', $html);
-        $this->assertStringNotContainsString('2025-02-01', $html);
-        $this->assertStringNotContainsString('2025-08-01', $html);
+        $this->assertMatchesRegularExpression(
+            '~<td class="data center">01</td>\s*<td class="data center">09</td>\s*<td class="data center">2026</td>~',
+            $html
+        );
+        $this->assertMatchesRegularExpression(
+            '~<td class="data center">01</td>\s*<td class="data center">01</td>\s*<td class="data center">2027</td>~',
+            $html
+        );
+        $this->assertStringNotContainsString('2026-09-01', $html);
+        $this->assertStringNotContainsString('2027-01-01', $html);
     }
+
 
     public function test_genera_pdf_con_datos_completos_y_lo_guarda_para_inspeccion(): void
     {

@@ -309,7 +309,7 @@
         </tr>
         <tr>
             <td>
-                Nombre:&nbsp;
+                Nombre: {!! $dato($firmas['coordinador']['nombre'] ?? null) !!}
                 @if(!empty($firmas['coordinador']['src']))<img class="signature" src="{{ $firmas['coordinador']['src'] }}" alt="Firma del coordinador">@endif
                 <div class="sline"></div>
                 <div class="scap">Firma del(a) coordinador(a) de la carrera</div>

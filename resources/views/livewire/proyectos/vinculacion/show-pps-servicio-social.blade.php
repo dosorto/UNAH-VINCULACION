@@ -101,7 +101,7 @@
                             wire:loading.attr="disabled"
                             wire:target="iniciarSubsanacion"
                             class="inline-flex items-center rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70">
-                        <span wire:loading.remove wire:target="iniciarSubsanacion">Subsanar</span>
+                        <span wire:loading.remove wire:target="iniciarSubsanacion">Iniciar subsanación</span>
                         <span wire:loading wire:target="iniciarSubsanacion">Abriendo...</span>
                     </button>
                 @endif
@@ -134,7 +134,7 @@
         </div>
     @endif
 
-    @if($registro->motivo_rechazo)
+    @if($registro->motivo_rechazo && in_array($registro->estado, ['rechazado', 'subsanacion'], true))
         <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-200">
             <p class="font-semibold">Observaciones de subsanación</p>
             <p class="mt-2 whitespace-pre-line">{{ $registro->motivo_rechazo }}</p>
@@ -158,6 +158,43 @@
         </section>
 
         <aside class="space-y-6">
+            <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                <h2 class="mb-4 text-lg font-bold text-gray-900 dark:text-white">Historial de movimientos</h2>
+                @if($movimientos->isNotEmpty())
+                    <ol class="relative border-s border-yellow-600">
+                        @foreach($movimientos as $movimiento)
+                            @php
+                                $estadoMovimiento = $movimiento->tipoestado?->nombre ?? 'Cambio de estado';
+                                $comentarioMovimiento = trim((string) $movimiento->comentario);
+                                $tipoMovimiento = match (true) {
+                                    $estadoMovimiento === 'Rechazado' => 'Solicitud de subsanación',
+                                    str_contains(mb_strtolower($comentarioMovimiento), 'inicio de subsanación') => 'Inicio de subsanación',
+                                    str_contains(mb_strtolower($comentarioMovimiento), 'reenvío posterior') => 'Reenvío posterior a subsanación',
+                                    $estadoMovimiento === 'Aprobado' => 'Aprobación de etapa',
+                                    str_contains(mb_strtolower($comentarioMovimiento), 'enviado a revisión') => 'Envío a revisión',
+                                    default => 'Cambio de estado',
+                                };
+                            @endphp
+                            <li class="mb-6 ms-4">
+                                <div class="absolute -start-1.5 mt-1.5 h-3 w-3 rounded-full border border-white bg-yellow-600"></div>
+                                <time class="text-xs text-yellow-700 dark:text-yellow-400">{{ optional($movimiento->created_at)->format('d/m/Y H:i') }}</time>
+                                <h3 class="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-200">Estado: {{ $estadoMovimiento }}</h3>
+                                <p class="text-xs font-medium text-blue-700 dark:text-blue-300">Tipo: {{ $tipoMovimiento }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    Etapa: {{ $registro->etapaActual?->nombre ?? 'No registrada' }}
+                                    @if($movimiento->empleado) · Responsable: {{ $movimiento->empleado->nombre_completo }} @endif
+                                </p>
+                                @if($comentarioMovimiento !== '')
+                                    <p class="mt-1 whitespace-pre-line break-words text-sm text-gray-600 dark:text-gray-300">{{ $estadoMovimiento === 'Rechazado' ? 'Observación: ' : '' }}{{ $comentarioMovimiento }}</p>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ol>
+                @else
+                    <p class="text-sm text-gray-500 dark:text-gray-400">No hay movimientos registrados.</p>
+                @endif
+            </section>
+
             <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                 <h2 class="mb-4 text-lg font-bold text-gray-900 dark:text-white">
                     Anexos
