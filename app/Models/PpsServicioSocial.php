@@ -288,11 +288,11 @@ class PpsServicioSocial extends Model
 
     public function puedeDescargarPdf(?int $userId, ?object $user = null): bool
     {
-        return app(PpsServicioSocialWorkflowService::class)->esEstadoFinalAprobado($this)
-            && (
-                $this->perteneceAlUsuario($userId)
-                || $this->usuarioPuedeRevisar($user)
-            );
+        // El PDF es una representación del expediente y puede consultarse
+        // durante revisión/subsanación, igual que FORM-DVUS-001. La
+        // autorización sigue limitada al creador o a un revisor permitido.
+        return $this->perteneceAlUsuario($userId)
+            || $this->usuarioPuedeRevisar($user);
     }
 
     public function camposFaltantesParaEnvio(): array

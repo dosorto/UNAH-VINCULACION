@@ -49,7 +49,7 @@
     @if($isPdf)
         @page {
             size: letter portrait;
-            margin: 35mm 9mm 13mm;
+            margin: 55mm 15mm 15mm;
         }
     @endif
 
@@ -57,8 +57,8 @@
         background: #fff;
         color: #111;
         font-family: Arial, Helvetica, "DejaVu Sans", sans-serif;
-        font-size: {{ $isPdf ? '8pt' : '9px' }};
-        line-height: 1.12;
+        font-size: {{ $isPdf ? '10pt' : '9px' }};
+        line-height: 1.2;
     }
 
     .fdv * { box-sizing: border-box; }
@@ -98,7 +98,7 @@
     .fdv table.grid th,
     .fdv table.grid td {
         border: .5pt solid #374151;
-        padding: {{ $isPdf ? '.85mm 1.1mm' : '3px 5px' }};
+        padding: {{ $isPdf ? '1.35mm 1.5mm' : '3px 5px' }};
         vertical-align: middle;
         word-break: break-word;
         overflow-wrap: anywhere;
@@ -110,27 +110,27 @@
         color: #fff;
         font-weight: bold;
         text-align: center;
-        font-size: {{ $isPdf ? '8pt' : '9px' }};
+        font-size: {{ $isPdf ? '9pt' : '9px' }};
     }
     .fdv .num:after { content: "."; }
     .fdv .lbl {
         background: #001b44;
         color: #fff;
         font-weight: bold;
-        font-size: {{ $isPdf ? '8pt' : '' }};
+        font-size: {{ $isPdf ? '9pt' : '' }};
     }
     .fdv .lbl-g {
         background: #edf0f4;
         color: #111;
         font-weight: bold;
-        font-size: {{ $isPdf ? '6.5pt' : '' }};
+        font-size: {{ $isPdf ? '8pt' : '' }};
     }
     .fdv .subhdr {
         background: #001b44;
         color: #fff;
         font-weight: bold;
         text-align: center;
-        font-size: {{ $isPdf ? '6.5pt' : '' }};
+        font-size: {{ $isPdf ? '8pt' : '' }};
     }
     .fdv .subbar {
         background: #001b44;
@@ -138,7 +138,7 @@
         font-weight: bold;
         text-transform: uppercase;
         text-align: left;
-        font-size: {{ $isPdf ? '6.5pt' : '' }};
+        font-size: {{ $isPdf ? '8pt' : '' }};
     }
     .fdv .cas { background: #edf0f4; }
     .fdv .data { background: #fff; }
@@ -161,11 +161,26 @@
     }
 
     .fdv .sign { page-break-inside: avoid; }
-    .fdv .sign td { height: {{ $isPdf ? '36px' : '70px' }}; vertical-align: top; text-align: center; width: 33.33%; }
-    .fdv .sign .sline { border-top: 1px solid #111; margin: {{ $isPdf ? '20px' : '40px' }} 8% 3px; }
-    .fdv .signature { display: block; height: {{ $isPdf ? '10mm' : '42px' }}; max-width: 90%; margin: 1mm auto 0; object-fit: contain; }
-    .fdv .sign .scap { font-size: {{ $isPdf ? '6.2pt' : '8px' }}; color: #333; }
+    .fdv .sign td { height: {{ $isPdf ? '82px' : '70px' }}; vertical-align: top; text-align: center; width: 33.33%; }
+    .fdv .sign .sline { border-top: 1px solid #111; margin: {{ $isPdf ? '44px' : '40px' }} 8% 3px; }
+    .fdv .signature { display: block; height: {{ $isPdf ? '16mm' : '42px' }}; max-width: 90%; margin: 2mm auto 0; object-fit: contain; }
+    .fdv .sign .scap { font-size: {{ $isPdf ? '7.2pt' : '8px' }}; color: #333; }
 </style>
+
+@if($isPdf)
+    <style>
+        .institutional-pdf-brand img { width: 400pt; }
+        .institutional-pdf-contact { font-size: 8pt; }
+        .institutional-pdf-title { font-size: 10.5pt; }
+        .institutional-pdf-code { font-size: 9pt; line-height: 5mm; }
+        .institutional-pdf-header { min-height: 34mm; top: -51mm; }
+        .institutional-pdf-accent { top: -51mm; height: 29mm; }
+        .institutional-pdf-footer-distintivos { display: none; }
+        .institutional-pdf-footer-lema { width: 90%; }
+        .institutional-pdf-footer-block { width: 10%; }
+        .institutional-pdf-footer { display: none; }
+    </style>
+@endif
 
 @if($isPdf)
     @include($headerPartial)
@@ -187,4 +202,25 @@
             </div>
         </div>
     </div>
+@endif
+
+@if($isPdf)
+    {{-- Ajustes finales declarados después del encabezado y pie compartidos. --}}
+    <style>
+        @page { margin: 55mm 15mm 15mm; }
+        .fdv { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.2; letter-spacing: normal; }
+        .fdv table.grid td, .fdv table.grid th { padding: 1.35mm 1.5mm; letter-spacing: normal; }
+        .fdv .num, .fdv .lbl { font-size: 9pt; }
+        .fdv .subhdr, .fdv .subbar { font-size: 8pt; }
+        .fdv .sign td { height: 82px; }
+        .fdv .sign .sline { margin-top: 44px; }
+        .fdv .signature { height: 16mm; }
+        .fdv .sign .scap { font-size: 7.2pt; }
+        .institutional-pdf-brand img { width: 400pt; }
+        .institutional-pdf-contact { font-size: 8pt; }
+        .institutional-pdf-title { font-size: 10.5pt; }
+        .institutional-pdf-code { font-size: 9pt; line-height: 5mm; }
+        .institutional-pdf-header { min-height: 34mm; top: -51mm; }
+        .institutional-pdf-accent { top: -51mm; height: 29mm; }
+    </style>
 @endif

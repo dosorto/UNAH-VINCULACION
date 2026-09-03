@@ -429,7 +429,12 @@ class CreatePpsServicioSocial extends Component
             return;
         } catch (\Throwable $e) {
             report($e);
-            Notification::make()->title('Error')->body('No se pudo enviar el registro a revisión. Intente nuevamente.')->danger()->send();
+            Log::error('Error enviando PPS/SS a revisión desde formulario', [
+                'registro_id' => $this->registroId,
+                'error' => $e->getMessage(),
+                'exception' => $e::class,
+            ]);
+            Notification::make()->title('Error')->body('No se pudo enviar el registro a revisión. Detalle: '.$e->getMessage())->danger()->send();
             $this->showEnviarModal = false;
             return;
         }

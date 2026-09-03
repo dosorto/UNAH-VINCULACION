@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 class FormDvus014Data
 {
-    public static function from(PpsServicioSocial $registro): array
+    public static function from(PpsServicioSocial $registro, bool $isPdf = true): array
     {
         $tipoPps = self::canonical($registro->tipo_pps_ss, [
             'Practica Profesional Supervisada' => [
@@ -141,7 +141,7 @@ class FormDvus014Data
 
         return [
             'fields' => $fields,
-            'firmas' => self::firmasParaPdf($registro),
+            'firmas' => self::firmasParaPdf($registro, $isPdf),
             'checked' => [
                 'tipo_pps' => [
                     'pps' => $tipoPps === 'Practica Profesional Supervisada',
@@ -193,13 +193,13 @@ class FormDvus014Data
     }
 
     /** Resuelve firmas del FORM-014 usando el mismo mecanismo seguro que los demás PDF. */
-    private static function firmasParaPdf(PpsServicioSocial $registro): array
+    private static function firmasParaPdf(PpsServicioSocial $registro, bool $isPdf = true): array
     {
         $firmas = ['coordinador' => null, 'supervisor' => null, 'estudiante' => null];
-        $asignar = static function (string $tipo, $empleado) use (&$firmas): void {
+        $asignar = static function (string $tipo, $empleado) use (&$firmas, $isPdf): void {
             $firma = $empleado?->firma;
             $ruta = trim((string) ($firma?->ruta_storage ?? ''));
-            $imagen = FirmaImagen::resolver($ruta, true);
+            $imagen = FirmaImagen::resolver($ruta, $isPdf);
 
             if (! $firma || ! $imagen) {
                 return;
