@@ -10,6 +10,8 @@ use App\Models\InformeFinal\InformeFinalProyecto;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\IntegranteInternacional;
 use App\Models\Proyecto\MetaContribuye;
+use App\Models\UnidadAcademica\Carrera;
+use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\Proyecto;
 use App\Services\InformeFinal\InformeFinalProyectoValidator;
@@ -267,7 +269,7 @@ class EditInformeFinalProyecto extends Component
             'estudianteEncontrado.nombre'=>['required','string','max:255'],
             'estudianteEncontrado.numero_cuenta'=>['required','string','max:30'],
             'estudianteEncontrado.sexo'=>['required', Rule::in(['Masculino','Femenino'])],
-            'estudianteModal.horas_dedicadas'=>['required','numeric','min:0'],
+            'estudianteModal.horas_dedicadas'=>['required','numeric','gt:0'],
         ], [
             'grupoEstudianteSeleccionadoId.required'=>'Debe seleccionar un grupo de estudiantes.',
             'grupoEstudianteSeleccionadoId.exists'=>'El grupo de estudiantes seleccionado no es válido.',
@@ -277,7 +279,7 @@ class EditInformeFinalProyecto extends Component
             'estudianteEncontrado.sexo.in'=>'El sexo seleccionado no es válido.',
             'estudianteModal.horas_dedicadas.required'=>'Las horas reales dedicadas son obligatorias.',
             'estudianteModal.horas_dedicadas.numeric'=>'Las horas reales dedicadas deben ser un número.',
-            'estudianteModal.horas_dedicadas.min'=>'Las horas reales dedicadas no pueden ser negativas.',
+            'estudianteModal.horas_dedicadas.gt'=>'Las horas reales dedicadas deben ser mayores a 0.',
         ]);
         $grupo = $this->grupoEstudianteParaGuardar();
         $studentId = (int) $this->estudianteEncontrado['estudiante_id'];
@@ -315,9 +317,9 @@ class EditInformeFinalProyecto extends Component
             'estudianteManual.apellidos'=>['nullable','string','max:150'],
             'estudianteManual.numero_cuenta'=>['required','regex:/^\d+$/','max:30'],
             'estudianteManual.sexo'=>['required', Rule::in(['Masculino','Femenino'])],
-            'estudianteManual.carrera'=>['nullable','string','max:255'],
-            'estudianteManual.correo'=>['nullable','email','max:255'],
-            'estudianteManual.horas_dedicadas'=>['required','numeric','min:0'],
+            'estudianteManual.carrera'=>['required','string','max:255'],
+            'estudianteManual.correo'=>['required','email','max:255'],
+            'estudianteManual.horas_dedicadas'=>['required','numeric','gt:0'],
         ], [
             'grupoEstudianteSeleccionadoId.required'=>'Debe seleccionar un grupo de estudiantes.',
             'grupoEstudianteSeleccionadoId.exists'=>'El grupo de estudiantes seleccionado no es válido.',
@@ -329,12 +331,14 @@ class EditInformeFinalProyecto extends Component
             'estudianteManual.numero_cuenta.max'=>'El número de cuenta no puede superar los 30 caracteres.',
             'estudianteManual.sexo.required'=>'El sexo del estudiante es obligatorio.',
             'estudianteManual.sexo.in'=>'El sexo seleccionado no es válido.',
+            'estudianteManual.carrera.required'=>'Debe seleccionar una carrera.',
             'estudianteManual.carrera.max'=>'La carrera no puede superar los 255 caracteres.',
+            'estudianteManual.correo.required'=>'El correo electrónico es obligatorio.',
             'estudianteManual.correo.email'=>'El correo electrónico no tiene un formato válido.',
             'estudianteManual.correo.max'=>'El correo electrónico no puede superar los 255 caracteres.',
             'estudianteManual.horas_dedicadas.required'=>'Las horas reales dedicadas son obligatorias.',
             'estudianteManual.horas_dedicadas.numeric'=>'Las horas reales dedicadas deben ser un número.',
-            'estudianteManual.horas_dedicadas.min'=>'Las horas reales dedicadas no pueden ser negativas.',
+            'estudianteManual.horas_dedicadas.gt'=>'Las horas reales dedicadas deben ser mayores a 0.',
         ]);
         $grupo = $this->grupoEstudianteParaGuardar();
         $cuenta = preg_replace('/\s+/', '', $this->estudianteManual['numero_cuenta']);
@@ -408,22 +412,11 @@ class EditInformeFinalProyecto extends Component
 
     private function validarCupoGrupo(string $sexo, string $campo): bool
     {
-        $grupo = $this->grupoEstudianteSeleccionado();
-        $masculino = $sexo === 'Masculino';
-        $limite = (int) $grupo[$masculino ? 'hombres_planificados' : 'mujeres_planificadas'];
-        $registrados = collect($this->estudiantes)->filter(function ($row, $index) use ($sexo) {
-            return $index !== $this->editEstudianteIndex
-                && (int) ($row['informe_final_grupo_estudiante_id'] ?? 0) === (int) $this->grupoEstudianteSeleccionadoId
-                && ($row['estado_participacion'] ?? 'activo') === 'activo'
-                && ($row['sexo'] ?? null) === $sexo;
-        })->count();
-        if ($registrados < $limite) {
-            return true;
-        }
-
-        $this->addError($campo, 'Ya se registró la cantidad máxima de '.($masculino ? 'hombres' : 'mujeres').' planificada para este grupo.');
-
-        return false;
+        // La planificación de estudiantes por grupo es un APROXIMADO: durante la ejecución
+        // pueden participar más de los inicialmente estimados, así que no se limita el
+        // registro al número planificado. La diferencia (mayor o menor) queda reflejada en
+        // el resumen "Planificados / Registrados / Pendientes".
+        return true;
     }
 
     public function openVoluntarioModal(?int $index = null): void
@@ -498,6 +491,18 @@ class EditInformeFinalProyecto extends Component
     public function getIntegrantesInternacionalesCatalogoProperty()
     {
         return IntegranteInternacional::orderBy('nombre_completo')->get(['id','nombre_completo','pais','documento_identidad','email','institucion']);
+    }
+
+    /** Catálogo de carreras para el registro manual de estudiantes. */
+    public function getCarrerasCatalogoProperty()
+    {
+        return Carrera::orderBy('nombre')->pluck('nombre')->unique()->values();
+    }
+
+    /** Catálogo de departamentos académicos para el registro manual de voluntarios. */
+    public function getDepartamentosAcademicosCatalogoProperty()
+    {
+        return DepartamentoAcademico::orderBy('nombre')->pluck('nombre')->unique()->values();
     }
 
     public function openCooperacionModal(?int $index = null): void
@@ -974,7 +979,7 @@ class EditInformeFinalProyecto extends Component
         abort_unless(property_exists($this, $grupo), 404);
         // La cooperación internacional es data de ejecución (no hereda registros de personal
         // de la UNAH), por eso sí admite eliminación directa; el resto conserva trazabilidad.
-        abort_if(in_array($grupo, ['equipo', 'estudiantes', 'voluntarios'], true), 422, 'Los integrantes del informe final conservan su trazabilidad; cambie su estado de participación.');
+        abort_if(in_array($grupo, ['equipo', 'voluntarios'], true), 422, 'Los integrantes del informe final conservan su trazabilidad; cambie su estado de participación.');
         abort_if($grupo === 'resultados', 422, 'Los resultados del proyecto se conservan; registre o edite únicamente su ejecución.');
         $fila = $this->{$grupo}[$indice] ?? null;
         abort_unless($fila !== null, 404);
@@ -992,6 +997,9 @@ class EditInformeFinalProyecto extends Component
         }
         if ($grupo === 'anexos' && in_array(($fila['origen'] ?? 'INFORME'), ['PLANIFICADO', 'PROYECTO'], true)) {
             throw ValidationException::withMessages(['anexos' => 'Los anexos planificados no se eliminan del Informe Final.']);
+        }
+        if ($grupo === 'estudiantes' && ($fila['origen'] ?? 'PROYECTO') === 'PROYECTO') {
+            throw ValidationException::withMessages(['estudiantes' => 'Este estudiante proviene de la planificación del proyecto; cambie su estado de participación en lugar de eliminarlo.']);
         }
         $this->eliminarFilaPersistida($grupo, $this->{$grupo}[$indice] ?? []);
         unset($this->{$grupo}[$indice]);
