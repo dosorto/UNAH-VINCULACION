@@ -74,13 +74,26 @@ class FormDvus014Data
             'País' => ['pais', 'país', 'extranjera', 'internacional', 'extranjero'],
         ]);
 
+        $facultadCentro = self::clean($registro->facultad_centro);
+        $carrera = self::clean($registro->carrera);
+        // Algunos registros antiguos concatenaron el nombre del centro al de
+        // la carrera. Se corrige solo la presentación, sin alterar la BD.
+        $centroUltimaPalabra = collect(preg_split('/\s+/', $facultadCentro ?: ''))
+            ->filter()->last();
+        if ($centroUltimaPalabra && str_ends_with(
+            Str::lower(Str::ascii($carrera)),
+            ' '.Str::lower(Str::ascii($centroUltimaPalabra))
+        )) {
+            $carrera = trim(substr($carrera, 0, -strlen($centroUltimaPalabra)));
+        }
+
         $fields = [
             'id' => $registro->id,
             'codigo_registro' => $registro->codigo_registro,
             'fecha_registro' => $registro->created_at ?: $registro->fecha_envio,
             'fecha_revision' => $registro->fecha_revision,
-            'facultad_centro' => self::clean($registro->facultad_centro),
-            'carrera' => self::clean($registro->carrera),
+            'facultad_centro' => $facultadCentro,
+            'carrera' => $carrera,
             'numero_cuenta' => self::clean($registro->numero_cuenta),
             'nombre_estudiante' => self::clean($registro->nombre_estudiante),
             'celular_estudiante' => self::clean($registro->celular_estudiante),

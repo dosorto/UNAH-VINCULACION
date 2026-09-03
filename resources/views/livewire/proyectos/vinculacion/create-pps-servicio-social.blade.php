@@ -73,6 +73,17 @@
         </div>
     @endif
 
+    @if(method_exists($this, 'esEdicionRevisor') && $this->esEdicionRevisor())
+        <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-5 text-sm text-blue-900 shadow-sm dark:border-blue-900/70 dark:bg-blue-950/30 dark:text-blue-100">
+            <p class="mb-3 font-semibold">Edición en etapa: {{ $registroEdicion?->etapaActual?->nombre ?? 'Etapa actual del flujo' }}</p>
+            <label for="comentarioRevisor" class="block font-semibold">Comentario de revisión <span class="text-red-600">*</span></label>
+            <textarea id="comentarioRevisor" wire:model="comentarioRevisor" rows="3" required
+                      class="mt-2 w-full rounded-md border border-blue-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-blue-800 dark:bg-gray-900 dark:text-white"
+                      placeholder="Explique los cambios realizados durante la revisión"></textarea>
+            @error('comentarioRevisor') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+        </div>
+    @endif
+
     <div class="mb-6 rounded-lg bg-white p-4 shadow dark:bg-gray-900">
         <div class="flex items-center overflow-x-auto gap-0.5">
             @foreach($stepLabels as $step => $label)
@@ -557,7 +568,7 @@
                         x-data="{
                             open: false,
                             search: '',
-                            selected: @entangle('jefe_directo_grado'),
+                            selected: @entangle('jefe_directo_grado').live,
                             options: ['Secundaria completa', 'Licenciatura', 'Maestría', 'Doctorado', 'Postdoctorado'],
                             normalize(value) {
                                 return String(value ?? '')
@@ -947,13 +958,15 @@
                 @elseif($currentStep === 9)
                     <button type="button" wire:click="guardarBorrador"
                         class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-                        Guardar como borrador
+                        {{ (method_exists($this, 'esEdicionRevisor') && $this->esEdicionRevisor()) ? 'Guardar cambios' : 'Guardar como borrador' }}
                     </button>
-                    <button type="button" wire:click="abrirModalEnviar"
-                        aria-disabled="{{ (!$this->shouldLockStepNavigation() || $this->isStepComplete($currentStep)) ? 'false' : 'true' }}"
-                        class="inline-flex items-center rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600 {{ $this->shouldLockStepNavigation() && !$this->isStepComplete($currentStep) ? 'cursor-not-allowed opacity-60' : '' }}">
-                        Enviar a firmar
-                    </button>
+                    @if(!(method_exists($this, 'esEdicionRevisor') && $this->esEdicionRevisor()))
+                        <button type="button" wire:click="abrirModalEnviar"
+                            aria-disabled="{{ (!$this->shouldLockStepNavigation() || $this->isStepComplete($currentStep)) ? 'false' : 'true' }}"
+                            class="inline-flex items-center rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600 {{ $this->shouldLockStepNavigation() && !$this->isStepComplete($currentStep) ? 'cursor-not-allowed opacity-60' : '' }}">
+                            Enviar a firmar
+                        </button>
+                    @endif
                 @endif
             </div>
         </div>

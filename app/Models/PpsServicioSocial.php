@@ -124,6 +124,11 @@ class PpsServicioSocial extends Model
         return $this->belongsTo(FlujoAprobacionEtapa::class, 'etapa_actual_id');
     }
 
+    public function documentosGenerados(): HasMany
+    {
+        return $this->hasMany(PpsDocumentoGenerado::class, 'pps_servicio_social_id');
+    }
+
     /**
      * Registros PPS/SS pendientes de revisión para el usuario y rol activo
      * indicados. Única fuente de verdad usada por la bandeja de tareas

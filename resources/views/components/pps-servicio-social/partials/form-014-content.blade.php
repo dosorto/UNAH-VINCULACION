@@ -6,7 +6,7 @@
     <div class="section-bar">I. Información general</div>
     <table class="grid">
         <colgroup>
-            <col style="width:34px;">
+            <col style="width:44px;">
             <col style="width:34%;">
             <col><col><col>
         </colgroup>
@@ -40,7 +40,7 @@
     <div class="section-bar">II. Datos del estudiante</div>
     <table class="grid">
         <colgroup>
-            <col style="width:34px;">
+            <col style="width:44px;">
             <col style="width:42%;">
             <col>
         </colgroup>
@@ -57,7 +57,7 @@
     <div class="section-bar">III. Información de la práctica profesional / servicio social</div>
     <table class="grid">
         <colgroup>
-            <col style="width:34px;">
+            <col style="width:44px;">
             <col style="width:32%;">
             <col><col><col><col><col><col>
         </colgroup>
@@ -93,7 +93,7 @@
 <div class="section section--page-break">
     <table class="grid">
         <colgroup>
-            <col style="width:34px;">
+            <col style="width:44px;">
             <col style="width:32%;">
             <col><col><col><col><col><col>
         </colgroup>
@@ -142,10 +142,7 @@
         <tr>
             <td class="num">14.1</td>
             <td class="lbl-g">Región</td>
-            <td class="cas" colspan="4">
-                <span class="opt">{!! $cb($checked['region']['nacional'] ?? false) !!} Nacional</span>
-                <span class="opt">{!! $cb($checked['region']['extranjero'] ?? false) !!} Extranjero</span>
-            </td>
+            <td class="data" colspan="4">{!! $dato($registro->region) !!}</td>
         </tr>
         <tr><td class="num">14.2</td><td class="lbl-g">País</td><td class="data" colspan="4">{!! $dato($registro->pais) !!}</td></tr>
         <tr><td class="num">14.3</td><td class="lbl-g">Departamento / provincia</td><td class="data" colspan="4">{!! $dato($registro->departamento ?: $registro->departamento_provincia) !!}</td></tr>
@@ -174,7 +171,7 @@
     <div class="section-bar">V. Alcances de la PPS / servicio social</div>
     <table class="grid">
         <colgroup>
-            <col style="width:34px;">
+            <col style="width:44px;">
             <col style="width:24%;">
             <col>
             <col style="width:24%;">
@@ -205,7 +202,7 @@
     <div class="section-bar">VI. Información de la institución / empresa</div>
     <table class="grid">
         <colgroup>
-            <col style="width:34px;">
+            <col style="width:44px;">
             <col style="width:36%;">
             <col>
         </colgroup>
@@ -227,7 +224,7 @@
 <div class="section section--page-break">
     <table class="grid">
         <colgroup>
-            <col style="width:34px;">
+            <col style="width:44px;">
             <col style="width:36%;">
             <col>
         </colgroup>
@@ -273,7 +270,7 @@
     <div class="section-bar">VII. Información del(a) docente supervisor(a) de la PPS – SS</div>
     <table class="grid">
         <colgroup>
-            <col style="width:34px;">
+            <col style="width:44px;">
             <col style="width:42%;">
             <col>
         </colgroup>
@@ -285,7 +282,7 @@
 <div class="section section--page-break">
     <table class="grid">
         <colgroup>
-            <col style="width:34px;">
+            <col style="width:44px;">
             <col style="width:42%;">
             <col>
         </colgroup>
@@ -322,7 +319,6 @@
             </td>
             <td>
                 Nombre: {!! $dato($registro->nombre_estudiante) !!}
-                @if(!empty($firmas['estudiante']['src']))<img class="signature" src="{{ $firmas['estudiante']['src'] }}" alt="Firma del estudiante">@endif
                 <div class="sline"></div>
                 <div class="scap">Firma del(a) estudiante que realiza la PPS / SS</div>
             </td>
@@ -335,7 +331,7 @@
     <div class="section-bar">IX. Documentos adjuntos a la ficha</div>
     <table class="grid">
         <colgroup>
-            <col style="width:34px;">
+            <col style="width:44px;">
             <col>
             <col style="width:42px;">
             <col style="width:42px;">

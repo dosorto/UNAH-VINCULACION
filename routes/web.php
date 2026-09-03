@@ -74,6 +74,7 @@ use App\Livewire\Proyectos\Vinculacion\CategoriaProyectoSelector;
 use App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial;
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
 use App\Livewire\Proyectos\Vinculacion\EditPpsServicioSocial;
+use App\Http\Controllers\Proyectos\Vinculacion\PpsDocumentoGeneradoController;
 use App\Livewire\Proyectos\Vinculacion\EditProyectoVinculacionForm;
 use App\Livewire\Proyectos\Vinculacion\ListFichasActualizacionVinculacion;
 use App\Livewire\Proyectos\Vinculacion\ListInformesSolicitado;
@@ -458,6 +459,10 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/pps-servicio-social/{id}/anexo/{tipo}', PpsServicioSocialAnexoController::class)
             ->name('pps-servicio-social.anexo')
+            ->middleware('permission:docente.crear-proyecto|docente.proyectos|director.proyectos|proyectos.historial|proyectos.revision-final');
+
+        Route::get('/pps-servicio-social/documentos-generados/{documento}', PpsDocumentoGeneradoController::class)
+            ->name('pps-servicio-social.documento-generado')
             ->middleware('permission:docente.crear-proyecto|docente.proyectos|director.proyectos|proyectos.historial|proyectos.revision-final');
 
         Route::get('/pps-servicio-social/{id}', ShowPpsServicioSocial::class)

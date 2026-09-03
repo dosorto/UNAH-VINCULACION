@@ -19,6 +19,14 @@ class ListPpsServicioSocial extends Component
 
     public function mount(): void
     {
+        // El administrador inicia en la vista global, igual que el historial
+        // general; los demás usuarios conservan su vista de registros propios.
+        if ($this->canViewAllRecords()) {
+            $this->viewMode = 'todos';
+
+            return;
+        }
+
         if (!$this->ownRecordsQuery()->exists() && $this->pendingReviewRecordsQuery()->exists()) {
             $this->viewMode = 'pendientes';
         }

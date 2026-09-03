@@ -110,6 +110,11 @@
         color: #fff;
         font-weight: bold;
         text-align: center;
+        width: 44px;
+        min-width: 44px;
+        white-space: nowrap;
+        word-break: normal;
+        overflow-wrap: normal;
         font-size: {{ $isPdf ? '9pt' : '9px' }};
     }
     .fdv .num:after { content: "."; }
@@ -211,6 +216,7 @@
         .fdv { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.2; letter-spacing: normal; }
         .fdv table.grid td, .fdv table.grid th { padding: 1.35mm 1.5mm; letter-spacing: normal; }
         .fdv .num, .fdv .lbl { font-size: 9pt; }
+        .fdv .num { width: 44px; min-width: 44px; white-space: nowrap; word-break: normal; overflow-wrap: normal; }
         .fdv .subhdr, .fdv .subbar { font-size: 8pt; }
         .fdv .sign td { height: 82px; }
         .fdv .sign .sline { margin-top: 44px; }

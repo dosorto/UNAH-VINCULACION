@@ -109,10 +109,12 @@
             <tbody class="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-gray-900">
                 @forelse($records as $record)
                     @php
-                        $puedeEditar = $record->estado === 'borrador'
+                        $puedeEditar = (in_array($record->estado, ['borrador', 'subsanacion'], true)
                             && $record->created_by !== null
                             && auth()->id() !== null
-                            && (int) $record->created_by === (int) auth()->id();
+                            && (int) $record->created_by === (int) auth()->id())
+                            || (in_array($record->estado, ['enviado', 'en_revision'], true)
+                                && $record->usuarioPuedeRevisar(auth()->user()));
                         $estadoBadge = match($record->estado) {
                             'borrador' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200',
                             'enviado' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',

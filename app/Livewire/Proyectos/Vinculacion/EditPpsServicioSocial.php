@@ -13,6 +13,7 @@ use Illuminate\Contracts\View\View;
 class EditPpsServicioSocial extends CreatePpsServicioSocial
 {
     public PpsServicioSocial $registro;
+    public string $comentarioRevisor = '';
     public ?string $archivo_carta_formalizacion_actual = null;
     public ?string $archivo_convenio_marco_actual = null;
 
@@ -25,7 +26,7 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         $this->registroId = $registro->id;
         $this->registroGuardado = true;
 
-        if (!$this->estadoPermiteEdicion($registro)) {
+        if (!$this->estadoPermiteEdicion($registro) && !$this->esEdicionRevisor($registro)) {
             Notification::make()
                 ->title('Edición no disponible')
                 ->body('Solo los registros en estado borrador o subsanación editable pueden editarse.')
@@ -46,7 +47,13 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
     {
         $this->registro->refresh();
 
-        if (!$this->estadoPermiteEdicion($this->registro)) {
+        // Los revisores deben guardar explícitamente y dejar un comentario;
+        // el autoguardado no puede modificar un registro en revisión.
+        if ($this->esEdicionRevisor($this->registro)) {
+            return true;
+        }
+
+        if (!$this->estadoPermiteEdicion($this->registro) && !$this->esEdicionRevisor($this->registro)) {
             $this->estadoAutoGuardado = 'error';
 
             Notification::make()
@@ -65,11 +72,41 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         return parent::autoGuardarBorrador();
     }
 
+    public function abrirModalEnviar(): void
+    {
+        if ($this->esEdicionRevisor($this->registro)) {
+            Notification::make()
+                ->title('Envío no disponible')
+                ->body('El revisor debe guardar sus cambios con un comentario; la etapa y sus responsables se conservan.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        parent::abrirModalEnviar();
+    }
+
+    public function confirmarEnvio(): void
+    {
+        if ($this->esEdicionRevisor($this->registro)) {
+            Notification::make()
+                ->title('Envío no disponible')
+                ->body('Los cambios del revisor no reinician el flujo ni solicitan nuevos responsables.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        parent::confirmarEnvio();
+    }
+
     public function guardar(): void
     {
         $this->registro->refresh();
 
-        if (!$this->estadoPermiteEdicion($this->registro)) {
+        if (!$this->estadoPermiteEdicion($this->registro) && !$this->esEdicionRevisor($this->registro)) {
             Notification::make()
                 ->title('Edición bloqueada')
                 ->body('El registro ya no esta en una etapa editable y no puede modificarse.')
@@ -85,6 +122,13 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
 
         $this->resetErrorBag();
         $this->validate($this->rules(), $this->messages(), $this->validationAttributes());
+
+        $esRevisor = $this->esEdicionRevisor($this->registro);
+        if ($esRevisor) {
+            $this->validate([
+                'comentarioRevisor' => 'required|string|min:5|max:5000',
+            ], [], ['comentarioRevisor' => 'comentario de revisión']);
+        }
 
         if (!$this->autoGuardarBorrador()) {
             return;
@@ -116,6 +160,21 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
                 || filled($payload['archivo_convenio_marco']);
 
             $this->registro->update($payload);
+
+            if ($esRevisor) {
+                $empleado = auth()->user()?->empleado;
+                $tipoEstadoId = $this->registro->estadoActual?->tipo_estado_id;
+                if (!$empleado || !$tipoEstadoId) {
+                    throw new \RuntimeException('No se pudo identificar al revisor para registrar el comentario.');
+                }
+
+                $this->registro->agregarEstado(
+                    $empleado,
+                    (int) $tipoEstadoId,
+                    'Edición de revisor: '.trim($this->comentarioRevisor)
+                );
+                $this->comentarioRevisor = '';
+            }
             $this->estadoAutoGuardado = 'guardado';
         } catch (\Throwable $e) {
             report($e);
@@ -152,9 +211,21 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
 
     protected function canEditRecord(PpsServicioSocial $registro): bool
     {
-        return $registro->created_by !== null
+        $esCreador = $registro->created_by !== null
             && auth()->id() !== null
             && (int) $registro->created_by === (int) auth()->id();
+
+        return $esCreador || $this->esEdicionRevisor($registro);
+    }
+
+    public function esEdicionRevisor(?PpsServicioSocial $registro = null): bool
+    {
+        $registro ??= $this->registro;
+        $user = auth()->user();
+
+        return in_array($registro->estado, ['enviado', 'en_revision'], true)
+            && $user !== null
+            && $registro->usuarioPuedeRevisar($user);
     }
 
     private function estadoPermiteEdicion(PpsServicioSocial $registro): bool
