@@ -142,7 +142,7 @@
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Facultad / Centro Universitario Regional / Instituto Tecnológico <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Facultad / Centro Universitario Regional / Instituto Tecnológico</label>
                         <select wire:model.live="facultad_centro_id" class="{{ $inputClass }}">
                             <option value="">Seleccione...</option>
                             @foreach($facultadesCentros as $id => $nombre)
@@ -153,7 +153,7 @@
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Carrera <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Carrera</label>
                         <select wire:model="carrera_id" class="{{ $inputClass }}" @disabled(!$facultad_centro_id || $carreras->isEmpty())>
                             <option value="">Seleccione...</option>
                             @foreach($carreras as $id => $nombre)
@@ -177,25 +177,25 @@
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                        <label class="{{ $labelClass }}">Número de cuenta <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Número de cuenta</label>
                         <input type="text" wire:model="numero_cuenta" class="{{ $inputClass }}">
                         @error('numero_cuenta') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Nombre completo <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Nombre completo</label>
                         <input type="text" wire:model="estudiante_nombre_completo" class="{{ $inputClass }}">
                         @error('estudiante_nombre_completo') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Número de celular <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Número de celular</label>
                         <input type="tel" wire:model="estudiante_celular" class="{{ $inputClass }}">
                         @error('estudiante_celular') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Correo electrónico institucional <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Correo electrónico institucional</label>
                         <input type="email" wire:model="estudiante_correo_institucional" class="{{ $inputClass }}">
                         @error('estudiante_correo_institucional') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
@@ -215,7 +215,7 @@
 
                 <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
                     <div class="{{ $cardClass }}">
-                        <p class="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-100">Tipo <span class="text-red-500">*</span></p>
+                        <p class="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-100">Tipo</p>
                         <div class="space-y-2">
                             @foreach($tipoPpsOpciones as $value => $label)
                                 <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -228,7 +228,7 @@
                     </div>
 
                     <div class="{{ $cardClass }}">
-                        <p class="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-100">Territorio de ejecución <span class="text-red-500">*</span></p>
+                        <p class="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-100">Territorio de ejecución</p>
                         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                             @foreach(['Nacional', 'Internacional'] as $territorio)
                                 <label class="flex items-center gap-2 rounded-md border border-gray-200 p-3 text-sm dark:border-gray-700">
@@ -241,19 +241,19 @@
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Fecha de inicio <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Fecha de inicio</label>
                         <input type="date" wire:model="fecha_inicio" class="{{ $inputClass }}">
                         @error('fecha_inicio') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Fecha de finalización <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Fecha de finalización</label>
                         <input type="date" wire:model="fecha_finalizacion" class="{{ $inputClass }}">
                         @error('fecha_finalizacion') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
 
                     <div class="lg:col-span-2">
-                        <label class="{{ $labelClass }}">Tipo de instrumento que formaliza la PPS / SS <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Tipo de instrumento que formaliza la PPS / SS</label>
                         <select wire:model="tipo_instrumento" class="{{ $inputClass }}">
                             <option value="">Seleccione...</option>
                             @foreach($instrumentoOpciones as $value => $label)
@@ -271,7 +271,7 @@
                 <h2 class="mb-5 text-lg font-semibold text-gray-900 dark:text-white">Paso 4: Datos territoriales de la PPS / Servicio Social</h2>
 
                 <div class="{{ $cardClass }} mb-5">
-                    <p class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Modalidad <span class="text-red-500">*</span></p>
+                    <p class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Modalidad</p>
                     <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
                         @foreach($modalidadOpciones as $value => $label)
                             <label class="flex items-center gap-2 rounded-md border border-gray-200 p-3 text-sm dark:border-gray-700">
@@ -307,7 +307,7 @@
 
                                 @if($territorio_ejecucion === 'Nacional')
                                     <div>
-                                        <label class="{{ $labelClass }}">Departamento <span class="text-red-500">*</span></label>
+                                        <label class="{{ $labelClass }}">Departamento</label>
                                         <select wire:model.live="departamento_id" class="{{ $inputClass }}">
                                             <option value="">Seleccione...</option>
                                             @foreach($departamentos as $id => $nombre)
@@ -318,7 +318,7 @@
                                     </div>
 
                                     <div>
-                                        <label class="{{ $labelClass }}">Municipio <span class="text-red-500">*</span></label>
+                                        <label class="{{ $labelClass }}">Municipio</label>
                                         <select wire:model.live="municipio_id" class="{{ $inputClass }}" @disabled(!$departamento_id || $municipios->isEmpty())>
                                             <option value="">Seleccione...</option>
                                             @foreach($municipios as $id => $nombre)
@@ -431,7 +431,7 @@
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Total de horas <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Total de horas</label>
                         <input type="number" min="1" wire:model="total_horas" class="{{ $inputClass }}">
                         @error('total_horas') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
@@ -457,7 +457,7 @@
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div class="md:col-span-2">
-                        <label class="{{ $labelClass }}">Nombre completo de la institución / organización <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Nombre completo de la institución / organización</label>
                         <input type="text" wire:model="institucion_nombre" class="{{ $inputClass }}">
                         @error('institucion_nombre') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
@@ -541,7 +541,7 @@
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div class="md:col-span-2">
-                        <label class="{{ $labelClass }}">Nombre completo <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Nombre completo</label>
                         <input type="text" wire:model="jefe_directo_nombre" class="{{ $inputClass }}">
                         @error('jefe_directo_nombre') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
@@ -667,7 +667,7 @@
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div class="md:col-span-2">
-                        <label class="{{ $labelClass }}">Nombre completo <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Nombre completo</label>
                         <input type="text" wire:model="docente_supervisor_nombre" class="{{ $inputClass }}">
                         @error('docente_supervisor_nombre') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
@@ -728,7 +728,7 @@
 
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <div class="{{ $cardClass }}">
-                        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">Carta de formalización de la PPS firmada por la contraparte <span class="text-red-500">*</span></p>
+                        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">Carta de formalización de la PPS firmada por la contraparte</p>
                         <div class="mt-3 flex gap-4">
                             @foreach(['Si', 'No'] as $opcion)
                                 <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -760,7 +760,7 @@
                     </div>
 
                     <div class="{{ $cardClass }}">
-                        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">Convenio marco entre la UNAH y entidad <span class="text-red-500">*</span></p>
+                        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">Convenio marco entre la UNAH y entidad</p>
                         <div class="mt-3 flex gap-4">
                             @foreach(['Si', 'No'] as $opcion)
                                 <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">

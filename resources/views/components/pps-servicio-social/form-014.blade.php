@@ -49,7 +49,7 @@
     @if($isPdf)
         @page {
             size: letter portrait;
-            margin: 55mm 15mm 15mm;
+            margin: 35mm 9mm 13mm;
         }
     @endif
 
@@ -212,7 +212,7 @@
 @if($isPdf)
     {{-- Ajustes finales declarados después del encabezado y pie compartidos. --}}
     <style>
-        @page { margin: 55mm 15mm 15mm; }
+        @page { margin: 35mm 9mm 13mm; }
         .fdv { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.2; letter-spacing: normal; }
         .fdv table.grid td, .fdv table.grid th { padding: 1.35mm 1.5mm; letter-spacing: normal; }
         .fdv .num, .fdv .lbl { font-size: 9pt; }

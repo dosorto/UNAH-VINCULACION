@@ -786,7 +786,6 @@ class ProyectosPorFirmar extends Component
                     ->selectRaw('1')
                     ->from('enf_revisiones as enf_revisiones_anteriores')
                     ->whereColumn('enf_revisiones_anteriores.enf_accion_id', 'enf_revisiones.enf_accion_id')
-                    ->whereColumn('enf_revisiones_anteriores.proceso', 'enf_revisiones.proceso')
                     ->whereColumn('enf_revisiones_anteriores.revision_ciclo', 'enf_revisiones.revision_ciclo')
                     ->whereColumn('enf_revisiones_anteriores.orden', '<', 'enf_revisiones.orden')
                     ->whereIn('enf_revisiones_anteriores.estado', $pendingStates);
@@ -796,7 +795,6 @@ class ProyectosPorFirmar extends Component
                     ->selectRaw('1')
                     ->from('enf_revisiones as enf_revisiones_ciclo_nuevo')
                     ->whereColumn('enf_revisiones_ciclo_nuevo.enf_accion_id', 'enf_revisiones.enf_accion_id')
-                    ->whereColumn('enf_revisiones_ciclo_nuevo.proceso', 'enf_revisiones.proceso')
                     ->whereColumn('enf_revisiones_ciclo_nuevo.revision_ciclo', '>', 'enf_revisiones.revision_ciclo');
             })
             ->where(function (Builder $responsableQuery) use ($user, $activeRoleName): void {

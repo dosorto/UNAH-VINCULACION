@@ -4,9 +4,10 @@ namespace App\Services\PpsServicioSocial;
 
 use App\Models\PpsDocumentoGenerado;
 use App\Models\PpsServicioSocial;
+use App\Support\PpsServicioSocial\FormDvus014Data;
+use App\Support\PpsServicioSocial\PpsDocumentoRequirements;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class PpsDocumentoGenerator
 {
@@ -15,27 +16,28 @@ class PpsDocumentoGenerator
 
     public function generarSolicitud(PpsServicioSocial $pps, int $usuarioId): PpsDocumentoGenerado
     {
-        return $this->generar($pps, self::SOLICITUD, $usuarioId);
+        return $this->generar($pps, PpsDocumentoRequirements::SOLICITUD, $usuarioId);
     }
 
     public function generarAutorizacion(PpsServicioSocial $pps, int $usuarioId): PpsDocumentoGenerado
     {
-        foreach (['fecha_inicio', 'fecha_finalizacion', 'nombre_institucion', 'total_horas', 'nombre_estudiante', 'numero_cuenta', 'carrera', 'facultad_centro', 'modalidad_ejecucion'] as $campo) {
-            if (blank($pps->{$campo})) {
-                throw new \RuntimeException("No se puede generar la autorización: falta {$campo}.");
-            }
-        }
-
-        return $this->generar($pps, self::AUTORIZACION, $usuarioId);
+        return $this->generar($pps, PpsDocumentoRequirements::AUTORIZACION, $usuarioId);
     }
 
     private function generar(PpsServicioSocial $pps, string $tipo, int $usuarioId): PpsDocumentoGenerado
     {
-        $pps->loadMissing(['firmasDeEtapa.empleado.firma']);
+        $pps->loadMissing([
+            'firmasDeEtapa.empleado.firma',
+            'firmasDeEtapa.flujoEtapa',
+            'firmasDeEtapa.cargoFirma.tipoCargoFirma',
+        ]);
+        PpsDocumentoRequirements::validate($pps, $tipo);
+
+        $formData = FormDvus014Data::from($pps);
         $version = ((int) $pps->documentosGenerados()->where('tipo', $tipo)->max('version')) + 1;
         $nombre = $tipo.'-'.$pps->codigo_registro.'-v'.$version.'.pdf';
         $ruta = 'pps-servicio-social/generados/'.$pps->id.'/'.$nombre;
-        $contenido = Pdf::loadView('pdf.pps-servicio-social.generado', compact('pps', 'tipo'))
+        $contenido = Pdf::loadView('pdf.pps-servicio-social.generado', compact('pps', 'tipo', 'formData'))
             ->setPaper('letter')
             ->setOption('isRemoteEnabled', false)
             ->setOption('isHtml5ParserEnabled', true)

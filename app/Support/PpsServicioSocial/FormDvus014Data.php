@@ -100,8 +100,8 @@ class FormDvus014Data
             'correo_institucional' => self::clean($registro->correo_institucional),
             'correo_personal' => self::clean($registro->correo_personal),
             'tipo_pps_ss' => $tipoPps ?: self::clean($registro->tipo_pps_ss),
-            'fecha_inicio' => $registro->fecha_inicio,
-            'fecha_finalizacion' => $registro->fecha_finalizacion,
+            'fecha_inicio' => self::fechaVisible($registro->fecha_inicio),
+            'fecha_finalizacion' => self::fechaVisible($registro->fecha_finalizacion),
             'tipo_instrumento' => $tipoInstrumento ?: self::clean($registro->tipo_instrumento),
             'territorio_ejecucion' => $territorio ?: self::clean($registro->territorio_ejecucion),
             'modalidad_ejecucion' => $modalidad ?: self::clean($registro->modalidad_ejecucion),
@@ -205,31 +205,66 @@ class FormDvus014Data
         ];
     }
 
+    /**
+     * Devuelve la firma de etapa que representa al coordinador responsable.
+     * El flujo es la fuente de verdad para no inventar un coordinador.
+     */
+    public static function coordinadorFirma(PpsServicioSocial $registro): ?object
+    {
+        $registro->loadMissing([
+            'firmasDeEtapa.empleado.firma',
+            'firmasDeEtapa.flujoEtapa',
+            'firmasDeEtapa.cargoFirma.tipoCargoFirma',
+        ]);
+
+        return $registro->firmasDeEtapa
+            ->sortBy([['revision_ciclo', 'desc'], ['orden_revision', 'asc'], ['id', 'asc']])
+            ->first(function ($firma): bool {
+                $texto = self::normalize(implode(' ', array_filter([
+                    $firma->etapa_nombre,
+                    $firma->flujoEtapa?->nombre,
+                    $firma->cargoFirma?->tipoCargoFirma?->nombre,
+                ])));
+
+                return Str::contains($texto, 'coordinador');
+            });
+    }
+
+    public static function firmaDisponible(?object $empleado): bool
+    {
+        $ruta = trim((string) ($empleado?->firma?->ruta_storage ?? ''));
+
+        return $ruta !== '' && FirmaImagen::resolver($ruta, true) !== null;
+    }
+
     /** Resuelve firmas del FORM-014 usando el mismo mecanismo seguro que los demás PDF. */
     private static function firmasParaPdf(PpsServicioSocial $registro, bool $isPdf = true): array
     {
         $firmas = ['coordinador' => null, 'supervisor' => null, 'estudiante' => null];
         $asignar = static function (string $tipo, $empleado) use (&$firmas, $isPdf): void {
+            if (! $empleado) {
+                return;
+            }
+
             $firma = $empleado?->firma;
             $ruta = trim((string) ($firma?->ruta_storage ?? ''));
             $imagen = FirmaImagen::resolver($ruta, $isPdf);
 
-            if (! $firma || ! $imagen) {
-                return;
-            }
-
-            $firmas[$tipo] = ['nombre' => $empleado->nombre_completo, 'src' => $imagen['src']];
+            $firmas[$tipo] = [
+                'nombre' => $empleado->nombre_completo,
+                'src' => $imagen['src'] ?? null,
+            ];
         };
 
-        $ciclo = max(1, (int) $registro->firmasDeEtapa()->max('revision_ciclo'));
-        $etapas = $registro->firmasDeEtapa()->with(['empleado.firma', 'flujoEtapa'])
-            ->where('revision_ciclo', $ciclo)->get();
+        $coordinadorFirma = self::coordinadorFirma($registro);
+        $asignar('coordinador', $coordinadorFirma?->empleado);
+        $ciclo = (int) ($coordinadorFirma?->revision_ciclo ?: $registro->firmasDeEtapa->max('revision_ciclo'));
 
-        foreach ($etapas as $firma) {
+        foreach ($registro->firmasDeEtapa
+            ->where('revision_ciclo', max(1, $ciclo))
+            ->sortBy('orden_revision') as $firma) {
             $nombre = Str::lower((string) ($firma->etapa_nombre ?: $firma->flujoEtapa?->nombre));
-            if (Str::contains($nombre, ['coordinador'])) {
-                $asignar('coordinador', $firma->empleado);
-            } elseif (Str::contains($nombre, ['supervisor', 'docente'])) {
+            if (Str::contains($nombre, ['supervisor', 'docente']) && $firma->id !== $coordinadorFirma?->id) {
                 $asignar('supervisor', $firma->empleado);
             }
         }
@@ -239,6 +274,15 @@ class FormDvus014Data
         $asignar('estudiante', $estudiante);
 
         return $firmas;
+    }
+
+    private static function fechaVisible(mixed $fecha): mixed
+    {
+        if ($fecha instanceof \DateTimeInterface && $fecha->format('Y-m-d') === PpsDocumentoRequirements::BORRADOR_FECHA) {
+            return null;
+        }
+
+        return $fecha;
     }
 
     private static function missingFields(

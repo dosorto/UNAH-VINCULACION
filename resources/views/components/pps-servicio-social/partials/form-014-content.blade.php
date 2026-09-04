@@ -319,6 +319,7 @@
             </td>
             <td>
                 Nombre: {!! $dato($registro->nombre_estudiante) !!}
+                @if(!empty($firmas['estudiante']['src']))<img class="signature" src="{{ $firmas['estudiante']['src'] }}" alt="Firma del estudiante">@endif
                 <div class="sline"></div>
                 <div class="scap">Firma del(a) estudiante que realiza la PPS / SS</div>
             </td>

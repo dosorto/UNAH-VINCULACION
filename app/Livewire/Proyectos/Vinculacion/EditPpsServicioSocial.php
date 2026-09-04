@@ -238,18 +238,18 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         $this->facultad_centro_id = $this->findIdByName(FacultadCentro::class, $registro->facultad_centro);
         $this->carrera_id = $this->findIdByName(Carrera::class, $registro->carrera);
 
-        $this->numero_cuenta = $registro->numero_cuenta;
-        $this->estudiante_nombre_completo = $registro->nombre_estudiante;
-        $this->estudiante_celular = $registro->celular_estudiante;
-        $this->estudiante_correo_institucional = $registro->correo_institucional;
-        $this->estudiante_correo_personal = $registro->correo_personal ?? '';
+        $this->numero_cuenta = $this->valorParaFormulario($registro->numero_cuenta);
+        $this->estudiante_nombre_completo = $this->valorParaFormulario($registro->nombre_estudiante);
+        $this->estudiante_celular = $this->valorParaFormulario($registro->celular_estudiante);
+        $this->estudiante_correo_institucional = $this->valorParaFormulario($registro->correo_institucional);
+        $this->estudiante_correo_personal = $this->valorParaFormulario($registro->correo_personal);
 
-        $this->tipo_pps_ss = $registro->tipo_pps_ss;
-        $this->fecha_inicio = $registro->fecha_inicio?->format('Y-m-d') ?? '';
-        $this->fecha_finalizacion = $registro->fecha_finalizacion?->format('Y-m-d') ?? '';
-        $this->tipo_instrumento = $this->optionKeyFromStoredValue($this->instrumentoOpciones, $registro->tipo_instrumento);
+        $this->tipo_pps_ss = $this->valorParaFormulario($registro->tipo_pps_ss);
+        $this->fecha_inicio = $this->fechaParaFormulario($registro->fecha_inicio);
+        $this->fecha_finalizacion = $this->fechaParaFormulario($registro->fecha_finalizacion);
+        $this->tipo_instrumento = $this->valorParaFormulario($this->optionKeyFromStoredValue($this->instrumentoOpciones, $registro->tipo_instrumento));
         $this->territorio_ejecucion = $registro->territorio_ejecucion ?: 'Nacional';
-        $this->modalidad_ejecucion = $registro->modalidad_ejecucion;
+        $this->modalidad_ejecucion = $this->valorParaFormulario($registro->modalidad_ejecucion);
         $this->region = $registro->region ?? '';
         $this->pais = $registro->pais ?? '';
         $this->departamento_provincia = $registro->departamento_provincia ?? '';
@@ -270,11 +270,11 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
 
         $this->descripcion_tipo_pps = $registro->descripcion_tipo_pps ?? '';
         $this->descripcion_horas_tipo_pps_ss = $registro->descripcion_horas_tipo_pps_ss ?? '';
-        $this->total_horas = (string) $registro->total_horas;
-        $this->area_realizacion = $registro->area_realizacion ?? '';
-        $this->resumen_responsabilidades = $registro->resumen_responsabilidades ?? '';
+        $this->total_horas = $registro->total_horas > 0 ? (string) $registro->total_horas : '';
+        $this->area_realizacion = $this->valorParaFormulario($registro->area_realizacion);
+        $this->resumen_responsabilidades = $this->valorParaFormulario($registro->resumen_responsabilidades);
 
-        $this->institucion_nombre = $registro->nombre_institucion;
+        $this->institucion_nombre = $this->valorParaFormulario($registro->nombre_institucion);
         $this->institucion_nacionalidad = $registro->institucion_nacionalidad ?? '';
         $this->institucion_pais = $registro->institucion_pais ?? '';
         $this->institucion_compromisos = $registro->compromisos_institucion ?? '';
@@ -285,13 +285,13 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         $this->institucion_tipo = $this->optionKeyFromStoredValue($this->tipoInstitucionOpciones, $registro->tipo_institucion);
         $this->institucion_sector = $this->optionKeyFromStoredValue($this->sectorOpciones, $registro->sector_institucion);
 
-        $this->jefe_directo_nombre = $registro->nombre_jefe_directo;
+        $this->jefe_directo_nombre = $this->valorParaFormulario($registro->nombre_jefe_directo);
         $this->jefe_directo_celular = $registro->celular_jefe_directo ?? '';
         $this->jefe_directo_correo = $registro->correo_jefe_directo ?? '';
         $this->jefe_directo_cargo = $registro->cargo_jefe_directo ?? '';
         $this->jefe_directo_grado = $registro->grado_academico_jefe_directo ?? '';
 
-        $this->docente_supervisor_nombre = $registro->nombre_docente_supervisor;
+        $this->docente_supervisor_nombre = $this->valorParaFormulario($registro->nombre_docente_supervisor);
         $this->docente_numero_empleado = $registro->numero_empleado_docente ?? '';
         $this->docente_celular = $registro->celular_docente ?? '';
         $this->docente_correo = $registro->correo_docente ?? '';

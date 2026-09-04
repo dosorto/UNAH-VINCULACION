@@ -12,6 +12,7 @@ use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\User;
 use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
 use App\Support\Notification;
+use App\Support\PpsServicioSocial\PpsDocumentoRequirements;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -337,17 +338,6 @@ class CreatePpsServicioSocial extends Component
     {
         $this->resetErrorBag();
 
-        if ($this->shouldLockStepNavigation()) {
-            $blockedStep = $this->firstIncompleteStepBefore($this->totalSteps + 1);
-
-            if ($blockedStep !== null) {
-                $this->currentStep = $blockedStep;
-                $this->validateCurrentStep();
-
-                return;
-            }
-        }
-
         if ($this->shouldLockStepNavigation() && ! $this->autoGuardarBorrador()) {
             return;
         }
@@ -557,7 +547,7 @@ class CreatePpsServicioSocial extends Component
 
     protected function payloadParcial(): array
     {
-        $fechaInicio = $this->fecha_inicio ?: now()->toDateString();
+        $fechaInicio = $this->fecha_inicio ?: PpsDocumentoRequirements::BORRADOR_FECHA;
         $fechaFinalizacion = $this->fecha_finalizacion ?: $fechaInicio;
 
         return [
@@ -586,7 +576,7 @@ class CreatePpsServicioSocial extends Component
             'aldea_ciudad_sede_principal' => $this->aldea_ciudad_sede_principal ?: null,
             'descripcion_tipo_pps' => $this->descripcion_tipo_pps ?: null,
             'descripcion_horas_tipo_pps_ss' => $this->descripcion_horas_tipo_pps_ss ?: null,
-            'total_horas' => max(1, (int) $this->total_horas),
+            'total_horas' => $this->total_horas === '' ? 0 : max(0, (int) $this->total_horas),
             'horas_presenciales' => $this->horas_presenciales === '' ? null : max(0, (int) $this->horas_presenciales),
             'horas_teletrabajo' => $this->horas_teletrabajo === '' ? null : max(0, (int) $this->horas_teletrabajo),
             'area_realizacion' => $this->area_realizacion ?: null,
@@ -628,6 +618,22 @@ class CreatePpsServicioSocial extends Component
         return $value !== '' ? $value : $fallback;
     }
 
+    protected function valorParaFormulario(mixed $value, ?string $campo = null): string
+    {
+        return PpsDocumentoRequirements::isBlank($value, $campo)
+            ? ''
+            : trim((string) $value);
+    }
+
+    protected function fechaParaFormulario(?\DateTimeInterface $fecha): string
+    {
+        if (! $fecha || $fecha->format('Y-m-d') === PpsDocumentoRequirements::BORRADOR_FECHA) {
+            return '';
+        }
+
+        return $fecha->format('Y-m-d');
+    }
+
     protected function validateCurrentStep(): void
     {
         $rules = $this->rulesForStep($this->currentStep);
@@ -651,27 +657,31 @@ class CreatePpsServicioSocial extends Component
     {
         return match ($step) {
             1 => [
-                'facultad_centro_id' => 'required|integer|exists:centro_facultad,id',
-                'carrera_id' => 'required|integer|exists:carrera,id',
+                'facultad_centro_id' => 'nullable|integer|exists:centro_facultad,id',
+                'carrera_id' => 'nullable|integer|exists:carrera,id',
             ],
             2 => [
-                'numero_cuenta' => 'required|string|max:50',
-                'estudiante_nombre_completo' => 'required|string|max:255',
-                'estudiante_celular' => 'required|string|max:30',
-                'estudiante_correo_institucional' => 'required|email|max:255',
+                'numero_cuenta' => 'nullable|string|max:50',
+                'estudiante_nombre_completo' => 'nullable|string|max:255',
+                'estudiante_celular' => 'nullable|string|max:30',
+                'estudiante_correo_institucional' => 'nullable|email|max:255',
                 'estudiante_correo_personal' => 'nullable|email|max:255',
             ],
             3 => [
-                'tipo_pps_ss' => ['required', 'string', Rule::in($this->tipoPpsValoresPermitidos())],
-                'fecha_inicio' => 'required|date',
-                'fecha_finalizacion' => 'required|date|after_or_equal:fecha_inicio',
-                'tipo_instrumento' => 'required|string|in:carta_formal_solicitud,carta_intenciones,convenio_marco',
-                'territorio_ejecucion' => 'required|string|in:Nacional,Internacional',
+                'tipo_pps_ss' => ['nullable', 'string', Rule::in($this->tipoPpsValoresPermitidos())],
+                'fecha_inicio' => 'nullable|date',
+                'fecha_finalizacion' => [
+                    'nullable',
+                    'date',
+                    Rule::when(filled($this->fecha_inicio), ['after_or_equal:fecha_inicio']),
+                ],
+                'tipo_instrumento' => 'nullable|string|in:carta_formal_solicitud,carta_intenciones,convenio_marco',
+                'territorio_ejecucion' => 'nullable|string|in:Nacional,Internacional',
             ],
             4 => [
-                'modalidad_ejecucion' => ['required', 'string', Rule::in($this->modalidadValoresPermitidos())],
-                'departamento_id' => 'required_if:territorio_ejecucion,Nacional|nullable|integer|exists:departamento,id',
-                'municipio_id' => 'required_if:territorio_ejecucion,Nacional|nullable|integer|exists:municipio,id',
+                'modalidad_ejecucion' => ['nullable', 'string', Rule::in($this->modalidadValoresPermitidos())],
+                'departamento_id' => 'nullable|integer|exists:departamento,id',
+                'municipio_id' => 'nullable|integer|exists:municipio,id',
                 'municipio_texto' => 'nullable|string|max:255',
                 'region' => 'nullable|string|max:255',
                 'pais' => 'nullable|string|max:255',
@@ -690,12 +700,12 @@ class CreatePpsServicioSocial extends Component
             5 => [
                 'descripcion_tipo_pps' => 'nullable|string',
                 'descripcion_horas_tipo_pps_ss' => 'nullable|string',
-                'total_horas' => 'required|integer|min:1',
+                'total_horas' => 'nullable|integer|min:0',
                 'area_realizacion' => 'nullable|string|max:255',
                 'resumen_responsabilidades' => 'nullable|string',
             ],
             6 => [
-                'institucion_nombre' => 'required|string|max:255',
+                'institucion_nombre' => 'nullable|string|max:255',
                 'institucion_nacionalidad' => 'nullable|string|in:Nacional,Internacional',
                 'institucion_pais' => 'nullable|string|max:255',
                 'institucion_compromisos' => 'nullable|string',
@@ -707,26 +717,26 @@ class CreatePpsServicioSocial extends Component
                 'institucion_sector' => 'nullable|string',
             ],
             7 => [
-                'jefe_directo_nombre' => 'required|string|max:255',
+                'jefe_directo_nombre' => 'nullable|string|max:255',
                 'jefe_directo_celular' => 'nullable|string|max:30',
                 'jefe_directo_correo' => 'nullable|email|max:255',
                 'jefe_directo_cargo' => 'nullable|string|max:255',
                 'jefe_directo_grado' => ['nullable', 'string', Rule::in(array_merge([''], self::GRADO_ACADEMICO_JEFE_DIRECTO_OPCIONES))],
             ],
             8 => [
-                'docente_supervisor_nombre' => 'required|string|max:255',
+                'docente_supervisor_nombre' => 'nullable|string|max:255',
                 'docente_numero_empleado' => 'nullable|string|max:50',
                 'docente_celular' => 'nullable|string|max:30',
                 'docente_correo' => 'nullable|email|max:255',
                 'docente_categoria' => 'nullable|string|max:255',
                 'docente_departamento' => 'nullable|string|max:255',
-                'docente_jornada' => ['required', 'string', Rule::in($this->jornadasLaboralesValidas())],
+                'docente_jornada' => ['nullable', 'string', Rule::in($this->jornadasLaboralesValidas())],
                 'docente_cubiculo' => 'nullable|string|max:255',
             ],
             9 => [
-                'carta_formalizacion_aplica' => 'required|in:Si,No',
+                'carta_formalizacion_aplica' => 'nullable|in:Si,No',
                 'carta_formalizacion_archivo' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
-                'convenio_marco_aplica' => 'required|in:Si,No',
+                'convenio_marco_aplica' => 'nullable|in:Si,No',
                 'convenio_marco_archivo' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
             ],
             default => [],
@@ -876,8 +886,6 @@ class CreatePpsServicioSocial extends Component
     protected function messages(): array
     {
         return [
-            'departamento_id.required_if' => 'El departamento es obligatorio cuando el territorio de ejecución es Nacional.',
-            'municipio_id.required_if' => 'El municipio es obligatorio cuando el territorio de ejecución es Nacional.',
             'horas_presenciales.integer' => 'Las horas presenciales deben ser un número entero.',
             'horas_presenciales.min' => 'Las horas presenciales no pueden ser negativas.',
             'horas_teletrabajo.integer' => 'Las horas de teletrabajo deben ser un número entero.',

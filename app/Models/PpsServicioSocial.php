@@ -9,6 +9,7 @@ use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
+use App\Support\PpsServicioSocial\PpsDocumentoRequirements;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,8 +17,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 
 class PpsServicioSocial extends Model
 {
@@ -302,90 +301,7 @@ class PpsServicioSocial extends Model
 
     public function camposFaltantesParaEnvio(): array
     {
-        $faltantes = [];
-
-        $camposObligatorios = [
-            'facultad_centro' => 'Facultad / Centro',
-            'carrera' => 'Carrera',
-            'numero_cuenta' => 'Número de cuenta',
-            'nombre_estudiante' => 'Nombre del estudiante',
-            'celular_estudiante' => 'Celular del estudiante',
-            'correo_institucional' => 'Correo institucional',
-            'tipo_pps_ss' => 'Tipo PPS/SS',
-            'fecha_inicio' => 'Fecha de inicio',
-            'fecha_finalizacion' => 'Fecha de finalización',
-            'tipo_instrumento' => 'Tipo de instrumento',
-            'territorio_ejecucion' => 'Territorio de ejecución',
-            'total_horas' => 'Total de horas',
-            'modalidad_ejecucion' => 'Modalidad de ejecución',
-            'nombre_institucion' => 'Institución / Organización',
-            'nombre_jefe_directo' => 'Jefe directo',
-            'nombre_docente_supervisor' => 'Docente supervisor',
-        ];
-
-        foreach ($camposObligatorios as $campo => $etiqueta) {
-            if (!$this->valorCompletoParaEnvio($this->getAttribute($campo))) {
-                $faltantes[] = $etiqueta;
-            }
-        }
-
-        if ($this->territorio_ejecucion === 'Nacional') {
-            foreach (['departamento' => 'Departamento', 'municipio' => 'Municipio'] as $campo => $etiqueta) {
-                if (!$this->valorCompletoParaEnvio($this->getAttribute($campo))) {
-                    $faltantes[] = $etiqueta;
-                }
-            }
-        }
-
-        if ($this->valorCompletoParaEnvio($this->correo_institucional)
-            && !filter_var($this->correo_institucional, FILTER_VALIDATE_EMAIL)
-        ) {
-            $faltantes[] = 'Correo institucional con formato válido';
-        }
-
-        if ($this->valorCompletoParaEnvio($this->total_horas)
-            && (!is_numeric($this->total_horas) || (int) $this->total_horas < 1)
-        ) {
-            $faltantes[] = 'Total de horas mayor a 0';
-        }
-
-        if ($this->valorCompletoParaEnvio($this->fecha_inicio)
-            && $this->valorCompletoParaEnvio($this->fecha_finalizacion)
-        ) {
-            try {
-                $fechaInicio = $this->fechaParaComparar($this->fecha_inicio);
-                $fechaFinalizacion = $this->fechaParaComparar($this->fecha_finalizacion);
-
-                if ($fechaFinalizacion->lt($fechaInicio)) {
-                    $faltantes[] = 'Fecha de finalización mayor o igual a fecha de inicio';
-                }
-            } catch (\Throwable) {
-                $faltantes[] = 'Fechas con formato válido';
-            }
-        }
-
-        return array_values(array_unique($faltantes));
-    }
-
-    private function valorCompletoParaEnvio(mixed $value): bool
-    {
-        if ($value instanceof \DateTimeInterface) {
-            return true;
-        }
-
-        if ($value === null) {
-            return false;
-        }
-
-        $value = trim((string) $value);
-
-        if ($value === '') {
-            return false;
-        }
-
-        $normalizado = Str::ascii(Str::lower($value));
-
-        return !in_array($normalizado, ['pendiente', 'borrador sin titulo', 'null'], true);
+        return array_values(PpsDocumentoRequirements::missing($this, PpsDocumentoRequirements::SOLICITUD, false));
     }
 
     public function usuarioPuedeRevisar(?object $user): bool
@@ -445,12 +361,4 @@ class PpsServicioSocial extends Model
         return filled($firma->rol_requerido) && $firma->rol_requerido === $activeRole->name;
     }
 
-    private function fechaParaComparar(mixed $value): Carbon
-    {
-        if ($value instanceof \DateTimeInterface) {
-            return Carbon::instance($value);
-        }
-
-        return Carbon::parse($value);
-    }
 }
