@@ -178,8 +178,8 @@
         .institutional-pdf-contact { font-size: 8pt; }
         .institutional-pdf-title { font-size: 10.5pt; }
         .institutional-pdf-code { font-size: 9pt; line-height: 5mm; }
-        .institutional-pdf-header { min-height: 34mm; top: -51mm; }
-        .institutional-pdf-accent { top: -51mm; height: 29mm; }
+        .institutional-pdf-header { min-height: 34mm; top: -31mm; }
+        .institutional-pdf-accent { top: -31mm; height: 29mm; }
         .institutional-pdf-footer-distintivos { display: none; }
         .institutional-pdf-footer-lema { width: 90%; }
         .institutional-pdf-footer-block { width: 10%; }
@@ -222,11 +222,12 @@
         .fdv .sign .sline { margin-top: 44px; }
         .fdv .signature { height: 16mm; }
         .fdv .sign .scap { font-size: 7.2pt; }
+        .fdv .content { padding-top: 15mm; }
         .institutional-pdf-brand img { width: 400pt; }
         .institutional-pdf-contact { font-size: 8pt; }
         .institutional-pdf-title { font-size: 10.5pt; }
         .institutional-pdf-code { font-size: 9pt; line-height: 5mm; }
-        .institutional-pdf-header { min-height: 34mm; top: -51mm; }
-        .institutional-pdf-accent { top: -51mm; height: 29mm; }
+        .institutional-pdf-header { min-height: 34mm; top: -31mm; }
+        .institutional-pdf-accent { top: -31mm; height: 29mm; }
     </style>
 @endif

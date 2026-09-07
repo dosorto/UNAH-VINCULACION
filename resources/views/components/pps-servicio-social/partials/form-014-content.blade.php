@@ -90,7 +90,7 @@
     </table>
 </div>
 
-<div class="section section--page-break">
+<div class="section">
     <table class="grid">
         <colgroup>
             <col style="width:44px;">
@@ -167,7 +167,7 @@
 </div>
 
 {{-- ============ V. ALCANCES ============ --}}
-<div class="section section--page-break">
+<div class="section">
     <div class="section-bar">V. Alcances de la PPS / servicio social</div>
     <table class="grid">
         <colgroup>
@@ -221,7 +221,7 @@
     </table>
 </div>
 
-<div class="section section--page-break">
+<div class="section">
     <table class="grid">
         <colgroup>
             <col style="width:44px;">
@@ -279,7 +279,7 @@
     </table>
 </div>
 
-<div class="section section--page-break">
+<div class="section">
     <table class="grid">
         <colgroup>
             <col style="width:44px;">
