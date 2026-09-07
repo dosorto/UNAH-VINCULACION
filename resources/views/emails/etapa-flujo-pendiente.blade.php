@@ -1,3 +1,9 @@
+@php
+    $tipoRegistroVisible = $tipoRegistro === 'pps-servicio-social'
+        ? 'PPS/Servicio Social'
+        : ucfirst(str_replace(['-', '_'], ' ', $tipoRegistro));
+    $articuloRegistro = $tipoRegistro === 'proyecto' ? 'un proyecto' : 'un registro de '.$tipoRegistroVisible;
+@endphp
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -184,7 +190,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Revisión pendiente de {{ $tipoRegistro }}</h1>
+            <h1>Revisión pendiente de {{ $tipoRegistroVisible }}</h1>
             <div class="subtitle">Sistema de Gestión de Proyectos de Vinculación</div>
         </div>
 
@@ -199,8 +205,8 @@
             </div>
 
             <p style="text-align: justify; margin-bottom: 20px;">
-                Le informamos que tiene {{ $tipoRegistro === 'proyecto' ? 'un proyecto' : 'un '.mb_strtolower($tipoRegistro) }} pendiente de revisión en el sistema <strong>{{ $appName }}</strong>.
-                Le correspondre actuar en la siguiente etapa del flujo de aprobación:
+                Le informamos que tiene {{ $articuloRegistro }} pendiente de revisión en el sistema <strong>{{ $appName }}</strong>.
+                Le corresponde actuar en la siguiente etapa del flujo de aprobación:
             </p>
 
             <div class="alert-box">
@@ -235,7 +241,7 @@
 
             <div class="action-section">
                 <p style="margin-bottom: 15px; font-weight: 600; color: #004080;">
-                    Acceda al sistema para revisar {{ $tipoRegistro === 'proyecto' ? 'el proyecto' : 'el '.mb_strtolower($tipoRegistro) }}:
+                    Acceda al sistema para revisar {{ $tipoRegistro === 'proyecto' ? 'el proyecto' : 'el registro de '.mb_strtolower($tipoRegistroVisible) }}:
                 </p>
                 <a href="{{ $actionUrl }}" class="action-button">
                     Ir al sistema NEXO
