@@ -162,7 +162,10 @@
             <h3 class="mt-5 font-semibold">Equipo docente</h3>
             <div class="mt-2 overflow-x-auto"><table class="min-w-full text-sm"><thead class="bg-gray-50 dark:bg-gray-800"><tr>@foreach(['Nombre','N.º empleado','Correo','Categoría','Departamento','Horas','Participación','Estado','Acciones'] as $h)<th class="px-3 py-2 text-left">{{ $h }}</th>@endforeach</tr></thead><tbody>@foreach($equipo as $i=>$row)<tr class="border-t dark:border-gray-700 {{ ($row['estado_participacion'] ?? 'activo') === 'activo' ? '' : 'opacity-60' }}"><td class="px-3 py-2">{{ $row['nombre'] }} @if($row['es_coordinador'])<span class="text-xs text-blue-700">Coordinador</span>@endif @if(($row['estado_participacion'] ?? 'activo') !== 'activo')<p class="mt-1 text-xs">{{ $row['observacion_no_participacion'] }}</p>@endif</td><td class="px-3 py-2">{{ $row['numero_empleado'] }}</td><td class="px-3 py-2">{{ $row['correo'] }}</td><td class="px-3 py-2">{{ $row['categoria'] }}</td><td class="px-3 py-2">{{ $row['departamento'] }}</td><td class="px-3 py-2"><input type="number" min="0" step="0.5" wire:model="equipo.{{ $i }}.horas_dedicadas" class="{{ $input }} min-w-24"></td><td class="px-3 py-2"><span class="inline-flex rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">{{ $row['tipo_participacion'] }}</span></td><td class="px-3 py-2">{{ $this->estadoParticipacionVisual($row['estado_participacion'] ?? 'activo') }}</td><td class="px-3 py-2">@if(($row['estado_participacion'] ?? 'activo') === 'activo')<button type="button" wire:click="openNoParticipacionModal('equipo',{{ $i }})" class="text-sm text-blue-700">Cambiar estado</button>@else<button type="button" wire:click="restaurarParticipante('equipo',{{ $i }})" wire:confirm="¿Restaurar participación?" class="text-sm text-green-700">Restaurar participación</button>@endif</td></tr>@endforeach</tbody></table></div>
             <div class="mt-6 flex items-center justify-between"><h3 class="font-semibold">Cooperación internacional</h3><button type="button" wire:click="openCooperacionModal" class="{{ $button }} bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200">Agregar integrante</button></div>
-            <div class="mt-2 overflow-x-auto"><table class="min-w-full text-sm"><thead class="bg-gray-50 dark:bg-gray-800"><tr>@foreach(['Nombre','Pasaporte','Correo','País','Universidad','Horas','Estado','Acciones'] as $h)<th class="px-3 py-2 text-left">{{ $h }}</th>@endforeach</tr></thead><tbody>@forelse($cooperacion as $i=>$row)@php($cActivo = ($row['estado_participacion'] ?? 'activo') === 'activo')<tr class="border-t dark:border-gray-700 {{ $cActivo ? '' : 'opacity-60' }}">
+            <div class="mt-2 overflow-x-auto"><table class="min-w-full text-sm"><thead class="bg-gray-50 dark:bg-gray-800"><tr>@foreach(['Nombre','Pasaporte','Correo','País','Universidad','Horas','Estado','Acciones'] as $h)<th class="px-3 py-2 text-left">{{ $h }}</th>@endforeach</tr></thead><tbody>
+                @forelse($cooperacion as $i=>$row)
+                @php $cActivo = ($row['estado_participacion'] ?? 'activo') === 'activo'; @endphp
+                <tr class="border-t dark:border-gray-700 {{ $cActivo ? '' : 'opacity-60' }}">
                 <td class="px-3 py-2 font-medium">{{ $row['nombre'] ?: '—' }}@if(!$cActivo)<p class="mt-1 text-xs font-normal">{{ $row['observacion_no_participacion'] }}</p>@endif</td>
                 <td class="px-3 py-2">{{ $row['pasaporte'] ?: '—' }}</td>
                 <td class="px-3 py-2">{{ $row['correo'] ?: '—' }}</td>
@@ -236,7 +239,13 @@
                         </div>
                         <div class="mt-4 grid gap-3 sm:grid-cols-3">
                             <div class="rounded bg-gray-50 p-3 text-sm dark:bg-gray-800"><strong>Planificados</strong><p>Hombres: {{ $grupo['hombres_planificados'] }}</p><p>Mujeres: {{ $grupo['mujeres_planificadas'] }}</p><p>Total: {{ $grupo['total_planificado'] }}</p></div>
-                            @php($extra = fn($r,$p) => $r > $p ? ' <span class="text-green-700 dark:text-green-400">(+'.($r-$p).')</span>' : '')
+                            @php
+                                $extra = function ($r, $p) {
+                                    return $r > $p
+                                        ? ' <span class="text-green-700 dark:text-green-400">(+' . ($r - $p) . ')</span>'
+                                        : '';
+                                };
+                            @endphp
                             <div class="rounded bg-blue-50 p-3 text-sm dark:bg-blue-950/30"><strong>Registrados</strong><p>Hombres: {{ $grupo['hombres_registrados'] }} de {{ $grupo['hombres_planificados'] }}{!! $extra($grupo['hombres_registrados'],$grupo['hombres_planificados']) !!}</p><p>Mujeres: {{ $grupo['mujeres_registradas'] }} de {{ $grupo['mujeres_planificadas'] }}{!! $extra($grupo['mujeres_registradas'],$grupo['mujeres_planificadas']) !!}</p><p>Total: {{ $grupo['total_registrado'] }} de {{ $grupo['total_planificado'] }}{!! $extra($grupo['total_registrado'],$grupo['total_planificado']) !!}</p></div>
                             <div class="rounded bg-amber-50 p-3 text-sm dark:bg-amber-950/30"><strong>Pendientes</strong><p>Hombres: {{ $grupo['hombres_pendientes'] }}</p><p>Mujeres: {{ $grupo['mujeres_pendientes'] }}</p><p>Total: {{ $grupo['hombres_pendientes'] + $grupo['mujeres_pendientes'] }}</p></div>
                         </div>
@@ -266,31 +275,137 @@
                 @error('general.observacion_voluntarios_no_incorporados')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
             </div>
         @elseif($currentStep === 4)
-            <div class="flex items-center justify-between"><h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 4: Contrapartes</h2><button type="button" wire:click="agregarFila('contrapartes')" class="{{ $button }} bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200">Agregar contraparte</button></div>
-            <div class="mt-5 space-y-5">
-                @foreach($this->contrapartesConInstrumentos as $i=>$row)
-                    @php($esPlanificada = ($row['origen'] ?? 'PLANIFICADO') === 'PLANIFICADO')
-                    <article class="rounded-lg border p-4 dark:border-gray-700">
-                        <div class="flex justify-between"><h3 class="font-semibold">Contraparte {{ $i+1 }}</h3>@unless($esPlanificada)<button type="button" wire:click="quitarFila('contrapartes',{{ $i }})" class="text-sm text-red-600">Quitar</button>@endunless</div>
-                        <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                            <div><label class="{{ $label }}">Nombre</label><input wire:model="contrapartes.{{ $i }}.nombre" @readonly($esPlanificada) class="{{ $esPlanificada ? $readonly : $input }}"></div>
-                            <div><label class="{{ $label }}">Tipo</label>@if($esPlanificada)<input value="{{ Str::headline(str_replace('_', ' ', $row['tipo'])) }}" readonly class="{{ $readonly }}">@else<select wire:model="contrapartes.{{ $i }}.tipo" class="{{ $input }}">@foreach(['gobierno_nacional'=>'Gobierno nacional','gobierno_municipal'=>'Gobierno municipal','ong'=>'ONG','sociedad_civil'=>'Sociedad civil organizada','sector_privado'=>'Sector privado','internacional'=>'Internacional'] as $value=>$name)<option value="{{ $value }}">{{ $name }}</option>@endforeach</select>@endif</div>
-                            @foreach(['contacto'=>'Contacto','correo'=>'Correo','cargo'=>'Cargo','telefono'=>'Teléfono','territorio'=>'Territorio'] as $field=>$name)<div><label class="{{ $label }}">{{ $name }}</label><input wire:model="contrapartes.{{ $i }}.{{ $field }}" @readonly($esPlanificada) class="{{ $esPlanificada ? $readonly : $input }}"></div>@endforeach
-                            <div><label class="{{ $label }}">Instrumento que da lugar a la alianza</label><select wire:model="contrapartes.{{ $i }}.tipo_instrumento" class="{{ $input }}"><option value="">— Sin especificar —</option>@foreach(['carta_formal'=>'Carta formal de solicitud a la unidad académica','carta_intenciones'=>'Carta de intenciones con la UNAH','convenio_marco'=>'Convenio marco con la UNAH'] as $value=>$name)<option value="{{ $value }}">{{ $name }}</option>@endforeach</select></div>
-                            <div class="flex items-center gap-2 pt-6"><input type="checkbox" id="existe_apoyo_{{ $i }}" wire:model="contrapartes.{{ $i }}.existe_apoyo" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"><label for="existe_apoyo_{{ $i }}" class="text-sm text-gray-700 dark:text-gray-300">El proyecto se ejecutó con apoyo de esta contraparte</label></div>
-                            <section class="rounded-md border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/30 sm:col-span-2 lg:col-span-4">
-                                <div class="flex items-center justify-between gap-3"><h4 class="text-sm font-semibold">Instrumentos de formalización y respaldos</h4><span class="rounded-full px-2 py-1 text-xs font-medium {{ $row['estado_instrumento']==='Disponible' ? 'bg-green-100 text-green-800' : ($row['estado_instrumento']==='Pendiente' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-700') }}">{{ $row['estado_instrumento'] }}</span></div>
-                                <div class="mt-2 space-y-2">@forelse($row['instrumentos'] as $instrumento)<div class="flex flex-wrap items-center justify-between gap-2 rounded bg-white p-2 text-sm dark:bg-gray-900"><span><strong>{{ $instrumento['descripcion'] ?: 'Instrumento de contraparte' }}</strong><br><span class="text-xs text-gray-500">{{ $instrumento['nombre_archivo'] ?: 'Archivo pendiente' }}</span></span>@if($this->anexoDocumentoUrl($instrumento['id'] ?? null))<a href="{{ $this->anexoDocumentoUrl($instrumento['id']) }}" target="_blank" rel="noopener" class="text-sm text-blue-700 dark:text-blue-300">Ver documento</a>@endif</div>@empty<p class="text-sm text-gray-600 dark:text-gray-300">No aplica: no hay instrumentos registrados en el proyecto.</p>@endforelse</div>
-                                <p class="mt-2 text-xs text-gray-500">La gestión de archivos se realiza en el paso Anexos.</p>
-                            </section>
-                            <div class="sm:col-span-2"><label class="{{ $label }}">Compromisos asumidos</label><textarea wire:model.live.debounce.1000ms="contrapartes.{{ $i }}.compromisos_asumidos" class="{{ $input }}"></textarea></div>
-                            <div class="sm:col-span-2"><label class="{{ $label }}">Compromisos cumplidos</label><textarea wire:model.live.debounce.1000ms="contrapartes.{{ $i }}.compromisos_cumplidos" class="{{ $input }}"></textarea></div>
-                            <div><label class="{{ $label }}">Aporte monetario</label><input type="number" min="0" step="0.01" wire:model="contrapartes.{{ $i }}.aporte_monetario" class="{{ $input }}"></div>
-                            <div><label class="{{ $label }}">Aporte en especie valorado</label><input type="number" min="0" step="0.01" wire:model="contrapartes.{{ $i }}.aporte_especie" class="{{ $input }}"></div>
-                        </div>
-                    </article>
-                @endforeach
+            @php
+                $tiposContraparte = ['gobierno_nacional'=>'Gobierno nacional','gobierno_municipal'=>'Gobierno municipal','ong'=>'ONG','sociedad_civil'=>'Sociedad civil organizada','sector_privado'=>'Sector privado','internacional'=>'Internacional'];
+                $tiposInstrumento = ['carta_formal'=>'Carta formal de solicitud a la unidad académica','carta_intenciones'=>'Carta de intenciones con la UNAH','convenio_marco'=>'Convenio marco con la UNAH'];
+            @endphp
+            <div class="flex items-center justify-between">
+                <div><h2 class="text-lg font-semibold text-gray-900 dark:text-white">Paso 4: Contrapartes</h2><p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Las contrapartes del proyecto vienen precargadas; registre aquí lo ocurrido durante la ejecución.</p></div>
+                <button type="button" wire:click="openContraparteModal" class="{{ $button }} bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200">Agregar contraparte</button>
             </div>
+
+            <div class="mt-4 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 text-left dark:bg-gray-800">
+                        <tr>@foreach(['Contraparte','Contacto','Instrumento / apoyo','Aporte (L)','Acciones'] as $h)<th class="px-3 py-2 font-semibold">{{ $h }}</th>@endforeach</tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                        @forelse($this->contrapartesConInstrumentos as $i=>$row)
+                            @php($esPlanificada = ($row['origen'] ?? 'PLANIFICADO') === 'PLANIFICADO')
+                            <tr class="align-top">
+                                <td class="px-3 py-2">
+                                    <p class="font-medium">{{ $row['nombre'] ?: '—' }}</p>
+                                    <p class="text-xs text-gray-500">{{ $tiposContraparte[$row['tipo']] ?? Str::headline(str_replace('_',' ',(string) $row['tipo'])) }}</p>
+                                    @if($esPlanificada)<span class="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">Del proyecto</span>@else<span class="mt-1 inline-block rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Agregada en la ejecución</span>@endif
+                                </td>
+                                <td class="px-3 py-2 text-xs">
+                                    @if($row['contacto'])<p>{{ $row['contacto'] }}@if($row['cargo']) · {{ $row['cargo'] }}@endif</p>@endif
+                                    @if($row['correo'])<p class="text-gray-500">{{ $row['correo'] }}</p>@endif
+                                    @if($row['telefono'])<p class="text-gray-500">{{ $row['telefono'] }}</p>@endif
+                                    @if(!$row['contacto'] && !$row['correo'] && !$row['telefono'])<span class="text-gray-400">—</span>@endif
+                                </td>
+                                <td class="px-3 py-2 text-xs">
+                                    <p>{{ $tiposInstrumento[$row['tipo_instrumento']] ?? 'Instrumento sin especificar' }}</p>
+                                    <p class="mt-1">
+                                        <span class="rounded-full px-2 py-0.5 text-[10px] font-medium {{ $row['estado_instrumento']==='Disponible' ? 'bg-green-100 text-green-800' : ($row['estado_instrumento']==='Pendiente' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-700') }}">Doc.: {{ $row['estado_instrumento'] }}</span>
+                                        <span class="ml-1 rounded-full px-2 py-0.5 text-[10px] font-medium {{ ($row['existe_apoyo'] ?? true) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600' }}">Apoyo: {{ ($row['existe_apoyo'] ?? true) ? 'Sí' : 'No' }}</span>
+                                    </p>
+                                </td>
+                                <td class="px-3 py-2 text-xs whitespace-nowrap">
+                                    <p>Monet.: {{ number_format((float) ($row['aporte_monetario'] ?? 0), 2) }}</p>
+                                    <p>Especie: {{ number_format((float) ($row['aporte_especie'] ?? 0), 2) }}</p>
+                                </td>
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    <div class="flex flex-wrap gap-2">
+                                        <button type="button" wire:click="openContraparteModal({{ $i }})" class="text-sm text-blue-700 dark:text-blue-400">Editar</button>
+                                        @unless($esPlanificada)<button type="button" wire:click="quitarFila('contrapartes',{{ $i }})" wire:confirm="¿Quitar esta contraparte del informe?" class="text-sm text-red-600">Quitar</button>@endunless
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="5" class="px-3 py-6 text-center text-gray-500">No hay contrapartes registradas.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            @error('contrapartes')<p class="mt-2 text-xs text-red-600">{{ $message }}</p>@enderror
+
+            @if($showContraparteModal)
+            <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog">
+                <div class="fixed inset-0 bg-black/50" wire:click="closeContraparteModal"></div>
+                <div class="relative flex min-h-full items-start justify-center p-4">
+                    <div class="relative my-4 w-full max-w-2xl rounded-lg bg-white shadow-xl dark:bg-gray-900">
+                        <div class="sticky top-0 flex items-center justify-between rounded-t-lg border-b border-gray-200 bg-white px-5 py-3 dark:border-gray-700 dark:bg-gray-900">
+                            <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $editContraparteIndex !== null ? 'Editar' : 'Nueva' }} contraparte @if($contraparteModalEsPlanificada)<span class="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">Del proyecto</span>@endif</h4>
+                            <button type="button" wire:click="closeContraparteModal" class="text-lg leading-none text-gray-500 hover:text-gray-800">✕</button>
+                        </div>
+                        <div class="space-y-5 p-5">
+                            @if($contraparteModalEsPlanificada)<p class="rounded-md bg-gray-50 p-2 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">Los datos de identificación provienen del registro del proyecto (solo lectura). Registre el instrumento, el apoyo, los compromisos cumplidos y los aportes de la ejecución.</p>@endif
+
+                            <section>
+                                <h5 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Identificación</h5>
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <div><label class="{{ $label }}">Nombre @unless($contraparteModalEsPlanificada)<span class="text-red-500">*</span>@endunless</label><input wire:model="contraparteModal.nombre" @readonly($contraparteModalEsPlanificada) class="{{ $contraparteModalEsPlanificada ? $readonly : $input }}">@error('contraparteModal.nombre')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
+                                    <div><label class="{{ $label }}">Tipo de contraparte @unless($contraparteModalEsPlanificada)<span class="text-red-500">*</span>@endunless</label>@if($contraparteModalEsPlanificada)<input value="{{ $tiposContraparte[$contraparteModal['tipo']] ?? '' }}" readonly class="{{ $readonly }}">@else<select wire:model="contraparteModal.tipo" class="{{ $input }}">@foreach($tiposContraparte as $value=>$name)<option value="{{ $value }}">{{ $name }}</option>@endforeach</select>@endif</div>
+                                </div>
+                            </section>
+
+                            <section>
+                                <h5 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Contacto</h5>
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    @foreach(['contacto'=>['Nombre del contacto',true],'cargo'=>['Cargo',true],'correo'=>['Correo electrónico',true],'telefono'=>['Teléfono',false],'territorio'=>['Territorio',false]] as $f=>$meta)
+                                        <div><label class="{{ $label }}">{{ $meta[0] }} @if($meta[1] && !$contraparteModalEsPlanificada)<span class="text-red-500">*</span>@endif</label><input @if($f==='correo') type="email" @endif wire:model="contraparteModal.{{ $f }}" @readonly($contraparteModalEsPlanificada) class="{{ $contraparteModalEsPlanificada ? $readonly : $input }}">@error('contraparteModal.'.$f)<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
+                                    @endforeach
+                                </div>
+                            </section>
+
+                            <section>
+                                <h5 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Alianza y apoyo</h5>
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <div><label class="{{ $label }}">Instrumento que da lugar a la alianza <span class="text-red-500">*</span></label><select wire:model="contraparteModal.tipo_instrumento" class="{{ $input }}"><option value="">— Seleccione —</option>@foreach($tiposInstrumento as $value=>$name)<option value="{{ $value }}">{{ $name }}</option>@endforeach</select>@error('contraparteModal.tipo_instrumento')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
+                                    <div class="flex items-end pb-2"><label class="flex items-center gap-2 text-sm"><input type="checkbox" wire:model="contraparteModal.existe_apoyo" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">El proyecto se ejecutó con apoyo de esta contraparte</label></div>
+                                </div>
+                            </section>
+
+                            <section>
+                                <h5 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Compromisos</h5>
+                                <div class="space-y-3">
+                                    <div><label class="{{ $label }}">Compromisos asumidos @unless($contraparteModalEsPlanificada)<span class="text-red-500">*</span>@endunless</label><textarea rows="2" wire:model="contraparteModal.compromisos_asumidos" @readonly($contraparteModalEsPlanificada) class="{{ $contraparteModalEsPlanificada ? $readonly : $input }}"></textarea>@error('contraparteModal.compromisos_asumidos')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
+                                    <div><label class="{{ $label }}">Compromisos cumplidos <span class="text-red-500">*</span></label><textarea rows="3" wire:model="contraparteModal.compromisos_cumplidos" class="{{ $input }}"></textarea>@error('contraparteModal.compromisos_cumplidos')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
+                                </div>
+                            </section>
+
+                            <section>
+                                <h5 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Aportes de la contraparte (Lempiras)</h5>
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <div><label class="{{ $label }}">Aporte monetario</label><input type="number" min="0" step="0.01" wire:model="contraparteModal.aporte_monetario" class="{{ $input }}">@error('contraparteModal.aporte_monetario')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
+                                    <div><label class="{{ $label }}">Aporte en especie valorado</label><input type="number" min="0" step="0.01" wire:model="contraparteModal.aporte_especie" class="{{ $input }}">@error('contraparteModal.aporte_especie')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
+                                </div>
+                            </section>
+
+                            @if($editContraparteIndex !== null && filled($this->contrapartesConInstrumentos[$editContraparteIndex]['instrumentos'] ?? []))
+                            <section>
+                                <h5 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Instrumentos de formalización y respaldos</h5>
+                                <div class="space-y-2">
+                                    @foreach($this->contrapartesConInstrumentos[$editContraparteIndex]['instrumentos'] as $instrumento)
+                                        <div class="flex flex-wrap items-center justify-between gap-2 rounded border border-gray-200 bg-gray-50 p-2 text-sm dark:border-gray-700 dark:bg-gray-800">
+                                            <span><strong>{{ $instrumento['descripcion'] ?: 'Instrumento de contraparte' }}</strong><br><span class="text-xs text-gray-500">{{ $instrumento['nombre_archivo'] ?: 'Archivo pendiente' }}</span></span>
+                                            @if($this->anexoDocumentoUrl($instrumento['id'] ?? null))<a href="{{ $this->anexoDocumentoUrl($instrumento['id']) }}" target="_blank" rel="noopener" class="text-sm text-blue-700 dark:text-blue-300">Ver documento</a>@endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                                <p class="mt-2 text-xs text-gray-500">La carga de archivos se realiza en el paso Anexos.</p>
+                            </section>
+                            @endif
+                        </div>
+                        <div class="sticky bottom-0 flex justify-end gap-2 rounded-b-lg border-t border-gray-200 bg-white px-5 py-3 dark:border-gray-700 dark:bg-gray-900">
+                            <button type="button" wire:click="closeContraparteModal" class="rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200">Cancelar</button>
+                            <button type="button" wire:click="saveContraparteModal" class="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">{{ $editContraparteIndex !== null ? 'Guardar cambios' : 'Agregar' }}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
         @elseif($currentStep === 5)
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Paso 5: Resultados y ejecución de actividades</h2>
             @include('livewire.proyectos.informe-final.partials.resultados-actividades')
