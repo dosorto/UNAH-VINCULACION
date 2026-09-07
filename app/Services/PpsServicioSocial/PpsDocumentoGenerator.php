@@ -29,7 +29,7 @@ class PpsDocumentoGenerator
         $pps->loadMissing([
             'firmasDeEtapa.empleado.firma',
             'firmasDeEtapa.flujoEtapa',
-            'firmasDeEtapa.cargoFirma.tipoCargoFirma',
+            'firmasDeEtapa.cargo_firma.tipoCargoFirma',
         ]);
         PpsDocumentoRequirements::validate($pps, $tipo);
 

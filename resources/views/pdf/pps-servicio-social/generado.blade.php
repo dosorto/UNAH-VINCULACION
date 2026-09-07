@@ -36,7 +36,9 @@
         @page { size: letter portrait; margin: 24mm 19mm 24mm; }
         * { box-sizing: border-box; }
         body { color: #111827; font-family: Arial, Helvetica, "DejaVu Sans", sans-serif; font-size: 10.5pt; line-height: 1.35; margin: 0; }
-        .watermark { bottom: 24mm; opacity: .08; position: fixed; right: -4mm; width: 105mm; z-index: -1; }
+        /* La marca institucional debe conservar presencia visual como en la plantilla,
+           sin competir con el contenido del documento. */
+        .watermark { bottom: 34mm; opacity: .08; position: fixed; right: -92mm; width: 210mm; z-index: -1; }
         .accent { height: 25mm; left: -19mm; position: absolute; top: -24mm; width: 5mm; }
         .header { border-bottom: .5pt solid #001b44; margin-bottom: 5mm; padding-bottom: 3mm; position: relative; width: 100%; }
         .header table, .footer table { border-collapse: collapse; width: 100%; }

@@ -214,7 +214,7 @@ class FormDvus014Data
         $registro->loadMissing([
             'firmasDeEtapa.empleado.firma',
             'firmasDeEtapa.flujoEtapa',
-            'firmasDeEtapa.cargoFirma.tipoCargoFirma',
+            'firmasDeEtapa.cargo_firma.tipoCargoFirma',
         ]);
 
         return $registro->firmasDeEtapa
@@ -223,7 +223,7 @@ class FormDvus014Data
                 $texto = self::normalize(implode(' ', array_filter([
                     $firma->etapa_nombre,
                     $firma->flujoEtapa?->nombre,
-                    $firma->cargoFirma?->tipoCargoFirma?->nombre,
+                    $firma->cargo_firma?->tipoCargoFirma?->nombre,
                 ])));
 
                 return Str::contains($texto, 'coordinador');
