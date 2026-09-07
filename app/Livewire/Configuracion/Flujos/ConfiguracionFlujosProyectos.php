@@ -38,6 +38,10 @@ class ConfiguracionFlujosProyectos extends Component
 
     private const FORM_VOLUNTARIADO_ID = -1003;
 
+    private const ACTION_PASANTIAS_ID = -106;
+
+    private const FORM_PASANTIAS_ID = -1006;
+
     private const FORM_ENF_CERTIFICADO_ID = -1004;
 
     private const FORM_ENF_PROYECTO_ID = -1005;
@@ -731,6 +735,27 @@ class ConfiguracionFlujosProyectos extends Component
                         'workflow_codigo_base' => 'PROYECTO_FORM_DVUS_015',
                         'workflow_nombre' => 'Flujo FORM-DVUS-015 - Voluntariado',
                         'workflow_descripcion' => 'Flujo configurable para el FORM-DVUS-015.',
+                        'enabled' => true,
+                    ],
+                ],
+            ],
+            [
+                'id' => self::ACTION_PASANTIAS_ID,
+                'codigo' => 'PASANTIAS',
+                'nombre' => 'Pasantías universitarias',
+                'descripcion' => 'Registro institucional de pasantías universitarias.',
+                'orden' => 8,
+                'subactions' => [
+                    [
+                        'id' => self::FORM_PASANTIAS_ID,
+                        'codigo_formulario' => 'FORM-DVUS-013',
+                        'codigo' => 'FORM-DVUS-013',
+                        'nombre' => 'FORM-DVUS-013 - Registro de Pasantías',
+                        'proceso' => 'PASANTIAS_DEFAULT',
+                        'tipo_accion_codigo' => 'PASANTIAS',
+                        'workflow_codigo_base' => 'PASANTIAS_FORM_DVUS_013',
+                        'workflow_nombre' => 'Flujo FORM-DVUS-013 - Pasantías',
+                        'workflow_descripcion' => 'Flujo configurable para el FORM-DVUS-013.',
                         'enabled' => true,
                     ],
                 ],

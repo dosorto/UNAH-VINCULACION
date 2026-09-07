@@ -29,6 +29,7 @@ use App\Http\Controllers\Proyectos\Vinculacion\PpsServicioSocialPdfController;
 use App\Http\Controllers\SetRoleController;
 use App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
 use App\Livewire\Configuracion\IntegracionesApi;
+use App\Livewire\Configuracion\ApiAccessTokens;
 use App\Livewire\Configuracion\JornadaLaboral\JornadaLaboralList;
 use App\Livewire\Configuracion\NivelAcademico\NivelAcademicoList;
 use App\Livewire\Configuracion\Logs\ListLogs;
@@ -72,6 +73,9 @@ use App\Livewire\Proyectos\InformeFinal\EditInformeFinalProyecto;
 use App\Livewire\Proyectos\Vinculacion\AreaProyectoSelector;
 use App\Livewire\Proyectos\Vinculacion\CategoriaProyectoSelector;
 use App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial;
+use App\Livewire\Proyectos\Vinculacion\CreatePasantia;
+use App\Livewire\Proyectos\Vinculacion\EditPasantia;
+use App\Livewire\Proyectos\Vinculacion\ShowPasantia;
 use App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
 use App\Livewire\Proyectos\Vinculacion\EditPpsServicioSocial;
 use App\Http\Controllers\Proyectos\Vinculacion\PpsDocumentoGeneradoController;
@@ -348,6 +352,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('configuracion/integraciones-api', IntegracionesApi::class)
             ->name('configuracion.integraciones-api')
             ->middleware('can:configuracion.integraciones-api');
+        Route::get('configuracion/tokens-acceso', ApiAccessTokens::class)
+            ->name('configuracion.tokens-acceso')
+            ->middleware('can:configuracion.integraciones-api');
 
         Route::prefix('daft')->middleware('can:daft.acceso')->group(function () {
             Route::get('dashboard', DaftDashboard::class)
@@ -428,6 +435,24 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/crearPpsServicioSocial', CreatePpsServicioSocial::class)
             ->name('crearPpsServicioSocial')
             ->middleware('permission:docente.crear-proyecto');
+
+        Route::get('/crearPasantia', CreatePasantia::class)
+            ->name('crearPasantia')
+            ->middleware('permission:docente.crear-proyecto');
+        Route::get('/pasantias/{id}/editar', EditPasantia::class)
+            ->name('pasantias.edit')
+            ->middleware('permission:docente.crear-proyecto|docente.proyectos');
+        Route::get('/pasantias/{id}', ShowPasantia::class)
+            ->name('pasantias.show')
+            ->middleware('permission:docente.crear-proyecto|docente.proyectos|proyectos.historial');
+        Route::get('/pasantias/{id}/pdf', function (int $id) {
+            $registro = \App\Models\Pasantia::findOrFail($id);
+            abort_unless($registro->created_by === auth()->id() || auth()->user()?->can('proyectos.historial'), 403);
+            $tipo = request()->query('tipo', 'formulario');
+            abort_unless(in_array($tipo, ['formulario', 'solicitud_practica', 'autorizacion_pps'], true), 404);
+            $doc = $registro->documentosGenerados()->where('tipo', $tipo)->latest('version')->firstOrFail();
+            return response()->download(storage_path('app/'.$doc->archivo), $doc->nombre_original);
+        })->name('pasantias.pdf')->middleware('permission:docente.crear-proyecto|docente.proyectos|proyectos.historial');
 
         Route::get('/pps-servicio-social', function () {
             $activeRole = auth()->user()?->activeRole;

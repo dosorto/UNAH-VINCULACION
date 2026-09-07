@@ -6,12 +6,14 @@ use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Models\ENF\EnfAccion;
 use App\Models\Estado\TipoEstado;
 use App\Models\PpsServicioSocial;
+use App\Models\Pasantia;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Proyecto;
 use App\Services\ENF\EnfWorkflowService;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Url;
@@ -37,6 +39,7 @@ class ProyectosDocenteList extends Component
     private const ACTION_PROYECTOS = 'proyectos';
     private const ACTION_ENF = 'educacion_no_formal';
     private const ACTION_PPS = 'pps_servicio_social';
+    private const ACTION_PASANTIAS = 'pasantias';
     private const ACTION_VOLUNTARIADO = 'voluntariado';
 
     public bool $informeIntermedioModal = false;
@@ -273,6 +276,10 @@ class ProyectosDocenteList extends Component
             $rows = $rows->merge($this->ppsRows());
         }
 
+        if ($this->shouldIncludeAction(self::ACTION_PASANTIAS)) {
+            $rows = $rows->merge($this->pasantiaRows());
+        }
+
         return $rows
             ->sortByDesc(fn (array $row) => $row['sort_date']?->timestamp ?? 0)
             ->values();
@@ -428,6 +435,29 @@ class ProyectosDocenteList extends Component
                     'sort_date' => $registro->created_at,
                 ];
             });
+    }
+
+    private function pasantiaRows(): Collection
+    {
+        $user = auth()->user();
+        if (! $user || ! DB::table('vinculacion_tipos_accion')->where('codigo', 'PASANTIAS')->where('activo', true)->exists()
+            || ! DB::table('flujos_aprobacion')->where('codigo', Pasantia::FORMULARIO === 'FORM-DVUS-013' ? 'PASANTIAS_FORM_DVUS_013' : '')->where('proceso', Pasantia::PROCESO_FLUJO)->where('activo', true)->exists()) {
+            return collect();
+        }
+
+        return Pasantia::query()->where('created_by', $user->id)
+            ->when($this->search, fn (Builder $q) => $q->where(fn (Builder $s) => $s
+                ->where('codigo_registro', 'like', '%'.$this->search.'%')
+                ->orWhere('nombre_estudiante', 'like', '%'.$this->search.'%')
+                ->orWhere('nombre_institucion', 'like', '%'.$this->search.'%')))
+            ->orderByDesc('created_at')->get()->map(fn (Pasantia $registro): array => [
+                'kind' => self::ACTION_PASANTIAS, 'id' => 'pasantia-'.$registro->id, 'record' => $registro,
+                'codigo' => $registro->codigo_registro ?: '#'.$registro->id,
+                'secondary_code' => $registro->numero_cuenta, 'nombre' => $registro->nombre_estudiante ?: 'Sin estudiante',
+                'descripcion' => $registro->nombre_institucion ?: 'Pasantía', 'tipo_accion' => 'Pasantías (FORM-DVUS-013)',
+                'rol' => 'Creador', 'estado' => ucfirst($registro->estado ?: 'borrador'),
+                'fecha' => $registro->fecha_registro ?: $registro->created_at, 'sort_date' => $registro->created_at,
+            ]);
     }
 
     private function enfEstadoLabel(?string $estado): string

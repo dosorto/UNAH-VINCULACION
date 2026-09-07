@@ -1,0 +1,4 @@
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model; use Illuminate\Support\Facades\Hash;
+class ApiAccessToken extends Model { protected $table='api_access_tokens'; protected $fillable=['nombre','prefijo','token_hash','created_by','expira_en','ultimo_uso_en','revocado_en']; protected $casts=['expira_en'=>'datetime','ultimo_uso_en'=>'datetime','revocado_en'=>'datetime']; protected $hidden=['token_hash']; public function scopes(){return $this->belongsToMany(ApiAccessScope::class,'api_access_token_scope','api_access_token_id','api_access_scope_id');} public function creador(){return $this->belongsTo(User::class,'created_by');} public function vigente(){return is_null($this->revocado_en)&&($this->expira_en===null||$this->expira_en->isFuture());} public static function hashToken(string $token): string{return hash('sha256',$token);} }

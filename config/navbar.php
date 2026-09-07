@@ -185,6 +185,7 @@ return [
                     ['texto' => 'Apariencia', 'route' => 'slides', 'permiso' => 'apariencia.slides'],
                     ['texto' => 'Flujos de proyectos', 'route' => 'configuracion.flujos.proyectos', 'permiso' => 'configuracion.flujos'],
                     ['texto' => 'Integraciones API', 'route' => 'configuracion.integraciones-api', 'permiso' => 'configuracion.integraciones-api'],
+                    ['texto' => 'Tokens de acceso', 'route' => 'configuracion.tokens-acceso', 'permiso' => 'configuracion.integraciones-api'],
                     ['texto' => 'Contactanos', 'route' => 'contactanos', 'permiso' => 'configuracion.contactanos']
                 ],
             ],
