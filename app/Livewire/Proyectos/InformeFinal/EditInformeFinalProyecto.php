@@ -101,6 +101,8 @@ class EditInformeFinalProyecto extends Component
     public bool $showContraparteModal = false;
     public ?int $editContraparteIndex = null;
     public bool $contraparteModalEsPlanificada = false;
+    /** Documento del instrumento que da lugar a la alianza (solo contrapartes agregadas en la ejecución). */
+    public $contraparteModalDocumento = null;
     public array $contraparteModal = [
         'nombre'=>'','tipo'=>'sociedad_civil','contacto'=>'','correo'=>'','cargo'=>'','telefono'=>'','territorio'=>'',
         'tipo_instrumento'=>null,'existe_apoyo'=>true,'compromisos_asumidos'=>'','compromisos_cumplidos'=>'',
@@ -605,6 +607,12 @@ class EditInformeFinalProyecto extends Component
         'entidad_contraparte_id','nombre','tipo','contacto','correo','cargo','telefono','territorio','compromisos_asumidos',
     ];
 
+    public const TIPOS_INSTRUMENTO = [
+        'carta_formal' => 'Carta formal de solicitud a la unidad académica',
+        'carta_intenciones' => 'Carta de intenciones con la UNAH',
+        'convenio_marco' => 'Convenio marco con la UNAH',
+    ];
+
     private function contraparteModalDefault(): array
     {
         return [
@@ -621,6 +629,7 @@ class EditInformeFinalProyecto extends Component
         $this->editContraparteIndex = $index;
         $this->contraparteModal = $this->contraparteModalDefault();
         $this->contraparteModalEsPlanificada = false;
+        $this->contraparteModalDocumento = null;
 
         if ($index !== null && isset($this->contrapartes[$index])) {
             $fila = $this->contrapartes[$index];
@@ -638,7 +647,49 @@ class EditInformeFinalProyecto extends Component
         $this->editContraparteIndex = null;
         $this->contraparteModalEsPlanificada = false;
         $this->contraparteModal = $this->contraparteModalDefault();
+        $this->contraparteModalDocumento = null;
         $this->resetErrorBag();
+    }
+
+    public function updatedContraparteModalDocumento(): void
+    {
+        $this->validateOnly('contraparteModalDocumento', [
+            'contraparteModalDocumento' => ['nullable','file','mimes:pdf,doc,docx,jpg,jpeg,png','max:10240'],
+        ], [
+            'contraparteModalDocumento.mimes' => 'El documento debe ser PDF, Word o imagen.',
+            'contraparteModalDocumento.max' => 'El documento supera el tamaño máximo de 10 MB.',
+        ]);
+    }
+
+    /** Anexa el documento del instrumento a una contraparte agregada en la ejecución (sin reemplazar uno existente). */
+    private function guardarDocumentoInstrumentoContraparte(int $index): void
+    {
+        $contraparteId = (int) ($this->contrapartes[$index]['id'] ?? 0);
+        $archivo = $this->contraparteModalDocumento;
+        if (! $contraparteId || ! $archivo) return;
+
+        $yaExiste = $this->informe->anexos()
+            ->where('categoria', 'instrumento_contraparte')
+            ->where('informe_final_contraparte_id', $contraparteId)
+            ->exists();
+        if ($yaExiste) return;
+
+        $ruta = $archivo->store('informes-finales/'.$this->informe->id.'/instrumentos-contraparte', 'public');
+        $this->informe->anexos()->create([
+            'informe_final_contraparte_id' => $contraparteId,
+            'tipo' => 'otros',
+            'categoria' => 'instrumento_contraparte',
+            'descripcion' => self::TIPOS_INSTRUMENTO[$this->contrapartes[$index]['tipo_instrumento'] ?? ''] ?? 'Instrumento de contraparte',
+            'archivo' => $ruta,
+            'nombre_archivo' => $archivo->getClientOriginalName(),
+            'tamano_bytes' => $archivo->getSize(),
+            'fecha' => now()->toDateString(),
+            'origen' => 'INFORME',
+            'orden' => count($this->anexos) + 1,
+        ]);
+
+        $this->contraparteModalDocumento = null;
+        $this->cargarFormulario();
     }
 
     public function saveContraparteModal(): void
@@ -662,6 +713,7 @@ class EditInformeFinalProyecto extends Component
                 'contraparteModal.telefono' => ['nullable','string','max:60'],
                 'contraparteModal.territorio' => ['nullable','string','max:255'],
                 'contraparteModal.compromisos_asumidos' => ['required','string','max:2000'],
+                'contraparteModalDocumento' => ['nullable','file','mimes:pdf,doc,docx,jpg,jpeg,png','max:10240'],
             ];
         }
         $this->validate($reglas, [
@@ -694,7 +746,186 @@ class EditInformeFinalProyecto extends Component
         }
 
         $this->guardarFilaAutoguardado('contrapartes', $index);
+
+        if (! $this->contraparteModalEsPlanificada && $this->contraparteModalDocumento) {
+            $this->guardarDocumentoInstrumentoContraparte($index);
+        }
+
         $this->closeContraparteModal();
+    }
+
+    // ── Paso 6: Acciones no ejecutadas / emergentes (modal + tabla) ──────────────
+
+    public bool $showAccionModal = false;
+    public string $accionModalGrupo = 'accionesNoEjecutadas';
+    public ?int $accionModalIndex = null;
+    public array $accionModal = [];
+
+    private function accionModalDefault(string $grupo): array
+    {
+        return $grupo === 'accionesEmergentes'
+            ? ['informe_final_resultado_id' => null, 'actividad_realizada' => '', 'producto_logrado' => '', 'justificacion' => '', 'responsables' => '', 'fecha' => null, 'horas' => 0]
+            : ['resultado_previsto' => '', 'actividad_planificada' => '', 'explicacion' => '', 'afectacion_proyecto' => ''];
+    }
+
+    public function openAccionModal(string $grupo, ?int $index = null): void
+    {
+        $this->authorizeSensitive();
+        abort_unless(in_array($grupo, ['accionesNoEjecutadas', 'accionesEmergentes'], true), 404);
+        abort_unless($index === null || isset($this->{$grupo}[$index]), 404);
+        $this->resetErrorBag();
+        $this->accionModalGrupo = $grupo;
+        $this->accionModalIndex = $index;
+        $base = $this->accionModalDefault($grupo);
+        $this->accionModal = $index === null
+            ? $base
+            : array_merge($base, Arr::only($this->{$grupo}[$index], array_keys($base)));
+        $this->showAccionModal = true;
+    }
+
+    public function closeAccionModal(): void
+    {
+        $this->showAccionModal = false;
+        $this->accionModalIndex = null;
+        $this->accionModal = [];
+        $this->resetErrorBag();
+    }
+
+    public function saveAccionModal(): void
+    {
+        $this->authorizeSensitive();
+        $grupo = $this->accionModalGrupo;
+
+        $reglas = $grupo === 'accionesEmergentes'
+            ? [
+                'accionModal.producto_logrado' => ['required', 'string', 'max:2000'],
+                'accionModal.actividad_realizada' => ['required', 'string', 'max:2000'],
+                'accionModal.justificacion' => ['required', 'string', 'max:2000'],
+                'accionModal.responsables' => ['required', 'string', 'max:255'],
+                'accionModal.fecha' => ['nullable', 'date'],
+                'accionModal.horas' => ['nullable', 'numeric', 'min:0'],
+                'accionModal.informe_final_resultado_id' => ['nullable', 'integer'],
+            ]
+            : [
+                'accionModal.resultado_previsto' => ['required', 'string', 'max:2000'],
+                'accionModal.actividad_planificada' => ['required', 'string', 'max:2000'],
+                'accionModal.explicacion' => ['required', 'string', 'max:2000'],
+                'accionModal.afectacion_proyecto' => ['required', 'string', 'max:2000'],
+            ];
+
+        $this->validate($reglas, [], [
+            'accionModal.resultado_previsto' => 'resultado previsto',
+            'accionModal.actividad_planificada' => 'actividad planificada',
+            'accionModal.actividad_realizada' => 'actividad realizada',
+            'accionModal.producto_logrado' => 'producto logrado',
+            'accionModal.explicacion' => 'explicación',
+            'accionModal.justificacion' => 'justificación',
+            'accionModal.afectacion_proyecto' => 'afectación al proyecto',
+            'accionModal.responsables' => 'responsables de la ejecución',
+        ]);
+
+        $datos = array_merge($this->accionModalDefault($grupo), $this->accionModal);
+        if ($grupo === 'accionesEmergentes') {
+            $datos['informe_final_resultado_id'] = filled($datos['informe_final_resultado_id'] ?? null)
+                ? (int) $datos['informe_final_resultado_id'] : null;
+            $datos['horas'] = (float) ($datos['horas'] ?? 0);
+        }
+
+        $index = $this->accionModalIndex;
+        if ($index === null) {
+            $this->{$grupo}[] = $datos;
+            $index = array_key_last($this->{$grupo});
+        } else {
+            $this->{$grupo}[$index] = array_merge($this->{$grupo}[$index], $datos);
+        }
+
+        $this->guardarFilaAutoguardado($grupo, $index);
+        $this->closeAccionModal();
+    }
+
+    /** Opciones de resultados del informe para vincular acciones emergentes. */
+    public function getResultadosOpcionesProperty(): array
+    {
+        return collect($this->resultados)
+            ->map(fn ($row, $i) => [
+                'id' => $row['id'] ?? null,
+                'label' => \Illuminate\Support\Str::limit(
+                    (string) ($row['resultado_planificado'] ?: ($row['objetivo_especifico'] ?: 'Resultado '.($i + 1))),
+                    70
+                ),
+            ])
+            ->filter(fn ($opcion) => filled($opcion['id']))
+            ->values()
+            ->all();
+    }
+
+    // ── Paso 6: ODS (modal + tabla) ─────────────────────────────────────────────
+
+    public bool $showOdsModal = false;
+    public ?int $odsModalIndex = null;
+    public bool $odsModalEsPlanificado = false;
+    public array $odsModal = ['ods_id' => '', 'meta_contribuye_id' => null, 'descripcion_aporte' => '', 'evidencia' => '', 'nivel_contribucion' => 'directa'];
+
+    public function openOdsModal(?int $index = null): void
+    {
+        $this->authorizeSensitive();
+        abort_unless($index === null || isset($this->ods[$index]), 404);
+        $this->resetErrorBag();
+        $this->odsModalIndex = $index;
+        $this->odsModalEsPlanificado = $index !== null
+            && strtoupper((string) ($this->ods[$index]['origen'] ?? 'PLANIFICADO')) !== 'EJECUCION';
+        $base = ['ods_id' => '', 'meta_contribuye_id' => null, 'descripcion_aporte' => '', 'evidencia' => '', 'nivel_contribucion' => 'directa'];
+        $this->odsModal = $index === null ? $base : array_merge($base, Arr::only($this->ods[$index], array_keys($base)));
+        $this->showOdsModal = true;
+    }
+
+    public function closeOdsModal(): void
+    {
+        $this->showOdsModal = false;
+        $this->odsModalIndex = null;
+        $this->odsModalEsPlanificado = false;
+        $this->odsModal = ['ods_id' => '', 'meta_contribuye_id' => null, 'descripcion_aporte' => '', 'evidencia' => '', 'nivel_contribucion' => 'directa'];
+        $this->resetErrorBag();
+    }
+
+    public function saveOdsModal(): void
+    {
+        $this->authorizeSensitive();
+
+        $reglas = [
+            'odsModal.descripcion_aporte' => ['required', 'string', 'max:2000'],
+            'odsModal.evidencia' => ['nullable', 'string', 'max:2000'],
+        ];
+        if (! $this->odsModalEsPlanificado) {
+            $reglas += [
+                'odsModal.ods_id' => ['required', 'integer', Rule::exists('ods', 'id')],
+                'odsModal.meta_contribuye_id' => ['nullable', 'integer', Rule::exists('metas_contribuye', 'id')],
+                'odsModal.nivel_contribucion' => ['required', Rule::in(['directa', 'indirecta'])],
+            ];
+        }
+        $this->validate($reglas, ['odsModal.ods_id.required' => 'Seleccione un ODS.'], [
+            'odsModal.descripcion_aporte' => 'descripción del aporte',
+        ]);
+
+        $index = $this->odsModalIndex;
+        if ($index === null) {
+            $this->ods[] = array_merge(
+                ['ods_id' => '', 'meta_contribuye_id' => null, 'meta_ods' => '', 'descripcion_aporte' => '', 'evidencia' => '', 'nivel_contribucion' => 'directa', 'origen' => 'EJECUCION'],
+                $this->odsModal,
+                ['origen' => 'EJECUCION']
+            );
+            $index = array_key_last($this->ods);
+        } elseif ($this->odsModalEsPlanificado) {
+            $this->ods[$index] = array_merge($this->ods[$index], Arr::only($this->odsModal, ['descripcion_aporte', 'evidencia']));
+        } else {
+            $this->ods[$index] = array_merge($this->ods[$index], $this->odsModal);
+        }
+
+        $this->ods[$index]['meta_contribuye_id'] = filled($this->ods[$index]['meta_contribuye_id'] ?? null)
+            ? (int) $this->ods[$index]['meta_contribuye_id'] : null;
+
+        $this->guardarFilaAutoguardado('ods', $index);
+        $this->closeOdsModal();
     }
 
     public function openNoParticipacionModal(string $tipo, int $index): void
@@ -840,8 +1071,18 @@ class EditInformeFinalProyecto extends Component
 
     public function esCampoReflexionHeredado(string $campo): bool
     {
-        return array_key_exists($campo, self::CAMPOS_REFLEXION_HEREDADOS)
-            && ($this->camposReflexionConValorHeredado[$campo] ?? false);
+        if (! array_key_exists($campo, self::CAMPOS_REFLEXION_HEREDADOS)) {
+            return false;
+        }
+
+        // La bandera se calcula en el mount; Livewire no persiste la propiedad
+        // privada entre peticiones, así que se rehidrata la primera vez que se
+        // consulta en una petición nueva.
+        if ($this->camposReflexionConValorHeredado === []) {
+            $this->sincronizarCamposReflexionHeredados();
+        }
+
+        return $this->camposReflexionConValorHeredado[$campo] ?? false;
     }
 
     public function agregarFila(string $grupo): void
@@ -854,7 +1095,7 @@ class EditInformeFinalProyecto extends Component
             'contrapartes' => ['existe_apoyo'=>true,'nombre'=>'','tipo'=>'sociedad_civil','contacto'=>'','correo'=>'','cargo'=>'','telefono'=>'','tipo_instrumento'=>null,'compromisos_asumidos'=>'','compromisos_cumplidos'=>'','territorio'=>'','aporte_monetario'=>0,'aporte_especie'=>0,'documento_respaldo'=>'','origen'=>'EJECUCION'],
             'resultados' => ['plazo'=>'mediano_plazo','objetivo_especifico'=>'','resultado_planificado'=>'','indicador_propuesto'=>'','meta_numerica'=>null,'unidad_medida'=>'','valor_alcanzado'=>null,'porcentaje_cumplimiento'=>0,'estado'=>'no_alcanzado','producto_logrado'=>'','observaciones'=>''],
             'actividades' => ['actividad_planificada'=>'','actividad_realizada'=>'','responsable'=>'','fecha_inicial'=>null,'fecha_final'=>null,'horas_dedicadas'=>0,'medio_verificacion'=>'','estado'=>'no_ejecutada','origen'=>'emergente','participantes'=>[]],
-            'accionesNoEjecutadas' => ['resultado_previsto'=>'','actividad_planificada'=>'','explicacion'=>'','afectacion_proyecto'=>'','responsable'=>'','impacto'=>'medio'],
+            'accionesNoEjecutadas' => ['resultado_previsto'=>'','actividad_planificada'=>'','explicacion'=>'','afectacion_proyecto'=>''],
             'accionesEmergentes' => ['producto_logrado'=>'','actividad_realizada'=>'','justificacion'=>'','responsables'=>'','fecha'=>null,'horas'=>0,'informe_final_resultado_id'=>null],
             'ods' => ['ods_id'=>'','meta_contribuye_id'=>null,'meta_ods'=>'','descripcion_aporte'=>'','evidencia'=>'','nivel_contribucion'=>'directa','origen'=>'EJECUCION'],
             'presupuesto' => ['fuente'=>'UNAH','concepto'=>'otros','unidad'=>'','cantidad'=>0,'costo_unitario'=>0,'origen_fondos'=>'','informe_final_contraparte_id'=>null],
@@ -1584,7 +1825,7 @@ class EditInformeFinalProyecto extends Component
                 $this->syncParticipantesActividad($actividad, $index);
             }
             unset($actividad);
-            $this->syncRows('accionesNoEjecutadas', $this->accionesNoEjecutadas, ['resultado_previsto','actividad_planificada','explicacion','afectacion_proyecto','responsable','impacto']);
+            $this->syncRows('accionesNoEjecutadas', $this->accionesNoEjecutadas, ['resultado_previsto','actividad_planificada','explicacion','afectacion_proyecto']);
             $this->syncRows('accionesEmergentes', $this->accionesEmergentes, ['informe_final_resultado_id','producto_logrado','actividad_realizada','justificacion','responsables','fecha','horas']);
             $this->protegerOdsPlanificados();
             $this->syncRows('ods', $this->ods, ['ods_id','meta_contribuye_id','meta_ods','descripcion_aporte','evidencia','nivel_contribucion','origen']);
@@ -1753,10 +1994,14 @@ class EditInformeFinalProyecto extends Component
                 'actividades.*.participantes.*.horas_dedicadas' => ['nullable','numeric','min:0'],
             ],
             6 => [
+                'accionesNoEjecutadas.*.resultado_previsto' => ['required','string'],
                 'accionesNoEjecutadas.*.actividad_planificada' => ['required','string'],
                 'accionesNoEjecutadas.*.explicacion' => ['required','string'],
+                'accionesNoEjecutadas.*.afectacion_proyecto' => ['required','string'],
+                'accionesEmergentes.*.producto_logrado' => ['required','string'],
                 'accionesEmergentes.*.actividad_realizada' => ['required','string'],
                 'accionesEmergentes.*.justificacion' => ['required','string'],
+                'accionesEmergentes.*.responsables' => ['required','string'],
             ],
             7 => [
                 'general.valoracion_total_beneficiarios' => ['integer','min:0'],
@@ -2107,7 +2352,7 @@ class EditInformeFinalProyecto extends Component
             'contrapartes'=>['contrapartes',['entidad_contraparte_id','existe_apoyo','nombre','tipo','contacto','correo','cargo','telefono','tipo_instrumento','compromisos_asumidos','compromisos_cumplidos','territorio','aporte_monetario','aporte_especie','documento_respaldo','origen']],
             'resultados'=>['resultados',['resultado_esperado_id','plazo','objetivo_especifico','resultado_planificado','indicador_propuesto','meta_numerica','unidad_medida','valor_alcanzado','porcentaje_cumplimiento','estado','producto_logrado','observaciones']],
             'actividades'=>['actividades',['actividad_id','actividad_planificada','actividad_realizada','responsable','fecha_inicial','fecha_final','horas_dedicadas','medio_verificacion','estado','origen']],
-            'accionesNoEjecutadas'=>['accionesNoEjecutadas',['resultado_previsto','actividad_planificada','explicacion','afectacion_proyecto','responsable','impacto']],
+            'accionesNoEjecutadas'=>['accionesNoEjecutadas',['resultado_previsto','actividad_planificada','explicacion','afectacion_proyecto']],
             'accionesEmergentes'=>['accionesEmergentes',['informe_final_resultado_id','producto_logrado','actividad_realizada','justificacion','responsables','fecha','horas']],
             'ods'=>['ods',['ods_id','meta_contribuye_id','meta_ods','descripcion_aporte','evidencia','nivel_contribucion','origen']],
             'presupuesto'=>['presupuestoDetalles',['informe_final_contraparte_id','fuente','concepto','unidad','cantidad','costo_unitario','origen_fondos']],
