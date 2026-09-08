@@ -6,50 +6,85 @@ use App\Livewire\Configuracion\ApiAccessTokens;
 use App\Models\ApiAccessScope;
 use App\Models\ApiAccessToken;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
-use Tests\TestCase;
+use Tests\Support\IsolatedApiTestCase;
 
-class ApiAccessTokensTest extends TestCase
+class ApiAccessTokensTest extends IsolatedApiTestCase
 {
-    use DatabaseTransactions;
-
-    public function test_requiere_permiso_y_crea_token_mostrando_secreto_solo_en_la_respuesta(): void
+    private function administrador(): User
     {
         $user = User::factory()->create();
-        $permission = Permission::firstOrCreate(['name' => 'configuracion.integraciones-api', 'guard_name' => 'web']);
-        $role = Role::firstOrCreate(['name' => 'tokens-test', 'guard_name' => 'web']);
+        $permission = Permission::create(['name' => 'configuracion.integraciones-api', 'guard_name' => 'web']);
+        $role = Role::create(['name' => 'tokens-test', 'guard_name' => 'web']);
         $role->givePermissionTo($permission);
         $user->assignRole($role);
         $user->update(['active_role_id' => $role->id]);
-        $scope = ApiAccessScope::firstOrCreate(['codigo' => 'empleados.proyectos'], ['nombre' => 'Proyectos', 'activo' => true]);
-
-        $component = Livewire::actingAs($user)->test(ApiAccessTokens::class)
-            ->set('nombre', 'Postman')
-            ->set('scopes', [(string) $scope->id])
-            ->call('guardar');
-
-        $token = ApiAccessToken::firstOrFail();
-        $this->assertNotNull($component->get('tokenVisible'));
-        $this->assertNotSame($component->get('tokenVisible'), $token->token_hash);
-        $this->assertTrue($token->scopes->contains($scope));
+        return $user;
     }
 
-    public function test_edita_metadatos_y_revoca_sin_cambiar_hash(): void
+    public function test_entrega_secreto_una_vez_sin_snapshot_publico(): void
     {
-        $token = ApiAccessToken::create(['nombre' => 'Original', 'prefijo' => 'nexo_test', 'token_hash' => ApiAccessToken::hashToken('secreto'), 'created_by' => User::factory()->create()->id]);
-        $hash = $token->token_hash;
-        $user = User::factory()->create();
-        $permission = Permission::firstOrCreate(['name' => 'configuracion.integraciones-api', 'guard_name' => 'web']);
-        $role = Role::firstOrCreate(['name' => 'tokens-edit-test', 'guard_name' => 'web']);
-        $role->givePermissionTo($permission); $user->assignRole($role); $user->update(['active_role_id' => $role->id]);
+        $scope = ApiAccessScope::firstOrFail();
+        $raw = null;
+        $component = Livewire::actingAs($this->administrador())->test(ApiAccessTokens::class)
+            ->set('nombre', 'Postman')->set('scopes', [(string) $scope->id])->call('guardar')
+            ->assertHasNoErrors()
+            ->assertDispatched('api-token-created', function ($event, $params) use (&$raw) {
+                $raw = $params['token'];
+                return str_starts_with($raw, 'nexo_') && strlen($raw) === 53;
+            });
+        $this->assertNotNull($raw);
+        $token = ApiAccessToken::where('nombre', 'Postman')->firstOrFail();
+        $this->assertSame(ApiAccessToken::hashToken($raw), $token->token_hash);
+        $this->assertSame(substr($raw, 0, 12), $token->prefijo);
+        $this->assertTrue($token->scopes->contains($scope));
+        $this->assertFalse(property_exists($component->instance(), 'tokenVisible'));
+        $component->assertDontSee($raw)->call('cerrar')->assertNotDispatched('api-token-created');
+        $component->call('nuevo')->assertNotDispatched('api-token-created')->assertDontSee($raw);
+        $this->assertStringNotContainsString($raw, $token->toJson());
+    }
 
-        Livewire::actingAs($user)->test(ApiAccessTokens::class)->call('editar', $token->id)->set('nombre', 'Actualizado')->call('guardar')->call('revocar', $token->id);
-        $token->refresh();
-        $this->assertSame('Actualizado', $token->nombre);
-        $this->assertSame($hash, $token->token_hash);
-        $this->assertNotNull($token->revocado_en);
+    public function test_edita_y_revoca_sin_cambiar_hash(): void
+    {
+        $hash = $this->token->token_hash;
+        Livewire::actingAs($this->administrador())->test(ApiAccessTokens::class)
+            ->call('editar', $this->token->id)->set('nombre', 'Actualizado')->call('guardar')
+            ->assertHasNoErrors()->call('revocar', $this->token->id)->assertHasNoErrors();
+        $this->token->refresh();
+        $this->assertSame('Actualizado', $this->token->nombre);
+        $this->assertSame($hash, $this->token->token_hash);
+        $this->assertNotNull($this->token->revocado_en);
+    }
+
+    public function test_permite_limpiar_la_fecha_de_expiracion(): void
+    {
+        $this->token->update(['expira_en' => now()->addDay()]);
+
+        Livewire::actingAs($this->administrador())->test(ApiAccessTokens::class)
+            ->call('editar', $this->token->id)
+            ->set('expira_en', '')
+            ->call('guardar')
+            ->assertHasNoErrors();
+
+        $this->assertNull($this->token->fresh()->expira_en);
+    }
+
+    public function test_rechaza_usuario_sin_permiso(): void
+    {
+        Livewire::actingAs(User::factory()->create())->test(ApiAccessTokens::class)->assertForbidden();
+    }
+
+    public function test_rechaza_alcances_inactivos_inexistentes_y_duplicados(): void
+    {
+        $scope = ApiAccessScope::firstOrFail();
+        $scope->update(['activo' => false]);
+        $component = Livewire::actingAs($this->administrador())->test(ApiAccessTokens::class)->set('nombre', 'Inválido');
+        $component->set('scopes', [(string) $scope->id])->call('guardar')->assertHasErrors('scopes.0');
+        $component->set('scopes', ['99999'])->call('guardar')->assertHasErrors('scopes.0');
+        $scope->update(['activo' => true]);
+        $component->set('scopes', [(string) $scope->id, (string) $scope->id])->call('guardar')->assertHasErrors('scopes.0');
+        $this->assertDatabaseMissing('api_access_tokens', ['nombre' => 'Inválido']);
     }
 }
