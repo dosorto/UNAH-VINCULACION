@@ -1,4 +1,4 @@
-<div class="text-gray-900">
+<div class="text-gray-900 dark:text-gray-100">
     <div class="mb-6 flex flex-wrap items-center gap-2 border-b border-gray-200 pb-3 text-sm font-semibold text-slate-600">
         <a href="{{ route('selectorTipoAccion') }}" class="rounded-md px-4 py-2 transition hover:bg-gray-100 hover:text-blue-700">Registrar Acción</a>
         <a href="{{ route('proyectosDocente') }}" class="rounded-md px-4 py-2 transition hover:bg-gray-100 hover:text-blue-700">Mi Historial Vinculación</a>
@@ -6,29 +6,41 @@
         <a href="{{ route('proyectosAntesDelSistema') }}" class="rounded-md px-4 py-2 transition hover:bg-gray-100 hover:text-blue-700">Vinculaciones Antes del Sistema</a>
     </div>
     <div class="mb-5"><p class="text-xs font-semibold uppercase tracking-wide text-blue-700">FORM-DVUS-013</p><h1 class="mt-1 text-2xl font-bold text-gray-950">Registro de Pasantías</h1><p class="mt-2 text-sm text-gray-500">Complete la información del formulario y guárdela como borrador.</p></div>
-    <div class="mb-6 rounded-lg bg-white p-4 shadow">
+    @php
+        $inputClass = 'w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500';
+        $selectOptions = [
+            'tipo_pasantia' => ['Pasantía profesional' => 'Pasantía profesional', 'Pasantía académica' => 'Pasantía académica'],
+            'modalidad_ejecucion' => ['100% presencial' => '100% presencial', 'Híbrida' => 'Híbrida', 'Teletrabajo' => 'Teletrabajo'],
+            'pasantia_obligatoria' => ['Sí' => 'Sí', 'No' => 'No'],
+            'otorga_creditos' => ['Sí' => 'Sí', 'No' => 'No'],
+            'pasantia_remunerada' => ['Sí' => 'Sí', 'No' => 'No'],
+            'tipo_institucion' => ['Pública' => 'Pública', 'Privada' => 'Privada', 'ONG' => 'ONG', 'Organismo internacional' => 'Organismo internacional'],
+            'sector_institucion' => ['Educación' => 'Educación', 'Gobierno' => 'Gobierno', 'Empresa privada' => 'Empresa privada', 'Sociedad civil' => 'Sociedad civil'],
+            'tipo_instrumento' => ['carta_formal_solicitud' => 'Carta formal de solicitud', 'carta_intenciones' => 'Carta de intenciones', 'convenio_marco' => 'Convenio marco'],
+            'grado_academico_contacto_directo' => ['Secundaria completa' => 'Secundaria completa', 'Licenciatura' => 'Licenciatura', 'Maestría' => 'Maestría', 'Doctorado' => 'Doctorado', 'Postdoctorado' => 'Postdoctorado'],
+            'adjunta_carta_formalizacion' => ['Sí' => 'Sí', 'No' => 'No'],
+            'adjunta_convenio_marco' => ['Sí' => 'Sí', 'No' => 'No'],
+            'categoria_docente' => $categoriasDocente,
+            'departamento_docente' => $departamentosAcademicos,
+            'jornada_laboral_docente' => $jornadasLaborales,
+        ];
+    @endphp
+
+    <div class="mb-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
         <div class="flex items-center gap-0.5 overflow-x-auto">
 
         @foreach($pasos as $numero => $nombre)
-            <button type="button" wire:click="irAPaso({{ $numero }})" class="group flex min-w-[82px] flex-1 shrink-0 flex-col items-center rounded-md p-1 transition hover:bg-gray-50"><span class="mb-1 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold {{ $pasoActual === $numero ? 'bg-blue-600 text-white ring-2 ring-blue-300' : 'bg-gray-200 text-gray-600' }}">{{ $numero }}</span><span class="text-center text-[10px] leading-tight {{ $pasoActual === $numero ? 'font-semibold text-blue-600' : 'text-gray-500' }}">{{ $nombre }}</span></button>
-            @if($numero < count($pasos))<div class="h-0.5 w-3 shrink-0 bg-gray-200"></div>@endif
+            @php $completado = $numero < $pasoActual; $activo = $pasoActual === $numero; @endphp
+            <button type="button" wire:click="irAPaso({{ $numero }})" class="group flex min-w-[82px] flex-1 shrink-0 flex-col items-center rounded-md p-1 transition hover:bg-gray-50 dark:hover:bg-white/5">
+                <span class="mb-1 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-colors {{ $activo ? 'bg-blue-600 text-white ring-2 ring-blue-300' : ($completado ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400') }}">{{ $completado ? '✓' : $numero }}</span>
+                <span class="text-center text-[10px] leading-tight {{ $activo ? 'font-semibold text-blue-600' : ($completado ? 'text-green-600 dark:text-green-400' : 'text-gray-500') }}">{{ $nombre }}</span>
+            </button>
+            @if($numero < count($pasos))<div class="h-0.5 w-3 shrink-0 {{ $completado ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700' }}"></div>@endif
         @endforeach
         </div>
     </div>
 
-    <div class="border border-blue-200 bg-blue-50 p-4 text-sm text-gray-700">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-            <span class="font-semibold">Resumen del registro</span>
-            <span>{{ $registroId ? 'Borrador guardado' : 'Aún no guardado' }}</span>
-        </div>
-        <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <span><b>Estudiante:</b> {{ $form['nombre_estudiante'] ?: 'Pendiente' }}</span>
-            <span><b>Institución:</b> {{ $form['nombre_institucion'] ?: 'Pendiente' }}</span>
-            <span><b>Modalidad:</b> {{ $form['modalidad_ejecucion'] ?: 'Pendiente' }}</span>
-        </div>
-    </div>
-
-    <div class="rounded-lg bg-white p-6 shadow">
+    <div class="rounded-lg bg-white p-6 shadow-sm dark:bg-gray-900">
         @php
             $secciones = [
                 1 => [['fecha_registro','Fecha de registro','date'],['facultad_centro','Facultad / centro','text'],['escuela_departamento','Escuela / departamento académico','text'],['carrera','Carrera','text'],['numero_cuenta','Número de cuenta','text'],['nombre_estudiante','Nombre completo del estudiante','text'],['celular_estudiante','Número de celular','text'],['correo_institucional','Correo institucional','email'],['correo_personal','Correo personal','email']],
@@ -43,23 +55,58 @@
         @endphp
         <h2 class="mb-5 text-lg font-semibold text-gray-900">Paso {{ $pasoActual }}: {{ $pasos[$pasoActual] }}</h2>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        @if($pasoActual === 7)
+            <div class="md:col-span-2 rounded-lg border border-blue-200 bg-blue-50 p-5 text-sm text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100">
+                Las firmas se asignan y registran mediante el flujo de revisión. No deben editarse manualmente en este formulario.
+            </div>
+        @else
             @foreach($secciones[$pasoActual] as $indice => [$campo, $etiqueta, $tipo])
                 <label class="block {{ $tipo === 'textarea' ? 'md:col-span-2' : '' }}">
                     <span class="mb-1 block text-sm font-medium text-gray-700">{{ $etiqueta }}</span>
                     <span class="block">
-                    @if($tipo === 'textarea')
-                        <textarea wire:model.blur="form.{{ $campo }}" rows="3" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"></textarea>
+                    @if(isset($selectOptions[$campo]))
+                        <select wire:model="form.{{ $campo }}" class="{{ $inputClass }}">
+                            <option value="">Seleccione...</option>
+                            @foreach($selectOptions[$campo] as $valor => $opcion)
+                                <option value="{{ $valor }}">{{ $opcion }}</option>
+                            @endforeach
+                        </select>
+                    @elseif($campo === 'facultad_centro')
+                        <select wire:model.live="form.{{ $campo }}" class="{{ $inputClass }}">
+                            <option value="">Seleccione...</option>
+                            @foreach($facultadesCentros as $nombre)
+                                <option value="{{ $nombre }}">{{ $nombre }}</option>
+                            @endforeach
+                        </select>
+                    @elseif($campo === 'carrera')
+                        <select wire:model="form.{{ $campo }}" class="{{ $inputClass }}" @disabled(blank($form['facultad_centro'] ?? '') || $carreras->isEmpty())>
+                            <option value="">Seleccione...</option>
+                            @foreach($carreras as $nombre)
+                                <option value="{{ $nombre }}">{{ $nombre }}</option>
+                            @endforeach
+                        </select>
+                    @elseif(in_array($campo, ['numero_cuenta', 'numero_empleado_docente'], true))
+                        <div x-data="{ cuenta: @js($form[$campo] ?? '') }" class="flex gap-2">
+                            <input type="text" wire:model.blur="form.{{ $campo }}" x-model="cuenta" class="{{ $inputClass }}">
+                            <button type="button" x-cloak x-show="cuenta.trim().length > 0" wire:click="{{ $campo === 'numero_cuenta' ? 'buscarEstudiante' : 'buscarDocente' }}" wire:loading.attr="disabled" wire:target="{{ $campo === 'numero_cuenta' ? 'buscarEstudiante' : 'buscarDocente' }}" class="inline-flex shrink-0 items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+                                <span wire:loading.remove wire:target="{{ $campo === 'numero_cuenta' ? 'buscarEstudiante' : 'buscarDocente' }}">Buscar</span>
+                                <span wire:loading wire:target="{{ $campo === 'numero_cuenta' ? 'buscarEstudiante' : 'buscarDocente' }}">Buscando…</span>
+                            </button>
+                        </div>
+                    @elseif($tipo === 'textarea')
+                        <textarea wire:model.blur="form.{{ $campo }}" rows="3" class="{{ $inputClass }}"></textarea>
                     @else
-                        <input type="{{ $tipo }}" wire:model.blur="form.{{ $campo }}" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <input type="{{ $tipo }}" wire:model.blur="form.{{ $campo }}" class="{{ $inputClass }}">
                     @endif
                     </span>
                     @error('form.'.$campo)<span class="mt-1 block text-xs text-red-500">{{ $message }}</span>@enderror
                 </label>
             @endforeach
+        @endif
         </div>
-        <div class="flex justify-between gap-3 border-t border-gray-300 bg-gray-50 p-4">
-            <button type="button" wire:click="anterior" class="border border-blue-950 px-4 py-2 text-sm text-blue-950" @disabled($pasoActual === 1)>Anterior</button>
-            <div class="flex gap-3"><button type="button" wire:click="guardarBorrador" class="border border-blue-950 bg-white px-4 py-2 text-sm font-semibold text-blue-950">Guardar borrador</button><button type="button" wire:click="siguiente" class="bg-blue-950 px-4 py-2 text-sm font-semibold text-white">{{ $pasoActual === 8 ? 'Finalizar' : 'Siguiente' }} →</button></div>
+        <div class="mt-8 flex items-center justify-between border-t border-gray-200 pt-4 dark:border-gray-700">
+            <button type="button" wire:click="anterior" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700" @disabled($pasoActual === 1)>&larr; Anterior</button>
+            <div class="flex items-center gap-3"><button type="button" wire:click="guardarBorrador" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">Guardar borrador</button><button type="button" wire:click="siguiente" class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">{{ $pasoActual === 8 ? 'Finalizar' : 'Siguiente' }} &rarr;</button></div>
         </div>
     </div>
 </div>

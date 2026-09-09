@@ -1,8 +1,9 @@
 @php
+    $esPasantia = isset($pasantia);
     $formData = $formData ?? \App\Support\PpsServicioSocial\FormDvus014Data::from($pps);
     $fields = $formData['fields'] ?? [];
     $firmas = $formData['firmas'] ?? [];
-    $coordinadorFirma = \App\Support\PpsServicioSocial\FormDvus014Data::coordinadorFirma($pps);
+    $coordinadorFirma = $esPasantia ? null : \App\Support\PpsServicioSocial\FormDvus014Data::coordinadorFirma($pps);
     $coordinador = $firmas['coordinador'] ?? null;
     $meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
     $fechaGeneracion = now();
@@ -21,12 +22,12 @@
     $carrera = $valor('carrera', 'la carrera correspondiente');
     $centro = $valor('facultad_centro', 'UNAH');
     $institucion = $valor('nombre_institucion', 'la empresa o institución correspondiente');
-    $destinatario = $valor('nombre_jefe_directo', 'A quien corresponda');
-    $cargoDestinatario = $valor('cargo_jefe_directo', 'Jefe inmediato');
+    $destinatario = $valor($esPasantia ? 'nombre_contacto_directo' : 'nombre_jefe_directo', 'A quien corresponda');
+    $cargoDestinatario = $valor($esPasantia ? 'cargo_contacto_directo' : 'cargo_jefe_directo', 'Jefe inmediato');
     $modalidad = $valor('modalidad_ejecucion', 'la modalidad indicada en el formulario');
     $coordinadorNombre = trim((string) ($coordinador['nombre'] ?? '')) ?: 'Coordinador(a) de la carrera';
     $coordinadorCargo = trim((string) ($coordinadorFirma?->etapa_nombre ?? '')) ?: 'Coordinador(a) de la carrera';
-    $lugar = $valor('municipio') ?: $valor('departamento') ?: $centro;
+    $lugar = $valor($esPasantia ? 'ciudad_institucion' : 'municipio') ?: $valor('departamento') ?: $centro;
 @endphp
 <!doctype html>
 <html lang="es">
@@ -69,7 +70,7 @@
     </div>
 
     <div class="year">“Año Académico {{ $fechaGeneracion->year }} María Elena Bottazzi”</div>
-    <h1>{{ $tipo === 'solicitud_practica' ? 'SOLICITUD DE PRÁCTICA' : 'AUTORIZACIÓN DE PPS' }}</h1>
+    <h1>{{ $tipo === 'solicitud_practica' ? 'SOLICITUD DE '.($esPasantia ? 'PASANTÍA' : 'PRÁCTICA') : 'AUTORIZACIÓN DE '.($esPasantia ? 'PASANTÍA' : 'PPS') }}</h1>
     <div class="date">{{ $lugar }}, {{ $fechaEnEspanol($fechaGeneracion) }}</div>
 
     <div class="recipient">
@@ -82,12 +83,12 @@
     @if($tipo === 'solicitud_practica')
         <p><strong>Estimado(a) señor(a):</strong></p>
         <p>Reciba de esta Coordinación muestras de respeto y consideración.</p>
-        <p>Por este medio tengo el agrado de dirigirme a Usted, con el objetivo de manifestarle que un estudiante por egresar de la Carrera de <strong>{{ $carrera }}</strong> de la Universidad Nacional Autónoma de Honduras desea realizar la práctica profesional supervisada de <strong>{{ $valor('total_horas') }} horas</strong> en su institución, la cual será válida en modalidad <strong>{{ $modalidad }}</strong>.</p>
+        <p>Por este medio tengo el agrado de dirigirme a Usted, con el objetivo de manifestarle que un estudiante por egresar de la Carrera de <strong>{{ $carrera }}</strong> de la Universidad Nacional Autónoma de Honduras desea realizar la {{ $esPasantia ? 'pasantía' : 'práctica profesional supervisada' }} de <strong>{{ $valor('total_horas') }} horas</strong> en su institución, la cual será válida en modalidad <strong>{{ $modalidad }}</strong>.</p>
         <p>NOMBRE DEL ALUMNO: <strong>{{ $valor('nombre_estudiante') }}</strong><br>NÚMERO DE CUENTA: <strong>{{ $valor('numero_cuenta') }}</strong></p>
         <p>De ser favorecido el estudiante, agradeceré envíe por escrito el perfil del puesto a desempeñar, las funciones que desarrollará, fecha tentativa de inicio de la práctica, horario de trabajo y el nombre del Jefe Inmediato que se le asignará al practicante.</p>
         <p class="note">Observación: Esta solicitud no indica autorización de práctica. Posteriormente se realizará el análisis de las funciones del puesto para autorizar la práctica y la fecha oficial de comienzo.</p>
     @else
-        <p>El suscrito Coordinador de la Carrera de <strong>{{ $carrera }}</strong> de <strong>{{ $centro }}</strong>, por este medio <strong>AUTORIZA</strong> al estudiante <strong>{{ $valor('nombre_estudiante') }}</strong>, con número de cuenta <strong>{{ $valor('numero_cuenta') }}</strong>, para realizar la Práctica Profesional Supervisada de <strong>{{ $valor('total_horas') }} horas</strong> en <strong>{{ $institucion }}</strong>, bajo la modalidad <strong>{{ $modalidad }}</strong>, iniciando el <strong>{{ $fechaEnEspanol($fechaInicio) }}</strong> y finalizando el <strong>{{ $fechaEnEspanol($fechaFinalizacion) }}</strong>.</p>
+        <p>El suscrito Coordinador de la Carrera de <strong>{{ $carrera }}</strong> de <strong>{{ $centro }}</strong>, por este medio <strong>AUTORIZA</strong> al estudiante <strong>{{ $valor('nombre_estudiante') }}</strong>, con número de cuenta <strong>{{ $valor('numero_cuenta') }}</strong>, para realizar {{ $esPasantia ? 'la pasantía' : 'la Práctica Profesional Supervisada' }} de <strong>{{ $valor('total_horas') }} horas</strong> en <strong>{{ $institucion }}</strong>, bajo la modalidad <strong>{{ $modalidad }}</strong>, iniciando el <strong>{{ $fechaEnEspanol($fechaInicio) }}</strong> y finalizando el <strong>{{ $fechaEnEspanol($fechaFinalizacion) }}</strong>.</p>
         <p>En virtud de haber cumplido con los requisitos académicos y administrativos exigidos por la UNAH, se extiende la presente autorización para los fines que el interesado convenga.</p>
     @endif
 

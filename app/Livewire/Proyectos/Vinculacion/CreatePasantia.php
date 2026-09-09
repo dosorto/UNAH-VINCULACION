@@ -3,11 +3,19 @@
 namespace App\Livewire\Proyectos\Vinculacion;
 
 use App\Models\Pasantia;
+use App\Models\JornadaLaboral;
+use App\Models\Personal\CategoriaEmpleado;
+use App\Models\Personal\Empleado;
+use App\Models\UnidadAcademica\DepartamentoAcademico;
+use App\Models\UnidadAcademica\Carrera;
+use App\Models\UnidadAcademica\FacultadCentro;
 use App\Support\Notification;
+use App\Services\Integraciones\IntegracionApiService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
+use Illuminate\Validation\Rule;
 
 class CreatePasantia extends Component
 {
@@ -16,6 +24,7 @@ class CreatePasantia extends Component
     public bool $modoEdicion = false;
     public bool $autoguardadoActivo = true;
     public array $form = [];
+    public bool $buscandoEstudiante = false;
 
     public const PASOS = [
         1 => 'Estudiante', 2 => 'Información de la pasantía', 3 => 'Experiencia',
@@ -48,6 +57,66 @@ class CreatePasantia extends Component
         $this->validate($this->reglasPaso($this->pasoActual), [], $this->atributos());
         $this->guardarBorrador(false);
         $this->pasoActual = min(8, $this->pasoActual + 1);
+    }
+
+    public function buscarEstudiante(IntegracionApiService $integraciones): void
+    {
+        $this->resetErrorBag('form.numero_cuenta');
+        $cuenta = preg_replace('/\s+/u', '', trim((string) ($this->form['numero_cuenta'] ?? '')));
+
+        if ($cuenta === '' || ! ctype_digit($cuenta)) {
+            $this->addError('form.numero_cuenta', 'Ingrese un número de cuenta válido.');
+            return;
+        }
+
+        $this->buscandoEstudiante = true;
+
+        try {
+            $resultado = $integraciones->buscarEstudiantePorCuenta($cuenta);
+            if (! ($resultado['ok'] ?? false)) {
+                $this->addError('form.numero_cuenta', $resultado['mensaje'] ?? 'No se encontró el estudiante.');
+                return;
+            }
+
+            $datos = $resultado['datos'] ?? [];
+            $this->form['numero_cuenta'] = $datos['numero_cuenta'] ?? $cuenta;
+            $this->form['nombre_estudiante'] = $datos['nombre_completo']
+                ?? trim(($datos['nombres'] ?? '').' '.($datos['apellidos'] ?? ''));
+            $this->form['carrera'] = $datos['carrera'] ?? $datos['carrera_nombre'] ?? $this->form['carrera'];
+            $this->form['facultad_centro'] = $datos['centro_nombre'] ?? $this->form['facultad_centro'];
+            $this->form['correo_institucional'] = $datos['correo_institucional'] ?? $datos['correo'] ?? $this->form['correo_institucional'];
+        } catch (\Throwable $e) {
+            $this->addError('form.numero_cuenta', 'No fue posible consultar la integración de estudiantes.');
+        } finally {
+            $this->buscandoEstudiante = false;
+        }
+    }
+
+    public function buscarDocente(): void
+    {
+        $this->resetErrorBag('form.numero_empleado_docente');
+        $numero = preg_replace('/\s+/u', '', trim((string) ($this->form['numero_empleado_docente'] ?? '')));
+
+        if ($numero === '' || ! ctype_digit($numero)) {
+            $this->addError('form.numero_empleado_docente', 'Ingrese un número de empleado válido.');
+            return;
+        }
+
+        $docente = Empleado::query()->with(['user', 'categoria', 'departamento_academico'])
+            ->where('numero_empleado', $numero)->first();
+
+        if (! $docente) {
+            $this->addError('form.numero_empleado_docente', 'No se encontró un empleado con ese número.');
+            return;
+        }
+
+        $this->form['numero_empleado_docente'] = $docente->numero_empleado;
+        $this->form['nombre_docente_supervisor'] = $docente->nombre_completo;
+        $this->form['celular_docente'] = $docente->celular;
+        $this->form['correo_docente'] = $docente->user?->email;
+        $this->form['categoria_docente'] = $docente->categoria?->nombre;
+        $this->form['departamento_docente'] = $docente->departamento_academico?->nombre;
+        $this->form['jornada_laboral_docente'] = $docente->jornada_laboral;
     }
 
     public function anterior(): void
@@ -95,7 +164,27 @@ class CreatePasantia extends Component
 
     public function render(): View
     {
-        return view('livewire.proyectos.vinculacion.create-pasantia', ['pasos' => self::PASOS]);
+        $facultadesCentros = FacultadCentro::query()->orderBy('nombre')->pluck('nombre', 'nombre');
+        $facultadId = FacultadCentro::query()->where('nombre', $this->form['facultad_centro'] ?? '')->value('id');
+        $carreras = $facultadId
+            ? Carrera::query()
+                ->where(function ($query) use ($facultadId) {
+                    $query->where('facultad_centro_id', $facultadId)
+                        ->orWhereHas('facultadCentros', fn ($q) => $q->where('centro_facultad.id', $facultadId));
+                })->orderBy('nombre')->pluck('nombre', 'nombre')
+            : collect();
+        $categoriasDocente = CategoriaEmpleado::query()->orderBy('nombre')->pluck('nombre', 'nombre');
+        $departamentosAcademicos = DepartamentoAcademico::query()->orderBy('nombre')->pluck('nombre', 'nombre');
+        $jornadasLaborales = JornadaLaboral::query()->where('activo', true)->orderBy('orden')->orderBy('hora_inicio')->get()->pluck('etiqueta', 'etiqueta');
+
+        return view('livewire.proyectos.vinculacion.create-pasantia', [
+            'pasos' => self::PASOS,
+            'facultadesCentros' => $facultadesCentros,
+            'carreras' => $carreras,
+            'categoriasDocente' => $categoriasDocente,
+            'departamentosAcademicos' => $departamentosAcademicos,
+            'jornadasLaborales' => $jornadasLaborales,
+        ]);
     }
 
     protected function inicializarFormulario(): void
@@ -116,6 +205,8 @@ class CreatePasantia extends Component
             'nombre_firma_supervisor', 'firma_supervisor', 'nombre_firma_estudiante', 'firma_estudiante',
             'adjunta_carta_formalizacion', 'archivo_carta_formalizacion', 'adjunta_convenio_marco', 'archivo_convenio_marco',
         ], null);
+
+        $this->form['fecha_registro'] = now()->format('Y-m-d');
     }
 
     protected function normalizarPayload(array $payload): array
@@ -132,12 +223,13 @@ class CreatePasantia extends Component
     protected function reglasPaso(int $paso): array
     {
         return match ($paso) {
-            1 => ['form.fecha_registro' => ['nullable', 'date'], 'form.correo_institucional' => ['nullable', 'email'], 'form.correo_personal' => ['nullable', 'email']],
-            2 => ['form.fecha_inicio' => ['nullable', 'date'], 'form.fecha_finalizacion' => ['nullable', 'date'], 'form.duracion_semanas' => ['nullable', 'integer', 'min:0'], 'form.total_horas' => ['nullable', 'integer', 'min:0'], 'form.horas_semanales' => ['nullable', 'integer', 'min:0']],
-            3 => ['form.monto_remuneracion' => ['nullable', 'numeric', 'min:0']],
-            4 => ['form.correo_rrhh' => ['nullable', 'email']],
-            5 => ['form.correo_contacto_directo' => ['nullable', 'email']],
+            1 => ['form.fecha_registro' => ['nullable', 'date'], 'form.facultad_centro' => ['nullable', 'string', 'max:255'], 'form.carrera' => ['nullable', 'string', 'max:255'], 'form.correo_institucional' => ['nullable', 'email', 'max:255'], 'form.correo_personal' => ['nullable', 'email', 'max:255']],
+            2 => ['form.tipo_pasantia' => ['nullable', 'string', Rule::in(['Pasantía profesional', 'Pasantía académica'])], 'form.fecha_inicio' => ['nullable', 'date'], 'form.fecha_finalizacion' => ['nullable', 'date', 'after_or_equal:form.fecha_inicio'], 'form.duracion_semanas' => ['nullable', 'integer', 'min:0'], 'form.total_horas' => ['nullable', 'integer', 'min:0'], 'form.horas_semanales' => ['nullable', 'integer', 'min:0'], 'form.cantidad_creditos' => ['nullable', 'numeric', 'min:0'], 'form.modalidad_ejecucion' => ['nullable', 'string', Rule::in(['100% presencial', 'Híbrida', 'Teletrabajo'])], 'form.pasantia_obligatoria' => ['nullable', Rule::in(['Sí', 'No'])], 'form.otorga_creditos' => ['nullable', Rule::in(['Sí', 'No'])]],
+            3 => ['form.monto_remuneracion' => ['nullable', 'numeric', 'min:0'], 'form.pasantia_remunerada' => ['nullable', Rule::in(['Sí', 'No'])]],
+            4 => ['form.correo_rrhh' => ['nullable', 'email', 'max:255'], 'form.tipo_institucion' => ['nullable', Rule::in(['Pública', 'Privada', 'ONG', 'Organismo internacional'])], 'form.sector_institucion' => ['nullable', Rule::in(['Educación', 'Gobierno', 'Empresa privada', 'Sociedad civil'])]],
+            5 => ['form.correo_contacto_directo' => ['nullable', 'email', 'max:255'], 'form.tipo_instrumento' => ['nullable', Rule::in(['carta_formal_solicitud', 'carta_intenciones', 'convenio_marco'])], 'form.grado_academico_contacto_directo' => ['nullable', Rule::in(['Secundaria completa', 'Licenciatura', 'Maestría', 'Doctorado', 'Postdoctorado'])]],
             6 => ['form.correo_docente' => ['nullable', 'email']],
+            8 => ['form.adjunta_carta_formalizacion' => ['nullable', Rule::in(['Sí', 'No'])], 'form.adjunta_convenio_marco' => ['nullable', Rule::in(['Sí', 'No'])]],
             default => [],
         };
     }
