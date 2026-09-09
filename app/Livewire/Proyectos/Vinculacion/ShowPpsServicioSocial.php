@@ -325,7 +325,7 @@ class ShowPpsServicioSocial extends Component
         $this->registro->loadMissing([
             'flujoAprobacion',
             'etapaActual',
-            'historialEstados' => fn ($query) => $query->with(['empleado', 'tipoestado'])->orderBy('created_at'),
+            'historialEstados' => fn ($query) => $query->with(['empleado', 'tipoestado'])->orderByDesc('created_at'),
         ]);
 
         return view('livewire.proyectos.vinculacion.show-pps-servicio-social', [

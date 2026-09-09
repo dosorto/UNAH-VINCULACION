@@ -17,7 +17,10 @@
         };
 
         $puedeEnviarRevision = $registro->puedeEnviarse(auth()->id());
-        $puedeEditar = $puedeEnviarRevision;
+        $puedeEditar = $registro->perteneceAlUsuario(auth()->id())
+            && in_array($registro->estado, ['borrador', 'subsanacion'], true)
+            || (in_array($registro->estado, ['enviado', 'en_revision'], true)
+                && $registro->usuarioPuedeRevisar(auth()->user()));
         $puedeRevisarEtapa = $registro->usuarioPuedeRevisar(auth()->user()) && $registro->estaEnRevision();
         $puedeAprobar = $puedeRevisarEtapa && $registro->puedeAprobarse(auth()->id(), auth()->user());
         $puedeRechazar = $puedeRevisarEtapa && $registro->puedeRechazarse(auth()->id(), auth()->user());
@@ -168,6 +171,7 @@
                                 $comentarioMovimiento = trim((string) $movimiento->comentario);
                                 $tipoMovimiento = match (true) {
                                     $estadoMovimiento === 'Rechazado' => 'Solicitud de subsanación',
+                                    str_starts_with(mb_strtolower($comentarioMovimiento), 'edición de revisor:') => 'Edición por revisor',
                                     str_contains(mb_strtolower($comentarioMovimiento), 'inicio de subsanación') => 'Inicio de subsanación',
                                     str_contains(mb_strtolower($comentarioMovimiento), 'reenvío posterior') => 'Reenvío posterior a subsanación',
                                     $estadoMovimiento === 'Aprobado' => 'Aprobación de etapa',
@@ -185,7 +189,12 @@
                                     @if($movimiento->empleado) · Responsable: {{ $movimiento->empleado->nombre_completo }} @endif
                                 </p>
                                 @if($comentarioMovimiento !== '')
-                                    <p class="mt-1 whitespace-pre-line break-words text-sm text-gray-600 dark:text-gray-300">{{ $estadoMovimiento === 'Rechazado' ? 'Observación: ' : '' }}{{ $comentarioMovimiento }}</p>
+                                    @php
+                                        $comentarioVisible = str_starts_with(mb_strtolower($comentarioMovimiento), 'edición de revisor:')
+                                            ? trim(mb_substr($comentarioMovimiento, mb_strlen('Edición de revisor:')))
+                                            : $comentarioMovimiento;
+                                    @endphp
+                                    <p class="mt-1 whitespace-pre-line break-words text-sm text-gray-600 dark:text-gray-300">{{ in_array($tipoMovimiento, ['Solicitud de subsanación', 'Edición por revisor'], true) ? 'Observación: ' : '' }}{{ $comentarioVisible }}</p>
                                 @endif
                             </li>
                         @endforeach
@@ -194,6 +203,20 @@
                     <p class="text-sm text-gray-500 dark:text-gray-400">No hay movimientos registrados.</p>
                 @endif
             </section>
+
+            @if($registro->documentosGenerados->isNotEmpty())
+                <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                    <h2 class="mb-3 text-lg font-bold text-gray-900 dark:text-white">Documentos generados</h2>
+                    <div class="space-y-2">
+                        @foreach($registro->documentosGenerados->sortByDesc('generado_en') as $documento)
+                            <a class="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2 text-sm text-blue-700 hover:bg-blue-50 dark:border-gray-700 dark:text-blue-300" href="{{ route('pps-servicio-social.documento-generado', $documento) }}">
+                                <span>{{ $documento->tipo === 'solicitud_practica' ? 'Solicitud de práctica' : 'Autorización de PPS' }} · v{{ $documento->version }}</span>
+                                <span>Descargar</span>
+                            </a>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
 
             <section class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                 <h2 class="mb-4 text-lg font-bold text-gray-900 dark:text-white">

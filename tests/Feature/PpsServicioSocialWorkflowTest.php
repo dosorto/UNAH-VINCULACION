@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Mail\EtapaFlujoPendiente;
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
+use App\Models\Personal\FirmaSelloEmpleado;
 use App\Models\PpsServicioSocial;
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\FlujoAprobacion;
@@ -12,8 +13,11 @@ use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\TipoCargoFirma;
 use App\Models\User;
 use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
+use App\Services\PpsServicioSocial\PpsDocumentoGenerator;
+use App\Support\PpsServicioSocial\PpsDocumentoRequirements;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -25,6 +29,7 @@ class PpsServicioSocialWorkflowTest extends TestCase
     {
         parent::setUp();
         Mail::fake();
+        Storage::fake('local');
     }
 
     public function test_envio_inicia_en_primera_etapa_y_crea_firmas(): void
@@ -46,6 +51,90 @@ class PpsServicioSocialWorkflowTest extends TestCase
         $this->assertSame('Pendiente', $firmas->first()->estado_revision);
 
         Mail::assertQueued(EtapaFlujoPendiente::class);
+    }
+
+    public function test_borrador_incompleto_se_puede_guardar(): void
+    {
+        $usuario = User::factory()->create();
+
+        \Livewire\Livewire::actingAs($usuario)
+            ->test(\App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial::class)
+            ->set('autoguardadoActivo', false)
+            ->call('guardarBorrador')
+            ->assertHasNoErrors();
+
+        $registro = PpsServicioSocial::where('created_by', $usuario->id)->latest('id')->firstOrFail();
+
+        $this->assertSame(0, $registro->total_horas);
+        $this->assertSame('1900-01-01', $registro->fecha_inicio->format('Y-m-d'));
+        $this->assertSame('1900-01-01', $registro->fecha_finalizacion->format('Y-m-d'));
+    }
+
+    public function test_generacion_valida_de_solicitud_reutiliza_datos_del_formulario(): void
+    {
+        $ctx = $this->contexto();
+        $documento = app(PpsDocumentoGenerator::class)->generarSolicitud($ctx['registro'], $ctx['usuario']->id);
+
+        $this->assertSame(PpsDocumentoGenerator::SOLICITUD, $documento->tipo);
+        Storage::disk('local')->assertExists($documento->archivo);
+    }
+
+    public function test_solicitud_se_bloquea_con_mensaje_si_falta_un_dato(): void
+    {
+        $ctx = $this->contexto();
+        $ctx['registro']->update(['cargo_jefe_directo' => null]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('cargo del destinatario de la empresa');
+
+        app(PpsDocumentoGenerator::class)->generarSolicitud($ctx['registro']->fresh(), $ctx['usuario']->id);
+    }
+
+    public function test_generacion_valida_de_autorizacion_exige_firma_del_coordinador(): void
+    {
+        $ctx = $this->contexto();
+        $documento = app(PpsDocumentoGenerator::class)->generarAutorizacion($ctx['registro'], $ctx['usuario']->id);
+
+        $this->assertSame(PpsDocumentoGenerator::AUTORIZACION, $documento->tipo);
+        Storage::disk('local')->assertExists($documento->archivo);
+    }
+
+    public function test_autorizacion_se_bloquea_si_falta_fecha_de_inicio(): void
+    {
+        $ctx = $this->contexto();
+        $ctx['registro']->update(['fecha_inicio' => '1900-01-01']);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('fecha de inicio');
+
+        app(PpsDocumentoGenerator::class)->generarAutorizacion($ctx['registro']->fresh(), $ctx['usuario']->id);
+    }
+
+    public function test_datos_territoriales_jefe_supervisor_jornada_horas_y_adjuntos_pueden_quedar_vacios(): void
+    {
+        $ctx = $this->contexto();
+        $ctx['registro']->update([
+            'departamento' => null,
+            'municipio' => null,
+            'nombre_jefe_directo' => null,
+            'cargo_jefe_directo' => null,
+            'nombre_docente_supervisor' => null,
+            'jornada_laboral_docente' => null,
+            'horas_teletrabajo' => null,
+            'archivo_carta_formalizacion' => null,
+            'archivo_convenio_marco' => null,
+        ]);
+
+        $missing = PpsDocumentoRequirements::missing(
+            $ctx['registro']->fresh(),
+            PpsDocumentoGenerator::AUTORIZACION
+        );
+
+        $this->assertArrayNotHasKey('departamento', $missing);
+        $this->assertArrayNotHasKey('nombre_jefe_directo', $missing);
+        $this->assertArrayNotHasKey('jornada_laboral_docente', $missing);
+        $this->assertArrayNotHasKey('horas_teletrabajo', $missing);
+        $this->assertArrayNotHasKey('archivo_carta_formalizacion', $missing);
     }
 
     public function test_aprobacion_avanza_a_siguiente_etapa(): void
@@ -301,6 +390,12 @@ class PpsServicioSocialWorkflowTest extends TestCase
             'user_id' => $usuario->id,
             'tipo_empleado' => 'docente',
         ]);
+        FirmaSelloEmpleado::create([
+            'empleado_id' => $empleado->id,
+            'tipo' => 'firma',
+            'ruta_storage' => public_path('images/logo_nuevo.png'),
+            'estado' => true,
+        ]);
 
         $flujo = FlujoAprobacion::create([
             'codigo' => 'PPS_FLUJO_'.uniqid(),
@@ -327,7 +422,7 @@ class PpsServicioSocialWorkflowTest extends TestCase
                 'flujo_aprobacion_id' => $flujo->id,
                 'orden' => $orden,
                 'codigo' => 'PPS_ETAPA_'.$orden.'_'.uniqid(),
-                'nombre' => 'Etapa '.$orden,
+                'nombre' => $orden === 1 ? 'Coordinador de la carrera' : 'Docente supervisor',
                 'tipo_etapa' => 'REVISION',
                 'cargo_firma_id' => $cargo->id,
                 'usuario_responsable_id' => $usuario->id,
@@ -351,6 +446,7 @@ class PpsServicioSocialWorkflowTest extends TestCase
             'modalidad_ejecucion' => 'Presencial',
             'nombre_institucion' => 'Empresa Test S.A.',
             'nombre_jefe_directo' => 'Jefe Test',
+            'cargo_jefe_directo' => 'Jefe de Recursos Humanos',
             'nombre_docente_supervisor' => 'Docente Test',
             'total_horas' => 120,
             'created_by' => $usuario->id,

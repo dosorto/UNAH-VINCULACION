@@ -74,21 +74,34 @@ class FormDvus014Data
             'País' => ['pais', 'país', 'extranjera', 'internacional', 'extranjero'],
         ]);
 
+        $facultadCentro = self::clean($registro->facultad_centro);
+        $carrera = self::clean($registro->carrera);
+        // Algunos registros antiguos concatenaron el nombre del centro al de
+        // la carrera. Se corrige solo la presentación, sin alterar la BD.
+        $centroUltimaPalabra = collect(preg_split('/\s+/', $facultadCentro ?: ''))
+            ->filter()->last();
+        if ($centroUltimaPalabra && str_ends_with(
+            Str::lower(Str::ascii($carrera)),
+            ' '.Str::lower(Str::ascii($centroUltimaPalabra))
+        )) {
+            $carrera = trim(substr($carrera, 0, -strlen($centroUltimaPalabra)));
+        }
+
         $fields = [
             'id' => $registro->id,
             'codigo_registro' => $registro->codigo_registro,
             'fecha_registro' => $registro->created_at ?: $registro->fecha_envio,
             'fecha_revision' => $registro->fecha_revision,
-            'facultad_centro' => self::clean($registro->facultad_centro),
-            'carrera' => self::clean($registro->carrera),
+            'facultad_centro' => $facultadCentro,
+            'carrera' => $carrera,
             'numero_cuenta' => self::clean($registro->numero_cuenta),
             'nombre_estudiante' => self::clean($registro->nombre_estudiante),
             'celular_estudiante' => self::clean($registro->celular_estudiante),
             'correo_institucional' => self::clean($registro->correo_institucional),
             'correo_personal' => self::clean($registro->correo_personal),
             'tipo_pps_ss' => $tipoPps ?: self::clean($registro->tipo_pps_ss),
-            'fecha_inicio' => $registro->fecha_inicio,
-            'fecha_finalizacion' => $registro->fecha_finalizacion,
+            'fecha_inicio' => self::fechaVisible($registro->fecha_inicio),
+            'fecha_finalizacion' => self::fechaVisible($registro->fecha_finalizacion),
             'tipo_instrumento' => $tipoInstrumento ?: self::clean($registro->tipo_instrumento),
             'territorio_ejecucion' => $territorio ?: self::clean($registro->territorio_ejecucion),
             'modalidad_ejecucion' => $modalidad ?: self::clean($registro->modalidad_ejecucion),
@@ -192,31 +205,66 @@ class FormDvus014Data
         ];
     }
 
+    /**
+     * Devuelve la firma de etapa que representa al coordinador responsable.
+     * El flujo es la fuente de verdad para no inventar un coordinador.
+     */
+    public static function coordinadorFirma(PpsServicioSocial $registro): ?object
+    {
+        $registro->loadMissing([
+            'firmasDeEtapa.empleado.firma',
+            'firmasDeEtapa.flujoEtapa',
+            'firmasDeEtapa.cargo_firma.tipoCargoFirma',
+        ]);
+
+        return $registro->firmasDeEtapa
+            ->sortBy([['revision_ciclo', 'desc'], ['orden_revision', 'asc'], ['id', 'asc']])
+            ->first(function ($firma): bool {
+                $texto = self::normalize(implode(' ', array_filter([
+                    $firma->etapa_nombre,
+                    $firma->flujoEtapa?->nombre,
+                    $firma->cargo_firma?->tipoCargoFirma?->nombre,
+                ])));
+
+                return Str::contains($texto, 'coordinador');
+            });
+    }
+
+    public static function firmaDisponible(?object $empleado): bool
+    {
+        $ruta = trim((string) ($empleado?->firma?->ruta_storage ?? ''));
+
+        return $ruta !== '' && FirmaImagen::resolver($ruta, true) !== null;
+    }
+
     /** Resuelve firmas del FORM-014 usando el mismo mecanismo seguro que los demás PDF. */
     private static function firmasParaPdf(PpsServicioSocial $registro, bool $isPdf = true): array
     {
         $firmas = ['coordinador' => null, 'supervisor' => null, 'estudiante' => null];
         $asignar = static function (string $tipo, $empleado) use (&$firmas, $isPdf): void {
+            if (! $empleado) {
+                return;
+            }
+
             $firma = $empleado?->firma;
             $ruta = trim((string) ($firma?->ruta_storage ?? ''));
             $imagen = FirmaImagen::resolver($ruta, $isPdf);
 
-            if (! $firma || ! $imagen) {
-                return;
-            }
-
-            $firmas[$tipo] = ['nombre' => $empleado->nombre_completo, 'src' => $imagen['src']];
+            $firmas[$tipo] = [
+                'nombre' => $empleado->nombre_completo,
+                'src' => $imagen['src'] ?? null,
+            ];
         };
 
-        $ciclo = max(1, (int) $registro->firmasDeEtapa()->max('revision_ciclo'));
-        $etapas = $registro->firmasDeEtapa()->with(['empleado.firma', 'flujoEtapa'])
-            ->where('revision_ciclo', $ciclo)->get();
+        $coordinadorFirma = self::coordinadorFirma($registro);
+        $asignar('coordinador', $coordinadorFirma?->empleado);
+        $ciclo = (int) ($coordinadorFirma?->revision_ciclo ?: $registro->firmasDeEtapa->max('revision_ciclo'));
 
-        foreach ($etapas as $firma) {
+        foreach ($registro->firmasDeEtapa
+            ->where('revision_ciclo', max(1, $ciclo))
+            ->sortBy('orden_revision') as $firma) {
             $nombre = Str::lower((string) ($firma->etapa_nombre ?: $firma->flujoEtapa?->nombre));
-            if (Str::contains($nombre, ['coordinador'])) {
-                $asignar('coordinador', $firma->empleado);
-            } elseif (Str::contains($nombre, ['supervisor', 'docente'])) {
+            if (Str::contains($nombre, ['supervisor', 'docente']) && $firma->id !== $coordinadorFirma?->id) {
                 $asignar('supervisor', $firma->empleado);
             }
         }
@@ -226,6 +274,15 @@ class FormDvus014Data
         $asignar('estudiante', $estudiante);
 
         return $firmas;
+    }
+
+    private static function fechaVisible(mixed $fecha): mixed
+    {
+        if ($fecha instanceof \DateTimeInterface && $fecha->format('Y-m-d') === PpsDocumentoRequirements::BORRADOR_FECHA) {
+            return null;
+        }
+
+        return $fecha;
     }
 
     private static function missingFields(

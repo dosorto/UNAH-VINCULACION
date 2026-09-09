@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Mail;
 use RuntimeException;
 
@@ -126,6 +127,10 @@ class PpsServicioSocialWorkflowService
             $this->validarDestinatarioDeFirma($primeraFirma);
             $this->notificarRevisionPendiente($registro, $primeraFirma, $esReenvio ? 'reenvio_subsanacion' : 'envio_revision');
 
+            if (Schema::hasTable('pps_documentos_generados')) {
+                app(PpsDocumentoGenerator::class)->generarSolicitud($registro, (int) $userId);
+            }
+
             Log::info('Ciclo PPS/SS preparado', [
                 'proceso' => PpsServicioSocial::PROCESO_FLUJO,
                 'registro_id' => $registro->id,
@@ -205,6 +210,10 @@ class PpsServicioSocialWorkflowService
                 'motivo_rechazo' => null,
                 'updated_by' => $userId,
             ])->saveQuietly();
+
+            if (Schema::hasTable('pps_documentos_generados')) {
+                app(PpsDocumentoGenerator::class)->generarAutorizacion($registro, (int) $userId);
+            }
 
             return $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
         });
