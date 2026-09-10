@@ -13,6 +13,43 @@ class FormDvus014PdfRenderTest extends TestCase
 {
     use DatabaseTransactions;
 
+    public function test_conserva_fechas_de_inicio_y_finalizacion_distintas(): void
+    {
+        $registro = PpsServicioSocial::create([
+            'codigo_registro' => 'PPS-DATES-001',
+            'facultad_centro' => 'Facultad de Ciencias',
+            'carrera' => 'Ingeniería en Sistemas',
+            'numero_cuenta' => '20241000001',
+            'nombre_estudiante' => 'Estudiante de prueba',
+            'correo_institucional' => 'estudiante@unah.edu.hn',
+            'tipo_pps_ss' => 'Practica Profesional Supervisada',
+            'fecha_inicio' => '2025-02-01',
+            'fecha_finalizacion' => '2025-08-01',
+            'tipo_instrumento' => 'Carta de intenciones con la UNAH',
+            'territorio_ejecucion' => 'Nacional',
+            'modalidad_ejecucion' => '100% presencial',
+            'total_horas' => 1,
+            'nombre_institucion' => 'Institución de prueba',
+            'nombre_jefe_directo' => 'Jefe de prueba',
+            'nombre_docente_supervisor' => 'Supervisor de prueba',
+        ]);
+
+        $data = FormDvus014Data::from($registro);
+        $this->assertSame('2025-02-01', $data['fields']['fecha_inicio']->format('Y-m-d'));
+        $this->assertSame('2025-08-01', $data['fields']['fecha_finalizacion']->format('Y-m-d'));
+
+        $html = view('components.pps-servicio-social.form-014', [
+            'registro' => $registro,
+            'formData' => $data,
+            'isPdf' => true,
+        ])->render();
+
+        $this->assertStringContainsString('01', $html);
+        $this->assertStringContainsString('08', $html);
+        $this->assertStringNotContainsString('2025-02-01', $html);
+        $this->assertStringNotContainsString('2025-08-01', $html);
+    }
+
     public function test_genera_pdf_con_datos_completos_y_lo_guarda_para_inspeccion(): void
     {
         $usuario = User::factory()->create();

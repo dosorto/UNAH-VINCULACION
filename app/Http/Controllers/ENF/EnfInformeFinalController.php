@@ -137,6 +137,8 @@ class EnfInformeFinalController extends Controller
             'beneficiarios',
             'equipo',
             'participacionUniversitaria',
+            'practicasAsignatura.asignatura',
+            'practicasAsignatura.periodoAcademico',
             'contrapartes.tipoContraparte',
             'contrapartes.instrumentoAlianza',
             'objetivosEspecificos',

@@ -99,6 +99,16 @@ class DasboardDocente extends Component
             ->distinct()
             ->get();
 
+        $ppsProjects = PpsServicioSocial::query()
+            ->where('created_by', $authUserId)
+            ->get()
+            ->map(function (PpsServicioSocial $registro): object {
+                return (object) [
+                    'nombre_proyecto' => $registro->nombre_estudiante ?: $registro->nombre_institucion,
+                    'created_at' => $registro->created_at,
+                ];
+            });
+
         $enfProjects = EnfAccion::query()
             ->where('creado_por_usuario_id', $authUserId)
             ->where(fn (Builder $query): Builder => $this->enfFormsQuery($query))
@@ -110,7 +120,7 @@ class DasboardDocente extends Component
                 ];
             });
 
-        $userProjects = $userProjects->concat($enfProjects);
+        $userProjects = $userProjects->concat($ppsProjects)->concat($enfProjects);
 
         // Define el rango de años a mostrar según la opción seleccionada
         $end = now()->year;
@@ -223,6 +233,7 @@ class DasboardDocente extends Component
             EnfAccion::query()
                 ->where('creado_por_usuario_id', $userId)
                 ->where(fn (Builder $query): Builder => $this->enfFormsQuery($query))
+                ->where(fn (Builder $query): Builder => $this->enfBelongsToUserQuery($query, $userId, $empleadoId))
                 ->get()
                 ->each(function (EnfAccion $accion) use ($rows): void {
                     $rows->push([
@@ -437,10 +448,10 @@ public function getLatestActivitiesUser($limit = 3)
         };
     }
 
-    private function enfAccionesUser(int $userId): Collection
+    private function enfAccionesUser(int $userId, ?int $empleadoId = null): Collection
     {
         return EnfAccion::query()
-            ->where('creado_por_usuario_id', $userId)
+            ->where(fn (Builder $query): Builder => $this->enfBelongsToUserQuery($query, $userId, $empleadoId))
             ->where(fn (Builder $query): Builder => $this->enfFormsQuery($query))
             ->get();
     }
@@ -450,12 +461,31 @@ public function getLatestActivitiesUser($limit = 3)
         return $query->whereIn('codigo_formulario', ['FORM-DVUS-016', 'FORM-DVUS-018']);
     }
 
+    private function enfBelongsToUserQuery(Builder $query, int $userId, ?int $empleadoId = null): Builder
+    {
+        return $query->where(function (Builder $userQuery) use ($userId, $empleadoId): void {
+            $userQuery
+                ->where('creado_por_usuario_id', $userId)
+                ->orWhereHas('equipo', function (Builder $equipoQuery) use ($userId, $empleadoId): void {
+                    $equipoQuery->where('user_id', $userId);
+
+                    if ($empleadoId) {
+                        $equipoQuery->orWhere('empleado_id', $empleadoId);
+                    }
+                });
+
+            if ($empleadoId) {
+                $userQuery->orWhere('responsable_revision_id', $empleadoId);
+            }
+        });
+    }
+
     private function enfEstadoLabel(?string $estado): string
     {
         return match (strtoupper((string) $estado)) {
             'BORRADOR' => 'Borrador',
             'EN_REVISION' => 'En revision',
-            'APROBADO' => 'En curso',
+            'APROBADO' => 'Aprobado',
             'FINALIZADO' => 'Finalizado',
             'SUBSANACION', 'SUBSANACIÓN' => 'Subsanar',
             default => $estado ?: 'Educacion no formal',

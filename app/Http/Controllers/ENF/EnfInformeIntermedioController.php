@@ -9,8 +9,8 @@ use App\Models\ENF\EnfRevision;
 use App\Services\ENF\EnfWorkflowService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EnfInformeIntermedioController extends Controller
 {
@@ -40,7 +40,17 @@ class EnfInformeIntermedioController extends Controller
         return back()->with('status', 'Informe intermedio enviado a revision.');
     }
 
-    public function ver(EnfInformeIntermedio $informe, EnfWorkflowService $workflow): Response
+    public function ver(EnfInformeIntermedio $informe, EnfWorkflowService $workflow): StreamedResponse
+    {
+        return $this->servir($informe, $workflow, 'inline');
+    }
+
+    public function descargar(EnfInformeIntermedio $informe, EnfWorkflowService $workflow): StreamedResponse
+    {
+        return $this->servir($informe, $workflow, 'attachment');
+    }
+
+    private function servir(EnfInformeIntermedio $informe, EnfWorkflowService $workflow, string $disposition): StreamedResponse
     {
         $user = auth()->user();
         $puedeRevisar = $user && EnfRevision::query()
@@ -53,9 +63,12 @@ class EnfInformeIntermedioController extends Controller
         abort_unless($workflow->usuarioPuedeGestionar($informe->accion, $user) || $user?->hasRole('admin') || $puedeRevisar, 403);
         abort_unless($informe->archivo_pdf && Storage::disk('local')->exists($informe->archivo_pdf), 404);
 
-        return response(Storage::disk('local')->get($informe->archivo_pdf), 200, [
+        $filename = $informe->nombre_original ?: 'informe-intermedio.pdf';
+
+        return Storage::disk('local')->response($informe->archivo_pdf, $filename, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="'.($informe->nombre_original ?: 'informe-intermedio.pdf').'"',
+            'Content-Disposition' => $disposition.'; filename="'.addslashes($filename).'"',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 }

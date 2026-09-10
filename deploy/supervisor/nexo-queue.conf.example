@@ -1,0 +1,19 @@
+; Copiar a /etc/supervisor/conf.d/nexo-queue.conf y ajustar APP_PATH y el usuario.
+; Este worker procesa constancias, correos y demás trabajos encolados.
+
+[program:nexo-queue]
+command=php %(ENV_APP_PATH)s/artisan queue:work database --sleep=3 --tries=3 --timeout=120 --backoff=10
+directory=%(ENV_APP_PATH)s
+user=%(ENV_QUEUE_USER)s
+autostart=true
+autorestart=true
+startsecs=5
+stopwaitsecs=3600
+stopasgroup=true
+killasgroup=true
+redirect_stderr=true
+stdout_logfile=%(ENV_APP_PATH)s/storage/logs/worker.log
+stdout_logfile_maxbytes=20MB
+stdout_logfile_backups=5
+
+environment=APP_ENV="production",QUEUE_CONNECTION="database"

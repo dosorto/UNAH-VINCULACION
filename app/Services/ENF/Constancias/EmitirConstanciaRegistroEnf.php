@@ -14,7 +14,10 @@ use RuntimeException;
 
 class EmitirConstanciaRegistroEnf
 {
-    public function __construct(private readonly NumeroConstanciaRegistroEnf $numeros) {}
+    public function __construct(
+        private readonly NumeroConstanciaRegistroEnf $numeros,
+        private readonly AutoridadEmisoraConstanciaEnfResolver $autoridad,
+    ) {}
 
     public function emitir(EnfAccion $accion, ?int $emitidaPor = null): EnfConstanciaRegistro
     {
@@ -120,6 +123,7 @@ class EmitirConstanciaRegistroEnf
     {
         $accion->loadMissing(['tipoAccion', 'centroFacultad', 'departamentoAcademico', 'carrera', 'creadoPor.empleado', 'certificado']);
         $responsable = $accion->creadoPor?->empleado;
+        $autoridad = $this->autoridad->resolver($accion, EnfAccion::PROCESO_INSCRIPCION, 'aplica_inscripcion');
 
         return [
             'constancia' => [
@@ -144,6 +148,7 @@ class EmitirConstanciaRegistroEnf
                 'nombre' => $responsable?->nombre_completo ?: ($accion->creadoPor?->name ?: 'No registrado'),
                 'correo' => $accion->creadoPor?->email ?: 'No registrado',
             ],
+            'autoridad' => $autoridad,
         ];
     }
 }

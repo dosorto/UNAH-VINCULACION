@@ -228,6 +228,7 @@ class CreatePpsServicioSocial extends Component
                 'docente_correo',
                 'docente_categoria',
                 'docente_departamento',
+                'docente_jornada',
             ]);
 
             return;
@@ -245,6 +246,15 @@ class CreatePpsServicioSocial extends Component
         $this->docente_correo = $docente->user?->email ?? '';
         $this->docente_categoria = $docente->categoria?->nombre ?? '';
         $this->docente_departamento = $docente->departamento_academico?->nombre ?? '';
+
+        // La jornada del supervisor es un dato distinto de la distribución
+        // de horas de la PPS. Si el empleado ya tiene una jornada registrada,
+        // la usamos como valor inicial solamente cuando sigue disponible en
+        // el catálogo configurable.
+        $jornada = trim((string) ($docente->jornada_laboral ?? ''));
+        $this->docente_jornada = in_array($jornada, $this->jornadasLaboralesValidas(), true)
+            ? $jornada
+            : '';
     }
 
     public function updatedCartaFormalizacionArchivo(): void
@@ -625,6 +635,8 @@ class CreatePpsServicioSocial extends Component
     protected function jornadasLaboralesValidas(): array
     {
         return JornadaLaboral::where('activo', true)
+            ->orderBy('orden')
+            ->orderBy('hora_inicio')
             ->get()
             ->pluck('etiqueta')
             ->all();
@@ -703,7 +715,7 @@ class CreatePpsServicioSocial extends Component
                 'docente_correo' => 'nullable|email|max:255',
                 'docente_categoria' => 'nullable|string|max:255',
                 'docente_departamento' => 'nullable|string|max:255',
-                'docente_jornada' => ['nullable', 'string', Rule::in(array_merge([''], $this->jornadasLaboralesValidas()))],
+                'docente_jornada' => ['required', 'string', Rule::in($this->jornadasLaboralesValidas())],
                 'docente_cubiculo' => 'nullable|string|max:255',
             ],
             9 => [
@@ -742,7 +754,8 @@ class CreatePpsServicioSocial extends Component
             5 => filled($this->total_horas),
             6 => filled($this->institucion_nombre),
             7 => filled($this->jefe_directo_nombre),
-            8 => filled($this->docente_supervisor_nombre),
+            8 => filled($this->docente_supervisor_nombre) && filled($this->docente_jornada)
+                && in_array($this->docente_jornada, $this->jornadasLaboralesValidas(), true),
             9 => filled($this->carta_formalizacion_aplica) && filled($this->convenio_marco_aplica),
             default => false,
         };
@@ -850,6 +863,7 @@ class CreatePpsServicioSocial extends Component
             'institucion_pais' => 'país de la institución',
             'jefe_directo_nombre' => 'jefe directo',
             'docente_supervisor_nombre' => 'docente supervisor',
+            'docente_jornada' => 'jornada laboral del docente supervisor',
             'territorio_ejecucion' => 'territorio de ejecución',
         ];
     }

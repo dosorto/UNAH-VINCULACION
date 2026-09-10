@@ -4,6 +4,7 @@
     $isPdf = (bool) ($isPdf ?? false);
     $formData = $formData ?? \App\Support\PpsServicioSocial\FormDvus014Data::from($registro);
     $fields = $formData['fields'] ?? [];
+    $firmas = $formData['firmas'] ?? [];
     $checked = $formData['checked'] ?? [];
     $registro = (object) $fields;
 
@@ -56,7 +57,7 @@
         background: #fff;
         color: #111;
         font-family: Arial, Helvetica, "DejaVu Sans", sans-serif;
-        font-size: {{ $isPdf ? '7pt' : '9px' }};
+        font-size: {{ $isPdf ? '8pt' : '9px' }};
         line-height: 1.12;
     }
 
@@ -88,7 +89,7 @@
         color: #fff;
         font-weight: bold;
         text-transform: uppercase;
-        font-size: {{ $isPdf ? '7.5pt' : '10px' }};
+        font-size: {{ $isPdf ? '10pt' : '10px' }};
         padding: {{ $isPdf ? '.9mm 1.2mm' : '4px 9px' }};
         page-break-after: avoid;
     }
@@ -109,14 +110,14 @@
         color: #fff;
         font-weight: bold;
         text-align: center;
-        font-size: {{ $isPdf ? '6.5pt' : '9px' }};
+        font-size: {{ $isPdf ? '8pt' : '9px' }};
     }
     .fdv .num:after { content: "."; }
     .fdv .lbl {
         background: #001b44;
         color: #fff;
         font-weight: bold;
-        font-size: {{ $isPdf ? '6.5pt' : '' }};
+        font-size: {{ $isPdf ? '8pt' : '' }};
     }
     .fdv .lbl-g {
         background: #edf0f4;
@@ -162,6 +163,7 @@
     .fdv .sign { page-break-inside: avoid; }
     .fdv .sign td { height: {{ $isPdf ? '36px' : '70px' }}; vertical-align: top; text-align: center; width: 33.33%; }
     .fdv .sign .sline { border-top: 1px solid #111; margin: {{ $isPdf ? '20px' : '40px' }} 8% 3px; }
+    .fdv .signature { display: block; height: {{ $isPdf ? '10mm' : '42px' }}; max-width: 90%; margin: 1mm auto 0; object-fit: contain; }
     .fdv .sign .scap { font-size: {{ $isPdf ? '6.2pt' : '8px' }}; color: #333; }
 </style>
 
