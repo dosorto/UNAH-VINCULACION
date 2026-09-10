@@ -115,6 +115,7 @@
                             && (int) $record->created_by === (int) auth()->id())
                             || (in_array($record->estado, ['enviado', 'en_revision'], true)
                                 && $record->usuarioPuedeRevisar(auth()->user()));
+                        $puedeEliminar = $record->puedeEliminarBorrador(auth()->id());
                         $estadoBadge = match($record->estado) {
                             'borrador' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200',
                             'enviado' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
@@ -159,6 +160,14 @@
                                        class="inline-flex items-center justify-center rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-900/60 dark:bg-amber-900/30 dark:text-amber-200 dark:hover:bg-amber-900/50">
                                         Editar
                                     </a>
+                                @endif
+                                @if($puedeEliminar)
+                                    <button type="button"
+                                            x-on:click.prevent="confirmDialog('¿Desea eliminar este borrador? Esta acción no elimina físicamente el registro.').then((ok) => ok && $wire.eliminarBorrador({{ $record->id }}))"
+                                            wire:loading.attr="disabled" wire:target="eliminarBorrador"
+                                            class="inline-flex items-center justify-center rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">
+                                        Eliminar
+                                    </button>
                                 @endif
                             </div>
                         </td>

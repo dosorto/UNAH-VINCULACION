@@ -12,6 +12,7 @@ use App\Models\Proyecto\IntegranteInternacional;
 use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\TipoAnexo;
 use Database\Seeders\UnidadAcademica\PeriodoAcademicoSeeder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
@@ -22,6 +23,39 @@ use Tests\TestCase;
 
 class ProyectoVinculacionFormularioTest extends TestCase
 {
+    public function test_proyectos_docente_renderiza_una_fila_enf_normalizada(): void
+    {
+        $html = $this->renderProyectosDocente([[
+            'kind' => 'educacion_no_formal',
+            'id' => 'enf-42',
+            'record_id' => 42,
+            'codigo' => 'FORM-DVUS-018',
+            'secondary_code' => null,
+            'nombre' => 'Acción ENF de prueba',
+            'descripcion' => 'Educación no formal',
+            'tipo_accion' => 'Educacion no formal',
+            'rol' => 'Creador',
+            'es_creador' => true,
+            'estado' => 'Borrador',
+            'fecha' => null,
+            'sort_date' => null,
+            'puede_subir_intermedio' => false,
+            'intermedio_estado' => null,
+        ]]);
+
+        $this->assertStringContainsString('Ver detalle ENF', $html);
+        $this->assertStringContainsString(route('enf.acciones.show', 42), $html);
+        $this->assertStringNotContainsString('$accionEnf', $html);
+    }
+
+    public function test_proyectos_docente_renderiza_sin_filas_enf(): void
+    {
+        $html = $this->renderProyectosDocente([]);
+
+        $this->assertStringContainsString('No hay registros para los filtros seleccionados.', $html);
+        $this->assertStringNotContainsString('$accionEnf', $html);
+    }
+
     public function test_actividad_permite_fecha_inicial_y_final_diferentes(): void
     {
         $component = $this->formComponent();
@@ -860,6 +894,23 @@ class ProyectoVinculacionFormularioTest extends TestCase
 
         $component->codigosTiposAnexoAdjuntos = [TipoAnexo::CODIGO_CARTA_SOLICITUD];
         $this->assertFalse($component->isStepComplete(9));
+    }
+
+    private function renderProyectosDocente(array $rows): string
+    {
+        $records = new LengthAwarePaginator($rows, count($rows), 10, 1);
+
+        return view('livewire.docente.proyectos.proyectos-docente-list', [
+            'records' => $records,
+            'categorias' => collect(),
+            'estadosTipo' => collect(),
+            'opcionesDestinatariosIntermedioEnf' => collect(),
+            'filterTipoAccion' => 'todas',
+            'informeIntermedioModal' => false,
+            'informeIntermedioTipo' => 'proyecto',
+            'deleteModal' => false,
+            'deleteEnfModal' => false,
+        ])->render();
     }
 
     private function formComponent(): CreateProyectoVinculacion

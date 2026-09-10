@@ -118,8 +118,8 @@
                             {{ $workflowId ? 'Edita el flujo actual o reordena sus etapas.' : 'Completa los datos para registrar un nuevo flujo.' }}
                         </p>
                     </div>
-                    <div class="rounded-full px-4 py-2 text-sm font-semibold {{ $workflowId ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300' }}">
-                        {{ $workflowId ? 'Flujo configurado' : 'Pendiente de configurar' }}
+                    <div class="rounded-full px-4 py-2 text-sm font-semibold {{ $workflowId && ($workflow['activo'] ?? false) ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300' }}">
+                        {{ $workflowId ? (($workflow['activo'] ?? false) ? 'Flujo configurado' : 'Flujo inactivo') : 'Pendiente de configurar' }}
                     </div>
                 </div>
 

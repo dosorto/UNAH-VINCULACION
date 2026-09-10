@@ -194,6 +194,21 @@ class ProyectosDocenteList extends Component
         Notification::make()->title('ENF eliminado')->body('La accion de Educacion No Formal fue eliminada correctamente.')->success()->send();
     }
 
+    public function eliminarPasantiaBorrador(int $id): void
+    {
+        $registro = Pasantia::query()->findOrFail($id);
+        abort_unless($registro->puedeEliminarBorrador(auth()->id()), 403);
+
+        DB::transaction(function () use ($registro): void {
+            activity('Pasantías')->performedOn($registro)->causedBy(auth()->user())
+                ->withProperties(['accion' => 'eliminacion_logica', 'estado' => 'borrador'])
+                ->log('Borrador eliminado lógicamente');
+            $registro->delete();
+        });
+
+        Notification::make()->title('Borrador eliminado')->body('El borrador de Pasantías fue eliminado.')->success()->send();
+    }
+
     public function render(): View
     {
         $records = $this->paginateRows($this->historialRows());
@@ -367,13 +382,14 @@ class ProyectosDocenteList extends Component
                 return [
                     'kind' => self::ACTION_ENF,
                     'id' => 'enf-'.$accion->id,
-                    'record' => $accion,
+                    'record_id' => (int) $accion->id,
                     'codigo' => $accion->codigo_formulario ?: ($accion->numero_registro ?: '#'.$accion->id),
                     'secondary_code' => null,
                     'nombre' => $accion->nombre_accion,
                     'descripcion' => $tipoEnf ?: ($accion->tipoAccion?->nombre ?: 'Educacion no formal'),
                     'tipo_accion' => 'Educacion no formal',
                     'rol' => $isPending ? 'Pendiente por revisar' : ($isOwn ? 'Creador' : '-'),
+                    'es_creador' => $isOwn,
                     'estado' => $this->enfEstadoLabel($accion->estado_flujo),
                     'fecha' => $accion->fecha_solicitud ?: $accion->created_at,
                     'sort_date' => $accion->created_at,

@@ -6,6 +6,14 @@
             @if(in_array($registro->estado, ['borrador', 'subsanacion'], true) && $registro->created_by === auth()->id())
                 <a class="rounded-lg bg-blue-700 px-4 py-2 text-sm text-white" href="{{ route('pasantias.edit', $registro->id) }}">Editar</a>
             @endif
+            @if($registro->puedeEliminarBorrador(auth()->id()))
+                <button type="button" wire:loading.attr="disabled" wire:target="eliminarBorrador"
+                        x-on:click.prevent="confirmDialog('¿Desea eliminar este borrador? Esta acción no elimina físicamente el registro.').then((ok) => ok && $wire.eliminarBorrador())"
+                        class="rounded-lg bg-red-600 px-4 py-2 text-sm text-white">
+                    <span wire:loading.remove wire:target="eliminarBorrador">Eliminar</span>
+                    <span wire:loading wire:target="eliminarBorrador">Eliminando...</span>
+                </button>
+            @endif
             @if($registro->estado === 'rechazado' && $registro->created_by === auth()->id())
                 <button wire:click="iniciarSubsanacion" class="rounded-lg bg-amber-600 px-4 py-2 text-sm text-white">Iniciar subsanación</button>
             @elseif($registro->estado === 'subsanacion' && $registro->created_by === auth()->id())

@@ -9,6 +9,7 @@ use App\Support\PpsServicioSocial\FormDvus014Data;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class ShowPpsServicioSocial extends Component
@@ -318,6 +319,22 @@ class ShowPpsServicioSocial extends Component
 
         return $registro->perteneceAlUsuario(auth()->id())
             || $registro->usuarioPuedeRevisar($user);
+    }
+
+    public function eliminarBorrador(): void
+    {
+        $this->registro->refresh();
+        abort_unless($this->registro->puedeEliminarBorrador(auth()->id()), 403);
+
+        DB::transaction(function (): void {
+            activity('PPS / Servicio Social')->performedOn($this->registro)->causedBy(auth()->user())
+                ->withProperties(['accion' => 'eliminacion_logica', 'estado' => 'borrador'])
+                ->log('Borrador eliminado lógicamente');
+            $this->registro->delete();
+        });
+
+        Notification::make()->title('Borrador eliminado')->body('El borrador de PPS / Servicio Social fue eliminado.')->success()->send();
+        $this->redirectRoute($this->historialRouteName());
     }
 
     public function render(): View

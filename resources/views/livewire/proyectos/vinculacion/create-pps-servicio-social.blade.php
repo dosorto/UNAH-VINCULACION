@@ -178,7 +178,16 @@
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
                         <label class="{{ $labelClass }}">Número de cuenta</label>
-                        <input type="text" wire:model="numero_cuenta" class="{{ $inputClass }}">
+                        <div x-data="{ cuenta: @js($numero_cuenta) }" class="flex gap-2">
+                            <input type="text" wire:model.blur="numero_cuenta" wire:blur="limpiarErrorBusquedaEstudiante" x-model="cuenta" class="{{ $inputClass }}">
+                            <button type="button" x-cloak x-show="cuenta.trim().length > 0"
+                                    wire:click="buscarEstudiante" wire:loading.attr="disabled" wire:target="buscarEstudiante"
+                                    class="shrink-0 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+                                <span wire:loading.remove wire:target="buscarEstudiante">Buscar</span>
+                                <span wire:loading wire:target="buscarEstudiante">Buscando…</span>
+                            </button>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Consulte los datos institucionales por número de cuenta.</p>
                         @error('numero_cuenta') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
 
@@ -242,7 +251,7 @@
 
                     <div>
                         <label class="{{ $labelClass }}">Fecha de inicio</label>
-                        <input type="date" wire:model="fecha_inicio" class="{{ $inputClass }}">
+                        <input type="date" wire:model.live="fecha_inicio" class="{{ $inputClass }}">
                         @error('fecha_inicio') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
 

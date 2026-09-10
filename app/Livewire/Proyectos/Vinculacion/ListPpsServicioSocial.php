@@ -5,6 +5,8 @@ namespace App\Livewire\Proyectos\Vinculacion;
 use App\Models\PpsServicioSocial;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
+use App\Support\Notification;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -55,6 +57,21 @@ class ListPpsServicioSocial extends Component
     public function updatedViewMode(): void
     {
         $this->viewMode = $this->normalizedViewMode();
+    }
+
+    public function eliminarBorrador(int $id): void
+    {
+        $registro = PpsServicioSocial::query()->findOrFail($id);
+        abort_unless($registro->puedeEliminarBorrador(auth()->id()), 403);
+
+        DB::transaction(function () use ($registro): void {
+            activity('PPS / Servicio Social')->performedOn($registro)->causedBy(auth()->user())
+                ->withProperties(['accion' => 'eliminacion_logica', 'estado' => 'borrador'])
+                ->log('Borrador eliminado lógicamente');
+            $registro->delete();
+        });
+
+        Notification::make()->title('Borrador eliminado')->body('El borrador de PPS / Servicio Social fue eliminado.')->success()->send();
     }
 
     private function recordsQuery(): Builder

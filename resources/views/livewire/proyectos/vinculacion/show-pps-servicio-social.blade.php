@@ -17,6 +17,7 @@
         };
 
         $puedeEnviarRevision = $registro->puedeEnviarse(auth()->id());
+        $puedeEliminar = $registro->puedeEliminarBorrador(auth()->id());
         $puedeEditar = $registro->perteneceAlUsuario(auth()->id())
             && in_array($registro->estado, ['borrador', 'subsanacion'], true)
             || (in_array($registro->estado, ['enviado', 'en_revision'], true)
@@ -66,6 +67,16 @@
                        class="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 shadow-sm transition hover:bg-amber-100 dark:border-amber-900/60 dark:bg-amber-900/30 dark:text-amber-200 dark:hover:bg-amber-900/50">
                         Editar
                     </a>
+                @endif
+
+                @if($puedeEliminar)
+                    <button type="button"
+                            x-on:click.prevent="confirmDialog('¿Desea eliminar este borrador? Esta acción no elimina físicamente el registro.').then((ok) => ok && $wire.eliminarBorrador())"
+                            wire:loading.attr="disabled" wire:target="eliminarBorrador"
+                            class="inline-flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100">
+                        <span wire:loading.remove wire:target="eliminarBorrador">Eliminar</span>
+                        <span wire:loading wire:target="eliminarBorrador">Eliminando...</span>
+                    </button>
                 @endif
 
                 @if($puedeEnviarRevision)

@@ -93,4 +93,9 @@ class Pasantia extends Model
     {
         return $userId !== null && $this->created_by !== null && (int) $this->created_by === $userId;
     }
+
+    public function puedeEliminarBorrador(?int $userId): bool
+    {
+        return $this->perteneceAlUsuario($userId) && $this->estado === 'borrador';
+    }
 }

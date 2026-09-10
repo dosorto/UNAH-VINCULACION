@@ -30,8 +30,8 @@
         <div class="flex items-center gap-0.5 overflow-x-auto">
 
         @foreach($pasos as $numero => $nombre)
-            @php $completado = $numero < $pasoActual; $activo = $pasoActual === $numero; @endphp
-            <button type="button" wire:click="irAPaso({{ $numero }})" class="group flex min-w-[82px] flex-1 shrink-0 flex-col items-center rounded-md p-1 transition hover:bg-gray-50 dark:hover:bg-white/5">
+            @php $completado = $this->isStepComplete($numero); $activo = $pasoActual === $numero; $accesible = $this->canAccessStep($numero); @endphp
+            <button type="button" wire:click="irAPaso({{ $numero }})" aria-disabled="{{ $accesible ? 'false' : 'true' }}" class="group flex min-w-[82px] flex-1 shrink-0 flex-col items-center rounded-md p-1 transition hover:bg-gray-50 dark:hover:bg-white/5 {{ $accesible ? '' : 'cursor-not-allowed opacity-60' }}">
                 <span class="mb-1 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-colors {{ $activo ? 'bg-blue-600 text-white ring-2 ring-blue-300' : ($completado ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400') }}">{{ $completado ? '✓' : $numero }}</span>
                 <span class="text-center text-[10px] leading-tight {{ $activo ? 'font-semibold text-blue-600' : ($completado ? 'text-green-600 dark:text-green-400' : 'text-gray-500') }}">{{ $nombre }}</span>
             </button>
@@ -60,7 +60,7 @@
                 Las firmas se asignan y registran mediante el flujo de revisión. No deben editarse manualmente en este formulario.
             </div>
         @else
-            @foreach($secciones[$pasoActual] as $indice => [$campo, $etiqueta, $tipo])
+        @foreach($secciones[$pasoActual] as $indice => [$campo, $etiqueta, $tipo])
                 <label class="block {{ $tipo === 'textarea' ? 'md:col-span-2' : '' }}">
                     <span class="mb-1 block text-sm font-medium text-gray-700">{{ $etiqueta }}</span>
                     <span class="block">
@@ -93,6 +93,20 @@
                                 <span wire:loading wire:target="{{ $campo === 'numero_cuenta' ? 'buscarEstudiante' : 'buscarDocente' }}">Buscando…</span>
                             </button>
                         </div>
+                    @elseif($campo === 'archivo_carta_formalizacion')
+                        <input type="file" wire:model="cartaFormalizacionArchivo" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700">
+                        <span wire:loading wire:target="cartaFormalizacionArchivo" class="mt-1 block text-xs text-blue-600">Cargando archivo...</span>
+                        @if(filled($form['archivo_carta_formalizacion'] ?? null))
+                            <span class="mt-1 block text-xs text-gray-500">Archivo actual: {{ basename($form['archivo_carta_formalizacion']) }}</span>
+                        @endif
+                        @error('cartaFormalizacionArchivo')<span class="mt-1 block text-xs text-red-500">{{ $message }}</span>@enderror
+                    @elseif($campo === 'archivo_convenio_marco')
+                        <input type="file" wire:model="convenioMarcoArchivo" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700">
+                        <span wire:loading wire:target="convenioMarcoArchivo" class="mt-1 block text-xs text-blue-600">Cargando archivo...</span>
+                        @if(filled($form['archivo_convenio_marco'] ?? null))
+                            <span class="mt-1 block text-xs text-gray-500">Archivo actual: {{ basename($form['archivo_convenio_marco']) }}</span>
+                        @endif
+                        @error('convenioMarcoArchivo')<span class="mt-1 block text-xs text-red-500">{{ $message }}</span>@enderror
                     @elseif($tipo === 'textarea')
                         <textarea wire:model.blur="form.{{ $campo }}" rows="3" class="{{ $inputClass }}"></textarea>
                     @else
@@ -101,7 +115,7 @@
                     </span>
                     @error('form.'.$campo)<span class="mt-1 block text-xs text-red-500">{{ $message }}</span>@enderror
                 </label>
-            @endforeach
+        @endforeach
         @endif
         </div>
         <div class="mt-8 flex items-center justify-between border-t border-gray-200 pt-4 dark:border-gray-700">

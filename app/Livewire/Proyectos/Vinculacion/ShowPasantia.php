@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\PasantiaFlujoNotificacion;
 use App\Services\Pasantias\PasantiaPdfGenerator;
 use Livewire\Component;
+use App\Support\Notification;
 
 class ShowPasantia extends Component
 {
@@ -47,6 +48,22 @@ class ShowPasantia extends Component
     public function enviarRevision(): void
     {
         try { $this->registro = app(PasantiaWorkflowService::class)->enviarARevision($this->registro, (int) Auth::id()); $this->notificar('enviado a revisión'); } catch (\Throwable $e) { $this->addError('flujo', $e->getMessage()); }
+    }
+
+    public function eliminarBorrador(): void
+    {
+        $this->registro->refresh();
+        abort_unless($this->registro->puedeEliminarBorrador(Auth::id()), 403);
+
+        DB::transaction(function (): void {
+            activity('Pasantías')->performedOn($this->registro)->causedBy(Auth::user())
+                ->withProperties(['accion' => 'eliminacion_logica', 'estado' => 'borrador'])
+                ->log('Borrador eliminado lógicamente');
+            $this->registro->delete();
+        });
+
+        Notification::make()->title('Borrador eliminado')->body('El borrador de Pasantías fue eliminado.')->success()->send();
+        $this->redirectRoute('proyectosDocente');
     }
 
     public function aprobar(): void

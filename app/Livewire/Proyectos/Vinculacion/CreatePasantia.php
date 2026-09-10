@@ -16,15 +16,21 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Illuminate\Validation\Rule;
+use Livewire\WithFileUploads;
 
 class CreatePasantia extends Component
 {
+    use WithFileUploads;
+
     public ?int $registroId = null;
     public int $pasoActual = 1;
     public bool $modoEdicion = false;
     public bool $autoguardadoActivo = true;
+    public bool $bloquearNavegacionPasos = true;
     public array $form = [];
     public bool $buscandoEstudiante = false;
+    public $cartaFormalizacionArchivo = null;
+    public $convenioMarcoArchivo = null;
 
     public const PASOS = [
         1 => 'Estudiante', 2 => 'Información de la pasantía', 3 => 'Experiencia',
@@ -41,21 +47,38 @@ class CreatePasantia extends Component
             abort_unless($this->puedeVer($registro), 403);
             $this->registroId = $registro->id;
             $this->modoEdicion = true;
-            $this->form = array_replace($this->form, $registro->only(array_keys($this->form)));
+            $this->hidratarFormularioDesdeRegistro($registro);
         }
     }
 
     public function updatedForm($value, $key): void
     {
         if ($this->autoguardadoActivo) {
-            $this->guardarBorrador(false);
+            $campo = str_starts_with((string) $key, 'form.')
+                ? substr((string) $key, 5)
+                : (string) $key;
+
+            $this->guardarBorrador(false, $campo);
         }
     }
 
     public function siguiente(): void
     {
-        $this->validate($this->reglasPaso($this->pasoActual), [], $this->atributos());
+        $this->resetErrorBag();
+        $reglas = $this->reglasPaso($this->pasoActual);
+
+        if ($reglas !== []) {
+            $this->validate($reglas, [], $this->atributos());
+        }
+
         $this->guardarBorrador(false);
+
+        if ($this->pasoActual === 8 && $this->registroId) {
+            $this->redirectRoute('pasantias.show', ['id' => $this->registroId]);
+
+            return;
+        }
+
         $this->pasoActual = min(8, $this->pasoActual + 1);
     }
 
@@ -126,12 +149,106 @@ class CreatePasantia extends Component
 
     public function irAPaso(int $paso): void
     {
-        $this->pasoActual = max(1, min(8, $paso));
+        $paso = max(1, min(8, $paso));
+        $this->resetErrorBag();
+
+        if ($this->bloquearNavegacionPasos && $paso > $this->pasoActual) {
+            $pasoIncompleto = $this->primerPasoIncompletoAntesDe($paso);
+
+            if ($pasoIncompleto !== null) {
+                $this->pasoActual = $pasoIncompleto;
+                $this->validate($this->reglasPaso($pasoIncompleto), [], $this->atributos());
+                $this->agregarErroresDeCompletitud($pasoIncompleto);
+
+                return;
+            }
+        }
+
+        $this->pasoActual = $paso;
     }
 
-    public function guardarBorrador(bool $notificar = true): void
+    public function isStepComplete(int $paso): bool
     {
-        $payload = $this->normalizarPayload($this->form);
+        return match ($paso) {
+            1 => filled($this->form['facultad_centro'] ?? null)
+                && filled($this->form['carrera'] ?? null)
+                && filled($this->form['numero_cuenta'] ?? null)
+                && filled($this->form['nombre_estudiante'] ?? null),
+            2 => filled($this->form['tipo_pasantia'] ?? null)
+                && filled($this->form['fecha_inicio'] ?? null)
+                && filled($this->form['fecha_finalizacion'] ?? null)
+                && filled($this->form['total_horas'] ?? null)
+                && filled($this->form['modalidad_ejecucion'] ?? null),
+            3 => filled($this->form['descripcion_experiencia'] ?? null),
+            4 => filled($this->form['nombre_institucion'] ?? null),
+            5 => filled($this->form['nombre_contacto_directo'] ?? null),
+            6 => filled($this->form['nombre_docente_supervisor'] ?? null)
+                && filled($this->form['numero_empleado_docente'] ?? null),
+            7, 8 => true,
+            default => false,
+        };
+    }
+
+    public function canAccessStep(int $paso): bool
+    {
+        return ! $this->bloquearNavegacionPasos
+            || $this->primerPasoIncompletoAntesDe($paso) === null;
+    }
+
+    protected function primerPasoIncompletoAntesDe(int $paso): ?int
+    {
+        $limite = min(max($paso, 1), count(self::PASOS));
+
+        for ($indice = 1; $indice < $limite; $indice++) {
+            if (! $this->isStepComplete($indice)) {
+                return $indice;
+            }
+        }
+
+        return null;
+    }
+
+    protected function agregarErroresDeCompletitud(int $paso): void
+    {
+        $campos = match ($paso) {
+            1 => [
+                'facultad_centro' => 'Seleccione la facultad o centro.',
+                'carrera' => 'Seleccione la carrera.',
+                'numero_cuenta' => 'Ingrese el número de cuenta.',
+                'nombre_estudiante' => 'Ingrese el nombre completo del estudiante.',
+            ],
+            2 => [
+                'tipo_pasantia' => 'Seleccione el tipo de pasantía.',
+                'fecha_inicio' => 'Ingrese la fecha de inicio.',
+                'fecha_finalizacion' => 'Ingrese la fecha de finalización.',
+                'total_horas' => 'Ingrese el total de horas.',
+                'modalidad_ejecucion' => 'Seleccione la modalidad de ejecución.',
+            ],
+            3 => ['descripcion_experiencia' => 'Ingrese la descripción de la experiencia.'],
+            4 => ['nombre_institucion' => 'Ingrese el nombre de la institución.'],
+            5 => ['nombre_contacto_directo' => 'Ingrese el nombre del contacto directo.'],
+            6 => [
+                'nombre_docente_supervisor' => 'Ingrese el nombre del docente supervisor.',
+                'numero_empleado_docente' => 'Ingrese el número de empleado del supervisor.',
+            ],
+            default => [],
+        };
+
+        foreach ($campos as $campo => $mensaje) {
+            if (blank($this->form[$campo] ?? null)) {
+                $this->addError('form.'.$campo, $mensaje);
+            }
+        }
+    }
+
+    public function guardarBorrador(bool $notificar = true, ?string $campoModificado = null): void
+    {
+        $this->validarArchivosSeleccionados();
+
+        $campos = $campoModificado !== null && array_key_exists($campoModificado, $this->form)
+            ? [$campoModificado]
+            : array_keys($this->form);
+        $payload = $this->normalizarPayload(array_intersect_key($this->form, array_flip($campos)));
         $payload['updated_by'] = Auth::id();
 
         if ($this->registroId) {
@@ -155,7 +272,7 @@ class CreatePasantia extends Component
             $this->modoEdicion = true;
         }
 
-        $this->form = array_replace($this->form, $registro->only(array_keys($this->form)));
+        $this->guardarArchivosSeleccionados($registro);
 
         if ($notificar) {
             Notification::make()->title('Borrador guardado')->body('La información de la pasantía se guardó correctamente.')->success()->send();
@@ -211,13 +328,132 @@ class CreatePasantia extends Component
 
     protected function normalizarPayload(array $payload): array
     {
+        $camposNumericos = [
+            'duracion_semanas',
+            'total_horas',
+            'horas_semanales',
+            'cantidad_creditos',
+            'monto_remuneracion',
+        ];
+        $camposFecha = ['fecha_registro', 'fecha_inicio', 'fecha_finalizacion'];
+
+        $camposBooleanos = [
+            'pasantia_obligatoria',
+            'otorga_creditos',
+            'pasantia_remunerada',
+            'adjunta_carta_formalizacion',
+            'adjunta_convenio_marco',
+        ];
+
         foreach ($payload as $key => $value) {
-            if ($value === '') {
+            if ($value === null || $value === '') {
                 $payload[$key] = null;
+            } elseif (in_array($key, $camposNumericos, true) && (! is_numeric($value) || (float) $value < 0)) {
+                unset($payload[$key]);
+                $this->addError('form.'.$key, 'Ingrese un valor numérico válido mayor o igual a cero.');
+            } elseif (in_array($key, $camposFecha, true) && ! $this->esFechaFormularioValida($value)) {
+                unset($payload[$key]);
+                $this->addError('form.'.$key, 'Ingrese una fecha válida.');
+            } elseif (in_array($key, $camposBooleanos, true)) {
+                $payload[$key] = match (mb_strtolower(trim((string) $value))) {
+                    'sí', 'si', '1', 'true' => true,
+                    'no', '0', 'false' => false,
+                    default => $value,
+                };
             }
         }
 
         return $payload;
+    }
+
+    protected function validarArchivosSeleccionados(): void
+    {
+        $archivos = [];
+
+        if ($this->cartaFormalizacionArchivo) {
+            $archivos['cartaFormalizacionArchivo'] = ['file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240'];
+        }
+
+        if ($this->convenioMarcoArchivo) {
+            $archivos['convenioMarcoArchivo'] = ['file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240'];
+        }
+
+        if ($archivos !== []) {
+            $this->validate($archivos, [], [
+                'cartaFormalizacionArchivo' => 'archivo de carta de formalización',
+                'convenioMarcoArchivo' => 'archivo de convenio marco',
+            ]);
+        }
+    }
+
+    protected function guardarArchivosSeleccionados(Pasantia $registro): void
+    {
+        $payload = [];
+
+        if ($this->cartaFormalizacionArchivo) {
+            $payload['archivo_carta_formalizacion'] = $this->cartaFormalizacionArchivo
+                ->store('pasantias/'.$registro->id.'/documentos', 'public');
+            $payload['adjunta_carta_formalizacion'] = true;
+            $this->form['archivo_carta_formalizacion'] = $payload['archivo_carta_formalizacion'];
+            $this->form['adjunta_carta_formalizacion'] = 'Sí';
+            $this->cartaFormalizacionArchivo = null;
+        }
+
+        if ($this->convenioMarcoArchivo) {
+            $payload['archivo_convenio_marco'] = $this->convenioMarcoArchivo
+                ->store('pasantias/'.$registro->id.'/documentos', 'public');
+            $payload['adjunta_convenio_marco'] = true;
+            $this->form['archivo_convenio_marco'] = $payload['archivo_convenio_marco'];
+            $this->form['adjunta_convenio_marco'] = 'Sí';
+            $this->convenioMarcoArchivo = null;
+        }
+
+        if ($payload !== []) {
+            $registro->forceFill($payload)->save();
+        }
+    }
+
+    protected function esFechaFormularioValida(mixed $valor): bool
+    {
+        if ($valor instanceof \DateTimeInterface) {
+            return true;
+        }
+
+        $fecha = \DateTimeImmutable::createFromFormat('!Y-m-d', trim((string) $valor));
+
+        return $fecha !== false && $fecha->format('Y-m-d') === trim((string) $valor);
+    }
+
+    protected function hidratarFormularioDesdeRegistro(Pasantia $registro): void
+    {
+        $datos = $registro->only(array_keys($this->form));
+
+        foreach (['fecha_registro', 'fecha_inicio', 'fecha_finalizacion'] as $campo) {
+            if (array_key_exists($campo, $datos)) {
+                $datos[$campo] = $this->normalizarFechaFormulario($datos[$campo]);
+            }
+        }
+
+        foreach (['pasantia_obligatoria', 'otorga_creditos', 'pasantia_remunerada', 'adjunta_carta_formalizacion', 'adjunta_convenio_marco'] as $campo) {
+            if (array_key_exists($campo, $datos) && $datos[$campo] !== null) {
+                $datos[$campo] = (bool) $datos[$campo] ? 'Sí' : 'No';
+            }
+        }
+
+        $this->form = array_replace($this->form, $datos);
+    }
+
+    protected function normalizarFechaFormulario(mixed $valor): ?string
+    {
+        if ($valor === null || $valor === '') {
+            return null;
+        }
+
+        if ($valor instanceof \DateTimeInterface) {
+            return $valor->format('Y-m-d');
+        }
+
+        return $this->esFechaFormularioValida($valor) ? trim((string) $valor) : null;
     }
 
     protected function reglasPaso(int $paso): array
@@ -229,7 +465,13 @@ class CreatePasantia extends Component
             4 => ['form.correo_rrhh' => ['nullable', 'email', 'max:255'], 'form.tipo_institucion' => ['nullable', Rule::in(['Pública', 'Privada', 'ONG', 'Organismo internacional'])], 'form.sector_institucion' => ['nullable', Rule::in(['Educación', 'Gobierno', 'Empresa privada', 'Sociedad civil'])]],
             5 => ['form.correo_contacto_directo' => ['nullable', 'email', 'max:255'], 'form.tipo_instrumento' => ['nullable', Rule::in(['carta_formal_solicitud', 'carta_intenciones', 'convenio_marco'])], 'form.grado_academico_contacto_directo' => ['nullable', Rule::in(['Secundaria completa', 'Licenciatura', 'Maestría', 'Doctorado', 'Postdoctorado'])]],
             6 => ['form.correo_docente' => ['nullable', 'email']],
-            8 => ['form.adjunta_carta_formalizacion' => ['nullable', Rule::in(['Sí', 'No'])], 'form.adjunta_convenio_marco' => ['nullable', Rule::in(['Sí', 'No'])]],
+            7 => [],
+            8 => [
+                'form.adjunta_carta_formalizacion' => ['nullable', Rule::in(['Sí', 'No'])],
+                'form.adjunta_convenio_marco' => ['nullable', Rule::in(['Sí', 'No'])],
+                'cartaFormalizacionArchivo' => ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240'],
+                'convenioMarcoArchivo' => ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240'],
+            ],
             default => [],
         };
     }

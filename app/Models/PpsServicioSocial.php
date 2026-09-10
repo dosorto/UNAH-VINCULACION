@@ -234,6 +234,11 @@ class PpsServicioSocial extends Model
             && (int) $this->created_by === (int) $userId;
     }
 
+    public function puedeEliminarBorrador(?int $userId): bool
+    {
+        return $this->perteneceAlUsuario($userId) && $this->estado === 'borrador';
+    }
+
     public function puedeEnviarse(?int $userId): bool
     {
         return $this->estado === 'borrador'

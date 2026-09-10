@@ -10,6 +10,7 @@ use App\Models\PpsServicioSocial;
 use App\Models\UnidadAcademica\Carrera;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\User;
+use App\Services\Integraciones\IntegracionApiService;
 use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
 use App\Support\Notification;
 use App\Support\PpsServicioSocial\PpsDocumentoRequirements;
@@ -56,6 +57,7 @@ class CreatePpsServicioSocial extends Component
     public string $estudiante_celular = '';
     public string $estudiante_correo_institucional = '';
     public string $estudiante_correo_personal = '';
+    public bool $estudianteConsultado = false;
 
     // Paso 3: Informacion de la PPS / Servicio Social
     public string $tipo_pps_ss = '';
@@ -173,6 +175,32 @@ class CreatePpsServicioSocial extends Component
         $this->carrera_id = null;
     }
 
+    public function updatedNumeroCuenta(): void
+    {
+        $this->estudianteConsultado = false;
+        $this->resetErrorBag('numero_cuenta');
+    }
+
+    public function updatedFechaInicio(?string $value): void
+    {
+        if (! filled($value) || filled($this->fecha_finalizacion)) {
+            return;
+        }
+
+        try {
+            $this->fecha_finalizacion = \Illuminate\Support\Carbon::parse($value)
+                ->addMonthsNoOverflow(5)
+                ->format('Y-m-d');
+        } catch (\Throwable) {
+            // La validación del paso informará si la fecha ingresada no es válida.
+        }
+    }
+
+    public function limpiarErrorBusquedaEstudiante(): void
+    {
+        $this->resetErrorBag('numero_cuenta');
+    }
+
     public function updatedDepartamentoId(): void
     {
         $this->municipio_id = null;
@@ -201,6 +229,38 @@ class CreatePpsServicioSocial extends Component
             $this->municipio_id = null;
             $this->resetValidation('departamento_id');
             $this->resetValidation('municipio_id');
+        }
+    }
+
+    public function buscarEstudiante(IntegracionApiService $integraciones): void
+    {
+        $this->resetErrorBag();
+        $this->estudianteConsultado = false;
+
+        $cuenta = preg_replace('/\s+/u', '', trim($this->numero_cuenta));
+
+        if ($cuenta === '' || ! ctype_digit($cuenta)) {
+            $this->addError('numero_cuenta', 'Ingrese un número de cuenta válido.');
+            return;
+        }
+
+        try {
+            $resultado = $integraciones->buscarEstudiantePorCuenta($cuenta);
+
+            if (! ($resultado['ok'] ?? false)) {
+                $this->addError('numero_cuenta', $resultado['mensaje'] ?? 'No se encontró el estudiante.');
+                return;
+            }
+
+            $datos = $resultado['datos'] ?? [];
+            $this->numero_cuenta = (string) ($datos['numero_cuenta'] ?? $cuenta);
+            $this->estudiante_nombre_completo = (string) ($datos['nombre_completo'] ?? '');
+            $this->estudiante_correo_institucional = (string) ($datos['correo_institucional'] ?? '');
+
+            $this->estudianteConsultado = true;
+        } catch (\Throwable $e) {
+            report($e);
+            $this->addError('numero_cuenta', 'No fue posible consultar la integración de estudiantes.');
         }
     }
 

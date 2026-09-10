@@ -239,6 +239,7 @@ class EditPpsServicioSocial extends CreatePpsServicioSocial
         $this->carrera_id = $this->findIdByName(Carrera::class, $registro->carrera);
 
         $this->numero_cuenta = $this->valorParaFormulario($registro->numero_cuenta);
+        $this->estudianteConsultado = filled($this->numero_cuenta);
         $this->estudiante_nombre_completo = $this->valorParaFormulario($registro->nombre_estudiante);
         $this->estudiante_celular = $this->valorParaFormulario($registro->celular_estudiante);
         $this->estudiante_correo_institucional = $this->valorParaFormulario($registro->correo_institucional);
