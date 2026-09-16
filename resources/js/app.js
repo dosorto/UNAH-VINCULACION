@@ -1,4 +1,10 @@
 import ApexCharts from 'apexcharts';
+import {
+    montarGraficos,
+    actualizarGrafico,
+    destruirGraficosHuerfanos,
+    retemarGraficos,
+} from './panel-charts';
 
 // Hacer ApexCharts disponible globalmente
 window.ApexCharts = ApexCharts;
@@ -176,6 +182,9 @@ function initThemeToggle() {
         localStorage.removeItem(LEGACY_THEME_KEY);
         applyTheme(nextTheme);
         syncThemeIcons(themeToggleDarkIcon, themeToggleLightIcon, nextTheme);
+        // Los ejes y tooltips de ApexCharts son SVG con colores inline: no los
+        // alcanza la clase `dark`, hay que reaplicarlos a mano.
+        retemarGraficos();
     });
 }
 
@@ -332,7 +341,26 @@ function initNexoUi() {
     initDropdowns();
     initMobileMenu();
     initSidebarScrollPersistence();
+    montarGraficos();
 }
 
 document.addEventListener('DOMContentLoaded', initNexoUi);
-document.addEventListener('livewire:navigated', initNexoUi);
+
+// wire:navigate reemplaza el documento sin avisar a ApexCharts: hay que soltar
+// las instancias del panel que dejamos atrás y volver a montar las del nuevo.
+document.addEventListener('livewire:navigating', destruirGraficosHuerfanos);
+document.addEventListener('livewire:navigated', () => {
+    destruirGraficosHuerfanos();
+    initNexoUi();
+});
+
+// Un único evento para los tres paneles, en lugar de updateChart /
+// updateChart-User / updateChart-Director. Los dos últimos escuchaban en
+// `window`, donde $this->dispatch() de Livewire 3 nunca llega.
+document.addEventListener('livewire:init', () => {
+    Livewire.on('panel-grafico-actualizado', (payload) => {
+        const { id, config } = Array.isArray(payload) ? payload[0] : payload;
+
+        actualizarGrafico(id, config);
+    });
+});
