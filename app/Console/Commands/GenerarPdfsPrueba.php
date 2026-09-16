@@ -1123,8 +1123,6 @@ class GenerarPdfsPrueba extends Command
             'actividad_planificada' => 'Desarrollo de modulo de integracion bancaria via API.',
             'explicacion' => 'La actividad no se ejecuto debido a que el banco local no disponia de una API publica para integracion. Los requisitos de seguridad bancaria exigian un proceso de certificacion que excedia el alcance y el tiempo del proyecto.',
             'afectacion_proyecto' => 'La conciliacion bancaria se realiza manualmente mediante exportacion de datos. No afecta la funcionalidad principal pero requiere tiempo adicional del tesorero de la asociacion.',
-            'responsable' => 'Carmen Rosa Sanchez Martinez',
-            'impacto' => 'medio',
         ]);
     }
 

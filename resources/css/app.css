@@ -45,12 +45,44 @@
     .scrollbar-color-light {
         scrollbar-color: theme('colors.zinc.300') theme('colors.white');
     }
-    
+
     .scrollbar-color-dark {
         scrollbar-color: theme('colors.zinc.600') theme('colors.zinc.800');
     }
-    
 
+
+}
+
+@layer components {
+    /*
+     * Tooltip de los gráficos del panel (resources/js/panel-charts.js).
+     * Va aquí y no en clases utilitarias porque ApexCharts inyecta el nodo con
+     * innerHTML fuera del árbol que analiza Tailwind: las clases escritas en el
+     * JS nunca se generarían.
+     */
+    .nexo-chart-tooltip {
+        @apply max-w-[240px] rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-700 shadow-lg;
+    }
+
+    .dark .nexo-chart-tooltip {
+        @apply border-slate-700 bg-slate-900 text-slate-200;
+    }
+
+    .nexo-chart-tooltip__titulo {
+        @apply mb-1 block border-b border-slate-200 pb-1 text-sm font-bold text-primary-900;
+    }
+
+    .dark .nexo-chart-tooltip__titulo {
+        @apply border-slate-700 text-primary-300;
+    }
+
+    .nexo-chart-tooltip__valor {
+        @apply block font-semibold text-slate-500;
+    }
+
+    .dark .nexo-chart-tooltip__valor {
+        @apply text-slate-400;
+    }
 }
 @custom-variant dark (&:where(.dark, .dark *));
 [x-cloak] {

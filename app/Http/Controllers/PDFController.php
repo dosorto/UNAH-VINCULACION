@@ -66,6 +66,7 @@ class PDFController extends Controller
             'firma_proyecto.firma',
             'firma_proyecto.sello',
             'integrantesInternacionales',
+            'espaciosInstitucionales',
         ]);
 
         // DomPDF can exceed PHP defaults for complex tables and images.
@@ -97,7 +98,9 @@ class PDFController extends Controller
             $identificador = 'Proyecto-' . $proyecto->id;
         }
 
-        return 'FORM-DVUS-001-' . $identificador . '.pdf';
+        $codigoFormulario = $proyecto->codigoFormularioFlujo() ?: 'FORM-DVUS-001';
+
+        return $codigoFormulario . '-' . $identificador . '.pdf';
     }
 
     private function aplicarHeadersPerfilPdf($response, string $disposition, string $nombreArchivo)

@@ -5,12 +5,12 @@ namespace App\Clases;
 use App\Concerns\ResolvesFirmasPendientes;
 use App\Models\DAFT\ProgramaRevision;
 use App\Models\ENF\EnfRevision;
-use App\Models\Estado\TipoEstado;
 use App\Models\PpsServicioSocial;
 use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FichaActualizacion;
 use App\Models\Proyecto\Proyecto;
 use App\Services\DAFT\ProgramaWorkflowService;
+use App\Support\Dashboard\EstadosProyecto;
 use Illuminate\Database\Eloquent\Builder;
 
 class DataNavBar
@@ -35,58 +35,46 @@ class DataNavBar
     // / metodo para obtener la cantidad de proyectos en estado de "En revisión"
     public static function obtenerCantidadProyectosEnRevision()
     {
-        $tipoEstado = TipoEstado::where('nombre', 'En revision')->first();
-
-        if (! $tipoEstado) {
-            return 0; // Return 0 if the estado doesn't exist
-        }
-
-        return Proyecto::query()
-            ->whereIn('id', function ($query) use ($tipoEstado) {
-                $query->select('estadoable_id')
-                    ->from('estado_proyecto')
-                    ->where('estadoable_type', Proyecto::class)
-                    ->where('tipo_estado_id', $tipoEstado->id)
-                    ->where('es_actual', true);
-            })
-            ->count();
+        return self::contarPorEstadoActual(Proyecto::class, 'En revision');
     }
 
     // metodo para obtener la cantidad de proyectos en estado de "En revisión final"
     public static function obtenerCantidadProyectosEnRevisionFinal()
     {
-        $tipoEstado = TipoEstado::where('nombre', 'En revision final')->first();
-
-        if (! $tipoEstado) {
-            return 0; // Return 0 if the estado doesn't exist
-        }
-
-        return Proyecto::query()
-            ->whereIn('id', function ($query) use ($tipoEstado) {
-                $query->select('estadoable_id')
-                    ->from('estado_proyecto')
-                    ->where('estadoable_type', Proyecto::class)
-                    ->where('tipo_estado_id', $tipoEstado->id)
-                    ->where('es_actual', true);
-            })
-            ->count();
+        return self::contarPorEstadoActual(Proyecto::class, 'En revision final');
     }
 
     // metodo para obtener todos los informes obtenerCantidadInformesSolicitados
     public static function obtenerCantidadInformesSolicitados()
     {
-        $tipoEstado = TipoEstado::where('nombre', 'En revision')->first();
+        return self::contarPorEstadoActual(DocumentoProyecto::class, 'En revision');
+    }
 
-        if (! $tipoEstado) {
-            return 0; // Return 0 if the estado doesn't exist
+    /**
+     * Cuenta registros cuyo estado actual es alguno de los nombres dados.
+     *
+     * Usa EstadosProyecto::ids() en vez de TipoEstado::where(...)->first(): el
+     * catálogo está sembrado por duplicado en la base de datos y quedarse con el
+     * primer id dejaba fuera la mitad de los registros, haciendo que la insignia
+     * del sidebar y los conteos del panel no coincidieran.
+     *
+     * @param  class-string  $estadoableType
+     * @param  string|list<string>  $nombres
+     */
+    private static function contarPorEstadoActual(string $estadoableType, string|array $nombres): int
+    {
+        $tipoEstadoIds = EstadosProyecto::ids($nombres);
+
+        if ($tipoEstadoIds === []) {
+            return 0;
         }
 
-        return DocumentoProyecto::query()
-            ->whereIn('id', function ($query) use ($tipoEstado) {
+        return $estadoableType::query()
+            ->whereIn('id', function ($query) use ($estadoableType, $tipoEstadoIds) {
                 $query->select('estadoable_id')
                     ->from('estado_proyecto')
-                    ->where('estadoable_type', DocumentoProyecto::class)
-                    ->where('tipo_estado_id', $tipoEstado->id)
+                    ->where('estadoable_type', $estadoableType)
+                    ->whereIn('tipo_estado_id', $tipoEstadoIds)
                     ->where('es_actual', true);
             })
             ->count();

@@ -2,172 +2,49 @@
 
 namespace App\Livewire\Inicio\Dashboards;
 
-use App\Models\Estado\TipoEstado;
-use App\Models\PpsServicioSocial;
-use App\Models\Proyecto\Proyecto;
-use App\Models\Personal\Empleado;
-use App\Models\Estado\EstadoProyecto;
-use App\Models\Proyecto\DocumentoProyecto;
-use App\Models\ENF\EnfAccion;
-use App\Models\ENF\EnfRevision;
-use App\Support\Proyecto\ProyectoFlujoStepper;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Collection;
+use App\Services\Dashboard\ActividadRecienteService;
+use App\Services\Dashboard\MisFormulariosService;
+use App\Services\Dashboard\PanelEstadisticoService;
+use App\Services\Dashboard\PendientesRevisionService;
+use Illuminate\Contracts\View\View;
 use Livewire\Component;
-use Carbon\Carbon;
-use Spatie\Activitylog\Models\Activity;
 
+/**
+ * Panel del docente: su portafolio de trámites y lo que le toca hacer.
+ *
+ * Antes calculaba también las cifras institucionales —proyectos de toda la
+ * UNAH, total de empleados, últimos registros del sistema— que este panel nunca
+ * llega a mostrar, y repetía las consultas por estado que hoy viven en
+ * PanelEstadisticoService. Aquí solo queda lo del usuario.
+ */
 class DasboardDocente extends Component
 {
-    public $perPage = 3;
-    public $selectedYear = null;
-    public $projectsData = [];
-    public $projectsDataUser = [];
-    public $totalProjectsYear = 0;     // Total para el año seleccionado (admin)
-    public $totalProjectsYearUser = 0;
+    /** id del contenedor del gráfico; panel-charts.js indexa las instancias por él. */
+    private const ID_GRAFICO = 'panel-serie-docente';
 
-    // Método para cargar más proyectos en la tabla
-    public function loadMore()
+    public int $mesesGrafico = 12;
+
+    public int $formulariosVisibles = 15;
+
+    public function mount(): void
     {
-        $this->perPage += 3;
-    }
-
-    public function mount()
-    {
-        $this->selectedYear = now()->year;
-        $this->updateChartData();
-        $this->updateChartDataUser();
-        // si el usuario autenticado tiene el permiso perfil.editar
-        // redirigirlo a la pagina de configuracion de su perfil
-        if (auth()->user()->can('perfil.editar')) {
-            return redirect()->route('completar_perfil');
-        };
-    }
-
-    // año fijo de inicio
-    public $chartStartYear = 2025;
-    // Nuevo: determina si se muestra el rango completo o solo los últimos 4 años (por defecto se muestran solo los últimos 4)
-    public $chartFullRange = false;
-
-    // Método para cambiar la opción de rango en la vista (por ejemplo: botón para ver años anteriores)
-    public function toggleChartRange()
-    {
-        $this->chartFullRange = !$this->chartFullRange;
-        $this->updateChartDataUser();
-    }
-
-    public function updatedSelectedYear()
-    {
-        $this->updateChartData();
-        $this->updateChartDataUser();
-    }
-
-    public function updateChartData()
-    {
-        // Consulta los proyectos agrupados por trimestre para el año seleccionado
-        $this->projectsData = Proyecto::selectRaw('QUARTER(created_at) as quarter, COUNT(*) as count')
-            ->whereYear('created_at', $this->selectedYear)
-            ->groupBy('quarter')
-            ->orderBy('quarter')
-            ->pluck('count', 'quarter')
-            ->toArray();
-
-        // Rellena los trimestres faltantes con 0
-        $this->projectsData = array_replace([
-            1 => 0,
-            2 => 0,
-            3 => 0,
-            4 => 0,
-        ], $this->projectsData);
-        // Calcula el total de proyectos en el año seleccionado
-        $this->totalProjectsYear = array_sum($this->projectsData);
-        // Envía el array para que en el gráfico se utilicen las claves como categorías
-        $this->dispatch('updateChart', data: array_values($this->projectsData));
-    }
-
-    public function updateChartDataUser()
-    {
-        $userId = auth()->user()->empleado->id;
-        $authUserId = auth()->id();
-
-        // Obtén los proyectos del usuario con sus datos completos
-        $userProjects = Proyecto::query()
-            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
-            ->where('empleado_proyecto.empleado_id', $userId)
-            ->select('proyecto.*')
-            ->distinct()
-            ->get();
-
-        $enfProjects = EnfAccion::query()
-            ->where('creado_por_usuario_id', $authUserId)
-            ->where(fn (Builder $query): Builder => $this->enfFormsQuery($query))
-            ->get()
-            ->map(function (EnfAccion $accion): object {
-                return (object) [
-                    'nombre_proyecto' => $accion->nombre_accion ?: 'Educacion no formal',
-                    'created_at' => $accion->created_at,
-                ];
-            });
-
-        $userProjects = $userProjects->concat($enfProjects);
-
-        // Define el rango de años a mostrar según la opción seleccionada
-        $end = now()->year;
-        if ($this->chartFullRange) {
-            // Rango completo: desde el año de inicio hasta el actual
-            $yearsRange = range($this->chartStartYear, $end);
-        } else {
-            // Solo los últimos 4 años, respetando el mínimo de chartStartYear
-            $startPeriod = max($this->chartStartYear, $end - 3);
-            $yearsRange = range($startPeriod, $end);
+        // Quien todavía no completó su perfil no tiene nada que mirar aquí.
+        if (auth()->user()?->can('perfil.editar')) {
+            $this->redirect(route('completar_perfil'), navigate: true);
         }
-
-        // Filtra los proyectos que se encuentren en el rango determinado
-        $userProjects = $userProjects->filter(function ($project) use ($yearsRange) {
-            $year = Carbon::parse($project->created_at)->format('Y');
-            return in_array((int) $year, $yearsRange);
-        });
-
-        // Agrupa los proyectos por año usando el campo created_at
-        $grouped = $userProjects->groupBy(function ($project) {
-            return Carbon::parse($project->created_at)->format('Y');
-        });
-
-        // Genera la estructura final con 'count' y 'projects'
-        $chartDataUser = [];
-        foreach ($yearsRange as $year) {
-            $projectsOfYear = $grouped->get($year, collect());
-            $chartDataUser[(string) $year] = [
-                'count' => $projectsOfYear->count(),
-                'projects' => $projectsOfYear->pluck('nombre_proyecto')->toArray(),
-            ];
-        }
-
-        $this->projectsDataUser = $chartDataUser;
-        $this->totalProjectsYearUser = array_sum(array_column($chartDataUser, 'count'));
-
-        // Envío de datos al gráfico
-        $this->dispatch('updateChart-User', dataUser: $this->projectsDataUser);
     }
 
-    // propiedad para el término de búsqueda
-    public $employeeSearch = '';
-
-    // Modifica el método para filtrar por empleado (por ejemplo, filtrando por "nombre_completo")
-    public function getProjectsCountByEmployees()
+    public function verMasFormularios(): void
     {
-        $userId = auth()->user()->empleado->id;
-        $query = Empleado::query();
-        $query->where('id', $userId);
-        return $query->withCount('proyectos')->paginate(4);
+        $this->formulariosVisibles += 10;
     }
 
-    public function empleadosVinculacion()
+    /** Alterna el gráfico entre el último año y los tres últimos. */
+    public function alternarRangoGrafico(PanelEstadisticoService $panel): void
     {
-        return Empleado::whereHas('proyectos')->count();
-    }
+        $this->mesesGrafico = $this->mesesGrafico === 12 ? 36 : 12;
 
+<<<<<<< HEAD
     /**
      * Unifica en una sola lista "Mis proyectos" todos los formularios que el
      * docente tiene: Proyecto (Desarrollo Local/Voluntariado), PPS/Servicio
@@ -537,411 +414,55 @@ public function getLatestActivitiesUser($limit = 3)
             0,  // Total de elementos (0 ya que no hay ninguno)
             $this->perPage, // Elementos por página
             1   // Página actual
+=======
+        $this->dispatch(
+            'panel-grafico-actualizado',
+            id: self::ID_GRAFICO,
+            config: $panel->serieMensual($panel->ambito(), $this->mesesGrafico),
+>>>>>>> efrain
         );
     }
 
-    // Consulta los proyectos que tienen asignado ese estado actual y los pagina
-    return Proyecto::query()
-        ->whereIn('id', function ($query) use ($tipoEstado) {
-            $query->select('estadoable_id')
-                ->from('estado_proyecto')
-                ->where('estadoable_type', Proyecto::class)
-                ->where('tipo_estado_id', $tipoEstado->id)
-                ->where('es_actual', true);
-        })
-        ->orderBy('id', 'asc')
-        ->paginate($this->perPage);
-}
+    public function render(
+        PanelEstadisticoService $panel,
+        MisFormulariosService $formularios,
+        PendientesRevisionService $pendientes,
+        ActividadRecienteService $actividad,
+    ): View {
+        $usuario = auth()->user();
+        $empleadoId = $usuario?->empleado?->id;
+        $ambito = $panel->ambito($usuario);
 
-    /**
-     * Obtiene proyectos cuyos estados se encuentren en la lista de nombres y los pagina.
-     *
-     * @param array $stateNames
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
-     */
-    public function proyectosEnRevisiones(array $stateNames)
-    {
-        $tipoEstadosIds = TipoEstado::whereIn('nombre', $stateNames)->pluck('id');
+        $mis = $formularios->para($empleadoId, $usuario?->id, $this->formulariosVisibles);
 
-        return Proyecto::with('tipo_estado')
-            ->whereIn('id', function ($query) use ($tipoEstadosIds) {
-                $query->select('estadoable_id')
-                    ->from('estado_proyecto')
-                    ->where('estadoable_type', Proyecto::class)
-                    ->whereIn('tipo_estado_id', $tipoEstadosIds)
-                    ->where('es_actual', true);
-            })
-            ->orderBy('id', 'asc')
-            ->paginate($this->perPage);
-    }
-
-    /**
-     * Obtiene los proyectos del usuario logueado según el nombre del estado y los pagina.
-     *
-     * @param string $stateName
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
-     */
-    public function getProjectsByStateUser($stateName)
-{
-    $userId = auth()->user()->empleado->id;
-
-    // Obtiene el objeto TipoEstado según el nombre
-    $tipoEstado = TipoEstado::where('nombre', $stateName)->first();
-    if (!$tipoEstado) {
-        // Crear un paginador vacío en lugar de intentar paginar una colección
-        return new \Illuminate\Pagination\LengthAwarePaginator(
-            [], // Array vacío de elementos
-            0,  // Total de elementos (0 ya que no hay ninguno)
-            $this->perPage, // Elementos por página
-            1   // Página actual
-        );
-    }
-
-    // Consulta los proyectos que tienen asignado ese estado actual y pertenecen al usuario logueado
-    return Proyecto::query()
-        ->whereIn('id', function ($query) use ($tipoEstado) {
-            $query->select('estadoable_id')
-                ->from('estado_proyecto')
-                ->where('estadoable_type', Proyecto::class)
-                ->where('tipo_estado_id', $tipoEstado->id)
-                ->where('es_actual', true);
-        })
-        ->whereIn('id', function ($query) use ($userId) {
-            $query->select('proyecto_id')
-                ->from('empleado_proyecto')
-                ->where('empleado_id', $userId);
-        })
-        ->orderBy('id', 'asc')
-        ->paginate($this->perPage);
-}
-
-
-/**
- * Obtiene proyectos del usuario logueado cuyos estados se encuentren en la lista de nombres y los pagina.
- *
- * @param array $stateNames
- * @param int $perPage
- * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
- */
-public function proyectosEnRevisionesUser(array $stateNames, $perPage = null)
-{
-    $userId = auth()->user()->empleado->id;
-    $perPage = $perPage ?? $this->perPage;
-
-    $tipoEstadosIds = TipoEstado::whereIn('nombre', $stateNames)->pluck('id');
-
-    return Proyecto::with('tipo_estado')
-        ->whereIn('id', function ($query) use ($tipoEstadosIds) {
-            $query->select('estadoable_id')
-                ->from('estado_proyecto')
-                ->where('estadoable_type', Proyecto::class)
-                ->whereIn('tipo_estado_id', $tipoEstadosIds)
-                ->where('es_actual', true);
-        })
-        ->whereIn('id', function ($query) use ($userId) {
-            $query->select('proyecto_id')
-                ->from('empleado_proyecto')
-                ->where('empleado_id', $userId);
-        })
-        ->orderBy('id', 'asc')
-        ->paginate($perPage);
-}
-
-    public function render()
-    {
-        // empleados con su numero de proyectos
-        $empleadosWithCount = $this->getProjectsCountByEmployees();
-        // numero de empleados vinculados a proyectos
-        $empleadosVinculacion = $this->empleadosVinculacion();
-        // consultas de dashboards...
-        $activities = $this->getLatestActivities();
-        $activitiesUser = $this->getLatestActivitiesUser();
-        // ADMIN DASHBOARD (consultas generales)
-    
-        $finalizados = collect(); // Default empty collection
-        $tipoEstadoFinalizado = TipoEstado::where('nombre', 'Finalizado')->first();
-        if ($tipoEstadoFinalizado) {
-            $finalizados = Proyecto::query()
-                ->whereIn('id', function ($query) use ($tipoEstadoFinalizado) {
-                    $query->select('estadoable_id')
-                        ->from('estado_proyecto')
-                        ->where('estadoable_type', Proyecto::class)
-                        ->where('tipo_estado_id', $tipoEstadoFinalizado->id)
-                        ->where('es_actual', true);
-                })->get();
-        }
-
-        $subsanacion = collect(); // Default empty collection
-        $tipoEstadoSubsanacion = TipoEstado::where('nombre', 'Subsanacion')->first();
-        if ($tipoEstadoSubsanacion) {
-            $subsanacion = Proyecto::query()
-                ->whereIn('id', function ($query) use ($tipoEstadoSubsanacion) {
-                    $query->select('estadoable_id')
-                        ->from('estado_proyecto')
-                        ->where('estadoable_type', Proyecto::class)
-                        ->where('tipo_estado_id', $tipoEstadoSubsanacion->id)
-                        ->where('es_actual', true);
-                })->get();
-        }
-
-        $ejecucion = collect(); // Default empty collection
-        $tipoEstadoEnCurso = TipoEstado::where('nombre', 'En curso')->first();
-        if ($tipoEstadoEnCurso) {
-            $ejecucion = Proyecto::query()
-                ->whereIn('id', function ($query) use ($tipoEstadoEnCurso) {
-                    $query->select('estadoable_id')
-                        ->from('estado_proyecto')
-                        ->where('estadoable_type', Proyecto::class)
-                        ->where('tipo_estado_id', $tipoEstadoEnCurso->id)
-                        ->where('es_actual', true);
-                })->get();
-        }
-
-        $borrador = collect(); // Default empty collection
-        $tipoEstadoBorrador = TipoEstado::where('nombre', 'Borrador')->first();
-        if ($tipoEstadoBorrador) {
-            $borrador = Proyecto::query()
-                ->whereIn('id', function ($query) use ($tipoEstadoBorrador) {
-                    $query->select('estadoable_id')
-                        ->from('estado_proyecto')
-                        ->where('estadoable_type', Proyecto::class)
-                        ->where('tipo_estado_id', $tipoEstadoBorrador->id)
-                        ->where('es_actual', true);
-                })->get();
-        }
-
-                $proyectos = Proyecto::query()
-                    ->whereIn('id', function ($query) {
-                        $query->select('estadoable_id')
-                            ->from('estado_proyecto')
-                            ->where('estadoable_type', Proyecto::class)
-                            ->where('es_actual', true);
-                    })->get();
-
-                $empleados = Empleado::count();
-
-                $proyectosTable = Proyecto::query()
-                    ->whereIn('id', function ($query) {
-                        $query->select('estadoable_id')
-                            ->from('estado_proyecto')
-                            ->where('estadoable_type', Proyecto::class)
-                            ->where('es_actual', true);
-                    })
-                    ->orderBy('created_at', 'desc')
-                    ->paginate(10);
-
-                
-        // USER DASHBOARD (filtrado por usuario autenticado con la tabla pivote empleado_proyecto)
-        $authUserId = auth()->id();
-        $userId = auth()->user()->empleado->id;
-        $enfPendientesRevisionUser = $this->enfRevisionesDisponiblesQuery()->get();
-        $enfAccionesUser = $this->enfAccionesUser($authUserId);
-
-        // Obtén el id del estado "Finalizado"
-        $finalizadosUser = collect(); // Default empty collection
-        $tipoEstadoFinalizado = TipoEstado::where('nombre', 'Finalizado')->first();
-        if ($tipoEstadoFinalizado) {
-            $finalizadosUser = Proyecto::query()
-                ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
-                ->join('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
-                ->where('empleado_proyecto.empleado_id', $userId)
-                ->where('estado_proyecto.estadoable_type', Proyecto::class)
-                ->where('estado_proyecto.tipo_estado_id', $tipoEstadoFinalizado->id)
-                ->where('estado_proyecto.es_actual', true)
-                ->distinct()
-                ->get();
-        }
-
-        // Para el estado "Subsanacion"
-        $proyectosSubsanar = collect(); // Default empty collection
-        $tipoEstadoSubsanacion = TipoEstado::where('nombre', 'Subsanacion')->first();
-        if ($tipoEstadoSubsanacion) {
-            $proyectosSubsanar = Proyecto::query()
-                ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
-                ->join('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
-                ->where('empleado_proyecto.empleado_id', $userId)
-                ->where('estado_proyecto.estadoable_type', Proyecto::class)
-                ->where('estado_proyecto.tipo_estado_id', $tipoEstadoSubsanacion->id)
-                ->where('estado_proyecto.es_actual', true)
-                ->distinct()
-                ->get();
-        }
-        $ppsSubsanar = PpsServicioSocial::query()
-            ->where('created_by', $authUserId)
-            ->whereHas('estadoActual.tipoestado', fn ($q) => $q->whereIn('nombre', ['Rechazado', 'Subsanacion']))
-            ->get();
-        $enfSubsanarUser = $enfAccionesUser->filter(fn (EnfAccion $accion): bool => in_array(strtoupper((string) $accion->estado_flujo), ['SUBSANACION', 'SUBSANACIÓN'], true));
-        $totalSubsanar = $proyectosSubsanar->count() + $ppsSubsanar->count() + $enfSubsanarUser->count();
-        $subsanacionUser = $proyectosSubsanar->concat($ppsSubsanar);
-
-        // Para el estado "Borrador"
-        $borradorUser = collect(); // Default empty collection
-        $tipoEstadoBorrador = TipoEstado::where('nombre', 'Borrador')->first();
-        if ($tipoEstadoBorrador) {
-            $borradorUser = Proyecto::query()
-                ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
-                ->join('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
-                ->where('empleado_proyecto.empleado_id', $userId)
-                ->where('estado_proyecto.estadoable_type', Proyecto::class)
-                ->where('estado_proyecto.tipo_estado_id', $tipoEstadoBorrador->id)
-                ->where('estado_proyecto.es_actual', true)
-                ->distinct()
-                ->get();
-        }
-
-        // Para el estado "En curso"
-        $ejecucionUser = collect(); // Default empty collection
-        $tipoEstadoEnCurso = TipoEstado::where('nombre', 'En curso')->first();
-        if ($tipoEstadoEnCurso) {
-            $ejecucionUser = Proyecto::query()
-                ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
-                ->join('estado_proyecto', 'estado_proyecto.estadoable_id', '=', 'proyecto.id')
-                ->where('empleado_proyecto.empleado_id', $userId)
-                ->where('estado_proyecto.estadoable_type', Proyecto::class)
-                ->where('estado_proyecto.tipo_estado_id', $tipoEstadoEnCurso->id)
-                ->where('estado_proyecto.es_actual', true)
-                ->distinct()
-                ->get();
-        }
-
-        $proyectosUser = Proyecto::query()
-            ->join('empleado_proyecto', 'empleado_proyecto.proyecto_id', '=', 'proyecto.id')
-            ->where('empleado_proyecto.empleado_id', $userId)
-            ->select('proyecto.*')
-            ->distinct()
-            ->get();
-
-        // Mis formularios: unifica Proyecto (Desarrollo Local/Voluntariado), PPS/SS
-        // y ENF en una sola lista, cada fila con su stepper de progreso calculado
-        // según el flujo de aprobación configurado (incluye informe intermedio/
-        // final si el proyecto ya pasó la aprobación inicial y está en esa fase).
-        $misFormularios = $this->misFormularios($userId, $authUserId);
-
-
-        //obtener lista de años en los cuales hay proyectos creados
-        $años = Proyecto::selectRaw('YEAR(created_at) as year')
-            ->distinct()
-            ->orderBy('year', 'desc')
-            ->pluck('year');
-
-        // cObtener proyectos para los estados solicitados:
-        $estadosUser = [
-            'Esperando documento',
-            'Subsanar documento',
-            'Enlace Vinculacion',
-            'Coordinador Proyecto',
-            'Jefe Departamento',
-            'Director Centro',
-            'En revision final',
-            'Aprobado',
-            'Subsanacion',
-            'Rechazado',
-            'Inscrito',
-            'Cancelado',
-            'En revision'
-        ];
-
-        $estados = [
-            'Esperando documento',
-            'Subsanar documento',
-            'Enlace Vinculacion',
-            'Coordinador Proyecto',
-            'Jefe Departamento',
-            'Director Centro',
-            'En revision final',
-            'Aprobado',
-            'Subsanacion',
-            'Rechazado',
-            'Inscrito',
-            'Cancelado',
-            'En revision'
-        ];
-
-        // Obtener proyectos en Revisión
-        $enRevision = $this->proyectosEnRevisiones($estados);
-
-        // Obtener proyectos Finalizados
-        $enFinalizados = $this->getProjectsByState('Finalizado');
-
-        // Obtener proyectos en Ejecución (En curso)
-        $enEjecucion = $this->getProjectsByState('En curso');
-
-        // Obtener proyectos en Borrador
-        $enBorrador = $this->getProjectsByState('Borrador');
-
-        //Panel Proyecto User
-        // Obtener proyectos en Revisión
-        $enRevisionUser = $this->proyectosEnRevisionesUser($estadosUser);
-
-        // Obtener proyectos Finalizados
-        $enFinalizadosUser = $this->getProjectsByStateUser('Finalizado');
-
-        // Obtener proyectos en Ejecución (En curso)
-        $enEjecucionUser = $this->getProjectsByStateUser('En curso');
-
-        // Obtener proyectos en Borrador
-        $enBorradorUser = $this->getProjectsByStateUser('Borrador');
-
-        $totalProyectosUser = $proyectosUser->count() + $enfAccionesUser->count();
-        $totalFinalizadosUser = $finalizadosUser->count()
-            + $enfAccionesUser->filter(fn (EnfAccion $accion): bool => strtoupper((string) $accion->estado_flujo) === 'FINALIZADO')->count();
-        $totalEjecucionUser = $ejecucionUser->count()
-            + $enfAccionesUser->filter(fn (EnfAccion $accion): bool => strtoupper((string) $accion->estado_flujo) === 'APROBADO')->count();
-        $totalBorradorUser = $borradorUser->count()
-            + $enfAccionesUser->filter(fn (EnfAccion $accion): bool => strtoupper((string) $accion->estado_flujo) === 'BORRADOR')->count();
-        $totalRevisionUser = $enRevisionUser->total()
-            + $enfAccionesUser->filter(fn (EnfAccion $accion): bool => strtoupper((string) $accion->estado_flujo) === 'EN_REVISION')->count();
-        $totalPendientesRevisionUser = $enfPendientesRevisionUser->count();
+        // Lo que exige acción del docente: primero sus propias subsanaciones,
+        // después lo que espera su firma. Antes había que deducirlo recorriendo
+        // la tabla entera.
+        $porSubsanar = $mis->filter(
+            fn (array $fila): bool => in_array(
+                mb_strtolower(trim((string) ($fila['estado'] ?? ''))),
+                ['subsanacion', 'subsanación', 'rechazado', 'subsanar documento'],
+                true
+            )
+        )->values();
 
         return view('livewire.inicio.dashboards.dasboard-docente', [
-            'empleadosWithCount' => $empleadosWithCount,
-            'empleadosVinculacion' => $empleadosVinculacion,
-            'activities' => $activities,
-            'activitiesUser' => $activitiesUser,
-            // admin dashboard
-            'finalizados' => $finalizados,
-            'subsanacion' => $subsanacion,
-            'ejecucion' => $ejecucion,
-            'proyectos' => $proyectos,
-            'borrador' => $borrador,
-            'empleados' => $empleados,
-            'proyectosTable' => $proyectosTable,
-            // User dashboard
-            'finalizadosUser' => $finalizadosUser,
-            'subsanacionUser' => $subsanacionUser,
-            'proyectosSubsanar' => $proyectosSubsanar,
-            'ppsSubsanar' => $ppsSubsanar,
-            'totalSubsanar' => $totalSubsanar,
-            'ejecucionUser' => $ejecucionUser,
-            'borradorUser' => $borradorUser,
-            'proyectosUser' => $proyectosUser,
-            'misFormularios' => $misFormularios,
-            'totalProyectosUser' => $totalProyectosUser,
-            'totalFinalizadosUser' => $totalFinalizadosUser,
-            'totalEjecucionUser' => $totalEjecucionUser,
-            'totalBorradorUser' => $totalBorradorUser,
-            'totalRevisionUser' => $totalRevisionUser,
-            'totalPendientesRevisionUser' => $totalPendientesRevisionUser,
-            //chartAdmin
-            'chartData' => array_values($this->projectsData),
-            'años' => $años,
-            //chartUser
-            'chartDataUser' => $this->projectsDataUser,
-            //mostrar las colecciones por estado
-            'enFinalizados' => $enFinalizados,
-            'enFinalizadosCount'  => $enFinalizados->count(),  // Total de proyectos finalizados
-            'enEjecucion' => $enEjecucion,
-            'enEjecucionCount' => $enEjecucion->count(),  // Total de proyectos en ejecución
-            'enBorrador' => $enBorrador,
-            'enBorradorCount' => $enBorrador->count(),  // Total de proyectos en borrador
-            'enRevision' => $enRevision,
-            'enRevisionCount' => $enRevision->count(),  // Total de proyectos en revisión
-            //mostrar panel de estados para user
-            'enFinalizadosUser' => $enFinalizadosUser,  // Total de proyectos finalizados
-            'enEjecucionUser' => $enEjecucionUser, // Total de proyectos en ejecución
-            'enBorradorUser' => $enBorradorUser,// Total de proyectos en borrador
-            'enRevisionUser' => $enRevisionUser,
-          
+            'ambito' => $ambito,
+            'resumen' => $formularios->resumen($empleadoId, $usuario?->id),
+            'misFormularios' => $mis,
+            'porSubsanar' => $porSubsanar,
+            'pendientesFirma' => $pendientes->paraRolActivo($usuario, 6),
+            'totalPendientes' => $pendientes->total($usuario),
+            'actividad' => $actividad->para($ambito, 8),
+            'esfuerzo' => $panel->esfuerzoInstitucional($ambito),
+            'estudiantes' => $panel->participacionEstudiantil($ambito),
+            'poblacion' => $panel->alcancePoblacional($ambito),
+            'ods' => $panel->rankingPorOds($ambito, 17),
+            'coberturaOds' => $panel->coberturaDimension($ambito, 'ods'),
+            'categorias' => $panel->rankingPorCategoria($ambito, 6),
+            'idGrafico' => self::ID_GRAFICO,
+            'serieGrafico' => $panel->serieMensual($ambito, $this->mesesGrafico),
+            'hayMasFormularios' => $mis->count() >= $this->formulariosVisibles,
         ]);
     }
 }
