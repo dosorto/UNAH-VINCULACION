@@ -178,6 +178,14 @@ Ya fallaban antes de los cambios recientes.
 - **Suite completa:** nunca terminó en Windows (supera los 600 s). Además de los
   tres del INF-001, ya fallaban `PpsServicioSocialWorkflowTest`,
   `NewUserOnboardingTest` y `HistorialProyectoWorkflowStageResubmissionIntegrationTest`.
+- **Dos fallos de ENF que llegaron con `origin/efrain`** (merge del 2026-09-16;
+  fallan igual sin los cambios del panel):
+  - `EnfWorkflowResumptionTest::test_informe_final_reanuda_desde_la_segunda_etapa`:
+    el mock de `Pdf::loadView()` devuelve un `Mockery` y el facade exige
+    `Barryvdh\DomPDF\PDF`.
+  - `EnfDocumentoArchivoTest::test_envio_final_guarda_el_archivo_del_paso_10_antes_de_iniciar_el_flujo`:
+    «No hay etapas configuradas para este proceso ENF»; al escenario le falta
+    el flujo de cierre.
 
 ---
 

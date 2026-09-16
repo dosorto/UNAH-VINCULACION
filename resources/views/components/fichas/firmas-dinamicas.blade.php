@@ -6,7 +6,7 @@
 
     // En pantalla devuelve una URL; en el PDF, un data URI base64 (DomPDF no
     // sigue el symlink `public/storage`). La lógica vive en el helper.
-    $resolverRutaFirma = fn (?string $ruta) => \App\Support\Fichas\FirmaImagen::resolver($ruta, $isPdfMode)['src'] ?? null;
+    $resolverRutaFirma = fn (?string $ruta) => \App\Support\Fichas\FirmaImagen::resolver($ruta, $isPdfMode);
 
     $formatearFechaFirma = function ($fecha) {
         if (empty($fecha)) {
@@ -49,15 +49,18 @@
             <tr>
                 @foreach ($par as $fila)
                     @php
-                        $sello = $resolverRutaFirma(optional(optional($fila['firma'])->sello)->ruta_storage);
-                        $firmaImg = $resolverRutaFirma(optional(optional($fila['firma'])->firma)->ruta_storage);
+                        $firmaRegistro = $fila['firma'] ?? null;
+                        $firmaSello = $firmaRegistro?->sello ?: $firmaRegistro?->empleado?->sello;
+                        $firmaDigital = $firmaRegistro?->firma ?: $firmaRegistro?->empleado?->firma;
+                        $sello = $resolverRutaFirma($firmaSello?->ruta_storage);
+                        $firmaImg = $resolverRutaFirma($firmaDigital?->ruta_storage);
                     @endphp
                     <td class="full-width signature-image-cell" colspan="2">
                         @if ($sello)
-                            <img src="{{ $sello }}" alt="Sello de aprobación">
+                            <img src="{{ $sello['src'] }}" alt="Sello de aprobación">
                         @endif
                         @if ($firmaImg)
-                            <img src="{{ $firmaImg }}" alt="Firma de aprobación">
+                            <img src="{{ $firmaImg['src'] }}" alt="Firma de aprobación">
                         @endif
                         @if ($sello || $firmaImg)
                             <br>

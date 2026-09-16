@@ -127,7 +127,7 @@ class FamiliaEnf implements FamiliaTramite
         }
 
         if ($ambito->tipo->value === 'personal' && $ambito->userId !== null) {
-            return $query->where('creado_por_usuario_id', $ambito->userId);
+            return $query->perteneceA($ambito->userId, $ambito->empleadoId);
         }
 
         return $query;

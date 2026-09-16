@@ -326,7 +326,15 @@ class ProyectosDocenteList extends Component
         }
 
         $ownIds = EnfAccion::query()
-            ->where('creado_por_usuario_id', $user->id)
+            ->where(function (Builder $query) use ($user): void {
+                $query->where('creado_por_usuario_id', $user->id)
+                    ->orWhere('responsable_revision_id', $this->docente->id)
+                    ->orWhereHas('equipo', function (Builder $equipoQuery) use ($user): void {
+                        $equipoQuery
+                            ->where('user_id', $user->id)
+                            ->orWhere('empleado_id', $this->docente->id);
+                    });
+            })
             ->pluck('id');
 
         $pendingIds = $this->enfPendingReviewQuery()
@@ -435,7 +443,7 @@ class ProyectosDocenteList extends Component
         return match (strtoupper(str_replace(' ', '_', (string) $estado))) {
             'BORRADOR' => 'Borrador',
             'EN_REVISION' => 'En revisión',
-            'APROBADO' => 'En curso',
+            'APROBADO' => 'Aprobado',
             'FINALIZADO' => 'Finalizado',
             'SUBSANACION', 'SUBSANACIÓN' => 'Subsanacion',
             default => $estado ? str_replace('_', ' ', $estado) : '-',

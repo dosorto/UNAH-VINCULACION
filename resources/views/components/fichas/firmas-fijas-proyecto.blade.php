@@ -1,9 +1,8 @@
 @php
     $isPdfMode = !empty($isPdf);
 
-    // En pantalla la firma se sirve por URL; en el PDF se embebe como data URI
-    // (base64), porque DomPDF no sigue el symlink `public/storage` y en
-    // producción lo dejaría en blanco. Toda esa lógica vive en el helper.
+    // En pantalla la firma se sirve por URL; en el PDF se usa una ruta local
+    // autorizada por el chroot de DomPDF. Toda esa lógica vive en el helper.
     $cajaFirmaAncho = 160;
     $cajaFirmaAlto = 90;
 
@@ -74,8 +73,13 @@
         <tr>
             @foreach ($par as $cuadro)
                 @php
-                    $sello = $resolverRutaFirma(optional(optional($cuadro['firma'])->sello)->ruta_storage);
-                    $firmaImg = $resolverRutaFirma(optional(optional($cuadro['firma'])->firma)->ruta_storage);
+                    $firmaRegistro = $cuadro['firma'] ?? null;
+                    // Las firmas antiguas pueden tener firma_id/sello_id nulos
+                    // aunque el empleado sí conserve una firma activa.
+                    $firmaSello = $firmaRegistro?->sello ?: $firmaRegistro?->empleado?->sello;
+                    $firmaDigital = $firmaRegistro?->firma ?: $firmaRegistro?->empleado?->firma;
+                    $sello = $resolverRutaFirma($firmaSello?->ruta_storage);
+                    $firmaImg = $resolverRutaFirma($firmaDigital?->ruta_storage);
                     $selloDim = $sello ? $dimensionesContenidas($sello['path']) : null;
                     $firmaDim = $firmaImg ? $dimensionesContenidas($firmaImg['path']) : null;
                 @endphp

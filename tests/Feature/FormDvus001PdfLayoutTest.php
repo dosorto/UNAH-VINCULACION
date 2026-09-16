@@ -105,6 +105,24 @@ class FormDvus001PdfLayoutTest extends TestCase
         $this->assertStringNotContainsString('✓', $view);
     }
 
+    public function test_firmas_pdf_usen_firma_del_empleado_como_respaldo(): void
+    {
+        $view = $this->viewSource('components.fichas.firmas-fijas-proyecto');
+
+        $this->assertStringContainsString("\$firmaRegistro?->firma ?: \$firmaRegistro?->empleado?->firma", $view);
+        $this->assertStringContainsString("\$firmaRegistro?->sello ?: \$firmaRegistro?->empleado?->sello", $view);
+    }
+
+    public function test_firmas_dinamicas_usan_el_src_resuelto(): void
+    {
+        $view = $this->viewSource('components.fichas.firmas-dinamicas');
+
+        $this->assertStringContainsString("\$sello['src']", $view);
+        $this->assertStringContainsString("\$firmaImg['src']", $view);
+        $this->assertStringNotContainsString('src="{{ $sello }}"', $view);
+        $this->assertStringNotContainsString('src="{{ $firmaImg }}"', $view);
+    }
+
     private function viewSource(string $view): string
     {
         return file_get_contents(resource_path('views/' . str_replace('.', '/', $view) . '.blade.php'));

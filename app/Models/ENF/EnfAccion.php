@@ -13,6 +13,7 @@ use App\Models\UnidadAcademica\Carrera;
 use App\Models\UnidadAcademica\DepartamentoAcademico;
 use App\Models\UnidadAcademica\FacultadCentro;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -128,6 +129,25 @@ class EnfAccion extends Model
         $empleadoId = $user?->empleado?->id;
 
         return (bool) ($empleadoId && $this->equipo()->where('empleado_id', $empleadoId)->exists());
+    }
+
+    /**
+     * Acciones en las que interviene el usuario: las que creó, aquellas en cuyo
+     * equipo figura y las que tiene asignadas para revisión.
+     */
+    public function scopePerteneceA(Builder $query, int $userId, ?int $empleadoId = null): Builder
+    {
+        return $query->where(function (Builder $propias) use ($userId, $empleadoId): void {
+            $propias->where('creado_por_usuario_id', $userId)
+                ->orWhereHas('equipo', fn (Builder $equipo) => $equipo->where(
+                    fn (Builder $integrante) => $integrante->where('user_id', $userId)
+                        ->when($empleadoId, fn (Builder $q) => $q->orWhere('empleado_id', $empleadoId))
+                ));
+
+            if ($empleadoId) {
+                $propias->orWhere('responsable_revision_id', $empleadoId);
+            }
+        });
     }
 
     public function participacionUniversitaria()

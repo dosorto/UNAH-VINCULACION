@@ -7,12 +7,10 @@ use Illuminate\Support\Facades\Storage;
 /**
  * Resuelve la imagen de una firma o sello para usarla dentro de una ficha.
  *
- * El punto delicado es el PDF: lo genera DomPDF, que aplica un "chroot" y no
- * sigue el symlink `public/storage`. En producción ese symlink suele apuntar a
- * un directorio fuera del release actual, así que DomPDF descarta las imágenes
- * en silencio y los cuadros de firma salen vacíos. Para el PDF, entonces, se
- * embeben los bytes de la imagen como data URI (base64): así no depende del
- * symlink, ni de la ruta física, ni de los permisos del usuario de nginx.
+ * El PDF se genera con DomPDF dentro del chroot de la aplicación. Las rutas
+ * locales son compatibles con ese motor; las data URI no se renderizan de
+ * forma confiable en la versión instalada y hacen que DomPDF imprima el texto
+ * alternativo de la imagen.
  */
 class FirmaImagen
 {
@@ -44,7 +42,7 @@ class FirmaImagen
         $archivoLocal = self::ubicarArchivoLocal($ruta, $rutaNormalizada);
 
         if ($isPdf) {
-            return self::comoDataUri($archivoLocal, $rutaNormalizada);
+            return self::comoRutaLocalParaPdf($archivoLocal, $rutaNormalizada);
         }
 
         if ($archivoLocal !== null && str_starts_with($archivoLocal, public_path())) {
@@ -97,59 +95,38 @@ class FirmaImagen
     }
 
     /**
-     * @return array{src: string, path: string|null}|null
+     * Devuelve un recurso local dentro del chroot configurado para DomPDF.
+     *
+     * @return array{src: string, path: string}|null
      */
-    private static function comoDataUri(?string $archivoLocal, string $rutaNormalizada): ?array
+    private static function comoRutaLocalParaPdf(?string $archivoLocal, string $rutaNormalizada): ?array
     {
-        if ($archivoLocal !== null) {
-            $datos = @file_get_contents($archivoLocal);
-
-            if ($datos !== false && $datos !== '') {
-                return [
-                    'src' => 'data:' . self::mime($archivoLocal, $datos) . ';base64,' . base64_encode($datos),
-                    'path' => $archivoLocal,
-                ];
+        if ($archivoLocal === null && Storage::disk('public')->exists($rutaNormalizada)) {
+            try {
+                $archivoLocal = Storage::disk('public')->path($rutaNormalizada);
+            } catch (\Throwable) {
+                return null;
             }
         }
 
-        // Último intento: leer a través del disco 'public' de Laravel.
-        if (Storage::disk('public')->exists($rutaNormalizada)) {
-            $datos = Storage::disk('public')->get($rutaNormalizada);
+        $rutaReal = $archivoLocal ? realpath($archivoLocal) : false;
+        $chroots = array_values(array_unique(array_filter([
+            realpath(base_path()),
+            realpath(storage_path('app/public')),
+            realpath(public_path('storage')),
+        ])));
 
-            if (is_string($datos) && $datos !== '') {
-                $mime = Storage::disk('public')->mimeType($rutaNormalizada) ?: 'image/png';
+        $rutaPermitida = $rutaReal && collect($chroots)->contains(
+            fn (string $chroot): bool => $rutaReal === $chroot || str_starts_with($rutaReal, $chroot . DIRECTORY_SEPARATOR)
+        );
 
-                return [
-                    'src' => 'data:' . $mime . ';base64,' . base64_encode($datos),
-                    'path' => null,
-                ];
-            }
+        if (! $rutaPermitida) {
+            return null;
         }
 
-        return null;
-    }
-
-    private static function mime(string $archivo, string $datos): string
-    {
-        if (function_exists('finfo_open')) {
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $detectado = $finfo ? finfo_buffer($finfo, $datos) : false;
-
-            if ($finfo) {
-                finfo_close($finfo);
-            }
-
-            if (is_string($detectado) && str_starts_with($detectado, 'image/')) {
-                return $detectado;
-            }
-        }
-
-        return match (strtolower(pathinfo($archivo, PATHINFO_EXTENSION))) {
-            'jpg', 'jpeg' => 'image/jpeg',
-            'gif' => 'image/gif',
-            'webp' => 'image/webp',
-            'svg' => 'image/svg+xml',
-            default => 'image/png',
-        };
+        return [
+            'src' => 'file://' . str_replace(DIRECTORY_SEPARATOR, '/', $rutaReal),
+            'path' => $rutaReal,
+        ];
     }
 }

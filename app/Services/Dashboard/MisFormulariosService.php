@@ -42,7 +42,7 @@ class MisFormulariosService
 
         if ($userId) {
             $this->agregarPps($filas, $userId);
-            $this->agregarEnf($filas, $userId);
+            $this->agregarEnf($filas, $userId, $empleadoId);
         }
 
         return $filas->sortByDesc('sort_date')->take($limite)->values();
@@ -60,7 +60,11 @@ class MisFormulariosService
 
         foreach ($this->para($empleadoId, $userId, PHP_INT_MAX) as $fila) {
             $resumen['total']++;
-            $clave = $this->claveDeEstado($fila['estado'] ?? null);
+            // ENF trae su propia categoría: su etiqueta "Aprobado" no dice por sí
+            // sola que la acción esté en curso.
+            $clave = array_key_exists('clave_estado', $fila)
+                ? $fila['clave_estado']
+                : $this->claveDeEstado($fila['estado'] ?? null);
 
             if ($clave !== null) {
                 $resumen[$clave]++;
@@ -125,10 +129,10 @@ class MisFormulariosService
             });
     }
 
-    private function agregarEnf(Collection $filas, int $userId): void
+    private function agregarEnf(Collection $filas, int $userId, ?int $empleadoId): void
     {
         EnfAccion::query()
-            ->where('creado_por_usuario_id', $userId)
+            ->perteneceA($userId, $empleadoId)
             ->where(fn (Builder $q): Builder => $this->soloFormulariosEnf($q))
             ->get()
             ->each(function (EnfAccion $accion) use ($filas): void {
@@ -141,6 +145,7 @@ class MisFormulariosService
                     'fecha_fin' => $accion->fecha_finalizacion,
                     'fase' => 'Aprobación',
                     'estado' => $this->etiquetaEstadoEnf($accion->estado_flujo),
+                    'clave_estado' => $this->claveDeEstadoEnf($accion->estado_flujo),
                     'stepper' => $this->stepperEnf($accion),
                     'href' => null,
                     'sort_date' => $accion->created_at,
@@ -212,10 +217,23 @@ class MisFormulariosService
         return match (strtoupper((string) $estado)) {
             'BORRADOR' => 'Borrador',
             'EN_REVISION' => 'En revision',
-            'APROBADO' => 'En curso',
+            'APROBADO' => 'Aprobado',
             'FINALIZADO' => 'Finalizado',
             'SUBSANACION', 'SUBSANACIÓN' => 'Subsanacion',
             default => $estado ?: 'Borrador',
+        };
+    }
+
+    /** Tarjeta del resumen en la que cuenta una acción ENF según su estado de flujo. */
+    private function claveDeEstadoEnf(?string $estado): ?string
+    {
+        return match (strtoupper((string) $estado)) {
+            '', 'BORRADOR' => 'borrador',
+            'EN_REVISION' => 'en_revision',
+            'APROBADO' => 'en_curso',
+            'FINALIZADO' => 'finalizado',
+            'SUBSANACION', 'SUBSANACIÓN' => 'subsanar',
+            default => null,
         };
     }
 
