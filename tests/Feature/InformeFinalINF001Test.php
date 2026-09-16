@@ -1656,6 +1656,49 @@ class InformeFinalINF001Test extends TestCase
         $this->assertDatabaseHas('estado_proyecto',['estadoable_type'=>Proyecto::class,'estadoable_id'=>$project->id,'comentario'=>'[Cierre INF-001] Informe final completado y listo para envío.']);
     }
 
+    public function test_apellidos_son_obligatorios_al_registrar_pero_no_bloquean_la_edicion(): void
+    {
+        [$user,$project]=$this->scenario();
+        EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Voluntariado','cantidad_estudiantes_hombres'=>2,'cantidad_estudiantes_mujeres'=>0,'total_estudiantes'=>2]);
+        $report=$this->initialize($project,$user);
+        $grupo=$report->gruposEstudiantes()->firstOrFail();
+        $component=$this->livewireComponent($user,$project);
+        $asterisco='Apellidos <span class="text-red-500">*</span>';
+        // Livewire rodea cada @if con marcadores <!--[if BLOCK]>; se quitan para comparar.
+        $html=fn () => preg_replace('/<!--.*?-->/s','',$component->html());
+
+        $component->call('openEstudianteModal',null,$grupo->id)
+            ->set('mostrarRegistroManual',true);
+        $this->assertStringContainsString($asterisco,$html());
+
+        $component->set('estudianteManual.nombres','Luis')
+            ->set('estudianteManual.numero_cuenta','20260002001')
+            ->set('estudianteManual.sexo','Masculino')
+            ->set('estudianteManual.carrera','Ingeniería en Sistemas')
+            ->set('estudianteManual.correo','luis@example.test')
+            ->set('estudianteManual.horas_dedicadas',10)
+            ->call('saveEstudianteManual')
+            ->assertHasErrors('estudianteManual.apellidos')
+            ->set('estudianteManual.apellidos','Martínez')
+            ->call('saveEstudianteManual')
+            ->assertHasNoErrors();
+
+        // La fila guarda un único `nombre`: al editar, el nombre completo vuelve
+        // en `nombres` y `apellidos` llega vacío. Exigirlo ahí impediría editar.
+        $index=array_key_last($component->get('estudiantes'));
+        $component->call('openEstudianteModal',$index,$grupo->id)
+            ->assertSet('estudianteManual.nombres','Luis Martínez')
+            ->assertSet('estudianteManual.apellidos','');
+        $this->assertStringContainsString('Apellidos',$html());
+        $this->assertStringNotContainsString($asterisco,$html());
+
+        $component->set('estudianteManual.horas_dedicadas',12)
+            ->call('saveEstudianteManual')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('informe_final_estudiantes',['informe_final_grupo_estudiante_id'=>$grupo->id,'nombre'=>'Luis Martínez','horas_dedicadas'=>12]);
+    }
+
     private function livewireComponent(User $user, Proyecto $project)
     {
         return Livewire::actingAs($user)->test(EditInformeFinalProyecto::class,['proyecto'=>$project]);

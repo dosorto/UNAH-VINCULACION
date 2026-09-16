@@ -320,7 +320,9 @@ class EditInformeFinalProyecto extends Component
         $this->validate([
             'grupoEstudianteSeleccionadoId'=>['required','integer',Rule::exists('informe_final_grupos_estudiantes','id')->where(fn ($query) => $query->where('informe_final_proyecto_id',$this->informe->id))],
             'estudianteManual.nombres'=>['required','string','max:150'],
-            'estudianteManual.apellidos'=>['nullable','string','max:150'],
+            // Obligatorio solo al registrar: la fila guarda un único `nombre`, así que al
+            // editar el nombre completo vuelve en `nombres` y `apellidos` llega vacío.
+            'estudianteManual.apellidos'=>[Rule::requiredIf($this->editEstudianteIndex === null),'nullable','string','max:150'],
             'estudianteManual.numero_cuenta'=>['required','regex:/^\d+$/','max:30'],
             'estudianteManual.sexo'=>['required', Rule::in(['Masculino','Femenino'])],
             'estudianteManual.carrera'=>['required','string','max:255'],
@@ -331,6 +333,7 @@ class EditInformeFinalProyecto extends Component
             'grupoEstudianteSeleccionadoId.exists'=>'El grupo de estudiantes seleccionado no es válido.',
             'estudianteManual.nombres.required'=>'El nombre del estudiante es obligatorio.',
             'estudianteManual.nombres.max'=>'El nombre del estudiante no puede superar los 150 caracteres.',
+            'estudianteManual.apellidos.required'=>'Los apellidos del estudiante son obligatorios.',
             'estudianteManual.apellidos.max'=>'Los apellidos no pueden superar los 150 caracteres.',
             'estudianteManual.numero_cuenta.required'=>'El número de cuenta es obligatorio.',
             'estudianteManual.numero_cuenta.regex'=>'El número de cuenta debe contener únicamente dígitos.',
