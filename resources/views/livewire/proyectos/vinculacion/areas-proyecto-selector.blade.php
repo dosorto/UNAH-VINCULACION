@@ -64,7 +64,7 @@
                     <div class="flex flex-col items-center">
                         <div class="bg-yellow-100 dark:bg-yellow-900 rounded-full p-4 mb-5 group-hover:bg-yellow-200 dark:group-hover:bg-yellow-800 transition">
                             <svg class="w-10 h-10 text-yellow-700 dark:text-yellow-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.5 12.5 8 16m.5-8.5L12 11m0 0 3.5-3.5M12 11l3.5 3.5M5 21V5a2 2 0 0 1 2-2h4.5L17 8.5V21H5Z"/>
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.01 6.001C6.5 1 1 8 5.782 13.001L12.011 20l6.23-7C23 8 17.5 1 12.01 6.002Z"/>
                             </svg>
                         </div>
                         <h3 class="text-xl font-bold text-yellow-900 dark:text-yellow-200 mb-2 text-center">FORM-015 - Registro Proyecto de Voluntariado</h3>
