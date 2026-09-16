@@ -67,13 +67,19 @@ class ConfiguracionFlujosProyectos extends Component
     ];
 
     /**
-     * Todo formulario tiene siempre estas 4 firmas fijas (etapas de tipo
+     * Todo formulario tiene siempre estas 3 firmas fijas (etapas de tipo
      * APROBACION), sin importar el flujo. Lo único configurable por flujo es
      * el ROL con acceso a cada etapa (quién ocupa ese cargo), no el cargo en
      * sí. Clave = nombre real en tipo_cargo_firma; valor = etiqueta a mostrar.
+     *
+     * "Coordinador Proyecto" no está aquí a propósito: dejó de ser una etapa
+     * configurable. El proyecto se autofirma con la firma y el sello de quien
+     * lo inscribe, en el momento del envío
+     * (CreateProyectoVinculacion::agregarFirma('Coordinador Proyecto')), así
+     * que ofrecerlo en el selector proponía configurar algo que el flujo ya
+     * no consume.
      */
     private const CARGOS_FIRMA_FIJOS = [
-        'Coordinador Proyecto' => 'Coordinador de la acción por la UNAH',
         'Jefe Departamento' => 'Jefe de la Unidad Académica que lidera la acción',
         'Enlace Vinculacion' => 'Coordinador(a) del Comité de Vinculación del Centro Regional',
         'Director centro' => 'Decano(a) o Director(a) del Centro Regional',
