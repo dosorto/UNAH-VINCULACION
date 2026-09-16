@@ -201,13 +201,26 @@ trait ResuelveFirmaPorEtapa
             $informeIntermedioFueAprobado = $this->marcarDocumentoAprobado($documento, $user, $comentario);
 
             if ($documento->tipo_documento === 'Informe Intermedio' && $informeIntermedioFueAprobado) {
+                $comentarioHabilitado = sprintf(
+                    'El informe intermedio del proyecto "%s" fue aprobado. Ya puede completar y enviar el Informe Final.',
+                    $proyecto->nombre_proyecto
+                );
+
+                $tipoEstadoHabilitadoId = TipoEstado::where('nombre', 'Informe Final Habilitado')->value('id');
+
+                if ($tipoEstadoHabilitadoId) {
+                    $documento->estado_documento()->create([
+                        'empleado_id' => $user->empleado?->id,
+                        'tipo_estado_id' => $tipoEstadoHabilitadoId,
+                        'fecha' => now(),
+                        'comentario' => $comentarioHabilitado,
+                    ]);
+                }
+
                 $this->notificarCoordinadorProyecto(
                     $proyecto,
                     'Informe intermedio aprobado',
-                    sprintf(
-                        'El informe intermedio del proyecto "%s" fue aprobado. Ya puede completar y enviar el Informe Final.',
-                        $proyecto->nombre_proyecto
-                    ),
+                    $comentarioHabilitado,
                     'aprobación de informe',
                     route('proyectos.informe-final', $proyecto)
                 );

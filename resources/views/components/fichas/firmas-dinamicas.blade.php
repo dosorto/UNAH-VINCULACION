@@ -4,42 +4,9 @@
     $documentoFirmas = $documento ?? null;
     $filasFirmas = $proyecto->firmasParaFicha($procesoFirmas, $documentoFirmas);
 
-    $resolverRutaFirma = function (?string $ruta) use ($isPdfMode) {
-        if (empty($ruta)) {
-            return null;
-        }
-
-        $rutaNormalizada = ltrim($ruta, '/');
-
-        if (str_starts_with($rutaNormalizada, 'storage/')) {
-            $rutaNormalizada = substr($rutaNormalizada, strlen('storage/'));
-        }
-
-        $rutaPublica = public_path('storage/' . $rutaNormalizada);
-        $rutaDiscoPublico = storage_path('app/public/' . $rutaNormalizada);
-
-        if (filter_var($ruta, FILTER_VALIDATE_URL)) {
-            return $ruta;
-        }
-
-        if (is_file($ruta)) {
-            return $isPdfMode ? $ruta : asset(str_replace(public_path() . '/', '', $ruta));
-        }
-
-        if (is_file($rutaPublica)) {
-            return $isPdfMode ? $rutaPublica : asset('storage/' . $rutaNormalizada);
-        }
-
-        if (is_file($rutaDiscoPublico) || \Illuminate\Support\Facades\Storage::disk('public')->exists($rutaNormalizada)) {
-            return $isPdfMode ? $rutaPublica : \Illuminate\Support\Facades\Storage::url($rutaNormalizada);
-        }
-
-        if (!$isPdfMode) {
-            return \Illuminate\Support\Facades\Storage::url($rutaNormalizada);
-        }
-
-        return null;
-    };
+    // En pantalla devuelve una URL; en el PDF, un data URI base64 (DomPDF no
+    // sigue el symlink `public/storage`). La lógica vive en el helper.
+    $resolverRutaFirma = fn (?string $ruta) => \App\Support\Fichas\FirmaImagen::resolver($ruta, $isPdfMode);
 
     $formatearFechaFirma = function ($fecha) {
         if (empty($fecha)) {
@@ -82,15 +49,18 @@
             <tr>
                 @foreach ($par as $fila)
                     @php
-                        $sello = $resolverRutaFirma(optional(optional($fila['firma'])->sello)->ruta_storage);
-                        $firmaImg = $resolverRutaFirma(optional(optional($fila['firma'])->firma)->ruta_storage);
+                        $firmaRegistro = $fila['firma'] ?? null;
+                        $firmaSello = $firmaRegistro?->sello ?: $firmaRegistro?->empleado?->sello;
+                        $firmaDigital = $firmaRegistro?->firma ?: $firmaRegistro?->empleado?->firma;
+                        $sello = $resolverRutaFirma($firmaSello?->ruta_storage);
+                        $firmaImg = $resolverRutaFirma($firmaDigital?->ruta_storage);
                     @endphp
                     <td class="full-width signature-image-cell" colspan="2">
                         @if ($sello)
-                            <img src="{{ $sello }}" alt="Sello de aprobación">
+                            <img src="{{ $sello['src'] }}" alt="Sello de aprobación">
                         @endif
                         @if ($firmaImg)
-                            <img src="{{ $firmaImg }}" alt="Firma de aprobación">
+                            <img src="{{ $firmaImg['src'] }}" alt="Firma de aprobación">
                         @endif
                         @if ($sello || $firmaImg)
                             <br>

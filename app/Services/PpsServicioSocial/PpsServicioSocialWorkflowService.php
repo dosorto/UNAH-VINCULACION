@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Mail;
 use RuntimeException;
 
@@ -56,7 +57,20 @@ class PpsServicioSocialWorkflowService
             $esReenvio = $this->esReenvioDespuesDeRechazo($registro);
 
             if ($esReenvio) {
-                [$flujo, $ciclo, $firmasCreadas] = $this->crearCicloDeReanudacion($registro, $reemplazosHistoricos);
+                try {
+                    [$flujo, $ciclo, $firmasCreadas] = $this->crearCicloDeReanudacion($registro, $reemplazosHistoricos);
+                } catch (\Throwable $e) {
+                    Log::error('Error creando ciclo PPS/SS desde subsanacion', [
+                        'registro_id' => $registro->id,
+                        'estado' => $registro->estado,
+                        'flujo_id' => $registro->flujo_aprobacion_id,
+                        'etapa_actual_id' => $registro->etapa_actual_id,
+                        'error' => $e->getMessage(),
+                        'exception' => $e::class,
+                    ]);
+
+                    throw $e;
+                }
             } else {
                 $flujo = $this->resolverFlujoActivoParaEnvio($registro);
                 $etapas = $registro->etapasActivasDelFlujo($flujo);
@@ -92,16 +106,30 @@ class PpsServicioSocialWorkflowService
                 throw new RuntimeException('No se pudo determinar el estado inicial del flujo PPS/SS.');
             }
 
-            $registro->agregarEstado($empleadoActor, (int) $tipoEstadoId, 'Registro enviado a revision mediante flujo configurable PPS/SS.');
+            $registro->agregarEstado(
+                $empleadoActor,
+                (int) $tipoEstadoId,
+                $esReenvio
+                    ? 'Reenvío posterior a subsanación.'
+                    : 'Registro enviado a revisión mediante flujo configurable PPS/SS.'
+            );
             $registro->forceFill([
                 'etapa_actual_id' => $primeraFirma->flujo_aprobacion_etapa_id,
                 'fecha_envio' => now(),
                 'enviado_por' => $userId,
                 'updated_by' => $userId,
+                // La observación original permanece en estado_proyecto como
+                // movimiento histórico; el resumen superior solo representa
+                // una subsanación pendiente y se limpia al reenviar.
+                'motivo_rechazo' => $esReenvio ? null : $registro->motivo_rechazo,
             ])->saveQuietly();
 
             $this->validarDestinatarioDeFirma($primeraFirma);
             $this->notificarRevisionPendiente($registro, $primeraFirma, $esReenvio ? 'reenvio_subsanacion' : 'envio_revision');
+
+            if (Schema::hasTable('pps_documentos_generados')) {
+                app(PpsDocumentoGenerator::class)->generarSolicitud($registro, (int) $userId);
+            }
 
             Log::info('Ciclo PPS/SS preparado', [
                 'proceso' => PpsServicioSocial::PROCESO_FLUJO,
@@ -183,6 +211,10 @@ class PpsServicioSocialWorkflowService
                 'updated_by' => $userId,
             ])->saveQuietly();
 
+            if (Schema::hasTable('pps_documentos_generados')) {
+                app(PpsDocumentoGenerator::class)->generarAutorizacion($registro, (int) $userId);
+            }
+
             return $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
         });
     }
@@ -254,7 +286,7 @@ class PpsServicioSocialWorkflowService
                 throw new RuntimeException('No existe un estado "Borrador" configurado.');
             }
 
-            $registro->agregarEstado($empleadoActor, (int) $estadoBorradorId, 'Registro devuelto a borrador para subsanacion.');
+            $registro->agregarEstado($empleadoActor, (int) $estadoBorradorId, 'Inicio de subsanación.');
             $registro->forceFill(['updated_by' => $userId])->saveQuietly();
 
             return $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
@@ -656,9 +688,20 @@ class PpsServicioSocialWorkflowService
         }
 
         $registroParaCorreo = $registro->fresh(['flujoAprobacion', 'etapaActual']) ?? $registro;
-        Mail::to($destinatario->email)->queue(
-            (new EtapaFlujoPendiente($registroParaCorreo, $destinatario, $etapa, 'pps-servicio-social'))->afterCommit()
-        );
+        try {
+            Mail::to($destinatario->email)->queue(
+                (new EtapaFlujoPendiente($registroParaCorreo, $destinatario, $etapa, 'pps-servicio-social'))->afterCommit()
+            );
+        } catch (\Throwable $e) {
+            Log::error('No se pudo encolar notificacion PPS/SS', [
+                'registro_id' => $registro->id,
+                'etapa_id' => $etapa->id,
+                'destinatario_id' => $destinatario->id,
+                'evento' => $evento,
+                'error' => $e->getMessage(),
+                'exception' => $e::class,
+            ]);
+        }
 
         Log::info('Notificacion PPS/SS de revision pendiente enviada', [
             'registro_id' => $registro->id,

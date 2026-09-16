@@ -213,8 +213,7 @@
                                 <label class="{{ $label }}">Aporte</label>
                                 <input
                                     wire:model.live.debounce.1000ms="ods.{{ $i }}.descripcion_aporte"
-                                    @readonly($esPlanificado)
-                                    class="{{ $esPlanificado ? $readonly : $input }}"
+                                    class="{{ $input }}"
                                 >
                             </div>
 
@@ -222,8 +221,7 @@
                                 <label class="{{ $label }}">Evidencia</label>
                                 <input
                                     wire:model.live.debounce.1000ms="ods.{{ $i }}.evidencia"
-                                    @readonly($esPlanificado)
-                                    class="{{ $esPlanificado ? $readonly : $input }}"
+                                    class="{{ $input }}"
                                 >
                             </div>
 
@@ -353,7 +351,7 @@
                                 {{-- Enlace --}}
                                 <div class="min-w-0">
                                     <label class="{{ $label }}">Enlace</label>
-                                    <input type="url" wire:model.live.debounce.1000ms="anexos.{{ $i }}.enlace" @readonly($esAnexoPlanificado) class="{{ $esAnexoPlanificado ? $readonly : $input }}">
+                                    <input type="url" wire:model.live.debounce.1000ms="anexos.{{ $i }}.enlace" class="{{ $input }}">
                                 </div>
 
                                 {{-- Fecha --}}

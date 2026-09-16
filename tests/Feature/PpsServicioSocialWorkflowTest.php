@@ -4,16 +4,24 @@ namespace Tests\Feature;
 
 use App\Mail\EtapaFlujoPendiente;
 use App\Models\Estado\TipoEstado;
+use App\Models\Estado\EstadoProyecto;
 use App\Models\Personal\Empleado;
+use App\Models\Personal\FirmaSelloEmpleado;
 use App\Models\PpsServicioSocial;
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\TipoCargoFirma;
 use App\Models\User;
+use App\Services\Integraciones\IntegracionApiService;
 use App\Services\PpsServicioSocial\PpsServicioSocialWorkflowService;
+use App\Services\PpsServicioSocial\PpsDocumentoGenerator;
+use App\Support\PpsServicioSocial\PpsDocumentoRequirements;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
+use Mockery;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -25,6 +33,195 @@ class PpsServicioSocialWorkflowTest extends TestCase
     {
         parent::setUp();
         Mail::fake();
+        Storage::fake('local');
+    }
+
+    public function test_creador_puede_eliminar_su_borrador_pps_y_se_registra_la_auditoria(): void
+    {
+        $usuario = User::factory()->create();
+        $this->actingAs($usuario);
+        $registro = PpsServicioSocial::create([
+            'codigo_registro' => 'PPS-ELIMINAR-'.uniqid(),
+            'created_by' => $usuario->id,
+            'estado' => 'borrador',
+        ]);
+
+        Livewire::test(\App\Livewire\Proyectos\Vinculacion\ShowPpsServicioSocial::class, ['id' => $registro->id])
+            ->call('eliminarBorrador');
+
+        $this->assertSoftDeleted('pps_servicio_social', ['id' => $registro->id]);
+        $this->assertNull(PpsServicioSocial::find($registro->id));
+        $this->assertDatabaseHas('activity_log', [
+            'subject_type' => PpsServicioSocial::class,
+            'subject_id' => $registro->id,
+            'description' => 'Borrador eliminado lógicamente',
+        ]);
+    }
+
+    public function test_otro_usuario_no_puede_eliminar_borrador_pps(): void
+    {
+        $creador = User::factory()->create();
+        $otro = User::factory()->create();
+        $registro = PpsServicioSocial::create([
+            'codigo_registro' => 'PPS-NO-ELIMINAR-'.uniqid(),
+            'created_by' => $creador->id,
+            'estado' => 'borrador',
+        ]);
+
+        $this->actingAs($otro);
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        Livewire::test(\App\Livewire\Proyectos\Vinculacion\ShowPpsServicioSocial::class, ['id' => $registro->id])
+            ->call('eliminarBorrador');
+
+        $this->assertDatabaseHas('pps_servicio_social', ['id' => $registro->id, 'deleted_at' => null]);
+    }
+
+    /** @dataProvider estados_no_eliminables */
+    public function test_no_puede_eliminar_pps_fuera_de_borrador(string $estado): void
+    {
+        $usuario = User::factory()->make(['id' => 77]);
+        $registro = new PpsServicioSocial(['created_by' => $usuario->id]);
+        $estadoActual = new EstadoProyecto();
+        $tipoEstado = new TipoEstado();
+        $tipoEstado->nombre = $estado;
+        $estadoActual->setRelation('tipoestado', $tipoEstado);
+        $registro->setRelation('estadoActual', $estadoActual);
+
+        $this->assertFalse($registro->puedeEliminarBorrador($usuario->id));
+    }
+
+    public static function estados_no_eliminables(): array
+    {
+        return [['en_revision'], ['aprobado'], ['rechazado'], ['subsanacion'], ['cancelado'], ['finalizado']];
+    }
+
+    public function test_busca_estudiante_por_cuenta_y_autocompleta_datos_institucionales(): void
+    {
+        $api = Mockery::mock(IntegracionApiService::class);
+        $api->shouldReceive('buscarEstudiantePorCuenta')
+            ->once()
+            ->with('20240001')
+            ->andReturn([
+                'ok' => true,
+                'datos' => [
+                    'numero_cuenta' => '20240001',
+                    'nombre_completo' => 'Estudiante API',
+                    'correo_institucional' => 'estudiante@unah.edu.hn',
+                ],
+            ]);
+        $this->app->instance(IntegracionApiService::class, $api);
+
+        Livewire::test(\App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial::class)
+            ->set('numero_cuenta', '20240001')
+            ->set('estudiante_celular', 'celular-manual')
+            ->call('buscarEstudiante')
+            ->assertSet('estudianteConsultado', true)
+            ->assertSet('numero_cuenta', '20240001')
+            ->assertSet('estudiante_nombre_completo', 'Estudiante API')
+            ->assertSet('estudiante_correo_institucional', 'estudiante@unah.edu.hn')
+            ->assertSet('estudiante_celular', 'celular-manual');
+    }
+
+    public function test_permite_avanzar_con_datos_manuales_mientras_la_api_no_esta_disponible(): void
+    {
+        Livewire::test(\App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial::class)
+            ->set('autoguardadoActivo', false)
+            ->set('currentStep', 2)
+            ->set('numero_cuenta', '20249999')
+            ->set('estudiante_nombre_completo', 'Estudiante capturado manualmente')
+            ->set('estudiante_celular', '99999999')
+            ->set('estudiante_correo_institucional', 'manual@unah.edu.hn')
+            ->call('nextStep')
+            ->assertSet('currentStep', 3)
+            ->assertHasNoErrors();
+    }
+
+    public function test_sugiere_fecha_finalizacion_cinco_meses_despues_del_inicio(): void
+    {
+        Livewire::test(\App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial::class)
+            ->set('fecha_inicio', '2026-01-15')
+            ->assertSet('fecha_finalizacion', '2026-06-15');
+    }
+
+    public function test_no_sobrescribe_fecha_finalizacion_manual(): void
+    {
+        Livewire::test(\App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial::class)
+            ->set('fecha_finalizacion', '2026-09-30')
+            ->set('fecha_inicio', '2026-01-15')
+            ->assertSet('fecha_finalizacion', '2026-09-30');
+    }
+
+    public function test_estudiante_no_encontrado_no_sobrescribe_datos_actuales(): void
+    {
+        $api = Mockery::mock(IntegracionApiService::class);
+        $api->shouldReceive('buscarEstudiantePorCuenta')
+            ->once()
+            ->andReturn(['ok' => false, 'mensaje' => 'No se encontró el estudiante.']);
+        $this->app->instance(IntegracionApiService::class, $api);
+
+        Livewire::test(\App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial::class)
+            ->set('numero_cuenta', '20249999')
+            ->set('estudiante_nombre_completo', 'Nombre manual')
+            ->set('estudiante_correo_institucional', 'manual@unah.edu.hn')
+            ->call('buscarEstudiante')
+            ->assertSet('numero_cuenta', '20249999')
+            ->assertSet('estudiante_nombre_completo', 'Nombre manual')
+            ->assertSet('estudiante_correo_institucional', 'manual@unah.edu.hn')
+            ->assertHasErrors(['numero_cuenta']);
+    }
+
+    public function test_error_de_api_no_sobrescribe_datos_actuales(): void
+    {
+        $api = Mockery::mock(IntegracionApiService::class);
+        $api->shouldReceive('buscarEstudiantePorCuenta')
+            ->once()
+            ->andThrow(new \RuntimeException('API no disponible'));
+        $this->app->instance(IntegracionApiService::class, $api);
+
+        Livewire::test(\App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial::class)
+            ->set('numero_cuenta', '20249998')
+            ->set('estudiante_nombre_completo', 'Otro nombre manual')
+            ->set('estudiante_correo_institucional', 'otro@unah.edu.hn')
+            ->call('buscarEstudiante')
+            ->assertSet('numero_cuenta', '20249998')
+            ->assertSet('estudiante_nombre_completo', 'Otro nombre manual')
+            ->assertSet('estudiante_correo_institucional', 'otro@unah.edu.hn')
+            ->assertHasErrors(['numero_cuenta']);
+    }
+
+    public function test_guarda_y_recarga_los_datos_del_estudiante_obtenidos(): void
+    {
+        $usuario = User::factory()->create();
+        $api = Mockery::mock(IntegracionApiService::class);
+        $api->shouldReceive('buscarEstudiantePorCuenta')
+            ->once()
+            ->andReturn([
+                'ok' => true,
+                'datos' => [
+                    'numero_cuenta' => '20240002',
+                    'nombre_completo' => 'Estudiante Persistido',
+                    'correo_institucional' => 'persistido@unah.edu.hn',
+                ],
+            ]);
+        $this->app->instance(IntegracionApiService::class, $api);
+
+        $componente = Livewire::actingAs($usuario)
+            ->test(\App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial::class)
+            ->set('autoguardadoActivo', false)
+            ->set('numero_cuenta', '20240002')
+            ->call('buscarEstudiante')
+            ->call('guardarBorrador');
+
+        $registro = PpsServicioSocial::where('created_by', $usuario->id)->latest('id')->firstOrFail();
+        $this->assertSame('20240002', $registro->numero_cuenta);
+        $this->assertSame('Estudiante Persistido', $registro->nombre_estudiante);
+        $this->assertSame('persistido@unah.edu.hn', $registro->correo_institucional);
+
+        Livewire::actingAs($usuario)
+            ->test(\App\Livewire\Proyectos\Vinculacion\EditPpsServicioSocial::class, ['id' => $registro->id])
+            ->assertSet('numero_cuenta', '20240002')
+            ->assertSet('estudiante_nombre_completo', 'Estudiante Persistido')
+            ->assertSet('estudiante_correo_institucional', 'persistido@unah.edu.hn');
     }
 
     public function test_envio_inicia_en_primera_etapa_y_crea_firmas(): void
@@ -46,6 +243,90 @@ class PpsServicioSocialWorkflowTest extends TestCase
         $this->assertSame('Pendiente', $firmas->first()->estado_revision);
 
         Mail::assertQueued(EtapaFlujoPendiente::class);
+    }
+
+    public function test_borrador_incompleto_se_puede_guardar(): void
+    {
+        $usuario = User::factory()->create();
+
+        \Livewire\Livewire::actingAs($usuario)
+            ->test(\App\Livewire\Proyectos\Vinculacion\CreatePpsServicioSocial::class)
+            ->set('autoguardadoActivo', false)
+            ->call('guardarBorrador')
+            ->assertHasNoErrors();
+
+        $registro = PpsServicioSocial::where('created_by', $usuario->id)->latest('id')->firstOrFail();
+
+        $this->assertSame(0, $registro->total_horas);
+        $this->assertSame('1900-01-01', $registro->fecha_inicio->format('Y-m-d'));
+        $this->assertSame('1900-01-01', $registro->fecha_finalizacion->format('Y-m-d'));
+    }
+
+    public function test_generacion_valida_de_solicitud_reutiliza_datos_del_formulario(): void
+    {
+        $ctx = $this->contexto();
+        $documento = app(PpsDocumentoGenerator::class)->generarSolicitud($ctx['registro'], $ctx['usuario']->id);
+
+        $this->assertSame(PpsDocumentoGenerator::SOLICITUD, $documento->tipo);
+        Storage::disk('local')->assertExists($documento->archivo);
+    }
+
+    public function test_solicitud_se_bloquea_con_mensaje_si_falta_un_dato(): void
+    {
+        $ctx = $this->contexto();
+        $ctx['registro']->update(['cargo_jefe_directo' => null]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('cargo del destinatario de la empresa');
+
+        app(PpsDocumentoGenerator::class)->generarSolicitud($ctx['registro']->fresh(), $ctx['usuario']->id);
+    }
+
+    public function test_generacion_valida_de_autorizacion_exige_firma_del_coordinador(): void
+    {
+        $ctx = $this->contexto();
+        $documento = app(PpsDocumentoGenerator::class)->generarAutorizacion($ctx['registro'], $ctx['usuario']->id);
+
+        $this->assertSame(PpsDocumentoGenerator::AUTORIZACION, $documento->tipo);
+        Storage::disk('local')->assertExists($documento->archivo);
+    }
+
+    public function test_autorizacion_se_bloquea_si_falta_fecha_de_inicio(): void
+    {
+        $ctx = $this->contexto();
+        $ctx['registro']->update(['fecha_inicio' => '1900-01-01']);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('fecha de inicio');
+
+        app(PpsDocumentoGenerator::class)->generarAutorizacion($ctx['registro']->fresh(), $ctx['usuario']->id);
+    }
+
+    public function test_datos_territoriales_jefe_supervisor_jornada_horas_y_adjuntos_pueden_quedar_vacios(): void
+    {
+        $ctx = $this->contexto();
+        $ctx['registro']->update([
+            'departamento' => null,
+            'municipio' => null,
+            'nombre_jefe_directo' => null,
+            'cargo_jefe_directo' => null,
+            'nombre_docente_supervisor' => null,
+            'jornada_laboral_docente' => null,
+            'horas_teletrabajo' => null,
+            'archivo_carta_formalizacion' => null,
+            'archivo_convenio_marco' => null,
+        ]);
+
+        $missing = PpsDocumentoRequirements::missing(
+            $ctx['registro']->fresh(),
+            PpsDocumentoGenerator::AUTORIZACION
+        );
+
+        $this->assertArrayNotHasKey('departamento', $missing);
+        $this->assertArrayNotHasKey('nombre_jefe_directo', $missing);
+        $this->assertArrayNotHasKey('jornada_laboral_docente', $missing);
+        $this->assertArrayNotHasKey('horas_teletrabajo', $missing);
+        $this->assertArrayNotHasKey('archivo_carta_formalizacion', $missing);
     }
 
     public function test_aprobacion_avanza_a_siguiente_etapa(): void
@@ -90,6 +371,12 @@ class PpsServicioSocialWorkflowTest extends TestCase
         $this->assertNotNull($registro->fecha_revision);
         $this->assertSame('Documentación incompleta.', $registro->motivo_rechazo);
 
+        $this->assertDatabaseHas('estado_proyecto', [
+            'estadoable_type' => PpsServicioSocial::class,
+            'estadoable_id' => $registro->id,
+            'comentario' => 'Documentación incompleta.',
+        ]);
+
         $firma = $registro->firmasDeEtapa()->first();
         $this->assertSame('Rechazado', $firma->estado_revision);
     }
@@ -104,6 +391,11 @@ class PpsServicioSocialWorkflowTest extends TestCase
         $registro = $service->iniciarSubsanacion($registro, $ctx['usuario']->id);
 
         $this->assertSame('borrador', $registro->estado);
+        $this->assertDatabaseHas('estado_proyecto', [
+            'estadoable_type' => PpsServicioSocial::class,
+            'estadoable_id' => $registro->id,
+            'comentario' => 'Inicio de subsanación.',
+        ]);
     }
 
     public function test_reenvio_despues_de_subsanacion_crea_nuevo_ciclo(): void
@@ -118,6 +410,7 @@ class PpsServicioSocialWorkflowTest extends TestCase
 
         $this->assertSame('enviado', $reenviado->estado);
         $this->assertSame($ctx['etapas'][0]->id, $reenviado->etapa_actual_id);
+        $this->assertNull($reenviado->motivo_rechazo);
 
         $firmas = $reenviado->firmasDeEtapa()
             ->where('revision_ciclo', 2)
@@ -189,9 +482,9 @@ class PpsServicioSocialWorkflowTest extends TestCase
             'user_id' => $reemplazo->id,
             'tipo_empleado' => 'docente',
         ]);
-        $etapaId = $ctx['etapas'][0]->id;
+        $reemplazos = $ctx['etapas']->mapWithKeys(fn ($etapa) => [(int) $etapa->id => $reemplazo->id])->all();
 
-        $reenviado = $service->enviarARevision($registro, $ctx['usuario']->id, [$etapaId => $reemplazo->id]);
+        $reenviado = $service->enviarARevision($registro, $ctx['usuario']->id, $reemplazos);
 
         $this->assertSame($empleado->id, $reenviado->firmasDeEtapa()->where('revision_ciclo', 2)->value('empleado_id'));
     }
@@ -289,6 +582,12 @@ class PpsServicioSocialWorkflowTest extends TestCase
             'user_id' => $usuario->id,
             'tipo_empleado' => 'docente',
         ]);
+        FirmaSelloEmpleado::create([
+            'empleado_id' => $empleado->id,
+            'tipo' => 'firma',
+            'ruta_storage' => public_path('images/logo_nuevo.png'),
+            'estado' => true,
+        ]);
 
         $flujo = FlujoAprobacion::create([
             'codigo' => 'PPS_FLUJO_'.uniqid(),
@@ -315,7 +614,7 @@ class PpsServicioSocialWorkflowTest extends TestCase
                 'flujo_aprobacion_id' => $flujo->id,
                 'orden' => $orden,
                 'codigo' => 'PPS_ETAPA_'.$orden.'_'.uniqid(),
-                'nombre' => 'Etapa '.$orden,
+                'nombre' => $orden === 1 ? 'Coordinador de la carrera' : 'Docente supervisor',
                 'tipo_etapa' => 'REVISION',
                 'cargo_firma_id' => $cargo->id,
                 'usuario_responsable_id' => $usuario->id,
@@ -339,6 +638,7 @@ class PpsServicioSocialWorkflowTest extends TestCase
             'modalidad_ejecucion' => 'Presencial',
             'nombre_institucion' => 'Empresa Test S.A.',
             'nombre_jefe_directo' => 'Jefe Test',
+            'cargo_jefe_directo' => 'Jefe de Recursos Humanos',
             'nombre_docente_supervisor' => 'Docente Test',
             'total_horas' => 120,
             'created_by' => $usuario->id,

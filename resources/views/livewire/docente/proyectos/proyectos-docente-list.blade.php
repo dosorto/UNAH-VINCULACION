@@ -25,6 +25,11 @@
             PPS / Servicio Social
         </button>
         <button type="button"
+                wire:click="$set('filterTipoAccion', 'pasantias')"
+                class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold transition {{ $filterTipoAccion === 'pasantias' ? 'bg-blue-700 text-white' : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-700' }}">
+            Pasantías
+        </button>
+        <button type="button"
                 wire:click="$set('filterTipoAccion', 'voluntariado')"
                 class="inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold transition {{ $filterTipoAccion === 'voluntariado' ? 'bg-blue-700 text-white shadow-sm' : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800' }}">
             Voluntariado Académico
@@ -210,15 +215,23 @@
                                             @svg('heroicon-o-pencil-square', ['class' => 'h-4 w-4'])
                                         </a>
                                     @endif
-                                @else
-                                    @php
-                                        $accionEnf = $row['record'];
-                                        $estadoEnf = strtoupper(str_replace(' ', '_', $accionEnf->estado_flujo ?? ''));
-                                        $esCreadorEnf = auth()->id() !== null && (int) $accionEnf->creado_por_usuario_id === (int) auth()->id();
-                                        $puedeEditarEnf = $esCreadorEnf && in_array($estadoEnf, ['BORRADOR', 'SUBSANACION', 'SUBSANACIÓN'], true);
-                                    @endphp
-
-                                    <a href="{{ route('enf.acciones.show', $accionEnf->id) }}"
+                                @elseif ($row['kind'] === 'pasantias')
+                                    @php($registro = $row['record'])
+                                    <a href="{{ route('pasantias.show', $registro->id) }}" wire:navigate class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600" title="Ver detalle de Pasantía" aria-label="Ver detalle de Pasantía">@svg('heroicon-o-eye', ['class' => 'h-4 w-4'])</a>
+                                    @if(in_array($registro->estado, ['borrador', 'subsanacion'], true))
+                                        <a href="{{ route('pasantias.edit', $registro->id) }}" wire:navigate class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-blue-700" title="Editar Pasantía" aria-label="Editar Pasantía">@svg('heroicon-o-pencil-square', ['class' => 'h-4 w-4'])</a>
+                                    @endif
+                                    @if($registro->puedeEliminarBorrador(auth()->id()))
+                                        <button type="button"
+                                                x-on:click.prevent="confirmDialog('¿Desea eliminar este borrador? Esta acción no elimina físicamente el registro.').then((ok) => ok && $wire.eliminarPasantiaBorrador({{ $registro->id }}))"
+                                                wire:loading.attr="disabled" wire:target="eliminarPasantiaBorrador"
+                                                class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                                                title="Eliminar borrador de Pasantía" aria-label="Eliminar borrador de Pasantía">
+                                            @svg('heroicon-o-trash', ['class' => 'h-4 w-4'])
+                                        </button>
+                                    @endif
+                                @elseif ($row['kind'] === 'educacion_no_formal')
+                                    <a href="{{ route('enf.acciones.show', (int) ($row['record_id'] ?? str_replace('enf-', '', (string) ($row['id'] ?? '0')))) }}"
                                        class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:bg-gray-50 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-blue-300"
                                        title="Ver detalle ENF"
                                        aria-label="Ver detalle ENF">
@@ -227,7 +240,7 @@
 
                                     @if ($row['puede_subir_intermedio'] ?? false)
                                         <button type="button"
-                                                wire:click="openSubirIntermedioEnf({{ $accionEnf->id }})"
+                                                wire:click="openSubirIntermedioEnf({{ (int) ($row['record_id'] ?? str_replace('enf-', '', (string) ($row['id'] ?? '0'))) }})"
                                                 class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-yellow-200 bg-yellow-50 text-yellow-700 shadow-sm transition hover:bg-yellow-100 hover:text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-900/20 dark:text-yellow-300 dark:hover:bg-yellow-900/40"
                                                 title="{{ ($row['intermedio_estado'] ?? null) === 'SUBSANACION' ? 'Subsanar informe intermedio ENF' : 'Subir informe intermedio ENF' }}"
                                                 aria-label="{{ ($row['intermedio_estado'] ?? null) === 'SUBSANACION' ? 'Subsanar informe intermedio ENF' : 'Subir informe intermedio ENF' }}">
@@ -235,8 +248,8 @@
                                         </button>
                                     @endif
 
-                                    @if ($puedeEditarEnf)
-                                        <a href="{{ route('enf.acciones.edit', $accionEnf->id) }}"
+                                    @if (($row['es_creador'] ?? false) && in_array(strtoupper(str_replace(' ', '_', (string) ($row['estado'] ?? ''))), ['BORRADOR', 'SUBSANACION'], true))
+                                        <a href="{{ route('enf.acciones.edit', (int) ($row['record_id'] ?? str_replace('enf-', '', (string) ($row['id'] ?? '0')))) }}"
                                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-blue-700 shadow-sm transition hover:bg-blue-100 hover:text-blue-800 dark:border-blue-900/60 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
                                            title="Editar ENF"
                                            aria-label="Editar ENF">
@@ -244,7 +257,7 @@
                                         </a>
 
                                         <button type="button"
-                                                wire:click="openDeleteEnf({{ $accionEnf->id }})"
+                                                wire:click="openDeleteEnf({{ (int) ($row['record_id'] ?? str_replace('enf-', '', (string) ($row['id'] ?? '0'))) }})"
                                                 class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-red-200 bg-red-50 text-red-700 shadow-sm transition hover:bg-red-100 hover:text-red-800 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/40"
                                                 title="Borrar ENF"
                                                 aria-label="Borrar ENF">

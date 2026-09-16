@@ -32,7 +32,7 @@
                         };
                     @endphp
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
-                        <td class="px-4 py-3 text-gray-900 dark:text-white">{{ $record->proyecto?->nombre_proyecto ?? '—' }}</td>
+                        <td class="px-4 py-3 text-gray-900 dark:text-white">{{ ($record->firmable_type === \App\Models\Proyecto\Proyecto::class ? $record->proyecto : $record->documento_proyecto?->proyecto)?->nombre_proyecto ?? '—' }}</td>
                         <td class="px-4 py-3">
                             <span class="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
                                 {{ $record->cargo_firma?->tipoCargoFirma?->nombre ?? '—' }}

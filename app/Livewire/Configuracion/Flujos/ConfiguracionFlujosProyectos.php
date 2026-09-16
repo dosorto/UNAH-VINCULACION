@@ -38,6 +38,10 @@ class ConfiguracionFlujosProyectos extends Component
 
     private const FORM_VOLUNTARIADO_ID = -1003;
 
+    private const ACTION_PASANTIAS_ID = -106;
+
+    private const FORM_PASANTIAS_ID = -1006;
+
     private const FORM_ENF_CERTIFICADO_ID = -1004;
 
     private const FORM_ENF_PROYECTO_ID = -1005;
@@ -362,6 +366,15 @@ class ConfiguracionFlujosProyectos extends Component
             return;
         }
 
+        if ($this->isPasantiasSubaction($subaction) && ! $this->workflowId) {
+            $this->addError(
+                'workflow.nombre',
+                'No existe el flujo administrativo PASANTIAS_FORM_DVUS_013. Verifique la configuración inicial antes de guardar.'
+            );
+
+            return;
+        }
+
         $this->workflow['codigo'] = $this->workflow['codigo']
             ?: $this->generateProjectFlowCode($this->selectedSubactionId);
         $this->normalizeStageCodes();
@@ -591,7 +604,10 @@ class ConfiguracionFlujosProyectos extends Component
             ->filter(fn (array $subaction) => $this->subactionIsAvailable($subaction))
             ->map(function (array $subaction) use ($action): object {
                 $subaction['action_id'] = $action['id'];
-                $subaction['tipo_accion_id'] = $this->tipoAccionIdByCode($subaction['tipo_accion_codigo'] ?? null);
+                $subaction['tipo_accion_id'] = $this->tipoAccionIdByCode(
+                    $subaction['tipo_accion_codigo'] ?? null,
+                    $subaction['tipo_accion_codigo'] !== 'PASANTIAS'
+                );
 
                 return (object) $subaction;
             })
@@ -613,7 +629,10 @@ class ConfiguracionFlujosProyectos extends Component
                 }
 
                 $subaction['action_id'] = $action['id'];
-                $subaction['tipo_accion_id'] = $this->tipoAccionIdByCode($subaction['tipo_accion_codigo'] ?? null);
+                $subaction['tipo_accion_id'] = $this->tipoAccionIdByCode(
+                    $subaction['tipo_accion_codigo'] ?? null,
+                    $subaction['tipo_accion_codigo'] !== 'PASANTIAS'
+                );
 
                 return $subaction;
             }
@@ -630,10 +649,18 @@ class ConfiguracionFlujosProyectos extends Component
                     continue;
                 }
 
-                $tipoAccionId = $this->tipoAccionIdByCode($subaction['tipo_accion_codigo'] ?? null);
+                $tipoAccionId = $this->tipoAccionIdByCode(
+                    $subaction['tipo_accion_codigo'] ?? null,
+                    $subaction['tipo_accion_codigo'] !== 'PASANTIAS'
+                );
                 $matchesForm = $flow->codigo_formulario
                     ? $flow->codigo_formulario === ($subaction['codigo_formulario'] ?? null)
                     : (int) $flow->tipo_accion_id === (int) $tipoAccionId;
+
+                if ($this->isPasantiasSubaction($subaction)
+                    && $flow->codigo !== ($subaction['workflow_codigo_base'] ?? null)) {
+                    continue;
+                }
 
                 if ($flow->proceso === $subaction['proceso'] && $matchesForm) {
                     $subaction['action_id'] = $action['id'];
@@ -653,29 +680,33 @@ class ConfiguracionFlujosProyectos extends Component
             return false;
         }
 
-        if (($subaction['tipo_accion_codigo'] ?? null) && ! $this->tipoAccionIdByCode($subaction['tipo_accion_codigo'])) {
+        $codigoAccion = $subaction['tipo_accion_codigo'] ?? null;
+
+        if ($codigoAccion && ! $this->tipoAccionIdByCode($codigoAccion, $codigoAccion !== 'PASANTIAS')) {
             return false;
         }
 
         return true;
     }
 
-    protected function tipoAccionIdByCode(?string $code): ?int
+    protected function tipoAccionIdByCode(?string $code, bool $onlyActive = true): ?int
     {
         if (! $code) {
             return null;
         }
 
-        if (array_key_exists($code, $this->tipoAccionIdCache)) {
-            return $this->tipoAccionIdCache[$code];
+        $cacheKey = $code.'|'.($onlyActive ? 'active' : 'all');
+
+        if (array_key_exists($cacheKey, $this->tipoAccionIdCache)) {
+            return $this->tipoAccionIdCache[$cacheKey];
         }
 
         $id = DB::table('vinculacion_tipos_accion')
             ->where('codigo', $code)
-            ->where('activo', true)
+            ->when($onlyActive, fn ($query) => $query->where('activo', true))
             ->value('id');
 
-        return $this->tipoAccionIdCache[$code] = $id ? (int) $id : null;
+        return $this->tipoAccionIdCache[$cacheKey] = $id ? (int) $id : null;
     }
 
     protected function projectFlowCatalog(): array
@@ -731,6 +762,27 @@ class ConfiguracionFlujosProyectos extends Component
                         'workflow_codigo_base' => 'PROYECTO_FORM_DVUS_015',
                         'workflow_nombre' => 'Flujo FORM-DVUS-015 - Voluntariado',
                         'workflow_descripcion' => 'Flujo configurable para el FORM-DVUS-015.',
+                        'enabled' => true,
+                    ],
+                ],
+            ],
+            [
+                'id' => self::ACTION_PASANTIAS_ID,
+                'codigo' => 'PASANTIAS',
+                'nombre' => 'Pasantías universitarias',
+                'descripcion' => 'Registro institucional de pasantías universitarias.',
+                'orden' => 8,
+                'subactions' => [
+                    [
+                        'id' => self::FORM_PASANTIAS_ID,
+                        'codigo_formulario' => 'FORM-DVUS-013',
+                        'codigo' => 'FORM-DVUS-013',
+                        'nombre' => 'FORM-DVUS-013 - Registro de Pasantías',
+                        'proceso' => 'PASANTIAS_DEFAULT',
+                        'tipo_accion_codigo' => 'PASANTIAS',
+                        'workflow_codigo_base' => 'PASANTIAS_FORM_DVUS_013',
+                        'workflow_nombre' => 'Flujo FORM-DVUS-013 - Pasantías',
+                        'workflow_descripcion' => 'Flujo configurable para el FORM-DVUS-013.',
                         'enabled' => true,
                     ],
                 ],
@@ -796,10 +848,19 @@ class ConfiguracionFlujosProyectos extends Component
             ->where('proceso', $subaction['proceso'])
             ->where('tipo_accion_id', $subaction['tipo_accion_id'])
             ->where('codigo_formulario', $subaction['codigo_formulario'])
+            ->where('codigo', $subaction['workflow_codigo_base'])
             ->first();
 
         if (! $flow) {
             $this->resetWorkflowForm();
+
+            if ($this->isPasantiasSubaction($subaction)) {
+                $this->stages = [];
+                $this->addError(
+                    'workflow.nombre',
+                    'No se encontró en la base de datos el flujo PASANTIAS_FORM_DVUS_013. No se creó ningún flujo ni etapa automáticamente.'
+                );
+            }
 
             return;
         }
@@ -1305,6 +1366,14 @@ class ConfiguracionFlujosProyectos extends Component
             ?? 'PROYECTO_'.($this->normalizeCode($subaction['codigo_formulario'] ?? '') ?: 'FLUJO');
 
         return $this->generateUniqueFlowCode($actionCode, $this->workflowId);
+    }
+
+    protected function isPasantiasSubaction(?array $subaction): bool
+    {
+        return ($subaction['codigo_formulario'] ?? null) === 'FORM-DVUS-013'
+            && ($subaction['tipo_accion_codigo'] ?? null) === 'PASANTIAS'
+            && ($subaction['proceso'] ?? null) === 'PASANTIAS_DEFAULT'
+            && ($subaction['workflow_codigo_base'] ?? null) === 'PASANTIAS_FORM_DVUS_013';
     }
 
     protected function normalizeCode(string $value): string

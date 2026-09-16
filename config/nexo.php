@@ -34,6 +34,7 @@ return [
         'Borrador',
         'Autoguardado',
         'Actualizacion realizada',
+        'Informe Final Habilitado',
     ],
 
 

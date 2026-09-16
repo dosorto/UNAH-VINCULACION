@@ -6,12 +6,14 @@ use App\Http\Controllers\Docente\VerificarConstancia;
 use App\Models\ENF\EnfAccion;
 use App\Models\Estado\TipoEstado;
 use App\Models\PpsServicioSocial;
+use App\Models\Pasantia;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\Proyecto;
 use App\Services\ENF\EnfWorkflowService;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Url;
@@ -37,6 +39,7 @@ class ProyectosDocenteList extends Component
     private const ACTION_PROYECTOS = 'proyectos';
     private const ACTION_ENF = 'educacion_no_formal';
     private const ACTION_PPS = 'pps_servicio_social';
+    private const ACTION_PASANTIAS = 'pasantias';
     private const ACTION_VOLUNTARIADO = 'voluntariado';
 
     public bool $informeIntermedioModal = false;
@@ -191,6 +194,21 @@ class ProyectosDocenteList extends Component
         Notification::make()->title('ENF eliminado')->body('La accion de Educacion No Formal fue eliminada correctamente.')->success()->send();
     }
 
+    public function eliminarPasantiaBorrador(int $id): void
+    {
+        $registro = Pasantia::query()->findOrFail($id);
+        abort_unless($registro->puedeEliminarBorrador(auth()->id()), 403);
+
+        DB::transaction(function () use ($registro): void {
+            activity('Pasantías')->performedOn($registro)->causedBy(auth()->user())
+                ->withProperties(['accion' => 'eliminacion_logica', 'estado' => 'borrador'])
+                ->log('Borrador eliminado lógicamente');
+            $registro->delete();
+        });
+
+        Notification::make()->title('Borrador eliminado')->body('El borrador de Pasantías fue eliminado.')->success()->send();
+    }
+
     public function render(): View
     {
         $records = $this->paginateRows($this->historialRows());
@@ -271,6 +289,10 @@ class ProyectosDocenteList extends Component
 
         if ($this->shouldIncludeAction(self::ACTION_PPS)) {
             $rows = $rows->merge($this->ppsRows());
+        }
+
+        if ($this->shouldIncludeAction(self::ACTION_PASANTIAS)) {
+            $rows = $rows->merge($this->pasantiaRows());
         }
 
         return $rows
@@ -360,13 +382,14 @@ class ProyectosDocenteList extends Component
                 return [
                     'kind' => self::ACTION_ENF,
                     'id' => 'enf-'.$accion->id,
-                    'record' => $accion,
+                    'record_id' => (int) $accion->id,
                     'codigo' => $accion->codigo_formulario ?: ($accion->numero_registro ?: '#'.$accion->id),
                     'secondary_code' => null,
                     'nombre' => $accion->nombre_accion,
                     'descripcion' => $tipoEnf ?: ($accion->tipoAccion?->nombre ?: 'Educacion no formal'),
                     'tipo_accion' => 'Educacion no formal',
                     'rol' => $isPending ? 'Pendiente por revisar' : ($isOwn ? 'Creador' : '-'),
+                    'es_creador' => $isOwn,
                     'estado' => $this->enfEstadoLabel($accion->estado_flujo),
                     'fecha' => $accion->fecha_solicitud ?: $accion->created_at,
                     'sort_date' => $accion->created_at,
@@ -428,6 +451,29 @@ class ProyectosDocenteList extends Component
                     'sort_date' => $registro->created_at,
                 ];
             });
+    }
+
+    private function pasantiaRows(): Collection
+    {
+        $user = auth()->user();
+        if (! $user || ! DB::table('vinculacion_tipos_accion')->where('codigo', 'PASANTIAS')->where('activo', true)->exists()
+            || ! DB::table('flujos_aprobacion')->where('codigo', Pasantia::FORMULARIO === 'FORM-DVUS-013' ? 'PASANTIAS_FORM_DVUS_013' : '')->where('proceso', Pasantia::PROCESO_FLUJO)->where('activo', true)->exists()) {
+            return collect();
+        }
+
+        return Pasantia::query()->where('created_by', $user->id)
+            ->when($this->search, fn (Builder $q) => $q->where(fn (Builder $s) => $s
+                ->where('codigo_registro', 'like', '%'.$this->search.'%')
+                ->orWhere('nombre_estudiante', 'like', '%'.$this->search.'%')
+                ->orWhere('nombre_institucion', 'like', '%'.$this->search.'%')))
+            ->orderByDesc('created_at')->get()->map(fn (Pasantia $registro): array => [
+                'kind' => self::ACTION_PASANTIAS, 'id' => 'pasantia-'.$registro->id, 'record' => $registro,
+                'codigo' => $registro->codigo_registro ?: '#'.$registro->id,
+                'secondary_code' => $registro->numero_cuenta, 'nombre' => $registro->nombre_estudiante ?: 'Sin estudiante',
+                'descripcion' => $registro->nombre_institucion ?: 'Pasantía', 'tipo_accion' => 'Pasantías (FORM-DVUS-013)',
+                'rol' => 'Creador', 'estado' => ucfirst($registro->estado ?: 'borrador'),
+                'fecha' => $registro->fecha_registro ?: $registro->created_at, 'sort_date' => $registro->created_at,
+            ]);
     }
 
     private function enfEstadoLabel(?string $estado): string

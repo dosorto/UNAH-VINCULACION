@@ -13,6 +13,7 @@ class ConstanciaRegistroAuthorization
         return (bool) $user && (
             $proyecto->usuarioPuedeGestionarInformeFinal($user)
             || $proyecto->usuarioPuedeAuditarInformeFinal($user)
+            || $proyecto->usuarioEsParticipante($user)
         );
     }
 

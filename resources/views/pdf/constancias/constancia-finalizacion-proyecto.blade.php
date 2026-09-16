@@ -10,6 +10,7 @@
     @include('pdf.constancias.partials.watermark')
     @include('pdf.constancias.partials.header')
     @include('pdf.constancias.partials.footer')
+    <div class="constancia-footer-codigo">{{ data_get($snapshot, 'constancia.codigo_validacion') }}</div>
 
     <main class="constancia-content">
         <div class="constancia-meta">
@@ -56,7 +57,16 @@
             <p style="margin-top:25pt;">Se expide la presente constancia en {{ data_get($snapshot, 'constancia.ciudad_emision') }}, a los {{ $fechaEmision->translatedFormat('d') }} días del mes de {{ $fechaEmision->translatedFormat('F') }} de {{ $fechaEmision->format('Y') }}, para los fines institucionales que correspondan.</p>
 
             <div class="constancia-signature">
-                <div class="constancia-signature-assets"></div>
+                @if(filled($firma) || filled($sello))
+                    <div class="constancia-signature-assets">
+                        @if(filled($firma))
+                            <img class="constancia-signature-firma" src="{{ $firma }}" alt="Firma">
+                        @endif
+                        @if(filled($sello))
+                            <img class="constancia-signature-sello" src="{{ $sello }}" alt="Sello">
+                        @endif
+                    </div>
+                @endif
                 <div class="constancia-signature-name"><strong>{{ data_get($snapshot, 'autoridad.nombre') }}</strong><br>{{ data_get($snapshot, 'autoridad.cargo') }}</div>
             </div>
             <p class="constancia-note">Esta constancia puede verificarse mediante el código QR y el código visible indicado en el encabezado del documento.</p>

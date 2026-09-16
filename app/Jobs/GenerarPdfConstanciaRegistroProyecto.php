@@ -35,7 +35,8 @@ class GenerarPdfConstanciaRegistroProyecto implements ShouldQueue
         try {
             $contenido = $generator->content($constancia);
             $codigo = preg_replace('/[^A-Za-z0-9_-]+/', '-', (string) data_get($constancia->snapshot, 'proyecto.codigo', 'proyecto'));
-            $ruta = sprintf('constancias/registro/%d/%s/constancia-registro-%s.pdf', $constancia->anio, trim($codigo, '-'), trim($codigo, '-'));
+            $slug = trim($codigo, '-').'-'.$constancia->id;
+            $ruta = sprintf('constancias/registro/%d/%s/constancia-registro-%s.pdf', $constancia->anio, $slug, $slug);
 
             if (! Storage::disk('local')->put($ruta, $contenido)) {
                 throw new \RuntimeException('No se pudo almacenar el PDF de la constancia de registro.');

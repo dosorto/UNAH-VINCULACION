@@ -11,6 +11,7 @@ use App\Models\Estudiante\Estudiante;
 use App\Models\Personal\CategoriaEmpleado;
 use App\Models\Proyecto\FlujoAprobacion;
 use Database\Seeders\UnidadAcademica\CategoriaEmpleadoSeeder;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
 
@@ -50,7 +51,15 @@ class PersonalSeeder extends Seeder
             ]
         );
 
-        // Agregar firmas solo si no existen
+        // Firma y sello por defecto del usuario admin de prueba. Los archivos
+        // viven versionados en database/seeders/assets/firmas y se copian al
+        // disco 'public' si faltan, para no depender de subirlos a mano en cada
+        // entorno. Solo se copian si no existen (no se pisa nada ya presente) y
+        // las filas solo se crean si el admin aún no tiene una firma/sello
+        // activos, para no sobreescribir lo que él haya configurado luego.
+        $this->copiarFirmaPorDefectoSiFalta('Firma_Oscar.png');
+        $this->copiarFirmaPorDefectoSiFalta('Sello_Victor.png');
+
         if (!$adminUser->firma()->where('tipo', 'firma')->exists()) {
             $adminUser->firma()->create([
                 'tipo' => 'firma',
@@ -305,5 +314,27 @@ class PersonalSeeder extends Seeder
                         ]);
                     });
             });
+    }
+
+    /**
+     * Copia una imagen de firma/sello por defecto al disco 'public' si todavía
+     * no está. Nunca sobreescribe un archivo existente (podría estar en uso por
+     * documentos ya firmados).
+     */
+    private function copiarFirmaPorDefectoSiFalta(string $nombreArchivo): void
+    {
+        $destino = 'images/firmas/' . $nombreArchivo;
+
+        if (Storage::disk('public')->exists($destino)) {
+            return;
+        }
+
+        $origen = database_path('seeders/assets/firmas/' . $nombreArchivo);
+
+        if (! is_file($origen)) {
+            return;
+        }
+
+        Storage::disk('public')->put($destino, file_get_contents($origen));
     }
 }

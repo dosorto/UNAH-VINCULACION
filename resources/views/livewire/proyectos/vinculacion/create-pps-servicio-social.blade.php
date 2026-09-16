@@ -73,6 +73,17 @@
         </div>
     @endif
 
+    @if(method_exists($this, 'esEdicionRevisor') && $this->esEdicionRevisor())
+        <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-5 text-sm text-blue-900 shadow-sm dark:border-blue-900/70 dark:bg-blue-950/30 dark:text-blue-100">
+            <p class="mb-3 font-semibold">Edición en etapa: {{ $registroEdicion?->etapaActual?->nombre ?? 'Etapa actual del flujo' }}</p>
+            <label for="comentarioRevisor" class="block font-semibold">Comentario de revisión <span class="text-red-600">*</span></label>
+            <textarea id="comentarioRevisor" wire:model="comentarioRevisor" rows="3" required
+                      class="mt-2 w-full rounded-md border border-blue-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-blue-800 dark:bg-gray-900 dark:text-white"
+                      placeholder="Explique los cambios realizados durante la revisión"></textarea>
+            @error('comentarioRevisor') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+        </div>
+    @endif
+
     <div class="mb-6 rounded-lg bg-white p-4 shadow dark:bg-gray-900">
         <div class="flex items-center overflow-x-auto gap-0.5">
             @foreach($stepLabels as $step => $label)
@@ -131,7 +142,7 @@
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Facultad / Centro Universitario Regional / Instituto Tecnológico <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Facultad / Centro Universitario Regional / Instituto Tecnológico</label>
                         <select wire:model.live="facultad_centro_id" class="{{ $inputClass }}">
                             <option value="">Seleccione...</option>
                             @foreach($facultadesCentros as $id => $nombre)
@@ -142,7 +153,7 @@
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Carrera <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Carrera</label>
                         <select wire:model="carrera_id" class="{{ $inputClass }}" @disabled(!$facultad_centro_id || $carreras->isEmpty())>
                             <option value="">Seleccione...</option>
                             @foreach($carreras as $id => $nombre)
@@ -166,25 +177,34 @@
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                        <label class="{{ $labelClass }}">Número de cuenta <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="numero_cuenta" class="{{ $inputClass }}">
+                        <label class="{{ $labelClass }}">Número de cuenta</label>
+                        <div x-data="{ cuenta: @js($numero_cuenta) }" class="flex gap-2">
+                            <input type="text" wire:model.blur="numero_cuenta" wire:blur="limpiarErrorBusquedaEstudiante" x-model="cuenta" class="{{ $inputClass }}">
+                            <button type="button" x-cloak x-show="cuenta.trim().length > 0"
+                                    wire:click="buscarEstudiante" wire:loading.attr="disabled" wire:target="buscarEstudiante"
+                                    class="shrink-0 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+                                <span wire:loading.remove wire:target="buscarEstudiante">Buscar</span>
+                                <span wire:loading wire:target="buscarEstudiante">Buscando…</span>
+                            </button>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Consulte los datos institucionales por número de cuenta.</p>
                         @error('numero_cuenta') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Nombre completo <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Nombre completo</label>
                         <input type="text" wire:model="estudiante_nombre_completo" class="{{ $inputClass }}">
                         @error('estudiante_nombre_completo') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Número de celular <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Número de celular</label>
                         <input type="tel" wire:model="estudiante_celular" class="{{ $inputClass }}">
                         @error('estudiante_celular') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Correo electrónico institucional <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Correo electrónico institucional</label>
                         <input type="email" wire:model="estudiante_correo_institucional" class="{{ $inputClass }}">
                         @error('estudiante_correo_institucional') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
@@ -204,7 +224,7 @@
 
                 <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
                     <div class="{{ $cardClass }}">
-                        <p class="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-100">Tipo <span class="text-red-500">*</span></p>
+                        <p class="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-100">Tipo</p>
                         <div class="space-y-2">
                             @foreach($tipoPpsOpciones as $value => $label)
                                 <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -217,7 +237,7 @@
                     </div>
 
                     <div class="{{ $cardClass }}">
-                        <p class="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-100">Territorio de ejecución <span class="text-red-500">*</span></p>
+                        <p class="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-100">Territorio de ejecución</p>
                         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                             @foreach(['Nacional', 'Internacional'] as $territorio)
                                 <label class="flex items-center gap-2 rounded-md border border-gray-200 p-3 text-sm dark:border-gray-700">
@@ -230,19 +250,19 @@
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Fecha de inicio <span class="text-red-500">*</span></label>
-                        <input type="date" wire:model="fecha_inicio" class="{{ $inputClass }}">
+                        <label class="{{ $labelClass }}">Fecha de inicio</label>
+                        <input type="date" wire:model.live="fecha_inicio" class="{{ $inputClass }}">
                         @error('fecha_inicio') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Fecha de finalización <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Fecha de finalización</label>
                         <input type="date" wire:model="fecha_finalizacion" class="{{ $inputClass }}">
                         @error('fecha_finalizacion') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
 
                     <div class="lg:col-span-2">
-                        <label class="{{ $labelClass }}">Tipo de instrumento que formaliza la PPS / SS <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Tipo de instrumento que formaliza la PPS / SS</label>
                         <select wire:model="tipo_instrumento" class="{{ $inputClass }}">
                             <option value="">Seleccione...</option>
                             @foreach($instrumentoOpciones as $value => $label)
@@ -260,7 +280,7 @@
                 <h2 class="mb-5 text-lg font-semibold text-gray-900 dark:text-white">Paso 4: Datos territoriales de la PPS / Servicio Social</h2>
 
                 <div class="{{ $cardClass }} mb-5">
-                    <p class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Modalidad <span class="text-red-500">*</span></p>
+                    <p class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Modalidad</p>
                     <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
                         @foreach($modalidadOpciones as $value => $label)
                             <label class="flex items-center gap-2 rounded-md border border-gray-200 p-3 text-sm dark:border-gray-700">
@@ -296,7 +316,7 @@
 
                                 @if($territorio_ejecucion === 'Nacional')
                                     <div>
-                                        <label class="{{ $labelClass }}">Departamento <span class="text-red-500">*</span></label>
+                                        <label class="{{ $labelClass }}">Departamento</label>
                                         <select wire:model.live="departamento_id" class="{{ $inputClass }}">
                                             <option value="">Seleccione...</option>
                                             @foreach($departamentos as $id => $nombre)
@@ -307,7 +327,7 @@
                                     </div>
 
                                     <div>
-                                        <label class="{{ $labelClass }}">Municipio <span class="text-red-500">*</span></label>
+                                        <label class="{{ $labelClass }}">Municipio</label>
                                         <select wire:model.live="municipio_id" class="{{ $inputClass }}" @disabled(!$departamento_id || $municipios->isEmpty())>
                                             <option value="">Seleccione...</option>
                                             @foreach($municipios as $id => $nombre)
@@ -420,7 +440,7 @@
                     </div>
 
                     <div>
-                        <label class="{{ $labelClass }}">Total de horas <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Total de horas</label>
                         <input type="number" min="1" wire:model="total_horas" class="{{ $inputClass }}">
                         @error('total_horas') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
@@ -446,7 +466,7 @@
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div class="md:col-span-2">
-                        <label class="{{ $labelClass }}">Nombre completo de la institución / organización <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Nombre completo de la institución / organización</label>
                         <input type="text" wire:model="institucion_nombre" class="{{ $inputClass }}">
                         @error('institucion_nombre') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
@@ -530,7 +550,7 @@
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div class="md:col-span-2">
-                        <label class="{{ $labelClass }}">Nombre completo <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Nombre completo</label>
                         <input type="text" wire:model="jefe_directo_nombre" class="{{ $inputClass }}">
                         @error('jefe_directo_nombre') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
@@ -557,7 +577,7 @@
                         x-data="{
                             open: false,
                             search: '',
-                            selected: @entangle('jefe_directo_grado'),
+                            selected: @entangle('jefe_directo_grado').live,
                             options: ['Secundaria completa', 'Licenciatura', 'Maestría', 'Doctorado', 'Postdoctorado'],
                             normalize(value) {
                                 return String(value ?? '')
@@ -656,7 +676,7 @@
 
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div class="md:col-span-2">
-                        <label class="{{ $labelClass }}">Nombre completo <span class="text-red-500">*</span></label>
+                        <label class="{{ $labelClass }}">Nombre completo</label>
                         <input type="text" wire:model="docente_supervisor_nombre" class="{{ $inputClass }}">
                         @error('docente_supervisor_nombre') <p class="{{ $errorClass }}">{{ $message }}</p> @enderror
                     </div>
@@ -717,7 +737,7 @@
 
                 <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <div class="{{ $cardClass }}">
-                        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">Carta de formalización de la PPS firmada por la contraparte <span class="text-red-500">*</span></p>
+                        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">Carta de formalización de la PPS firmada por la contraparte</p>
                         <div class="mt-3 flex gap-4">
                             @foreach(['Si', 'No'] as $opcion)
                                 <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -749,7 +769,7 @@
                     </div>
 
                     <div class="{{ $cardClass }}">
-                        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">Convenio marco entre la UNAH y entidad <span class="text-red-500">*</span></p>
+                        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">Convenio marco entre la UNAH y entidad</p>
                         <div class="mt-3 flex gap-4">
                             @foreach(['Si', 'No'] as $opcion)
                                 <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -947,13 +967,15 @@
                 @elseif($currentStep === 9)
                     <button type="button" wire:click="guardarBorrador"
                         class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
-                        Guardar como borrador
+                        {{ (method_exists($this, 'esEdicionRevisor') && $this->esEdicionRevisor()) ? 'Guardar cambios' : 'Guardar como borrador' }}
                     </button>
-                    <button type="button" wire:click="abrirModalEnviar"
-                        aria-disabled="{{ (!$this->shouldLockStepNavigation() || $this->isStepComplete($currentStep)) ? 'false' : 'true' }}"
-                        class="inline-flex items-center rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600 {{ $this->shouldLockStepNavigation() && !$this->isStepComplete($currentStep) ? 'cursor-not-allowed opacity-60' : '' }}">
-                        Enviar a firmar
-                    </button>
+                    @if(!(method_exists($this, 'esEdicionRevisor') && $this->esEdicionRevisor()))
+                        <button type="button" wire:click="abrirModalEnviar"
+                            aria-disabled="{{ (!$this->shouldLockStepNavigation() || $this->isStepComplete($currentStep)) ? 'false' : 'true' }}"
+                            class="inline-flex items-center rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600 {{ $this->shouldLockStepNavigation() && !$this->isStepComplete($currentStep) ? 'cursor-not-allowed opacity-60' : '' }}">
+                            Enviar a firmar
+                        </button>
+                    @endif
                 @endif
             </div>
         </div>

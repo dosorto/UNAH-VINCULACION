@@ -886,6 +886,16 @@ class Proyecto extends Model
             ->exists());
     }
 
+    public function usuarioEsParticipante(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+        $empleadoId = $user?->empleado?->id;
+
+        return (bool) ($empleadoId && $this->docentes_proyecto()
+            ->where('empleado_id', $empleadoId)
+            ->exists());
+    }
+
     public function usuarioPuedeAuditarInformeFinal(?User $user = null): bool
     {
         $user ??= auth()->user();

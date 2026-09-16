@@ -1,0 +1,90 @@
+{
+  "info": {
+    "name": "NEXO API - Proyectos por empleado",
+    "description": "Colección sin secretos reales. Configure el entorno NEXO API - Example (sin secretos) antes de ejecutar.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "" },
+    { "key": "token", "value": "" },
+    { "key": "identificador", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "GET proyectos por numero_empleado (Bearer) - ejemplo 12280",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "url": { "raw": "{{base_url}}/api/empleados/{{identificador_12280}}/proyectos", "host": ["{{base_url}}"], "path": ["api", "empleados", "{{identificador_12280}}", "proyectos"] }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Respuesta JSON', function () { pm.response.to.have.header('Content-Type'); });", "pm.test('Contrato data', function () { pm.expect(pm.response.json()).to.have.property('data'); });"] } }]
+    },
+    {
+      "name": "GET proyectos por X-NEXO-API-TOKEN",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "X-NEXO-API-TOKEN", "value": "{{token}}", "type": "text" }
+        ],
+        "url": { "raw": "{{base_url}}/api/empleados/{{identificador}}/proyectos", "host": ["{{base_url}}"], "path": ["api", "empleados", "{{identificador}}", "proyectos"] }
+      }
+    },
+    {
+      "name": "GET proyectos por id",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "url": { "raw": "{{base_url}}/api/empleados/{{identificador_id}}/proyectos", "host": ["{{base_url}}"], "path": ["api", "empleados", "{{identificador_id}}", "proyectos"] }
+      }
+    },
+    {
+      "name": "GET proyectos por user_id",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "url": { "raw": "{{base_url}}/api/empleados/{{identificador_user_id}}/proyectos", "host": ["{{base_url}}"], "path": ["api", "empleados", "{{identificador_user_id}}", "proyectos"] }
+      }
+    },
+    {
+      "name": "401 sin token",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": { "raw": "{{base_url}}/api/empleados/{{identificador}}/proyectos", "host": ["{{base_url}}"], "path": ["api", "empleados", "{{identificador}}", "proyectos"] }
+      }
+    },
+    {
+      "name": "401 token inválido",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_invalido}}", "type": "text" }
+        ],
+        "url": { "raw": "{{base_url}}/api/empleados/{{identificador}}/proyectos", "host": ["{{base_url}}"], "path": ["api", "empleados", "{{identificador}}", "proyectos"] }
+      }
+    },
+    {
+      "name": "Casos de error (seleccionar identificador)",
+      "description": "Use el token configurado y sustituya el valor de identificador por un token inválido, un identificador inexistente o un identificador de prueba. Los casos de token revocado, expirado y sin alcance requieren variables creadas solo en un entorno de pruebas autorizado.",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+        ],
+        "url": { "raw": "{{base_url}}/api/empleados/{{identificador_inexistente}}/proyectos", "host": ["{{base_url}}"], "path": ["api", "empleados", "{{identificador_inexistente}}", "proyectos"] }
+      }
+    }
+  ]
+}

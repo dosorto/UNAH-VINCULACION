@@ -14,14 +14,7 @@ huella SHA-256 de la plantilla y de los datos. Por eso las rutas `Ver` y
 
 ## Dependencias
 
-La imagen de aplicación las instala desde `Dockerfile`:
-
-```bash
-docker compose build app
-docker compose up -d
-```
-
-En una instalación Debian/Ubuntu sin Docker:
+En una instalación Debian/Ubuntu, instale las herramientas del sistema:
 
 ```bash
 sudo apt-get update

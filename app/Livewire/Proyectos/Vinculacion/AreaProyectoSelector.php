@@ -15,6 +15,8 @@ class AreaProyectoSelector extends Component
     public ?int $tipoAccionDesarrolloLocalId = null;
     public ?int $tipoAccionEnfId = null;
     public ?int $tipoAccionVoluntariadoId = null;
+    public ?int $tipoAccionPasantiasId = null;
+    public bool $pasantiasDisponible = false;
 
     public function mount(): void
     {
@@ -35,6 +37,17 @@ class AreaProyectoSelector extends Component
         $this->tipoAccionVoluntariadoId = DB::table('vinculacion_tipos_accion')
             ->where('codigo', 'VOLUNTARIADO')
             ->value('id');
+        $this->tipoAccionPasantiasId = DB::table('vinculacion_tipos_accion')
+            ->where('codigo', 'PASANTIAS')
+            ->where('activo', true)
+            ->value('id');
+        $this->pasantiasDisponible = $this->tipoAccionPasantiasId !== null
+            && DB::table('flujos_aprobacion')
+                ->where('proceso', 'PASANTIAS_DEFAULT')
+                ->where('codigo_formulario', 'FORM-DVUS-013')
+                ->where('tipo_accion_id', $this->tipoAccionPasantiasId)
+                ->where('activo', true)
+                ->exists();
     }
 
     public function mostrarFormulariosPps(): void

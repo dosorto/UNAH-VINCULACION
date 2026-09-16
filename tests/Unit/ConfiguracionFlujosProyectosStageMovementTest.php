@@ -9,6 +9,62 @@ use function Livewire\store;
 
 class ConfiguracionFlujosProyectosStageMovementTest extends TestCase
 {
+    public function test_el_catalogo_asocia_form_dvus_013_exclusivamente_con_pasantias(): void
+    {
+        $component = new ConfiguracionFlujosProyectos;
+        $method = new \ReflectionMethod($component, 'projectFlowCatalog');
+        $catalog = $method->invoke($component);
+
+        $pasantias = collect($catalog)->firstWhere('codigo', 'PASANTIAS');
+        $subactions = collect($pasantias['subactions'] ?? []);
+        $form = $subactions->firstWhere('codigo_formulario', 'FORM-DVUS-013');
+
+        $this->assertNotNull($form);
+        $this->assertSame('PASANTIAS', $form['tipo_accion_codigo']);
+        $this->assertSame('PASANTIAS_DEFAULT', $form['proceso']);
+        $this->assertSame('PASANTIAS_FORM_DVUS_013', $form['workflow_codigo_base']);
+        $this->assertSame('FORM-DVUS-013 - Registro de Pasantías', $form['nombre']);
+
+        $this->assertCount(1, $subactions->where('codigo_formulario', 'FORM-DVUS-013'));
+        $this->assertCount(0, collect($catalog)->reject(fn (array $action): bool => $action['codigo'] === 'PASANTIAS')
+            ->flatMap(fn (array $action) => $action['subactions'])
+            ->where('codigo_formulario', 'FORM-DVUS-013'));
+    }
+
+    public function test_el_catalogo_conserva_los_formularios_pps_y_voluntariado_separados(): void
+    {
+        $component = new ConfiguracionFlujosProyectos;
+        $method = new \ReflectionMethod($component, 'projectFlowCatalog');
+        $catalog = collect($method->invoke($component));
+
+        $pps = $catalog->flatMap(fn (array $action) => $action['subactions'])
+            ->firstWhere('codigo_formulario', 'FORM-DVUS-014');
+        $voluntariado = $catalog->flatMap(fn (array $action) => $action['subactions'])
+            ->firstWhere('codigo_formulario', 'FORM-DVUS-015');
+
+        $this->assertSame('PPS_VOLUNTARIADO_GESTION_RIESGO', $pps['tipo_accion_codigo']);
+        $this->assertSame('PPS_SERVICIO_SOCIAL_DEFAULT', $pps['proceso']);
+        $this->assertSame('VOLUNTARIADO', $voluntariado['tipo_accion_codigo']);
+        $this->assertNotSame($pps['tipo_accion_codigo'], $voluntariado['tipo_accion_codigo']);
+    }
+
+    public function test_el_formulario_de_pasantias_requiere_el_codigo_de_flujo_institucional(): void
+    {
+        $component = new ConfiguracionFlujosProyectos;
+        $catalogMethod = new \ReflectionMethod($component, 'projectFlowCatalog');
+        $catalog = $catalogMethod->invoke($component);
+        $pasantias = collect($catalog)->firstWhere('codigo', 'PASANTIAS');
+        $form = collect($pasantias['subactions'])->firstWhere('codigo_formulario', 'FORM-DVUS-013');
+
+        $isPasantiasMethod = new \ReflectionMethod($component, 'isPasantiasSubaction');
+
+        $this->assertTrue($isPasantiasMethod->invoke($component, $form));
+        $this->assertFalse($isPasantiasMethod->invoke($component, array_replace(
+            $form,
+            ['workflow_codigo_base' => 'PPS_SERVICIO_SOCIAL_DEFAULT']
+        )));
+    }
+
     public function test_mover_etapa_de_proyecto_emite_el_evento_para_animar_la_tarjeta_correcta(): void
     {
         $component = new ConfiguracionFlujosProyectos;

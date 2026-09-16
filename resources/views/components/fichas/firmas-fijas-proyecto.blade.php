@@ -1,92 +1,16 @@
 @php
     $isPdfMode = !empty($isPdf);
 
-    // DomPDF (motor usado para generar el PDF de la ficha) no soporta de forma
-    // confiable `object-fit` en <img>, así que en vez de recortar por CSS se
-    // calcula acá el tamaño "contain" (igual proporción, mismo cuadro) y se
-    // aplica como width/height explícitos en la etiqueta <img>, que DomPDF sí
-    // respeta siempre.
+    // En pantalla la firma se sirve por URL; en el PDF se usa una ruta local
+    // autorizada por el chroot de DomPDF. Toda esa lógica vive en el helper.
     $cajaFirmaAncho = 160;
     $cajaFirmaAlto = 90;
 
-    $resolverRutaFirma = function (?string $ruta) use ($isPdfMode) {
-        if (empty($ruta)) {
-            return null;
-        }
+    $resolverRutaFirma = fn (?string $ruta) => \App\Support\Fichas\FirmaImagen::resolver($ruta, $isPdfMode);
 
-        // Imagen embebida como data URI (base64): getimagesize() la lee
-        // directamente, no hace falta resolver ruta de archivo.
-        if (str_starts_with($ruta, 'data:')) {
-            return ['src' => $ruta, 'path' => $ruta];
-        }
-
-        $rutaNormalizada = ltrim($ruta, '/');
-
-        if (str_starts_with($rutaNormalizada, 'storage/')) {
-            $rutaNormalizada = substr($rutaNormalizada, strlen('storage/'));
-        }
-
-        $rutaPublica = public_path('storage/' . $rutaNormalizada);
-        $rutaDiscoPublico = storage_path('app/public/' . $rutaNormalizada);
-
-        if (filter_var($ruta, FILTER_VALIDATE_URL)) {
-            return ['src' => $ruta, 'path' => $ruta];
-        }
-
-        if (is_file($ruta)) {
-            return [
-                'src' => $isPdfMode ? $ruta : asset(str_replace(public_path() . '/', '', $ruta)),
-                'path' => $ruta,
-            ];
-        }
-
-        if (is_file($rutaPublica)) {
-            return [
-                'src' => $isPdfMode ? $rutaPublica : asset('storage/' . $rutaNormalizada),
-                'path' => $rutaPublica,
-            ];
-        }
-
-        if (is_file($rutaDiscoPublico) || \Illuminate\Support\Facades\Storage::disk('public')->exists($rutaNormalizada)) {
-            return [
-                'src' => $isPdfMode ? $rutaPublica : \Illuminate\Support\Facades\Storage::url($rutaNormalizada),
-                'path' => $rutaDiscoPublico,
-            ];
-        }
-
-        if (!$isPdfMode) {
-            return ['src' => \Illuminate\Support\Facades\Storage::url($rutaNormalizada), 'path' => $rutaDiscoPublico];
-        }
-
-        return null;
-    };
-
-    $dimensionesContenidas = function (?string $rutaArchivo) use ($cajaFirmaAncho, $cajaFirmaAlto) {
-        // getimagesize() funciona tanto con rutas locales como con URLs
-        // remotas (no hace falta is_file() antes, que solo sirve para rutas
-        // locales y descartaba silenciosamente cualquier imagen por URL).
-        $medidas = $rutaArchivo ? @getimagesize($rutaArchivo) : false;
-
-        if (! $medidas) {
-            return ['width' => $cajaFirmaAncho, 'height' => $cajaFirmaAlto];
-        }
-
-        [$anchoOriginal, $altoOriginal] = $medidas;
-
-        if ($anchoOriginal <= 0 || $altoOriginal <= 0) {
-            return ['width' => $cajaFirmaAncho, 'height' => $cajaFirmaAlto];
-        }
-
-        // Sin tope en 1: las imágenes chicas también se agrandan hasta tocar
-        // el borde de la caja, para que todas ocupen el mismo espacio visual
-        // sin importar el tamaño original que subió cada persona.
-        $escala = min($cajaFirmaAncho / $anchoOriginal, $cajaFirmaAlto / $altoOriginal);
-
-        return [
-            'width' => (int) round($anchoOriginal * $escala),
-            'height' => (int) round($altoOriginal * $escala),
-        ];
-    };
+    // DomPDF no respeta `object-fit`, así que el tamaño "contain" (misma
+    // proporción, mismo cuadro) se calcula acá y va como width/height en el <img>.
+    $dimensionesContenidas = fn (?string $rutaArchivo) => \App\Support\Fichas\FirmaImagen::dimensionesContenidas($rutaArchivo, $cajaFirmaAncho, $cajaFirmaAlto);
 
     $formatearFechaFirma = function ($fecha) {
         if (empty($fecha)) {
@@ -149,8 +73,13 @@
         <tr>
             @foreach ($par as $cuadro)
                 @php
-                    $sello = $resolverRutaFirma(optional(optional($cuadro['firma'])->sello)->ruta_storage);
-                    $firmaImg = $resolverRutaFirma(optional(optional($cuadro['firma'])->firma)->ruta_storage);
+                    $firmaRegistro = $cuadro['firma'] ?? null;
+                    // Las firmas antiguas pueden tener firma_id/sello_id nulos
+                    // aunque el empleado sí conserve una firma activa.
+                    $firmaSello = $firmaRegistro?->sello ?: $firmaRegistro?->empleado?->sello;
+                    $firmaDigital = $firmaRegistro?->firma ?: $firmaRegistro?->empleado?->firma;
+                    $sello = $resolverRutaFirma($firmaSello?->ruta_storage);
+                    $firmaImg = $resolverRutaFirma($firmaDigital?->ruta_storage);
                     $selloDim = $sello ? $dimensionesContenidas($sello['path']) : null;
                     $firmaDim = $firmaImg ? $dimensionesContenidas($firmaImg['path']) : null;
                 @endphp

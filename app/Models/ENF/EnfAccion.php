@@ -122,6 +122,14 @@ class EnfAccion extends Model
         return $this->hasMany(EnfEquipo::class, 'enf_accion_id');
     }
 
+    public function usuarioEsParticipante(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+        $empleadoId = $user?->empleado?->id;
+
+        return (bool) ($empleadoId && $this->equipo()->where('empleado_id', $empleadoId)->exists());
+    }
+
     public function participacionUniversitaria()
     {
         return $this->hasMany(EnfParticipacionUniversitaria::class, 'enf_accion_id');

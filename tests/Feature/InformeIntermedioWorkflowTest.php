@@ -198,7 +198,11 @@ class InformeIntermedioWorkflowTest extends TestCase
                 && str_contains($mail->comentario, 'Informe Final')
                 && $mail->actionUrl === route('proyectos.informe-final', $contexto['proyecto'])
         );
-
+        $this->assertTrue(
+            $documento->estado_documento()
+                ->whereHas('tipoestado', fn ($q) => $q->where('nombre', 'Informe Final Habilitado'))
+                ->exists()
+        );
     }
 
     public function test_permite_aprobar_informe_intermedio_sin_firma_activa_dejando_firma_null(): void
@@ -331,6 +335,7 @@ class InformeIntermedioWorkflowTest extends TestCase
         $enCurso = TipoEstado::firstOrCreate(['nombre' => 'En curso']);
         TipoEstado::firstOrCreate(['nombre' => 'Subsanacion']);
         TipoEstado::firstOrCreate(['nombre' => 'Aprobado']);
+        TipoEstado::firstOrCreate(['nombre' => 'Informe Final Habilitado']);
         $proyecto->estado_proyecto()->create([
             'empleado_id' => $empleado->id,
             'tipo_estado_id' => $enCurso->id,

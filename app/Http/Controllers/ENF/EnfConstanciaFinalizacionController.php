@@ -16,6 +16,7 @@ class EnfConstanciaFinalizacionController extends Controller
         $user = request()->user();
         $autorizado = $user && (
             (int) $constancia->accion->creado_por_usuario_id === (int) $user->id
+            || $constancia->accion->usuarioEsParticipante($user)
             || $user->can('docente.proyectos')
             || $user->hasRole('admin')
         );

@@ -29,4 +29,5 @@
     .constancia-signature-name { border-top: .8pt solid #111; display: inline-block; font-size: 8pt; font-weight: bold; min-width: 280pt; padding-top: 2pt; }
     .constancia-note { border-left: 2pt solid #ffc400; color: #000; font-size: 7pt; font-weight: bold; margin-top: 15pt; padding-left: 5pt; text-align: justify; }
     .constancia-validation-url { font-size: 7pt; font-style: italic; margin-top: 12pt; text-align: center; }
+    .constancia-footer-codigo { bottom: 95pt; color: #999; font-family: Arial, Helvetica, sans-serif; font-size: 6.3pt; left: 26pt; position: fixed; right: 26pt; z-index: 20; }
 </style>

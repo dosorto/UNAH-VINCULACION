@@ -22,21 +22,25 @@
             </div>
 
             <div class="grid grid-cols-1 gap-10 md:grid-cols-3">
-                <div class="group relative block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg rounded-xl p-8 transition-all duration-300 opacity-40">
-                    <span class="absolute top-4 right-4 bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-full text-xs font-semibold">
-                        Próximamente
+                @if($pasantiasDisponible)
+                    <a href="{{ route('crearPasantia') }}" class="group relative block bg-white dark:bg-gray-800 border border-yellow-200 dark:border-yellow-700 shadow-lg rounded-xl p-8 transition-all duration-300 hover:scale-105 hover:shadow-2xl">
+                @else
+                    <div class="group relative block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg rounded-xl p-8 transition-all duration-300 opacity-40">
+                @endif
+                    <span class="absolute top-4 right-4 {{ $pasantiasDisponible ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300' : 'bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300' }} px-3 py-1 rounded-full text-xs font-semibold">
+                        {{ $pasantiasDisponible ? 'Disponible para configurar' : 'Próximamente' }}
                     </span>
                     <br>
                     <div class="flex flex-col items-center">
-                        <div class="bg-gray-100 dark:bg-gray-900 rounded-full p-4 mb-5">
-                            <svg class="w-10 h-10 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <div class="bg-yellow-100 dark:bg-yellow-900 rounded-full p-4 mb-5 group-hover:bg-yellow-200 dark:group-hover:bg-yellow-800 transition">
+                            <svg class="w-10 h-10 text-yellow-700 dark:text-yellow-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 3v4a1 1 0 0 1-1 1H5m4 10v-2m3 2v-6m3 6v-3m4-11v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7.914a1 1 0 0 1 .293-.707l3.914-3.914A1 1 0 0 1 9.914 3H18a1 1 0 0 1 1 1Z"/>
                             </svg>
                         </div>
                         <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 text-center">FORM-013 - Registro de Pasantías</h3>
                         <p class="text-gray-600 dark:text-gray-300 text-center text-base">Registro documental para pasantías universitarias.</p>
                     </div>
-                </div>
+                @if($pasantiasDisponible)</a>@else</div>@endif
 
                 <a href="{{ route('crearPpsServicioSocial') }}"
                    class="group relative block bg-white dark:bg-gray-800 border border-yellow-200 dark:border-yellow-700 shadow-lg rounded-xl p-8 hover:scale-105 hover:shadow-2xl transition-all duration-300">
