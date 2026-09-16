@@ -10,6 +10,8 @@ use Symfony\Component\Process\Process;
 
 class FormDvus018DocumentService
 {
+    private const DOCUMENT_FORMAT_VERSION = 'labels-v3';
+
     public function __construct(private readonly FormDvus018DataMapper $mapper) {}
 
     public function generatePdf(EnfAccion $action): string
@@ -18,7 +20,7 @@ class FormDvus018DocumentService
         $this->assertReadableFile($template, 'No se encontró la plantilla maestra FORM-DVUS-018.');
 
         $cells = $this->mapper->cells($action);
-        $fingerprint = hash('sha256', hash_file('sha256', $template).'|'.json_encode($cells, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $fingerprint = hash('sha256', self::DOCUMENT_FORMAT_VERSION.'|'.hash_file('sha256', $template).'|'.json_encode($cells, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         $cacheDirectory = storage_path('app/generated/form-dvus-018/'.(int) $action->getKey());
         $pdfPath = $cacheDirectory.'/'.$fingerprint.'.pdf';
         $this->ensureDirectory($cacheDirectory);
@@ -97,7 +99,10 @@ class FormDvus018DocumentService
 
         $profileDirectory = $outputDirectory.'/libreoffice-profile';
         $this->ensureDirectory($profileDirectory);
-        $profileUri = 'file://'.str_replace('%2F', '/', rawurlencode($profileDirectory));
+        $profilePath = str_replace('\\', '/', $profileDirectory);
+        $profileUri = str_starts_with($profilePath, '/')
+            ? 'file://'.$profilePath
+            : 'file:///'.ltrim($profilePath, '/');
         $process = new Process([
             $binary,
             '-env:UserInstallation='.$profileUri,
@@ -111,11 +116,11 @@ class FormDvus018DocumentService
         $process->setTimeout(180);
         $process->run();
 
-        if (! $process->isSuccessful()) {
+        $pdfPath = $outputDirectory.'/'.pathinfo($docxPath, PATHINFO_FILENAME).'.pdf';
+        if (! $process->isSuccessful() && ! $this->isValidPdf($pdfPath)) {
             throw new RuntimeException('LibreOffice no pudo convertir FORM-DVUS-018: '.trim($process->getErrorOutput() ?: $process->getOutput()));
         }
 
-        $pdfPath = $outputDirectory.'/'.pathinfo($docxPath, PATHINFO_FILENAME).'.pdf';
         if (! $this->isValidPdf($pdfPath)) {
             throw new RuntimeException('LibreOffice finalizó sin crear un PDF válido de FORM-DVUS-018.');
         }

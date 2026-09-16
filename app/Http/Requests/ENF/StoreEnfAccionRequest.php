@@ -236,13 +236,6 @@ class StoreEnfAccionRequest extends FormRequest
             'cronograma.*.horas_requeridas' => ['nullable', 'integer', 'min:0'],
             'documentos_requeridos' => ['nullable', 'array'],
             'documentos_requeridos.*' => ['nullable', 'string', 'max:220'],
-            'documentos_archivos' => ['nullable', 'array'],
-            'documentos_archivos.descripcion_plan_estudios' => [
-                'nullable',
-                'file',
-                'mimes:pdf,doc,docx,jpg,jpeg,png',
-                'max:10240',
-            ],
             'firmas' => ['nullable', 'array'],
             'firmas.*.rol_firma' => ['nullable', 'string', 'max:150'],
             'firmas.*.nombre_firmante' => ['nullable', 'string', 'max:220'],
@@ -328,7 +321,6 @@ class StoreEnfAccionRequest extends FormRequest
             'contraparte.nombre' => 'nombre de la contraparte',
             'contraparte.rtn' => 'RTN o identificacion internacional de la contraparte',
             'contraparte.correo' => 'correo de la contraparte',
-            'documentos_archivos.descripcion_plan_estudios' => 'descripciones mínimas del plan de estudios',
             'firmas.*.nombre_firmante' => 'nombre del firmante',
         ];
     }

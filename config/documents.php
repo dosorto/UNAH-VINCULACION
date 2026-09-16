@@ -9,6 +9,8 @@ return [
         '/opt/homebrew/bin/soffice',
         '/usr/local/bin/soffice',
         '/Applications/LibreOffice.app/Contents/MacOS/soffice',
+        (getenv('ProgramFiles') ?: 'C:\\Program Files').'\\LibreOffice\\program\\soffice.exe',
+        (getenv('ProgramFiles(x86)') ?: 'C:\\Program Files (x86)').'\\LibreOffice\\program\\soffice.exe',
     ],
     'pdfinfo_candidates' => [
         '/usr/bin/pdfinfo',

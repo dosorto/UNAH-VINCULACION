@@ -1039,21 +1039,6 @@ class EnfAccionController extends Controller
             ]);
         }
 
-        if ($request->hasFile('documentos_archivos.descripcion_plan_estudios')) {
-            $file = $request->file('documentos_archivos.descripcion_plan_estudios');
-            $path = $file->store('enf/documentos', 'public');
-
-            $accion->documentos()->create([
-                'tipo_documento' => 'descripcion_plan_estudios',
-                'nombre' => 'Descripciones minimas del plan de estudios oficial',
-                'ruta' => $path,
-                'mime_type' => $file->getClientMimeType(),
-                'tamano_bytes' => $file->getSize(),
-                'subido_por_usuario_id' => $request->user()?->id,
-                'descripcion' => 'Adjunto requerido por FORM-DVUS-016.',
-            ]);
-        }
-
         foreach (($data['firmas'] ?? []) as $firma) {
             if (! filled($firma['rol_firma'] ?? null) && ! filled($firma['nombre_firmante'] ?? null)) {
                 continue;

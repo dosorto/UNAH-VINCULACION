@@ -1,9 +1,7 @@
 @php
     $isPdf = $isPdf ?? false;
     $assetUrl = fn (string $path) => $isPdf ? 'file://'.public_path($path) : asset($path);
-    $headerUrl = $assetUrl('images/enf/form-018-header.png');
-    $watermarkUrl = $assetUrl('images/enf/form-018-watermark.png');
-    $footerUrl = $assetUrl('images/enf/form-018-footer.png');
+    $pageChromeUrl = $assetUrl('images/enf/form-016-page.png');
     $certificado = $accion->certificado;
     $lugar = $accion->lugaresEjecucion->first();
     $beneficiarios = $accion->beneficiarios;
@@ -33,6 +31,17 @@
         return $catalogNames($tipo)
             ->contains(fn ($name) => str($name)->ascii()->lower()->contains(str($needle)->ascii()->lower()));
     };
+    $normalizeText = fn ($value) => str($value)->ascii()->lower()->replace([' ', '-', '_', '/', '(', ')'], '')->toString();
+    $modalidadTexto = $normalizeText(collect([$lugar?->modalidad_ejecucion, $accion->modalidad?->nombre])->filter()->implode(' '));
+    $platformPresencialText = $normalizeText($catalogNames('plataforma_presencial')->implode(' '));
+    $platformDistanciaText = $normalizeText(collect([
+        $lugar?->plataforma,
+        $lugar?->descripcion_plataformas,
+        $lugar?->url_acceso,
+        $catalogNames('plataforma_distancia')->implode(' '),
+    ])->filter()->implode(' '));
+    $hasPlatformPresencial = fn (string $needle) => str_contains($platformPresencialText, $normalizeText($needle));
+    $hasPlatformDistancia = fn (string $needle) => str_contains($platformDistanciaText, $normalizeText($needle));
     $budgetRows = function (string $tipo, array $defaults) use ($presupuestosPorTipo) {
         $detalles = $presupuestosPorTipo->get($tipo)?->detalles ?? collect();
 
@@ -52,21 +61,8 @@
     $shellClass = $isPdf ? 'is-pdf' : 'screen-document';
     $openPage = fn (int $page) => new \Illuminate\Support\HtmlString(
         '<section class="form016-page">'.
-            '<header class="form016-header-row">'.
-                '<img class="form016-header-brand" src="'.e($headerUrl).'" alt="UNAH VRA Dirección de Vinculación Universidad Sociedad">'.
-                '<div class="form016-daft">Dirección<br>Académica<br>de Formación Tecnológica</div>'.
-                '<div class="form016-contact">'.
-                    'vinculacion.sociedad@unah.edu.hn<br>'.
-                    'Tel. 2216-7070 Ext. 110576<br><br>'.
-                    '<span>formaciontecnologica@unah.edu.hn</span><br>'.
-                    'Tel: 2216-7008/2216-6100<br>'.
-                    'Ext: 110615 - 110617<br>'.
-                    '110186 - 110192'.
-                '</div>'.
-                '<div class="form016-yellow-strip"></div>'.
-            '</header>'.
-            '<img class="form016-watermark" src="'.e($watermarkUrl).'" alt="">'.
-            '<img class="form016-footer" src="'.e($footerUrl).'" alt="">'.
+            '<img class="form016-page-chrome" src="'.e($pageChromeUrl).'" alt="">'.
+            '<div class="form016-header-contact">vinculacion.sociedad@unah.edu.hn<br>Tel. 2216-7070 Ext. 110576<br><br><span>formaciontecnologica@unah.edu.hn</span><br>Tel: 2216-7008/2216-6100<br>Ext: 110615 &ndash; 110617<br>110186 &ndash; 110192</div>'.
             '<main class="form016-main">'.
                 '<div class="form016-page-number">'.$page.'</div>'
     );
@@ -84,8 +80,8 @@
         color: #000;
         container-type: inline-size;
         font-family: "Arial Narrow", Arial, sans-serif;
-        font-size: 10.2pt;
-        line-height: 1.08;
+        font-size: 10pt;
+        line-height: 1.05;
         overflow-x: hidden;
         width: 100%;
     }
@@ -98,13 +94,14 @@
 
     .form016-shell.screen-document {
         display: grid;
-        gap: 18px;
+        gap: 72px;
         justify-items: center;
     }
 
     .form016-page {
         background: #fff;
         max-width: none;
+        height: 11in;
         min-height: 11in;
         overflow: hidden;
         page-break-after: auto;
@@ -120,8 +117,16 @@
     }
 
     .form016-shell.is-pdf .form016-page {
-        overflow: visible;
-        page-break-inside: auto;
+        height: 11in;
+        min-height: 11in;
+        overflow: hidden;
+        page-break-after: always;
+        page-break-before: auto;
+        page-break-inside: avoid;
+    }
+
+    .form016-shell.is-pdf .form016-page:last-child {
+        page-break-after: auto;
     }
 
     .form016-shell.screen-document .form016-page {
@@ -129,90 +134,44 @@
         zoom: var(--form016-screen-scale);
     }
 
-    .form016-header-brand {
-        height: auto;
-        display: block;
-        left: 0.28in;
-        position: absolute;
-        top: 0.28in;
-        width: 4.98in;
+    .form016-shell.screen-document .form016-page:not(:last-child) {
+        margin-bottom: 20px;
     }
 
-    .form016-header-row {
-        height: 1.5in;
-        position: relative;
-        z-index: 2;
-    }
-
-    .form016-daft {
-        border-left: 2px solid #8a96a8;
-        color: #8b98aa;
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 9.2pt;
-        font-weight: 800;
-        left: 5.26in;
-        line-height: 1.02;
-        padding-left: 0.13in;
-        position: absolute;
-        top: 0.43in;
-        width: 1.18in;
-    }
-
-    .form016-contact {
-        color: #8b98aa;
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 5.9pt;
-        font-weight: 800;
-        line-height: 1.18;
-        position: absolute;
-        right: 0.42in;
-        text-align: right;
-        top: 0.32in;
-        white-space: nowrap;
-        width: 1.56in;
-    }
-
-    .form016-contact span {
-        color: #0000ee;
-        text-decoration: underline;
-    }
-
-    .form016-yellow-strip {
-        background: #ffc000;
-        height: 1.18in;
-        position: absolute;
-        right: 0.05in;
-        top: 0.08in;
-        width: 0.2in;
-    }
-
-    .form016-watermark {
-        opacity: .24;
+    .form016-page-chrome {
+        height: 11in;
+        left: 0;
+        object-fit: fill;
         pointer-events: none;
         position: absolute;
-        right: -.52in;
-        top: 4.2in;
-        width: 5.25in;
+        top: 0;
+        width: 8.5in;
         z-index: 0;
     }
 
-    .form016-footer {
-        bottom: .27in;
-        height: auto;
-        left: .85in;
+    .form016-header-contact {
+        color: #6f7f9f;
+        font-family: Arial, sans-serif;
+        font-size: 6pt;
+        font-weight: 700;
+        line-height: 1.13;
+        pointer-events: none;
         position: absolute;
-        width: 5.2in;
-        z-index: 2;
+        right: 0.36in;
+        text-align: right;
+        top: 0.25in;
+        z-index: 1;
     }
 
-    .form016-shell.is-pdf .form016-footer {
-        display: none !important;
+    .form016-header-contact span {
+        color: #315ec9;
+        text-decoration: underline;
     }
 
     .form016-main {
-        margin-left: 1in;
+        margin: 1.28in 1in 0;
         position: relative;
-        width: 7in;
+        width: 6.5in;
         z-index: 1;
     }
 
@@ -220,22 +179,24 @@
         background: #002060;
         color: #fff;
         font-family: Arial, sans-serif;
-        font-size: 15pt;
+        font-size: 13.5pt;
         font-weight: 800;
-        height: 0.22in;
-        line-height: 0.22in;
-        margin: 0 0.48in 0.14in 0.46in;
-        padding: 0 0.05in 0;
+        height: 0.24in;
+        line-height: 0.24in;
+        margin: 0 0 0.12in 0.52in;
+        padding: 0 0.01in 0 0;
         text-align: right;
+        width: 5.98in;
     }
 
     .form016-title {
         font-family: Arial, sans-serif;
-        font-size: 15pt;
+        font-size: 13.5pt;
         font-weight: 800;
-        line-height: 1;
-        margin: 0 0 0.18in;
+        line-height: 1.02;
+        margin: 0 0 0.17in 0.55in;
         text-align: center;
+        width: 5.9in;
     }
 
     .form016-page-number {
@@ -247,9 +208,9 @@
         height: 0.25in;
         line-height: 0.23in;
         position: absolute;
-        right: -0.18in;
+        right: -0.34in;
         text-align: center;
-        top: -0.28in;
+        top: -0.18in;
         width: 0.25in;
         z-index: 2;
     }
@@ -260,7 +221,7 @@
         font-size: 12pt;
         font-weight: 800;
         line-height: 1.1;
-        margin: 0.06in 0 0.16in;
+        margin: 0.1in 0 0.1in;
         text-transform: uppercase;
     }
 
@@ -273,7 +234,7 @@
 
     .form016-table th,
     .form016-table td {
-        border: 0.7px solid #6f6f6f;
+        border: 0.5pt solid #6f6f6f;
         padding: 0.025in 0.045in;
         vertical-align: middle;
         min-height: 0.18in;
@@ -288,6 +249,55 @@
 
     .form016-blue span {
         color: inherit;
+    }
+
+    .form016-small {
+        font-size: 7pt;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .form016-compact td,
+    .form016-compact th {
+        padding-bottom: 0.015in;
+        padding-top: 0.015in;
+    }
+
+    .form016-note {
+        font-size: 7.5pt;
+        font-weight: 400;
+        line-height: 1.1;
+        text-transform: none;
+    }
+
+    .form016-academic-field {
+        height: 0.72in;
+        vertical-align: top !important;
+        white-space: pre-wrap;
+    }
+
+    .form016-signature-box {
+        height: 0.24in;
+        vertical-align: top !important;
+    }
+
+    .form016-signature-large {
+        height: 0.76in;
+        vertical-align: top !important;
+    }
+
+    .form016-signature-spacer {
+        height: 2.35in;
+    }
+
+    .form016-firmas-title {
+        color: #002060;
+        font-family: Arial, sans-serif;
+        font-size: 8pt;
+        font-weight: 800;
+        line-height: 1;
+        margin: 0 0 0.18in 0.18in;
+        text-transform: uppercase;
     }
 
     .form016-num {
@@ -377,7 +387,7 @@
         font-weight: 900;
         height: 0.105in;
         line-height: 0.095in;
-        margin: 0 0.055in;
+        margin: 0 0.045in;
         text-align: center;
         vertical-align: middle;
         width: 0.105in;
@@ -390,9 +400,18 @@
 
         .form016-page {
             box-shadow: none;
+            height: 11in;
+            margin-bottom: 0 !important;
+            overflow: hidden;
+            page-break-after: always;
+            page-break-inside: avoid;
             zoom: 1 !important;
             width: 8.5in;
             min-height: 11in;
+        }
+
+        .form016-page:last-child {
+            page-break-after: auto;
         }
     }
 </style>
@@ -537,6 +556,9 @@
         </tr>
     </table>
 
+    {!! $closePage !!}
+    {!! $openPage(2) !!}
+
     <table class="form016-table">
         <tr><td class="form016-blue" colspan="6">10.&nbsp;&nbsp; Cupos Programados: (Máximo)</td></tr>
         <tr class="form016-block-row">
@@ -548,9 +570,6 @@
             <td class="form016-center" style="width: 12%">{{ $value($beneficiarios?->total, 0) }}</td>
         </tr>
     </table>
-
-    {!! $closePage !!}
-    {!! $openPage(2) !!}
 
     <table class="form016-table">
         <tr><td class="form016-blue" colspan="6">11.&nbsp;&nbsp; Período de ejecución</td></tr>
@@ -612,294 +631,526 @@
     </table>
 
     <table class="form016-table">
-        <tr>
-            @foreach (['Presencial', 'Semi presencial', '100% virtual', 'Virtual sincronico'] as $modalidad)
-                <td class="form016-center">{{ $modalidad }}<br>{{ $checkbox(str($lugar?->modalidad_ejecucion)->ascii()->lower()->contains(str($modalidad)->ascii()->lower()->replace('sincronico', 'sincronico'))) }}</td>
-            @endforeach
+        <colgroup>
+            <col style="width: 12.5%">
+            <col style="width: 12.5%">
+            <col style="width: 12.5%">
+            <col style="width: 12.5%">
+            <col style="width: 12.5%">
+            <col style="width: 12.5%">
+            <col style="width: 12.5%">
+            <col style="width: 12.5%">
+        </colgroup>
+        <tr class="form016-center">
+            <td>Presencial</td>
+            <td colspan="2">Semi presencial (Virtual + presencial)</td>
+            <td>100%<br>virtual</td>
+            <td colspan="4">Virtual sincr&oacute;nico (Teledocencia)</td>
+        </tr>
+        <tr class="form016-center">
+            <td>{{ $checkbox(str_contains($modalidadTexto, 'presencial') && ! str_contains($modalidadTexto, 'semipresencial')) }}</td>
+            <td colspan="2">{{ $checkbox(str_contains($modalidadTexto, 'semipresencial')) }}</td>
+            <td>{{ $checkbox(str_contains($modalidadTexto, '100%virtual') || $modalidadTexto === 'virtual') }}</td>
+            <td colspan="4">{{ $checkbox(str_contains($modalidadTexto, 'virtualsincronico') || str_contains($modalidadTexto, 'teledocencia')) }}</td>
         </tr>
         <tr>
-            <td class="form016-gray">Lugar de imparticion</td>
-            <td>{{ $value($lugar?->nombre_lugar) }}</td>
-            <td class="form016-gray">No. Aula / Edificio / Centro</td>
-            <td>{{ collect([$lugar?->aula, $lugar?->edificio, $lugar?->centro])->filter()->implode(' / ') }}</td>
+            <td class="form016-gray" colspan="2"><strong>Lugar de impartici&oacute;n</strong><br><em>(presencial/semipresencial)</em></td>
+            <td class="form016-gray form016-center">No de Aula:</td>
+            <td>{{ $value($lugar?->aula) }}</td>
+            <td class="form016-gray form016-center">Edificio:</td>
+            <td>{{ $value($lugar?->edificio) }}</td>
+            <td class="form016-gray form016-center">Centro:</td>
+            <td>{{ $value($lugar?->centro, $lugar?->nombre_lugar) }}</td>
         </tr>
         <tr>
-            <td class="form016-gray">Descripcion de plataformas</td>
-            <td colspan="3">{{ $value($lugar?->descripcion_plataformas) }}</td>
+            <td class="form016-gray form016-center" colspan="8">Descripci&oacute;n de las plataformas que se utilizar&aacute;n para la modalidad Semipresencial, Virtual y Teledocencia<br>(teletrabajo en los casos que aplique)</td>
         </tr>
         <tr>
-            <td class="form016-gray">Plataformas presencial</td>
-            <td colspan="3">{{ $catalogNames('plataforma_presencial')->implode(', ') }}</td>
+            <td class="form016-gray" colspan="2" rowspan="2">Plataformas para la modalidad presencial (Si aplica)</td>
+            <td class="form016-gray form016-center">Teams</td>
+            <td class="form016-gray form016-center">Zoom</td>
+            <td class="form016-gray form016-center">Meet</td>
+            <td class="form016-gray form016-center">Webex</td>
+            <td class="form016-gray form016-center" colspan="2">Otro</td>
+        </tr>
+        <tr class="form016-center">
+            <td>{{ $checkbox($hasPlatformPresencial('Teams') || $hasCatalog('plataforma_presencial', 'Teams')) }}</td>
+            <td>{{ $checkbox($hasPlatformPresencial('Zoom') || $hasCatalog('plataforma_presencial', 'Zoom')) }}</td>
+            <td>{{ $checkbox($hasPlatformPresencial('Meet') || $hasCatalog('plataforma_presencial', 'Meet')) }}</td>
+            <td>{{ $checkbox($hasPlatformPresencial('Webex') || $hasCatalog('plataforma_presencial', 'Webex')) }}</td>
+            <td colspan="2">{{ $checkbox($catalogNames('plataforma_presencial')->diff(['Teams', 'Zoom', 'Meet', 'Webex'])->isNotEmpty()) }}</td>
         </tr>
         <tr>
-            <td class="form016-gray">Plataformas a distancia</td>
-            <td colspan="3">{{ $catalogNames('plataforma_distancia')->implode(', ') }}</td>
+            <td class="form016-gray" colspan="2" rowspan="2">Plataformas para la modalidad a distancia (Si aplica)</td>
+            <td class="form016-gray form016-center">Campus<br>virtual UNAH</td>
+            <td class="form016-gray form016-center">Moodle</td>
+            <td class="form016-gray form016-center">Classroom Google</td>
+            <td class="form016-gray form016-center">Teams</td>
+            <td class="form016-gray form016-center" colspan="2">Otro</td>
+        </tr>
+        <tr class="form016-center">
+            <td>{{ $checkbox($hasPlatformDistancia('Campus virtual UNAH') || $hasCatalog('plataforma_distancia', 'Campus')) }}</td>
+            <td>{{ $checkbox($hasPlatformDistancia('Moodle') || $hasCatalog('plataforma_distancia', 'Moodle')) }}</td>
+            <td>{{ $checkbox($hasPlatformDistancia('Classroom Google') || $hasCatalog('plataforma_distancia', 'Classroom')) }}</td>
+            <td>{{ $checkbox($hasPlatformDistancia('Teams') || $hasCatalog('plataforma_distancia', 'Teams')) }}</td>
+            <td colspan="2">{{ $checkbox($catalogNames('plataforma_distancia')->diff(['Campus virtual UNAH', 'Moodle', 'Classroom Google', 'Teams'])->isNotEmpty()) }}</td>
         </tr>
     </table>
 
     <table class="form016-table">
-        <tr><td class="form016-blue" colspan="4">13.&nbsp;&nbsp; Antecedentes de la acción</td></tr>
-        @foreach (array_chunk(['Iniciativa de la unidad academica', 'Solicitud externa privada', 'Secretaria de Estado', 'Gobierno local', 'Universidades', 'ONG', 'Patronatos', 'Sector financiero', 'Sector productivo', 'Otros'], 2) as $row)
+        <colgroup>
+            <col style="width: 24%">
+            <col style="width: 23%">
+            <col style="width: 15%">
+            <col style="width: 23%">
+            <col style="width: 15%">
+        </colgroup>
+        <tr><td class="form016-blue" colspan="5">13.&nbsp;&nbsp; Antecedentes de la acci&oacute;n. <em>(Indicar el origen para el dise&ntilde;o y puesta en marcha de la acci&oacute;n del programa de formaci&oacute;n)</em></td></tr>
+        @foreach ([
+            ['Iniciativa de la unidad academica', 'ONG'],
+            ['Solicitud externa privada', 'Patronatos'],
+            ['Secretaria de Estado', 'Sector financiero'],
+            ['Gobiernos locales', 'Sector productivo'],
+            ['Universidades', 'Otros'],
+        ] as [$left, $right])
             <tr>
-                @foreach ($row as $item)
-                    <td>{{ $item }}</td>
-                    <td class="form016-center">{{ $checkbox($hasCatalog('antecedente', $item)) }}</td>
-                @endforeach
+                <td class="form016-gray">{{ $left }}</td>
+                <td class="form016-center">{{ $checkbox($hasCatalog('antecedente', $left === 'Gobiernos locales' ? 'Gobierno local' : $left)) }}</td>
+                <td class="form016-gray">{{ $right }}</td>
+                <td class="form016-center" colspan="2">{{ $checkbox($hasCatalog('antecedente', $right)) }}</td>
             </tr>
         @endforeach
-    </table>
-
-    <div class="form016-section">II.&nbsp;&nbsp;&nbsp;&nbsp; PERFIL DE LOS BENEFICIARIOS (PARTICIPANTES)</div>
-    <table class="form016-table">
-        <tr>
-            <td class="form016-blue" style="width: 35%">14.&nbsp;&nbsp; Grado académico requerido</td>
-            <td>
-                @foreach (['Titulo de Educacion Media', 'Titulo Universitario', 'Acreditar experiencia comprobada en el area'] as $grado)
-                    <span style="display:inline-block;margin-right:18px">{{ $grado }} {{ $checkbox($hasCatalog('grado_academico', $grado)) }}</span>
-                @endforeach
-            </td>
-        </tr>
-        <tr>
-            <td class="form016-blue">15.&nbsp;&nbsp; Perfil de los principales participantes</td>
-            <td>{{ $catalogNames('perfil_participante')->implode(', ') }}{{ $accion->descripcion_participantes ? ' - '.$accion->descripcion_participantes : '' }}</td>
-        </tr>
     </table>
 
     {!! $closePage !!}
     {!! $openPage(3) !!}
 
-    <div class="form016-section">III.&nbsp;&nbsp;&nbsp; EQUIPO DOCENTE DEL CERTIFICADO</div>
+    <div class="form016-section">II.&nbsp;&nbsp;&nbsp;&nbsp; PERFIL DE LOS BENEFICIARIOS (PARTICIPANTES)</div>
     <table class="form016-table">
-        <tr><td class="form016-blue" colspan="4">16.&nbsp;&nbsp; Coordinador/a del Certificado Universitario</td></tr>
-        <tr>
-            <td class="form016-gray">Nombre completo</td>
-            <td>{{ $value($coordinador?->nombre_completo) }}</td>
-            <td class="form016-gray">No. de empleado</td>
-            <td>{{ $value($coordinador?->numero_empleado) }}</td>
-        </tr>
-        <tr>
-            <td class="form016-gray">Identidad</td>
-            <td>{{ $value($coordinador?->identidad) }}</td>
-            <td class="form016-gray">Correo / Celular</td>
-            <td>{{ collect([$coordinador?->correo, $coordinador?->celular])->filter()->implode(' / ') }}</td>
-        </tr>
-        <tr>
-            <td class="form016-gray">Categoria</td>
-            <td>{{ $value($coordinador?->categoria) }}</td>
-            <td class="form016-gray">Departamento</td>
-            <td>{{ $value($coordinador?->departamento) }}</td>
-        </tr>
+        <colgroup>
+            <col style="width: 42%">
+            <col style="width: 58%">
+        </colgroup>
+        <tr><td class="form016-blue" colspan="2">14.&nbsp;&nbsp; Grado acad&eacute;mico requerido:</td></tr>
+        @foreach (['Titulo de Educacion Media', 'Titulo Universitario', 'Acreditar experiencia comprobada en el area'] as $grado)
+            <tr>
+                <td class="form016-gray">{{ $grado }}</td>
+                <td class="form016-center">{{ $checkbox($hasCatalog('grado_academico', $grado)) }}</td>
+            </tr>
+        @endforeach
     </table>
-
-    @for ($i = 0; $i < max(2, $docentes->count()); $i++)
-        @php $docente = $docentes->get($i); @endphp
-        <table class="form016-table">
-            <tr><td class="form016-blue" colspan="4">{{ 17 + $i }}.&nbsp;&nbsp; SECCION {{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }} - Datos del docente</td></tr>
-            <tr>
-                <td class="form016-gray">Perfil del docente</td>
-                <td colspan="3">
-                    Profesor UNAH {{ $checkbox(($docente?->perfil_docente ?: $docente?->rol) === 'Profesor de la UNAH' || $docente?->rol === 'Docente UNAH') }}
-                    &nbsp;&nbsp; Consultor Nacional {{ $checkbox(($docente?->perfil_docente ?: $docente?->rol) === 'Consultor Nacional' || $docente?->rol === 'Consultor nacional') }}
-                    &nbsp;&nbsp; Consultor Internacional {{ $checkbox(($docente?->perfil_docente ?: $docente?->rol) === 'Consultor Internacional' || $docente?->rol === 'Consultor internacional') }}
-                </td>
-            </tr>
-            <tr>
-                <td class="form016-gray">Nombre completo</td>
-                <td>{{ $value($docente?->nombre_completo) }}</td>
-                <td class="form016-gray">Espacio de aprendizaje</td>
-                <td>{{ $value($docente?->espacio_aprendizaje) }}</td>
-            </tr>
-            <tr>
-                <td class="form016-gray">No. empleado / identidad</td>
-                <td>{{ collect([$docente?->numero_empleado, $docente?->identidad])->filter()->implode(' / ') }}</td>
-                <td class="form016-gray">Correo</td>
-                <td>{{ $value($docente?->correo) }}</td>
-            </tr>
-            <tr>
-                <td class="form016-gray">Categoria / Departamento</td>
-                <td>{{ collect([$docente?->categoria, $docente?->departamento])->filter()->implode(' / ') }}</td>
-                <td class="form016-gray">Titulo / pais / universidad</td>
-                <td>{{ collect([$docente?->ultimo_titulo, $docente?->pais_procedencia, $docente?->universidad_procedencia])->filter()->implode(' / ') }}</td>
-            </tr>
-            <tr>
-                <td class="form016-gray">Asignacion academica</td>
-                <td colspan="3">Carga academica del PAC {{ $checkbox((bool) $docente?->carga_academica_pac) }} &nbsp;&nbsp; Contratacion jornada contraria {{ $checkbox((bool) $docente?->contratacion_jornada_contraria) }}</td>
-            </tr>
-        </table>
-    @endfor
-
-    <div class="form016-section">IV.&nbsp;&nbsp;&nbsp; INFORMACION DE LA ENTIDAD CONTRAPARTE</div>
     <table class="form016-table">
-        <tr>
-            <td class="form016-blue">19.&nbsp;&nbsp; LA ACTIVIDAD TIENE CONTRAPARTE</td>
-            <td>SI {{ $checkbox((bool) $contraparte) }}</td>
-            <td>NO {{ $checkbox(! $contraparte) }}</td>
-        </tr>
-        <tr>
-            <td class="form016-gray">Perfil de la entidad contraparte</td>
-            <td colspan="2">{{ $contraparte?->tipoContraparte?->nombre }}</td>
-        </tr>
-        <tr>
-            <td class="form016-gray">Nombre de la contraparte</td>
-            <td colspan="2">{{ $value($contraparte?->nombre) }}</td>
-        </tr>
-        <tr>
-            <td class="form016-gray">RTN / identificacion internacional</td>
-            <td colspan="2">{{ $value($contraparte?->rtn) }}</td>
-        </tr>
-        <tr>
-            <td class="form016-gray">Contacto / cargo</td>
-            <td colspan="2">{{ collect([$contraparte?->representante, $contraparte?->cargo_contacto])->filter()->implode(' / ') }}</td>
-        </tr>
-        <tr>
-            <td class="form016-gray">Correo / telefono</td>
-            <td colspan="2">{{ collect([$contraparte?->correo, $contraparte?->telefono])->filter()->implode(' / ') }}</td>
-        </tr>
-        <tr>
-            <td class="form016-gray">Direccion exacta</td>
-            <td colspan="2">{{ $value($contraparte?->direccion) }}</td>
-        </tr>
-        <tr>
-            <td class="form016-gray">Instrumento de alianza</td>
-            <td colspan="2">{{ $contraparte?->instrumentoAlianza?->nombre }}</td>
-        </tr>
-        <tr>
-            <td class="form016-gray">Compromisos asumidos</td>
-            <td colspan="2" class="form016-large">{{ $value($contraparte?->compromisos) }}</td>
-        </tr>
+        <colgroup>
+            <col style="width: 27%">
+            <col style="width: 14%">
+            <col style="width: 30%">
+            <col style="width: 29%">
+        </colgroup>
+        <tr><td class="form016-blue" colspan="4">15.&nbsp;&nbsp; Perfil de los principales participantes al que est&aacute; orientado el programa de formaci&oacute;n</td></tr>
+        @foreach ([
+            ['Egresados(as) UNAH', 'Lideres comunitarios'],
+            ['Funcionarios publicos', 'ONG'],
+            ['Estudiantes universitarios', 'Profesionales universitarios otros IES'],
+            ['Empresa privada de servicios', 'Sector productivo'],
+            ['Sociedad civil', 'Academicos'],
+        ] as [$left, $right])
+            <tr>
+                <td class="form016-gray">{{ $left }}</td>
+                <td class="form016-center">{{ $checkbox($hasCatalog('perfil_participante', $left === 'Egresados(as) UNAH' ? 'Egresados UNAH' : $left)) }}</td>
+                <td class="form016-gray">{{ $right }}</td>
+                <td class="form016-center">{{ $checkbox($hasCatalog('perfil_participante', $right)) }}</td>
+            </tr>
+        @endforeach
     </table>
 
     {!! $closePage !!}
     {!! $openPage(4) !!}
 
-    <div class="form016-section">V.&nbsp;&nbsp;&nbsp;&nbsp; INFORMACION ACADEMICA DEL CERTIFICADO</div>
-    <table class="form016-table">
-        <tr><td class="form016-blue">20.1 Resultados de Aprendizaje</td></tr>
-        <tr><td class="form016-large">{{ $value($accion->resumen) }}</td></tr>
-        <tr><td class="form016-blue">20.2 Impacto esperado</td></tr>
-        <tr><td class="form016-large">{{ $value($accion->impacto_esperado) }}</td></tr>
-        <tr><td class="form016-blue">20.3 Resumen de la logistica</td></tr>
-        <tr><td class="form016-large">{{ $value($accion->logistica) }}</td></tr>
-        <tr><td class="form016-blue">20.4 Requisitos de emision del certificado</td></tr>
-        <tr><td>{{ $value($certificado?->requisitos_emision) }}</td></tr>
+    <div class="form016-section">III.&nbsp;&nbsp;&nbsp; EQUIPO DOCENTE DEL CERTIFICADO</div>
+    <table class="form016-table form016-compact">
+        <colgroup>
+            <col style="width: 23%">
+            <col style="width: 24%">
+            <col style="width: 17%">
+            <col style="width: 36%">
+        </colgroup>
+        <tr><td class="form016-blue" colspan="4">16.&nbsp;&nbsp; Coordinador/a del Certificado Universitario COORDINACION</td></tr>
+        <tr>
+            <td class="form016-gray">Nombre Completo:</td>
+            <td colspan="3">{{ $value($coordinador?->nombre_completo) }}</td>
+        </tr>
+        <tr>
+            <td class="form016-gray">No. de empleado</td>
+            <td>{{ $value($coordinador?->numero_empleado) }}</td>
+            <td class="form016-gray">Identidad:</td>
+            <td>{{ $value($coordinador?->identidad) }}</td>
+        </tr>
+        <tr>
+            <td class="form016-gray" colspan="2">Correo electr&oacute;nico:</td>
+            <td class="form016-gray">Celular:</td>
+            <td>{{ $value($coordinador?->celular) }}</td>
+        </tr>
+        <tr>
+            <td colspan="2">{{ $value($coordinador?->correo) }}</td>
+            <td colspan="2">&nbsp;</td>
+        </tr>
+        <tr>
+            <td class="form016-gray">Categor&iacute;a:</td>
+            <td class="form016-gray" colspan="3">Departamento al que pertenece:</td>
+        </tr>
+        <tr>
+            <td>{{ $value($coordinador?->categoria) }}</td>
+            <td colspan="3">{{ $value($coordinador?->departamento) }}</td>
+        </tr>
     </table>
+
+    <table class="form016-table form016-compact">
+        <colgroup>
+            <col style="width: 29%">
+            <col style="width: 23.66%">
+            <col style="width: 23.67%">
+            <col style="width: 23.67%">
+        </colgroup>
+        <tr><td class="form016-blue" colspan="4">17.&nbsp;&nbsp; EQUIPO DOCENTE</td></tr>
+        <tr>
+            <td class="form016-gray" rowspan="2">Cantidad de equipo docente</td>
+            <td class="form016-gray form016-center">Docentes de la UNAH</td>
+            <td class="form016-gray form016-center">Consultor nacional</td>
+            <td class="form016-gray form016-center">Consultor internacional</td>
+        </tr>
+        <tr class="form016-center">
+            <td>{{ $docentes->filter(fn ($row) => $row->rol === 'Docente UNAH' || ($row->perfil_docente ?: '') === 'Profesor de la UNAH')->count() }}</td>
+            <td>{{ $docentes->filter(fn ($row) => $row->rol === 'Consultor nacional' || ($row->perfil_docente ?: '') === 'Consultor Nacional')->count() }}</td>
+            <td>{{ $docentes->filter(fn ($row) => $row->rol === 'Consultor internacional' || ($row->perfil_docente ?: '') === 'Consultor Internacional')->count() }}</td>
+        </tr>
+    </table>
+
+    @for ($i = 0; $i < max(1, $docentes->count()); $i++)
+        @php $docente = $docentes->get($i); @endphp
+        <table class="form016-table form016-compact">
+            <colgroup>
+                <col style="width: 29%">
+                <col style="width: 22%">
+                <col style="width: 24%">
+                <col style="width: 25%">
+            </colgroup>
+            <tr><td class="form016-blue form016-center" colspan="4">SECCION {{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}<br><span class="form016-small">(De abrirse m&aacute;s de 1 secci&oacute;n, agregar m&aacute;s tablas de ser necesario)</span></td></tr>
+            <tr>
+                <td class="form016-gray" colspan="4">Perfil del docente</td>
+            </tr>
+            <tr class="form016-center">
+                <td class="form016-gray">Profesor de la UNAH</td>
+                <td class="form016-gray">Consultor Nacional</td>
+                <td class="form016-gray" colspan="2">Consultor Internacional</td>
+            </tr>
+            <tr class="form016-center">
+                <td>{{ $checkbox(($docente?->perfil_docente ?: $docente?->rol) === 'Profesor de la UNAH' || $docente?->rol === 'Docente UNAH') }}</td>
+                <td>{{ $checkbox(($docente?->perfil_docente ?: $docente?->rol) === 'Consultor Nacional' || $docente?->rol === 'Consultor nacional') }}</td>
+                <td colspan="2">{{ $checkbox(($docente?->perfil_docente ?: $docente?->rol) === 'Consultor Internacional' || $docente?->rol === 'Consultor internacional') }}</td>
+            </tr>
+            <tr>
+                <td class="form016-gray form016-center" colspan="4">Datos del docente</td>
+            </tr>
+            <tr>
+                <td class="form016-gray">Nombre completo:</td>
+                <td colspan="3">{{ $value($docente?->nombre_completo) }}</td>
+            </tr>
+            <tr>
+                <td class="form016-gray">Nombre del espacio de aprendizaje que impartir&aacute;:</td>
+                <td colspan="3">{{ $value($docente?->espacio_aprendizaje) }}</td>
+            </tr>
+            <tr>
+                <td class="form016-gray">N&uacute;mero de empleado / n&uacute;mero de identificaci&oacute;n</td>
+                <td>{{ collect([$docente?->numero_empleado, $docente?->identidad])->filter()->implode(' / ') }}</td>
+                <td class="form016-gray">Categor&iacute;a docente</td>
+                <td>{{ $value($docente?->categoria) }}</td>
+            </tr>
+            <tr>
+                <td class="form016-gray">Correo electr&oacute;nico</td>
+                <td colspan="3">{{ $value($docente?->correo) }}</td>
+            </tr>
+            <tr>
+                <td class="form016-gray">Departamento acad&eacute;mico al que pertenece:</td>
+                <td colspan="3">{{ $value($docente?->departamento) }}</td>
+            </tr>
+            <tr>
+                <td class="form016-gray">&Uacute;ltimo t&iacute;tulo acad&eacute;mico obtenido:</td>
+                <td colspan="3">{{ $value($docente?->ultimo_titulo) }}</td>
+            </tr>
+            <tr>
+                <td class="form016-gray">Pa&iacute;s de procedencia</td>
+                <td colspan="3">{{ $value($docente?->pais_procedencia, $docente?->nacionalidad) }}</td>
+            </tr>
+            <tr>
+                <td class="form016-gray">Universidad de procedencia</td>
+                <td colspan="3">{{ $value($docente?->universidad_procedencia) }}</td>
+            </tr>
+            <tr class="form016-center">
+                <td class="form016-gray" rowspan="2">Tipo de asignaci&oacute;n acad&eacute;mica<br><span class="form016-small">(solo para personal de la UNAH)</span></td>
+                <td class="form016-gray" colspan="2">Carga acad&eacute;mica del PAC</td>
+                <td class="form016-gray">Contrataci&oacute;n jornada contraria</td>
+            </tr>
+            <tr class="form016-center">
+                <td>S&iacute; {{ $checkbox((bool) $docente?->carga_academica_pac) }}</td>
+                <td>No {{ $checkbox(! (bool) $docente?->carga_academica_pac) }}</td>
+                <td>S&iacute; {{ $checkbox((bool) $docente?->contratacion_jornada_contraria) }} &nbsp;&nbsp; No {{ $checkbox(! (bool) $docente?->contratacion_jornada_contraria) }}</td>
+            </tr>
+        </table>
+    @endfor
 
     {!! $closePage !!}
     {!! $openPage(5) !!}
 
-    <div class="form016-section">VI.&nbsp;&nbsp;&nbsp; DETALLE DEL PRESUPUESTO</div>
+    <div class="form016-section">IV.&nbsp;&nbsp;&nbsp; INFORMACION DE LA ENTIDAD CONTRAPARTE</div>
     <table class="form016-table">
+        <colgroup>
+            <col style="width: 33%">
+            <col style="width: 16%">
+            <col style="width: 33%">
+            <col style="width: 18%">
+        </colgroup>
         <tr>
-            <td class="form016-blue">21.&nbsp;&nbsp; Obtendrá ingresos por la actividad</td>
-            <td>SI {{ $checkbox((bool) $accion->genera_ingresos) }}</td>
-            <td>NO {{ $checkbox(! $accion->genera_ingresos) }}</td>
+            <td class="form016-blue">19.&nbsp;&nbsp; LA ACTIVIDAD TIENE CONTRAPARTE</td>
+            <td class="form016-blue form016-center">SI<br>{{ $checkbox((bool) $contraparte) }}</td>
+            <td class="form016-blue form016-center" colspan="2">NO<br>{{ $checkbox(! $contraparte) }}</td>
+        </tr>
+        <tr><td class="form016-gray form016-center" colspan="4">PERFIL DE LA ENTIDAD CONTRAPARTE <span class="form016-small">(En los casos que aplique)</span></td></tr>
+        @foreach ([
+            ['Secretaria de Estado', 'Organizaciones gremiales'],
+            ['Gobierno Municipal', 'Sociedad civil organizada'],
+            ['Sector productivo', 'Sector academico'],
+            ['Entidades financieras', 'Organismos internacionales'],
+            ['Sector privado de servicios', 'Unidad de la UNAH'],
+        ] as [$left, $right])
+            <tr>
+                <td class="form016-gray">{{ $left }}</td>
+                <td class="form016-center">{{ $checkbox(str($contraparte?->tipoContraparte?->nombre)->ascii()->lower()->contains(str($left)->ascii()->lower())) }}</td>
+                <td class="form016-gray">{{ $right }}</td>
+                <td class="form016-center">{{ $checkbox(str($contraparte?->tipoContraparte?->nombre)->ascii()->lower()->contains(str($right)->ascii()->lower())) }}</td>
+            </tr>
+        @endforeach
+    </table>
+
+    <table class="form016-table">
+        <colgroup>
+            <col style="width: 28%">
+            <col style="width: 28%">
+            <col style="width: 22%">
+            <col style="width: 22%">
+        </colgroup>
+        <tr>
+            <td class="form016-gray">25.Nombre de la contraparte</td>
+            <td colspan="3">{{ $value($contraparte?->nombre) }}</td>
+        </tr>
+        <tr>
+            <td class="form016-gray">RTN / identificaci&oacute;n internacional</td>
+            <td colspan="3">{{ $value($contraparte?->rtn) }}</td>
+        </tr>
+        <tr>
+            <td class="form016-gray">26.Nombre del contacto directo</td>
+            <td>{{ $value($contraparte?->representante) }}</td>
+            <td class="form016-gray">Correo electr&oacute;nico</td>
+            <td>{{ $value($contraparte?->correo) }}</td>
+        </tr>
+        <tr>
+            <td class="form016-gray">27.Cargo del contacto de la contraparte</td>
+            <td>{{ $value($contraparte?->cargo_contacto) }}</td>
+            <td class="form016-gray">Tel&eacute;fono</td>
+            <td>{{ $value($contraparte?->telefono) }}</td>
+        </tr>
+        <tr>
+            <td class="form016-gray">28.Direcci&oacute;n exacta de la sede principal</td>
+            <td colspan="3">{{ $value($contraparte?->direccion) }}</td>
+        </tr>
+        <tr>
+            <td class="form016-gray" rowspan="2">29.Tipo de instrumento que da lugar a la alianza</td>
+            <td class="form016-gray form016-center">Carta formal de solicitud a la unidad acad&eacute;mica</td>
+            <td class="form016-gray form016-center">Tipo de instrumento que da lugar a la alianza</td>
+            <td class="form016-gray form016-center">Carta formal de solicitud a la unidad acad&eacute;mica</td>
+        </tr>
+        <tr class="form016-center">
+            <td>{{ $checkbox(str($contraparte?->instrumentoAlianza?->nombre)->ascii()->lower()->contains('carta formal de solicitud')) }}</td>
+            <td>{{ $checkbox(filled($contraparte?->instrumentoAlianza?->nombre) && ! str($contraparte?->instrumentoAlianza?->nombre)->ascii()->lower()->contains('carta formal de solicitud')) }}</td>
+            <td>{{ $checkbox(false) }}</td>
+        </tr>
+        <tr>
+            <td class="form016-gray">30.Breve descripci&oacute;n de los compromisos asumidos por la contraparte</td>
+            <td colspan="3" class="form016-large">{{ $value($contraparte?->compromisos) }}</td>
         </tr>
     </table>
 
-    @foreach ([
-        'ingresos' => ['Presupuesto de ingresos', ['Cuotas de inscripción', 'Gestión de becas', 'Otros']],
-        'egresos' => ['Presupuesto de egresos', ['Pago de conferencistas / facilitadores', 'Gastos de materiales y suministros', 'Gastos de movilización', 'Gastos de manutención y hospedaje', 'Costos administrativos / Financieros', 'Otros']],
-        'aporte_unah' => ['Aporte de la UNAH', ['Personal docente', 'Horas de participación de los estudiantes', 'Horas de participación de voluntarios', 'Útiles y materiales de oficina', 'Costos indirectos depreciación de equipo', 'Costos indirectos servicios públicos']],
-    ] as $tipo => [$titulo, $rubros])
-        @php $rows = $budgetRows($tipo, $rubros); @endphp
-        @if ($tipo === 'aporte_unah')
-            {!! $closePage !!}
-            {!! $openPage(6) !!}
-        @endif
-        <table class="form016-table">
-            <tr><td class="form016-blue" colspan="4">{{ ['ingresos' => '22', 'egresos' => '23', 'aporte_unah' => '24'][$tipo] }}.&nbsp;&nbsp; {{ $titulo }} (manifestado en lempiras)</td></tr>
-            <tr>
-                <td class="form016-gray">Concepto</td>
-                <td class="form016-gray form016-center">Cantidad</td>
-                <td class="form016-gray form016-center">Costo unitario</td>
-                <td class="form016-gray form016-center">Costo Total</td>
-            </tr>
-            @foreach ($rows as $row)
-                <tr>
-                    <td>{{ $row['rubro'] }}</td>
-                    <td class="form016-center">{{ filled($row['cantidad']) ? $money($row['cantidad']) : '' }}</td>
-                    <td class="form016-center">{{ filled($row['costo_unitario']) ? $money($row['costo_unitario']) : '' }}</td>
-                    <td class="form016-center">{{ filled($row['total']) ? $money($row['total']) : '' }}</td>
-                </tr>
-            @endforeach
-            <tr>
-                <td class="form016-right form016-gray" colspan="3">Total {{ $titulo }}</td>
-                <td class="form016-center">{{ $money($presupuestosPorTipo->get($tipo)?->monto_solicitado ?? 0) }}</td>
-            </tr>
-        </table>
-    @endforeach
+    {!! $closePage !!}
+    {!! $openPage(6) !!}
 
+    <div class="form016-section">V.&nbsp;&nbsp;&nbsp;&nbsp; INFORMACION ACADEMICA DEL CERTIFICADO <span class="form016-note">(La informaci&oacute;n se transcribir&aacute; tal como aparece en el programa de estudio).<br>Nota: al finalizar la ficha, se deber&aacute; adjuntar copia de las descripciones m&iacute;nimas del plan de estudios oficial, foliado y sellado por la Secretar&iacute;a General de la UNAH</span></div>
     <table class="form016-table">
+        <tr><td class="form016-blue">20.&nbsp;&nbsp; RESUMEN DEL CERTIFICADO:</td></tr>
+        <tr><td class="form016-gray">20.1 Resultados de Aprendizaje (Redactar los resultados de aprendizaje, considerando los contenidos de los espacios de aprendizaje que integran el Certificado Universitario)</td></tr>
+        <tr><td class="form016-academic-field">{{ $value($accion->resumen) }}</td></tr>
+        <tr><td class="form016-gray">20.2 Impacto que se desea generar con la implementaci&oacute;n del Certificado; (cambios mencione tres como m&iacute;nimo y en 100 palabras)</td></tr>
+        <tr><td class="form016-academic-field">{{ $value($accion->impacto_esperado) }}</td></tr>
+        <tr><td class="form016-gray">20.3 Resumen de la log&iacute;stica que emplear&aacute; para el desarrollo de la actividad; (recursos materiales) papeler&iacute;a, salones, transporte otros</td></tr>
+        <tr><td class="form016-academic-field">{{ $value($accion->logistica) }}</td></tr>
+    </table>
+
+    {!! $closePage !!}
+    {!! $openPage(7) !!}
+
+    <div class="form016-section">VI.&nbsp;&nbsp;&nbsp; DETALLE DEL PRESUPUESTO</div>
+    <table class="form016-table form016-compact">
+        <colgroup>
+            <col style="width: 58%">
+            <col style="width: 21%">
+            <col style="width: 21%">
+        </colgroup>
         <tr>
-            <td class="form016-blue" style="width: 35%">25.&nbsp;&nbsp; Breve descripción en que se destinará el excedente</td>
+            <td class="form016-blue form016-center">Obtendr&aacute; ingresos por la actividad</td>
+            <td class="form016-blue form016-center">SI</td>
+            <td class="form016-blue form016-center">NO</td>
+        </tr>
+        <tr class="form016-center">
+            <td>&nbsp;</td>
+            <td>{{ $checkbox((bool) $accion->genera_ingresos) }}</td>
+            <td>{{ $checkbox(! $accion->genera_ingresos) }}</td>
+        </tr>
+    </table>
+
+    @php $ingresoRows = $budgetRows('ingresos', ['Cuotas de inscripción', 'Gestión de becas (donaciones)', 'Otros (describir brevemente)']); @endphp
+    <table class="form016-table form016-compact">
+        <colgroup>
+            <col style="width: 58%">
+            <col style="width: 12%">
+            <col style="width: 15%">
+            <col style="width: 15%">
+        </colgroup>
+        <tr><td class="form016-blue" colspan="4">3.&nbsp;&nbsp; Presupuesto de ingresos (manifestado en lempiras)</td></tr>
+        <tr>
+            <td class="form016-blue form016-center">Concepto</td>
+            <td class="form016-blue form016-center">Cantidad</td>
+            <td class="form016-blue form016-center">Costo<br>unitario</td>
+            <td class="form016-blue form016-center">Costo Total</td>
+        </tr>
+        @foreach ($ingresoRows as $index => $row)
+            <tr>
+                <td>{{ chr(97 + $index) }})&nbsp;&nbsp;{{ $row['rubro'] }}</td>
+                <td class="form016-center">{{ filled($row['cantidad']) ? $money($row['cantidad']) : '' }}</td>
+                <td class="form016-center">{{ filled($row['costo_unitario']) ? $money($row['costo_unitario']) : '' }}</td>
+                <td class="form016-center">{{ filled($row['total']) ? $money($row['total']) : '' }}</td>
+            </tr>
+        @endforeach
+        <tr>
+            <td class="form016-blue form016-right" colspan="3"><u>Total Ingresos</u></td>
+            <td class="form016-center">{{ $money($presupuestosPorTipo->get('ingresos')?->monto_solicitado ?? 0) }}</td>
+        </tr>
+    </table>
+
+    @php $egresoRows = $budgetRows('egresos', ['Pago de conferencistas / facilitadores', 'Gastos de materiales y suministros', 'Gastos de movilización (transporte, pasajes)', 'Gastos de manutención y hospedaje', 'Costos administrativos / Financieros', 'Otros']); @endphp
+    <table class="form016-table form016-compact">
+        <colgroup>
+            <col style="width: 58%">
+            <col style="width: 12%">
+            <col style="width: 15%">
+            <col style="width: 15%">
+        </colgroup>
+        <tr><td class="form016-blue" colspan="4">4.&nbsp;&nbsp; Presupuesto de egresos (manifestado en lempiras)</td></tr>
+        <tr>
+            <td class="form016-blue">Concepto</td>
+            <td class="form016-blue form016-center">Cantidad</td>
+            <td class="form016-blue form016-center">Costo<br>unitario</td>
+            <td class="form016-blue form016-center">Costo Total</td>
+        </tr>
+        @foreach ($egresoRows as $index => $row)
+            <tr>
+                <td>{{ chr(97 + $index) }})&nbsp;&nbsp;{{ $row['rubro'] }}</td>
+                <td class="form016-center">{{ filled($row['cantidad']) ? $money($row['cantidad']) : '' }}</td>
+                <td class="form016-center">{{ filled($row['costo_unitario']) ? $money($row['costo_unitario']) : '' }}</td>
+                <td class="form016-center">{{ filled($row['total']) ? $money($row['total']) : '' }}</td>
+            </tr>
+        @endforeach
+        <tr>
+            <td class="form016-blue form016-right" colspan="3"><u>Total egresos</u></td>
+            <td class="form016-center">{{ $money($presupuestosPorTipo->get('egresos')?->monto_solicitado ?? 0) }}</td>
+        </tr>
+        <tr>
+            <td class="form016-blue form016-center" colspan="3">Excedente que se espera lograr de la de la actividad (ingresos menos los egresos)</td>
+            <td class="form016-center">{{ $money(($presupuestosPorTipo->get('ingresos')?->monto_solicitado ?? 0) - ($presupuestosPorTipo->get('egresos')?->monto_solicitado ?? 0)) }}</td>
+        </tr>
+    </table>
+
+    <table class="form016-table form016-compact">
+        <tr>
+            <td class="form016-blue" style="width: 24%">5.&nbsp;&nbsp; Breve descripci&oacute;n en qu&eacute; se destinar&aacute; el excedente de la actividad</td>
             <td>{{ $value($accion->descripcion_excedente) }}</td>
         </tr>
         <tr>
-            <td class="form016-blue">26.&nbsp;&nbsp; Mecanismo de administración de la acción</td>
-            <td>FUNDAUNAH {{ $checkbox(str($accion->mecanismo_administracion)->lower()->contains('fundaunah')) }} &nbsp;&nbsp; Tesoreria de la UNAH {{ $checkbox(str($accion->mecanismo_administracion)->lower()->contains('tesorer')) }}</td>
+            <td class="form016-blue">6.&nbsp;&nbsp; Mecanismo de administraci&oacute;n de la acci&oacute;n</td>
+            <td>FUNDAUNAH {{ $checkbox(str($accion->mecanismo_administracion)->lower()->contains('fundaunah')) }} &nbsp;&nbsp;&nbsp;&nbsp; Tesorer&iacute;a de la UNAH {{ $checkbox(str($accion->mecanismo_administracion)->lower()->contains('tesorer')) }}</td>
         </tr>
     </table>
 
-    <div class="form016-section">VII.&nbsp;&nbsp; FIRMAS</div>
-    <table class="form016-table">
+    {!! $closePage !!}
+    {!! $openPage(8) !!}
+
+    @php
+        $aporteLabels = [
+            'Personal docente (horas de trabajo en la actividad)',
+            'Horas de participación de los estudiantes',
+            'Horas de participación de voluntarios',
+            'Útiles y materiales de oficina',
+            'Costos indirectos depreciación de equipo (3% de la suma de los conceptos a), b) c) anteriores',
+            'Costos indirectos servicios públicos (3% de la suma de los conceptos a), b) y c) anteriores',
+        ];
+        $aporteRows = $budgetRows('aporte_unah', $aporteLabels);
+    @endphp
+    <table class="form016-table form016-compact">
+        <colgroup>
+            <col style="width: 58%">
+            <col style="width: 12%">
+            <col style="width: 15%">
+            <col style="width: 15%">
+        </colgroup>
+        <tr><td class="form016-blue" colspan="4">7.&nbsp;&nbsp; Aporte de la UNAH <span class="form016-small">(Esta tabla se completa siempre)</span></td></tr>
         <tr>
-            <td class="form016-gray form016-center">Jefe de Departamento</td>
-            <td class="form016-gray form016-center">Comite de vinculacion</td>
-            <td class="form016-gray form016-center">Decano(a) o Director(a) del Centro Regional</td>
+            <td class="form016-blue form016-center">Concepto</td>
+            <td class="form016-blue form016-center">Cantidad</td>
+            <td class="form016-blue form016-center">Costo<br>unitario</td>
+            <td class="form016-blue form016-center">Costo Total</td>
         </tr>
+        @foreach ($aporteRows as $index => $row)
+            <tr>
+                <td>{{ chr(97 + $index) }})&nbsp;&nbsp;{{ $aporteLabels[$index] ?? $row['rubro'] }}</td>
+                <td class="form016-center">{{ filled($row['cantidad']) ? $money($row['cantidad']) : '' }}</td>
+                <td class="form016-center">{{ filled($row['costo_unitario']) ? $money($row['costo_unitario']) : '' }}</td>
+                <td class="form016-center">{{ filled($row['total']) ? $money($row['total']) : '' }}</td>
+            </tr>
+        @endforeach
         <tr>
-            <td class="form016-signature">Nombre: {{ $firmasPorRol->get('Jefe de Departamento')?->nombre_firmante }}<br><br>Firma:</td>
-            <td class="form016-signature">Nombre: {{ $firmasPorRol->get('Comité de vinculación')?->nombre_firmante ?? $firmasPorRol->get('Comite de vinculacion')?->nombre_firmante }}<br><br>Firma:</td>
-            <td class="form016-signature">Nombre: {{ $firmasPorRol->get('Decano(a) o Director(a) del Centro Regional')?->nombre_firmante }}<br><br>Nombre, firma y sello:</td>
+            <td class="form016-blue form016-right" colspan="3"><u>Total aporte UNAH</u></td>
+            <td class="form016-center">{{ $money($presupuestosPorTipo->get('aporte_unah')?->monto_solicitado ?? 0) }}</td>
         </tr>
     </table>
 
-    <div class="form016-section">VIII.&nbsp;&nbsp; DOCUMENTOS ADJUNTOS A LA FICHA</div>
+    <div class="form016-firmas-title">VII.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FIRMAS</div>
     <table class="form016-table">
+        <colgroup>
+            <col style="width: 50%">
+            <col style="width: 50%">
+        </colgroup>
         <tr>
-            <td class="form016-blue form016-center" style="width: 7%">No</td>
-            <td class="form016-blue form016-center">Descripcion</td>
-            <td class="form016-blue form016-center" style="width: 8%">Si</td>
-            <td class="form016-blue form016-center" style="width: 8%">No</td>
-            @unless ($isPdf)
-                <td class="form016-blue form016-center" style="width: 20%">Archivo</td>
-            @endunless
+            <td class="form016-blue form016-center">Jefe de Departamento</td>
+            <td class="form016-blue form016-center">Comit&eacute; de vinculaci&oacute;n</td>
         </tr>
-        @forelse ($accion->documentos->values() as $documento)
-            @php
-                $tieneArchivo = filled($documento->ruta) && $documento->ruta !== 'pendiente';
-                $documentoUrl = $tieneArchivo ? \Illuminate\Support\Facades\Storage::url($documento->ruta) : null;
-            @endphp
-            <tr>
-                <td class="form016-center">{{ $loop->iteration }}</td>
-                <td>{{ $documento->nombre ?: ($documento->descripcion ?: 'Documento adjunto') }}</td>
-                <td class="form016-center">X</td>
-                <td class="form016-center"></td>
-                @unless ($isPdf)
-                    <td class="form016-center">
-                        @if ($documentoUrl)
-                            <div class="form016-file-actions">
-                                <a href="{{ $documentoUrl }}" target="_blank" rel="noopener" class="form016-file-button">Ver</a>
-                                <a href="{{ $documentoUrl }}" download class="form016-file-button">Descargar</a>
-                            </div>
-                        @else
-                            Pendiente
-                        @endif
-                    </td>
-                @endunless
-            </tr>
-        @empty
-            <tr>
-                <td class="form016-center">1</td>
-                <td>Descripciones minimas del plan de estudios oficial</td>
-                <td class="form016-center"></td>
-                <td class="form016-center">X</td>
-                @unless ($isPdf)
-                    <td></td>
-                @endunless
-            </tr>
-        @endforelse
+        <tr>
+            <td class="form016-signature-box">Nombre:</td>
+            <td class="form016-signature-box">Firma:</td>
+        </tr>
+        <tr><td class="form016-signature-spacer" colspan="2">&nbsp;</td></tr>
+        <tr><td class="form016-blue form016-center" colspan="2">Decano (a) o Director (a) del Centro Regional</td></tr>
+        <tr><td colspan="2">Nombre:</td></tr>
+        <tr><td class="form016-signature-large" colspan="2">&nbsp;</td></tr>
+        <tr><td class="form016-gray form016-center" colspan="2">Nombre, firma y sello</td></tr>
     </table>
+
     {!! $closePage !!}
 </div>
 

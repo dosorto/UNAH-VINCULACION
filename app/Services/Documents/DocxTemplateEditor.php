@@ -12,6 +12,8 @@ class DocxTemplateEditor
 {
     private const WORD_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 
+    private const FORM_FIELD_HALF_POINTS = 16;
+
     private DOMDocument $document;
 
     private DOMXPath $xpath;
@@ -108,25 +110,43 @@ class DocxTemplateEditor
             $run = $this->document->createElementNS(self::WORD_NS, 'w:r');
             $paragraph->appendChild($run);
         }
-        $text = $texts[0] ?? null;
-        if ($text instanceof DOMElement && $text->parentNode instanceof DOMElement && $text->parentNode->localName === 'r') {
-            $run = $text->parentNode;
-        } elseif (! $text instanceof DOMElement) {
-            $text = $this->document->createElementNS(self::WORD_NS, 'w:t');
-            $run->appendChild($text);
+        $runProperties = $this->xpath->query('./w:rPr', $run)->item(0);
+        $paragraphRuns = iterator_to_array($this->xpath->query('./w:r', $paragraph));
+        foreach ($paragraphRuns as $paragraphRun) {
+            $paragraphRun->parentNode?->removeChild($paragraphRun);
         }
 
-        $lines = preg_split('/\R/u', $value) ?: [''];
-        $text->setAttribute('xml:space', 'preserve');
-        $text->appendChild($this->document->createTextNode(array_shift($lines) ?? ''));
-        $this->applyControlledFontSize($run, $value);
-        foreach ($lines as $line) {
-            $break = $this->document->createElementNS(self::WORD_NS, 'w:br');
-            $nextText = $this->document->createElementNS(self::WORD_NS, 'w:t');
-            $nextText->setAttribute('xml:space', 'preserve');
-            $nextText->appendChild($this->document->createTextNode($line));
-            $run->appendChild($break);
-            $run->appendChild($nextText);
+        $parts = preg_split('/^([^:]+:\s*)/u', $value, 2, PREG_SPLIT_DELIM_CAPTURE);
+        $hasLabel = count($parts) === 3 && trim((string) $parts[1]) !== '';
+        $label = $hasLabel ? (string) $parts[1] : '';
+        $response = $hasLabel ? (string) $parts[2] : $value;
+
+        if ($hasLabel) {
+            $labelRun = $this->document->createElementNS(self::WORD_NS, 'w:r');
+            if ($runProperties instanceof DOMElement) {
+                $labelRun->appendChild($runProperties->cloneNode(true));
+            }
+            $this->setRunFontSize($labelRun, self::FORM_FIELD_HALF_POINTS);
+            $paragraph->appendChild($labelRun);
+            $this->appendRunText($labelRun, $label);
+
+            $responseRun = $this->document->createElementNS(self::WORD_NS, 'w:r');
+            if ($runProperties instanceof DOMElement) {
+                $responseProperties = $runProperties->cloneNode(true);
+                foreach (['b', 'bCs', 'i', 'iCs'] as $styleName) {
+                    foreach ($this->xpath->query('./w:'.$styleName, $responseProperties) as $style) {
+                        $responseProperties->removeChild($style);
+                    }
+                }
+                $responseRun->appendChild($responseProperties);
+            }
+            $this->setRunFontSize($responseRun, self::FORM_FIELD_HALF_POINTS);
+            $paragraph->appendChild($responseRun);
+            $this->appendRunText($responseRun, $response);
+        } else {
+            $paragraph->appendChild($run);
+            $this->appendRunText($run, $response);
+            $this->setRunFontSize($run, self::FORM_FIELD_HALF_POINTS);
         }
 
         $width = (int) $this->xpath->evaluate('string(./w:tcPr/w:tcW/@w:w)', $cell);
@@ -149,16 +169,22 @@ class DocxTemplateEditor
         }
     }
 
-    private function applyControlledFontSize(DOMElement $run, string $value): void
+    private function appendRunText(DOMElement $run, string $value): void
     {
-        $length = mb_strlen($value);
-        $halfPoints = str_contains($value, '@')
-            ? 14
-            : ($length > 600 ? 14 : ($length > 300 ? 16 : null));
-        if ($halfPoints === null) {
-            return;
+        $lines = preg_split('/\R/u', $value) ?: [''];
+        foreach ($lines as $index => $line) {
+            if ($index > 0) {
+                $run->appendChild($this->document->createElementNS(self::WORD_NS, 'w:br'));
+            }
+            $text = $this->document->createElementNS(self::WORD_NS, 'w:t');
+            $text->setAttribute('xml:space', 'preserve');
+            $text->appendChild($this->document->createTextNode($line));
+            $run->appendChild($text);
         }
+    }
 
+    private function setRunFontSize(DOMElement $run, int $halfPoints): void
+    {
         $properties = $this->child($run, 'rPr', true);
         foreach (['sz', 'szCs'] as $name) {
             $size = $this->xpath->query('./w:'.$name, $properties)->item(0);

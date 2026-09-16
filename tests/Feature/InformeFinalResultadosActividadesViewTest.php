@@ -15,13 +15,20 @@ class InformeFinalResultadosActividadesViewTest extends TestCase
         $this->assertStringContainsString("@include('livewire.proyectos.informe-final.partials.resultados-actividades')", $view);
         $this->assertStringContainsString('No hay resultados registrados.', $partial);
         $this->assertStringContainsString('No hay actividades ejecutadas registradas.', $partial);
-        $this->assertStringNotContainsString("quitarFila('resultados'", $partial);
         $this->assertStringContainsString('wire:confirm="¿Eliminar esta actividad?"', $partial);
-        $this->assertStringContainsString('Agregar resultado', $partial);
         $this->assertStringContainsString('Agregar actividad ejecutada', $partial);
-        $this->assertStringNotContainsString('Editar resultado', $partial);
         $this->assertStringNotContainsString('aria-label="Editar actividad"', $partial);
         $this->assertStringNotContainsString('openActividadModal({{ $i }}, true)', $partial);
+
+        // Resultados: tabla con edición en línea (sin modal, sin alta), separados por plazo.
+        $this->assertStringNotContainsString('$showResultadoModal', $partial);
+        $this->assertStringNotContainsString("quitarFila('resultados'", $partial);
+        $this->assertStringNotContainsString('Agregar resultado', $partial);
+        $this->assertStringContainsString('Resultados por objetivo específico', $partial);
+        $this->assertStringContainsString('Resultados de mediano y largo plazo', $partial);
+        $this->assertStringContainsString('<table class="w-full min-w-[1100px]', $partial);
+        $this->assertStringContainsString('$this->resultadosCortoPlazo', $partial);
+        $this->assertStringContainsString('$this->resultadosMedianoLargoPlazo', $partial);
     }
 
     public function test_los_modales_exponen_las_acciones_y_campos_de_las_colecciones_existentes(): void
@@ -29,7 +36,7 @@ class InformeFinalResultadosActividadesViewTest extends TestCase
         $component = file_get_contents(app_path('Livewire/Proyectos/InformeFinal/EditInformeFinalProyecto.php'));
         $partial = file_get_contents(resource_path('views/livewire/proyectos/informe-final/partials/resultados-actividades.blade.php'));
 
-        foreach (['openResultadoModal', 'guardarResultadoModal', 'openActividadModal', 'guardarActividadModal'] as $method) {
+        foreach (['recalcularCumplimientoResultado', 'protegerResultadosPlanificados', 'openActividadModal', 'guardarActividadModal'] as $method) {
             $this->assertStringContainsString('function '.$method, $component);
         }
 
@@ -37,9 +44,10 @@ class InformeFinalResultadosActividadesViewTest extends TestCase
             $this->assertStringContainsString($field, $partial);
         }
 
-        $this->assertStringContainsString('wire:click="openResultadoModal({{ $i }})"', $partial);
-        $this->assertStringNotContainsString('openResultadoModal({{ $i }}, true)', $partial);
-        $this->assertStringContainsString('foreach ([\'resultado_esperado_id\', \'objetivo_especifico\'', $component);
+        // El % de cumplimiento y el estado son de solo lectura (calculados), no inputs editables.
+        $this->assertStringNotContainsString('resultados.{{ $i }}.porcentaje_cumplimiento', $partial);
+        $this->assertStringNotContainsString('wire:model.live="resultados.{{ $i }}.estado"', $partial);
+        $this->assertStringContainsString('se calculan automáticamente', $partial);
     }
 
     public function test_el_periodo_de_actividad_se_presenta_en_formato_dia_mes_anio(): void
@@ -92,7 +100,7 @@ class InformeFinalResultadosActividadesViewTest extends TestCase
         $seccion = substr($view, $inicio, $fin - $inicio);
         $campos = ['dificultades', 'acciones_dificultades', 'lecciones_aprendidas', 'buenas_practicas', 'problema_inicial', 'transformacion_lograda', 'mecanismos_sostenibilidad', 'acciones_contraparte_sostenibilidad', 'desafios', 'respuesta_reforma_universitaria', 'recomendaciones', 'bibliografia'];
 
-        $this->assertStringContainsString('mt-5 space-y-4', $seccion);
+        $this->assertStringContainsString('mt-4 space-y-3', $seccion);
         $this->assertStringNotContainsString('md:grid-cols-2', $seccion);
         $this->assertStringContainsString('<div class="w-full"><label class="{{ $label }}">{{ $name }}</label><textarea rows="4" wire:model.live.debounce.1000ms="general.{{ $field }}" @readonly($this->esCampoReflexionHeredado($field))', $seccion);
         $this->assertStringNotContainsString('@disabled($this->esCampoReflexionHeredado($field))', $seccion);

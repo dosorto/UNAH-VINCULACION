@@ -505,14 +505,8 @@
             </div>
 
             <div class="{{ $card }} hidden" data-step-panel="10">
-                <h2 class="{{ $sectionTitle }}">10. Documentos adjuntos y firmas</h2>
+                <h2 class="{{ $sectionTitle }}">10. Firmas</h2>
                 <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    <section>
-                        <label class="{{ $label }}">Descripciones mínimas del plan de estudios oficial</label>
-                        <input type="file" name="documentos_archivos[descripcion_plan_estudios]" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full text-sm text-gray-600 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100 dark:text-gray-300">
-                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">PDF, Word o imagen. Máximo 10 MB.</p>
-                        @error('documentos_archivos.descripcion_plan_estudios')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                    </section>
                     <section>
                         <h3 class="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Firmas requeridas</h3>
                         <div class="space-y-3">

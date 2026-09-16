@@ -173,6 +173,7 @@ class InformeFinalProyectoInitializer
                 foreach ($objetivo->resultados as $resultado) {
                     $informe->resultados()->create([
                         'resultado_esperado_id' => $resultado->id,
+                        'plazo' => $resultado->plazo ?: 'corto_plazo',
                         'objetivo_especifico' => $objetivo->descripcion,
                         'resultado_planificado' => $resultado->nombre_resultado ?: $objetivo->descripcion,
                         'indicador_propuesto' => $resultado->nombre_indicador,
@@ -188,6 +189,7 @@ class InformeFinalProyectoInitializer
                 $etiqueta = 'Resultado de '.lcfirst($resultado->plazo_formateado).' del proyecto';
                 $informe->resultados()->create([
                     'resultado_esperado_id' => $resultado->id,
+                    'plazo' => $resultado->plazo ?: 'mediano_plazo',
                     'objetivo_especifico' => $etiqueta,
                     'resultado_planificado' => $resultado->nombre_resultado ?: $etiqueta,
                     'indicador_propuesto' => $resultado->nombre_indicador,
