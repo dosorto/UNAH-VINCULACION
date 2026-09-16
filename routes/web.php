@@ -447,7 +447,10 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('permission:docente.crear-proyecto|docente.proyectos|proyectos.historial');
         Route::get('/pasantias/{id}/pdf', function (int $id) {
             $registro = \App\Models\Pasantia::findOrFail($id);
-            abort_unless($registro->created_by === auth()->id() || auth()->user()?->can('proyectos.historial'), 403);
+            abort_unless($registro->created_by === auth()->id()
+                || auth()->user()?->can('proyectos.historial')
+                || auth()->user()?->can('docente.proyectos')
+                || $registro->usuarioPuedeRevisar(auth()->user()), 403);
             $tipo = request()->query('tipo', 'formulario');
             abort_unless(in_array($tipo, ['formulario', 'solicitud_practica', 'autorizacion_pps'], true), 404);
             $doc = $registro->documentosGenerados()->where('tipo', $tipo)->latest('version')->firstOrFail();

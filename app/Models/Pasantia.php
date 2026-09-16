@@ -77,9 +77,18 @@ class Pasantia extends Model
 
     public function getEstadoAttribute(): string
     {
-        return match ($this->estadoActual?->tipoestado?->nombre) {
+        $estado = $this->estadoActual?->tipoestado?->nombre;
+
+        if ($estado === null) {
+            $estado = $this->getRawOriginal('estado');
+        }
+
+        return match ($estado) {
             'Aprobado' => 'aprobado', 'Rechazado' => 'rechazado', 'Subsanacion' => 'subsanacion',
-            'Borrador' => 'borrador', default => $this->estadoActual ? 'enviado' : 'borrador',
+            'Borrador' => 'borrador', 'Enviado', 'En revisión' => 'en_revision',
+            'subsanacion' => 'subsanacion', 'en_revision', 'enviado' => 'en_revision',
+            'borrador' => 'borrador',
+            default => $estado ? 'en_revision' : 'borrador',
         };
     }
 
@@ -97,5 +106,49 @@ class Pasantia extends Model
     public function puedeEliminarBorrador(?int $userId): bool
     {
         return $this->perteneceAlUsuario($userId) && $this->estado === 'borrador';
+    }
+
+    public function camposFaltantesParaEnvio(): array
+    {
+        return app(\App\Services\Pasantias\PasantiaWorkflowService::class)->camposFaltantesParaEnvio($this);
+    }
+
+    public function usuarioPuedeRevisar(?object $user): bool
+    {
+        if (!$user || empty($user->active_role_id) || !$this->etapa_actual_id) return false;
+        if ($user->activeRole?->name === 'admin') return true;
+        $firma = $this->firmasDeEtapa()->where('flujo_aprobacion_etapa_id', $this->etapa_actual_id)
+            ->where('estado_revision', 'Pendiente')->first();
+        if (!$firma) return false;
+        $role = $user->activeRole?->name;
+        return $firma->responsable_usuario_id
+            ? (int) $firma->responsable_usuario_id === (int) $user->id && (!$firma->rol_requerido || $firma->rol_requerido === $role)
+            : filled($firma->rol_requerido) && $firma->rol_requerido === $role;
+    }
+
+    public function estaEnRevision(): bool
+    {
+        return $this->estado === 'en_revision' && $this->usuarioPuedeRevisar(auth()->user());
+    }
+
+    public function puedeAprobarse(?int $userId, ?object $user = null): bool
+    {
+        return $this->estado === 'en_revision' && $this->usuarioPuedeRevisar($user ?: auth()->user());
+    }
+
+    public function puedeRechazarse(?int $userId, ?object $user = null): bool
+    {
+        return $this->puedeAprobarse($userId, $user);
+    }
+
+    public function puedeSubsanarse(?int $userId): bool
+    {
+        return $this->estado === 'rechazado' && $this->perteneceAlUsuario($userId)
+            && filled($this->flujo_aprobacion_id) && filled($this->etapa_actual_id);
+    }
+
+    public function puedeDescargarPdf(?int $userId, ?object $user = null): bool
+    {
+        return $this->perteneceAlUsuario($userId) || $this->usuarioPuedeRevisar($user);
     }
 }

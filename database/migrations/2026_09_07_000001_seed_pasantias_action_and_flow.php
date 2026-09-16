@@ -78,7 +78,11 @@ return new class extends Migration
                 'nombre' => 'Revisión inicial de Pasantías',
                 'tipo_etapa' => 'REVISION',
                 'cargo_firma_id' => $cargoFirmaId,
-                'requiere_asignacion' => true,
+                // La etapa inicial usa el rol del cargo de firma cuando no se
+                // ha definido un responsable fijo desde Configuración →
+                // Flujos. Así un borrador nuevo puede iniciar el flujo y el
+                // responsable queda sujeto a la configuración del rol.
+                'requiere_asignacion' => false,
                 'emisor_define_destinatario' => false,
                 'activo' => true,
                 'created_at' => $now,
