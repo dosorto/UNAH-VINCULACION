@@ -1416,6 +1416,27 @@ class Proyecto extends Model
      *
      * @return Collection<int, array{etapa: FlujoAprobacionEtapa, firma: ?FirmaProyecto, adoptada_antes: bool}>
      */
+    public function etapasInscripcionCompletadasAntesDeAdopcion(): Collection
+    {
+        $adopcion = $this->adopcionFlujoLegacy()->first();
+
+        if (! $adopcion
+            || (int) $adopcion->flujo_aprobacion_id !== (int) $this->flujo_aprobacion_id
+            || $adopcion->proceso !== self::FLUJO_INSCRIPCION
+        ) {
+            return collect();
+        }
+
+        // La evidencia conserva las etapas que ya se habían completado;
+        // el orden editable del catálogo no debe cambiar ese historial.
+        return collect($adopcion->evidencia['etapas_anteriores'] ?? [])
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values();
+    }
+
     public function firmasParaFicha(string $proceso = self::FLUJO_INSCRIPCION, ?DocumentoProyecto $documento = null): Collection
     {
         $etapasFirmantes = $this->flujoEtapasActivasOrdenadas($proceso)
@@ -1439,17 +1460,15 @@ class Proyecto extends Model
                 ->groupBy('flujo_aprobacion_etapa_id')
             : collect();
 
-        $adopcion = ! $documento && $proceso === self::FLUJO_INSCRIPCION
-            ? $this->adopcionFlujoLegacy()->first()
-            : null;
+        $etapasAdoptadas = ! $documento && $proceso === self::FLUJO_INSCRIPCION
+            ? $this->etapasInscripcionCompletadasAntesDeAdopcion()
+            : collect();
 
         return $etapasFirmantes->map(fn (FlujoAprobacionEtapa $etapa) => [
             'etapa' => $etapa,
             'firma' => $firmasPorEtapa->get($etapa->id)?->first(),
-            'adoptada_antes' => $adopcion !== null && (
-                $adopcion->modo === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_COMPLETADO
-                || ($adopcion->orden_inicio !== null && (int) $etapa->orden < (int) $adopcion->orden_inicio)
-            ),
+            'adoptada_antes' => $etapasAdoptadas->contains((int) $etapa->id)
+                && ! $firmasPorEtapa->has($etapa->id),
         ]);
     }
 
@@ -1481,17 +1500,15 @@ class Proyecto extends Model
                 ->groupBy('flujo_aprobacion_etapa_id')
             : collect();
 
-        $adopcion = ! $documento && $proceso === self::FLUJO_INSCRIPCION
-            ? $this->adopcionFlujoLegacy()->first()
-            : null;
+        $etapasAdoptadas = ! $documento && $proceso === self::FLUJO_INSCRIPCION
+            ? $this->etapasInscripcionCompletadasAntesDeAdopcion()
+            : collect();
 
         return $etapas->map(fn (FlujoAprobacionEtapa $etapa) => [
             'etapa' => $etapa,
             'firma' => $firmasPorEtapa->get($etapa->id)?->first(),
-            'adoptada_antes' => $adopcion !== null && (
-                $adopcion->modo === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_COMPLETADO
-                || ($adopcion->orden_inicio !== null && (int) $etapa->orden < (int) $adopcion->orden_inicio)
-            ),
+            'adoptada_antes' => $etapasAdoptadas->contains((int) $etapa->id)
+                && ! $firmasPorEtapa->has($etapa->id),
         ]);
     }
 
@@ -1770,13 +1787,7 @@ class Proyecto extends Model
     protected function firmasBaseParaNuevoCicloDesdeRechazo(FirmaProyecto $firmaRechazada, Collection $firmasCiclo): Collection
     {
         $plan = app(WorkflowResumptionPolicy::class)->plan(
-            $firmasCiclo
-                ->reject(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Anulado')
-                // Una etapa enviada a "todos los usuarios del rol" puede tener
-                // varias firmas Pendiente candidatas para la misma etapa (aún
-                // no alcanzada): WorkflowResumptionPolicy asume una firma por
-                // etapa, así que se colapsa a una sola representante.
-                ->unique(fn (FirmaProyecto $firma): int => (int) $firma->flujo_aprobacion_etapa_id)
+            app(ProyectoWorkflowService::class)->firmasParaReanudacion($firmasCiclo)
                 ->map(fn (FirmaProyecto $firma): array => [
                     'stage_id' => (int) $firma->flujo_aprobacion_etapa_id,
                     'order' => (int) $firma->orden_revision,
@@ -2181,7 +2192,7 @@ class Proyecto extends Model
 
             $firmasCreadas = $this->sincronizarFirmasDeEtapasDelFlujo($empleadosPorEtapa, $proceso, $documento, 1);
 
-            if ($firmasCreadas->count() !== $etapas->count()) {
+            if ($firmasCreadas->pluck('flujo_aprobacion_etapa_id')->unique()->count() !== $etapas->count()) {
                 throw new \RuntimeException('No se pudieron crear todas las firmas del flujo. Revise roles y responsables configurados.');
             }
 

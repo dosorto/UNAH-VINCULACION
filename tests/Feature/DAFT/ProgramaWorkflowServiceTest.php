@@ -702,7 +702,8 @@ class ProgramaWorkflowServiceTest extends TestCase
         $this->assertSame('SUBSANACION', $programa->fresh()->estado_flujo);
         $this->assertCount(0, $programa->revisiones()->where('revision_ciclo', 2)->get());
 
-        $service->enviarARevision($programa->fresh(), $revisor, [$etapa->id => $reemplazo->id]);
+        $service->enviarARevision($programa->fresh(), $revisor, $flujo->etapas
+            ->mapWithKeys(fn ($etapaHistorica): array => [$etapaHistorica->id => $reemplazo->id])->all());
         $revisionSubsanada = $programa->fresh()->etapaActual();
 
         $this->assertSame('ASIGNADO', $revisionSubsanada?->estado);

@@ -10,6 +10,7 @@ use App\Models\Proyecto\FlujoAprobacionEtapa;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
 use App\Services\Workflow\WorkflowResumptionPolicy;
+use App\Services\Proyecto\ProyectoWorkflowService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -78,7 +79,7 @@ trait ReenviaDesdeSubsanacionPorEtapa
 
         $empleadosPorEtapa = [];
 
-        foreach ($firmas as $firma) {
+        foreach (app(ProyectoWorkflowService::class)->firmasParaReanudacion($firmas) as $firma) {
             $etapaId = (int) $firma->flujo_aprobacion_etapa_id;
             $nombreEtapa = $firma->etapa_nombre ?: $firma->flujoEtapa?->nombre ?: 'sin nombre';
 
@@ -138,7 +139,7 @@ trait ReenviaDesdeSubsanacionPorEtapa
             ->filter(fn (FirmaProyecto $firma): bool => (int) $firma->orden_revision >= (int) $firmaRechazada->orden_revision)
             ->values();
 
-        return $firmas
+        return app(ProyectoWorkflowService::class)->firmasParaReanudacion($firmas)
             ->filter(fn (FirmaProyecto $firma): bool => ! app(WorkflowResumptionPolicy::class)->eligibleRecipient(
                 $firma->empleado?->user,
                 $firma->rol_requerido,

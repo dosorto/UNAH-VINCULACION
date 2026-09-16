@@ -29,6 +29,7 @@ final class ProyectoFlujoStepper
                 $estado = 'aprobado';
             } elseif ($firma?->estado_revision === 'Rechazado') {
                 $estado = 'rechazado';
+                $actualMarcado = true;
             } elseif ($firma?->estado_revision === 'Pendiente' && ! $actualMarcado) {
                 $estado = 'actual';
                 $actualMarcado = true;

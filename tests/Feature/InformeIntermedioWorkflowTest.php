@@ -269,6 +269,50 @@ class InformeIntermedioWorkflowTest extends TestCase
         $workflow->resolverEmpleados($contexto['proyecto']->fresh(), Proyecto::FLUJO_INFORME_INTERMEDIO);
     }
 
+    public function test_informe_con_etapas_compartidas_notifica_a_todos_y_reanuda_sin_perder_el_revisor_que_subsano(): void
+    {
+        $contexto = $this->contexto();
+        $rol = Role::create(['name' => 'Revisores compartidos '.uniqid(), 'guard_name' => 'web']);
+        $contexto['usuario']->assignRole($rol);
+        $contexto['usuario']->update(['active_role_id' => $rol->id]);
+        $otro = User::factory()->create(['active_role_id' => $rol->id]);
+        $otro->assignRole($rol);
+        $otroEmpleado = Empleado::create([
+            'nombre_completo' => 'Segundo revisor', 'numero_empleado' => 'REV-'.uniqid(), 'user_id' => $otro->id,
+        ]);
+        foreach ($contexto['etapas']->slice(3) as $etapa) {
+            $etapa->update(['usuario_responsable_id' => null, 'rol_revisor_id' => $rol->id, 'requiere_asignacion' => false]);
+        }
+        $proyecto = $contexto['proyecto']->fresh();
+        $workflow = app(InformeIntermedioProyectoWorkflowService::class);
+        $informe = $workflow->guardarArchivo($proyecto, $this->pdf(), $contexto['usuario']);
+        $documento = $workflow->enviar($informe, $contexto['usuario']);
+
+        $this->assertSame(4, $documento->firma_documento()->count());
+        foreach ([$contexto['usuario'], $otro] as $revisor) {
+            Mail::assertQueued(EtapaFlujoPendiente::class, fn (EtapaFlujoPendiente $mail): bool =>
+                $mail->hasTo($revisor->email) && $mail->etapa->id === $contexto['etapas'][3]->id);
+        }
+        $rechazada = $documento->firma_documento()
+            ->where('flujo_aprobacion_etapa_id', $contexto['etapas'][3]->id)
+            ->where('empleado_id', $otroEmpleado->id)->firstOrFail();
+        $this->harness()->rechazarEtapa($rechazada, $otro, 'Corregir el informe.');
+        // El primer candidato de la etapa posterior deja de ser elegible;
+        // el segundo sigue disponible y no debe pedirse un reemplazo.
+        $contexto['usuario']->removeRole($rol);
+        $this->assertEmpty(app(ProyectoWorkflowService::class)->destinatariosSeleccionables(
+            $proyecto->fresh(), Proyecto::FLUJO_INFORME_INTERMEDIO
+        ));
+        $workflow->enviar($informe->fresh(), $contexto['usuario']);
+        $nuevas = $documento->firma_documento()->where('revision_ciclo', 2)->orderBy('orden_revision')->get();
+        $this->assertSame([4, 5], $nuevas->pluck('orden_revision')->all());
+        $this->assertSame([$otroEmpleado->id, $otroEmpleado->id], $nuevas->pluck('empleado_id')->all());
+        $this->assertSame($otro->id, $nuevas->first()->responsable_usuario_id);
+        $this->harness()->aprobarEtapa($nuevas[0], $otro);
+        $this->harness()->aprobarEtapa($nuevas[1]->fresh(), $otro);
+        $this->assertSame(InformeIntermedioProyecto::ESTADO_APROBADO, $informe->fresh()->estado);
+    }
+
     private function contexto(bool $inscripcionAprobada = true, bool $conFirma = true): array
     {
         $usuario = User::factory()->create();

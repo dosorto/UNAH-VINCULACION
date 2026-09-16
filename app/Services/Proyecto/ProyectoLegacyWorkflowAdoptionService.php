@@ -308,6 +308,7 @@ final class ProyectoLegacyWorkflowAdoptionService
                         'etapa_nombre' => $etapa->nombre,
                         'rol_requerido' => $etapa->rolRevisor?->name,
                         'responsable_usuario_id' => $usuario->id,
+                        'requiere_asignacion' => (bool) $etapa->requiere_asignacion,
                         'revision_ciclo' => 1,
                         'estado_revision' => $modo === self::MODO_SUBSANACION && $indice === 0
                             ? 'Rechazado'
@@ -609,6 +610,10 @@ final class ProyectoLegacyWorkflowAdoptionService
                 return [$coincidencias->first(), 'Se identificó por la firma legacy que solicitó la subsanación.'];
             }
 
+            if ($rechazadas->isNotEmpty()) {
+                return [null, 'La etapa que solicitó la subsanación no tiene una correspondencia única en el flujo seleccionado.'];
+            }
+
             $estadosAnteriores = $proyecto->estado_proyecto()
                 ->where('id', '!=', $proyecto->estado?->id)
                 ->latest('id')
@@ -619,6 +624,10 @@ final class ProyectoLegacyWorkflowAdoptionService
 
                 if ($coincidencias->count() === 1) {
                     return [$coincidencias->first(), 'Se identificó por el estado inmediatamente anterior a la subsanación.'];
+                }
+
+                if (CargoFirma::query()->where('descripcion', 'Proyecto')->where('tipo_estado_id', $tipoEstadoId)->exists()) {
+                    return [null, 'La etapa anterior a la subsanación no tiene una correspondencia única en el flujo seleccionado.'];
                 }
             }
         }

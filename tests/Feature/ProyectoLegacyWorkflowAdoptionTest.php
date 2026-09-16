@@ -7,6 +7,7 @@ use App\Mail\EtapaFlujoPendiente;
 use App\Models\Estado\EstadoProyecto;
 use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
+use App\Models\Personal\EmpleadoProyecto;
 use App\Models\Proyecto\CargoFirma;
 use App\Models\Proyecto\FlujoAprobacion;
 use App\Models\Proyecto\FlujoAprobacionEtapa;
@@ -14,6 +15,8 @@ use App\Models\Proyecto\Proyecto;
 use App\Models\Proyecto\TipoCargoFirma;
 use App\Models\User;
 use App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService;
+use App\Services\Proyecto\ProyectoWorkflowService;
+use App\Services\InformeIntermedio\InformeIntermedioProyectoWorkflowService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
@@ -300,6 +303,147 @@ class ProyectoLegacyWorkflowAdoptionTest extends TestCase
             'flujo_aprobacion_etapa_id' => $contexto['etapas'][0]->id,
             'responsable_usuario_id' => $contexto['usuarios'][0]->id,
         ]);
+    }
+
+    public function test_adopcion_intermedia_completa_inscripcion_y_habilita_informes_al_aprobar_el_recorrido_restante(): void
+    {
+        Mail::fake();
+        $contexto = $this->crearContexto(3, 2, 'En revision');
+        $this->prepararInformes($contexto);
+        app(ProyectoLegacyWorkflowAdoptionService::class)->adoptar(
+            $contexto['proyecto'], $contexto['flujo'],
+            ProyectoLegacyWorkflowAdoptionService::MODO_EN_REVISION,
+            $contexto['etapas'][1]->id,
+            [$contexto['etapas'][1]->id => $contexto['usuarios'][1]->id,
+                $contexto['etapas'][2]->id => $contexto['usuarios'][2]->id],
+            $contexto['actor']
+        );
+        $workflow = app(ProyectoWorkflowService::class);
+        $this->assertFalse($workflow->inscripcionCompletada($contexto['proyecto']->fresh()));
+
+        foreach ($contexto['proyecto']->firmasDeEtapasDelFlujo($contexto['flujo']->id, 1) as $firma) {
+            $this->actingAs($firma->responsableUsuario);
+            (new \App\Livewire\Docente\Proyectos\ProyectosPorFirmar)->aprobar($firma->id);
+            $this->assertSame('Aprobado', $firma->fresh()->estado_revision);
+        }
+
+        $proyecto = $contexto['proyecto']->fresh();
+        $this->assertSame('En curso', $proyecto->estado->tipoestado->nombre);
+        $this->assertTrue($workflow->inscripcionCompletada($proyecto));
+        $this->assertTrue(app(InformeIntermedioProyectoWorkflowService::class)->estaDisponible($proyecto, $contexto['actor']));
+        $this->assertSame(2, $proyecto->firma_proyecto()->whereNotNull('flujo_aprobacion_etapa_id')->count());
+    }
+
+    public function test_adopcion_completada_habilita_informes_sin_inventar_firmas(): void
+    {
+        Mail::fake();
+        $contexto = $this->crearContexto(3, null, 'En curso', crearFirmasLegacy: false);
+        $this->prepararInformes($contexto);
+        app(ProyectoLegacyWorkflowAdoptionService::class)->adoptar(
+            $contexto['proyecto'], $contexto['flujo'],
+            ProyectoLegacyWorkflowAdoptionService::MODO_COMPLETADO, null, [], $contexto['actor']
+        );
+
+        $proyecto = $contexto['proyecto']->fresh();
+        $this->assertTrue(app(ProyectoWorkflowService::class)->inscripcionCompletada($proyecto));
+        $this->assertTrue(app(InformeIntermedioProyectoWorkflowService::class)->estaDisponible($proyecto, $contexto['actor']));
+        $this->assertSame(0, $proyecto->firma_proyecto()->count());
+        Mail::assertNothingQueued();
+
+        $nueva = $contexto['etapas']->last()->replicate();
+        $nueva->forceFill(['codigo' => 'ETAPA_NUEVA', 'nombre' => 'Etapa agregada después', 'orden' => 10])->save();
+        $this->assertFalse(app(ProyectoWorkflowService::class)->inscripcionCompletada($proyecto->fresh()));
+        $this->assertFalse($proyecto->fresh()->etapasParaStepper()->last()['adoptada_antes']);
+    }
+
+    public function test_adopcion_en_subsanacion_reenvia_y_completa_desde_cada_etapa_sin_repetir_las_anteriores(): void
+    {
+        Mail::fake();
+        Permission::firstOrCreate(['name' => 'docente.crear-proyecto', 'guard_name' => 'web']);
+
+        foreach ([1, 2, 3] as $ordenActual) {
+            $contexto = $this->crearContexto(3, $ordenActual, 'Subsanacion', true);
+            $this->prepararInformes($contexto);
+            $contexto['actor']->givePermissionTo('docente.crear-proyecto');
+            $revisores = $contexto['etapas']->slice($ordenActual - 1)
+                ->mapWithKeys(fn ($etapa, $indice): array => [$etapa->id => $contexto['usuarios'][$indice]->id])->all();
+            app(ProyectoLegacyWorkflowAdoptionService::class)->adoptar(
+                $contexto['proyecto'], $contexto['flujo'],
+                ProyectoLegacyWorkflowAdoptionService::MODO_SUBSANACION,
+                $contexto['etapas'][$ordenActual - 1]->id,
+                $revisores, $contexto['actor'], 'Corrección histórica pendiente.'
+            );
+            $this->actingAs($contexto['actor']);
+            $historial = new \App\Livewire\Docente\Proyectos\HistorialProyecto;
+            $historial->proyecto = $contexto['proyecto']->fresh();
+            $historial->subsanarComentario = 'Correcciones completadas.';
+            $historial->subsanar();
+
+            $firmas = $contexto['proyecto']->firmasDeEtapasDelFlujo($contexto['flujo']->id, 2);
+            $this->assertSame(range($ordenActual, 3), $firmas->pluck('orden_revision')->all());
+            $this->assertSame($contexto['usuarios'][$ordenActual - 1]->id, $firmas->first()->responsable_usuario_id);
+            foreach ($firmas as $firma) {
+                $this->assertSame($firma->cargo_firma->tipo_estado_id, $contexto['proyecto']->fresh()->estado->tipo_estado_id);
+                $this->actingAs($firma->responsableUsuario);
+                (new \App\Livewire\Docente\Proyectos\ProyectosPorFirmar)->aprobar($firma->id);
+                $this->assertSame('Aprobado', $firma->fresh()->estado_revision);
+            }
+            $this->assertTrue(app(ProyectoWorkflowService::class)->inscripcionCompletada($contexto['proyecto']->fresh()));
+            $this->assertSame(0, $contexto['proyecto']->firma_proyecto()
+                ->whereNotNull('flujo_aprobacion_etapa_id')->where('orden_revision', '<', $ordenActual)->count());
+        }
+    }
+
+    public function test_etapas_historicas_adoptadas_se_identifican_por_evidencia_aunque_cambie_el_orden(): void
+    {
+        Mail::fake();
+        $contexto = $this->crearContexto(3, 2, 'En revision');
+        app(ProyectoLegacyWorkflowAdoptionService::class)->adoptar(
+            $contexto['proyecto'], $contexto['flujo'],
+            ProyectoLegacyWorkflowAdoptionService::MODO_EN_REVISION,
+            $contexto['etapas'][1]->id,
+            [$contexto['etapas'][1]->id => $contexto['usuarios'][1]->id,
+                $contexto['etapas'][2]->id => $contexto['usuarios'][2]->id],
+            $contexto['actor']
+        );
+        $contexto['etapas'][0]->update(['orden' => 10]);
+        $contexto['etapas'][2]->update(['orden' => 1]);
+
+        foreach (['etapasParaStepper', 'firmasParaFicha'] as $metodo) {
+            $filas = $contexto['proyecto']->fresh()->{$metodo}()->keyBy('etapa.id');
+            $this->assertTrue($filas[$contexto['etapas'][0]->id]['adoptada_antes']);
+            $this->assertFalse($filas[$contexto['etapas'][2]->id]['adoptada_antes']);
+        }
+    }
+
+    public function test_subsanacion_no_retrocede_a_una_etapa_antigua_si_la_etapa_rechazada_no_esta_en_el_flujo(): void
+    {
+        Mail::fake();
+        $contexto = $this->crearContexto(3, 1, 'En revision');
+        $proyecto = $contexto['proyecto'];
+        foreach ([$contexto['estados'][2]->id, TipoEstado::firstOrCreate(['nombre' => 'Subsanacion'])->id] as $estadoId) {
+            $proyecto->estado_proyecto()->create([
+                'empleado_id' => $contexto['actor']->empleado->id,
+                'tipo_estado_id' => $estadoId, 'fecha' => now(), 'es_actual' => true,
+            ]);
+        }
+        $proyecto->firma_proyecto()->where('cargo_firma_id', $contexto['cargos'][2]->id)->update(['estado_revision' => 'Rechazado']);
+        $contexto['etapas'][2]->update(['activo' => false]);
+        $diagnostico = app(ProyectoLegacyWorkflowAdoptionService::class)->diagnosticar($proyecto->fresh(), $contexto['flujo']->fresh());
+
+        $this->assertNull($diagnostico['etapa_inicio_id']);
+        $this->assertNotEmpty($diagnostico['bloqueos']);
+    }
+
+    private function prepararInformes(array $contexto): void
+    {
+        $contexto['etapas']->last()->update(['aplica_informe_intermedio' => true, 'aplica_cierre_proyecto' => true]);
+        EmpleadoProyecto::create([
+            'proyecto_id' => $contexto['proyecto']->id,
+            'empleado_id' => $contexto['actor']->empleado->id,
+            'rol' => 'Coordinador',
+        ]);
+        TipoEstado::firstOrCreate(['nombre' => 'En curso']);
     }
 
     private function crearContexto(

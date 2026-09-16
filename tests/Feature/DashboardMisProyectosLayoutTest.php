@@ -98,6 +98,16 @@ class DashboardMisProyectosLayoutTest extends TestCase
         );
     }
 
+    public function test_subsanacion_no_muestra_una_etapa_posterior_como_actual(): void
+    {
+        $filas = collect(['Aprobado', 'Rechazado', 'Pendiente'])->map(fn (string $estado, int $indice): array => [
+            'etapa' => (object) ['nombre' => 'Etapa '.($indice + 1)],
+            'firma' => (object) ['estado_revision' => $estado],
+        ]);
+
+        $this->assertSame(['aprobado', 'rechazado', 'pendiente'], array_column($this->stepperEstados($filas), 'estado'));
+    }
+
     private function stepperEstados(Collection $filas): array
     {
         return ProyectoFlujoStepper::desdeFilas($filas);

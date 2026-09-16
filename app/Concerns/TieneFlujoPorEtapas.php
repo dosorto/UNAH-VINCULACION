@@ -76,6 +76,7 @@ trait TieneFlujoPorEtapas
                     'etapa_nombre' => $etapa->nombre,
                     'rol_requerido' => $etapa->rolRevisor?->name,
                     'responsable_usuario_id' => $etapa->usuario_responsable_id,
+                    'requiere_asignacion' => (bool) $etapa->requiere_asignacion,
                     'revision_ciclo' => $revisionCiclo,
                     'hash' => $attributes['hash'] ?? 'hash',
                 ])
@@ -344,6 +345,7 @@ trait TieneFlujoPorEtapas
                     'etapa_nombre' => $firmaBase->etapa_nombre,
                     'rol_requerido' => $firmaBase->rol_requerido,
                     'responsable_usuario_id' => $empleados->get((int) $firmaBase->flujo_aprobacion_etapa_id)->user_id,
+                    'requiere_asignacion' => $firmaBase->requiere_asignacion,
                     'revision_ciclo' => $nuevoCiclo,
                     'estado_revision' => 'Pendiente',
                     'firma_id' => null,

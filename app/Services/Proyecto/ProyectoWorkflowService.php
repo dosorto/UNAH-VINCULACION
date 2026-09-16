@@ -135,6 +135,43 @@ class ProyectoWorkflowService
             });
     }
 
+    /** @return Collection<int, FirmaProyecto> */
+    public function firmasParaReanudacion(Collection $firmas): Collection
+    {
+        $policy = app(WorkflowResumptionPolicy::class);
+
+        return $firmas
+            ->reject(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Anulado')
+            ->groupBy('flujo_aprobacion_etapa_id')
+            ->map(function (Collection $candidatas) use ($policy): FirmaProyecto {
+                $primera = $candidatas->first();
+
+                if ($candidatas->count() > 1) {
+                    $campos = ['flujo_aprobacion_id', 'revision_ciclo', 'orden_revision', 'cargo_firma_id', 'rol_requerido'];
+                    $compartida = $candidatas->every(fn (FirmaProyecto $firma): bool =>
+                        $firma->estado_revision === 'Pendiente'
+                        && ! $firma->responsable_usuario_id
+                        && ! $firma->requiere_asignacion
+                        && filled($firma->rol_requerido)
+                        && $firma->only($campos) === $primera->only($campos))
+                        && $candidatas->pluck('empleado_id')->duplicates()->isEmpty();
+
+                    if (! $compartida) {
+                        throw new \RuntimeException(sprintf(
+                            'El ciclo contiene más de una asignación activa para la etapa "%s": más de una revisión activa para la misma etapa.',
+                            $primera->etapa_nombre ?: $primera->etapa_codigo
+                        ));
+                    }
+                }
+
+                return $candidatas->first(fn (FirmaProyecto $firma): bool =>
+                    $policy->eligibleRecipient($firma->empleado?->user, $firma->rol_requerido, true) !== null)
+                    ?? $primera;
+            })
+            ->sortBy('orden_revision')
+            ->values();
+    }
+
     private function destinatariosHistoricosNoElegibles(Proyecto $proyecto, string $proceso): ?Collection
     {
         $tipoDocumento = match ($proceso) {
@@ -174,7 +211,7 @@ class ProyectoWorkflowService
         }
 
         $plan = app(WorkflowResumptionPolicy::class)->plan(
-            $firmas->map(fn (FirmaProyecto $firma): array => [
+            $this->firmasParaReanudacion($firmas)->map(fn (FirmaProyecto $firma): array => [
                 'stage_id' => (int) $firma->flujo_aprobacion_etapa_id,
                 'order' => (int) $firma->orden_revision,
                 'status' => match ($firma->estado_revision) {
@@ -248,12 +285,16 @@ class ProyectoWorkflowService
             ->get()
             ->groupBy('flujo_aprobacion_etapa_id');
 
-        return $etapas->every(function (FlujoAprobacionEtapa $etapa) use ($firmas): bool {
+        $etapasAdoptadas = $proyecto->etapasInscripcionCompletadasAntesDeAdopcion();
+
+        return $etapas->every(function (FlujoAprobacionEtapa $etapa) use ($firmas, $etapasAdoptadas): bool {
             $ultimaDecisionVigente = $firmas->get($etapa->id, collect())
                 ->reject(fn ($firma): bool => $firma->estado_revision === 'Anulado')
                 ->first();
 
-            return $ultimaDecisionVigente?->estado_revision === 'Aprobado';
+            return $ultimaDecisionVigente
+                ? $ultimaDecisionVigente->estado_revision === 'Aprobado'
+                : $etapasAdoptadas->contains((int) $etapa->id);
         });
     }
 

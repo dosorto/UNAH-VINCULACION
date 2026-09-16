@@ -78,6 +78,37 @@ class ReasignarEtapaTest extends TestCase
         $firma->reasignarA($nuevoUser, $intrusoUser);
     }
 
+    public function test_reasignacion_conserva_la_configuracion_de_la_firma_aunque_se_edite_el_flujo(): void
+    {
+        [$proyecto, $etapa] = $this->crearContexto();
+        [$responsable, $empleado, $rol] = $this->crearUsuarioEmpleadoConRol('Revisor snapshot '.uniqid());
+        [$nuevo] = $this->crearUsuarioEmpleadoConRol($rol->name, $rol);
+        $etapa->update(['rol_revisor_id' => $rol->id, 'usuario_responsable_id' => $responsable->id, 'requiere_asignacion' => true]);
+        $firma = $proyecto->guardarFirmaDeEtapa($etapa, $empleado, ['estado_revision' => 'Pendiente']);
+        $this->assertTrue($firma->fresh()->requiere_asignacion);
+        $etapa->update(['requiere_asignacion' => false]);
+        $this->actingAs($responsable);
+        $this->assertTrue((new ProyectosPorFirmar)->puedeReasignar($firma->fresh()));
+        $firma->fresh()->reasignarA($nuevo, $responsable);
+        $this->assertSame($nuevo->id, $firma->fresh()->responsable_usuario_id);
+    }
+
+    public function test_editar_el_flujo_no_habilita_reasignar_una_firma_que_no_lo_permitia(): void
+    {
+        [$proyecto, $etapa] = $this->crearContexto();
+        [$responsable, $empleado, $rol] = $this->crearUsuarioEmpleadoConRol('Revisor fijo '.uniqid());
+        [$nuevo] = $this->crearUsuarioEmpleadoConRol($rol->name, $rol);
+        $etapa->update(['rol_revisor_id' => $rol->id, 'usuario_responsable_id' => $responsable->id, 'requiere_asignacion' => false]);
+        $firma = $proyecto->guardarFirmaDeEtapa($etapa, $empleado, ['estado_revision' => 'Pendiente']);
+        $this->assertFalse($firma->fresh()->requiere_asignacion);
+        $etapa->update(['requiere_asignacion' => true]);
+        $this->actingAs($responsable);
+        $this->assertFalse((new ProyectosPorFirmar)->puedeReasignar($firma->fresh()));
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('no tiene activada');
+        $firma->fresh()->reasignarA($nuevo, $responsable);
+    }
+
     private function crearContexto(): array
     {
         $proyecto = Proyecto::create([

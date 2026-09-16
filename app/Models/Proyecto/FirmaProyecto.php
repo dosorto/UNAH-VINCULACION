@@ -33,6 +33,7 @@ class FirmaProyecto extends Model
         'etapa_nombre',
         'rol_requerido',
         'responsable_usuario_id',
+        'requiere_asignacion',
         'revision_ciclo',
         'estado_actual_id',
         'tipo_firma', // proyecto, contrato, acta, etc
@@ -44,6 +45,7 @@ class FirmaProyecto extends Model
         'flujo_aprobacion_etapa_id' => 'integer',
         'orden_revision' => 'integer',
         'responsable_usuario_id' => 'integer',
+        'requiere_asignacion' => 'boolean',
         'revision_ciclo' => 'integer',
     ];
 
@@ -128,7 +130,7 @@ class FirmaProyecto extends Model
             throw new \RuntimeException('Esta etapa no tiene un rol de revisor configurado para reasignar.');
         }
 
-        if (! (bool) $this->flujoEtapa?->requiere_asignacion) {
+        if (! (bool) ($this->requiere_asignacion ?? $this->flujoEtapa?->requiere_asignacion)) {
             throw new \RuntimeException('Esta etapa no tiene activada la opción "Requiere asignación del responsable", por lo que no se puede reasignar.');
         }
 
