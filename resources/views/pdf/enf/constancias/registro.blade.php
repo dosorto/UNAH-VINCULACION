@@ -16,6 +16,11 @@
         .label { color: #001b66; font-weight: 700; }
         .footer { border-top: 1px solid #cbd5e1; bottom: 28px; color: #475569; font-size: 10px; left: 52px; position: fixed; right: 52px; padding-top: 10px; }
         .qr { margin-top: 34px; text-align: right; }
+        .signature { margin-top: 34px; text-align: center; }
+        .signature-assets { height: 86px; position: relative; }
+        .signature-firma { max-height: 74px; max-width: 190px; }
+        .signature-sello { max-height: 82px; max-width: 120px; margin-left: -26px; opacity: .92; }
+        .signature-line { border-top: 1px solid #0f172a; display: inline-block; min-width: 260px; padding-top: 6px; }
     </style>
 </head>
 <body>
@@ -50,6 +55,24 @@
         dias del mes de {{ \Carbon\Carbon::parse(data_get($snapshot, 'constancia.fecha_emision'))->translatedFormat('F') }}
         de {{ \Carbon\Carbon::parse(data_get($snapshot, 'constancia.fecha_emision'))->translatedFormat('Y') }}.
     </p>
+
+    <div class="signature">
+        @if(filled($firma) || filled($sello))
+            <div class="signature-assets">
+                @if(filled($firma))
+                    <img class="signature-firma" src="{{ $firma }}" alt="Firma">
+                @endif
+                @if(filled($sello))
+                    <img class="signature-sello" src="{{ $sello }}" alt="Sello">
+                @endif
+            </div>
+        @endif
+        <div class="signature-line">
+            <strong>{{ data_get($snapshot, 'autoridad.nombre') }}</strong><br>
+            {{ data_get($snapshot, 'autoridad.cargo') }}<br>
+            VRA-UNAH
+        </div>
+    </div>
 
     <div class="qr">
         <img src="{{ $qr }}" alt="Codigo QR" width="86" height="86">

@@ -40,8 +40,14 @@ class InformeFinalProyectoInitializer
             $departamentoAcademico = $proyecto->departamentos_academicos->first();
             $carrera = $proyecto->carreras->first();
             $categoria = $proyecto->categoria->first();
-            $departamentoTerritorial = $proyecto->departamento->first();
-            $municipio = $proyecto->municipio->first();
+            $departamentosTerritoriales = $proyecto->departamento;
+            $municipiosTerritoriales = $proyecto->municipio;
+            $departamentoTerritorial = $departamentosTerritoriales->first();
+            $municipio = $municipiosTerritoriales->first();
+            $paisesProyecto = array_values(array_filter(
+                is_array($proyecto->pais) ? $proyecto->pais : array_filter([$this->texto($proyecto->pais)]),
+                fn ($v) => filled($v)
+            ));
             $presupuestoPlanificado = (float) $proyecto->aportesInstitucionales->sum('costo_total')
                 + (float) optional($proyecto->presupuesto)->aporte_contraparte
                 + (float) optional($proyecto->presupuesto)->aporte_comunidad
@@ -73,10 +79,10 @@ class InformeFinalProyectoInitializer
                 'categoria' => $categoria?->nombre,
                 'fecha_inicio' => $proyecto->fecha_inicio,
                 'fecha_finalizacion' => $proyecto->fecha_finalizacion,
-                'pais' => $this->texto($proyecto->pais),
+                'pais' => $paisesProyecto,
                 'region' => $this->texto($proyecto->region),
-                'departamento_territorial' => $departamentoTerritorial?->nombre,
-                'municipio' => $municipio?->nombre,
+                'departamento_territorial' => $departamentosTerritoriales->pluck('nombre')->implode(', '),
+                'municipio' => $municipiosTerritoriales->pluck('nombre')->implode(', '),
                 'aldea_ciudad' => $proyecto->ciudad?->nombre ?: $this->texto($proyecto->aldea),
                 'caserio' => $this->texto($proyecto->caserio),
                 'problema_inicial' => $proyecto->definicion_problema,
@@ -89,6 +95,9 @@ class InformeFinalProyectoInitializer
                 'created_by' => $userId,
                 'updated_by' => $userId,
             ]);
+
+            $informe->departamentosTerritoriales()->sync($departamentosTerritoriales->pluck('id')->all());
+            $informe->municipiosTerritoriales()->sync($municipiosTerritoriales->pluck('id')->all());
 
             $informe->beneficiarios()->create([
                 'hombres' => max(0, (int) $proyecto->hombres),
@@ -164,6 +173,7 @@ class InformeFinalProyectoInitializer
                 foreach ($objetivo->resultados as $resultado) {
                     $informe->resultados()->create([
                         'resultado_esperado_id' => $resultado->id,
+                        'plazo' => $resultado->plazo ?: 'corto_plazo',
                         'objetivo_especifico' => $objetivo->descripcion,
                         'resultado_planificado' => $resultado->nombre_resultado ?: $objetivo->descripcion,
                         'indicador_propuesto' => $resultado->nombre_indicador,
@@ -179,6 +189,7 @@ class InformeFinalProyectoInitializer
                 $etiqueta = 'Resultado de '.lcfirst($resultado->plazo_formateado).' del proyecto';
                 $informe->resultados()->create([
                     'resultado_esperado_id' => $resultado->id,
+                    'plazo' => $resultado->plazo ?: 'mediano_plazo',
                     'objetivo_especifico' => $etiqueta,
                     'resultado_planificado' => $resultado->nombre_resultado ?: $etiqueta,
                     'indicador_propuesto' => $resultado->nombre_indicador,
