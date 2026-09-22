@@ -12,6 +12,23 @@ use Illuminate\Support\Collection;
 
 class ProyectoWorkflowService
 {
+    /** Resumen de inscripción basado en las revisiones guardadas, sin cambiar el flujo. */
+    public function revisionActualInscripcion(Proyecto $proyecto): ?FirmaProyecto
+    {
+        if (! $proyecto->flujo_aprobacion_id) {
+            return null;
+        }
+
+        $firmas = $proyecto->firma_proyecto
+            ->where('flujo_aprobacion_id', $proyecto->flujo_aprobacion_id)
+            ->whereNull('deleted_at')
+            ->filter(fn (FirmaProyecto $firma): bool => (int) $firma->revision_ciclo > 0);
+
+        return $firmas->where('revision_ciclo', $firmas->max('revision_ciclo'))
+            ->sortBy([['orden_revision', 'asc'], ['id', 'asc']])
+            ->first(fn (FirmaProyecto $firma): bool => in_array($firma->estado_revision, ['Pendiente', 'Rechazado'], true));
+    }
+
     public function etapas(Proyecto $proyecto, string $proceso, bool $soloActivas = true): Collection
     {
         $flujo = $proyecto->resolveFlujoAprobacion();
@@ -268,7 +285,7 @@ class ProyectoWorkflowService
     public function inscripcionCompletada(Proyecto $proyecto): bool
     {
         $flujo = $proyecto->resolveFlujoAprobacion();
-        $etapas = $this->etapasInscripcion($proyecto)
+        $etapas = $proyecto->etapasDelExpediente()
             ->filter(fn (FlujoAprobacionEtapa $etapa): bool => filled($etapa->cargo_firma_id))
             ->values();
 

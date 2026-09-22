@@ -15,6 +15,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Spatie\Permission\Models\Role;
 
@@ -1169,6 +1170,7 @@ class ConfiguracionFlujosProyectos extends Component
             $codes = $codes->merge(
                 FlujoAprobacionEtapa::query()
                     ->where('flujo_aprobacion_id', $flowId)
+                    ->where('configuracion_vigente', true)
                     ->pluck('codigo')
                     ->map(fn ($code) => $this->normalizeCode((string) $code))
                     ->filter()
@@ -1198,7 +1200,14 @@ class ConfiguracionFlujosProyectos extends Component
     protected function syncFlowStages(FlujoAprobacion $flow, array $stages): void
     {
         $existing = $flow->etapas()->get()->keyBy('id');
-        $keptIds = collect();
+        $removedIds = $existing->keys()->diff(collect($stages)->pluck('id')->filter());
+
+        // Retirar de la configuración sin borrar referencias, decisiones ni snapshots.
+        // Los ciclos enviados conservan sus etapas; los nuevos usan la configuración vigente.
+        $flow->etapas()->whereIn('id', $removedIds)->update(['configuracion_vigente' => null]);
+        // Eloquent::except() reindexa la colección; recuperar las claves evita
+        // tratar las etapas conservadas como nuevas al buscar por su ID.
+        $existing = $existing->except($removedIds->all())->keyBy('id');
 
         $existing->each(function ($stage) {
             $stage->update([
@@ -1227,15 +1236,14 @@ class ConfiguracionFlujosProyectos extends Component
 
             if ($stageModel) {
                 $stageModel->update($payload);
-                $keptIds->push($stageModel->id);
 
                 continue;
             }
 
-            $keptIds->push($flow->etapas()->create($payload)->id);
+            $flow->etapas()->create($payload);
         }
 
-        $flow->etapas()->whereNotIn('id', $keptIds->all())->delete();
+        $flow->unsetRelation('etapas');
     }
 
     protected function usersGroupedByRole($roles): array

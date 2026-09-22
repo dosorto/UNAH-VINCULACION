@@ -178,6 +178,7 @@
                         </div>
                     @endif
 
+                    <p class="text-sm text-slate-600 dark:text-slate-300">Al guardar, las etapas quitadas dejarán de utilizarse en nuevos envíos. Los proyectos ya enviados conservarán sus etapas y firmas.</p>
                     @foreach ($stages as $index => $stage)
                         @php($stageUiKey = $stage['ui_key'] ?? (($stage['id'] ?? null) ? 'project-stage-'.$stage['id'] : 'project-stage-'.$index))
                         @php($stageRenderKey = $stageUiKey.'-position-'.$index)

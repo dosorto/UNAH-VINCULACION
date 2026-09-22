@@ -67,7 +67,8 @@ return [
         'En revision final',
 
         'Subsanacion',
-        'En curso',
+        'En curso', // Compatibilidad con expedientes históricos.
+        'Registrado',
 
         'Aprobado',
         'Rechazado',

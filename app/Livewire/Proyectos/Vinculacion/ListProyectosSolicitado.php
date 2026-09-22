@@ -14,6 +14,7 @@ use Livewire\WithPagination;
 class ListProyectosSolicitado extends Component
 {
     use WithPagination;
+    use \App\Concerns\ResolvesFirmasPendientes;
 
     public string $search = '';
 
@@ -59,13 +60,18 @@ class ListProyectosSolicitado extends Component
 
     private function recordsQuery()
     {
+        $pendientes = $this->firmasDisponiblesQuery()
+            ->where('firma_proyecto.firmable_type', Proyecto::class)
+            ->whereNotNull('firma_proyecto.flujo_aprobacion_etapa_id')
+            ->whereHas('cargo_firma.estadoProyectoActual', fn ($q) => $q->where('nombre', 'En revision'))
+            ->pluck('firma_proyecto.firmable_id');
+
         return Proyecto::query()
-            ->whereIn('proyecto.id', function ($query) {
-                $query->select('estadoable_id')
-                    ->from('estado_proyecto')
-                    ->where('estadoable_type', Proyecto::class)
-                    ->where('tipo_estado_id', TipoEstado::where('nombre', 'En revision')->first()->id)
-                    ->where('es_actual', true);
+            ->where(function ($query) use ($pendientes) {
+                $query->whereIn('proyecto.id', $pendientes)
+                    ->orWhere(fn ($legacy) => $legacy
+                        ->whereDoesntHave('firma_proyecto', fn ($f) => $f->whereNotNull('revision_ciclo'))
+                        ->whereHas('estadoActual.tipoestado', fn ($e) => $e->where('nombre', 'En revision')));
             })
             ->leftJoin('proyecto_centro_facultad', 'proyecto_centro_facultad.proyecto_id', '=', 'proyecto.id')
             ->leftJoin('proyecto_depto_ac', 'proyecto_depto_ac.proyecto_id', '=', 'proyecto.id')

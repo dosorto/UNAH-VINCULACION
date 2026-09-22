@@ -33,7 +33,7 @@ trait ResolvesFirmasPendientes
             ->whereNull('firma_proyecto.deleted_at')
             ->where(function ($query) use ($activeRoleName, $empleadoId, $firmasPorEtapaIds) {
                 $query->where(function ($legacyQuery) use ($activeRoleName, $empleadoId) {
-                    $legacyQuery->whereNull('firma_proyecto.flujo_aprobacion_etapa_id')
+                    $legacyQuery->legacyAutentica()
                         ->where(function ($authorizationQuery) use ($activeRoleName, $empleadoId) {
                             if (! $empleadoId) {
                                 $authorizationQuery->whereRaw('1 = 0');
@@ -51,36 +51,39 @@ trait ResolvesFirmasPendientes
                         ->whereIn('firma_proyecto.id', $firmasPorEtapaIds ?: [0]);
                 });
             })
-            ->where(function ($query) {
-                $query->where(function ($projectQuery) {
-                    $projectQuery
-                        ->where('firma_proyecto.firmable_type', Proyecto::class)
-                        ->whereExists(function ($estadoQuery) {
-                            $estadoQuery
-                                ->selectRaw('1')
-                                ->from('estado_proyecto')
-                                ->whereColumn('estado_proyecto.estadoable_id', 'firma_proyecto.firmable_id')
-                                ->where('estado_proyecto.estadoable_type', Proyecto::class)
-                                ->where('estado_proyecto.es_actual', true)
-                                ->whereColumn('estado_proyecto.tipo_estado_id', 'cargo_firma.tipo_estado_id');
+            ->where(function ($query) use ($firmasPorEtapaIds) {
+                $query->whereIn('firma_proyecto.id', $firmasPorEtapaIds ?: [0])
+                    ->orWhere(function ($query) {
+                        $query->where(function ($projectQuery) {
+                            $projectQuery
+                                ->where('firma_proyecto.firmable_type', Proyecto::class)
+                                ->whereExists(function ($estadoQuery) {
+                                    $estadoQuery
+                                        ->selectRaw('1')
+                                        ->from('estado_proyecto')
+                                        ->whereColumn('estado_proyecto.estadoable_id', 'firma_proyecto.firmable_id')
+                                        ->where('estado_proyecto.estadoable_type', Proyecto::class)
+                                        ->where('estado_proyecto.es_actual', true)
+                                        ->whereColumn('estado_proyecto.tipo_estado_id', 'cargo_firma.tipo_estado_id');
+                                });
+                        })->orWhere(function ($documentQuery) {
+                            $documentQuery
+                                ->where('firma_proyecto.firmable_type', DocumentoProyecto::class)
+                                ->whereExists(function ($estadoQuery) {
+                                    $estadoQuery
+                                        ->selectRaw('1')
+                                        ->from('estado_proyecto')
+                                        ->whereColumn('estado_proyecto.estadoable_id', 'firma_proyecto.firmable_id')
+                                        ->where('estado_proyecto.estadoable_type', DocumentoProyecto::class)
+                                        ->where('estado_proyecto.es_actual', true)
+                                        ->whereColumn('estado_proyecto.tipo_estado_id', 'cargo_firma.tipo_estado_id');
+                                });
+                        })->orWhere(function ($otherQuery) {
+                            $otherQuery
+                                ->where('firma_proyecto.firmable_type', '!=', Proyecto::class)
+                                ->where('firma_proyecto.firmable_type', '!=', DocumentoProyecto::class);
                         });
-                })->orWhere(function ($documentQuery) {
-                    $documentQuery
-                        ->where('firma_proyecto.firmable_type', DocumentoProyecto::class)
-                        ->whereExists(function ($estadoQuery) {
-                            $estadoQuery
-                                ->selectRaw('1')
-                                ->from('estado_proyecto')
-                                ->whereColumn('estado_proyecto.estadoable_id', 'firma_proyecto.firmable_id')
-                                ->where('estado_proyecto.estadoable_type', DocumentoProyecto::class)
-                                ->where('estado_proyecto.es_actual', true)
-                                ->whereColumn('estado_proyecto.tipo_estado_id', 'cargo_firma.tipo_estado_id');
-                        });
-                })->orWhere(function ($otherQuery) {
-                    $otherQuery
-                        ->where('firma_proyecto.firmable_type', '!=', Proyecto::class)
-                        ->where('firma_proyecto.firmable_type', '!=', DocumentoProyecto::class);
-                });
+                    });
             });
     }
 
@@ -213,28 +216,31 @@ trait ResolvesFirmasPendientes
 
     protected function estadoActualCoincideConCargoDeFirma(FirmaProyecto $firma): bool
     {
-        $cargoEstadoId = $firma->cargo_firma()->value('tipo_estado_id');
-
-        if (! $cargoEstadoId) {
+        $cargo = $firma->cargo_firma()->first();
+        if (! $cargo) {
             return false;
         }
 
         if ($firma->firmable_type === Proyecto::class) {
-            $estadoActualId = Proyecto::query()
-                ->whereKey($firma->firmable_id)
-                ->first()
-                ?->estado
-                ?->tipo_estado_id;
+            $estado = Proyecto::find($firma->firmable_id)?->estado;
+            $nombre = $estado?->tipoestado?->nombre;
+            if (in_array($nombre, ['En revision', 'En revisión'], true)) {
+                return true;
+            }
+            if (in_array($nombre, ['Borrador', 'Autoguardado', 'Subsanacion', 'Subsanación', 'Registrado', 'En curso', 'Finalizado', 'Cancelado'], true)) {
+                return false;
+            }
 
-            return $estadoActualId && (int) $estadoActualId === (int) $cargoEstadoId;
+            // Compatibilidad de expedientes anteriores aún situados en un cargo.
+            return $estado && $cargo->tipo_estado_id
+                && (int) $estado->tipo_estado_id === (int) $cargo->tipo_estado_id;
         }
 
         if ($firma->firmable_type === DocumentoProyecto::class) {
-            $estadoActualId = $this->documentoDeFirmaPorEtapa($firma)
-                ?->estado
-                ?->tipo_estado_id;
+            $estadoActualId = $this->documentoDeFirmaPorEtapa($firma)?->estado?->tipo_estado_id;
 
-            return $estadoActualId && (int) $estadoActualId === (int) $cargoEstadoId;
+            return $estadoActualId && $cargo->tipo_estado_id
+                && (int) $estadoActualId === (int) $cargo->tipo_estado_id;
         }
 
         return false;

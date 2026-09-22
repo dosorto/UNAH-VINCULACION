@@ -121,6 +121,21 @@ final class ProyectoLegacyWorkflowAdoptionService
             ? $etapas->filter(fn (FlujoAprobacionEtapa $etapa): bool => (int) $etapa->orden >= (int) $etapaInicio->orden)->values()
             : collect();
 
+        if ($legacy->contains(fn (FirmaProyecto $firma): bool => ! $firma->esFirmaLegacy())) {
+            $bloqueos->push('Existen firmas de un flujo cuya etapa ya no está disponible. Revise el historial antes de adaptar nuevamente el proyecto.');
+        }
+
+        if ($modo === self::MODO_EN_REVISION && $etapasDesdeInicio->isNotEmpty()) {
+            $aprobadas = $legacy->where('estado_revision', 'Aprobado');
+            $repiteAprobacion = $etapasDesdeInicio->contains(fn (FlujoAprobacionEtapa $etapa): bool =>
+                $aprobadas->contains(fn (FirmaProyecto $firma): bool => $this->firmaCorrespondeEtapa($firma, $etapa))
+            );
+
+            if ($repiteAprobacion) {
+                $bloqueos->push('La etapa detectada por el estado repetiría una aprobación histórica. Revise la correspondencia entre el estado y las etapas antes de adoptar.');
+            }
+        }
+
         $etapasUi = $etapas->map(function (FlujoAprobacionEtapa $etapa) use (
             $legacy,
             $etapaInicio,
@@ -518,11 +533,7 @@ final class ProyectoLegacyWorkflowAdoptionService
         User $actor,
         ?string $estadoOrigen
     ): ?int {
-        $tipoEstadoId = $etapa->cargoFirma?->tipo_estado_id;
-
-        if (! $tipoEstadoId) {
-            throw new \RuntimeException(sprintf('La etapa "%s" no tiene un estado de proyecto configurado.', $etapa->nombre));
-        }
+        $tipoEstadoId = \App\Support\Proyecto\EstadoGeneralProyecto::id('En revision');
 
         if ((int) $proyecto->estado?->tipo_estado_id === (int) $tipoEstadoId) {
             return null;
@@ -860,7 +871,7 @@ final class ProyectoLegacyWorkflowAdoptionService
             return self::MODO_BORRADOR;
         }
 
-        if (in_array($estado, ['APROBADO', 'FINALIZADO', 'EN_CURSO', 'INSCRITO', 'CANCELADO'], true)) {
+        if (in_array($estado, ['APROBADO', 'FINALIZADO', 'EN_CURSO', 'REGISTRADO', 'INSCRITO', 'CANCELADO'], true)) {
             return self::MODO_COMPLETADO;
         }
 

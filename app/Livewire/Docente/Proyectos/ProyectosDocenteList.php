@@ -214,7 +214,7 @@ class ProyectosDocenteList extends Component
         $records = $this->paginateRows($this->historialRows());
 
         $categorias = \App\Models\Proyecto\Categoria::orderBy('nombre')->pluck('nombre', 'id');
-        $estadosTipo = TipoEstado::orderBy('nombre')->pluck('nombre', 'id');
+        $estadosTipo = \App\Support\Proyecto\EstadoGeneralProyecto::opciones();
         $opcionesDestinatariosIntermedioEnf = $this->opcionesDestinatariosIntermedioEnf();
 
         return view('livewire.docente.proyectos.proyectos-docente-list', compact('records', 'categorias', 'estadosTipo', 'opcionesDestinatariosIntermedioEnf'));
@@ -262,7 +262,7 @@ class ProyectosDocenteList extends Component
                 fn($q2) => $q2->where('categorias.id', $this->filterCategoria)
             ))
             ->when($this->filterRol, fn($q) => $q->where('empleado_proyecto.rol', $this->filterRol))
-            ->when($this->filterEstado, fn($q) => $q->where('tipo_estado.id', $this->filterEstado))
+            ->when($this->filterEstado, fn($q) => $q->whereIn('tipo_estado.nombre', \App\Support\Proyecto\EstadoGeneralProyecto::compatibles(TipoEstado::find($this->filterEstado)?->nombre ?? '')))
             ->when($this->filterTipoAccion === self::ACTION_VOLUNTARIADO, fn($q) => $q->whereHas(
                 'tipoAccion',
                 fn($t) => $t->where('codigo', 'VOLUNTARIADO')
@@ -319,7 +319,7 @@ class ProyectosDocenteList extends Component
         return $this->proyectosQuery()
             ->get()
             ->map(function (Proyecto $proyecto): array {
-                $estado = $proyecto->estado?->tipoestado?->nombre ?? '';
+                $estado = $proyecto->estado_general;
                 $rolDocente = $proyecto->docentes_proyecto()->where('empleado_id', $this->docente->id)->first()?->rol ?? '-';
 
                 return [

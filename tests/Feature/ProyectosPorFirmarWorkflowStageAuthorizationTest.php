@@ -22,6 +22,25 @@ class ProyectosPorFirmarWorkflowStageAuthorizationTest extends TestCase
 {
     use DatabaseTransactions;
 
+    public function test_estado_general_no_autoriza_etapas_futuras_ciclos_antiguos_ni_proyectos_cerrados(): void
+    {
+        [$proyecto, , $etapas] = $this->crearProyectoConFlujo(2);
+        [$user, $empleado, $role] = $this->crearUsuarioEmpleadoConRol('Rol estado general');
+        $anterior = $this->crearFirmaDeEtapa($proyecto, $etapas[0], $empleado, ['rol_requerido' => $role->name]);
+        $actual = $this->crearFirmaDeEtapa($proyecto, $etapas[0], $empleado, ['rol_requerido' => $role->name], revisionCiclo: 2);
+        $posterior = $this->crearFirmaDeEtapa($proyecto, $etapas[1], $empleado, ['rol_requerido' => $role->name], revisionCiclo: 2);
+        foreach (['En revision', 'Borrador', 'Subsanacion', 'Registrado', 'Finalizado'] as $nombre) {
+            $proyecto->estado_proyecto()->create([
+                'tipo_estado_id' => TipoEstado::firstOrCreate(['nombre' => $nombre])->id,
+                'empleado_id' => $empleado->id, 'fecha' => now(), 'es_actual' => true,
+            ]);
+            $autorizacion = $this->componenteAutorizacion();
+            $this->assertSame($nombre === 'En revision', $autorizacion->puedeActuarPorEtapa($actual, $user), $nombre);
+            $this->assertFalse($autorizacion->puedeActuarPorEtapa($anterior, $user));
+            $this->assertFalse($autorizacion->puedeActuarPorEtapa($posterior, $user));
+        }
+    }
+
     public function test_usuario_asignado_con_empleado_y_rol_activo_correcto_puede_actuar(): void
     {
         [$proyecto, $flujo, $etapas, $cargo] = $this->crearProyectoConFlujo();
@@ -190,7 +209,7 @@ class ProyectosPorFirmarWorkflowStageAuthorizationTest extends TestCase
         $firmaOtroEmpleado = $this->crearFirmaDeEtapa($proyecto, $etapas[0], $empleado, [
             'responsable_usuario_id' => $responsableOtroEmpleado->id,
             'rol_requerido' => null,
-        ], revisionCiclo: 2);
+        ]);
 
         $this->assertTrue($this->componenteAutorizacion()->puedeActuarPorEtapa($firma, $responsable));
         $this->assertFalse($this->componenteAutorizacion()->puedeActuarPorEtapa($firmaOtroEmpleado, $responsableOtroEmpleado));

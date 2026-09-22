@@ -115,7 +115,12 @@ class ProyectosPorFirmarWorkflowStageRejectionTest extends TestCase
         $duplicadoMismaEtapa = $this->crearFirmaDeEtapaManual($context['proyecto'], $context['etapas'][0], $empleado);
         $duplicadoAprobado = $this->crearFirmaDeEtapaManual($context['proyecto'], $context['etapas'][0], $empleado, ['estado_revision' => 'Aprobado']);
         $duplicadoOtraEtapa = $this->crearFirmaDeEtapaManual($context['proyecto'], $context['etapas'][1], $empleado);
-        $otroCiclo = $this->crearFirmaDeEtapaManual($context['proyecto'], $context['etapas'][1], $empleado, ['revision_ciclo' => 2]);
+        $otroCiclo = $this->crearFirmaDeEtapaManual($context['proyecto'], $context['etapas'][1], $empleado, ['revision_ciclo' => 1]);
+
+        $principal->update(['revision_ciclo' => 2]);
+        $duplicadoMismaEtapa->update(['revision_ciclo' => 2]);
+        $duplicadoAprobado->update(['revision_ciclo' => 2]);
+        $duplicadoOtraEtapa->update(['revision_ciclo' => 2]);
 
         $this->componenteRechazo()->rechazarPorEtapa($principal, $user, 'Rechazo de etapa');
 

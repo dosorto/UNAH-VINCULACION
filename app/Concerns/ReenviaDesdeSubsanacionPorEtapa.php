@@ -203,7 +203,9 @@ trait ReenviaDesdeSubsanacionPorEtapa
             $primeraFirma = $firmasNuevoCiclo->first()->fresh();
             $this->validarPrimeraFirmaDeReenvioPorEtapa($proyecto, $firmaBloqueada, $primeraFirma, $documento);
 
-            $tipoEstadoId = $primeraFirma->cargo_firma()->value('tipo_estado_id');
+            $tipoEstadoId = $documento
+                ? $primeraFirma->cargo_firma()->value('tipo_estado_id')
+                : \App\Support\Proyecto\EstadoGeneralProyecto::id('En revision');
             $empleadoId = $user->empleado?->id;
 
             if (! $tipoEstadoId || ! $empleadoId) {
@@ -374,7 +376,7 @@ trait ReenviaDesdeSubsanacionPorEtapa
             || (int) $primeraFirma->firmable_id !== (int) $firmaRechazada->firmable_id
             || ! $primeraFirma->cargo_firma_id
             || ! $primeraFirma->cargo_firma()->exists()
-            || ! $primeraFirma->cargo_firma()->value('tipo_estado_id')
+            || ($documento && ! $primeraFirma->cargo_firma()->value('tipo_estado_id'))
             || ! $proyecto->firmaEsActualEnFlujoPorEtapa($primeraFirma)
         ) {
             throw new \RuntimeException('No se pudo determinar de forma segura la primera etapa del nuevo ciclo.');
@@ -418,7 +420,9 @@ trait ReenviaDesdeSubsanacionPorEtapa
             ? $documento->estado
             : $proyecto->estado;
 
-        $tipoEstadoId = $primeraFirma->cargo_firma()->value('tipo_estado_id');
+        $tipoEstadoId = $documento
+            ? $primeraFirma->cargo_firma()->value('tipo_estado_id')
+            : \App\Support\Proyecto\EstadoGeneralProyecto::id('En revision');
 
         if ($primeraFirma->fresh()->estado_revision !== 'Pendiente'
             || ! $estado

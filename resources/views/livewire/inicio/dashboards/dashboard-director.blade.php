@@ -26,7 +26,7 @@
                     <x-dashboard.cifra-cabecera :valor="$resumen['total']" etiqueta="Proyectos de {{ \Illuminate\Support\Str::limit($ambito->etiqueta, 18, '…') }}" icono="heroicon-o-academic-cap" :destacada="true" />
                     <x-dashboard.cifra-cabecera :valor="$totalPendientes" etiqueta="Esperan tu revisión" icono="heroicon-o-inbox-arrow-down" :destacada="true" />
                     <x-dashboard.cifra-cabecera :valor="$resumen['en_revision']" etiqueta="En revisión" icono="heroicon-o-clipboard-document-list" />
-                    <x-dashboard.cifra-cabecera :valor="$resumen['en_curso']" etiqueta="En curso" icono="heroicon-o-play-circle" />
+                    <x-dashboard.cifra-cabecera :valor="$resumen['en_curso']" etiqueta="Registrados" icono="heroicon-o-play-circle" />
                     <x-dashboard.cifra-cabecera :valor="$resumen['subsanacion']" etiqueta="En subsanación" icono="heroicon-o-exclamation-triangle" />
                 </div>
             </x-slot:metricas>

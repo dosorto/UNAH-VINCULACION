@@ -47,6 +47,119 @@ class InformeFinalINF001Test extends TestCase
 {
     use DatabaseTransactions;
 
+    public function test_recorrido_desde_cero_proyecto_nuevo_hasta_finalizado(): void
+    {
+        $this->verificarCicloCompletoDesdeCero(false);
+    }
+
+    public function test_recorrido_desde_cero_legacy_adaptado_hasta_finalizado(): void
+    {
+        $this->verificarCicloCompletoDesdeCero(true);
+    }
+
+    private function verificarCicloCompletoDesdeCero(bool $legacy): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+        \Illuminate\Support\Facades\Mail::fake();
+        [$user, $project] = $this->scenario(false);
+        $user->givePermissionTo(\Spatie\Permission\Models\Permission::firstOrCreate([
+            'name' => 'docente.crear-proyecto', 'guard_name' => 'web',
+        ]));
+        $this->actingAs($user);
+        $flujo = $project->flujoAprobacion;
+        $etapas = $flujo->etapas;
+        $etapas->last()->update(['aplica_informe_intermedio' => true]);
+        $firmaHistorica = null;
+        $snapshotHistorico = null;
+
+        if ($legacy) {
+            $project->update(['flujo_aprobacion_id' => null]);
+            $firmaHistorica = $project->firma_proyecto()->create([
+                'empleado_id' => $user->empleado->id,
+                'cargo_firma_id' => $etapas->first()->cargo_firma_id,
+                'estado_revision' => 'Aprobado', 'fecha_firma' => now()->subDay(),
+                'hash' => 'aprobacion-legacy-conservada',
+            ]);
+            $snapshotHistorico = $firmaHistorica->fresh()->getAttributes();
+            $project->firma_proyecto()->create([
+                'empleado_id' => $user->empleado->id,
+                'cargo_firma_id' => $etapas->last()->cargo_firma_id,
+                'estado_revision' => 'Pendiente', 'hash' => 'pendiente-legacy',
+            ]);
+            $this->ponerEstadoProyecto($project, $user, $etapas->last()->cargoFirma->estadoProyectoActual->nombre);
+            app(\App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::class)->adoptar(
+                $project->fresh(), $flujo->fresh(),
+                \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_EN_REVISION,
+                $etapas->last()->id, [$etapas->last()->id => $user->id], $user
+            );
+        } else {
+            $creacion = new \App\Livewire\Proyectos\Vinculacion\CreateProyectoVinculacion;
+            (new \ReflectionMethod($creacion, 'enviarPorFlujoDeEtapas'))->invoke($creacion, $project->fresh());
+        }
+
+        $project->refresh();
+        $this->assertSame('En revision', $project->estado_general);
+        $firmas = $project->firmasDeEtapasDelFlujo($flujo->id);
+        $this->assertCount($legacy ? 1 : 2, $firmas);
+        $bandeja = new \App\Livewire\Docente\Proyectos\ProyectosPorFirmar;
+        if (! $legacy) {
+            $bandeja->aprobar($firmas->first()->id);
+            $this->assertSame('Aprobado', $firmas->first()->fresh()->estado_revision);
+        }
+        $rechazada = $firmas->last();
+        $bandeja->rechazarId = $rechazada->id;
+        $bandeja->rechazarComentario = 'Corrección de inscripción desde cero';
+        $bandeja->rechazar();
+        $this->assertSame('Subsanacion', $project->fresh()->estado_general);
+        $historial = new HistorialProyecto;
+        $historial->proyecto = $project->fresh();
+        $historial->subsanarComentario = 'Corrección completada';
+        $historial->subsanar();
+        $reenviadas = $project->firmasDeEtapasDelFlujo($flujo->id, 2);
+        $this->assertCount(1, $reenviadas);
+        $this->assertSame($rechazada->flujo_aprobacion_etapa_id, $reenviadas->first()->flujo_aprobacion_etapa_id);
+        $this->assertSame('Rechazado', $rechazada->fresh()->estado_revision);
+        $bandeja->aprobar($reenviadas->first()->id);
+        $this->assertSame('Registrado', $project->fresh()->estado_general);
+
+        $intermedio = app(\App\Services\InformeIntermedio\InformeIntermedioProyectoWorkflowService::class);
+        $this->assertTrue($intermedio->estaDisponible($project->fresh(), $user));
+        $informe = $intermedio->guardarArchivo($project->fresh(), UploadedFile::fake()->createWithContent('intermedio.pdf', "%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\n%%EOF"), $user);
+        $documentoIntermedio = $intermedio->enviar($informe, $user);
+        $bandeja->aprobar($documentoIntermedio->firma_documento()->firstOrFail()->id);
+        $this->assertSame('Registrado', $project->fresh()->estado_general);
+        $this->assertTrue($project->fresh()->puedeMostrarCierreProyecto($user));
+
+        $this->componentReadyForCompletion($user, $project->fresh())->call('marcarCompleto')->assertHasNoErrors();
+        $report = $project->informeFinalInf001()->firstOrFail();
+        $workflow = app(InformeFinalProyectoWorkflowService::class);
+        $documento = $workflow->enviarInformeFinal($report, $user);
+        Storage::disk('public')->assertExists($documento->documento_url);
+        $firmaCierre = $documento->firma_documento()->firstOrFail();
+        $bandeja->rechazarId = $firmaCierre->id;
+        $bandeja->rechazarComentario = 'Corrección de cierre';
+        $bandeja->rechazar();
+        $this->assertSame('Registrado', $project->fresh()->estado_general);
+        $this->assertTrue($workflow->puedeContinuarInformeFinal($report->fresh(), $user));
+        $documentoReenviado = $workflow->enviarInformeFinal($report->fresh(), $user);
+        $this->assertSame($documento->id, $documentoReenviado->id);
+        $ultimaFirma = $documentoReenviado->firma_documento()->where('revision_ciclo', 2)->firstOrFail();
+        $bandeja->aprobar($ultimaFirma->id);
+        $this->assertSame('Finalizado', $project->fresh()->estado_general);
+        $this->assertFalse(\App\Http\Controllers\Docente\VerificarConstancia::validarConstanciaEmpleado(
+            EmpleadoProyecto::where('proyecto_id', $project->id)->where('empleado_id', $user->empleado->id)->firstOrFail()
+        ));
+        $this->assertSame('Aprobado', $documento->fresh()->estado->tipoestado->nombre);
+        $this->assertFalse(app(InformeFinalPdfGenerator::class)->viewData($report->fresh(), true)['esBorrador']);
+        $this->assertSame(1, $project->documentos()->where('tipo_documento', 'Informe Final')->count());
+        if ($firmaHistorica) {
+            $this->assertSame($snapshotHistorico, $firmaHistorica->fresh()->getAttributes());
+        } else {
+            $this->assertSame('Aprobado', $firmas->first()->fresh()->estado_revision);
+        }
+    }
+
     public function test_se_crea_un_borrador_por_proyecto(): void
     {
         [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
@@ -1357,6 +1470,16 @@ class InformeFinalINF001Test extends TestCase
             ->assertSee('Crear informe final');
     }
 
+    public function test_registrado_habilita_cierre_igual_que_en_curso_historico(): void
+    {
+        [$user, $project] = $this->scenario();
+        foreach (['En curso', 'Registrado'] as $estado) {
+            $this->ponerEstadoProyecto($project, $user, $estado);
+            $this->assertTrue($project->fresh()->puedeMostrarCierreProyecto($user));
+            $this->assertTrue(app(InformeFinalProyectoWorkflowService::class)->puedeIniciarInformeFinal($project->fresh(), $user));
+        }
+    }
+
     public function test_tarjeta_no_aparece_en_estados_anteriores_a_en_curso(): void
     {
         [$user,$project]=$this->scenario();
@@ -1763,7 +1886,7 @@ class InformeFinalINF001Test extends TestCase
         });
     }
 
-    private function scenario(): array
+    private function scenario(bool $inscripcionAprobada = true): array
     {
         $user=User::factory()->create(['name'=>'Dorian Adolfo Ordóñez Osorto','email'=>'coordinador.comunitario.'.uniqid().'@example.test']);
         $role=Role::firstOrCreate(['name'=>'admin','guard_name'=>'web']); $user->assignRole($role);
@@ -1791,9 +1914,13 @@ class InformeFinalINF001Test extends TestCase
         $etapaNormal = FlujoAprobacionEtapa::create(['flujo_aprobacion_id'=>$flujo->id,'orden'=>1,'codigo'=>'NORMAL_'.uniqid(),'nombre'=>'Aprobación normal','tipo_etapa'=>'APROBACION','cargo_firma_id'=>$cargoNormal->id,'usuario_responsable_id'=>$user->id,'activo'=>true,'aplica_inscripcion'=>true,'aplica_cierre_proyecto'=>false]);
         $etapaCierre = FlujoAprobacionEtapa::create(['flujo_aprobacion_id'=>$flujo->id,'orden'=>2,'codigo'=>'CIERRE_'.uniqid(),'nombre'=>'Aprobación cierre','tipo_etapa'=>'APROBACION','cargo_firma_id'=>$cargoCierre->id,'usuario_responsable_id'=>$user->id,'activo'=>true,'aplica_inscripcion'=>true,'aplica_cierre_proyecto'=>true]);
         $project->update(['flujo_aprobacion_id'=>$flujo->id]);
+        if ($inscripcionAprobada) {
         $project->firma_proyecto()->create(['empleado_id'=>$employee->id,'cargo_firma_id'=>$cargoNormal->id,'estado_revision'=>'Aprobado','hash'=>'normal-'.uniqid(),'flujo_aprobacion_id'=>$flujo->id,'flujo_aprobacion_etapa_id'=>$etapaNormal->id,'orden_revision'=>1,'etapa_codigo'=>$etapaNormal->codigo,'etapa_nombre'=>$etapaNormal->nombre,'revision_ciclo'=>1,'fecha_firma'=>now()]);
         $project->firma_proyecto()->create(['empleado_id'=>$employee->id,'cargo_firma_id'=>$cargoCierre->id,'estado_revision'=>'Aprobado','hash'=>'inscripcion-cierre-'.uniqid(),'flujo_aprobacion_id'=>$flujo->id,'flujo_aprobacion_etapa_id'=>$etapaCierre->id,'orden_revision'=>2,'etapa_codigo'=>$etapaCierre->codigo,'etapa_nombre'=>$etapaCierre->nombre,'revision_ciclo'=>1,'fecha_firma'=>now()]);
         $project->estado_proyecto()->create(['empleado_id'=>$employee->id,'tipo_estado_id'=>$estadoNormal->id,'fecha'=>now(),'comentario'=>'Flujo normal aprobado.','es_actual'=>true]);
+        } else {
+            $this->ponerEstadoProyecto($project, $user, 'Borrador');
+        }
         return [$user,$project];
     }
 }

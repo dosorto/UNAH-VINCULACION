@@ -27,6 +27,16 @@ class HistorialProyectoWorkflowStageResubmissionIntegrationTest extends TestCase
 
     public function test_subsanar_detecta_firma_rechazada_por_etapa_y_reenvia_por_el_camino_nuevo(): void
     {
+        $this->verificarReenvio(false);
+    }
+
+    public function test_subsanar_conserva_etapas_retiradas_y_aprobaciones_del_expediente_enviado(): void
+    {
+        $this->verificarReenvio(true);
+    }
+
+    private function verificarReenvio(bool $retirarEtapas): void
+    {
         $context = $this->crearContexto(3);
         [$user, $coordinador] = $this->crearUsuarioEmpleado(permisos: ['docente.crear-proyecto']);
         $this->actingAs($user);
@@ -45,6 +55,13 @@ class HistorialProyectoWorkflowStageResubmissionIntegrationTest extends TestCase
         $firmasAntes = FirmaProyecto::count();
         Mail::fake();
 
+        if ($retirarEtapas) {
+            $context['proyecto']->forceFill(['flujo_aprobacion_id' => $context['flujo']->id])->save();
+            $configuracion = new \App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
+            (new \ReflectionMethod($configuracion, 'syncFlowStages'))->invoke($configuracion, $context['flujo'], []);
+            $this->assertCount(3, $context['proyecto']->fresh()->etapasParaStepper());
+        }
+
         $component = $this->componente($context['proyecto']);
         $component->subsanarModal = true;
         $component->subsanarComentario = 'Correcciones realizadas';
@@ -61,7 +78,7 @@ class HistorialProyectoWorkflowStageResubmissionIntegrationTest extends TestCase
         $this->assertSame('Pendiente', $firmaPosterior->refresh()->estado_revision);
         $this->assertSame($firmasAntes + 2, FirmaProyecto::count());
         $this->assertSame($estadoSubsanacionId, $context['proyecto']->estado_proyecto()->whereKey($estadoSubsanacionId)->value('id'));
-        $this->assertSame($context['cargos'][1]->tipo_estado_id, $context['proyecto']->estado->tipo_estado_id);
+        $this->assertSame('En revision', $context['proyecto']->estado->tipoestado->nombre);
         $this->assertSame($firmasNuevoCiclo[0]->id, $context['proyecto']->firmaActualDeEtapasDelFlujo($context['flujo']->id, 2)?->id);
         $this->assertFalse($context['proyecto']->firmaEsActualEnFlujoPorEtapa($firmasNuevoCiclo[1]));
         $this->assertFalse($component->subsanarModal);

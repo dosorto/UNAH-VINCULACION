@@ -64,6 +64,11 @@ class InformeIntermedioWorkflowTest extends TestCase
         $this->crearFirmasInscripcionAprobadas($contexto);
 
         $this->assertTrue($workflow->estaDisponible($contexto['proyecto']->fresh(), $contexto['usuario']));
+        $contexto['proyecto']->estado_proyecto()->create([
+            'tipo_estado_id' => \App\Support\Proyecto\EstadoGeneralProyecto::id('Registrado'),
+            'empleado_id' => $contexto['usuario']->empleado->id, 'fecha' => now(), 'es_actual' => true,
+        ]);
+        $this->assertTrue($workflow->estaDisponible($contexto['proyecto']->fresh(), $contexto['usuario']));
     }
 
     public function test_valida_pdf_y_permite_cargar_reemplazar_y_eliminar_solo_en_borrador(): void

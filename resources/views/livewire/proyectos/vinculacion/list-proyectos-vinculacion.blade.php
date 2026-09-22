@@ -129,7 +129,7 @@
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Código</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">N° Dictamen / Registro</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Nombre</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Estado</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Estado / etapa</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Fecha Inicio</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300">Acciones</th>
                 </tr>
@@ -141,7 +141,7 @@
                         $record = $row['record'];
                         $isEnf = ($row['kind'] ?? null) === 'enf';
                         $badge = match($estado) {
-                            'En curso' => 'bg-green-100 text-green-800',
+                            'Registrado', 'En curso' => 'bg-green-100 text-green-800',
                             'Subsanacion', 'SUBSANACION' => 'bg-red-100 text-red-800',
                             'Borrador', 'BORRADOR' => 'bg-yellow-100 text-yellow-800',
                             'Finalizado' => 'bg-blue-100 text-blue-800',
@@ -161,6 +161,16 @@
                         </td>
                         <td class="px-4 py-3">
                             <span class="px-2 py-1 text-xs font-medium rounded-full {{ $badge }}">{{ $estado ?: '-' }}</span>
+                            @if($revision = $row['revision_actual'] ?? null)
+                                <p class="mt-2 text-xs text-gray-700 dark:text-gray-300">
+                                    {{ $revision->estado_revision === 'Rechazado' ? 'Etapa en subsanación:' : 'Etapa pendiente:' }}
+                                    {{ $revision->etapa_nombre ?: 'Sin nombre registrado' }}
+                                </p>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Rol: {{ $revision->rol_requerido ?: 'Responsable asignado' }}</p>
+                                @if(!$revision->flujo_aprobacion_etapa_id)
+                                    <p class="mt-1 text-xs text-amber-700 dark:text-amber-400">Etapa no disponible. Requiere revisión de la configuración.</p>
+                                @endif
+                            @endif
                         </td>
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ $row['fecha'] ? \Carbon\Carbon::parse($row['fecha'])->format('d/m/Y') : '-' }}</td>
                         <td class="px-4 py-3">

@@ -32,7 +32,7 @@ class FamiliaProyectos extends FamiliaPorEstados
             // el itinerario y su orden.
             fases: [
                 ['clave' => 'inscripcion', 'etiqueta' => 'Inscripción', 'tono' => 'info', 'estados' => EstadosProyecto::EN_REVISION_ACTIVA],
-                ['clave' => 'ejecucion', 'etiqueta' => 'En ejecución', 'tono' => 'exito', 'estados' => [EstadosProyecto::EN_CURSO]],
+                ['clave' => 'ejecucion', 'etiqueta' => 'Registrado', 'tono' => 'exito', 'estados' => EstadosProyecto::REGISTRADOS],
                 ['clave' => 'intermedio', 'etiqueta' => 'Informe intermedio', 'tono' => 'acento', 'estados' => []],
                 ['clave' => 'final', 'etiqueta' => 'Informe final', 'tono' => 'acento', 'estados' => []],
                 ['clave' => 'cerrado', 'etiqueta' => 'Cerrado', 'tono' => 'neutro', 'estados' => [EstadosProyecto::FINALIZADO]],
@@ -44,7 +44,7 @@ class FamiliaProyectos extends FamiliaPorEstados
     public function conteos(AmbitoPanel $ambito): array
     {
         $idsBorrador = EstadosProyecto::ids(EstadosProyecto::SIN_ENVIAR);
-        $idsCurso = EstadosProyecto::ids(EstadosProyecto::EN_CURSO);
+        $idsCurso = EstadosProyecto::ids(EstadosProyecto::REGISTRADOS);
         $idsFinal = EstadosProyecto::ids(EstadosProyecto::FINALIZADO);
 
         $filas = $this->consultaBase($ambito)

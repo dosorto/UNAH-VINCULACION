@@ -6,6 +6,7 @@ use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
 use App\Models\Personal\FirmaSelloEmpleado;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class FirmaProyecto extends Model
 {
     use HasFactory;
+
+    private const CAMPOS_FLUJO = [
+        'flujo_aprobacion_id', 'flujo_aprobacion_etapa_id', 'revision_ciclo',
+        'orden_revision', 'etapa_codigo', 'etapa_nombre',
+    ];
 
     protected $table = 'firma_proyecto';
 
@@ -107,7 +113,22 @@ class FirmaProyecto extends Model
 
     public function esFirmaLegacy(): bool
     {
-        return blank($this->flujo_aprobacion_etapa_id);
+        foreach (self::CAMPOS_FLUJO as $campo) {
+            if ($this->getAttribute($campo) !== null) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function scopeLegacyAutentica(Builder $query): Builder
+    {
+        foreach (self::CAMPOS_FLUJO as $campo) {
+            $query->whereNull($this->qualifyColumn($campo));
+        }
+
+        return $query;
     }
 
     /**

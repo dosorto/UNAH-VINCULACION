@@ -81,7 +81,7 @@ class PanelEstadisticoService
     public function resumenEstados(AmbitoPanel $ambito): array
     {
         return $this->recordar('resumen', $ambito, function () use ($ambito): array {
-            $grupos = ['en_curso' => EstadosProyecto::EN_CURSO,
+            $grupos = ['en_curso' => EstadosProyecto::REGISTRADOS,
                 'finalizado' => EstadosProyecto::FINALIZADO,
                 'subsanacion' => EstadosProyecto::SUBSANACION,
                 'en_revision' => EstadosProyecto::EN_REVISION_ACTIVA];
@@ -210,7 +210,7 @@ class PanelEstadisticoService
             $idsBorrador = EstadosProyecto::ids(EstadosProyecto::SIN_ENVIAR);
             $idsRevision = EstadosProyecto::ids(EstadosProyecto::EN_REVISION_ACTIVA);
             $idsSubsanar = EstadosProyecto::ids(EstadosProyecto::SUBSANACION);
-            $idsCurso = EstadosProyecto::ids(EstadosProyecto::EN_CURSO);
+            $idsCurso = EstadosProyecto::ids(EstadosProyecto::REGISTRADOS);
             $idsFinal = EstadosProyecto::ids(EstadosProyecto::FINALIZADO);
 
             $filas = $this->proyectos($ambito)
@@ -279,7 +279,7 @@ class PanelEstadisticoService
             return [
                 'fases' => [
                     ['clave' => 'revision', 'etiqueta' => 'Inscripción', 'valor' => $conteo['revision'], 'tono' => 'info'],
-                    ['clave' => 'ejecucion', 'etiqueta' => 'En ejecución', 'valor' => $conteo['ejecucion'], 'tono' => 'exito'],
+                    ['clave' => 'ejecucion', 'etiqueta' => 'Registrado', 'valor' => $conteo['ejecucion'], 'tono' => 'exito'],
                     ['clave' => 'intermedio', 'etiqueta' => 'Informe intermedio', 'valor' => $conteo['intermedio'], 'tono' => 'acento'],
                     ['clave' => 'final', 'etiqueta' => 'Informe final', 'valor' => $conteo['final'], 'tono' => 'acento'],
                     ['clave' => 'cerrado', 'etiqueta' => 'Cerrado', 'valor' => $conteo['cerrado'], 'tono' => 'neutro'],

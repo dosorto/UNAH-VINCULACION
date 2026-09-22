@@ -106,9 +106,12 @@ trait ResuelveFirmaPorEtapa
             throw new \RuntimeException('No se pudo determinar de forma segura la siguiente etapa del flujo.');
         }
 
-        $tipoEstadoId = $siguienteFirma->cargo_firma()->value('tipo_estado_id');
+        $cargoSiguiente = $siguienteFirma->cargo_firma()->first();
+        $tipoEstadoId = $documento
+            ? $cargoSiguiente?->tipo_estado_id
+            : \App\Support\Proyecto\EstadoGeneralProyecto::id('En revision');
 
-        if (! $tipoEstadoId) {
+        if (! $cargoSiguiente || ! $tipoEstadoId) {
             throw new \RuntimeException('No se pudo determinar de forma segura la siguiente etapa del flujo.');
         }
 

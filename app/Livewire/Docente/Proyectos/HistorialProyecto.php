@@ -220,7 +220,8 @@ class HistorialProyecto extends Component
             ->firma_proyecto()
             ->with(['cargo_firma.tipoCargoFirma', 'proyecto.estadoActual'])
             ->where('estado_revision', 'Pendiente')
-            ->whereHas('cargo_firma', fn ($query) => $query->where('tipo_estado_id', $estadoActualId))
+            ->where(fn ($query) => $query->whereNotNull('flujo_aprobacion_etapa_id')
+                ->orWhereHas('cargo_firma', fn ($cargo) => $cargo->where('tipo_estado_id', $estadoActualId)))
             ->get()
             ->first(fn (FirmaProyecto $firma) => $this->canActOnFirma($firma));
     }
@@ -615,7 +616,7 @@ class HistorialProyecto extends Component
             return $this->canActOnWorkflowStageFirma($firma);
         }
 
-        if ($firma->estado_revision !== 'Pendiente') {
+        if (! $firma->esFirmaLegacy() || filled($firma->deleted_at) || $firma->estado_revision !== 'Pendiente') {
             return false;
         }
 
@@ -738,13 +739,23 @@ class HistorialProyecto extends Component
     private function esRevisionSolicitada(): bool
     {
         return $this->activeRolePuede('proyectos.solicitados')
-            && $this->nombreEstadoActualProyecto() === 'En revision';
+            && $this->estadoDeLaRevisionActual() === 'En revision';
     }
 
     private function esRevisionFinal(): bool
     {
         return $this->activeRolePuede('proyectos.revision-final')
-            && $this->nombreEstadoActualProyecto() === 'En revision final';
+            && $this->estadoDeLaRevisionActual() === 'En revision final';
+    }
+
+    private function estadoDeLaRevisionActual(): string
+    {
+        $firma = $this->firmaPendienteRevision();
+
+        // La emisión de código/dictamen sigue perteneciendo a su revisión específica.
+        return $firma?->usaFlujoPorEtapa()
+            ? (string) $firma->cargo_firma?->estadoProyectoActual?->nombre
+            : $this->nombreEstadoActualProyecto();
     }
 
     private function activeRolePuede(string $permission): bool

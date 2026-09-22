@@ -97,7 +97,7 @@ class MisFormulariosService
                     'fecha_inicio' => $proyecto->fecha_inicio,
                     'fecha_fin' => $proyecto->fecha_finalizacion,
                     'fase' => $this->etiquetaDeFase($proceso),
-                    'estado' => $proyecto->estadoActual?->tipoestado?->nombre,
+                    'estado' => $proyecto->estado_general,
                     'stepper' => ProyectoFlujoStepper::desdeFilas(
                         $proyecto->etapasParaStepper($proceso, $documento)
                     ),
@@ -249,7 +249,7 @@ class MisFormulariosService
             $normalizado === '' => 'borrador',
             in_array($normalizado, ['borrador', 'autoguardado'], true) => 'borrador',
             in_array($normalizado, ['subsanacion', 'subsanación', 'rechazado'], true) => 'subsanar',
-            $normalizado === 'en curso' => 'en_curso',
+            in_array($normalizado, ['registrado', 'en curso'], true) => 'en_curso',
             $normalizado === 'finalizado' => 'finalizado',
             in_array($normalizado, [
                 'esperando documento', 'subsanar documento', 'enlace vinculacion',
