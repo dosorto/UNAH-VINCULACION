@@ -2,6 +2,12 @@
 
 Fecha de documentación: 22 de septiembre de 2026.
 
+La auditoría posterior, con dos recorridos continuos hasta Finalizado y una
+ejecución conjunta de 387 pruebas (381 aprobadas y 6 fallidas), está registrada
+en [Pruebas de flujos desde cero](pruebas-flujos-desde-cero-2026-09-22.md).
+Ese informe incluye la corrección del cierre con empleados sin categoría y
+las migraciones necesarias para revisar e incorporar `a66c2248`.
+
 Este documento registra los cambios realizados durante la revisión de los
 flujos de proyectos, su adaptación desde expedientes anteriores y la separación
 entre estado general y etapa. Describe cambios locales de código y validaciones
