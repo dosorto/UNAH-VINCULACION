@@ -94,9 +94,9 @@ class InformeFinalINF001Test extends TestCase
         [$user,$project]=$this->scenario();
         $html=$this->livewireComponent($user,$project)->html();
 
-        $namePosition=strpos($html,'Nombre del programa o proyecto');
-        $registrationPosition=strpos($html,'Número de registro');
-        $datePosition=strpos($html,'Fecha de registro');
+        $namePosition=strpos($html,'1. Nombre del Programa/Proyecto');
+        $registrationPosition=strpos($html,'2. Número de registro');
+        $datePosition=strpos($html,'3. Fecha de registro');
         $this->assertNotFalse($namePosition);
         $this->assertNotFalse($registrationPosition);
         $this->assertNotFalse($datePosition);
@@ -202,7 +202,7 @@ class InformeFinalINF001Test extends TestCase
         $this->livewireComponent($user,$project)->assertSet('general.lecciones_aprendidas',$text);
     }
 
-    public function test_los_campos_de_reflexion_heredados_son_informativos_y_no_pueden_ser_alterados(): void
+    public function test_solo_el_problema_inicial_es_heredado_y_la_ejecucion_se_redacta_en_el_informe(): void
     {
         [$user,$project]=$this->scenario();
         $origen = [
@@ -215,17 +215,22 @@ class InformeFinalINF001Test extends TestCase
         $project = $project->fresh();
         $report = $this->initialize($project,$user);
 
+        // IX.4 «Problema inicial identificado» viene del registro. Los cambios logrados no se
+        // precargan con el impacto deseado; la reforma y la bibliografía son un punto de partida editable.
         $this->assertSame($origen['definicion_problema'],$report->problema_inicial);
-        $this->assertSame($origen['impacto_deseado'],$report->transformacion_lograda);
+        $this->assertNull($report->transformacion_lograda);
         $this->assertSame($origen['alineamiento_reforma'],$report->respuesta_reforma_universitaria);
         $this->assertSame($origen['bibliografia'],$report->bibliografia);
 
         $component = $this->livewireComponent($user,$project)
             ->set('currentStep',6)
-            ->assertSet('general.problema_inicial',$origen['definicion_problema'])
-            ->assertSet('general.transformacion_lograda',$origen['impacto_deseado'])
-            ->assertSet('general.respuesta_reforma_universitaria',$origen['alineamiento_reforma'])
-            ->assertSet('general.bibliografia',$origen['bibliografia']);
+            ->assertSet('general.problema_inicial',$origen['definicion_problema']);
+        $this->assertTrue($component->instance()->esCampoReflexionHeredado('problema_inicial'));
+        foreach (['transformacion_lograda','respuesta_reforma_universitaria','bibliografia'] as $campo) {
+            $this->assertFalse($component->instance()->esCampoReflexionHeredado($campo));
+        }
+        $component->set('general.bibliografia','Bibliografía utilizada en la ejecución')->call('guardarBorrador')
+            ->assertSet('general.bibliografia','Bibliografía utilizada en la ejecución');
 
         $component->set('general.problema_inicial','Valor manipulado desde el navegador')
             ->call('guardarBorrador')
@@ -366,7 +371,8 @@ class InformeFinalINF001Test extends TestCase
     public function test_beneficiarios_vacios_se_guardan_como_cero_al_avanzar_de_paso(): void
     {
         [$user,$project]=$this->scenario();
-        $component=$this->livewireComponent($user,$project)
+        $component=$this->conSitioDeEjecucion($this->livewireComponent($user,$project))
+            ->set('beneficiarios.edad_19_25',3504)
             ->set('beneficiarios.edad_36_50','')
             ->set('beneficiarios.edad_66_80','')
             ->call('siguiente')
@@ -566,8 +572,8 @@ class InformeFinalINF001Test extends TestCase
         $plan=EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Voluntariado','cantidad_estudiantes_hombres'=>1,'cantidad_estudiantes_mujeres'=>1,'total_estudiantes'=>2]);
         EstudianteProyecto::create(['estudiante_id'=>null,'proyecto_id'=>$project->id,'tipo_participacion_estudiante'=>'Practica Asignatura','cantidad_estudiantes_hombres'=>0,'cantidad_estudiantes_mujeres'=>0,'total_estudiantes'=>0]);
         $report=$this->initialize($project,$user); $grupo=$report->gruposEstudiantes()->where('estudiante_proyecto_id',$plan->id)->firstOrFail();
-        $report->estudiantes()->create(['informe_final_grupo_estudiante_id'=>$grupo->id,'nombre'=>'Estudiante hombre','sexo'=>'Masculino','tipo_participacion'=>'voluntariado']);
-        $report->estudiantes()->create(['informe_final_grupo_estudiante_id'=>$grupo->id,'nombre'=>'Estudiante mujer','sexo'=>'Femenino','tipo_participacion'=>'voluntariado']);
+        $report->estudiantes()->create(['informe_final_grupo_estudiante_id'=>$grupo->id,'nombre'=>'Estudiante hombre','sexo'=>'Masculino','tipo_participacion'=>'voluntariado','numero_cuenta'=>'20220001','carrera'=>'Sociología','horas_dedicadas'=>20]);
+        $report->estudiantes()->create(['informe_final_grupo_estudiante_id'=>$grupo->id,'nombre'=>'Estudiante mujer','sexo'=>'Femenino','tipo_participacion'=>'voluntariado','numero_cuenta'=>'20220002','carrera'=>'Sociología','horas_dedicadas'=>20]);
 
         $this->livewireComponent($user,$project)->set('currentStep',3)
             ->assertDontSee('Observación por estudiantes no incorporados')
@@ -600,6 +606,7 @@ class InformeFinalINF001Test extends TestCase
             ->call('siguiente')->assertHasErrors('gruposEstudiantes.0.observacion_no_cumplimiento');
         $component->call('restaurarParticipante','estudiante',0)
             ->assertDontSee('Observación por estudiantes no incorporados')
+            ->set('estudiantes.0.carrera','Sociología')->set('estudiantes.0.horas_dedicadas',20)
             ->call('siguiente')->assertHasNoErrors()->assertSet('currentStep',4);
     }
 
@@ -638,7 +645,9 @@ class InformeFinalINF001Test extends TestCase
 
         $this->assertMatchesRegularExpression('/Participación de estudiantes.*?Expresado en números<\/td><td>2<\/td><td>1<\/td>/s',$html);
         $this->assertMatchesRegularExpression('/Participación de voluntarios.*?Expresado en números<\/td><td>1<\/td><td>2<\/td>/s',$html);
-        $this->assertStringContainsString($asignatura->codigo.' - Asignatura PDF · Segundo período',$html);
+        // El detalle de estudiantes sigue las columnas del formato (sin asignatura/período).
+        $this->assertStringContainsString('Carrera a la que pertenece',$html);
+        $this->assertStringNotContainsString('Asignatura / período',$html);
     }
 
     public function test_estudiantes_modal_busca_agrega_edita_y_marca_no_participacion_sin_borrar(): void
@@ -1109,9 +1118,85 @@ class InformeFinalINF001Test extends TestCase
             ->assertSet('ods.0.evidencia','Fotografías y bitácora de campo');
     }
 
-    public function test_se_valida_muestra_comunitaria(): void
+    public function test_la_valoracion_no_pasa_de_la_muestra_ni_la_muestra_del_total_de_beneficiarios(): void
     {
-        [$user,$project]=$this->scenario(); $this->livewireComponent($user,$project)->set('general.valoracion_total_beneficiarios',100)->set('general.valoracion_muestra',101)->call('guardarBorrador')->assertHasErrors('general.valoracion_muestra');
+        // Cada respuesta del ítem 11 es una persona encuestada, así que los valores se topan solos.
+        $component=$this->livewireComponent(...$this->scenario())
+            ->set('general.valoracion_total_beneficiarios',100)
+            ->set('general.valoracion_muestra',101)->assertSet('general.valoracion_muestra',100)
+            ->set('general.valoracion_excelente',80)->assertSet('general.valoracion_excelente',80)
+            ->set('general.valoracion_muy_buena',50)->assertSet('general.valoracion_muy_buena',20)
+            ->set('general.valoracion_regular',5)->assertSet('general.valoracion_regular',0);
+
+        $this->assertSame(100.0,array_sum($component->get('porcentajesValoracion')));
+        $this->assertTrue($component->get('resumenValoracion')['cuadra']);
+    }
+
+    public function test_si_las_respuestas_exceden_la_muestra_se_pueden_corregir_una_por_una(): void
+    {
+        // Al reducir la muestra, las respuestas ya registradas la exceden: el tope pasa a ser la
+        // muestra para poder bajarlas, y el aviso dice cuántas sobran.
+        $component=$this->livewireComponent(...$this->scenario())
+            ->set('general.valoracion_total_beneficiarios',10)
+            ->set('general.valoracion_muestra',10)
+            ->set('general.valoracion_excelente',6)->set('general.valoracion_muy_buena',4)
+            ->set('general.valoracion_muestra',2);
+
+        $this->assertSame(8,$component->get('resumenValoracion')['sobran']);
+
+        $component->set('general.valoracion_excelente',1)->assertSet('general.valoracion_excelente',1)
+            ->set('general.valoracion_muy_buena',1)->assertSet('general.valoracion_muy_buena',1);
+
+        $this->assertTrue($component->get('resumenValoracion')['cuadra']);
+    }
+
+    public function test_las_horas_del_apartado_x_salen_de_los_pasos_2_y_3(): void
+    {
+        [$user,$project]=$this->scenario();
+        $report=$this->initialize($project,$user);
+        $filaDocentes=$report->presupuestoDetalles()->where('concepto_codigo','horas_trabajo_docentes')->firstOrFail();
+
+        $component=$this->livewireComponent($user,$project)
+            ->set('equipo.0.horas_dedicadas',40)
+            ->set('estudiantes',[['nombre'=>'Estudiante','sexo'=>'Femenino','numero_cuenta'=>'20220001','carrera'=>'Sociología','horas_dedicadas'=>12,'estado_participacion'=>'activo']]);
+
+        $indice=fn (string $codigo)=>collect($component->get('presupuesto'))->search(fn ($fila)=>($fila['concepto_codigo'] ?? null)===$codigo);
+        $this->assertSame(40.0,(float) $component->get('presupuesto.'.$indice('horas_trabajo_docentes').'.cantidad'));
+        $this->assertSame(12.0,(float) $component->get('presupuesto.'.$indice('horas_trabajo_estudiantes').'.cantidad'));
+
+        // Al cambiarlas en el paso 2 se guardan, para que el PDF y los totales coincidan.
+        $this->assertSame('40.00',$filaDocentes->fresh()->cantidad);
+    }
+
+    public function test_el_presupuesto_planificado_lo_manda_el_registro_del_proyecto(): void
+    {
+        [$user,$project]=$this->scenario();
+        $planificado=app(InformeFinalProyectoInitializer::class)->presupuestoPlanificado($project);
+        $this->assertGreaterThan(0,$planificado);
+
+        $report=$this->initialize($project,$user);
+        $report->update(['presupuesto_planificado'=>10.02]);
+
+        // Al abrir el informe vuelve a tomar el dato del registro y el campo no se escribe.
+        $component=$this->livewireComponent($user,$project);
+        $this->assertSame($planificado,(float) $component->get('general.presupuesto_planificado'));
+        $this->assertSame($planificado,(float) $report->fresh()->presupuesto_planificado);
+        $component->set('currentStep',7)->assertDontSee('wire:model.live="general.presupuesto_planificado"',false);
+    }
+
+    public function test_si_el_registro_no_trae_presupuesto_el_informe_lo_escribe(): void
+    {
+        [$user,$project]=$this->scenario();
+        $project->aportesInstitucionales()->delete();
+        $project->presupuesto?->update(['aporte_contraparte'=>0,'aporte_comunidad'=>0,'aporte_internacionales'=>0,'aporte_otras_universidades'=>0,'otros_aportes'=>0]);
+        $project->refresh()->load('aportesInstitucionales','presupuesto');
+
+        $component=$this->livewireComponent($user,$project)->set('currentStep',7)
+            ->assertSee('wire:model.live="general.presupuesto_planificado"',false)
+            ->set('general.presupuesto_planificado',2500);
+
+        $this->assertSame('2500.00',InformeFinalProyecto::where('proyecto_id',$project->id)->value('presupuesto_planificado'));
+        $this->assertSame([],$component->instance()->erroresFormatoPaso(7)['general.presupuesto_planificado'] ?? []);
     }
 
     public function test_se_calculan_porcentajes_de_valoracion(): void
@@ -1127,14 +1212,22 @@ class InformeFinalINF001Test extends TestCase
 
     public function test_se_calcula_aporte_contraparte(): void
     {
-        [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user); $report->presupuestoDetalles()->create(['fuente'=>'CONTRAPARTE','concepto'=>'Personal','cantidad'=>2,'costo_unitario'=>1000]); $report->load('presupuestoDetalles');
+        [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
+        // X. Aporte de la contraparte por concepto: el usuario registra lo ejecutado.
+        $report->presupuestoDetalles()->where('fuente','CONTRAPARTE')->where('concepto_codigo','insumos_materiales')->update(['cantidad'=>1,'costo_unitario'=>66792.44,'origen_fondos'=>'Fondos propios']);
+        $report->presupuestoDetalles()->where('fuente','CONTRAPARTE')->where('concepto_codigo','contratacion_personal')->update(['cantidad'=>2,'costo_unitario'=>1000,'origen_fondos'=>'Fondos propios']);
+        $report->load('presupuestoDetalles');
         $this->assertSame(68792.44,$report->total_contraparte);
     }
 
     public function test_se_calcula_ejecucion_total(): void
     {
-        [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user); $report->update(['aporte_beneficiarios'=>500,'otros_aportes'=>250]); $report->load('presupuestoDetalles');
+        [$user,$project]=$this->scenario(); $report=$this->initialize($project,$user);
+        $report->presupuestoDetalles()->where('fuente','CONTRAPARTE')->where('concepto_codigo','otros_gastos')->update(['cantidad'=>1,'costo_unitario'=>66792.44,'origen_fondos'=>'Fondos propios']);
+        $report->update(['aporte_beneficiarios'=>500,'otros_aportes'=>250]); $report->load('presupuestoDetalles');
         $this->assertSame(279542.44,$report->ejecucion_total);
+        // «Total Ejecución de la contraparte» del formato: contrapartes + beneficiarios + otros aportes.
+        $this->assertSame(67542.44,$report->total_ejecucion_contraparte);
     }
 
     public function test_se_guardan_anexos(): void
@@ -1143,8 +1236,204 @@ class InformeFinalINF001Test extends TestCase
         $this->assertDatabaseHas('informe_final_anexos',['tipo'=>'manuales','descripcion'=>'Manual de usuario']);
     }
 
-    public function test_se_marca_completo(): void
+    public function test_contraparte_planificada_trae_el_instrumento_del_registro_y_no_se_edita(): void
     {
+        [$user,$project]=$this->scenario();
+        // El informe ya existía antes de registrar el instrumento: al abrirlo se alinea con el registro.
+        $this->initialize($project,$user);
+        InstrumenFormalizacion::create(['entidad_contraparte_id'=>$project->entidad_contraparte_proyecto()->firstOrFail()->id,'tipo_documento'=>'convenio_marco','documento_url'=>'instrumentos/convenio.pdf','nombre_archivo'=>'convenio.pdf']);
+
+        $component=$this->livewireComponent($user,$project)
+            ->assertSet('contrapartes.0.tipo_instrumento','convenio_marco')
+            ->call('openContraparteModal',0)
+            ->assertSet('contraparteModalInstrumentoHeredado',true)
+            ->set('contraparteModal.tipo_instrumento','carta_formal')
+            ->call('saveContraparteModal')
+            ->assertHasNoErrors();
+
+        $component->assertSet('contrapartes.0.tipo_instrumento','convenio_marco');
+        $this->assertDatabaseHas('informe_final_contrapartes',['nombre'=>'Asociación Comunitaria de Desarrollo','tipo_instrumento'=>'convenio_marco']);
+    }
+
+    public function test_la_contraparte_registra_solo_lo_que_pide_la_seccion_v_del_formato(): void
+    {
+        [$user,$project]=$this->scenario();
+        $component=$this->livewireComponent($user,$project)
+            ->call('openContraparteModal',0)
+            // Los compromisos asumidos vienen del registro: no se editan.
+            ->assertSet('contraparteModalCompromisosEditables',false)
+            ->call('saveContraparteModal')
+            ->assertHasErrors(['contraparteModal.tipo_instrumento'])
+            ->assertHasNoErrors(['contraparteModal.compromisos_cumplidos','contraparteModal.aporte_monetario','contraparteModal.aporte_especie']);
+
+        $component->set('contraparteModal.tipo_instrumento','carta_intenciones')->call('saveContraparteModal')->assertHasNoErrors();
+        $this->assertDatabaseHas('informe_final_contrapartes',['nombre'=>'Asociación Comunitaria de Desarrollo','tipo_instrumento'=>'carta_intenciones']);
+    }
+
+    public function test_paso_4_no_avanza_sin_el_instrumento_de_la_contraparte(): void
+    {
+        [$user,$project]=$this->scenario();
+        $component=$this->livewireComponent($user,$project)->set('currentStep',4);
+
+        $component->call('siguiente')->assertHasErrors('contrapartes.0')->assertSet('currentStep',4);
+        $component->call('goToStep',8)->assertHasErrors('contrapartes.0')->assertSet('currentStep',4);
+
+        $this->conContraparteCompleta($component)->call('siguiente')->assertHasNoErrors()->assertSet('currentStep',5);
+    }
+
+    public function test_no_se_marca_completo_con_contrapartes_incompletas(): void
+    {
+        [$user,$project]=$this->scenario();
+        $this->componentReadyForCompletion($user,$project)
+            ->set('contrapartes.0.tipo_instrumento',null)
+            ->call('marcarCompleto')
+            ->assertHasErrors('contrapartes.0')->assertSet('currentStep',4);
+        $this->assertDatabaseHas('informe_final_proyectos',['proyecto_id'=>$project->id,'estado'=>'BORRADOR']);
+    }
+
+    public function test_marcar_completo_se_detiene_en_el_primer_paso_incompleto(): void
+    {
+        [$user,$project]=$this->scenario();
+        // Todo completo menos la reflexión (paso 6): el informe no puede cerrarse y queda en ese paso.
+        $this->componentReadyForCompletion($user,$project)
+            ->set('general.lecciones_aprendidas','')
+            ->call('marcarCompleto')
+            ->assertHasErrors('general.lecciones_aprendidas')->assertSet('currentStep',6);
+    }
+
+    public function test_el_aporte_de_un_ods_en_texto_no_bloquea_el_guardado(): void
+    {
+        [$user,$project]=$this->scenario();
+        $this->livewireComponent($user,$project)
+            ->call('openOdsModal')
+            ->set('odsModal.ods_id',(string) \App\Models\Proyecto\Od::query()->value('id'))
+            ->set('odsModal.descripcion_aporte','Se fortalecieron capacidades comunitarias')
+            ->call('saveOdsModal')->assertHasNoErrors()
+            ->call('guardarBorrador')->assertHasNoErrors();
+        $this->assertDatabaseHas('informe_final_ods',['descripcion_aporte'=>'Se fortalecieron capacidades comunitarias']);
+    }
+
+    public function test_actividad_no_ejecutada_exige_su_reporte_en_vii_y_no_sale_como_realizada(): void
+    {
+        [$user,$project]=$this->scenario();
+        $component=$this->componentReadyForCompletion($user,$project)->set('actividades.0.estado','no_ejecutada');
+
+        $component->call('marcarCompleto')->assertHasErrors('accionesNoEjecutadas.actividad.0')->assertSet('currentStep',6);
+
+        $informe=InformeFinalProyecto::where('proyecto_id',$project->id)->firstOrFail();
+        $html=view('proyectos.informe-final.partials.inf-001-document',app(InformeFinalPdfGenerator::class)->viewData($informe,false))->render();
+        $this->assertStringContainsString('Sin actividades realizadas asociadas a este resultado.',$html);
+    }
+
+    public function test_la_categoria_del_informe_sigue_el_tipo_de_accion(): void
+    {
+        [$user,$project]=$this->scenario();
+        $this->assertSame('Desarrollo local y/o regional',$this->initialize($project,$user)->categoria);
+
+        [$user,$voluntariado]=$this->scenario();
+        $tipo=VinculacionTipoAccion::firstOrCreate(['codigo'=>'VOLUNTARIADO'],['nombre'=>'Proyectos de Voluntariado Académico','activo'=>true]);
+        $voluntariado->update(['tipo_accion_id'=>$tipo->id]);
+        $this->assertSame('Voluntariado académico',$this->initialize($voluntariado->fresh(),$user)->categoria);
+    }
+
+    public function test_anexos_exigen_bitacoras_cuando_hay_estudiantes(): void
+    {
+        [$user,$project]=$this->scenario();
+        $component=$this->componentReadyForCompletion($user,$project);
+        $this->assertArrayNotHasKey('anexos.bitacoras',$component->instance()->erroresFormatoPaso(8));
+
+        $component->set('estudiantes',[['nombre'=>'Estudiante','sexo'=>'Femenino','numero_cuenta'=>'20220001','carrera'=>'Sociología','horas_dedicadas'=>10,'estado_participacion'=>'activo']]);
+        $this->assertArrayHasKey('anexos.bitacoras',$component->instance()->erroresFormatoPaso(8));
+    }
+
+    public function test_los_responsables_de_una_accion_emergente_se_eligen_entre_las_personas_del_informe(): void
+    {
+        [$user,$project]=$this->scenario();
+        $component=$this->livewireComponent($user,$project);
+        $docente=$component->get('equipo.0.nombre');
+        $this->assertNotEmpty($docente);
+
+        $component->call('openAccionModal','accionesEmergentes')
+            ->set('accionModal.actividad_realizada','Taller no previsto')
+            ->set('accionModal.producto_logrado','Guía comunitaria')
+            ->set('accionModal.justificacion','Lo solicitó la comunidad')
+            ->call('saveAccionModal')->assertHasErrors(['accionModal.responsables'=>'required'])
+            ->set('responsableSeleccionAccion','Persona inventada')
+            ->call('agregarResponsableAccion')->assertHasErrors('accionModal.responsables')
+            ->assertSet('accionModal.responsables',[])
+            ->set('responsableSeleccionAccion',$docente)
+            ->call('agregarResponsableAccion')->assertHasNoErrors()
+            ->set('responsableSeleccionAccion',$docente)
+            ->call('agregarResponsableAccion')->assertHasErrors('accionModal.responsables')
+            ->assertSet('accionModal.responsables',[$docente])
+            ->call('saveAccionModal')->assertHasNoErrors();
+
+        $this->assertDatabaseHas('informe_final_acciones_emergentes',['actividad_realizada'=>'Taller no previsto','responsables'=>$docente]);
+
+        // Al editarla, los responsables guardados vuelven como lista.
+        $component->call('openAccionModal','accionesEmergentes',0)->assertSet('accionModal.responsables',[$docente]);
+    }
+
+    public function test_el_responsable_de_una_actividad_se_elige_entre_sus_participantes(): void
+    {
+        [$user,$project]=$this->scenario();
+        $report=$this->initialize($project,$user);
+        $resultado=$report->resultados()->firstOrFail();
+
+        $component=$this->livewireComponent($user,$project)
+            ->call('openActividadModal')
+            ->set('actividadModal.actividad_planificada','Jornada de seguimiento')
+            ->set('actividadModal.estado','ejecutada')
+            ->set('actividadModal.informe_final_resultado_id',$resultado->id)
+            ->set('actividadModal.fecha_inicial','2026-11-09')->set('actividadModal.fecha_final','2026-11-09')
+            ->set('actividadModal.medio_verificacion','Listado de asistencia')
+            ->call('guardarActividadModal')->assertHasErrors('actividadModal.responsable')
+            ->set('participanteSeleccionActividadModal','externo:nuevo')->call('agregarParticipanteActividadModal')
+            ->call('guardarActividadModal')->assertHasErrors('actividadModal.participantes.0.nombre')
+            ->set('actividadModal.participantes.0.nombre','Líder comunitaria')
+            ->set('participanteSeleccionActividadModal','externo:nuevo')->call('agregarParticipanteActividadModal')
+            ->set('actividadModal.participantes.1.nombre','Técnico municipal')
+            ->call('marcarResponsableActividadModal',1)
+            ->assertSet('actividadModal.participantes.0.rol','Participante')
+            ->call('guardarActividadModal')->assertHasNoErrors();
+
+        $this->assertDatabaseHas('informe_final_actividades',['informe_final_proyecto_id'=>$report->id,'actividad_planificada'=>'Jornada de seguimiento','responsable'=>'Técnico municipal']);
+    }
+
+    public function test_los_anexos_se_agregan_por_modal_y_guardan_su_archivo_de_inmediato(): void
+    {
+        Storage::fake('public');
+        [$user,$project]=$this->scenario();
+        $report=$this->initialize($project,$user);
+        $component=$this->livewireComponent($user,$project)->set('currentStep',8);
+
+        // Sin archivo ni enlace no se agrega: era lo que dejaba anexos vacíos en el paso 8.
+        $component->call('openAnexoModal')
+            ->set('anexoModal.tipo','materiales')->set('anexoModal.descripcion','Cartilla comunitaria')
+            ->call('guardarAnexoModal')->assertHasErrors('anexoModalArchivo');
+
+        $component->set('anexoModalArchivo',UploadedFile::fake()->create('cartilla.pdf',120,'application/pdf'))
+            ->call('guardarAnexoModal')->assertHasNoErrors()->assertSet('showAnexoModal',false);
+
+        $anexo=$report->anexos()->where('tipo','materiales')->where('categoria','documento_general')->firstOrFail();
+        $this->assertNotEmpty($anexo->archivo);
+        $this->assertSame('cartilla.pdf',$anexo->nombre_archivo);
+        Storage::disk('public')->assertExists($anexo->archivo);
+        $this->assertArrayNotHasKey('anexos.materiales',$component->instance()->erroresFormatoPaso(8));
+
+        // Un enlace a carpeta digital también vale, y el documento se ve en la tabla.
+        $component->call('openAnexoModal')
+            ->set('anexoModal.tipo','encuestas')->set('anexoModal.descripcion','Formularios aplicados')
+            ->set('anexoModal.enlace','https://drive.google.com/carpeta')
+            ->call('guardarAnexoModal')->assertHasNoErrors()
+            ->assertSee('Formularios aplicados')->assertSee('cartilla.pdf');
+
+        $this->assertArrayNotHasKey('anexos.encuestas',$component->instance()->erroresFormatoPaso(8));
+    }
+
+    public function test_se_marca_completo_y_se_envia_al_flujo_de_cierre(): void
+    {
+        Storage::fake('public');
         [$user,$project]=$this->scenario(); $component=$this->componentReadyForCompletion($user,$project);
         $component->call('marcarCompleto')
             ->assertHasNoErrors()
@@ -1152,11 +1441,37 @@ class InformeFinalINF001Test extends TestCase
             ->assertRedirect(route('historialproyecto',$project));
         $this->assertDatabaseHas('informe_final_proyectos',['proyecto_id'=>$project->id,'estado'=>'COMPLETO']);
         $this->assertTrue(session()->has('mensaje_historial'));
+
+        // El paso 8 cierra el trámite: deja el informe en revisión y el editor bloqueado.
+        $report=$project->informeFinalInf001()->firstOrFail();
+        $this->assertSame(InformeFinalProyecto::ESTADO_EN_REVISION,$report->estadoFlujo());
+        $this->assertSame(1,$project->documentos()->where('tipo_documento','Informe Final')->count());
+        Livewire::actingAs($user)->test(EditInformeFinalProyecto::class,['proyecto'=>$project->fresh()])->assertStatus(403);
+    }
+
+    public function test_el_envio_del_paso_8_exige_elegir_destinatario_cuando_la_etapa_lo_pide(): void
+    {
+        Storage::fake('public');
+        [$user,$project]=$this->scenario();
+        $etapa=$project->flujoEtapasActivasOrdenadas(Proyecto::FLUJO_CIERRE_PROYECTO)->firstOrFail();
+        $rol=Role::firstOrCreate(['name'=>'revisor-cierre-prueba','guard_name'=>'web']);
+        $user->assignRole($rol);
+        $etapa->update(['emisor_define_destinatario'=>true,'rol_revisor_id'=>$rol->id]);
+
+        $component=$this->componentReadyForCompletion($user,$project);
+        $component->call('marcarCompleto')->assertHasErrors('destinatariosCierre')->assertSet('currentStep',8);
+        $this->assertSame(0,$project->documentos()->where('tipo_documento','Informe Final')->count());
+
+        $destinatario=$component->instance()->opcionesDestinatariosCierre[$etapa->id]['usuarios']->firstOrFail();
+        $component->set('destinatariosCierre.'.$etapa->id,$destinatario->id)
+            ->call('marcarCompleto')->assertHasNoErrors();
+
+        $this->assertSame(1,$project->documentos()->where('tipo_documento','Informe Final')->count());
     }
 
     public function test_no_se_marca_completo_con_inconsistencias(): void
     {
-        [$user,$project]=$this->scenario(); $component=$this->livewireComponent($user,$project)->set('general.fecha_cierre','2026-12-01')->set('general.transformacion_lograda','Transformación')->set('general.mecanismos_sostenibilidad','Comité local')->set('general.confirmacion_veracidad',true);
+        [$user,$project]=$this->scenario(); $component=$this->conContraparteCompleta($this->livewireComponent($user,$project))->set('general.fecha_cierre','2026-12-01')->set('general.transformacion_lograda','Transformación')->set('general.mecanismos_sostenibilidad','Comité local')->set('general.confirmacion_veracidad',true);
         $component->call('marcarCompleto')->assertHasErrors('beneficiarios'); $this->assertDatabaseHas('informe_final_proyectos',['proyecto_id'=>$project->id,'estado'=>'BORRADOR']);
     }
 
@@ -1274,10 +1589,11 @@ class InformeFinalINF001Test extends TestCase
     {
         $documento=file_get_contents(resource_path('views/proyectos/informe-final/partials/inf-001-document.blade.php'));
 
-        $this->assertStringContainsString("data_get(\$firmas,'coordinador.firma')",$documento);
-        $this->assertStringContainsString("data_get(\$firmas,'jefe.firma')",$documento);
-        $this->assertStringContainsString("data_get(\$firmas,'enlace.firma')",$documento);
-        $this->assertStringContainsString("data_get(\$firmas,'decano.firma')",$documento);
+        foreach (['coordinador','jefe','enlace','decano'] as $cuadro) {
+            $this->assertStringContainsString("'{$cuadro}' => [",$documento);
+        }
+        $this->assertStringContainsString("@if(data_get(\$firmas, \$claveFirma.'.firma'))",$documento);
+        $this->assertStringContainsString('Firma y sello del Decano(a) o Director(a)',$documento);
     }
 
     public function test_se_genera_pdf_inf001(): void
@@ -1357,6 +1673,23 @@ class InformeFinalINF001Test extends TestCase
             ->assertSee('Crear informe final');
     }
 
+    public function test_un_informe_completo_se_puede_seguir_editando_antes_de_enviarlo(): void
+    {
+        [$user,$project]=$this->scenario();
+        $this->initialize($project,$user)->update(['estado'=>'COMPLETO']);
+
+        $html=Livewire::actingAs($user)->test(HistorialProyecto::class,['proyecto'=>$project->fresh()])
+            ->assertSee('Completo, listo para envío')
+            ->assertSee('Revisar y enviar informe final')
+            ->assertSee('Editar informe final')
+            ->html();
+
+        // La ficha se incrusta sin su documento completo: dos <html> cargaban Livewire y
+        // Alpine por duplicado y ninguna confirmación del sistema llegaba a abrirse.
+        $this->assertStringNotContainsString('<!DOCTYPE html>',$html);
+        $this->assertStringNotContainsString('<body',$html);
+    }
+
     public function test_tarjeta_no_aparece_en_estados_anteriores_a_en_curso(): void
     {
         [$user,$project]=$this->scenario();
@@ -1424,7 +1757,7 @@ class InformeFinalINF001Test extends TestCase
         [$user,$project]=$this->scenario();
         $this->componentReadyForCompletion($user,$project)->call('marcarCompleto')->assertHasNoErrors();
         $report=$project->informeFinalInf001()->firstOrFail();
-        $documento=app(InformeFinalProyectoWorkflowService::class)->enviarInformeFinal($report,$user);
+        $documento=$report->documentoCierre()->firstOrFail();
 
         $this->assertSame(1,$project->documentos()->where('tipo_documento','Informe Final')->count());
         $this->assertSame(
@@ -1443,7 +1776,7 @@ class InformeFinalINF001Test extends TestCase
         [$user,$project]=$this->scenario();
         $this->componentReadyForCompletion($user,$project)->call('marcarCompleto')->assertHasNoErrors();
         $report=$project->informeFinalInf001()->firstOrFail();
-        $documento=app(InformeFinalProyectoWorkflowService::class)->enviarInformeFinal($report,$user);
+        $documento=$report->documentoCierre()->firstOrFail();
         $firma=$documento->firma_documento()->firstOrFail();
 
         $ruta='informes-finales/'.$report->id.'/revisiones/prueba.pdf';
@@ -1473,7 +1806,7 @@ class InformeFinalINF001Test extends TestCase
         $this->componentReadyForCompletion($user,$project)->call('marcarCompleto')->assertHasNoErrors();
         $workflow=app(InformeFinalProyectoWorkflowService::class);
         $report=$project->informeFinalInf001()->firstOrFail();
-        $documento=$workflow->enviarInformeFinal($report,$user);
+        $documento=$report->documentoCierre()->firstOrFail();
         $firma=$documento->firma_documento()->firstOrFail();
         $firma->update(['estado_revision'=>'Rechazado']);
         $subsanacion=TipoEstado::firstOrCreate(['nombre'=>'Subsanacion']);
@@ -1646,7 +1979,8 @@ class InformeFinalINF001Test extends TestCase
         $listado=file_get_contents(resource_path('views/livewire/docente/proyectos/proyectos-docente-list.blade.php'));
         $this->assertStringContainsString('Cierre del proyecto',$vistaProyecto);
         $this->assertStringContainsString('wire:click="crearInformeFinal"',$vistaProyecto);
-        $this->assertStringContainsString('wire:click="enviarInformeFinal"',$vistaProyecto);
+        // El envío pide confirmación con el diálogo del sistema, que llama al componente desde Alpine.
+        $this->assertStringContainsString('$wire.enviarInformeFinal()',$vistaProyecto);
         $this->assertStringContainsString("cierreInformeFinal['visible']",$vistaProyecto);
         $this->assertStringContainsString('Descargar constancia de finalización',$vistaProyecto);
         $this->assertStringContainsString('Flujo de cierre INF-001',$vistaProyecto);
@@ -1704,13 +2038,53 @@ class InformeFinalINF001Test extends TestCase
         return Livewire::actingAs($user)->test(EditInformeFinalProyecto::class,['proyecto'=>$project]);
     }
 
+    /** Registra lo que el paso 4 exige de la contraparte planificada del escenario. */
+    private function conContraparteCompleta($component)
+    {
+        return $component->set('contrapartes.0.tipo_instrumento','carta_intenciones');
+    }
+
+    /** Sitio de ejecución (ítem 10) completo con un país sin división departamental. */
+    private function conSitioDeEjecucion($component)
+    {
+        return $component
+            ->set('paisesTerritorioSel',['Costa Rica'])
+            ->set('general.region','Región Chorotega')
+            ->set('general.aldea_ciudad','Liberia')
+            ->set('general.caserio','Centro');
+    }
+
+    /** Informe con todo lo que el formato INF-001 exige en los 8 pasos. */
     private function componentReadyForCompletion(User $user, Proyecto $project)
     {
-        return $this->livewireComponent($user,$project)
+        $report = $this->initialize($project,$user);
+        $report->ods()->create(['ods_id'=>\App\Models\Proyecto\Od::query()->value('id'),'meta_ods'=>'Meta de prueba','nivel_contribucion'=>'directa']);
+        foreach (['materiales','encuestas','procesamiento','fotografias','difusion'] as $orden => $tipo) {
+            $report->anexos()->create(['categoria'=>'documento_general','tipo'=>$tipo,'descripcion'=>"Anexo {$tipo}",'enlace'=>"https://example.test/{$tipo}",'orden'=>$orden + 10]);
+        }
+
+        $component = $this->conContraparteCompleta($this->conSitioDeEjecucion($this->livewireComponent($user,$project)))
             ->set('beneficiarios.edad_19_25',3504)
+            ->set('equipo.0.horas_dedicadas',40);
+
+        foreach ($component->get('resultados') as $i => $resultado) {
+            $component->set("resultados.$i.valor_alcanzado",1)->set("resultados.$i.producto_logrado",'Producto logrado de prueba');
+        }
+        $resultadoId = $component->get('resultados')[0]['id'];
+        foreach ($component->get('actividades') as $i => $actividad) {
+            $component->set("actividades.$i.estado",'ejecutada')
+                ->set("actividades.$i.informe_final_resultado_id",$resultadoId)
+                ->set("actividades.$i.participantes",[['id'=>null,'tipo'=>'externo','empleado_id'=>null,'informe_final_estudiante_id'=>null,'informe_final_voluntario_id'=>null,'nombre'=>'Dorian Adolfo Ordóñez Osorto','rol'=>'Responsable principal','horas_dedicadas'=>10,'es_responsable'=>true,'orden'=>1,'origen'=>'EJECUCION','estado_participacion'=>'activo']])
+                ->set("actividades.$i.medio_verificacion",'Acta de entrega');
+        }
+        foreach (['dificultades','acciones_dificultades','lecciones_aprendidas','buenas_practicas','problema_inicial','transformacion_lograda','mecanismos_sostenibilidad','acciones_contraparte_sostenibilidad','desafios','respuesta_reforma_universitaria','recomendaciones','bibliografia'] as $campo) {
+            $component->set("general.$campo",'Texto de '.$campo);
+        }
+
+        return $component
+            ->set('general.valoracion_muestra',10)
+            ->set('general.valoracion_excelente',10)
             ->set('general.fecha_cierre','2026-12-01')
-            ->set('general.transformacion_lograda','Gestión comunitaria digitalizada')
-            ->set('general.mecanismos_sostenibilidad','Comité local de soporte')
             ->set('general.confirmacion_veracidad',true);
     }
 

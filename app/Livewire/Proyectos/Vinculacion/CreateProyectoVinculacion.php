@@ -217,6 +217,12 @@ class CreateProyectoVinculacion extends Component
     public string $experiencia_habilidades_tecnicas = '';
     public string $experiencia_competencias_blandas = '';
     public array $espacios_institucionales = [];
+    // Ítems 15 y 16: cantidades por columna de proyecto (null = aún sin capturar).
+    public array $voluntariado_participacion = [];
+
+    // Categorías de docente permanente (ítem 12: "equipo docente permanente tiempo completo").
+    // No se filtra por jornada porque casi ningún empleado la tiene registrada.
+    private const PREFIJOS_CATEGORIA_DOCENTE_PERMANENTE = ['titular', 'auxiliar'];
 
     protected array $tematicaPrincipalOpciones = [
         'educacion' => 'Educación',
@@ -241,6 +247,10 @@ class CreateProyectoVinculacion extends Component
         'experiencia_habilidades_tecnicas' => 'habilidades técnicas',
         'experiencia_competencias_blandas' => 'competencias blandas',
         'espacios_institucionales' => 'espacios institucionales',
+        'espacios_institucionales.*.descripcion' => 'descripción del servicio o infraestructura',
+        'espacios_institucionales.*.ubicacion' => 'ubicación',
+        'espacios_institucionales.*.unidad_gestora' => 'unidad gestora',
+        'espacios_institucionales.*.tiempo_uso_horas' => 'tiempo de uso (horas)',
 
         // Paso 1: Información General
         'nombre_proyecto' => 'nombre del proyecto',
@@ -427,6 +437,7 @@ class CreateProyectoVinculacion extends Component
             }
         }
         $this->resolverEsVoluntariado();
+        $this->voluntariado_participacion += array_fill_keys(Proyecto::columnasVoluntariadoParticipacion(), null);
         $this->initDefaults();
         $this->cargarOpcionesPracticaAsignatura();
         $this->cargarMetasPorOds();
@@ -537,6 +548,8 @@ class CreateProyectoVinculacion extends Component
             'integrante_internacional_id' => $ip->integrante_internacional_id,
             'nombre' => $ip->integranteInternacional?->nombre_completo ?? '',
             'rtn' => $ip->integranteInternacional?->rtn ?? '',
+            'documento_identidad' => $ip->integranteInternacional?->documento_identidad ?? '',
+            'email' => $ip->integranteInternacional?->email ?? '',
             'sexo' => $ip->integranteInternacional?->sexo ?? '',
             'pais' => $ip->integranteInternacional?->pais ?? '',
             'institucion' => $ip->integranteInternacional?->institucion ?? '',
@@ -548,7 +561,7 @@ class CreateProyectoVinculacion extends Component
             'entidad_contraparte_id' => $pivot->entidad_contraparte_id,
             'rtn' => $pivot->entidadContraparte?->rtn ?? '',
             'nombre' => $pivot->entidadContraparte?->nombre ?? '',
-            'tipo_entidad' => $pivot->entidadContraparte?->tipo_entidad ?? '',
+            'tipo_entidad' => $pivot->tipo_entidad ?: ($pivot->entidadContraparte?->tipo_entidad ?? ''),
             'nombre_contacto' => $pivot->nombre_contacto ?? $pivot->entidadContraparte?->nombre_contacto ?? '',
             'cargo_contacto' => $pivot->cargo_contacto ?? $pivot->entidadContraparte?->cargo_contacto ?? '',
             'telefono' => $pivot->telefono ?? $pivot->entidadContraparte?->telefono ?? '',
@@ -606,6 +619,9 @@ class CreateProyectoVinculacion extends Component
         $this->experiencia_conocimientos_teoricos = $record->experiencia_conocimientos_teoricos ?? '';
         $this->experiencia_habilidades_tecnicas = $record->experiencia_habilidades_tecnicas ?? '';
         $this->experiencia_competencias_blandas = $record->experiencia_competencias_blandas ?? '';
+        foreach (Proyecto::columnasVoluntariadoParticipacion() as $columna) {
+            $this->voluntariado_participacion[$columna] = $record->{$columna};
+        }
         $this->espacios_institucionales = $record->espaciosInstitucionales->map(fn($e) => [
             'id' => $e->id,
             'descripcion' => $e->descripcion ?? '',
@@ -680,7 +696,7 @@ class CreateProyectoVinculacion extends Component
         $this->resetErrorBag();
 
         try {
-            if (!$this->validarPasoActualParaNavegacion()) {
+            if (!$this->validarPasoParaNavegacion($this->currentStep)) {
                 $this->dispatch('validation-failed');
                 return;
             }
@@ -710,16 +726,10 @@ class CreateProyectoVinculacion extends Component
         }
 
         if ($step > $this->currentStep) {
-            $this->resetErrorBag();
-
-            try {
-                if (!$this->validarPasoActualParaNavegacion()) {
-                    $this->dispatch('validation-failed');
-                    return;
-                }
-            } catch (ValidationException $e) {
-                $this->dispatch('validation-failed');
-                throw $e;
+            // Avanzar exige que el paso actual y todos los intermedios estén completos;
+            // si alguno falla, el formulario se queda en ese paso mostrando sus errores.
+            if (!$this->validarPasosHasta($step - 1)) {
+                return;
             }
         }
 
@@ -727,32 +737,80 @@ class CreateProyectoVinculacion extends Component
         $this->selectedObjetivoIndex = 0;
     }
 
-    private function validarPasoActualParaNavegacion(): bool
+    /**
+     * Valida desde el paso actual hasta $ultimoPaso. Si uno falla, deja ese paso
+     * como actual y devuelve false (o relanza la ValidationException).
+     */
+    private function validarPasosHasta(int $ultimoPaso, int $desde = 0): bool
     {
-        $this->normalizarDatosAntesDeValidarPaso($this->currentStep);
-        $rules = $this->rulesPasoActualParaNavegacion();
+        $this->resetErrorBag();
 
-        try {
-            if ($this->currentStep === 7) {
-                $this->validarMarcoLogicoCompleto();
-            } elseif (!empty($rules)) {
-                $this->validate($rules, [
-                    'ods.max' => 'Puede seleccionar un máximo de 3 ODS.',
-                ]);
+        for ($paso = $desde ?: $this->currentStep; $paso <= $ultimoPaso; $paso++) {
+            try {
+                $valido = $this->validarPasoParaNavegacion($paso);
+            } catch (ValidationException $e) {
+                $this->irAPasoConErrores($paso);
+                throw $e;
             }
-        } catch (ValidationException $e) {
-            throw $e;
+
+            if (!$valido) {
+                $this->irAPasoConErrores($paso);
+                return false;
+            }
         }
 
-        return $this->validacionesAdicionalesPasoActualParaNavegacion();
+        return true;
     }
 
-    private function rulesPasoActualParaNavegacion(): array
+    private function irAPasoConErrores(int $paso): void
     {
-        $rules = $this->rulesPasoActualBase();
+        $this->currentStep = $paso;
+        $this->selectedObjetivoIndex = 0;
+        $this->dispatch('validation-failed');
+    }
+
+    private function validarPasoParaNavegacion(int $step): bool
+    {
+        $this->normalizarDatosAntesDeValidarPaso($step);
+        $rules = $this->rulesPasoParaNavegacion($step);
+
+        if ($step === 7) {
+            $this->validarMarcoLogicoCompleto();
+        } elseif (!empty($rules)) {
+            $this->validate($rules, [
+                'ods.max' => 'Puede seleccionar un máximo de 3 ODS.',
+                'metodologia_seguimiento.required' => 'Seleccione al menos una metodología de seguimiento.',
+                'voluntariado_participacion.*.required' => 'Registre la cantidad de :attribute (puede ser 0).',
+            ], array_merge($this->getValidationAttributes(), $this->atributosVoluntariadoParticipacion()));
+        }
+
+        return $this->validacionesAdicionalesPaso($step);
+    }
+
+    private function atributosVoluntariadoParticipacion(): array
+    {
+        $atributos = [];
+        $grupos = [
+            '15. Voluntariado personal de la UNAH' => Proyecto::VOLUNTARIADO_PERSONAL_UNAH,
+            '16. Voluntariado internacional' => Proyecto::VOLUNTARIADO_INTERNACIONAL,
+        ];
+
+        foreach ($grupos as $item => $columnas) {
+            foreach ($columnas as $prefijo => $etiqueta) {
+                $atributos["voluntariado_participacion.{$prefijo}_hombres"] = "{$etiqueta} – hombres ({$item})";
+                $atributos["voluntariado_participacion.{$prefijo}_mujeres"] = "{$etiqueta} – mujeres ({$item})";
+            }
+        }
+
+        return $atributos;
+    }
+
+    private function rulesPasoParaNavegacion(int $step): array
+    {
+        $rules = $this->rulesPasoBase($step);
 
         if ($this->esVoluntariado) {
-            $rules = array_merge($rules, $this->rulesVoluntariadoPaso($this->currentStep));
+            $rules = array_merge($rules, $this->rulesVoluntariadoPaso($step));
         }
 
         return $rules;
@@ -765,29 +823,33 @@ class CreateProyectoVinculacion extends Component
                 'tematica_principal' => 'required|string|in:' . implode(',', array_keys($this->tematicaPrincipalOpciones)),
                 'tematica_principal_otro' => 'nullable|required_if:tematica_principal,otros|string|max:180',
             ],
+            2 => collect(Proyecto::columnasVoluntariadoParticipacion())
+                ->mapWithKeys(fn(string $columna) => ["voluntariado_participacion.{$columna}" => 'required|integer|min:0'])
+                ->all(),
             5 => [
                 'experiencia_conocimientos_teoricos' => 'required|string',
                 'experiencia_habilidades_tecnicas' => 'required|string',
                 'experiencia_competencias_blandas' => 'required|string',
             ],
             6 => [
-                'metodologia_seguimiento' => 'nullable|array',
+                'metodologia_seguimiento' => 'required|array|min:1',
                 'metodologia_seguimiento.*' => 'in:' . implode(',', array_keys($this->metodologiaSeguimientoOpciones)),
             ],
             9 => [
-                'espacios_institucionales' => 'nullable|array',
-                'espacios_institucionales.*.descripcion' => 'nullable|string|max:255',
-                'espacios_institucionales.*.ubicacion' => 'nullable|string|max:255',
-                'espacios_institucionales.*.unidad_gestora' => 'nullable|string|max:255',
-                'espacios_institucionales.*.tiempo_uso_horas' => 'nullable|numeric|min:0',
+                // Sección VI del FORM-DVUS-015: al menos un espacio, servicio o medio con sus 4 columnas.
+                'espacios_institucionales' => 'required|array|min:1',
+                'espacios_institucionales.*.descripcion' => 'required|string|max:255',
+                'espacios_institucionales.*.ubicacion' => 'required|string|max:255',
+                'espacios_institucionales.*.unidad_gestora' => 'required|string|max:255',
+                'espacios_institucionales.*.tiempo_uso_horas' => 'required|numeric|gt:0',
             ],
             default => [],
         };
     }
 
-    private function rulesPasoActualBase(): array
+    private function rulesPasoBase(int $step): array
     {
-        return match ($this->currentStep) {
+        return match ($step) {
             1 => [
                 'nombre_proyecto' => 'required|string|max:255',
                 'modalidad_id' => 'required|integer',
@@ -895,9 +957,13 @@ class CreateProyectoVinculacion extends Component
         }
     }
 
-    private function validacionesAdicionalesPasoActualParaNavegacion(): bool
+    private function validacionesAdicionalesPaso(int $step): bool
     {
-        if ($this->currentStep === 4) {
+        if ($this->esVoluntariado) {
+            $this->validacionesVoluntariadoPaso($step);
+        }
+
+        if ($step === 4) {
             foreach ($this->actividades as $i => $actividad) {
                 $fechaInicio = $this->dateOrNull($actividad['fecha_inicio'] ?? null);
                 $fechaFin = $this->dateOrNull($actividad['fecha_finalizacion'] ?? null);
@@ -911,7 +977,18 @@ class CreateProyectoVinculacion extends Component
             }
         }
 
-        if ($this->currentStep === 2) {
+        if ($step === 3) {
+            foreach ($this->entidad_contraparte as $ci => $contraparte) {
+                if (!empty($contraparte['nombre']) && !$this->contraparteTieneInstrumento($contraparte)) {
+                    $this->addError(
+                        "entidad_contraparte.$ci",
+                        "La contraparte «{$contraparte['nombre']}» no tiene instrumento de formalización. Use «Editar» para seleccionar el tipo de instrumento y adjuntar su documento."
+                    );
+                }
+            }
+        }
+
+        if ($step === 2) {
             $this->validarTotalesGruposEstudiantes();
             $this->validarIntegrantesInternacionalesParaFicha();
 
@@ -938,11 +1015,129 @@ class CreateProyectoVinculacion extends Component
         }
 
 
-        if ($this->currentStep === 8 && collect($this->aporte_institucional)->sum('costo_total') <= 0) {
+        if ($step === 8 && collect($this->aporte_institucional)->sum('costo_total') <= 0) {
             $this->addError('aporte_institucional', 'Registre al menos un aporte institucional para continuar.');
         }
 
         return $this->getErrorBag()->isEmpty();
+    }
+
+    /** Campos del FORM-DVUS-015 que el formato exige y no cubren las reglas por paso. */
+    private function validacionesVoluntariadoPaso(int $step): void
+    {
+        match ($step) {
+            1 => $this->validarMetasPorOds(),
+            2 => $this->validarPerfilesEquipoVoluntariado(),
+            3 => $this->validarCompromisosContrapartes(),
+            6 => $this->validarBeneficiariosDirectos(),
+            default => null,
+        };
+    }
+
+    private function validarMetasPorOds(): void
+    {
+        $odsIds = $this->ids($this->ods);
+
+        if (empty($odsIds)) {
+            return;
+        }
+
+        $odsConMeta = MetaContribuye::whereIn('id', $this->ids($this->metasContribuye))
+            ->pluck('ods_id')
+            ->map(fn($id) => (int) $id)
+            ->unique();
+
+        $odsSinMeta = Od::whereIn('id', array_diff($odsIds, $odsConMeta->all()))->pluck('nombre');
+
+        foreach ($odsSinMeta as $nombreOds) {
+            $this->addError('metasContribuye', "Seleccione al menos una meta a la que se contribuye para el ODS «{$nombreOds}».");
+        }
+    }
+
+    private function validarPerfilesEquipoVoluntariado(): void
+    {
+        $coordinador = auth()->user()?->empleado;
+
+        if ($coordinador) {
+            $faltantes = $this->camposFaltantesPerfilEmpleado($coordinador, true);
+
+            if ($faltantes !== []) {
+                $this->addError('coordinador', 'Su perfil (11. Coordinador/a del Programa) no tiene: ' . implode(', ', $faltantes) . '. Complete su perfil antes de continuar.');
+            }
+        }
+
+        $empleados = Empleado::with(['categoria', 'departamento_academico', 'user'])
+            ->whereIn('id', collect($this->empleado_proyecto)->pluck('empleado_id')->filter()->all())
+            ->get()
+            ->keyBy('id');
+
+        foreach ($this->empleado_proyecto as $i => $item) {
+            $empleado = $empleados->get((int) ($item['empleado_id'] ?? 0));
+            $nombre = $empleado?->nombre_completo ?? ($item['nombre'] ?? 'Integrante');
+
+            if (!$empleado) {
+                $this->addError("empleado_proyecto.$i", "El integrante «{$nombre}» ya no existe.");
+                continue;
+            }
+
+            if (!$this->esDocentePermanente($empleado)) {
+                $this->addError("empleado_proyecto.$i", "«{$nombre}» no es docente permanente (Titular o Auxiliar); el ítem 12 solo admite al equipo docente permanente tiempo completo.");
+            }
+
+            $faltantes = $this->camposFaltantesPerfilEmpleado($empleado);
+
+            if ($faltantes !== []) {
+                $this->addError("empleado_proyecto.$i", "El perfil de «{$nombre}» no tiene: " . implode(', ', $faltantes) . '.');
+            }
+        }
+    }
+
+    private function camposFaltantesPerfilEmpleado(Empleado $empleado, bool $esCoordinador = false): array
+    {
+        $empleado->loadMissing(['categoria', 'departamento_academico', 'user']);
+
+        $campos = [
+            'No. de empleado/a' => $empleado->numero_empleado,
+            'correo electrónico' => $empleado->user?->email,
+            'categoría' => $empleado->categoria?->nombre,
+            'departamento al que pertenece' => $empleado->departamento_academico?->nombre,
+        ];
+
+        if ($esCoordinador) {
+            $campos['celular'] = $empleado->celular;
+        }
+
+        return collect($campos)
+            ->filter(fn($valor) => trim((string) $valor) === '')
+            ->keys()
+            ->all();
+    }
+
+    private function esDocentePermanente(Empleado $empleado): bool
+    {
+        $categoria = Str::of((string) $empleado->categoria?->nombre)->ascii()->lower()->trim()->value();
+
+        return mb_strtolower((string) $empleado->tipo_empleado) === 'docente'
+            && Str::startsWith($categoria, self::PREFIJOS_CATEGORIA_DOCENTE_PERMANENTE);
+    }
+
+    private function validarCompromisosContrapartes(): void
+    {
+        foreach ($this->entidad_contraparte as $ci => $contraparte) {
+            if (!empty($contraparte['nombre']) && trim((string) ($contraparte['descripcion_acuerdos'] ?? '')) === '') {
+                $this->addError(
+                    "entidad_contraparte.$ci",
+                    "La contraparte «{$contraparte['nombre']}» no tiene la breve descripción de los compromisos asumidos. Use «Editar» para registrarla."
+                );
+            }
+        }
+    }
+
+    private function validarBeneficiariosDirectos(): void
+    {
+        if ((int) $this->hombres + (int) $this->mujeres < 1) {
+            $this->addError('hombres', 'Registre la cantidad de beneficiarios directos (hombres y/o mujeres).');
+        }
     }
 
     private function validarTotalesGruposEstudiantes(): bool
@@ -1012,6 +1207,24 @@ class CreateProyectoVinculacion extends Component
             [],
             $this->atributosMarcoLogico()
         );
+
+        if ($this->esVoluntariado) {
+            // 29 b) y c) del FORM-DVUS-015: indicadores de mediano plazo e impacto (largo plazo).
+            $plazos = collect($this->resultadosProyecto)->pluck('plazo');
+            $faltantes = [];
+
+            if (!$plazos->contains('mediano_plazo')) {
+                $faltantes[] = 'Registre al menos un resultado de mediano plazo (29 b. Indicadores de mediano plazo).';
+            }
+
+            if (!$plazos->contains('largo_plazo')) {
+                $faltantes[] = 'Registre al menos un resultado de largo plazo (29 c. Impacto que se desea generar).';
+            }
+
+            if ($faltantes !== []) {
+                throw ValidationException::withMessages(['resultadosProyecto' => $faltantes]);
+            }
+        }
     }
 
     private function rulesMarcoLogico(): array
@@ -1148,7 +1361,7 @@ class CreateProyectoVinculacion extends Component
     {
         if (!$this->recordId) return false;
 
-        return match ($step) {
+        $completo = match ($step) {
             1 => !empty($this->nombre_proyecto)
                 && $this->modalidad_id
                 && !empty($this->categoria)
@@ -1174,7 +1387,10 @@ class CreateProyectoVinculacion extends Component
                         && !empty($integrante['nivel_academico_nombre'])
                         && in_array($integrante['sexo'] ?? '', ['masculino', 'femenino'], true)
                 ),
-            3 => !empty(array_filter(array_column($this->entidad_contraparte, 'nombre'))),
+            3 => !empty(array_filter(array_column($this->entidad_contraparte, 'nombre')))
+                && collect($this->entidad_contraparte)
+                    ->filter(fn(array $contraparte) => !empty($contraparte['nombre']))
+                    ->every(fn(array $contraparte) => $this->contraparteTieneInstrumento($contraparte)),
             4 => !empty($this->actividades)
                 && collect($this->actividades)->every(function (array $actividad): bool {
                     $fechaInicio = $this->dateOrNull($actividad['fecha_inicio'] ?? null);
@@ -1207,6 +1423,34 @@ class CreateProyectoVinculacion extends Component
             8 => collect($this->aporte_institucional)->sum('costo_total') > 0,
             9 => $this->anexosObligatoriosCompletos(),
             default => false,
+        };
+
+        return $completo && (!$this->esVoluntariado || $this->pasoVoluntariadoCompleto($step));
+    }
+
+    /** Campos extra que el FORM-DVUS-015 exige para marcar el paso como completo. */
+    private function pasoVoluntariadoCompleto(int $step): bool
+    {
+        return match ($step) {
+            1 => !empty($this->metasContribuye),
+            2 => collect(Proyecto::columnasVoluntariadoParticipacion())->every(
+                fn(string $columna) => !in_array($this->voluntariado_participacion[$columna] ?? null, [null, ''], true)
+            ),
+            3 => collect($this->entidad_contraparte)
+                ->filter(fn(array $contraparte) => !empty($contraparte['nombre']))
+                ->every(fn(array $contraparte) => trim((string) ($contraparte['descripcion_acuerdos'] ?? '')) !== ''),
+            6 => !empty($this->metodologia_seguimiento)
+                && (int) $this->hombres + (int) $this->mujeres > 0,
+            7 => collect($this->resultadosProyecto)->pluck('plazo')->contains('mediano_plazo')
+                && collect($this->resultadosProyecto)->pluck('plazo')->contains('largo_plazo'),
+            9 => !empty($this->espacios_institucionales)
+                && collect($this->espacios_institucionales)->every(
+                    fn(array $espacio) => trim((string) ($espacio['descripcion'] ?? '')) !== ''
+                        && trim((string) ($espacio['ubicacion'] ?? '')) !== ''
+                        && trim((string) ($espacio['unidad_gestora'] ?? '')) !== ''
+                        && (float) ($espacio['tiempo_uso_horas'] ?? 0) > 0
+                ),
+            default => true,
         };
     }
 
@@ -1427,6 +1671,7 @@ class CreateProyectoVinculacion extends Component
             'experiencia_conocimientos_teoricos' => $this->stringOrNull($this->experiencia_conocimientos_teoricos),
             'experiencia_habilidades_tecnicas' => $this->stringOrNull($this->experiencia_habilidades_tecnicas),
             'experiencia_competencias_blandas' => $this->stringOrNull($this->experiencia_competencias_blandas),
+            ...$this->voluntariadoParticipacionParaGuardar(),
             'objetivo_general' => $this->objetivo_general,
             'total_aporte_institucional' => collect($this->aporte_institucional)->sum('costo_total'),
         ]);
@@ -1458,6 +1703,21 @@ class CreateProyectoVinculacion extends Component
             ->filter(fn ($valor) => in_array($valor, array_keys($this->metodologiaSeguimientoOpciones), true))
             ->unique()
             ->values()
+            ->all();
+    }
+
+    private function voluntariadoParticipacionParaGuardar(): array
+    {
+        if (!$this->esVoluntariado) {
+            return [];
+        }
+
+        return collect(Proyecto::columnasVoluntariadoParticipacion())
+            ->mapWithKeys(function (string $columna) {
+                $valor = $this->nullableInt($this->voluntariado_participacion[$columna] ?? null);
+
+                return [$columna => $valor === null ? null : max(0, $valor)];
+            })
             ->all();
     }
 
@@ -2692,6 +2952,20 @@ class CreateProyectoVinculacion extends Component
                 return;
             }
         }
+
+        if ($this->esVoluntariado) {
+            $empleado = Empleado::with('categoria')->find($empleadoId);
+
+            if (!$empleado || !$this->esDocentePermanente($empleado)) {
+                Notification::make()
+                    ->title('No es docente permanente')
+                    ->body('El ítem 12 solo admite al equipo docente permanente tiempo completo (categoría Titular o Auxiliar). Verifique la categoría en el perfil del empleado.')
+                    ->warning()
+                    ->send();
+                return;
+            }
+        }
+
         $this->empleado_proyecto[] = ['empleado_id' => $empleadoId, 'rol' => 'Integrante', 'nombre' => $nombre];
         $this->showEmpleadoModal = false;
         $this->empleadoModalSearch = '';
@@ -3144,6 +3418,8 @@ class CreateProyectoVinculacion extends Component
             'integrante_internacional_id' => $integrante->id,
             'nombre' => $integrante->nombre_completo ?? '',
             'rtn' => $integrante->rtn ?? '',
+            'documento_identidad' => $integrante->documento_identidad ?? '',
+            'email' => $integrante->email ?? '',
             'sexo' => $integrante->sexo ?? '',
             'pais' => $integrante->pais ?? '',
             'institucion' => $integrante->institucion ?? '',
@@ -3197,20 +3473,40 @@ class CreateProyectoVinculacion extends Component
             return;
         }
 
-        $yaExiste = collect($this->entidad_contraparte)
-            ->contains(fn($item) => (int)($item['entidad_contraparte_id'] ?? 0) === (int)$catalogo->id);
-
         $this->contraparteSeleccionadoId = null;
 
-        if ($yaExiste) {
+        if ($this->contraparteYaAgregada((int)$catalogo->id)) {
             Notification::make()->title('Contraparte ya agregada')->info()->send();
             return;
         }
 
-        $this->selectContraparte((int)$catalogo->id);
-        $this->showContraparteModal = false;
-        $this->resetNuevaContraparte();
-        $this->autoGuardarBorrador();
+        // Una contraparte existente también requiere su instrumento de formalización para
+        // este proyecto: se cargan sus datos en el formulario y se agrega con «Guardar».
+        $instrumentos = $this->nuevaContraparte['instrumento_formalizacion'] ?? [];
+        if (empty($instrumentos)) {
+            $instrumentos[] = ['id' => null, 'tipo_documento' => '', 'documento_url' => null, 'nombre_archivo' => null, 'documento_file' => null];
+        }
+
+        $this->nuevaContraparte = [
+            'entidad_contraparte_id' => $catalogo->id,
+            'rtn' => $catalogo->rtn ?? '',
+            'nombre' => $catalogo->nombre ?? '',
+            'tipo_entidad' => $catalogo->tipo_entidad ?? '',
+            'nombre_contacto' => $catalogo->nombre_contacto ?? '',
+            'cargo_contacto' => $catalogo->cargo_contacto ?? '',
+            'telefono' => $catalogo->telefono ?? '',
+            'correo' => $catalogo->correo ?? '',
+            'descripcion_acuerdos' => $this->nuevaContraparte['descripcion_acuerdos'] ?? '',
+            'instrumento_formalizacion' => $instrumentos,
+        ];
+    }
+
+    private function contraparteYaAgregada(int $catalogoId): bool
+    {
+        return collect($this->entidad_contraparte)->contains(
+            fn($item, $index) => $index !== $this->editContraparteIndex
+                && (int)($item['entidad_contraparte_id'] ?? 0) === $catalogoId
+        );
     }
 
     public function saveContraparte(): void
@@ -3229,7 +3525,7 @@ class CreateProyectoVinculacion extends Component
             'nuevaContraparte.cargo_contacto' => 'nullable|string|max:255',
             'nuevaContraparte.telefono' => 'nullable|string|max:255',
             'nuevaContraparte.correo' => 'nullable|email|max:255',
-            'nuevaContraparte.descripcion_acuerdos' => 'nullable|string',
+            'nuevaContraparte.descripcion_acuerdos' => $this->esVoluntariado ? 'required|string' : 'nullable|string',
             'nuevaContraparte.instrumento_formalizacion.*.tipo_documento' => 'nullable|in:' . implode(',', $this->instrumentoTipos),
             'nuevaContraparte.instrumento_formalizacion.*.documento_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
         ]);
@@ -3250,15 +3546,30 @@ class CreateProyectoVinculacion extends Component
             'instrumento_formalizacion' => $this->nuevaContraparte['instrumento_formalizacion'] ?? [],
         ];
 
-        // Reúso: buscar por rtn (si se ingresa), nombre+correo
-        $query = EntidadContraparte::where('nombre', $data['nombre']);
-        if (!empty($data['rtn'])) {
-            $query->orWhere('rtn', $data['rtn']);
+        // Reúso: la contraparte elegida del catálogo (si no se cambió el nombre) o
+        // buscar por rtn (si se ingresa), nombre+correo
+        $catalogo = null;
+        if (!empty($this->nuevaContraparte['entidad_contraparte_id'])) {
+            $catalogo = EntidadContraparte::where('id', $this->nuevaContraparte['entidad_contraparte_id'])
+                ->where('nombre', $data['nombre'])
+                ->first();
         }
-        if (!empty($data['correo'])) {
-            $query->orWhere('correo', $data['correo']);
+
+        if (!$catalogo) {
+            $query = EntidadContraparte::where('nombre', $data['nombre']);
+            if (!empty($data['rtn'])) {
+                $query->orWhere('rtn', $data['rtn']);
+            }
+            if (!empty($data['correo'])) {
+                $query->orWhere('correo', $data['correo']);
+            }
+            $catalogo = $query->first();
         }
-        $catalogo = $query->first();
+
+        if ($catalogo && $this->contraparteYaAgregada((int)$catalogo->id)) {
+            $this->addError('nuevaContraparte.nombre', 'Esta entidad contraparte ya fue agregada al proyecto.');
+            return;
+        }
 
         if (!$catalogo) {
             $catalogo = EntidadContraparte::create([
@@ -3272,15 +3583,17 @@ class CreateProyectoVinculacion extends Component
             ]);
         }
 
+        // Tipo y datos de contacto son del proyecto (se guardan en la tabla pivote):
+        // se respeta lo ingresado en el formulario y el catálogo solo completa vacíos.
         $item = [
             'entidad_contraparte_id' => $catalogo->id,
             'rtn' => $data['rtn'] ?? $catalogo->rtn,
             'nombre' => $catalogo->nombre,
-            'tipo_entidad' => $catalogo->tipo_entidad,
-            'nombre_contacto' => $catalogo->nombre_contacto,
-            'cargo_contacto' => $catalogo->cargo_contacto,
-            'telefono' => $catalogo->telefono,
-            'correo' => $catalogo->correo,
+            'tipo_entidad' => $data['tipo_entidad'] ?: $catalogo->tipo_entidad,
+            'nombre_contacto' => $data['nombre_contacto'] ?: $catalogo->nombre_contacto,
+            'cargo_contacto' => $data['cargo_contacto'] ?: $catalogo->cargo_contacto,
+            'telefono' => $data['telefono'] ?: $catalogo->telefono,
+            'correo' => $data['correo'] ?: $catalogo->correo,
             'descripcion_acuerdos' => $data['descripcion_acuerdos'],
             'instrumento_formalizacion' => $data['instrumento_formalizacion'],
         ];
@@ -3302,31 +3615,12 @@ class CreateProyectoVinculacion extends Component
         $this->autoGuardarBorrador();
     }
 
-    protected function selectContraparte(int $catalogoId, array $data = []): void
+    private function contraparteTieneInstrumento(array $contraparte): bool
     {
-        foreach ($this->entidad_contraparte as $item) {
-            if ((int)($item['entidad_contraparte_id'] ?? 0) === $catalogoId) return;
-        }
-
-        $catalogo = EntidadContraparte::find($catalogoId);
-        $this->entidad_contraparte[] = [
-            'entidad_contraparte_id' => $catalogoId,
-            'rtn' => $catalogo?->rtn ?? ($data['rtn'] ?? ''),
-            'nombre' => $catalogo?->nombre ?? ($data['nombre'] ?? ''),
-            'tipo_entidad' => $catalogo?->tipo_entidad ?? ($data['tipo_entidad'] ?? ''),
-            'nombre_contacto' => $catalogo?->nombre_contacto ?? ($data['nombre_contacto'] ?? ''),
-            'cargo_contacto' => $catalogo?->cargo_contacto ?? ($data['cargo_contacto'] ?? ''),
-            'telefono' => $catalogo?->telefono ?? ($data['telefono'] ?? ''),
-            'correo' => $catalogo?->correo ?? ($data['correo'] ?? ''),
-            'descripcion_acuerdos' => $data['descripcion_acuerdos'] ?? '',
-            'instrumento_formalizacion' => [],
-        ];
-    }
-
-    protected function resetNuevaContraparte(): void
-    {
-        $this->nuevaContraparte = ['rtn' => '', 'nombre' => '', 'tipo_entidad' => '', 'nombre_contacto' => '', 'cargo_contacto' => '', 'telefono' => '', 'correo' => '', 'descripcion_acuerdos' => '', 'instrumento_formalizacion' => []];
-        $this->contraparteSeleccionadoId = null;
+        return collect($contraparte['instrumento_formalizacion'] ?? [])->contains(
+            fn($inst) => $this->normalizeInstrumentoTipo($inst['tipo_documento'] ?? '') !== ''
+                && (!empty($inst['documento_url']) || $this->instrumentoTieneArchivoNuevo($inst))
+        );
     }
 
     private function reglasRtn(?string $pais = null, ?string $tipoEntidad = null): array
@@ -4018,18 +4312,7 @@ class CreateProyectoVinculacion extends Component
             return;
         }
 
-        try {
-            $this->validarAnexosObligatorios($proyecto);
-        } catch (ValidationException $exception) {
-            $this->currentStep = 9;
-            Notification::make()
-                ->title('Documentos obligatorios pendientes')
-                ->body('Adjunte el documento 1 o 2 y el documento 3 antes de enviar el proyecto.')
-                ->warning()
-                ->send();
-
-            throw $exception;
-        }
+        $this->validarFormularioAntesDeEnviar();
 
         $this->modalEsReenvioSubsanacion = false;
 
@@ -4346,21 +4629,30 @@ class CreateProyectoVinculacion extends Component
         }
     }
 
+    /**
+     * Revalida los 9 pasos (y los anexos) antes de enviar: la barra de pasos permite
+     * saltar entre ellos, así que no se puede asumir que se completaron en orden.
+     * Si algo falta, deja el formulario en el primer paso con errores y lanza la excepción.
+     */
     private function validarFormularioAntesDeEnviar(): bool
     {
         try {
-            $this->trimCamposDescripcion();
-            $this->validate($this->rulesDescripcion());
-            $this->validarMarcoLogicoCompleto();
+            if (!$this->validarPasosHasta(9, 1)) {
+                throw ValidationException::withMessages($this->getErrorBag()->toArray());
+            }
+
             $this->validarAnexosObligatorios();
         } catch (ValidationException $e) {
-            $errores = $e->validator->errors();
-            $primerCampo = collect($errores->keys())->first();
-            $this->currentStep = match (true) {
-                $primerCampo === 'anexos' => 9,
-                str_starts_with((string) $primerCampo, 'objetivo') => 7,
-                default => 5,
-            };
+            if (array_key_exists('anexos', $e->errors())) {
+                $this->currentStep = 9;
+            }
+
+            $this->showEnviarModal = false;
+            Notification::make()
+                ->title('Formulario incompleto')
+                ->body("Complete los campos obligatorios del paso {$this->currentStep} antes de enviar el proyecto.")
+                ->warning()
+                ->send();
 
             throw $e;
         }
@@ -4658,10 +4950,11 @@ class CreateProyectoVinculacion extends Component
         }
         $base = collect($this->aporte_institucional)->whereIn('concepto', ['horas_trabajo_docentes', 'horas_trabajo_estudiantes', 'gastos_movilizacion', 'utiles_materiales_oficina', 'gastos_impresion']);
         // Los formatos FORM-DVUS-001/015 e INF-001 definen estos costos indirectos como el
-        // 3% de la sumatoria de los conceptos a–e (ver etiquetas de los conceptos).
-        $cantidad = round($base->sum('cantidad') * self::TASA_COSTOS_INDIRECTOS, 2);
-        $costoUnitario = round($base->sum('costo_unitario') * self::TASA_COSTOS_INDIRECTOS, 2);
-        $costoTotal = round($cantidad * $costoUnitario, 2);
+        // 3% de la sumatoria (en lempiras) de los conceptos a–e: la fila muestra el
+        // porcentaje como cantidad y esa sumatoria como costo unitario.
+        $cantidad = self::TASA_COSTOS_INDIRECTOS * 100;
+        $costoUnitario = round((float) $base->sum('costo_total'), 2);
+        $costoTotal = round($costoUnitario * self::TASA_COSTOS_INDIRECTOS, 2);
         foreach ($this->aporte_institucional as $index => $aporte) {
             if (in_array($aporte['concepto'], ['costos_indirectos_infraestructura', 'costos_indirectos_servicios'], true)) {
                 $this->aporte_institucional[$index]['cantidad'] = $cantidad;
@@ -4703,9 +4996,12 @@ class CreateProyectoVinculacion extends Component
         // Empleados para modal de búsqueda (paso 2)
         $empleadosModal = $this->showEmpleadoModal
             ? Empleado::when(!empty($this->empleadoModalSearch), function ($q) {
-                $q->where('nombre_completo', 'LIKE', '%' . $this->empleadoModalSearch . '%')
-                  ->orWhere('numero_empleado', 'LIKE', '%' . $this->empleadoModalSearch . '%');
+                $q->where(fn($busqueda) => $busqueda
+                    ->where('nombre_completo', 'LIKE', '%' . $this->empleadoModalSearch . '%')
+                    ->orWhere('numero_empleado', 'LIKE', '%' . $this->empleadoModalSearch . '%'));
             })
+            // Ítem 12 del FORM-DVUS-015: solo equipo docente.
+            ->when($this->esVoluntariado, fn($q) => $q->where('tipo_empleado', 'docente'))
             ->where('user_id', '!=', auth()->id())
             ->orderBy('nombre_completo')
             ->limit(50)
@@ -4735,7 +5031,13 @@ class CreateProyectoVinculacion extends Component
             'contrapartesExistentes' => EntidadContraparte::orderBy('nombre')->get()->mapWithKeys(fn($c) => [$c->id => "{$c->nombre} ({$c->tipo_entidad})"]),
             'paises' => Pais::orderBy('nombre')->pluck('nombre', 'id'),
             'nivelesAcademicos' => NivelAcademico::where('activo', true)->orderBy('orden')->orderBy('nombre')->pluck('nombre', 'id'),
-            'tiposParticipacionEstudiante' => $this->tipoParticipacionEstudianteOpciones,
+            'tiposParticipacionEstudiante' => $this->esVoluntariado
+                // Etiquetas del ítem 14 del FORM-DVUS-015.
+                ? array_replace($this->tipoParticipacionEstudianteOpciones, [
+                    'Servicio Social o PPS' => 'Servicio social o PPS',
+                    'Practica Asignatura' => 'Práctica de asignatura / posgrado',
+                ])
+                : $this->tipoParticipacionEstudianteOpciones,
             'asignaturasOpciones' => $this->asignaturasDisponibles,
             'carrerasSeleccionadas' => $this->carrerasSeleccionadasOptions(),
             'periodosAcademicos' => $this->periodosAcademicosDisponibles,

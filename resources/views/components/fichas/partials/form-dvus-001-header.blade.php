@@ -4,4 +4,5 @@
     'institutionalTitle' => $institutionalTitle ?? 'FORMULARIO DE REGISTRO DE PROYECTO DE VINCULACIÓN',
     'institutionalSubtitle' => $institutionalSubtitle ?? 'DE DESARROLLO LOCAL Y REGIONAL',
     'institutionalCode' => $institutionalCode ?? 'FORM-DVUS-001',
+    'institutionalPhone' => $institutionalPhone ?? null,
 ])

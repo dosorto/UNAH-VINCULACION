@@ -15,7 +15,9 @@ class InformeFinalResultadosActividadesViewTest extends TestCase
         $this->assertStringContainsString("@include('livewire.proyectos.informe-final.partials.resultados-actividades')", $view);
         $this->assertStringContainsString('No hay resultados registrados.', $partial);
         $this->assertStringContainsString('No hay actividades ejecutadas registradas.', $partial);
-        $this->assertStringContainsString('wire:confirm="¿Eliminar esta actividad?"', $partial);
+        // Las confirmaciones usan el diálogo del sistema (x-confirm-modal), no el confirm() del navegador.
+        $this->assertStringContainsString("confirmDialog('¿Eliminar esta actividad?', { type: 'danger' })", $partial);
+        $this->assertStringNotContainsString('wire:confirm', $partial);
         $this->assertStringContainsString('Agregar actividad ejecutada', $partial);
         $this->assertStringNotContainsString('aria-label="Editar actividad"', $partial);
         $this->assertStringNotContainsString('openActividadModal({{ $i }}, true)', $partial);
@@ -89,6 +91,13 @@ class InformeFinalResultadosActividadesViewTest extends TestCase
 
         $component->actividades = [['actividad_planificada' => 'Actividad', 'estado' => 'ejecutada', 'fecha_inicial' => '2026-11-09', 'fecha_final' => '2026-11-13']];
 
+        // El formato VI pide, además, lo alcanzado y el producto de cada resultado, y el
+        // resultado, responsable y medio de verificación de cada actividad realizada.
+        $this->assertFalse($component->isStepComplete(5));
+
+        $component->resultados[0] += ['valor_alcanzado' => 1, 'producto_logrado' => 'Producto'];
+        $component->actividades[0] += ['informe_final_resultado_id' => 10, 'responsable' => 'Responsable', 'medio_verificacion' => 'Listado de asistencia'];
+
         $this->assertTrue($component->isStepComplete(5));
     }
 
@@ -102,7 +111,7 @@ class InformeFinalResultadosActividadesViewTest extends TestCase
 
         $this->assertStringContainsString('mt-4 space-y-3', $seccion);
         $this->assertStringNotContainsString('md:grid-cols-2', $seccion);
-        $this->assertStringContainsString('<div class="w-full"><label class="{{ $label }}">{{ $name }}</label><textarea rows="4" wire:model.live.debounce.1000ms="general.{{ $field }}" @readonly($this->esCampoReflexionHeredado($field))', $seccion);
+        $this->assertStringContainsString('<div class="w-full"><label class="{{ $label }}">{{ $name }} <span class="text-red-500">*</span></label><textarea rows="4" wire:model.live.debounce.1000ms="general.{{ $field }}" @readonly($this->esCampoReflexionHeredado($field))', $seccion);
         $this->assertStringNotContainsString('@disabled($this->esCampoReflexionHeredado($field))', $seccion);
         $posicionAnterior = -1;
         foreach ($campos as $campo) {

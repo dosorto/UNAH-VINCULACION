@@ -95,7 +95,7 @@ h1 {
     margin-bottom: 20px;
     font-family: Calibri, Arial, sans-serif;
     font-weight: bold; /* Aplica negrita */
-    color: rgb(4, 4, 126); /* Cambia el color a azul */
+    color: #002060; /* Azul institucional del formato oficial */
 }
 .section-title {
     font-family: 'Aptos Narrow', Arial, sans-serif;
@@ -220,7 +220,7 @@ p {
 }
 
 .table_datos1 .full-width1 {
-    background-color: #020b70;
+    background-color: #002060;
     border-right: 1px solid #fff;
     border-bottom: 1px solid #fff;
     color: white;
@@ -348,7 +348,7 @@ p {
     text-align: left;
 }
 .table_datos2 .header {
-    background-color: #020b70;
+    background-color: #002060;
     border-right: 1px solid #fff;
     border-bottom: 1px solid #fff;
     color: white;
@@ -391,7 +391,7 @@ p {
     text-align: left;
 }
 .table_datos3 .header {
-    background-color: #020b70;
+    background-color: #002060;
     border-right: 1px solid #fff;
     border-bottom: 1px solid #fff;
     color: white;
@@ -474,7 +474,7 @@ p {
     text-align: left;
 }
 .table_datos4 .header {
-    background-color: #020b70;
+    background-color: #002060;
     border-right: 1px solid #fff;
     border-bottom: 1px solid #fff;
     color: white;
@@ -527,7 +527,7 @@ p {
     text-align: left;
 }
 .table_datos5 .header {
-    background-color: #020b70;
+    background-color: #002060;
     border-right: 1px solid #fff;
     border-bottom: 1px solid #fff;
     color: white;
@@ -579,7 +579,7 @@ p {
     text-align: left;
 }
 .table_datos7 .header {
-    background-color: #020b70;
+    background-color: #002060;
     border-right: 1px solid #fff;
     border-bottom: 1px solid #fff;
     color: white;

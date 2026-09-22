@@ -243,7 +243,7 @@
                                             <a href="{{ $this->anexoUrl($foto['ruta']) }}" target="_blank" rel="noopener" class="text-blue-700">Ver</a>
                                             <a href="{{ $this->anexoUrl($foto['ruta']) }}" download class="text-blue-700">Descargar</a>
                                         @endif
-                                        <button type="button" wire:click="quitarFotografia({{ $foto['id'] }})" wire:confirm="Quitar esta fotografia del informe final?" class="text-red-600">Quitar</button>
+                                        <button type="button" x-on:click.prevent="confirmDialog('Quitar esta fotografia del informe final?', { type: 'danger' }).then((ok) => ok && $wire.quitarFotografia({{ $foto['id'] }}))"  class="text-red-600">Quitar</button>
                                     </div>
                                 </div>
                             </article>
@@ -293,7 +293,7 @@
                 @else
                     <a target="_blank" href="{{ route('enf.acciones.informe-final.preview-pdf', $accion) }}" class="{{ $button }} border border-blue-300 text-blue-700">Vista previa</a>
                     <a href="{{ route('enf.acciones.informe-final.pdf', $accion) }}" class="{{ $button }} border border-blue-300 text-blue-700">Descargar PDF</a>
-                    <button type="button" wire:click="validarInforme" wire:confirm="Confirma que desea marcar completo el informe final FORM-DVUS-016?" class="{{ $button }} bg-green-700 text-white">Validar informe</button>
+                    <button type="button" x-on:click.prevent="confirmDialog('Confirma que desea marcar completo el informe final FORM-DVUS-016?').then((ok) => ok && $wire.validarInforme())"  class="{{ $button }} bg-green-700 text-white">Validar informe</button>
                     @if(($general['estado'] ?? null) === 'completo' || ($general['estado'] ?? null) === 'SUBSANACION')
                         <a href="{{ route('enf.acciones.show', $accion) }}" class="{{ $button }} bg-emerald-700 text-white">Ir a envio</a>
                     @endif

@@ -242,6 +242,20 @@ class Proyecto extends Model
         'experiencia_conocimientos_teoricos',
         'experiencia_habilidades_tecnicas',
         'experiencia_competencias_blandas',
+        'vol_profesores_hora_hombres',
+        'vol_profesores_hora_mujeres',
+        'vol_personal_administrativo_hombres',
+        'vol_personal_administrativo_mujeres',
+        'vol_personal_servicio_hombres',
+        'vol_personal_servicio_mujeres',
+        'vol_asistentes_tecnicos_hombres',
+        'vol_asistentes_tecnicos_mujeres',
+        'vol_int_grado_hombres',
+        'vol_int_grado_mujeres',
+        'vol_int_maestria_hombres',
+        'vol_int_maestria_mujeres',
+        'vol_int_doctorado_hombres',
+        'vol_int_doctorado_mujeres',
     ];
 
     protected $casts = [
@@ -844,6 +858,30 @@ class Proyecto extends Model
     public function esVoluntariado(): bool
     {
         return $this->codigoFormularioFlujo() === 'FORM-DVUS-015';
+    }
+
+    /**
+     * Columnas (sin el sufijo _hombres/_mujeres) de los ítems 15 y 16 del
+     * FORM-DVUS-015, con la etiqueta exacta del formato oficial.
+     */
+    public const VOLUNTARIADO_PERSONAL_UNAH = [
+        'vol_profesores_hora' => 'Profesores horario x hora',
+        'vol_personal_administrativo' => 'Personal administrativo',
+        'vol_personal_servicio' => 'Personal de servicio',
+        'vol_asistentes_tecnicos' => 'Asistentes técnicos laboratorios / instructores',
+    ];
+
+    public const VOLUNTARIADO_INTERNACIONAL = [
+        'vol_int_grado' => 'Estudiantes de grado',
+        'vol_int_maestria' => 'Estudiantes de maestría',
+        'vol_int_doctorado' => 'Doctorados / posdoctorados',
+    ];
+
+    public static function columnasVoluntariadoParticipacion(): array
+    {
+        return collect(array_keys(self::VOLUNTARIADO_PERSONAL_UNAH + self::VOLUNTARIADO_INTERNACIONAL))
+            ->flatMap(fn (string $grupo) => ["{$grupo}_hombres", "{$grupo}_mujeres"])
+            ->all();
     }
 
     public function flujoEtapasOrdenadas(?string $proceso = null): Collection
@@ -1453,14 +1491,20 @@ class Proyecto extends Model
             ? $this->adopcionFlujoLegacy()->first()
             : null;
 
-        return $etapasFirmantes->map(fn (FlujoAprobacionEtapa $etapa) => [
-            'etapa' => $etapa,
-            'firma' => $firmasPorEtapa->get($etapa->id)?->first(),
-            'adoptada_antes' => $adopcion !== null && (
-                $adopcion->modo === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_COMPLETADO
-                || ($adopcion->orden_inicio !== null && (int) $etapa->orden < (int) $adopcion->orden_inicio)
-            ),
-        ]);
+        return $etapasFirmantes->map(function (FlujoAprobacionEtapa $etapa) use ($firmasPorEtapa, $adopcion) {
+            // Una etapa puede habilitar a varias personas (una fila de firma por cada una).
+            // El cuadro de la ficha es de quien firmó; si nadie firmó todavía, va en blanco.
+            $firmasEtapa = $firmasPorEtapa->get($etapa->id) ?? collect();
+
+            return [
+                'etapa' => $etapa,
+                'firma' => $firmasEtapa->firstWhere('estado_revision', 'Aprobado'),
+                'adoptada_antes' => $adopcion !== null && (
+                    $adopcion->modo === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_COMPLETADO
+                    || ($adopcion->orden_inicio !== null && (int) $etapa->orden < (int) $adopcion->orden_inicio)
+                ),
+            ];
+        });
     }
 
     /**

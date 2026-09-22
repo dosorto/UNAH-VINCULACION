@@ -1,3 +1,5 @@
+{{-- Ver la nota de la ficha de registro: incrustada no emite el documento completo. --}}
+@unless($embebido ?? false)
 <!DOCTYPE html>
 <html lang="en">
 
@@ -6,10 +8,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, user-scalable=yes">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
+@endunless
     <link rel="stylesheet" href="{{ asset('css/app/fichaActualizacion.css') }}">
+@unless($embebido ?? false)
 </head>
 
 <body style="background-color: #f2f2f2; ">
+@endunless
 @php
     $coordinadorFicha = $proyecto->coordinador_proyecto->first()?->empleado;
     $todosLosIntegrantesEnEseMomento = collect();
@@ -904,7 +909,9 @@
 </details>
 
 
+@unless($embebido ?? false)
 </body>
 
 
 </html>
+@endunless
