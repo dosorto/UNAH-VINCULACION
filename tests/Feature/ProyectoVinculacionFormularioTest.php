@@ -584,8 +584,8 @@ class ProyectoVinculacionFormularioTest extends TestCase
         $detalle = file_get_contents(resource_path('views/livewire/docente/proyectos/historial-proyecto.blade.php'));
 
         $this->assertStringContainsString('Enviar proyecto a subsanación', $detalle);
-        $this->assertStringContainsString('rows="10"', $detalle);
-        $this->assertStringContainsString('max-w-3xl', $detalle);
+        $this->assertStringContainsString('rows="18"', $detalle);
+        $this->assertStringContainsString('max-w-4xl', $detalle);
         $this->assertStringContainsString('wire:click="subsanar"', $detalle);
         $this->assertStringNotContainsString('Rechazar Proyecto', $detalle);
         $this->assertStringNotContainsString('Confirmar Rechazo', $detalle);

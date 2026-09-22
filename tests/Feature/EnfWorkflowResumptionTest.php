@@ -102,7 +102,7 @@ class EnfWorkflowResumptionTest extends TestCase
             'estado' => EnfInformeFinal::ESTADO_COMPLETO,
             'revision_ciclo' => 0,
         ]);
-        $pdf = \Mockery::mock();
+        $pdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
         $pdf->shouldReceive('setPaper')->twice()->with('letter', 'portrait')->andReturnSelf();
         $pdf->shouldReceive('output')->twice()->andReturn("%PDF-1.4\nInforme final de prueba");
         Pdf::shouldReceive('loadView')->twice()->andReturn($pdf);

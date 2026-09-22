@@ -4401,7 +4401,7 @@ class CreateProyectoVinculacion extends Component
 
     protected function registrarEstadoInicialDeFirmasPorEtapa(Proyecto $proyecto, FirmaProyecto $primeraFirma): void
     {
-        $tipoEstadoId = $primeraFirma->cargo_firma()->value('tipo_estado_id');
+        $tipoEstadoId = \App\Support\Proyecto\EstadoGeneralProyecto::id('En revision');
         $empleado = auth()->user()?->empleado;
 
         if (! $tipoEstadoId || ! $empleado) {
@@ -4437,7 +4437,7 @@ class CreateProyectoVinculacion extends Component
         }
 
         $primeraFirma = $proyecto->firmaActualDeEtapasDelFlujo((int) $flujo->id, 1);
-        $tipoEstadoPrimera = $primeraFirma?->cargo_firma()->value('tipo_estado_id');
+        $tipoEstadoPrimera = \App\Support\Proyecto\EstadoGeneralProyecto::id('En revision');
         $estadoActualId = $proyecto->fresh()->estado?->tipo_estado_id;
 
         if ($firmas->contains(fn (FirmaProyecto $firma): bool => $firma->estado_revision !== 'Pendiente')

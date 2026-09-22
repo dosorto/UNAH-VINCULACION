@@ -879,7 +879,7 @@ class ProyectosPorFirmar extends Component
             return $this->canActOnWorkflowStageFirma($firma);
         }
 
-        if ($firma->estado_revision !== 'Pendiente') {
+        if (! $firma->esFirmaLegacy() || filled($firma->deleted_at) || $firma->estado_revision !== 'Pendiente') {
             return false;
         }
 
@@ -903,11 +903,16 @@ class ProyectosPorFirmar extends Component
 
         $user = Auth::user();
 
+        if (! $user || ! $this->usuarioCoincideConEmpleadoDeFirma($user, $firma)) {
+            return false;
+        }
+
         $activeRoleName = $user?->activeRole?->name;
         $cargoRoleName = $firma->cargo_firma?->tipoCargoFirma?->nombre;
 
         if (filled($activeRoleName)) {
-            return $activeRoleName === $cargoRoleName;
+            return $activeRoleName === $cargoRoleName
+                && $user->roles()->where('roles.id', $user->active_role_id)->exists();
         }
 
         return $user?->empleado && (int) $firma->empleado_id === (int) $user->empleado->id;

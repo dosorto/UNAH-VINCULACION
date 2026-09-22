@@ -27,6 +27,8 @@ final class EstadosProyecto
 
     public const EN_CURSO = 'En curso';
 
+    public const REGISTRADOS = ['Registrado', self::EN_CURSO];
+
     public const FINALIZADO = 'Finalizado';
 
     public const SUBSANACION = 'Subsanacion';

@@ -3,6 +3,7 @@
 namespace App\Models\Proyecto;
 
 use App\Models\Estado\TipoEstado;
+use App\Support\Proyecto\EstadoGeneralProyecto;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -934,7 +935,7 @@ class Proyecto extends Model
 
         if (! $user
             || (! $this->usuarioPuedeGestionarInformeFinal($user) && ! $this->usuarioPuedeAuditarInformeFinal($user))
-            || $this->estado?->tipoestado?->nombre !== 'En curso'
+            || ! $this->estaRegistrado()
             || ! $this->tieneFlujoCierreProyecto()
         ) {
             return false;
@@ -1006,10 +1007,12 @@ class Proyecto extends Model
         $estadoNombre = match ($proceso) {
             self::FLUJO_INFORME_INTERMEDIO,
             self::FLUJO_CIERRE_PROYECTO => 'Aprobado',
-            default => 'En curso',
+            default => EstadoGeneralProyecto::REGISTRADO,
         };
 
-        return TipoEstado::where('nombre', $estadoNombre)->value('id');
+        return $proceso === self::FLUJO_INSCRIPCION
+            ? EstadoGeneralProyecto::id($estadoNombre)
+            : TipoEstado::where('nombre', $estadoNombre)->value('id');
     }
 
     public function firstEstadoIdForProceso(string $proceso): ?int
@@ -1065,6 +1068,16 @@ class Proyecto extends Model
     }
 
     // obtener el estado actual del proyecto
+    public function getEstadoGeneralAttribute(): string
+    {
+        return EstadoGeneralProyecto::nombre($this->estado?->tipoestado?->nombre);
+    }
+
+    public function estaRegistrado(): bool
+    {
+        return $this->estado_general === EstadoGeneralProyecto::REGISTRADO;
+    }
+
     public function getEstadoAttribute()
     {
         return $this->estado_proyecto()
@@ -1426,9 +1439,30 @@ class Proyecto extends Model
      *
      * @return Collection<int, array{etapa: FlujoAprobacionEtapa, firma: ?FirmaProyecto, adoptada_antes: bool}>
      */
+    public function etapasInscripcionCompletadasAntesDeAdopcion(): Collection
+    {
+        $adopcion = $this->adopcionFlujoLegacy()->first();
+
+        if (! $adopcion
+            || (int) $adopcion->flujo_aprobacion_id !== (int) $this->flujo_aprobacion_id
+            || $adopcion->proceso !== self::FLUJO_INSCRIPCION
+        ) {
+            return collect();
+        }
+
+        // La evidencia conserva las etapas que ya se habían completado;
+        // el orden editable del catálogo no debe cambiar ese historial.
+        return collect($adopcion->evidencia['etapas_anteriores'] ?? [])
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values();
+    }
+
     public function firmasParaFicha(string $proceso = self::FLUJO_INSCRIPCION, ?DocumentoProyecto $documento = null): Collection
     {
-        $etapasFirmantes = $this->flujoEtapasActivasOrdenadas($proceso)
+        $etapasFirmantes = $this->etapasDelExpediente($proceso, $documento)
             ->filter(fn (FlujoAprobacionEtapa $etapa) => $etapa->tipo_etapa === 'APROBACION' && $etapa->cargo_firma_id)
             ->values();
 
@@ -1449,17 +1483,15 @@ class Proyecto extends Model
                 ->groupBy('flujo_aprobacion_etapa_id')
             : collect();
 
-        $adopcion = ! $documento && $proceso === self::FLUJO_INSCRIPCION
-            ? $this->adopcionFlujoLegacy()->first()
-            : null;
+        $etapasAdoptadas = ! $documento && $proceso === self::FLUJO_INSCRIPCION
+            ? $this->etapasInscripcionCompletadasAntesDeAdopcion()
+            : collect();
 
         return $etapasFirmantes->map(fn (FlujoAprobacionEtapa $etapa) => [
             'etapa' => $etapa,
             'firma' => $firmasPorEtapa->get($etapa->id)?->first(),
-            'adoptada_antes' => $adopcion !== null && (
-                $adopcion->modo === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_COMPLETADO
-                || ($adopcion->orden_inicio !== null && (int) $etapa->orden < (int) $adopcion->orden_inicio)
-            ),
+            'adoptada_antes' => $etapasAdoptadas->contains((int) $etapa->id)
+                && ! $firmasPorEtapa->has($etapa->id),
         ]);
     }
 
@@ -1472,7 +1504,7 @@ class Proyecto extends Model
      */
     public function etapasParaStepper(string $proceso = self::FLUJO_INSCRIPCION, ?DocumentoProyecto $documento = null): Collection
     {
-        $etapas = $this->flujoEtapasActivasOrdenadas($proceso)->values();
+        $etapas = $this->etapasDelExpediente($proceso, $documento);
 
         if ($etapas->isEmpty()) {
             return collect();
@@ -1491,18 +1523,56 @@ class Proyecto extends Model
                 ->groupBy('flujo_aprobacion_etapa_id')
             : collect();
 
-        $adopcion = ! $documento && $proceso === self::FLUJO_INSCRIPCION
-            ? $this->adopcionFlujoLegacy()->first()
-            : null;
+        $etapasAdoptadas = ! $documento && $proceso === self::FLUJO_INSCRIPCION
+            ? $this->etapasInscripcionCompletadasAntesDeAdopcion()
+            : collect();
 
         return $etapas->map(fn (FlujoAprobacionEtapa $etapa) => [
             'etapa' => $etapa,
             'firma' => $firmasPorEtapa->get($etapa->id)?->first(),
-            'adoptada_antes' => $adopcion !== null && (
-                $adopcion->modo === \App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService::MODO_COMPLETADO
-                || ($adopcion->orden_inicio !== null && (int) $etapa->orden < (int) $adopcion->orden_inicio)
-            ),
+            'adoptada_antes' => $etapasAdoptadas->contains((int) $etapa->id)
+                && ! $firmasPorEtapa->has($etapa->id),
         ]);
+    }
+
+    /** El expediente enviado conserva su recorrido, aunque se retiren etapas del catálogo. */
+    public function etapasDelExpediente(string $proceso = self::FLUJO_INSCRIPCION, ?DocumentoProyecto $documento = null): Collection
+    {
+        if (! $documento && $proceso !== self::FLUJO_INSCRIPCION) {
+            return $this->flujoEtapasActivasOrdenadas($proceso)->values();
+        }
+
+        $firmas = $this->relacionFirmasDeEtapas($documento)
+            ->where('flujo_aprobacion_id', $this->flujo_aprobacion_id)
+            ->whereNotNull('flujo_aprobacion_etapa_id')
+            ->whereNull('deleted_at')
+            ->with('flujoEtapa')
+            ->orderByDesc('revision_ciclo')
+            ->orderByDesc('id')
+            ->get()
+            ->unique('flujo_aprobacion_etapa_id');
+
+        $adoptadas = ! $documento && $proceso === self::FLUJO_INSCRIPCION
+            ? $this->etapasInscripcionCompletadasAntesDeAdopcion()
+            : collect();
+
+        if ($firmas->isEmpty() && $adoptadas->isEmpty()) {
+            return $this->flujoEtapasActivasOrdenadas($proceso)->values();
+        }
+
+        $etapas = $firmas->filter(fn (FirmaProyecto $firma) => $firma->flujoEtapa)
+            ->map(function (FirmaProyecto $firma): FlujoAprobacionEtapa {
+                $etapa = clone $firma->flujoEtapa;
+                $etapa->orden = $firma->orden_revision ?? $etapa->orden;
+                $etapa->codigo = $firma->etapa_codigo ?? $etapa->codigo;
+                $etapa->nombre = $firma->etapa_nombre ?? $etapa->nombre;
+
+                return $etapa;
+            });
+
+        return $etapas->concat(FlujoAprobacionEtapa::whereIn('id', $adoptadas)
+            ->where('flujo_aprobacion_id', $this->flujo_aprobacion_id)->get())
+            ->unique('id')->sortBy([['orden', 'asc'], ['id', 'asc']])->values();
     }
 
     public function firmasDeEtapasDelFlujo(
@@ -1553,6 +1623,20 @@ class Proyecto extends Model
         $documento = $this->documentoDeFirmaDelProyecto($firma);
 
         if ($firma->firmable_type === DocumentoProyecto::class && ! $documento) {
+            return false;
+        }
+
+        if ((int) $firma->revision_ciclo !== $this->ultimoCicloDeFirmasPorEtapa((int) $firma->flujo_aprobacion_id, $documento)) {
+            return false;
+        }
+
+        if ($this->relacionFirmasDeEtapas($documento)
+            ->where('flujo_aprobacion_id', $firma->flujo_aprobacion_id)
+            ->where('revision_ciclo', $firma->revision_ciclo)
+            ->whereNull('flujo_aprobacion_etapa_id')
+            ->whereNull('deleted_at')
+            ->whereIn('estado_revision', ['Pendiente', 'Rechazado'])
+            ->exists()) {
             return false;
         }
 
@@ -1780,13 +1864,7 @@ class Proyecto extends Model
     protected function firmasBaseParaNuevoCicloDesdeRechazo(FirmaProyecto $firmaRechazada, Collection $firmasCiclo): Collection
     {
         $plan = app(WorkflowResumptionPolicy::class)->plan(
-            $firmasCiclo
-                ->reject(fn (FirmaProyecto $firma): bool => $firma->estado_revision === 'Anulado')
-                // Una etapa enviada a "todos los usuarios del rol" puede tener
-                // varias firmas Pendiente candidatas para la misma etapa (aún
-                // no alcanzada): WorkflowResumptionPolicy asume una firma por
-                // etapa, así que se colapsa a una sola representante.
-                ->unique(fn (FirmaProyecto $firma): int => (int) $firma->flujo_aprobacion_etapa_id)
+            app(ProyectoWorkflowService::class)->firmasParaReanudacion($firmasCiclo)
                 ->map(fn (FirmaProyecto $firma): array => [
                     'stage_id' => (int) $firma->flujo_aprobacion_etapa_id,
                     'order' => (int) $firma->orden_revision,
@@ -2191,7 +2269,7 @@ class Proyecto extends Model
 
             $firmasCreadas = $this->sincronizarFirmasDeEtapasDelFlujo($empleadosPorEtapa, $proceso, $documento, 1);
 
-            if ($firmasCreadas->count() !== $etapas->count()) {
+            if ($firmasCreadas->pluck('flujo_aprobacion_etapa_id')->unique()->count() !== $etapas->count()) {
                 throw new \RuntimeException('No se pudieron crear todas las firmas del flujo. Revise roles y responsables configurados.');
             }
 
@@ -2253,7 +2331,9 @@ class Proyecto extends Model
      */
     public function estadoDespuesDeGuardar(): string
     {
-        return $this->estado?->tipoestado?->nombre ?? 'Borrador';
+        return $this->estado?->tipoestado?->nombre === 'Autoguardado'
+            ? 'Borrador'
+            : ($this->estado?->tipoestado?->nombre ?? 'Borrador');
     }
 
     public function firmaRechazadaSubsanacionVigente(): ?FirmaProyecto

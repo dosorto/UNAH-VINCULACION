@@ -121,6 +121,21 @@ final class ProyectoLegacyWorkflowAdoptionService
             ? $etapas->filter(fn (FlujoAprobacionEtapa $etapa): bool => (int) $etapa->orden >= (int) $etapaInicio->orden)->values()
             : collect();
 
+        if ($legacy->contains(fn (FirmaProyecto $firma): bool => ! $firma->esFirmaLegacy())) {
+            $bloqueos->push('Existen firmas de un flujo cuya etapa ya no está disponible. Revise el historial antes de adaptar nuevamente el proyecto.');
+        }
+
+        if ($modo === self::MODO_EN_REVISION && $etapasDesdeInicio->isNotEmpty()) {
+            $aprobadas = $legacy->where('estado_revision', 'Aprobado');
+            $repiteAprobacion = $etapasDesdeInicio->contains(fn (FlujoAprobacionEtapa $etapa): bool =>
+                $aprobadas->contains(fn (FirmaProyecto $firma): bool => $this->firmaCorrespondeEtapa($firma, $etapa))
+            );
+
+            if ($repiteAprobacion) {
+                $bloqueos->push('La etapa detectada por el estado repetiría una aprobación histórica. Revise la correspondencia entre el estado y las etapas antes de adoptar.');
+            }
+        }
+
         $etapasUi = $etapas->map(function (FlujoAprobacionEtapa $etapa) use (
             $legacy,
             $etapaInicio,
@@ -308,6 +323,7 @@ final class ProyectoLegacyWorkflowAdoptionService
                         'etapa_nombre' => $etapa->nombre,
                         'rol_requerido' => $etapa->rolRevisor?->name,
                         'responsable_usuario_id' => $usuario->id,
+                        'requiere_asignacion' => (bool) $etapa->requiere_asignacion,
                         'revision_ciclo' => 1,
                         'estado_revision' => $modo === self::MODO_SUBSANACION && $indice === 0
                             ? 'Rechazado'
@@ -517,11 +533,7 @@ final class ProyectoLegacyWorkflowAdoptionService
         User $actor,
         ?string $estadoOrigen
     ): ?int {
-        $tipoEstadoId = $etapa->cargoFirma?->tipo_estado_id;
-
-        if (! $tipoEstadoId) {
-            throw new \RuntimeException(sprintf('La etapa "%s" no tiene un estado de proyecto configurado.', $etapa->nombre));
-        }
+        $tipoEstadoId = \App\Support\Proyecto\EstadoGeneralProyecto::id('En revision');
 
         if ((int) $proyecto->estado?->tipo_estado_id === (int) $tipoEstadoId) {
             return null;
@@ -609,6 +621,10 @@ final class ProyectoLegacyWorkflowAdoptionService
                 return [$coincidencias->first(), 'Se identificó por la firma legacy que solicitó la subsanación.'];
             }
 
+            if ($rechazadas->isNotEmpty()) {
+                return [null, 'La etapa que solicitó la subsanación no tiene una correspondencia única en el flujo seleccionado.'];
+            }
+
             $estadosAnteriores = $proyecto->estado_proyecto()
                 ->where('id', '!=', $proyecto->estado?->id)
                 ->latest('id')
@@ -619,6 +635,10 @@ final class ProyectoLegacyWorkflowAdoptionService
 
                 if ($coincidencias->count() === 1) {
                     return [$coincidencias->first(), 'Se identificó por el estado inmediatamente anterior a la subsanación.'];
+                }
+
+                if (CargoFirma::query()->where('descripcion', 'Proyecto')->where('tipo_estado_id', $tipoEstadoId)->exists()) {
+                    return [null, 'La etapa anterior a la subsanación no tiene una correspondencia única en el flujo seleccionado.'];
                 }
             }
         }
@@ -851,7 +871,7 @@ final class ProyectoLegacyWorkflowAdoptionService
             return self::MODO_BORRADOR;
         }
 
-        if (in_array($estado, ['APROBADO', 'FINALIZADO', 'EN_CURSO', 'INSCRITO', 'CANCELADO'], true)) {
+        if (in_array($estado, ['APROBADO', 'FINALIZADO', 'EN_CURSO', 'REGISTRADO', 'INSCRITO', 'CANCELADO'], true)) {
             return self::MODO_COMPLETADO;
         }
 

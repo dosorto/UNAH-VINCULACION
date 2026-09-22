@@ -22,6 +22,88 @@ class FirmaProyectoWorkflowStageTest extends TestCase
 {
     use DatabaseTransactions;
 
+    public function test_quitar_guardar_y_recargar_conserva_solamente_las_etapas_elegidas(): void
+    {
+        [$flujo, $etapas] = $this->crearFlujoConEtapas(4);
+        $component = new \App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
+        $load = new \ReflectionMethod($component, 'loadWorkflow');
+        $load->invoke($component, $flujo->fresh('etapas'));
+        $component->removeStage(2);
+        $component->removeStage(0);
+        $this->assertSame([$etapas[1]->id, $etapas[3]->id], array_column($component->stages, 'id'));
+        $prepared = (new \ReflectionMethod($component, 'prepareStagesForSave'))->invoke($component, $component->stages, 'REVISION', $flujo->id);
+        (new \ReflectionMethod($component, 'syncFlowStages'))->invoke($component, $flujo, $prepared);
+        $load->invoke($component, $flujo->fresh('etapas'));
+        $this->assertSame([$etapas[1]->id, $etapas[3]->id], array_column($component->stages, 'id'));
+        $this->assertSame([1, 2], $flujo->fresh()->etapas->pluck('orden')->all());
+        $this->assertSame(4, FlujoAprobacionEtapa::where('flujo_aprobacion_id', $flujo->id)->count());
+        // Guardar otra vez sin quitar nada tampoco debe recrear las conservadas.
+        $prepared = (new \ReflectionMethod($component, 'prepareStagesForSave'))->invoke($component, $component->stages, 'REVISION', $flujo->id);
+        (new \ReflectionMethod($component, 'syncFlowStages'))->invoke($component, $flujo, $prepared);
+        $load->invoke($component, $flujo->fresh('etapas'));
+        $this->assertSame([$etapas[1]->id, $etapas[3]->id], array_column($component->stages, 'id'));
+        $this->assertSame(4, FlujoAprobacionEtapa::where('flujo_aprobacion_id', $flujo->id)->count());
+    }
+
+    public function test_configuracion_retira_etapas_sin_modificar_firmas_aprobadas(): void
+    {
+        [$flujo, $etapa] = $this->crearFlujoConEtapa();
+        $firma = $this->crearFirma([
+            'flujo_aprobacion_id' => $flujo->id,
+            'flujo_aprobacion_etapa_id' => $etapa->id,
+            'estado_revision' => 'Aprobado',
+        ]);
+        $antes = $firma->fresh()->getAttributes();
+        $component = new \App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
+        $method = new \ReflectionMethod($component, 'syncFlowStages');
+
+        $method->invoke($component, $flujo, []);
+
+        $this->assertSame($antes, $firma->fresh()->getAttributes());
+        $this->assertSame($etapa->orden, $etapa->fresh()->orden);
+        $this->assertSame($etapa->codigo, $etapa->fresh()->codigo);
+        $this->assertNull($etapa->fresh()->configuracion_vigente);
+        $this->assertTrue($flujo->fresh()->etapas->isEmpty());
+        $this->assertSame($etapa->id, $firma->fresh()->flujoEtapa->id);
+    }
+
+    public function test_configuracion_permite_eliminar_etapas_sin_historial(): void
+    {
+        [$flujo, $etapa] = $this->crearFlujoConEtapa();
+        $component = new \App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
+        (new \ReflectionMethod($component, 'syncFlowStages'))->invoke($component, $flujo, []);
+        $this->assertNull($etapa->fresh()->configuracion_vigente);
+        $this->assertTrue($flujo->fresh()->etapas->isEmpty());
+    }
+
+    public function test_retirar_etapa_conserva_revision_enviada_y_permite_reutilizar_codigo_y_orden(): void
+    {
+        [$flujo, $etapa] = $this->crearFlujoConEtapa();
+        $etapa->update(['tipo_etapa' => 'APROBACION', 'aplica_inscripcion' => true]);
+        $proyecto = $this->crearProyecto();
+        $proyecto->forceFill(['flujo_aprobacion_id' => $flujo->id])->save();
+        $firma = $this->crearFirmaDeEtapaManual($proyecto, $etapa, $this->crearEmpleado());
+        $antes = $firma->fresh()->getAttributes();
+
+        $component = new \App\Livewire\Configuracion\Flujos\ConfiguracionFlujosProyectos;
+        (new \ReflectionMethod($component, 'syncFlowStages'))->invoke($component, $flujo, []);
+        $nueva = $this->crearEtapa($flujo, $etapa->cargoFirma, $etapa->orden, $etapa->codigo,
+            ['tipo_etapa' => 'APROBACION', 'aplica_inscripcion' => true]);
+
+        $this->assertSame($antes, $firma->fresh()->getAttributes());
+        $this->assertTrue($proyecto->fresh()->firmaEsActualEnFlujoPorEtapa($firma->fresh()));
+        $this->assertSame([$etapa->id], $proyecto->fresh()->etapasParaStepper()->pluck('etapa.id')->all());
+        $this->assertSame($firma->id, $proyecto->fresh()->firmasParaFicha()->first()['firma']->id);
+        $this->assertFalse(app(\App\Services\Proyecto\ProyectoWorkflowService::class)->inscripcionCompletada($proyecto->fresh()));
+
+        $nuevoProyecto = $this->crearProyecto();
+        $nuevoProyecto->forceFill(['flujo_aprobacion_id' => $flujo->id])->save();
+        $firmasNuevas = $nuevoProyecto->sincronizarFirmasDeEtapasDelFlujo([$nueva->id => $this->crearEmpleado()->id]);
+        $this->assertSame([$nueva->id], $firmasNuevas->pluck('flujo_aprobacion_etapa_id')->all());
+        $firma->update(['estado_revision' => 'Aprobado']);
+        $this->assertTrue(app(\App\Services\Proyecto\ProyectoWorkflowService::class)->inscripcionCompletada($proyecto->fresh()));
+    }
+
     public function test_columnas_de_etapa_existen_y_aceptan_null(): void
     {
         $columnas = [

@@ -84,7 +84,7 @@ class DocumentoProyectoWorkflowService
         }
 
         $firmaRechazada = $rechazadas->first();
-        $empleadosPorEtapa = $firmas
+        $empleadosPorEtapa = app(ProyectoWorkflowService::class)->firmasParaReanudacion($firmas)
             ->filter(fn (FirmaProyecto $firma): bool => $firma->estado_revision !== 'Anulado'
                 && (int) $firma->orden_revision >= (int) $firmaRechazada->orden_revision)
             ->mapWithKeys(function (FirmaProyecto $firma) use ($usuariosReemplazo): array {
@@ -160,19 +160,30 @@ class DocumentoProyectoWorkflowService
         $firma = $flujoId && $ciclo > 0
             ? $proyecto->firmaActualDeEtapasDelFlujo($flujoId, $ciclo, $documento)
             : null;
-        $usuario = $firma?->responsableUsuario ?: $firma?->empleado?->user;
         $etapa = $firma?->flujoEtapa;
-
-        if (! $usuario || blank($usuario->email) || ! filter_var($usuario->email, FILTER_VALIDATE_EMAIL)) {
-            throw new \RuntimeException('La etapa actual no tiene un revisor asignado con correo válido.');
-        }
 
         if (! $etapa) {
             throw new \RuntimeException('La etapa histórica actual ya no existe y no puede notificarse.');
         }
 
-        Mail::to($usuario->email)->queue(
-            (new EtapaFlujoPendiente($proyecto, $usuario, $etapa, $documento->tipo_documento))->afterCommit()
-        );
+        $candidatas = $documento->firma_documento()
+            ->with(['responsableUsuario', 'empleado.user'])
+            ->where('flujo_aprobacion_id', $flujoId)
+            ->where('revision_ciclo', $ciclo)
+            ->where('flujo_aprobacion_etapa_id', $firma->flujo_aprobacion_etapa_id)
+            ->where('estado_revision', 'Pendiente')
+            ->get();
+
+        foreach ($candidatas as $candidata) {
+            $usuario = $candidata->responsableUsuario ?: $candidata->empleado?->user;
+
+            if (! $usuario || blank($usuario->email) || ! filter_var($usuario->email, FILTER_VALIDATE_EMAIL)) {
+                throw new \RuntimeException('La etapa actual no tiene un revisor asignado con correo válido.');
+            }
+
+            Mail::to($usuario->email)->queue(
+                (new EtapaFlujoPendiente($proyecto, $usuario, $etapa, $documento->tipo_documento))->afterCommit()
+            );
+        }
     }
 }

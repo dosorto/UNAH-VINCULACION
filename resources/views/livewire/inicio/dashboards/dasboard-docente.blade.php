@@ -24,7 +24,7 @@
             <div class="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-6">
                 <x-dashboard.cifra-cabecera :valor="$resumen['total']" etiqueta="Mis trámites" icono="heroicon-o-folder" :destacada="true" />
                 <x-dashboard.cifra-cabecera :valor="$resumen['en_revision']" etiqueta="En revisión" icono="heroicon-o-clipboard-document-list" />
-                <x-dashboard.cifra-cabecera :valor="$resumen['en_curso']" etiqueta="En curso" icono="heroicon-o-play-circle" />
+                <x-dashboard.cifra-cabecera :valor="$resumen['en_curso']" etiqueta="Registrados" icono="heroicon-o-play-circle" />
                 <x-dashboard.cifra-cabecera :valor="$resumen['finalizado']" etiqueta="Finalizados" icono="heroicon-o-check-badge" />
                 <x-dashboard.cifra-cabecera :valor="$poblacion['poblacion']" etiqueta="Personas alcanzadas" icono="heroicon-o-users" />
                 <x-dashboard.cifra-cabecera :valor="$esfuerzo['horas']" etiqueta="Horas registradas" icono="heroicon-o-clock" />

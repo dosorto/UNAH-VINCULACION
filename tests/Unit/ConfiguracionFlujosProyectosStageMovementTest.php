@@ -43,7 +43,8 @@ class ConfiguracionFlujosProyectosStageMovementTest extends TestCase
             ->firstWhere('codigo_formulario', 'FORM-DVUS-015');
 
         $this->assertSame('PPS_VOLUNTARIADO_GESTION_RIESGO', $pps['tipo_accion_codigo']);
-        $this->assertSame('PPS_SERVICIO_SOCIAL_DEFAULT', $pps['proceso']);
+        $this->assertSame(\App\Models\PpsServicioSocial::PROCESO_FLUJO, $pps['proceso']);
+        $this->assertSame('PPS_SERVICIO_SOCIAL_DEFAULT', $pps['workflow_codigo_base']);
         $this->assertSame('VOLUNTARIADO', $voluntariado['tipo_accion_codigo']);
         $this->assertNotSame($pps['tipo_accion_codigo'], $voluntariado['tipo_accion_codigo']);
     }

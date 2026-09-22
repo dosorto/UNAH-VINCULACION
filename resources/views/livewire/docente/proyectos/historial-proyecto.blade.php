@@ -12,7 +12,7 @@
     @php
         use Carbon\Carbon;
 
-        $estadoNombre = $proyecto->estado?->tipoestado?->nombre;
+        $estadoNombre = $proyecto->estado_general;
         $firmaRevisionPendiente = $this->firmaPendienteRevision();
     @endphp
 
@@ -67,12 +67,12 @@
                         </a>
                     @endif
 
-                    @if ($estadoNombre === 'En curso' && ! $fichaActualizacionPendiente)
+                    @if ($proyecto->estaRegistrado() && ! $fichaActualizacionPendiente)
                         <a href="{{ route('ficha-actualizacion', ['proyecto' => $proyecto->id]) }}"
                            class="inline-flex items-center rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700">
                             Actualizar Equipo o Fechas
                         </a>
-                    @elseif ($estadoNombre === 'En curso' && $fichaActualizacionPendiente)
+                    @elseif ($proyecto->estaRegistrado() && $fichaActualizacionPendiente)
                         <a href="{{ route('FichasActualizacionDocente') }}"
                            class="inline-flex items-center rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700">
                             Ver actualización pendiente

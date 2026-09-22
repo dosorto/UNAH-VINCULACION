@@ -38,13 +38,10 @@ class PpsServicioSocialWorkflowTest extends TestCase
 
     public function test_creador_puede_eliminar_su_borrador_pps_y_se_registra_la_auditoria(): void
     {
-        $usuario = User::factory()->create();
+        $contexto = $this->contexto();
+        $usuario = $contexto['usuario'];
         $this->actingAs($usuario);
-        $registro = PpsServicioSocial::create([
-            'codigo_registro' => 'PPS-ELIMINAR-'.uniqid(),
-            'created_by' => $usuario->id,
-            'estado' => 'borrador',
-        ]);
+        $registro = $contexto['registro'];
 
         Livewire::test(\App\Livewire\Proyectos\Vinculacion\ShowPpsServicioSocial::class, ['id' => $registro->id])
             ->call('eliminarBorrador');
@@ -60,13 +57,9 @@ class PpsServicioSocialWorkflowTest extends TestCase
 
     public function test_otro_usuario_no_puede_eliminar_borrador_pps(): void
     {
-        $creador = User::factory()->create();
+        $contexto = $this->contexto();
         $otro = User::factory()->create();
-        $registro = PpsServicioSocial::create([
-            'codigo_registro' => 'PPS-NO-ELIMINAR-'.uniqid(),
-            'created_by' => $creador->id,
-            'estado' => 'borrador',
-        ]);
+        $registro = $contexto['registro'];
 
         $this->actingAs($otro);
         $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
@@ -265,6 +258,7 @@ class PpsServicioSocialWorkflowTest extends TestCase
     public function test_generacion_valida_de_solicitud_reutiliza_datos_del_formulario(): void
     {
         $ctx = $this->contexto();
+        $ctx['registro'] = app(PpsServicioSocialWorkflowService::class)->enviarARevision($ctx['registro'], $ctx['usuario']->id);
         $documento = app(PpsDocumentoGenerator::class)->generarSolicitud($ctx['registro'], $ctx['usuario']->id);
 
         $this->assertSame(PpsDocumentoGenerator::SOLICITUD, $documento->tipo);
@@ -285,6 +279,7 @@ class PpsServicioSocialWorkflowTest extends TestCase
     public function test_generacion_valida_de_autorizacion_exige_firma_del_coordinador(): void
     {
         $ctx = $this->contexto();
+        $ctx['registro'] = app(PpsServicioSocialWorkflowService::class)->enviarARevision($ctx['registro'], $ctx['usuario']->id);
         $documento = app(PpsDocumentoGenerator::class)->generarAutorizacion($ctx['registro'], $ctx['usuario']->id);
 
         $this->assertSame(PpsDocumentoGenerator::AUTORIZACION, $documento->tipo);
@@ -308,9 +303,9 @@ class PpsServicioSocialWorkflowTest extends TestCase
         $ctx['registro']->update([
             'departamento' => null,
             'municipio' => null,
-            'nombre_jefe_directo' => null,
+            'nombre_jefe_directo' => '',
             'cargo_jefe_directo' => null,
-            'nombre_docente_supervisor' => null,
+            'nombre_docente_supervisor' => '',
             'jornada_laboral_docente' => null,
             'horas_teletrabajo' => null,
             'archivo_carta_formalizacion' => null,

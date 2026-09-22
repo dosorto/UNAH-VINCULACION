@@ -30,6 +30,7 @@ class FlujoAprobacion extends Model
     public function etapas(): HasMany
     {
         return $this->hasMany(FlujoAprobacionEtapa::class, 'flujo_aprobacion_id')
+            ->where('configuracion_vigente', true)
             ->orderBy('orden');
     }
 

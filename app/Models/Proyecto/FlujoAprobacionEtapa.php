@@ -35,6 +35,8 @@ class FlujoAprobacionEtapa extends Model
     ];
 
     protected $casts = [
+        // null identifica una etapa retirada; las relaciones históricas siguen resolviéndola.
+        'configuracion_vigente' => 'boolean',
         'aplica_inscripcion' => 'boolean',
         'aplica_informe_intermedio' => 'boolean',
         'aplica_cierre_proyecto' => 'boolean',

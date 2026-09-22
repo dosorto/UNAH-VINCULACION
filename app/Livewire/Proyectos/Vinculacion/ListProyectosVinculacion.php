@@ -12,6 +12,7 @@ use App\Models\Proyecto\Modalidad;
 use App\Models\Proyecto\Od;
 use App\Models\Proyecto\Proyecto;
 use App\Services\Proyecto\ProyectoLegacyWorkflowAdoptionService;
+use App\Services\Proyecto\ProyectoWorkflowService;
 use App\Support\AdminCsv;
 use App\Support\Notification;
 use Illuminate\Contracts\View\View;
@@ -379,7 +380,7 @@ class ListProyectosVinculacion extends Component
                 ->orWhere('proyecto.codigo_proyecto', 'like', '%' . $this->search . '%')
                 ->orWhere('proyecto.numero_dictamen', 'like', '%' . $this->search . '%')
             ))
-            ->when($this->filterEstado, fn($q) => $q->where('tipo_estado.id', $this->filterEstado))
+            ->when($this->filterEstado, fn($q) => $q->whereIn('tipo_estado.nombre', \App\Support\Proyecto\EstadoGeneralProyecto::compatibles(TipoEstado::find($this->filterEstado)?->nombre ?? '')))
             ->when($this->filterModalidad, fn($q) => $q->where('proyecto.modalidad_id', $this->filterModalidad))
             ->when($this->filterCategoria, fn($q) => $q->whereHas('categoria', fn($q2) => $q2->where('categorias.id', $this->filterCategoria)))
             ->when($this->filterOds, fn($q) => $q->whereHas('ods', fn($q2) => $q2->where('ods.id', $this->filterOds)))
@@ -434,10 +435,11 @@ class ListProyectosVinculacion extends Component
     private function proyectoRows(): Collection
     {
         return $this->recordsQuery()
-            ->with(['estado_proyecto.tipoestado', 'tipoAccion', 'adopcionFlujoLegacy'])
+            ->with(['estado_proyecto.tipoestado', 'tipoAccion', 'adopcionFlujoLegacy', 'firma_proyecto'])
             ->get()
             ->map(function (Proyecto $proyecto): array {
                 $estadoActual = $proyecto->estado_proyecto->firstWhere('es_actual', true);
+                $revisionActual = app(ProyectoWorkflowService::class)->revisionActualInscripcion($proyecto);
 
                 return [
                     'kind' => 'proyecto',
@@ -446,7 +448,8 @@ class ListProyectosVinculacion extends Component
                     'secondary_code' => $proyecto->numero_dictamen ?: null,
                     'nombre' => $proyecto->nombre_proyecto,
                     'tipo' => $proyecto->tipoAccion?->nombre ?: 'Proyecto de vinculación',
-                    'estado' => $estadoActual?->tipoestado?->nombre ?? '',
+                    'estado' => \App\Support\Proyecto\EstadoGeneralProyecto::nombre($estadoActual?->tipoestado?->nombre),
+                    'revision_actual' => $revisionActual,
                     'fecha' => $proyecto->fecha_inicio,
                     'sort_date' => $proyecto->created_at,
                     'flujo_adoptado' => $proyecto->adopcionFlujoLegacy !== null,
@@ -501,7 +504,7 @@ class ListProyectosVinculacion extends Component
     {
         $records = $this->paginateRows($this->historialRows());
 
-        $estadosTipo     = TipoEstado::orderBy('nombre')->pluck('nombre', 'id');
+        $estadosTipo     = \App\Support\Proyecto\EstadoGeneralProyecto::opciones();
         $centros         = \App\Models\UnidadAcademica\FacultadCentro::orderBy('nombre')->pluck('nombre', 'id');
         $departamentos   = $this->filterCentroFacultad
             ? \App\Models\UnidadAcademica\DepartamentoAcademico::where('centro_facultad_id', $this->filterCentroFacultad)->orderBy('nombre')->pluck('nombre', 'id')

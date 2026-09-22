@@ -68,7 +68,7 @@ class ProyectoWorkflowStageResubmissionTest extends TestCase
         $this->assertSame($firmasAntes + 2, FirmaProyecto::count());
         $this->assertDatabaseHas('estado_proyecto', ['id' => $estadoSubsanacionId]);
         $this->assertSame($estadoCount + 1, $context['proyecto']->estado_proyecto()->count());
-        $this->assertSame($context['cargos'][1]->tipo_estado_id, $context['proyecto']->estado->tipo_estado_id);
+        $this->assertSame('En revision', $context['proyecto']->estado->tipoestado->nombre);
         $this->assertSame($coordinador->id, $context['proyecto']->estado->empleado_id);
         $this->assertStringContainsString($creadas[0]->etapa_nombre, $context['proyecto']->estado->comentario);
         $this->assertSame($creadas[0]->id, $context['proyecto']->firmaActualDeEtapasDelFlujo($context['flujo']->id, 2)?->id);
@@ -281,7 +281,7 @@ class ProyectoWorkflowStageResubmissionTest extends TestCase
         }
     }
 
-    public function test_primera_firma_invalida_revierte_y_no_deja_estado_sin_firmas(): void
+    public function test_reenvio_no_depende_del_estado_historico_del_cargo(): void
     {
         $context = $this->crearContexto();
         [$user, $empleado] = $this->crearUsuarioEmpleado(permisos: ['docente.crear-proyecto']);
@@ -292,12 +292,14 @@ class ProyectoWorkflowStageResubmissionTest extends TestCase
         $estadoActualId = $context['proyecto']->estado->id;
         $firmasAntes = FirmaProyecto::count();
 
-        $this->assertFallaReenvio($context['proyecto'], $firma, $user, [
+        $creadas = $this->componente($context['proyecto'])->reenviarPorEtapa($firma, $user, [
             $context['etapas'][0]->id => $firma->empleado_id,
-        ], 'No se pudo determinar de forma segura la primera etapa del nuevo ciclo.');
-
-        $this->assertSame($firmasAntes, FirmaProyecto::count());
-        $this->assertSame($estadoActualId, $context['proyecto']->estado->id);
+        ]);
+        $this->assertCount(1, $creadas);
+        $this->assertSame('Rechazado', $firma->fresh()->estado_revision);
+        $this->assertSame('En revision', $context['proyecto']->estado->tipoestado->nombre);
+        $this->assertSame($firmasAntes + 1, FirmaProyecto::count());
+        $this->assertNotSame($estadoActualId, $context['proyecto']->estado->id);
     }
 
     public function test_no_mezcla_flujos_ciclos_documentos_ni_etapas_con_mismo_cargo(): void

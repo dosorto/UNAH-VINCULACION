@@ -25,7 +25,7 @@ class InformeIntermedioProyectoWorkflowService
     public function estaDisponible(Proyecto $proyecto, ?User $user): bool
     {
         return $proyecto->usuarioPuedeGestionarInformeFinal($user)
-            && $proyecto->estado?->tipoestado?->nombre === 'En curso'
+            && $proyecto->estaRegistrado()
             && $proyecto->tieneFlujoInformeIntermedio()
             && ! ($proyecto->documento_intermedio() && ! $proyecto->informeIntermedio()->exists())
             && $this->workflow->inscripcionCompletada($proyecto);

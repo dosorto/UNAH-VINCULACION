@@ -23,6 +23,40 @@ class ProyectosPorFirmarWorkflowStagePublicIntegrationTest extends TestCase
 {
     use DatabaseTransactions;
 
+    public function test_firma_con_etapa_eliminada_no_reaparece_como_legacy_ni_autoriza(): void
+    {
+        $context = $this->contexto();
+        $nombreRol = $context['cargos'][0]->tipoCargoFirma->nombre;
+        [$user, $empleado, $role] = $this->usuarioEmpleadoConRol($nombreRol);
+        $context['cargos'][0]->tipoCargoFirma->update(['nombre' => $role->name]);
+        $firma = $this->firmaEtapa($context['proyecto'], $context['etapas'][0], $empleado, ['rol_requerido' => $role->name]);
+        $this->assertContains($firma->id, $this->firmasDisponiblesIds($user));
+
+        $context['etapas'][0]->delete();
+        $firma->refresh();
+
+        $this->assertFalse($firma->esFirmaLegacy());
+        $this->assertNotContains($firma->id, $this->firmasDisponiblesIds($user));
+        $method = new \ReflectionMethod(ProyectosPorFirmar::class, 'canActOnFirma');
+        $this->assertFalse($method->invoke(new ProyectosPorFirmar, $firma));
+        $this->assertSame('Pendiente', $firma->estado_revision);
+    }
+
+    public function test_accion_legacy_rechaza_otro_empleado_aunque_comparta_rol(): void
+    {
+        $context = $this->contexto();
+        [$user, $empleado, $role] = $this->usuarioEmpleadoConRol('Rol legacy protegido');
+        [, $otroEmpleado] = $this->usuarioEmpleadoConRol($role->name, $role);
+        $cargo = $this->cargoFirma($context['estados'][0]->id, $role->name);
+        $propia = $this->firmaLegacy($context['proyecto'], $cargo, $empleado);
+        $ajena = $this->firmaLegacy($context['proyecto'], $cargo, $otroEmpleado);
+        $this->actingAs($user);
+        $method = new \ReflectionMethod(ProyectosPorFirmar::class, 'canActOnFirma');
+
+        $this->assertTrue($method->invoke(new ProyectosPorFirmar, $propia));
+        $this->assertFalse($method->invoke(new ProyectosPorFirmar, $ajena));
+    }
+
     public function test_contador_de_navegacion_usa_las_mismas_asignaciones_que_la_bandeja(): void
     {
         $context = $this->contexto();
@@ -187,7 +221,7 @@ class ProyectosPorFirmarWorkflowStagePublicIntegrationTest extends TestCase
         $this->assertSame('Aprobado', $firma->refresh()->estado_revision);
         $this->assertSame('Pendiente', $siguienteMismoCargo->refresh()->estado_revision);
         $this->assertTrue($context['proyecto']->firmaEsActualEnFlujoPorEtapa($siguienteMismoCargo));
-        $this->assertSame($context['estados'][0]->id, $context['proyecto']->estado->tipo_estado_id);
+        $this->assertSame('En revision', $context['proyecto']->estado->tipoestado->nombre);
     }
 
     public function test_aprobar_publico_conserva_legacy(): void

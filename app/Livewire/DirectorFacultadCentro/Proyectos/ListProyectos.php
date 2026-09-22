@@ -70,7 +70,10 @@ class ListProyectos extends Component
             ->when(! empty($this->filterEstados), fn ($q) => $q->whereIn('proyecto.id', function ($sub) {
                 $sub->select('estadoable_id')
                     ->from('estado_proyecto')
-                    ->whereIn('tipo_estado_id', $this->filterEstados)
+                    ->whereIn('tipo_estado_id', TipoEstado::whereIn('nombre',
+                        TipoEstado::whereIn('id', $this->filterEstados)->pluck('nombre')
+                            ->flatMap(fn ($nombre) => \App\Support\Proyecto\EstadoGeneralProyecto::compatibles($nombre))
+                    )->pluck('id'))
                     ->where('es_actual', true);
             })
             )
@@ -79,7 +82,7 @@ class ListProyectos extends Component
             )
             ->paginate(10);
 
-        $tiposEstado = TipoEstado::orderBy('nombre')->pluck('nombre', 'id');
+        $tiposEstado = \App\Support\Proyecto\EstadoGeneralProyecto::opciones();
         $departamentos = DepartamentoAcademico::where('centro_facultad_id', $this->facultadCentro->id)->orderBy('nombre')->pluck('nombre', 'id');
 
         return view('livewire.director-facultad-centro.proyectos.list-proyectos', compact('records', 'tiposEstado', 'departamentos'));

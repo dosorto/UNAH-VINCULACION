@@ -46,7 +46,7 @@ class VerificarConstancia extends Controller
     {
         // validar que el proyecto este en estado de 'En curso' o 'Finalizado'
         $nombreEstadoProyecto = $proyecto->estado->tipoestado->nombre;
-        if ($nombreEstadoProyecto != 'En curso' && $nombreEstadoProyecto != 'Finalizado') {
+        if (!in_array($nombreEstadoProyecto, ['Registrado', 'En curso'], true) && $nombreEstadoProyecto != 'Finalizado') {
             return;
         }
 
@@ -60,7 +60,7 @@ class VerificarConstancia extends Controller
                     'origen_id' => $empleadoProyecto->proyecto_id,
                     'destinatario_type' => Empleado::class,
                     'destinatario_id' => $empleadoProyecto->empleado_id,
-                    'tipo_constancia_id' => $nombreEstadoProyecto == 'En curso'
+                    'tipo_constancia_id' => in_array($nombreEstadoProyecto, ['Registrado', 'En curso'], true)
                         ? TipoConstancia::where('nombre', 'inscripcion')->first()->id
                         : TipoConstancia::where('nombre', 'finalizacion')->first()->id,
                 ]);
@@ -145,7 +145,7 @@ class VerificarConstancia extends Controller
     {
 
         $categoriasValidas = ['Titular I', 'Titular II', 'Titular III', 'Titular IV', 'Titular V'];
-        $estadosValidos = ['En curso', 'Finalizado', 'Actualizacion realizada'];
+        $estadosValidos = ['Registrado', 'En curso', 'Finalizado', 'Actualizacion realizada'];
 
         // validar que el proyecto este en estado de 'En curso' o 'Finalizado'
         if (!in_array($empleadoProyecto->proyecto->estado->tipoestado->nombre, $estadosValidos)) {
@@ -154,7 +154,7 @@ class VerificarConstancia extends Controller
 
 
         // validar que la categoria del empleado sea una de las categorias validas
-        if (!in_array($empleadoProyecto->empleado->categoria->nombre, $categoriasValidas)) {
+        if (!in_array($empleadoProyecto->empleado?->categoria?->nombre, $categoriasValidas, true)) {
             return false;
         }
         // otras validaciones

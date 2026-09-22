@@ -43,7 +43,7 @@ class ProyectosPorFirmarWorkflowStageApprovalTest extends TestCase
         $this->assertSame($snapshots, $aprobada->only(array_keys($snapshots)));
         $this->assertSame('Pendiente', $firmaSiguiente->refresh()->estado_revision);
         $this->assertTrue($context['proyecto']->firmaEsActualEnFlujoPorEtapa($firmaSiguiente->refresh()));
-        $this->assertSame($context['estados'][1]->id, $context['proyecto']->estado->tipo_estado_id);
+        $this->assertSame('En revision', $context['proyecto']->estado->tipoestado->nombre);
     }
 
     public function test_usuario_no_autorizado_firma_posterior_y_firma_resuelta_no_pueden_aprobarse(): void
@@ -128,7 +128,11 @@ class ProyectosPorFirmarWorkflowStageApprovalTest extends TestCase
         $principal = $this->crearFirmaDeEtapa($context['proyecto'], $context['etapas'][0], $empleado, ['rol_requerido' => $role->name]);
         $duplicadoMismaEtapa = $this->crearFirmaDeEtapaManual($context['proyecto'], $context['etapas'][0], $empleado);
         $duplicadoOtraEtapa = $this->crearFirmaDeEtapaManual($context['proyecto'], $context['etapas'][1], $empleado);
-        $duplicadoOtroCiclo = $this->crearFirmaDeEtapaManual($context['proyecto'], $context['etapas'][0], $empleado, ['revision_ciclo' => 2]);
+        $duplicadoOtroCiclo = $this->crearFirmaDeEtapaManual($context['proyecto'], $context['etapas'][0], $empleado, ['revision_ciclo' => 1]);
+
+        $principal->update(['revision_ciclo' => 2]);
+        $duplicadoMismaEtapa->update(['revision_ciclo' => 2]);
+        $duplicadoOtraEtapa->update(['revision_ciclo' => 2]);
 
         $this->componenteAprobacion()->aprobarPorEtapa($principal, $user);
 
@@ -152,7 +156,7 @@ class ProyectosPorFirmarWorkflowStageApprovalTest extends TestCase
 
         $this->componenteAprobacion()->aprobarPorEtapa($firmaUno, $user);
 
-        $this->assertSame($context['estados'][2]->id, $context['proyecto']->estado->tipo_estado_id);
+        $this->assertSame('En revision', $context['proyecto']->estado->tipoestado->nombre);
         $this->assertTrue($context['proyecto']->firmaEsActualEnFlujoPorEtapa($firmaTres->refresh()));
         $this->assertSame('Anulado', $firmaDos->refresh()->estado_revision);
     }
@@ -181,7 +185,7 @@ class ProyectosPorFirmarWorkflowStageApprovalTest extends TestCase
         }
     }
 
-    public function test_falta_de_cargo_o_tipo_estado_en_siguiente_firma_revierte(): void
+    public function test_cargo_es_obligatorio_pero_su_estado_no_controla_el_proyecto(): void
     {
         foreach (['sin_cargo', 'sin_tipo_estado'] as $caso) {
             $context = $this->crearContexto(2);
@@ -196,6 +200,11 @@ class ProyectosPorFirmarWorkflowStageApprovalTest extends TestCase
                 $firmaDos->refresh();
             } else {
                 $context['cargos'][1]->update(['tipo_estado_id' => null]);
+                $this->componenteAprobacion()->aprobarPorEtapa($firmaUno, $user);
+                $this->assertSame('Aprobado', $firmaUno->fresh()->estado_revision);
+                $this->assertSame('En revision', $context['proyecto']->estado->tipoestado->nombre);
+                $this->assertTrue($context['proyecto']->firmaEsActualEnFlujoPorEtapa($firmaDos));
+                continue;
             }
 
             try {
@@ -220,7 +229,7 @@ class ProyectosPorFirmarWorkflowStageApprovalTest extends TestCase
         $this->componenteAprobacion()->aprobarPorEtapa($firma, $user);
 
         $this->assertSame('Aprobado', $firma->refresh()->estado_revision);
-        $this->assertSame('En curso', $context['proyecto']->estado->tipoestado->nombre);
+        $this->assertSame('Registrado', $context['proyecto']->estado->tipoestado->nombre);
         $this->assertSame('Todas las etapas del flujo de inscripción fueron aprobadas.', $context['proyecto']->estado->comentario);
     }
 
@@ -240,7 +249,7 @@ class ProyectosPorFirmarWorkflowStageApprovalTest extends TestCase
 
         $this->assertSame('Aprobado', $firmaUno->refresh()->estado_revision);
         $this->assertSame('Anulado', $firmaDos->refresh()->estado_revision);
-        $this->assertSame('En curso', $context['proyecto']->estado->tipoestado->nombre);
+        $this->assertSame('Registrado', $context['proyecto']->estado->tipoestado->nombre);
     }
 
     public function test_documento_avanza_sin_mezclar_proyecto_ni_otros_documentos(): void

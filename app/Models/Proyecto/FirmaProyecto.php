@@ -6,6 +6,7 @@ use App\Models\Estado\TipoEstado;
 use App\Models\Personal\Empleado;
 use App\Models\Personal\FirmaSelloEmpleado;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class FirmaProyecto extends Model
 {
     use HasFactory;
+
+    private const CAMPOS_FLUJO = [
+        'flujo_aprobacion_id', 'flujo_aprobacion_etapa_id', 'revision_ciclo',
+        'orden_revision', 'etapa_codigo', 'etapa_nombre',
+    ];
 
     protected $table = 'firma_proyecto';
 
@@ -33,6 +39,7 @@ class FirmaProyecto extends Model
         'etapa_nombre',
         'rol_requerido',
         'responsable_usuario_id',
+        'requiere_asignacion',
         'revision_ciclo',
         'estado_actual_id',
         'tipo_firma', // proyecto, contrato, acta, etc
@@ -44,6 +51,7 @@ class FirmaProyecto extends Model
         'flujo_aprobacion_etapa_id' => 'integer',
         'orden_revision' => 'integer',
         'responsable_usuario_id' => 'integer',
+        'requiere_asignacion' => 'boolean',
         'revision_ciclo' => 'integer',
     ];
 
@@ -105,7 +113,22 @@ class FirmaProyecto extends Model
 
     public function esFirmaLegacy(): bool
     {
-        return blank($this->flujo_aprobacion_etapa_id);
+        foreach (self::CAMPOS_FLUJO as $campo) {
+            if ($this->getAttribute($campo) !== null) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function scopeLegacyAutentica(Builder $query): Builder
+    {
+        foreach (self::CAMPOS_FLUJO as $campo) {
+            $query->whereNull($this->qualifyColumn($campo));
+        }
+
+        return $query;
     }
 
     /**
@@ -128,7 +151,7 @@ class FirmaProyecto extends Model
             throw new \RuntimeException('Esta etapa no tiene un rol de revisor configurado para reasignar.');
         }
 
-        if (! (bool) $this->flujoEtapa?->requiere_asignacion) {
+        if (! (bool) ($this->requiere_asignacion ?? $this->flujoEtapa?->requiere_asignacion)) {
             throw new \RuntimeException('Esta etapa no tiene activada la opción "Requiere asignación del responsable", por lo que no se puede reasignar.');
         }
 
