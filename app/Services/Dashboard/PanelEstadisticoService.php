@@ -2,10 +2,12 @@
 
 namespace App\Services\Dashboard;
 
+use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
 use App\Support\Dashboard\AmbitoPanel;
 use App\Support\Dashboard\EstadosProyecto;
+use App\Support\Proyecto\EtapaActualFirma;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -254,14 +256,15 @@ class PanelEstadisticoService
                 $estado = $fila->tipo_estado_id !== null ? (int) $fila->tipo_estado_id : null;
 
                 // El documento manda sobre el estado: un proyecto con el informe
-                // final en revisión sigue "En curso" como estado, pero su fase
-                // real del ciclo es el cierre.
-                if ($fila->tiene_final) {
+                // final en revisión sigue "Registrado" como estado, pero su fase
+                // real del ciclo es el cierre. Salvo Finalizado: un proyecto
+                // cerrado siempre tiene informe final y no debe contarse ahí.
+                if ($estado !== null && in_array($estado, $idsFinal, true)) {
+                    $conteo['cerrado']++;
+                } elseif ($fila->tiene_final) {
                     $conteo['final']++;
                 } elseif ($fila->tiene_intermedio) {
                     $conteo['intermedio']++;
-                } elseif ($estado !== null && in_array($estado, $idsFinal, true)) {
-                    $conteo['cerrado']++;
                 } elseif ($estado !== null && in_array($estado, $idsCurso, true)) {
                     $conteo['ejecucion']++;
                 } elseif ($estado === null || in_array($estado, $idsBorrador, true)) {
@@ -669,14 +672,21 @@ class PanelEstadisticoService
      * mitad de flujo, así que sus firmas se crearon con fecha artificial y
      * distorsionan el promedio.
      *
+     * El tiempo de una etapa se mide desde que le llegó, no desde la creación
+     * de su firma: todas las firmas del recorrido se crean al enviar, y medir
+     * desde ahí cargaba a la última etapa la espera de todas las anteriores.
+     *
      * @return list<array{etiqueta:string,valor:float,firmas:int,porcentaje:float}>
      */
     public function tiemposPorEtapa(AmbitoPanel $ambito, int $limite = 8): array
     {
         return $this->recordar("tiempos:{$limite}", $ambito, function () use ($ambito, $limite): array {
             $etiqueta = $this->expresionNombreEtapa();
+            $llegada = EtapaActualFirma::llegadaSql(legacyDesdeEstado: false);
 
-            $filas = DB::table('firma_proyecto')
+            // La llegada se calcula por firma en una tabla derivada: MySQL no
+            // admite su subconsulta correlacionada dentro de un agregado.
+            $resueltas = DB::table('firma_proyecto')
                 ->leftJoin('cargo_firma', 'cargo_firma.id', '=', 'firma_proyecto.cargo_firma_id')
                 ->leftJoin('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
                 ->where('firma_proyecto.firmable_type', Proyecto::class)
@@ -685,14 +695,17 @@ class PanelEstadisticoService
                 ->whereNotNull('firma_proyecto.fecha_firma')
                 ->whereNull('firma_proyecto.deleted_at')
                 ->whereNotIn('firma_proyecto.firmable_id', $this->proyectosAdoptadosQuery())
-                ->groupByRaw($etiqueta)
-                ->orderByDesc('valor')
-                ->limit($limite)
                 ->selectRaw(
                     "{$etiqueta} as etiqueta,
-                     AVG(DATEDIFF(firma_proyecto.fecha_firma, firma_proyecto.created_at)) as valor,
-                     COUNT(*) as firmas"
-                )
+                     GREATEST(0, DATEDIFF(firma_proyecto.fecha_firma, {$llegada})) as dias"
+                );
+
+            $filas = DB::query()
+                ->fromSub($resueltas, 'resueltas')
+                ->groupBy('etiqueta')
+                ->orderByDesc('valor')
+                ->limit($limite)
+                ->selectRaw('etiqueta, AVG(dias) as valor, COUNT(*) as firmas')
                 ->get();
 
             $maximo = max(0.1, (float) $filas->max('valor'));
@@ -715,9 +728,9 @@ class PanelEstadisticoService
      * arrastra una firma pendiente de Director centro. Contarlas todas inflaba
      * las últimas etapas con trabajo que todavía no les ha llegado.
      *
-     * El criterio correcto es el mismo que usa la bandeja de tareas
-     * (ResolvesFirmasPendientes): la firma cuenta cuando el estado actual del
-     * proyecto coincide con el estado que esa etapa atiende.
+     * El criterio es el de la bandeja de tareas (EtapaActualFirma): la firma
+     * cuenta cuando es la etapa que el expediente espera ahora, y la espera se
+     * mide desde que la etapa le llegó.
      *
      * @return array<string, array{proyectos:int,dias_promedio:int,dias_maximo:int}>
      */
@@ -725,29 +738,27 @@ class PanelEstadisticoService
     {
         return $this->recordar('detenidos-etapa', $ambito, function () use ($ambito): array {
             $etiqueta = $this->expresionNombreEtapa();
+            $llegada = EtapaActualFirma::llegadaSql();
 
-            return DB::table('firma_proyecto')
-                ->join('cargo_firma', 'cargo_firma.id', '=', 'firma_proyecto.cargo_firma_id')
+            $query = DB::table('firma_proyecto')
+                ->leftJoin('cargo_firma', 'cargo_firma.id', '=', 'firma_proyecto.cargo_firma_id')
                 ->leftJoin('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
                 ->join('proyecto', 'proyecto.id', '=', 'firma_proyecto.firmable_id')
-                ->join('estado_proyecto as ep', function ($join): void {
-                    $join->on('ep.estadoable_id', '=', 'proyecto.id')
-                        ->where('ep.estadoable_type', '=', Proyecto::class)
-                        ->where('ep.es_actual', '=', true);
-                })
-                // Aquí está la clave: la etapa que atiende el estado actual.
-                ->whereColumn('ep.tipo_estado_id', 'cargo_firma.tipo_estado_id')
                 ->where('firma_proyecto.firmable_type', Proyecto::class)
                 ->whereIn('firma_proyecto.firmable_id', $ambito->idsProyectoQuery())
-                ->where('firma_proyecto.estado_revision', 'Pendiente')
-                ->whereNull('firma_proyecto.deleted_at')
-                ->whereNull('proyecto.deleted_at')
-                ->groupByRaw($etiqueta)
+                ->whereNull('proyecto.deleted_at');
+
+            $esperando = EtapaActualFirma::filtrar($query)
+                ->selectRaw("{$etiqueta} as etapa, proyecto.id as proyecto_id, DATEDIFF(NOW(), {$llegada}) as dias");
+
+            return DB::query()
+                ->fromSub($esperando, 'esperando')
+                ->groupBy('etapa')
                 ->selectRaw(
-                    "{$etiqueta} as etapa,
-                     COUNT(DISTINCT proyecto.id) as proyectos,
-                     ROUND(AVG(DATEDIFF(NOW(), firma_proyecto.created_at))) as dias_promedio,
-                     MAX(DATEDIFF(NOW(), firma_proyecto.created_at)) as dias_maximo"
+                    'etapa,
+                     COUNT(DISTINCT proyecto_id) as proyectos,
+                     ROUND(AVG(dias)) as dias_promedio,
+                     MAX(dias) as dias_maximo'
                 )
                 ->get()
                 ->mapWithKeys(fn ($f): array => [
@@ -762,43 +773,68 @@ class PanelEstadisticoService
     }
 
     /**
-     * Firmas pendientes más antiguas del ámbito: dónde está atascado el flujo.
+     * Trámites del ámbito que más tiempo llevan esperando en su etapa actual:
+     * la inscripción de un proyecto o uno de sus informes (intermedio o final).
      *
-     * @return list<array{proyecto_id:int,nombre:string,codigo:?string,etapa:string,rol:?string,dias:int}>
+     * Solo cuenta la etapa que el expediente espera ahora (EtapaActualFirma).
+     * Antes se tomaban todas sus firmas pendientes —las de etapas que aún no le
+     * habían llegado incluidas— y la etapa mostrada era la primera por orden
+     * alfabético, no la actual.
+     *
+     * @return list<array{proyecto_id:int,tipo:string,nombre:string,codigo:?string,etapa:string,rol:?string,firmas:int,dias:int}>
      */
     public function cuellosDeBotella(AmbitoPanel $ambito, int $limite = 5, int $diasMinimos = 0): array
     {
         return $this->recordar("cuellos:{$limite}:{$diasMinimos}", $ambito, function () use ($ambito, $limite, $diasMinimos): array {
             $etiqueta = $this->expresionNombreEtapa();
+            $llegada = EtapaActualFirma::llegadaSql();
 
-            // Un proyecto detenido suele tener varias firmas pendientes a la
-            // vez (una por cargo). Se agrupa por proyecto para no repetir la
-            // misma fila y se toma la espera más larga.
-            return DB::table('firma_proyecto')
-                ->join('proyecto', 'proyecto.id', '=', 'firma_proyecto.firmable_id')
+            $query = DB::table('firma_proyecto')
+                ->leftJoin('proyecto_documento as pd', function ($join): void {
+                    $join->on('pd.id', '=', 'firma_proyecto.firmable_id')
+                        ->where('firma_proyecto.firmable_type', '=', DocumentoProyecto::class);
+                })
+                ->join('proyecto', 'proyecto.id', '=', DB::raw('COALESCE(pd.proyecto_id, firma_proyecto.firmable_id)'))
                 ->leftJoin('cargo_firma', 'cargo_firma.id', '=', 'firma_proyecto.cargo_firma_id')
                 ->leftJoin('tipo_cargo_firma', 'tipo_cargo_firma.id', '=', 'cargo_firma.tipo_cargo_firma_id')
-                ->where('firma_proyecto.firmable_type', Proyecto::class)
-                ->whereIn('firma_proyecto.firmable_id', $ambito->idsProyectoQuery())
-                ->where('firma_proyecto.estado_revision', 'Pendiente')
-                ->whereNull('firma_proyecto.deleted_at')
+                ->whereIn('firma_proyecto.firmable_type', [Proyecto::class, DocumentoProyecto::class])
+                ->whereIn('proyecto.id', $ambito->idsProyectoQuery())
                 ->whereNull('proyecto.deleted_at')
-                ->groupBy('proyecto.id', 'proyecto.nombre_proyecto', 'proyecto.codigo_proyecto')
+                ->whereNull('pd.deleted_at');
+
+            $esperando = EtapaActualFirma::filtrar($query)
+                ->selectRaw(
+                    "firma_proyecto.firmable_type as firmable_type,
+                     firma_proyecto.firmable_id as firmable_id,
+                     proyecto.id as proyecto_id,
+                     pd.tipo_documento as documento,
+                     proyecto.nombre_proyecto as nombre,
+                     proyecto.codigo_proyecto as codigo,
+                     {$etiqueta} as etapa,
+                     firma_proyecto.rol_requerido as rol,
+                     DATEDIFF(NOW(), {$llegada}) as dias"
+                );
+
+            // Cuando una etapa se manda a todos los usuarios de un rol, el
+            // expediente tiene varias firmas candidatas de la misma etapa: se
+            // agrupa por expediente para no repetir la fila.
+            return DB::query()
+                ->fromSub($esperando, 'esperando')
+                ->groupBy('firmable_type', 'firmable_id', 'documento', 'proyecto_id', 'nombre', 'codigo')
                 ->havingRaw('dias >= ?', [$diasMinimos])
                 ->orderByDesc('dias')
                 ->limit($limite)
                 ->selectRaw(
-                    "proyecto.id as proyecto_id,
-                     proyecto.nombre_proyecto as nombre,
-                     proyecto.codigo_proyecto as codigo,
-                     MIN({$etiqueta}) as etapa,
-                     MIN(firma_proyecto.rol_requerido) as rol,
+                    'proyecto_id, documento, nombre, codigo,
+                     MIN(etapa) as etapa,
+                     MIN(rol) as rol,
                      COUNT(*) as firmas,
-                     MAX(DATEDIFF(NOW(), firma_proyecto.created_at)) as dias"
+                     MAX(dias) as dias'
                 )
                 ->get()
                 ->map(fn ($f): array => [
                     'proyecto_id' => (int) $f->proyecto_id,
+                    'tipo' => $f->documento ?: 'Proyecto',
                     'nombre' => (string) $f->nombre,
                     'codigo' => $f->codigo,
                     'etapa' => (string) ($f->etapa ?: 'Sin etapa'),

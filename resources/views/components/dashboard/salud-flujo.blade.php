@@ -9,6 +9,10 @@
 @php
     $maximo = max(1, max(array_map(fn ($e) => (float) $e['valor'], $etapas) ?: [0]));
     $totalEsperando = array_sum(array_column($esperando, 'proyectos'));
+    // Con menos revisiones resueltas la media no dice nada: dos firmas del
+    // mismo día pintaban «0 días» en verde como si la etapa fuera ágil.
+    $minimoMuestras = 3;
+    $hayPocosDatos = collect($etapas)->contains(fn ($e) => (int) ($e['firmas'] ?? $minimoMuestras) < $minimoMuestras);
 @endphp
 
 @if (empty($etapas))
@@ -29,13 +33,20 @@
                     $enCola = $cola['proyectos'] ?? 0;
                     $altura = max(4, $dias / $maximo * 100);
 
+                    $firmas = (int) ($etapa['firmas'] ?? $minimoMuestras);
+                    $pocosDatos = $firmas < $minimoMuestras;
+
                     [$relleno, $tinta] = match (true) {
+                        $pocosDatos => ['bg-slate-300 dark:bg-slate-600', 'text-slate-500 dark:text-slate-400'],
                         $dias >= 30 => ['bg-red-500 dark:bg-red-400', 'text-red-700 dark:text-red-300'],
                         $dias >= 14 => ['bg-amber-500 dark:bg-amber-400', 'text-amber-700 dark:text-amber-300'],
                         default => ['bg-emerald-500 dark:bg-emerald-400', 'text-emerald-700 dark:text-emerald-300'],
                     };
 
                     $titulo = $etapa['etiqueta'].' — tarda '.number_format($dias, 1).' días de media';
+                    $titulo .= $pocosDatos
+                        ? ' (solo '.$firmas.' '.($firmas === 1 ? 'revisión resuelta' : 'revisiones resueltas').': aún no es representativo)'
+                        : '';
                     $titulo .= $enCola > 0
                         ? '. Ahora hay '.$enCola.' '.($enCola === 1 ? 'proyecto esperando' : 'proyectos esperando')
                             .', el más antiguo desde hace '.($cola['dias_maximo'] ?? 0).' días.'
@@ -77,6 +88,9 @@
                 <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>hasta 14</span>
                 <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-amber-500"></span>14 a 30</span>
                 <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-red-500"></span>más de 30</span>
+                @if ($hayPocosDatos)
+                    <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600"></span>menos de {{ $minimoMuestras }} revisiones: poco representativo</span>
+                @endif
             </p>
             <p class="text-[11px] text-slate-500 dark:text-slate-400">
                 <span class="font-semibold text-slate-600 dark:text-slate-300">En cola:</span>

@@ -22,7 +22,8 @@
 
         <x-slot:metricas>
             <div class="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-5">
-                <x-dashboard.cifra-cabecera :valor="$resumen['total']" etiqueta="Proyectos vigentes" icono="heroicon-o-academic-cap" :destacada="true" />
+                {{-- Vigentes son los registrados y en ejecución; el total incluía borradores y finalizados. --}}
+                <x-dashboard.cifra-cabecera :valor="$resumen['en_curso']" etiqueta="Proyectos vigentes" icono="heroicon-o-academic-cap" :destacada="true" />
                 <x-dashboard.cifra-cabecera :valor="$poblacion['poblacion']" etiqueta="Personas alcanzadas" icono="heroicon-o-users" :destacada="true" />
                 <x-dashboard.cifra-cabecera :valor="$estudiantes['total']" etiqueta="Estudiantes vinculados" icono="heroicon-o-user-group" />
                 <x-dashboard.cifra-cabecera :valor="$esfuerzo['horas']" etiqueta="Horas de vinculación" icono="heroicon-o-clock" />
@@ -37,13 +38,26 @@
         class="flex flex-col items-start gap-5 md:flex-row"
     >
         <main class="w-full min-w-0 flex-1 space-y-5">
-            @if (! empty($carriles))
-                <x-dashboard.panel titulo="Recorrido de los trámites"
-                    subtitulo="Cada formulario con el itinerario que le corresponde"
+            <x-dashboard.panel titulo="Estado de los trámites"
+                subtitulo="Todos los formularios, resumidos en los mismos cinco estados"
+                icono="heroicon-o-squares-2x2">
+                <x-dashboard.estado-tramites :resumen="$tramites" :matriz="$matriz"
+                    :seleccionado="$detalleFormulario['codigo'] ?? null" />
+            </x-dashboard.panel>
+
+            @if ($detalleFormulario)
+                <x-dashboard.panel titulo="Recorrido de {{ $detalleFormulario['codigo'] }}"
+                    subtitulo="{{ $detalleFormulario['nombre'] }} · en qué etapa espera cada trámite"
                     icono="heroicon-o-arrow-long-right">
-                    <x-dashboard.carriles-tramite :carriles="$carriles" />
+                    <x-dashboard.recorrido-formulario :detalle="$detalleFormulario" :opciones="$opcionesDetalle" />
                 </x-dashboard.panel>
             @endif
+
+            <x-dashboard.panel titulo="Dónde se atascan los trámites"
+                subtitulo="Etapas con más trámites esperando, de todos los formularios"
+                icono="heroicon-o-funnel" :sinPadding="true">
+                <x-dashboard.atascos :items="$atascos" />
+            </x-dashboard.panel>
 
             <div class="grid gap-5" :class="barra ? '2xl:grid-cols-2' : 'xl:grid-cols-2'">
                 <x-dashboard.panel titulo="Evolución de registros"
@@ -62,7 +76,7 @@
 
                 @if (! empty($tiempos))
                     <x-dashboard.panel titulo="Salud del flujo"
-                        subtitulo="Días promedio por etapa" icono="heroicon-o-heart">
+                        subtitulo="Proyectos: días promedio por etapa" icono="heroicon-o-heart">
                         <x-dashboard.salud-flujo :etapas="$tiempos" :esperando="$esperando" />
                     </x-dashboard.panel>
                 @endif
@@ -71,7 +85,7 @@
             @if (! empty($detenidos))
                 @php
                     $detenidosLista = collect($detenidos)->map(fn (array $d) => (object) [
-                        'tipo' => 'Proyecto',
+                        'tipo' => $d['tipo'] ?? 'Proyecto',
                         'codigo' => $d['codigo'],
                         'nombre' => $d['nombre'],
                         'etapa' => $d['etapa'],
@@ -201,12 +215,20 @@
                 </div>
 
                 @if ($totalPendientes > 0)
+                    {{-- La cifra sale de la bandeja personal, así que lleva a ella y no a la revisión solicitada. --}}
                     <div class="shrink-0 border-t border-slate-200 px-4 py-3 dark:border-slate-800">
-                        <a href="{{ route('listarProyectosSolicitado') }}" wire:navigate
-                            class="flex items-center gap-2 text-xs font-semibold text-primary-600 hover:underline dark:text-primary-300">
-                            @svg('heroicon-o-inbox-arrow-down', ['class' => 'h-4 w-4'])
-                            {{ $totalPendientes }} esperan tu revisión
-                        </a>
+                        @can('docente.proyectos')
+                            <a href="{{ route('SolicitudProyectosDocente') }}" wire:navigate
+                                class="flex items-center gap-2 text-xs font-semibold text-primary-600 hover:underline dark:text-primary-300">
+                                @svg('heroicon-o-inbox-arrow-down', ['class' => 'h-4 w-4'])
+                                {{ $totalPendientes }} esperan tu revisión
+                            </a>
+                        @else
+                            <p class="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                @svg('heroicon-o-inbox-arrow-down', ['class' => 'h-4 w-4'])
+                                {{ $totalPendientes }} esperan tu revisión
+                            </p>
+                        @endcan
                     </div>
                 @endif
             </div>

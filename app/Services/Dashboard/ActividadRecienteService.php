@@ -7,6 +7,7 @@ use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\Proyecto;
 use App\Support\Dashboard\AmbitoPanel;
 use App\Support\Dashboard\TipoAmbito;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Collection;
 
 /**
@@ -52,26 +53,32 @@ class ActividadRecienteService
             // "Borrador" y "Autoguardado" son ruido: los genera el formulario al
             // guardarse solo, no representan actividad del flujo.
             ->whereHas('tipoestado', fn ($q) => $q->whereNotIn('nombre', ['Borrador', 'Autoguardado']))
-            ->with(['tipoestado', 'estadoable'])
+            ->with([
+                'tipoestado',
+                'estadoable' => fn (MorphTo $morph) => $morph->morphWith([DocumentoProyecto::class => ['proyecto']]),
+            ])
             ->orderByDesc('created_at')
             ->limit($limite)
             ->get()
             ->map(function (EstadoProyecto $estado): object {
                 $esProyecto = $estado->estadoable_type === Proyecto::class;
+                // Un informe se identifica por su tipo y su proyecto:
+                // proyecto_documento no tiene nombre propio, y antes salía
+                // «Documento» sin enlace.
+                $proyecto = $esProyecto ? $estado->estadoable : $estado->estadoable?->proyecto;
+                $tipoDocumento = $esProyecto ? null : ($estado->estadoable?->tipo_documento ?: 'Documento');
 
                 return (object) [
-                    'tipo_elemento' => $esProyecto ? 'Proyecto' : 'Documento',
+                    'tipo_elemento' => $esProyecto ? 'Proyecto' : $tipoDocumento,
                     'nombre_elemento' => $esProyecto
-                        ? ($estado->estadoable->nombre_proyecto ?? 'Proyecto')
-                        : ($estado->estadoable->nombre ?? 'Documento'),
+                        ? ($proyecto?->nombre_proyecto ?? 'Proyecto')
+                        : $tipoDocumento.($proyecto?->nombre_proyecto ? ' · '.$proyecto->nombre_proyecto : ''),
                     'estado' => $estado->tipoestado?->nombre ?? 'Sin estado',
                     'es_actual' => (bool) $estado->es_actual,
                     'comentario' => $estado->comentario,
                     'fecha' => $estado->created_at?->format('d/m/Y H:i') ?? '',
                     'fecha_orden' => $estado->created_at,
-                    'href' => $esProyecto && $estado->estadoable
-                        ? route('historialproyecto', $estado->estadoable_id)
-                        : null,
+                    'href' => $proyecto ? route('historialproyecto', $proyecto->id) : null,
                 ];
             });
     }

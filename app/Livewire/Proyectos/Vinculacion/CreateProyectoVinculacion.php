@@ -4534,18 +4534,6 @@ class CreateProyectoVinculacion extends Component
 
     private function enviarPorFlujoDeEtapas(Proyecto $proyecto): void
     {
-        $flujo = $proyecto->resolveFlujoAprobacion();
-
-        if (! $flujo) {
-            throw new \RuntimeException('No hay flujo de aprobación configurado para este proyecto.');
-        }
-
-        // Lock-in: atamos el proyecto a este flujo para que cambios futuros no lo afecten.
-        if (! $proyecto->flujo_aprobacion_id) {
-            $proyecto->flujo_aprobacion_id = $flujo->id;
-            $proyecto->saveQuietly();
-        }
-
         // El "Coordinador Proyecto" ya no es una etapa configurable del flujo:
         // se autofirma con la firma/sello de quien inscribió el proyecto en el
         // momento del envío. Es idempotente, así que no duplica si ya se firmó
@@ -4556,43 +4544,68 @@ class CreateProyectoVinculacion extends Component
             throw new \RuntimeException('No se pudo determinar el empleado que inscribe el proyecto para autofirmar como coordinador.');
         }
 
-        $proyecto->agregarFirma(cargoFirma: 'Coordinador Proyecto', empleado: $coordinadorEmpleado);
+        // Todo el envío es una sola transacción. Antes las firmas se
+        // confirmaban por separado: si fallaba el registro del estado o la
+        // validación final, el proyecto quedaba en Borrador con firmas
+        // pendientes, fuera de toda bandeja, y el reenvío lo bloqueaba
+        // validarSinFirmasPreviasParaEnvioPorEtapa(). Bloquear el proyecto
+        // además impide que dos envíos simultáneos (doble clic) creen dos
+        // recorridos.
+        [$proyecto, $flujo, $firmas, $primeraFirma] = DB::transaction(function () use ($proyecto, $coordinadorEmpleado): array {
+            $proyecto = Proyecto::query()->whereKey($proyecto->id)->lockForUpdate()->firstOrFail();
+            $flujo = $proyecto->resolveFlujoAprobacion();
 
-        // Fuente única de verdad para "quién(es) deben recibir cada etapa":
-        // responsable fijo, emisor define destinatario, o todos los usuarios
-        // del rol (basta con que uno actúe) cuando ninguno de los anteriores
-        // aplica.
-        $this->etapasActivasParaEnvioPorFlujo($proyecto);
-        $empleadosPorEtapa = app(\App\Services\Proyecto\ProyectoWorkflowService::class)->resolverEmpleados(
-            $proyecto,
-            Proyecto::FLUJO_INSCRIPCION,
-            $this->modalDestinatarios
-        );
+            if (! $flujo) {
+                throw new \RuntimeException('No hay flujo de aprobación configurado para este proyecto.');
+            }
 
-        $this->validarSinFirmasPreviasParaEnvioPorEtapa($proyecto, (int) $flujo->id);
+            // Lock-in: atamos el proyecto a este flujo para que cambios futuros no lo afecten.
+            if (! $proyecto->flujo_aprobacion_id) {
+                $proyecto->flujo_aprobacion_id = $flujo->id;
+                $proyecto->saveQuietly();
+            }
 
-        $firmas = DB::transaction(fn (): \Illuminate\Support\Collection => $proyecto->sincronizarFirmasDeEtapasDelFlujo(
-            $empleadosPorEtapa,
-            Proyecto::FLUJO_INSCRIPCION,
-            null,
-            1
-        ));
+            $proyecto->agregarFirma(cargoFirma: 'Coordinador Proyecto', empleado: $coordinadorEmpleado);
 
-        $primeraFirma = $proyecto->firmaActualDeEtapasDelFlujo((int) $flujo->id, 1);
+            // Fuente única de verdad para "quién(es) deben recibir cada etapa":
+            // responsable fijo, emisor define destinatario, o todos los usuarios
+            // del rol (basta con que uno actúe) cuando ninguno de los anteriores
+            // aplica.
+            $this->etapasActivasParaEnvioPorFlujo($proyecto);
+            $empleadosPorEtapa = app(\App\Services\Proyecto\ProyectoWorkflowService::class)->resolverEmpleados(
+                $proyecto,
+                Proyecto::FLUJO_INSCRIPCION,
+                $this->modalDestinatarios
+            );
 
-        if (! $primeraFirma) {
-            throw new \RuntimeException('No se pudo iniciar el flujo de revisión.');
-        }
+            $this->validarSinFirmasPreviasParaEnvioPorEtapa($proyecto, (int) $flujo->id);
 
-        $this->registrarEstadoInicialDeFirmasPorEtapa($proyecto, $primeraFirma);
-        $this->validarResultadoFirmasPorEtapa(
-            $proyecto->fresh(),
-            $firmas->map(fn (FirmaProyecto $firma): FirmaProyecto => $firma->fresh())->values()
-        );
+            $firmas = $proyecto->sincronizarFirmasDeEtapasDelFlujo(
+                $empleadosPorEtapa,
+                Proyecto::FLUJO_INSCRIPCION,
+                null,
+                1
+            );
 
-        // Cuando la primera etapa se manda a todos los usuarios del rol, hay
-        // varias firmas Pendiente "candidatas" con el mismo orden/etapa que
-        // $primeraFirma: se notifica a cada una, no solo a la representante.
+            $primeraFirma = $proyecto->firmaActualDeEtapasDelFlujo((int) $flujo->id, 1);
+
+            if (! $primeraFirma) {
+                throw new \RuntimeException('No se pudo iniciar el flujo de revisión.');
+            }
+
+            $this->registrarEstadoInicialDeFirmasPorEtapa($proyecto, $primeraFirma);
+            $this->validarResultadoFirmasPorEtapa(
+                $proyecto->fresh(),
+                $firmas->map(fn (FirmaProyecto $firma): FirmaProyecto => $firma->fresh())->values()
+            );
+
+            return [$proyecto, $flujo, $firmas, $primeraFirma];
+        });
+
+        // Los correos salen solo con el envío ya confirmado. Cuando la primera
+        // etapa se manda a todos los usuarios del rol, hay varias firmas
+        // Pendiente "candidatas" con el mismo orden/etapa que $primeraFirma:
+        // se notifica a cada una, no solo a la representante.
         $candidatas = $firmas->filter(
             fn (FirmaProyecto $firma): bool => (int) $firma->flujo_aprobacion_etapa_id === (int) $primeraFirma->flujo_aprobacion_etapa_id
         );
@@ -4703,7 +4716,7 @@ class CreateProyectoVinculacion extends Component
         $proyecto->agregarEstado(
             empleado: $empleado,
             tipoEstadoId: (int) $tipoEstadoId,
-            comentario: 'Proyecto enviado a revision por flujo de etapas.'
+            comentario: sprintf('Proyecto enviado a revisión; espera en la etapa "%s".', $primeraFirma->etapa_nombre)
         );
     }
 

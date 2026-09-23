@@ -5,8 +5,8 @@ namespace App\Livewire\Inicio\Dashboards;
 use App\Models\Personal\Empleado;
 use App\Services\Dashboard\ActividadRecienteService;
 use App\Services\Dashboard\PanelEstadisticoService;
+use App\Services\Dashboard\PanelFormulariosService;
 use App\Services\Dashboard\PendientesRevisionService;
-use App\Services\Dashboard\RegistroFamiliasTramite;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
@@ -27,11 +27,19 @@ class Dashboard extends Component
 
     public string $buscarDocente = '';
 
+    /** Formulario abierto en «Recorrido»; null abre el que más trámites tiene esperando. */
+    public ?string $formularioDetalle = null;
+
     public function mount(): void
     {
         if (auth()->user()?->can('perfil.editar')) {
             $this->redirect(route('completar_perfil'), navigate: true);
         }
+    }
+
+    public function verFormulario(string $codigo): void
+    {
+        $this->formularioDetalle = $codigo;
     }
 
     public function alternarRangoGrafico(PanelEstadisticoService $panel): void
@@ -47,17 +55,24 @@ class Dashboard extends Component
 
     public function render(
         PanelEstadisticoService $panel,
-        RegistroFamiliasTramite $familias,
+        PanelFormulariosService $formularios,
         PendientesRevisionService $pendientes,
         ActividadRecienteService $actividad,
     ): View {
         $usuario = auth()->user();
         $ambito = $panel->ambito($usuario);
+        $codigoDetalle = $this->formularioDetalle ?? $formularios->formularioConMasEspera($ambito);
 
         return view('livewire.inicio.dashboards.dashboard', [
             'ambito' => $ambito,
             'resumen' => $panel->resumenEstados($ambito),
-            'carriles' => $familias->carriles($ambito),
+
+            // Todos los formularios, resumidos en su estado general.
+            'tramites' => $formularios->resumen($ambito),
+            'matriz' => $formularios->matriz($ambito),
+            'atascos' => $formularios->atascos($ambito, 8),
+            'detalleFormulario' => $formularios->detalle($ambito, $codigoDetalle),
+            'opcionesDetalle' => $formularios->opcionesDetalle($ambito),
 
             'serieGrafico' => $panel->serieMensual($ambito, $this->mesesGrafico),
             'idGrafico' => self::ID_GRAFICO,

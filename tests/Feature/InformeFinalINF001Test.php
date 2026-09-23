@@ -131,10 +131,13 @@ class InformeFinalINF001Test extends TestCase
         $this->assertSame('Registrado', $project->fresh()->estado_general);
         $this->assertTrue($project->fresh()->puedeMostrarCierreProyecto($user));
 
+        // «Marcar completo» del paso 8 valida, completa y envía al flujo de cierre.
         $this->componentReadyForCompletion($user, $project->fresh())->call('marcarCompleto')->assertHasNoErrors();
         $report = $project->informeFinalInf001()->firstOrFail();
         $workflow = app(InformeFinalProyectoWorkflowService::class);
-        $documento = $workflow->enviarInformeFinal($report, $user);
+        $documento = $report->fresh()->documentoCierre;
+        $this->assertNotNull($documento);
+        $this->assertFalse($workflow->puedeEnviarInformeFinal($report->fresh(), $user));
         Storage::disk('public')->assertExists($documento->documento_url);
         $firmaCierre = $documento->firma_documento()->firstOrFail();
         $bandeja->rechazarId = $firmaCierre->id;

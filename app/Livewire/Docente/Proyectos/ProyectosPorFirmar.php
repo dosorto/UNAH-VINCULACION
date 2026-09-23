@@ -10,6 +10,7 @@ use App\Models\ENF\EnfInformeFinal;
 use App\Models\ENF\EnfInformeFinalDocumentoRevision;
 use App\Models\ENF\EnfRevision;
 use App\Models\Estado\TipoEstado;
+use App\Models\Pasantia;
 use App\Models\Personal\Empleado;
 use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FichaActualizacion;
@@ -689,6 +690,13 @@ class ProyectosPorFirmar extends Component
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Las pasantías se aprueban o devuelven desde su propio detalle; aquí
+        // solo se listan para que quien revisa sepa que le esperan.
+        $pasantias = Pasantia::pendientesParaUsuario(Auth::user())
+            ->with(['etapaActual.rolRevisor'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         $viewFirma = $this->viewId ? FirmaProyecto::find($this->viewId) : null;
         $viewEnfRevision = $this->viewEnfRevisionId
             ? EnfRevision::with(['accion' => fn ($query) => $query->with($this->enfViewRelations()), 'flujoEtapa.rolRevisor'])->find($this->viewEnfRevisionId)
@@ -700,7 +708,7 @@ class ProyectosPorFirmar extends Component
             }
         }
 
-        return view('livewire.docente.proyectos.proyectos-por-firmar', compact('records', 'enfRevisiones', 'ppsRegistros', 'viewFirma', 'viewDocumento', 'viewEnfRevision'));
+        return view('livewire.docente.proyectos.proyectos-por-firmar', compact('records', 'enfRevisiones', 'ppsRegistros', 'pasantias', 'viewFirma', 'viewDocumento', 'viewEnfRevision'));
     }
 
     private function authorizeFirmaAction(int $firmaId): FirmaProyecto
@@ -770,59 +778,7 @@ class ProyectosPorFirmar extends Component
 
     private function enfRevisionesDisponiblesQuery(): Builder
     {
-        $user = Auth::user();
-        $activeRoleName = $user?->activeRole?->name;
-
-        if (! $user || ! $activeRoleName) {
-            return EnfRevision::query()->whereRaw('1 = 0');
-        }
-
-        $pendingStates = $this->estadosRevisionEnfPendiente();
-
-        return EnfRevision::query()
-            ->whereIn('estado', $pendingStates)
-            ->whereNotExists(function ($previousQuery) use ($pendingStates): void {
-                $previousQuery
-                    ->selectRaw('1')
-                    ->from('enf_revisiones as enf_revisiones_anteriores')
-                    ->whereColumn('enf_revisiones_anteriores.enf_accion_id', 'enf_revisiones.enf_accion_id')
-                    ->whereColumn('enf_revisiones_anteriores.revision_ciclo', 'enf_revisiones.revision_ciclo')
-                    ->whereColumn('enf_revisiones_anteriores.orden', '<', 'enf_revisiones.orden')
-                    ->whereIn('enf_revisiones_anteriores.estado', $pendingStates);
-            })
-            ->whereNotExists(function ($newerCycleQuery): void {
-                $newerCycleQuery
-                    ->selectRaw('1')
-                    ->from('enf_revisiones as enf_revisiones_ciclo_nuevo')
-                    ->whereColumn('enf_revisiones_ciclo_nuevo.enf_accion_id', 'enf_revisiones.enf_accion_id')
-                    ->whereColumn('enf_revisiones_ciclo_nuevo.revision_ciclo', '>', 'enf_revisiones.revision_ciclo');
-            })
-            ->where(function (Builder $responsableQuery) use ($user, $activeRoleName): void {
-                $responsableQuery
-                    ->where(function (Builder $assignedQuery) use ($user, $activeRoleName): void {
-                        $assignedQuery
-                            ->where('asignado_usuario_id', $user->id)
-                            ->where(function (Builder $roleQuery) use ($activeRoleName): void {
-                                $roleQuery
-                                    ->whereNull('rol_requerido')
-                                    ->orWhere('rol_requerido', $activeRoleName);
-                            });
-                    })
-                    ->orWhere(function (Builder $roleQuery) use ($activeRoleName): void {
-                        $roleQuery
-                            ->whereNull('asignado_usuario_id')
-                            ->where('rol_requerido', $activeRoleName);
-                    })
-                    ->orWhere(function (Builder $assignmentQuery) use ($user, $activeRoleName): void {
-                        $assignmentQuery
-                            ->where('responsable_usuario_id', $user->id)
-                            ->where(function (Builder $roleQuery) use ($activeRoleName): void {
-                                $roleQuery
-                                    ->whereNull('rol_requerido')
-                                    ->orWhere('rol_requerido', $activeRoleName);
-                            });
-                    });
-            });
+        return EnfRevision::pendientesParaUsuario(Auth::user());
     }
 
     private function ppsRegistrosDisponiblesQuery(): Builder
@@ -841,7 +797,7 @@ class ProyectosPorFirmar extends Component
 
     private function estadosRevisionEnfPendiente(): array
     {
-        return ['PENDIENTE', 'PENDIENTE_ASIGNACION', 'ASIGNADO', 'EN_PROCESO'];
+        return EnfRevision::ESTADOS_PENDIENTES;
     }
 
     private function notificarRevisionEnf(EnfAccion $accion, EnfRevision $revision): void

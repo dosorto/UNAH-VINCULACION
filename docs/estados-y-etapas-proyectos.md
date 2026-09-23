@@ -340,10 +340,10 @@ no una afirmación de que toda la suite esté actualmente en verde.
 | Pendiente | Alcance e implicación |
 | --- | --- |
 | Configuración del flujo del caso inicial | Revisar correspondencia entre nombre de etapa, cargo, rol y responsable. La nueva presentación no cambia esas asignaciones. |
-| Atomicidad del envío inicial | La sincronización de firmas y la actualización posterior del estado aún no forman una única transacción global. |
-| Límite de candidatos en bandeja | Permanece el límite de 250 candidatos previo a parte del filtrado; requiere revisión para volúmenes mayores. |
+| Atomicidad del envío inicial | **Resuelto el 23 de septiembre** (sección 11): el envío es una sola transacción. |
+| Límite de candidatos en bandeja | **Resuelto el 23 de septiembre** (sección 11): se quitó el límite y la etapa actual se filtra en SQL. |
 | Versionado de flujos | Se permite retirar etapas conservando sus referencias y el recorrido enviado; no se implementaron versiones inmutables de todos los atributos. |
-| Concurrencia | No se demostró exclusión completa para aprobaciones simultáneas entre distintas firmas candidatas de una misma etapa. |
+| Concurrencia | **Resuelto el 23 de septiembre** (sección 11) para el flujo por etapas: se bloquea el expediente antes de decidir. Las rutas heredadas sin flujo no cambiaron. |
 | Equivalencia histórica de cargos | El bloqueo de repetición utiliza la correspondencia existente; no resuelve toda ambigüedad semántica de una adaptación. |
 | Conteos y alias | Evaluar si Inscrito/Aprobado deben incorporarse también al grupo estadístico de registrados. |
 | Otros módulos | No se certificó una migración integral de ENF, PPS, pasantías ni de sus filtros propios. |
@@ -415,3 +415,213 @@ y se retiran únicamente las omitidas, sin recrear las existentes. La prueba
 quitar dos de cuatro etapas, guardar, recargar y volver a guardar sin cambios;
 comprueba IDs, orden y cantidad total de filas. No se realizó una limpieza
 automática de posibles duplicados generados antes de esta corrección.
+
+## 11. Actualización del 23 de septiembre: panel, bandejas y etapa actual
+
+### Problema observado
+
+Un informe final de un proyecto FORM-DVUS-015 llegaba a la bandeja de tareas
+y al contador de la barra, pero el panel mostraba «No tienes nada pendiente
+de revisar». Se reprodujo con datos locales (informe final del proyecto 64,
+etapa «Vinculacion xd»): bandeja 1, contador 1, panel 0.
+
+La revisión encontró que la separación entre estado general y etapa
+(secciones 2 y 4) no se había trasladado a las métricas del panel, que
+seguían deduciendo la etapa a partir del estado:
+
+| Defecto | Causa | Corrección |
+| --- | --- | --- |
+| Informes pendientes ausentes del panel | `PendientesRevisionService` solo consideraba firmas de `Proyecto` | Incluye las de `DocumentoProyecto` (informe intermedio y final) |
+| Etapa vacía en «Esperan tu revisión» | Leía `$proyecto->estadoActual`, que por el accessor homónimo devuelve un `TipoEstado` | Usa `etapa_nombre` de la firma (o el cargo, en firmas antiguas) |
+| «En cola» por etapa vacío para FORM-DVUS-015 y erróneo para FORM-DVUS-001 | Comparaba el estado del proyecto con el del cargo; con «En revision» solo coincidía con el cargo 5 | Cuenta la etapa actual (`EtapaActualFirma`) |
+| «Trámites detenidos» con etapa equivocada | `MIN()` alfabético entre todas las firmas pendientes | Solo la etapa actual; incluye informes |
+| Días de espera y tiempos por etapa inflados | Se medían desde la creación de la firma, que ocurre al enviar | Se miden desde la aprobación de la etapa anterior del ciclo |
+| «Sin estado» en las listas del panel de director | Mismo accessor homónimo | Usa `estado_general` |
+| Proyectos finalizados contados en «Informe final» | La existencia del informe prevalecía sobre Finalizado | Finalizado prevalece |
+
+`App\Support\Proyecto\EtapaActualFirma` expresa en SQL el criterio de
+`Proyecto::firmaEsActualEnFlujoPorEtapa()`: ciclo más reciente, sin etapas
+anteriores pendientes o rechazadas, sin firmas huérfanas en el ciclo y con el
+proyecto fuera de Borrador, Subsanacion, Registrado, Finalizado y Cancelado.
+Las firmas antiguas sin flujo conservan la comparación entre estado y cargo.
+También calcula la fecha de llegada a la etapa.
+
+### Otros formularios
+
+- **Pasantías (FORM-DVUS-013):** sus revisiones no aparecían en la bandeja,
+  el contador ni el panel. `Pasantia::pendientesParaUsuario()` combina
+  `usuarioPuedeRevisar()` con la exigencia de `PasantiaWorkflowService::aprobar()`
+  de que la firma sea del empleado del usuario. La bandeja las lista con un
+  enlace a su detalle, donde se aprueban o devuelven.
+- **ENF (016/018):** la bandeja, el contador y el panel usaban tres consultas
+  distintas. `EnfRevision::pendientesParaUsuario()` es ahora la única y
+  reproduce `EnfWorkflowService::puedeRevisar()`. El contador ya no excluye los
+  informes (que se revisan con la acción aprobada) y el panel ya no excluye
+  otros códigos de formulario.
+- **ENF, autorización:** `puedeRevisar()` permitía decidir una etapa posterior
+  de un ciclo devuelto a subsanación, porque sus revisiones seguían pendientes.
+  Ahora lo impide hasta el reenvío.
+- **PPS (FORM-DVUS-014):** sin cambios de criterio; en el panel, la espera se
+  mide desde la última aprobación del ciclo vigente.
+
+### Archivos
+
+| Área | Archivos |
+| --- | --- |
+| Criterio común | `app/Support/Proyecto/EtapaActualFirma.php` (nuevo) |
+| Envío, decisiones y bandeja | `app/Livewire/Proyectos/Vinculacion/CreateProyectoVinculacion.php`, `app/Concerns/ResuelveFirmaPorEtapa.php`, `app/Concerns/ResolvesFirmasPendientes.php` |
+| Panel | `app/Services/Dashboard/PendientesRevisionService.php`, `app/Services/Dashboard/PanelEstadisticoService.php`, `app/Support/Dashboard/Tramites/FamiliaProyectos.php` |
+| Consultas de pendientes | `app/Models/Pasantia.php`, `app/Models/ENF/EnfRevision.php`, `app/Services/ENF/EnfWorkflowService.php` |
+| Bandeja y contador | `app/Livewire/Docente/Proyectos/ProyectosPorFirmar.php`, `app/Clases/DataNavBar.php` |
+| Vistas | `dashboard.blade.php`, `dashboard-director.blade.php` (en `resources/views/livewire/inicio/dashboards/`), `resources/views/livewire/docente/proyectos/proyectos-por-firmar.blade.php` |
+| Pruebas | `tests/Feature/Dashboard/PendientesRevisionTest.php`, `tests/Feature/Dashboard/EtapaActualMetricasTest.php` y `tests/Feature/ProyectoWorkflowConsistenciaTest.php` (nuevas), `tests/Feature/Dashboard/PanelesRenderizanTest.php`, `tests/Feature/InformeFinalINF001Test.php` |
+
+No hay migraciones nuevas ni cambios de datos.
+
+### Validación
+
+- Las 14 pruebas nuevas pasan. Las 9 que no dependen de métodos nuevos
+  (panel e indicadores) se ejecutaron también contra el código anterior y
+  fallan por los defectos descritos.
+- Las dos pruebas de recorrido completo de `InformeFinalINF001Test` estaban
+  desactualizadas: desde `d74ad09`, «Marcar completo» del paso 8 ya envía el
+  informe al flujo de cierre, y la prueba lo reenviaba (403). Se ajustaron.
+- Suite completa: 824 aprobadas, 17 fallidas y 38 omitidas. Las 17 fallan
+  también en `HEAD` sin estos cambios (allí son 19, contando las dos anteriores):
+  `EnfDocumentoArchivoTest` (1), `FichaFirmaDelFirmanteRealTest` (2),
+  `FormDvus014PdfLayoutTest` (2), `FormDvus014PdfRenderTest` (1),
+  `InformeFinalINF001Test` (3), `InformeFinalInf001FormatoOficialTest` (2),
+  `NewUserOnboardingTest` (2), `PpsServicioSocialWorkflowTest` (1) y
+  `ProyectoVinculacionFormularioTest` (3).
+
+### Pendientes de la sección 9 resueltos
+
+**Atomicidad del envío inicial.** `CreateProyectoVinculacion::enviarPorFlujoDeEtapas()`
+confirmaba las firmas en su propia transacción y registraba después el estado
+y la validación final. Si fallaba algo en ese tramo, el proyecto quedaba en
+Borrador con firmas pendientes: fuera de toda bandeja, y con el reenvío
+bloqueado por `validarSinFirmasPreviasParaEnvioPorEtapa()` («Contacte a
+administración»). Ahora bloqueo del proyecto, vinculación con el flujo, firma
+del coordinador, firmas por etapa, estado «En revision» y validación final
+forman una sola transacción; los correos a los revisores salen después de
+confirmarla. El bloqueo también impide que dos envíos simultáneos (doble clic)
+creen dos recorridos. El reenvío desde subsanación ya era atómico.
+
+**Concurrencia.** `aprobarFirmaPorEtapa()` y `rechazarFirmaPorEtapa()`
+bloqueaban solo la firma. Cuando una etapa se envía a todos los usuarios de un
+rol hay varias firmas candidatas, y dos revisores podían decidir a la vez cada
+uno la suya. Ahora se bloquean el proyecto y, si lo hay, el documento antes que
+la firma: el mismo orden que `crearNuevoCicloDesdeFirmaRechazada()`. El
+proyecto se resuelve antes de abrir la transacción para que la instantánea de
+InnoDB se tome después de esperar el bloqueo. Cubre la bandeja, el historial y
+la revisión de informes, que usan ese mismo trait. Las aprobaciones heredadas
+(firmas sin flujo, de expedientes no adaptados) no cambiaron.
+
+**Límite de 250 candidatas.** `firmasPorEtapaDisponiblesIds()` tomaba las 250
+firmas pendientes más recientes del revisor y luego filtraba la etapa actual
+en PHP. Como todas las firmas del recorrido se crean al enviar, quien revisa
+las últimas etapas acumula una por expediente en curso: pasadas 250 se perdían
+las más antiguas, que son las que ya le habían llegado. Ahora `EtapaActualFirma`
+(movida a `app/Support/Proyecto/`) filtra la etapa actual en SQL y
+`canActOnWorkflowStageFirma()` sigue decidiendo sobre lo que queda; no hay
+límite. En la prueba con 260 firmas del mismo revisor, la bandeja pasó de
+1,30 s a 0,07 s. El panel, además, reutiliza la lista dentro de la misma
+petición en lugar de calcularla cuatro veces.
+
+Pruebas: `tests/Feature/ProyectoWorkflowConsistenciaTest.php` (3 pruebas; las
+tres fallan con el código anterior). Suite completa después de estos cambios:
+827 aprobadas, las mismas 17 fallidas preexistentes y 38 omitidas.
+
+**Observación sobre los datos importados.** Con la base local (dump de
+producción), el contador del menú y el panel coinciden en las 387
+combinaciones de usuario y rol. Los 9 proyectos heredados en revisión (29, 30,
+47, 48, 50, 51, 52, 53 y 62) no aparecen en ninguna bandeja: el usuario de su
+firmante actual no tiene el rol del cargo. Se resuelven al adaptarlos al flujo;
+no se modificaron.
+
+### Correcciones a lo registrado antes
+
+- La sección 8 da por aplicadas en `vinculacion_testing` las migraciones
+  `2026_09_21_000001` y `2026_09_22_000001`. El 23 de septiembre esa base tenía
+  ocho migraciones pendientes, entre ellas esas dos, y las pruebas de flujos
+  fallaban por la columna `configuracion_vigente`. Se aplicaron solo en esa base.
+- Los marcadores de conflicto de `DasboardDocente.php` citados en la sección 8
+  ya no existen.
+
+## 12. Panel para todos los formularios
+
+NEXO tendrá más de treinta formularios, cada uno con su flujo y sus etapas. El
+panel dibujaba un «carril» con las fases propias de cada familia de trámites
+(`FamiliaTramite`), lo que no escala: con treinta formularios serían treinta
+recorridos distintos. Se sustituyó por una vista que no conoce ningún
+formulario y trabaja solo con lo que todos comparten:
+
+| Concepto | Qué es | Dónde |
+| --- | --- | --- |
+| Estado general | Borrador, En revisión, Subsanación, Aprobado, Finalizado (y Otros) | `App\Support\Dashboard\EstadoGeneral` |
+| Etapa actual | La etapa que el trámite espera ahora | `EtapaActualFirma` y, en ENF, `EnfRevision::esperandoDecision()` |
+| Espera | Días desde que la etapa le llegó | Aprobación de la etapa anterior del mismo ciclo |
+
+`EstadoGeneral` traduce cualquier nombre de `tipo_estado`. Un nombre
+desconocido cuenta como En revisión si es el estado de algún cargo de firma
+(los flujos por cargo crean uno por etapa), y como Otros en caso contrario.
+PendienteInformacion (proyectos anteriores al sistema) y Cancelado van a Otros.
+
+### Qué muestra
+
+En los paneles de administración y de director con ámbito institucional:
+
+- **Estado de los trámites:** totales por estado general de todos los
+  formularios y una tabla formularios × estado, agrupada por tipo de acción. Solo
+  aparecen los formularios con trámites. Si uno no puede acotarse al centro
+  (PPS y pasantías guardan la facultad como texto), se marca «cifra
+  institucional».
+- **Recorrido de un formulario:** se elige uno a la vez (por defecto, el que
+  más trámites tiene esperando). Muestra las etapas de su flujo configurado,
+  separadas por proceso (inscripción, informe intermedio, cierre), con cuántos
+  trámites esperan en cada una. Las esperas en etapas retiradas van aparte, y
+  los expedientes sin adaptar al flujo se agrupan por cargo.
+- **Dónde se atascan los trámites:** las etapas con más trámites esperando, de
+  todos los formularios, con su código y el tiempo de espera máximo.
+
+«Salud del flujo» y «Trámites detenidos» siguen siendo de proyectos.
+
+### Cómo se da de alta un formulario
+
+En `config/nexo.php`, `dashboard.formularios`:
+
+- Si usa el motor común (`App\Concerns\TieneFlujoPorEtapas`: estado en
+  `estado_proyecto` y firmas en `firma_proyecto`), basta una entrada con
+  `FormularioMotorComun`: código, nombre, tipo de acción, modelo y, si existen,
+  columnas de autor, centro y departamento. No hace falta escribir una clase.
+- Si tiene un motor propio, necesita una clase que implemente
+  `App\Support\Dashboard\Formularios\FormularioPanel` (como `FormularioEnf`).
+
+Las etapas del recorrido se leen del flujo activo cuyo `codigo_formulario`
+coincide con el del formulario. Los proyectos sin tipo de acción aparecen como
+«Proyectos sin tipo de acción» (`PROYECTO-SIN-TIPO`).
+
+Se eliminaron `FamiliaTramite`, `FamiliaPorEstados`, `FamiliaProyectos`,
+`FamiliaPps`, `FamiliaEnf`, `RegistroFamiliasTramite`, el componente
+`carriles-tramite` y `FamiliasTramiteTest`. Los reemplazan `RegistroFormularios`,
+`PanelFormulariosService` y los componentes `estado-tramites`,
+`recorrido-formulario` y `atascos`.
+
+### Otros defectos corregidos en el panel
+
+| Defecto | Corrección |
+| --- | --- |
+| «Proyectos vigentes» contaba todos los proyectos, incluidos borradores y finalizados | Cuenta los registrados y en ejecución |
+| El aviso «N esperan tu revisión» del panel de administración llevaba a la revisión solicitada, no a la bandeja de donde sale la cifra | Lleva a la bandeja personal |
+| La actividad reciente mostraba los informes como «Documento» y sin enlace (`proyecto_documento` no tiene nombre) | «Informe Final · proyecto», con enlace al historial |
+| Con el estado fijo en «En revision», el historial no decía en qué etapa quedaba el proyecto | Los comentarios de envío y avance nombran la etapa |
+| Los pendientes de PPS y ENF no tenían enlace | PPS a su detalle; ENF a la bandeja |
+| «Mis formularios» no incluía pasantías y no contaba un PPS aprobado en ninguna tarjeta | Incluye pasantías y usa `EstadoGeneral` |
+| «Requiere tu atención» solo buscaba devoluciones entre los 15 trámites visibles | Busca en todos |
+| «Ver más trámites» aparecía con exactamente 15 aunque no hubiera más | Solo si hay más |
+| «Salud del flujo» pintaba en verde «0 días» con dos firmas | Con menos de 3 revisiones resueltas la barra va en gris y se advierte |
+| Proyectos antiguos «En revision» sin ninguna firma pendiente no figuraban en ninguna espera | Aparecen como «En revision, sin firma pendiente» entre los no adaptados |
+
+Pruebas nuevas: `tests/Feature/Dashboard/PanelFormulariosTest.php` (8) y
+`tests/Feature/Dashboard/PanelDetallesTest.php` (4). Además se revisó el panel de
+administración renderizado con los datos importados.

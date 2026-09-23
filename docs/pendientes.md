@@ -3,7 +3,7 @@
 Problemas detectados y aún sin resolver. Cada entrada indica dónde está, por
 qué importa y cómo resolverla. Al cerrar uno, bórralo de aquí en el mismo commit.
 
-Última revisión: 2026-09-16.
+Última revisión: 2026-09-23.
 
 ---
 
@@ -143,16 +143,15 @@ Ya fallaban antes de los cambios recientes.
 
 ## Panel estadístico
 
-- **Familias de trámite sin declarar:** `ServicioTecnologico` (usa su propio
-  `EstadoServicioTecnologico`, necesita clase a medida) y `FichaActualizacion`
-  (patrón estándar). No se declararon porque se desconocen sus fases.
-- **Informe intermedio:** distinguir «no aplica» de «pendiente» usando
-  `flujos_aprobacion_etapas.aplica_informe_intermedio`.
-- **Salud del flujo con pocos datos:** con dos firmas del mismo día muestra
-  «0 días» en verde. Hace falta un umbral mínimo de muestras.
-- **Verificación visual por rol:** nunca se revisó en navegador con cada rol
-  (claro/oscuro, sidebar plegado y desplegado). Los tests prueban que renderiza,
-  no cómo se ve.
+- **Formularios sin declarar en `nexo.dashboard.formularios`:**
+  `ServicioTecnologico` (usa su propio `EstadoServicioTecnologico`, necesita una
+  clase que implemente `FormularioPanel`) y `FichaActualizacion` (motor común,
+  pero sus firmas son solo por cargo). Tampoco DAFT (`ProgramaRevision`).
+- **Pasantías y PPS sin centro enlazado:** guardan la facultad como texto, así
+  que en el panel de un centro su cifra es institucional (se advierte).
+- **Verificación visual por rol:** el 23-09 se revisó el panel de administración
+  con los datos importados, en modo claro. Falta con cada rol, en modo oscuro y
+  con el sidebar plegado. Los tests prueban que renderiza, no cómo se ve.
 
 ---
 

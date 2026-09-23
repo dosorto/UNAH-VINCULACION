@@ -31,7 +31,11 @@ trait ResuelveFirmaPorEtapa
 {
     protected function aprobarFirmaPorEtapa(FirmaProyecto $firma, User $user, ?\Closure $despuesDeAprobar = null, ?string $comentario = null): FirmaProyecto
     {
-        return DB::transaction(function () use ($firma, $user, $despuesDeAprobar, $comentario): FirmaProyecto {
+        $expediente = $this->expedienteDeFirmaPorEtapa($firma);
+
+        return DB::transaction(function () use ($firma, $user, $despuesDeAprobar, $comentario, $expediente): FirmaProyecto {
+            $this->bloquearExpedienteDeFirmaPorEtapa(...$expediente);
+
             $firmaBloqueada = FirmaProyecto::query()
                 ->whereKey($firma->id)
                 ->lockForUpdate()
@@ -93,6 +97,48 @@ trait ResuelveFirmaPorEtapa
         });
     }
 
+    /**
+     * Proyecto y documento (si lo hay) a los que pertenece la firma.
+     *
+     * Se resuelve ANTES de abrir la transacción: en InnoDB la primera lectura
+     * normal fija la instantánea de la transacción, y si ocurriera antes de
+     * esperar el bloqueo, las comprobaciones posteriores no verían la
+     * decisión que otra persona acaba de confirmar.
+     *
+     * @return array{0:?int,1:?int} [proyecto_id, documento_id]
+     */
+    private function expedienteDeFirmaPorEtapa(FirmaProyecto $firma): array
+    {
+        return match ($firma->firmable_type) {
+            Proyecto::class => [(int) $firma->firmable_id, null],
+            DocumentoProyecto::class => [
+                DocumentoProyecto::query()->whereKey($firma->firmable_id)->value('proyecto_id'),
+                (int) $firma->firmable_id,
+            ],
+            default => [null, null],
+        };
+    }
+
+    /**
+     * Serializa las decisiones sobre un mismo expediente.
+     *
+     * Bloquear solo la firma no basta: cuando una etapa se envía a todos los
+     * usuarios de un rol hay varias firmas candidatas, y dos revisores podían
+     * aprobar a la vez cada uno la suya. Mismo orden de bloqueo que
+     * Proyecto::crearNuevoCicloDesdeFirmaRechazada(): proyecto, documento y
+     * después la firma.
+     */
+    private function bloquearExpedienteDeFirmaPorEtapa(?int $proyectoId, ?int $documentoId): void
+    {
+        if ($proyectoId) {
+            Proyecto::query()->whereKey($proyectoId)->lockForUpdate()->first();
+        }
+
+        if ($documentoId) {
+            DocumentoProyecto::query()->whereKey($documentoId)->lockForUpdate()->first();
+        }
+    }
+
     protected function registrarEstadoSiguienteDeFirmaPorEtapa(
         FirmaProyecto $firmaAprobada,
         FirmaProyecto $siguienteFirma,
@@ -125,11 +171,11 @@ trait ResuelveFirmaPorEtapa
             'empleado_id' => $empleadoId,
             'tipo_estado_id' => $tipoEstadoId,
             'fecha' => now(),
-            'comentario' => $documento
-                ? ($documento->tipo_documento === 'Informe Final'
-                    ? sprintf('[Cierre INF-001] Etapa "%s" aprobada; avanzó a "%s".', $firmaAprobada->etapa_nombre, $siguienteFirma->etapa_nombre)
-                    : 'Firma aprobada y documento avanzado a la siguiente etapa del flujo.')
-                : 'Firma aprobada y proyecto avanzado a la siguiente etapa del flujo.',
+            // Con el estado general fijo en «En revision», el comentario es lo
+            // único del historial que dice en qué etapa quedó el expediente.
+            'comentario' => $documento?->tipo_documento === 'Informe Final'
+                ? sprintf('[Cierre INF-001] Etapa "%s" aprobada; avanzó a "%s".', $firmaAprobada->etapa_nombre, $siguienteFirma->etapa_nombre)
+                : sprintf('Etapa "%s" aprobada; avanzó a "%s".', $firmaAprobada->etapa_nombre, $siguienteFirma->etapa_nombre),
         ];
 
         if (filled($comentario)) {
@@ -294,7 +340,11 @@ trait ResuelveFirmaPorEtapa
             throw new \RuntimeException('Debe indicar el motivo de la subsanación.');
         }
 
-        return DB::transaction(function () use ($firma, $user, $comentario): FirmaProyecto {
+        $expediente = $this->expedienteDeFirmaPorEtapa($firma);
+
+        return DB::transaction(function () use ($firma, $user, $comentario, $expediente): FirmaProyecto {
+            $this->bloquearExpedienteDeFirmaPorEtapa(...$expediente);
+
             $firmaBloqueada = FirmaProyecto::query()
                 ->whereKey($firma->id)
                 ->lockForUpdate()

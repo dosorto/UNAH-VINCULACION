@@ -299,6 +299,16 @@ class EnfWorkflowService
             return false;
         }
 
+        // Si una etapa del ciclo lo devolvió a subsanación, las siguientes
+        // siguen pendientes pero no pueden decidir hasta el reenvío.
+        if ($revision->accion->revisiones()
+            ->where('proceso', $revision->proceso)
+            ->where('revision_ciclo', $revision->revision_ciclo)
+            ->where('estado', 'SUBSANACION')
+            ->exists()) {
+            return false;
+        }
+
         if (filled($revision->rol_requerido) && $revision->rol_requerido !== $activeRoleName) {
             return false;
         }
@@ -336,7 +346,7 @@ class EnfWorkflowService
 
     public function estadosPendientes(): array
     {
-        return ['PENDIENTE', 'PENDIENTE_ASIGNACION', 'ASIGNADO', 'EN_PROCESO'];
+        return EnfRevision::ESTADOS_PENDIENTES;
     }
 
     public function destinatariosSeleccionables(EnfAccion $accion, string $proceso): Collection

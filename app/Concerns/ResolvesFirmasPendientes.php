@@ -6,6 +6,7 @@ use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Proyecto\Proyecto;
 use App\Models\User;
+use App\Support\Proyecto\EtapaActualFirma;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -103,24 +104,32 @@ trait ResolvesFirmasPendientes
             return [];
         }
 
-        return FirmaProyecto::query()
-            ->where('estado_revision', 'Pendiente')
-            ->whereNull('deleted_at')
-            ->whereNotNull('flujo_aprobacion_id')
-            ->whereNotNull('flujo_aprobacion_etapa_id')
-            ->whereNotNull('revision_ciclo')
-            ->where('revision_ciclo', '>=', 1)
-            ->whereNotNull('orden_revision')
-            ->whereIn('firmable_type', [Proyecto::class, DocumentoProyecto::class])
-            ->where('empleado_id', $empleadoId)
+        // Todas las firmas del recorrido se crean al enviar, así que quien
+        // revisa las últimas etapas acumula una firma Pendiente por cada
+        // expediente en curso. Antes se tomaban las 250 más recientes y luego
+        // se filtraban en PHP: pasado ese número se perdían justo las más
+        // antiguas, que son las que ya le habían llegado. Ahora la etapa
+        // actual se filtra en SQL (superconjunto del criterio de
+        // canActOnWorkflowStageFirma) y la comprobación completa solo se
+        // aplica a lo que queda.
+        $candidatas = FirmaProyecto::query()
+            ->select('firma_proyecto.*')
+            ->whereNotNull('firma_proyecto.flujo_aprobacion_id')
+            ->whereNotNull('firma_proyecto.flujo_aprobacion_etapa_id')
+            ->whereNotNull('firma_proyecto.revision_ciclo')
+            ->where('firma_proyecto.revision_ciclo', '>=', 1)
+            ->whereNotNull('firma_proyecto.orden_revision')
+            ->whereIn('firma_proyecto.firmable_type', [Proyecto::class, DocumentoProyecto::class])
+            ->where('firma_proyecto.empleado_id', $empleadoId)
             ->where(function ($query) use ($user): void {
                 $query
-                    ->whereNull('responsable_usuario_id')
-                    ->orWhere('responsable_usuario_id', $user->id);
+                    ->whereNull('firma_proyecto.responsable_usuario_id')
+                    ->orWhere('firma_proyecto.responsable_usuario_id', $user->id);
             })
-            ->where('rol_requerido', $activeRole->name)
-            ->orderBy('created_at', 'desc')
-            ->limit(250)
+            ->where('firma_proyecto.rol_requerido', $activeRole->name);
+
+        return EtapaActualFirma::filtrar($candidatas)
+            ->orderBy('firma_proyecto.created_at', 'desc')
             ->get()
             ->filter(fn (FirmaProyecto $firma): bool => $this->canActOnWorkflowStageFirma($firma, $user))
             ->pluck('id')

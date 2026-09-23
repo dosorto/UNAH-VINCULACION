@@ -145,7 +145,42 @@
                     </tr>
                 @endforeach
 
-                @if ($records->count() === 0 && $enfRevisiones->isEmpty() && $ppsRegistros->isEmpty())
+                @foreach ($pasantias as $pasantia)
+                    <tr wire:key="pasantia-{{ $pasantia->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-800">
+                        <td class="px-4 py-3 text-gray-900 dark:text-white">
+                            {{ $pasantia->nombre_estudiante ?: ($pasantia->codigo_registro ?: 'Registro de pasantía') }}
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                {{ $pasantia->codigo_registro ?: \App\Models\Pasantia::FORMULARIO.' #'.$pasantia->id }}
+                                @if ($pasantia->nombre_institucion)
+                                    · {{ $pasantia->nombre_institucion }}
+                                @endif
+                            </p>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                                {{ $pasantia->etapaActual?->rolRevisor?->name ?? 'Pasantía' }}
+                            </span>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $pasantia->etapaActual?->nombre ?? 'Etapa actual' }}</p>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300">
+                                Pendiente
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">
+                            Pasantía
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ \App\Models\Pasantia::FORMULARIO }}</p>
+                        </td>
+                        <td class="px-4 py-3">
+                            <a href="{{ route('pasantias.show', $pasantia->id) }}" wire:navigate
+                                class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                                Ver
+                            </a>
+                        </td>
+                    </tr>
+                @endforeach
+
+                @if ($records->count() === 0 && $enfRevisiones->isEmpty() && $ppsRegistros->isEmpty() && $pasantias->isEmpty())
                     <tr>
                         <td colspan="5" class="px-4 py-10 text-center text-gray-500 dark:text-gray-400">No hay proyectos por firmar.</td>
                     </tr>
