@@ -12,25 +12,25 @@
 
     .table_datos1, .table_datos2, .table_datos3, .table_datos4, .table_datos5, .table_datos6, .table_datos7, .pdf-table { border-collapse: collapse !important; margin: 0 0 1.5mm !important; table-layout: fixed !important; width: 100% !important; }
     .table_datos1 td, .table_datos1 th, .table_datos2 td, .table_datos2 th, .table_datos3 td, .table_datos3 th, .table_datos4 td, .table_datos4 th, .table_datos5 td, .table_datos5 th, .table_datos6 td, .table_datos6 th, .table_datos7 td, .table_datos7 th, .pdf-table td, .pdf-table th { border: .5pt solid #374151 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 6.85pt !important; line-height: 1.1 !important; overflow-wrap: break-word !important; padding: .85mm 1.1mm !important; vertical-align: top !important; word-break: normal !important; }
-    .table_datos1 .full-width1, .table_datos1 .header, .table_datos2 .header, .table_datos3 .header, .table_datos4 .header, .table_datos5 .header, .table_datos6 .header, .table_datos7 .header { background: #001b44 !important; color: #fff !important; font-style: normal !important; font-weight: 700 !important; text-align: center !important; vertical-align: middle !important; }
+    .table_datos1 .full-width1, .table_datos1 .header, .table_datos2 .header, .table_datos3 .header, .table_datos4 .header, .table_datos5 .header, .table_datos6 .header, .table_datos7 .header { background: #002060 !important; color: #fff !important; font-style: normal !important; font-weight: 700 !important; text-align: center !important; vertical-align: middle !important; }
     .sub-header, .sub-header1, .sub-header2, .sub-header3, .sub-header4, .sub-headeri, .sub-headert { background: #edf0f4 !important; color: #111 !important; font-style: normal !important; font-weight: 600 !important; vertical-align: middle !important; }
     .pdf-text-block, input.input-field, textarea.input-field, textarea.input-field-multiline { background: transparent !important; border: 0 !important; box-shadow: none !important; box-sizing: border-box !important; display: block !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 6.85pt !important; line-height: 1.12 !important; margin: 0 !important; min-width: 0 !important; overflow: visible !important; overflow-wrap: break-word !important; padding: 0 !important; white-space: normal !important; width: 100% !important; word-break: normal !important; }
 
     .date-cell { padding: 0 !important; }
     .date-inner-table, .execution-dates-table { border-collapse: collapse; margin: 0; table-layout: fixed; width: 100%; }
     .date-inner-table th, .date-inner-table td { border: 0 !important; border-right: .5pt solid #374151 !important; padding: .7mm !important; text-align: center; }
-    .date-inner-table th { background: #001b44; color: #fff; font-size: 6.2pt; }
+    .date-inner-table th { background: #002060; color: #fff; font-size: 6.2pt; }
     .date-inner-table th:last-child, .date-inner-table td:last-child, .execution-dates-table td:last-child { border-right: 0 !important; }
     .execution-dates-table td { border: 0 !important; border-right: .5pt solid #374151 !important; padding: 0 !important; vertical-align: middle !important; }
     .execution-date-label { background: #edf0f4; font-style: normal; padding: .8mm 1mm !important; width: 18%; }
     .execution-date-value { width: 32%; }
 
     .pdf-check { border: .7pt solid #111; display: inline-block; font-family: Arial, Helvetica, sans-serif; font-size: 7pt; font-weight: 700; height: 8pt; line-height: 7pt; margin-top: 1pt; text-align: center; vertical-align: middle; width: 8pt; }
-    .pdf-check.is-checked { color: #001b44; }
+    .pdf-check.is-checked { color: #002060; }
     .pdf-choice { line-height: 1.08; text-align: center; }
     .pdf-choice .pdf-check { margin-top: 2pt; }
     .beneficiary-summary td { text-align: center; vertical-align: middle !important; }
-    .beneficiary-summary strong { color: #001b44; display: block; font-size: 6.3pt; }
+    .beneficiary-summary strong { color: #002060; display: block; font-size: 6.3pt; }
     .beneficiary-ethnicity { border-collapse: collapse; margin: 0; table-layout: fixed; width: 100%; }
     .beneficiary-ethnicity td, .beneficiary-ethnicity th { border: .45pt solid #5d6673 !important; font-size: 6.35pt !important; padding: .65mm !important; text-align: center; }
     .beneficiary-ethnicity th { background: #edf0f4; color: #111; }
@@ -42,7 +42,11 @@
     .pdf-keep-together, .section-signatures table, .section-documents, .section-site-execution { page-break-inside: avoid !important; }
     .documents-note { border: .5pt solid #374151; border-top: 0; font-size: 6.7pt; line-height: 1.15; padding: 1mm 1.5mm; }
     .documents-note p { margin: 0 !important; }
-    .signature-image-cell { height: 28mm !important; text-align: center; vertical-align: bottom !important; }
+    /* Los 4 cuadros de firma miden lo mismo: alto fijo por fila (sello + firma de 60px c/u + leyenda caben en 40mm).
+       Selectores con .signature-table para ganarle a ".table_datos4 td { height: auto !important }" de la ficha. */
+    .signature-table td.signature-title-cell { height: 9mm !important; vertical-align: middle !important; }
+    .signature-table th.signature-caption-cell { height: 8mm !important; vertical-align: middle !important; }
+    .signature-table td.signature-image-cell { height: 40mm !important; text-align: center; vertical-align: bottom !important; }
     .signature-image-cell img { height: auto; max-height: 21mm; max-width: 42mm; width: auto; }
     .signature-digital-caption { color: #333; font-family: "Courier New", Courier, monospace !important; font-size: 6.2pt !important; line-height: 1.1 !important; margin-top: .7mm !important; text-align: center; }
     iframe, embed, .no-print, .fi-btn, .fi-modal { display: none !important; }

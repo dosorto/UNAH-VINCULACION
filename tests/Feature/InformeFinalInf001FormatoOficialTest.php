@@ -188,15 +188,15 @@ class InformeFinalInf001FormatoOficialTest extends TestCase
             'Lecciones aprendidas',
             'Buenas prácticas',
             'Problema inicial identificado',
-            'Cambios logrados con el proyecto',
-            'Objetivos de Desarrollo Sostenible',
-            'Mecanismos aplicados para garantizar la sostenibilidad',
+            'Cambios que se logró con el proyecto',
+            'Aportes a los objetivos de Desarrollo Sostenible',
+            'Descripción de los mecanismos aplicados para garantizar la sostenibilidad del proyecto',
             'Acciones ejecutadas por la contraparte',
             'Desafíos',
             'reforma universitaria',
             'Recomendaciones',
             'Bibliografía utilizada',
-            'valoración del proyecto por la comunidad beneficiada',
+            'valoración del proyecto por parte de la comunidad beneficiada',
         ] as $apartado) {
             $this->assertStringContainsString($apartado, $html, "Falta «{$apartado}» (apartado IX).");
         }
@@ -334,7 +334,7 @@ class InformeFinalInf001FormatoOficialTest extends TestCase
             );
         }
 
-        $this->assertStringContainsString('Origen de los fondos', $html, 'Falta la columna «Descripción del origen de los fondos» (apartado X).');
+        $this->assertStringContainsString('Descripción del origen de los fondos', $html, 'Falta la columna «Descripción del origen de los fondos» (apartado X).');
     }
 
     // ------------------------------------------------------------------

@@ -3,8 +3,10 @@
 
     // En pantalla la firma se sirve por URL; en el PDF se usa una ruta local
     // autorizada por el chroot de DomPDF. Toda esa lógica vive en el helper.
+    // Sello y firma van apilados dentro de un cuadro de alto fijo (ver .signature-image-cell):
+    // cada imagen se ajusta a esta caja para que los 4 cuadros midan siempre lo mismo.
     $cajaFirmaAncho = 160;
-    $cajaFirmaAlto = 90;
+    $cajaFirmaAlto = 60;
 
     $resolverRutaFirma = fn (?string $ruta) => \App\Support\Fichas\FirmaImagen::resolver($ruta, $isPdfMode);
 
@@ -26,43 +28,59 @@
     // sin importar cómo esté configurado el flujo de revisión (ver
     // ConfiguracionFlujosProyectos::CARGOS_FIRMA_FIJOS). No se calculan desde
     // las etapas configurables para que el nombre/orden nunca cambie.
+    // Una etapa puede habilitar a varias personas (todas las que tienen el rol), así que
+    // hay una fila de firma por cada candidato. El cuadro le corresponde a quien firmó:
+    // mientras nadie lo haga queda en blanco, para no mostrar como firmante a quien no firmó.
+    $firmaDelCargo = fn ($relacion) => $relacion
+        ->where('estado_revision', '!=', 'Anulado')
+        ->get()
+        ->firstWhere('estado_revision', 'Aprobado');
+
     $cuadrosFirma = [
         [
             'titulo' => 'Coordinador del proyecto por la UNAH',
-            'pie' => 'Firma del profesor/a responsable del proyecto',
-            'firma' => $proyecto->firma_coodinador_proyecto()->where('estado_revision', '!=', 'Anulado')->first(),
+            // El FORM-DVUS-015 usa "programa" en los pies de firma.
+            'pie' => 'Firma del profesor/a responsable del ' . (!empty($esVoluntariado) ? 'programa' : 'proyecto'),
+            'firma' => $firmaDelCargo($proyecto->firma_coodinador_proyecto()),
         ],
         [
             'titulo' => 'Jefe de la Unidad Académica que lidera el proyecto',
-            'pie' => 'Firma del Jefe/a de la Unidad Académica que lidera el proyecto',
-            'firma' => $proyecto->firma_proyecto_jefe()->where('estado_revision', '!=', 'Anulado')->first(),
+            'pie' => 'Firma del Jefe/a de la Unidad Académica que lidera el ' . (!empty($esVoluntariado) ? 'programa' : 'proyecto'),
+            'firma' => $firmaDelCargo($proyecto->firma_proyecto_jefe()),
         ],
         [
             'titulo' => 'Coordinador(a) del Comité de Vinculación de la Facultad o Unidad de Vinculación del Centro Regional',
             'pie' => 'Firma del coordinador del Comité Local',
-            'firma' => $proyecto->firma_proyecto_enlace()->where('estado_revision', '!=', 'Anulado')->first(),
+            'firma' => $firmaDelCargo($proyecto->firma_proyecto_enlace()),
         ],
         [
             'titulo' => 'Decano(a) o Director(a) del Centro Regional',
             'pie' => 'Firma y sello del Decano(a) o Director(a)',
-            'firma' => $proyecto->firma_proyecto_decano()->where('estado_revision', '!=', 'Anulado')->first(),
+            'firma' => $firmaDelCargo($proyecto->firma_proyecto_decano()),
         ],
     ];
 @endphp
 
-<div class="section-title">VIII. FIRMAS</div>
+<div class="section-title">{{ $tituloFirmas ?? 'VIII. FIRMAS' }}</div>
 
 @foreach (array_chunk($cuadrosFirma, 2) as $par)
-    <table class="table_datos4">
+    {{-- Anchos fijos (16% + 34% por cuadro) para que ambos cuadros de cada fila midan 50%. --}}
+    <table class="table_datos4 signature-table">
+        <colgroup>
+            @foreach ($par as $cuadro)
+                <col style="width: 16%;">
+                <col style="width: 34%;">
+            @endforeach
+        </colgroup>
         <tr>
             @foreach ($par as $cuadro)
-                <td class="sub-header" colspan="2">{{ $cuadro['titulo'] }}</td>
+                <td class="sub-header signature-title-cell" colspan="2">{{ $cuadro['titulo'] }}</td>
             @endforeach
         </tr>
         <tr>
             @foreach ($par as $cuadro)
-                <td class="full-width" colspan="1">Nombre:</td>
-                <td class="full-width" colspan="1">
+                <td class="full-width" colspan="1" width="16%">Nombre:</td>
+                <td class="full-width" colspan="1" width="34%">
                     <input disabled type="text" class="input-field"
                         placeholder="Ingrese el nombre"
                         value="{{ optional($cuadro['firma'])->empleado?->nombre_completo }}"
@@ -103,7 +121,7 @@
         </tr>
         <tr>
             @foreach ($par as $cuadro)
-                <th class="header" colspan="2">
+                <th class="header signature-caption-cell" colspan="2">
                     {{ $cuadro['pie'] }}<br>
                     <span>{{ $formatearFechaFirma(optional($cuadro['firma'])->fecha_firma) }}</span>
                 </th>

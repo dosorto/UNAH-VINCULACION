@@ -7,6 +7,7 @@ use App\Models\Proyecto\DocumentoProyecto;
 use App\Models\Proyecto\FirmaProyecto;
 use App\Models\Constancias\ConstanciaFinalizacionProyecto;
 use App\Models\User;
+use App\Support\InformeFinal\ConceptosPresupuestoInf001;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -139,26 +140,50 @@ class InformeFinalProyecto extends Model
         return round($this->subtotal_unah_base + $this->infraestructura_unah + $this->servicios_unah, 2);
     }
 
+    /** Filas UNAH con su concepto oficial del apartado X (las filas antiguas se clasifican por texto). */
+    private function filasUnahClasificadas(): \Illuminate\Support\Collection
+    {
+        return $this->presupuestoDetalles->where('fuente', 'UNAH')->map(fn ($fila) => [
+            'codigo' => ConceptosPresupuestoInf001::codigoDeFila('UNAH', $fila->concepto_codigo, $fila->concepto),
+            'total' => (float) $fila->costo_total,
+        ]);
+    }
+
+    /** Conceptos a) a j): todo el aporte UNAH excepto los costos indirectos k) y l). */
     public function getSubtotalUnahBaseAttribute(): float
     {
-        return (float) $this->presupuestoDetalles->where('fuente', 'UNAH')->reject(fn ($fila) => str_contains(mb_strtolower($fila->concepto), 'infraestructura') || str_contains(mb_strtolower($fila->concepto), 'servicio'))->sum(fn ($fila) => $fila->costo_total);
+        return round($this->filasUnahClasificadas()
+            ->reject(fn (array $fila) => ConceptosPresupuestoInf001::esIndirecto($fila['codigo']))
+            ->sum('total'), 2);
+    }
+
+    /** Base de k) y l) según el formato: sumatoria de los conceptos a) y b). */
+    public function getBaseCostosIndirectosUnahAttribute(): float
+    {
+        return round($this->filasUnahClasificadas()
+            ->filter(fn (array $fila) => in_array($fila['codigo'], ConceptosPresupuestoInf001::UNAH_BASE_INDIRECTOS, true))
+            ->sum('total'), 2);
     }
 
     public function getInfraestructuraUnahAttribute(): float
     {
-        $rows = $this->presupuestoDetalles->where('fuente', 'UNAH')->filter(fn ($fila) => str_contains(mb_strtolower($fila->concepto), 'infraestructura'));
-        return round($rows->isNotEmpty() ? $rows->sum(fn ($fila) => $fila->costo_total) : $this->subtotal_unah_base * .03, 2);
+        return round($this->base_costos_indirectos_unah * ConceptosPresupuestoInf001::TASA_COSTOS_INDIRECTOS, 2);
     }
 
     public function getServiciosUnahAttribute(): float
     {
-        $rows = $this->presupuestoDetalles->where('fuente', 'UNAH')->filter(fn ($fila) => str_contains(mb_strtolower($fila->concepto), 'servicio'));
-        return round($rows->isNotEmpty() ? $rows->sum(fn ($fila) => $fila->costo_total) : $this->subtotal_unah_base * .03, 2);
+        return round($this->base_costos_indirectos_unah * ConceptosPresupuestoInf001::TASA_COSTOS_INDIRECTOS, 2);
     }
 
     public function getTotalContraparteAttribute(): float
     {
         return (float) $this->presupuestoDetalles->where('fuente', 'CONTRAPARTE')->sum(fn ($fila) => $fila->costo_total);
+    }
+
+    /** «Total Ejecución de la contraparte» del formato: contrapartes + beneficiarios + otros aportes. */
+    public function getTotalEjecucionContraparteAttribute(): float
+    {
+        return round($this->total_contraparte + (float) $this->aporte_beneficiarios + (float) $this->otros_aportes, 2);
     }
 
     public function getEjecucionTotalAttribute(): float

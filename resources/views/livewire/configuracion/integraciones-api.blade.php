@@ -81,7 +81,7 @@
                                     <button type="button" wire:click="toggle({{ $item->id }})" class="rounded-full border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/30">{{ $item->activo ? 'Desactivar' : 'Activar' }}</button>
                                     <button type="button" wire:click="viewHistory({{ $item->id }})" class="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">Historial</button>
                                     @unless ($item->protegida)
-                                        <button type="button" wire:click="delete({{ $item->id }})" wire:confirm="¿Desea eliminar esta integración?" class="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/30">Eliminar</button>
+                                        <button type="button" x-on:click.prevent="confirmDialog('¿Desea eliminar esta integración?', { type: 'danger' }).then((ok) => ok && $wire.delete({{ $item->id }}))"  class="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/30">Eliminar</button>
                                     @endunless
                                 </div>
                             </td>

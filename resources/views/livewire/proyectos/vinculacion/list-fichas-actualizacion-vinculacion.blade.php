@@ -56,6 +56,7 @@
                 @include('components.fichas.ficha-actualizacion-proyecto-vinculacion', [
                     'fichaActualizacion' => $viewFicha,
                     'proyecto'           => $viewFicha->proyecto,
+                    'embebido'           => true,
                 ])
             </div>
             <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">

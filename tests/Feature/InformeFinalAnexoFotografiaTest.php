@@ -242,8 +242,10 @@ class InformeFinalAnexoFotografiaTest extends TestCase
     public function test_boton_quitar_no_fue_alterado(): void
     {
         $blade = file_get_contents(resource_path('views/livewire/proyectos/informe-final/edit-informe-final-proyecto.blade.php'));
-        $this->assertStringContainsString('wire:click="quitarFotografia(', $blade);
-        $this->assertStringContainsString('wire:confirm="¿Quitar esta fotografía del Informe Final?"', $blade);
+        // El botón sigue llamando al mismo método; solo cambió el confirm() del navegador
+        // por el diálogo del sistema, que llama al componente desde Alpine.
+        $this->assertStringContainsString('$wire.quitarFotografia(', $blade);
+        $this->assertStringContainsString("confirmDialog('¿Quitar esta fotografía del Informe Final?', { type: 'danger' })", $blade);
     }
 
     private function scenario(): array

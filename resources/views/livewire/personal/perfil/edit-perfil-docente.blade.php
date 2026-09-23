@@ -230,7 +230,7 @@
                                     </td>
                                     <td class="px-3 py-2">
                                         @if ($codigo->estado_verificacion === 'pendiente')
-                                            <button x-on:click.prevent="confirmDialog('¿Eliminar este código?', { type: 'danger' }).then((ok) => ok && $wire.eliminarCodigo({{ $codigo->id }}))" type="button"
+                                            <button type="button" x-on:click.prevent="confirmDialog('¿Eliminar este código?', { type: 'danger' }).then((ok) => ok && $wire.eliminarCodigo({{ $codigo->id }}))" type="button"
                                                 class="px-2 py-1 text-xs rounded-md bg-red-600 text-white hover:bg-red-700">
                                                 Eliminar
                                             </button>
